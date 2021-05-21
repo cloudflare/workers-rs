@@ -4,19 +4,13 @@ use edgeworker_sys::{
     Cf, Request as EdgeRequest, Response as EdgeResponse, ResponseInit as EdgeResponseInit,
 };
 use js_sys::JsString;
-use serde::Serialize;
+use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
 use wasm_bindgen::JsValue;
 
 pub use worker_kv as kv;
 
 pub type Result<T> = StdResult<T, Error>;
-pub struct Request {
-    method: Method,
-    path: String,
-    cf: Cf,
-    event_type: String,
-}
 
 #[derive(Serialize)]
 pub struct Schedule {
@@ -49,6 +43,15 @@ impl From<(String, u64, String)> for Schedule {
     }
 }
 
+pub struct Request {
+    method: Method,
+    path: String,
+    cf: Cf,
+    event_type: String,
+    edge_request: EdgeRequest,
+    body_used: bool,
+}
+
 impl From<(String, EdgeRequest)> for Request {
     fn from(req: (String, EdgeRequest)) -> Self {
         Self {
@@ -56,11 +59,47 @@ impl From<(String, EdgeRequest)> for Request {
             path: Url::parse(&EdgeRequest::url(&req.1)).unwrap().path().into(),
             cf: EdgeRequest::cf(&req.1),
             event_type: req.0,
+            edge_request: req.1,
+            body_used: false,
         }
     }
 }
 
 impl Request {
+    pub async fn json<B: DeserializeOwned>(&mut self) -> Result<B> {
+        if !self.body_used {
+            self.body_used = true;
+            return wasm_bindgen_futures::JsFuture::from(EdgeRequest::json(&self.edge_request)?)
+                .await
+                .map(|val| val.into_serde().unwrap())
+                .map_err(|e| {
+                    Error::JsError(
+                        e.as_string()
+                            .unwrap_or_else(|| "failed to get JSON for body value".into()),
+                    )
+                });
+        }
+
+        Err(Error::BodyUsed)
+    }
+
+    pub async fn text(&mut self) -> Result<String> {
+        if !self.body_used {
+            self.body_used = true;
+            return wasm_bindgen_futures::JsFuture::from(EdgeRequest::text(&self.edge_request)?)
+                .await
+                .map(|val| val.as_string().unwrap())
+                .map_err(|e| {
+                    Error::JsError(
+                        e.as_string()
+                            .unwrap_or_else(|| "failed to get text for body value".into()),
+                    )
+                });
+        }
+
+        Err(Error::BodyUsed)
+    }
+
     pub fn cf(&self) -> Cf {
         self.cf.clone()
     }
@@ -201,6 +240,7 @@ impl From<String> for Redirect {
 }
 
 pub enum Error {
+    BodyUsed,
     Json((String, u16)),
     JsError(String),
     Internal(JsValue),
@@ -209,6 +249,7 @@ pub enum Error {
 impl ToString for Error {
     fn to_string(&self) -> String {
         match self {
+            Error::BodyUsed => "request body has already been read".into(),
             Error::Json((msg, status)) => format!("{} (status: {})", msg, status),
             Error::JsError(s) => s.clone(),
             Error::Internal(v) => JsString::from(v.clone()).into(),

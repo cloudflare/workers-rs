@@ -13,4 +13,5 @@ serde = { version = "1.0.126", features = ["derive"] }
 serde_json = "1.0.64"
 url = "2.2.2"
 wasm-bindgen = "=0.2.74"
+wasm-bindgen-futures = "0.4.24"
 worker-kv = "0.2.0"

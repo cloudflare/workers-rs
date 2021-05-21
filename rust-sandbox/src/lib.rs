@@ -1,17 +1,19 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use worker::{kv::KvStore, Method, Request, Response, Result, Schedule};
 
 mod utils;
 
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize)]
 struct MyData {
     message: String,
+    #[serde(default)]
     is: bool,
+    #[serde(default)]
     data: Vec<u8>,
 }
 
 #[cf::worker(fetch)]
-pub async fn main(req: Request) -> Result<Response> {
+pub async fn main(mut req: Request) -> Result<Response> {
     utils::set_panic_hook();
 
     match (req.method(), req.path().as_str()) {
@@ -24,7 +26,14 @@ pub async fn main(req: Request) -> Result<Response> {
             );
             Response::ok(Some(msg))
         }
-        (Method::Post, "/") => Response::ok(Some("POST /".into())),
+        (Method::Post, "/") => {
+            let data: MyData = req.json().await?;
+            Response::ok(Some(format!("[POST /] message = {}", data.message)))
+        }
+        (Method::Post, "/read-text") => Response::ok(Some(format!(
+            "[POST /read-text] text = {}",
+            req.text().await?
+        ))),
         (_, "/json") => Response::json(&MyData {
             message: "hello!".into(),
             is: true,
@@ -67,7 +76,7 @@ pub async fn job(s: Schedule) -> Result<()> {
         .expect("fail to build KV put operation")
         .execute()
         .await
-        .map_err(|e| e.into())
+        .map_err(worker::Error::from)
 
     // s.time() = 1621579157181, s.cron() = "15 * * * *", s.event_type() == "scheduled";
 }
