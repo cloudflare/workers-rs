@@ -12,6 +12,14 @@ pub use worker_kv as kv;
 
 pub type Result<T> = StdResult<T, Error>;
 
+pub mod prelude {
+    pub use crate::Method;
+    pub use crate::Request;
+    pub use crate::Response;
+    pub use crate::Result;
+    pub use crate::Schedule;
+}
+
 #[derive(Serialize)]
 pub struct Schedule {
     event_type: String,

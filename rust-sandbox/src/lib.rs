@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use worker::{kv::KvStore, Method, Request, Response, Result, Schedule};
+use worker::{kv::KvStore, prelude::*};
 
 mod utils;
 
