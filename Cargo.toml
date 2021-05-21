@@ -1,0 +1,2 @@
+[workspace]
+members = ["edgeworker-sys", "macros/cf", "rust-sandbox", "worker"]

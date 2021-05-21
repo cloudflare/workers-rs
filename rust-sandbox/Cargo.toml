@@ -1,0 +1,28 @@
+[package]
+name = "rust-sandbox"
+version = "0.1.0"
+authors = ["Steve Manuel <nilslice@gmail.com>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
+
+[dependencies]
+cfg-if = "0.1.2"
+console_error_panic_hook = { version = "0.1.1", optional = true }
+wee_alloc = { version = "0.4.2", optional = true }
+cf = { path = "../macros/cf" }
+edgeworker-sys = { path = "../edgeworker-sys" }
+serde = { version = "1.0.126", features = ["derive"] }
+worker = { path = "../worker" }
+wasm-bindgen = "=0.2.74" 
+wasm-bindgen-futures = "0.4.24"
+worker-kv = "0.2.0"
+
+[dev-dependencies]
+wasm-bindgen-test = "0.2"
+
+[profile.release]
+# Tell `rustc` to optimize for small code size.
+opt-level = "s"
