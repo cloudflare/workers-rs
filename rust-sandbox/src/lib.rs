@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use worker::{kv::KvStore, prelude::*, Router};
+use worker::fetch_with_str;
 
 mod utils;
 
@@ -75,7 +76,23 @@ pub async fn main(req: Request) -> Result<Response> {
         )))
     })?;
 
-    router.run(req)
+    // Router currently only supports synchronous functions as callbacks.
+    match (req.method(), req.path().as_str()) {
+        (_, "/fetch") => {
+            let resp = fetch_with_str("https://example.com/test.txt").await;
+            return match resp {
+                Ok(r) => {
+                    if r.status() == 200 {
+                        Response::ok(Some("test".into()))
+                    } else {
+                        Response::error("failed".into(), r.status())
+                    }
+                }
+                Err(_e) => Response::error("failed".into(), 500),
+            };
+        },
+        _ => router.run(req)
+    }
 
     // match (req.method(), req.path().as_str()) {
     //     (Method::Get, "/") => {

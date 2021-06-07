@@ -14,8 +14,8 @@ Response = []
 Headers = []
 ReadableStream = []
 RequestRedirect = []
-ResponseInit = []
 RequestInit = []
+ResponseInit = []
 
 
 [dependencies]

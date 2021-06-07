@@ -2,6 +2,8 @@ mod headers;
 
 use std::result::Result as StdResult;
 
+mod global;
+
 use edgeworker_sys::{
     Cf, Request as EdgeRequest, Response as EdgeResponse, ResponseInit as EdgeResponseInit,
 };
@@ -13,6 +15,8 @@ use wasm_bindgen::JsValue;
 
 pub use crate::headers::Headers;
 use web_sys::RequestInit;
+pub use global::fetch_with_str;
+
 pub use worker_kv as kv;
 
 pub type Result<T> = StdResult<T, Error>;
@@ -363,6 +367,16 @@ impl From<Response> for EdgeResponse {
         .unwrap()
 
         // TODO: add logging, ideally using the log crate facade over the wasm_bindgen console.log
+    }
+}
+
+impl From<EdgeResponse> for Response {
+    fn from(res: EdgeResponse) -> Self {
+        Self {
+            body: None,
+            headers: Headers::new(),
+            status_code: res.status(),
+        }
     }
 }
 
