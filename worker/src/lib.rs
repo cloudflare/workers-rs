@@ -1,11 +1,13 @@
 mod headers;
 
+use std::collections::HashMap;
 use std::result::Result as StdResult;
 
 use edgeworker_sys::{
     Cf, Request as EdgeRequest, Response as EdgeResponse, ResponseInit as EdgeResponseInit,
 };
-use js_sys::JsString;
+use js_sys::{Date as JsDate, JsString};
+use matchit::{InsertError, Node, Params};
 use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
 use wasm_bindgen::JsValue;
@@ -23,7 +25,105 @@ pub mod prelude {
     pub use crate::Response;
     pub use crate::Result;
     pub use crate::Schedule;
+    pub use crate::{Date, DateInit};
+    pub use matchit::Params;
     pub use web_sys::RequestInit;
+}
+
+#[derive(Debug)]
+pub struct Date {
+    js_date: JsDate,
+}
+
+pub enum DateInit {
+    Millis(u64),
+    String(String),
+}
+
+impl Date {
+    pub fn new(init: DateInit) -> Self {
+        let val = match init {
+            DateInit::Millis(n) => JsValue::from_f64(n as f64),
+            DateInit::String(s) => JsValue::from_str(&s),
+        };
+
+        Self {
+            js_date: JsDate::new(&val),
+        }
+    }
+
+    pub fn now() -> Self {
+        Self {
+            js_date: JsDate::new_0(),
+        }
+    }
+
+    pub fn as_millis(&self) -> u64 {
+        self.js_date.get_time() as u64
+    }
+}
+
+impl ToString for Date {
+    fn to_string(&self) -> String {
+        self.js_date.to_string().into()
+    }
+}
+
+pub type HandlerFn = fn(Request, Params) -> Result<Response>;
+
+pub struct Router {
+    handlers: HashMap<Method, matchit::Node<HandlerFn>>,
+}
+
+impl Router {
+    pub fn new() -> Self {
+        Default::default()
+    }
+
+    pub fn get(&mut self, pattern: &str, func: HandlerFn) -> Result<()> {
+        self.add_handler(pattern, func, vec![Method::Get])
+    }
+
+    pub fn post(&mut self, pattern: &str, func: HandlerFn) -> Result<()> {
+        self.add_handler(pattern, func, vec![Method::Post])
+    }
+
+    pub fn on(&mut self, pattern: &str, func: HandlerFn) -> Result<()> {
+        self.add_handler(pattern, func, Method::all())
+    }
+
+    fn add_handler(&mut self, pattern: &str, func: HandlerFn, methods: Vec<Method>) -> Result<()> {
+        for method in methods {
+            if let Some(handlers_for_method) = self.handlers.get_mut(&method) {
+                handlers_for_method.insert(pattern, func)?;
+            } else {
+                let mut handlers_for_method = Node::new();
+                handlers_for_method.insert(pattern, func)?;
+                self.handlers.insert(method, handlers_for_method);
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn run(&self, req: Request) -> Result<Response> {
+        if let Some(method_handlers) = self.handlers.get(&req.method()) {
+            if let Ok(handler) = method_handlers.at(&req.path()) {
+                return (handler.value)(req, handler.params);
+            }
+            return Response::error("Not Found".into(), 404);
+        }
+
+        Response::error("Method Not Allowed".into(), 405)
+    }
+}
+
+impl Default for Router {
+    fn default() -> Self {
+        Self {
+            handlers: HashMap::default(),
+        }
+    }
 }
 
 #[derive(Serialize)]
@@ -151,7 +251,7 @@ impl Request {
     }
 
     pub fn method(&self) -> Method {
-        self.method
+        self.method.clone()
     }
 
     pub fn path(&self) -> String {
@@ -280,7 +380,7 @@ impl From<ResponseInit> for EdgeResponseInit {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone, PartialEq, Hash, Eq)]
 pub enum Method {
     Head,
     Get,
@@ -291,6 +391,22 @@ pub enum Method {
     Options,
     Connect,
     Trace,
+}
+
+impl Method {
+    pub fn all() -> Vec<Method> {
+        vec![
+            Method::Head,
+            Method::Get,
+            Method::Post,
+            Method::Put,
+            Method::Patch,
+            Method::Delete,
+            Method::Options,
+            Method::Connect,
+            Method::Trace,
+        ]
+    }
 }
 
 impl From<String> for Method {
@@ -328,7 +444,7 @@ impl From<Method> for String {
 
 impl ToString for Method {
     fn to_string(&self) -> String {
-        (*self).into()
+        (*self).clone().into()
     }
 }
 
@@ -355,6 +471,7 @@ pub enum Error {
     Json((String, u16)),
     JsError(String),
     Internal(JsValue),
+    RouteInsertError(matchit::InsertError),
 }
 
 impl std::fmt::Display for Error {
@@ -367,6 +484,7 @@ impl std::fmt::Display for Error {
                 let s: String = JsString::from(v.clone()).into();
                 write!(f, "{}", s)
             }
+            Error::RouteInsertError(e) => write!(f, "failed to insert route: {}", e),
         }
     }
 }
@@ -385,5 +503,11 @@ impl From<JsValue> for Error {
 impl From<Error> for JsValue {
     fn from(e: Error) -> Self {
         JsValue::from_str(&e.to_string())
+    }
+}
+
+impl From<InsertError> for Error {
+    fn from(e: InsertError) -> Self {
+        Error::RouteInsertError(e)
     }
 }
