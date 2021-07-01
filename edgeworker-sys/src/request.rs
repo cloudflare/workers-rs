@@ -17,7 +17,7 @@ extern "C" {
     #[cfg(feature = "Headers")]
     #[wasm_bindgen(structural, method, getter, js_class=Request, js_name=headers)]
     // #[doc = "*This API requires the following crate features to be activated: `Headers`, `Request`*"]
-    pub fn headers(this: &Request) -> web_sys::Headers;
+    pub fn headers(this: &Request) -> crate::headers::Headers;
 
     #[cfg(feature = "RequestRedirect")]
     #[wasm_bindgen(structural, method, getter, js_class=Request, js_name=redirect)]

@@ -26,6 +26,13 @@ pub async fn main(mut req: Request) -> Result<Response> {
             );
             Response::ok(Some(msg))
         }
+        (Method::Get, "/headers") => {
+            let msg = req.headers().into_iter()
+                .fold(String::new(), |string, (name, value)| {
+                    string + &format!("{}: {}\n", name, value)
+                });
+            Response::ok(Some(msg))
+        }
         (Method::Post, "/") => {
             let data: MyData = req.json().await?;
             Response::ok(Some(format!("[POST /] message = {}", data.message)))

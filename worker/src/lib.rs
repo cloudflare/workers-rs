@@ -1,9 +1,9 @@
-use std::result::Result as StdResult;
+use std::{iter::Map, result::Result as StdResult};
 
 use edgeworker_sys::{
-    Cf, Request as EdgeRequest, Response as EdgeResponse, ResponseInit as EdgeResponseInit,
+    Cf, Request as EdgeRequest, Response as EdgeResponse, ResponseInit as EdgeResponseInit, Headers as EdgeHeaders
 };
-use js_sys::JsString;
+use js_sys::{Array, JsString};
 use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
 use wasm_bindgen::JsValue;
@@ -51,9 +51,63 @@ impl From<(String, u64, String)> for Schedule {
     }
 }
 
+pub struct Headers (EdgeHeaders);
+
+impl Headers {
+    pub fn get(&self, name: &str) -> Option<String> {
+        self.0.get(name).unwrap()
+    }
+
+    pub fn has(&self, name: &str) -> bool {
+        self.0.has(name).unwrap()
+    }
+
+    pub fn append(&mut self, name: &str, value: &str) {
+        self.0.append(name, value).unwrap()
+    }
+
+    pub fn set(&mut self, name: &str, value: &str) {
+        self.0.set(name, value).unwrap()
+    }
+
+    pub fn delete(&mut self, name: &str) {
+        self.0.delete(name).unwrap()
+    }
+
+    pub fn entries(&self) -> HeaderIterator {
+        self.0.entries().unwrap().into_iter()
+            .map((|a| a.unwrap().into()) as F1)
+            .map(|a: Array| (a.get(0).as_string().unwrap(), a.get(1).as_string().unwrap()))
+    }
+
+    pub fn keys(&self) -> impl Iterator<Item = String> {
+        self.0.keys().unwrap().into_iter()
+            .map(|a| a.unwrap().as_string().unwrap())
+    }
+
+    pub fn values(&self) -> impl Iterator<Item = String> {
+        self.0.values().unwrap().into_iter()
+            .map(|a| a.unwrap().as_string().unwrap())
+    }
+}
+
+type F1 = fn(StdResult<JsValue, JsValue>) -> Array;
+type HeaderIterator = Map<Map<js_sys::IntoIter, F1>, fn(Array) -> (String, String)>;
+
+impl IntoIterator for &Headers {
+    type Item = (String, String);
+
+    type IntoIter = HeaderIterator;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.entries()
+    }
+}
+
 pub struct Request {
     method: Method,
     path: String,
+    headers: Headers,
     cf: Cf,
     event_type: String,
     edge_request: EdgeRequest,
@@ -63,9 +117,10 @@ pub struct Request {
 impl From<(String, EdgeRequest)> for Request {
     fn from(req: (String, EdgeRequest)) -> Self {
         Self {
-            method: EdgeRequest::method(&req.1).into(),
-            path: Url::parse(&EdgeRequest::url(&req.1)).unwrap().path().into(),
-            cf: EdgeRequest::cf(&req.1),
+            method: req.1.method().into(),
+            path: Url::parse(&req.1.url()).unwrap().path().into(),
+            headers: Headers (req.1.headers()),
+            cf: req.1.cf(),
             event_type: req.0,
             edge_request: req.1,
             body_used: false,
@@ -106,6 +161,14 @@ impl Request {
         }
 
         Err(Error::BodyUsed)
+    }
+
+    pub fn headers(&self) -> &Headers {
+        &self.headers
+    }
+
+    pub fn headers_mut(&mut self) -> &mut Headers {
+        &mut self.headers
     }
 
     pub fn cf(&self) -> Cf {
