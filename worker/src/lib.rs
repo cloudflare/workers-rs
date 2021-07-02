@@ -1,4 +1,4 @@
-use std::{iter::Map, result::Result as StdResult};
+use std::{iter::{FromIterator, Map}, ops::Deref, result::Result as StdResult};
 
 use edgeworker_sys::{
     Cf, Request as EdgeRequest, Response as EdgeResponse, ResponseInit as EdgeResponseInit, Headers as EdgeHeaders
@@ -53,7 +53,12 @@ impl From<(String, u64, String)> for Schedule {
 
 pub struct Headers (EdgeHeaders);
 
+#[allow(clippy::new_without_default)]
 impl Headers {
+    pub fn new() -> Self {
+        Headers (EdgeHeaders::new().unwrap())
+    }
+
     pub fn get(&self, name: &str) -> Option<String> {
         self.0.get(name).unwrap()
     }
@@ -101,6 +106,30 @@ impl IntoIterator for &Headers {
 
     fn into_iter(self) -> Self::IntoIter {
         self.entries()
+    }
+}
+
+impl <T: Deref<Target=str>> FromIterator<(T, T)> for Headers {
+    fn from_iter<U: IntoIterator<Item = (T, T)>>(iter: U) -> Self {
+        let mut headers = Headers::new();
+        for (name, value) in iter {
+            headers.set(&name, &value);
+        }
+        headers
+    }
+}
+
+impl <'a, T: Deref<Target=str>> FromIterator<&'a (T, T)> for Headers {
+    fn from_iter<U: IntoIterator<Item = &'a (T, T)>>(iter: U) -> Self {
+        let mut headers = Headers::new();
+        iter.into_iter().for_each(|(name, value)| {headers.set(name, value)});
+        headers
+    }
+}
+
+impl Clone for Headers {
+    fn clone(&self) -> Self {
+        Headers (EdgeHeaders::new_with_headers(&self.0).unwrap())
     }
 }
 
@@ -167,8 +196,8 @@ impl Request {
         &self.headers
     }
 
-    pub fn headers_mut(&mut self) -> &mut Headers {
-        &mut self.headers
+    pub fn set_headers(&mut self, headers: Headers) {
+        self.headers = headers
     }
 
     pub fn cf(&self) -> Cf {
@@ -190,6 +219,7 @@ impl Request {
 
 pub struct Response {
     body: Option<String>,
+    headers: Headers,
     status_code: u16,
 }
 
@@ -198,6 +228,7 @@ impl Response {
         if let Ok(data) = serde_json::to_string(value) {
             return Ok(Self {
                 body: Some(data),
+                headers: Headers::new(),
                 status_code: 200,
             });
         }
@@ -207,22 +238,37 @@ impl Response {
     pub fn ok(body: Option<String>) -> Result<Self> {
         Ok(Self {
             body,
+            headers: Headers::new(),
             status_code: 200,
         })
     }
-
     pub fn empty() -> Result<Self> {
         Ok(Self {
             body: None,
+            headers: Headers::new(),
             status_code: 200,
         })
     }
-
     pub fn error(msg: String, status: u16) -> Result<Self> {
         Ok(Self {
             body: Some(msg),
+            headers: Headers::new(),
             status_code: status,
         })
+    }
+
+    pub fn with_headers(mut self, headers: Headers) -> Self {
+        self.headers = headers;
+        self
+    }
+    pub fn set_headers(&mut self, headers: Headers) {
+        self.headers = headers
+    }
+    pub fn headers(&self) -> &Headers {
+        &self.headers
+    }
+    pub fn headers_mut(&mut self) -> &mut Headers {
+        &mut self.headers
     }
 }
 
@@ -236,6 +282,7 @@ impl From<Response> for EdgeResponse {
             res.body.as_deref(),
             &ResponseInit {
                 status: res.status_code,
+                headers: res.headers
             }
             .into(),
         )
@@ -254,12 +301,14 @@ impl From<worker_kv::KvError> for Error {
 
 pub struct ResponseInit {
     pub status: u16,
+    pub headers: Headers
 }
 
 impl From<ResponseInit> for EdgeResponseInit {
     fn from(init: ResponseInit) -> Self {
         let mut edge_init = EdgeResponseInit::new();
         edge_init.status(init.status);
+        edge_init.headers(&init.headers.0);
         edge_init
     }
 }
