@@ -196,10 +196,6 @@ impl Request {
         &self.headers
     }
 
-    pub fn set_headers(&mut self, headers: Headers) {
-        self.headers = headers
-    }
-
     pub fn cf(&self) -> Cf {
         self.cf.clone()
     }
@@ -261,12 +257,15 @@ impl Response {
         self.headers = headers;
         self
     }
+
     pub fn set_headers(&mut self, headers: Headers) {
         self.headers = headers
     }
+
     pub fn headers(&self) -> &Headers {
         &self.headers
     }
+    
     pub fn headers_mut(&mut self) -> &mut Headers {
         &mut self.headers
     }
