@@ -28,9 +28,9 @@ pub async fn main(mut req: Request) -> Result<Response> {
         }
         (Method::Get, "/headers") => {
             let msg = req.headers().into_iter()
-                .fold(String::new(), |string, (name, value)| {
-                    string + &format!("{}: {}\n", name, value)
-                });
+                .map(|(name, value)| {
+                    format!("{}: {}\n", name, value)
+                }).collect();
             let mut headers: worker::Headers = [("Content-Type", "application/json"), ("Set-Cookie", "hello=true")].iter().collect();
             headers.append("Set-Cookie", "world=true");
             Response::ok(Some(msg)).map(|res| res.with_headers(headers))
