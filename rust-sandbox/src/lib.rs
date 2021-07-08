@@ -31,6 +31,14 @@ pub async fn main(req: Request) -> Result<Response> {
     let mut router = Router::new();
 
     router.get("/request", handle_a_request)?;
+    router.post("/headers", |req, _| {
+        let mut headers: http::HeaderMap = req.headers().into();
+        headers.append("Hello", "World!".parse().unwrap());
+
+        // TODO: make api for Response new and mut to add headers
+        Response::ok(Some("returned your headers to you.".into()))
+            .map(|res| res.with_headers(headers.into()))
+    })?;
 
     router.on("/user/:id/test", |req, params| {
         if !matches!(req.method(), Method::Get) {

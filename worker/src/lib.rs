@@ -1,13 +1,12 @@
 mod headers;
 
-use std::collections::HashMap;
 use std::result::Result as StdResult;
 
 use edgeworker_sys::{
     Cf, Request as EdgeRequest, Response as EdgeResponse, ResponseInit as EdgeResponseInit,
 };
 use js_sys::{Date as JsDate, JsString};
-use matchit::{InsertError, Node, Params};
+use matchit::{InsertError, Match, Node, Params};
 use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
 use wasm_bindgen::JsValue;
@@ -70,9 +69,10 @@ impl ToString for Date {
 }
 
 pub type HandlerFn = fn(Request, Params) -> Result<Response>;
+pub type HandlerSet = [Option<HandlerFn>; 9];
 
 pub struct Router {
-    handlers: HashMap<Method, matchit::Node<HandlerFn>>,
+    handlers: matchit::Node<HandlerSet>,
 }
 
 impl Router {
@@ -93,35 +93,42 @@ impl Router {
     }
 
     fn add_handler(&mut self, pattern: &str, func: HandlerFn, methods: Vec<Method>) -> Result<()> {
-        for method in methods {
-            if let Some(handlers_for_method) = self.handlers.get_mut(&method) {
-                handlers_for_method.insert(pattern, func)?;
-            } else {
-                let mut handlers_for_method = Node::new();
-                handlers_for_method.insert(pattern, func)?;
-                self.handlers.insert(method, handlers_for_method);
+        // Did some testing and it appears as though a pattern can always match itself
+        // i.e. the path "/user/:id" will always match the pattern "/user/:id"
+        if let Ok(Match {
+            value: handler_set,
+            params: _,
+        }) = self.handlers.at_mut(pattern)
+        {
+            for method in methods {
+                handler_set[method as usize] = Some(func);
             }
+        } else {
+            let mut handler_set = [None; 9];
+            for method in methods {
+                handler_set[method as usize] = Some(func);
+            }
+            self.handlers.insert(pattern, handler_set)?;
         }
 
         Ok(())
     }
 
     pub fn run(&self, req: Request) -> Result<Response> {
-        if let Some(method_handlers) = self.handlers.get(&req.method()) {
-            if let Ok(handler) = method_handlers.at(&req.path()) {
-                return (handler.value)(req, handler.params);
+        if let Ok(Match { value, params }) = self.handlers.at(&req.path()) {
+            if let Some(handler) = value[req.method() as usize] {
+                return (handler)(req, params);
             }
-            return Response::error("Not Found".into(), 404);
+            return Response::error("Method Not Allowed".into(), 405);
         }
-
-        Response::error("Method Not Allowed".into(), 405)
+        Response::error("Not Found".into(), 404)
     }
 }
 
 impl Default for Router {
     fn default() -> Self {
         Self {
-            handlers: HashMap::default(),
+            handlers: Node::new(),
         }
     }
 }
@@ -382,7 +389,7 @@ impl From<ResponseInit> for EdgeResponseInit {
 
 #[derive(Debug, Clone, PartialEq, Hash, Eq)]
 pub enum Method {
-    Head,
+    Head = 0,
     Get,
     Post,
     Put,
