@@ -1,5 +1,3 @@
 **/target
 Cargo.lock
 .DS_Store
-rust-sandbox/wrangler.toml
-rust-sandbox/worker/generated/script.js
