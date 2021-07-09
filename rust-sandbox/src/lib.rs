@@ -27,12 +27,17 @@ pub async fn main(mut req: Request) -> Result<Response> {
             Response::ok(Some(msg))
         }
         (Method::Get, "/headers") => {
+            for (_, value) in req.headers() {
+                if &value == "evil value" {
+                    return Response::error("stop that!".into(), 400);
+                }
+            }
             let msg = req.headers().into_iter()
                 .map(|(name, value)| {
                     format!("{}: {}\n", name, value)
                 }).collect();
             let mut headers: worker::Headers = [("Content-Type", "application/json"), ("Set-Cookie", "hello=true")].iter().collect();
-            headers.append("Set-Cookie", "world=true");
+            headers.append("Set-Cookie", "world=true")?;
             Response::ok(Some(msg)).map(|res| res.with_headers(headers))
         }
         (Method::Post, "/") => {

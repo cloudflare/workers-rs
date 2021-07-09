@@ -15,4 +15,7 @@ url = "2.2.2"
 wasm-bindgen = "=0.2.74"
 wasm-bindgen-futures = "0.4.24"
 worker-kv = "0.2.0"
-web-sys = "0.3.51"
+web-sys = { version = "0.3.51", features = ["console"] }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3.24"

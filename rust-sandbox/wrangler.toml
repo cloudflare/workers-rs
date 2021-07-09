@@ -1,14 +1,14 @@
 name = "rust-sandbox"
 type = "rust"
 
-account_id = "5406d7f04742826e32dc6a7a787100a0"
+account_id = "d0d2b2b8a4d43013cbb198f9ff7a23a9"
 workers_dev = true
 route = ""
 zone_id = ""
 
-kv_namespaces = [ 
-         { binding = "JOB_LOG", id = "cd15a9f2f6564a4f8f0736cb3da7d705" }
-]
+# kv_namespaces = [ 
+#          { binding = "JOB_LOG", id = "cd15a9f2f6564a4f8f0736cb3da7d705" }
+# ]
 
-[triggers]
-crons = ["* * * * *"]
+# [triggers]
+# crons = ["* * * * *"]
