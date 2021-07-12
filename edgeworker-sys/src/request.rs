@@ -17,7 +17,7 @@ extern "C" {
     #[cfg(feature = "Headers")]
     #[wasm_bindgen(structural, method, getter, js_class=Request, js_name=headers)]
     // #[doc = "*This API requires the following crate features to be activated: `Headers`, `Request`*"]
-    pub fn headers(this: &Request) -> web_sys::Headers;
+    pub fn headers(this: &Request) -> crate::headers::Headers;
 
     #[cfg(feature = "RequestRedirect")]
     #[wasm_bindgen(structural, method, getter, js_class=Request, js_name=redirect)]
@@ -48,13 +48,16 @@ extern "C" {
     // #[doc = "*This API requires the following crate features to be activated: `Request`, `RequestInit`*"]
     pub fn new_with_request_and_init(
         input: &Request,
-        init: &RequestInit,
+        init: &web_sys::RequestInit,
     ) -> Result<Request, JsValue>;
 
     #[cfg(feature = "RequestInit")]
     #[wasm_bindgen(catch, constructor, js_class=Request)]
     // #[doc = "*This API requires the following crate features to be activated: `Request`, `RequestInit`*"]
-    pub fn new_with_str_and_init(input: &str, init: &RequestInit) -> Result<Request, JsValue>;
+    pub fn new_with_str_and_init(
+        input: &str,
+        init: &web_sys::RequestInit,
+    ) -> Result<Request, JsValue>;
 
     #[wasm_bindgen(catch, method, structural, js_class=Request, js_name=clone)]
     // #[doc = "*This API requires the following crate features to be activated: `Request`*"]

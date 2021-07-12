@@ -1,7 +1,7 @@
 name = "rust-sandbox"
 type = "rust"
 
-account_id = "5406d7f04742826e32dc6a7a787100a0"
+account_id = ""
 workers_dev = true
 route = ""
 zone_id = ""
