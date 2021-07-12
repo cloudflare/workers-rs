@@ -1,12 +1,14 @@
 use std::{
     iter::{FromIterator, Map},
     result::Result as StdResult,
+    str::FromStr,
 };
 
 use edgeworker_sys::{
     Cf, Headers as EdgeHeaders, Request as EdgeRequest, Response as EdgeResponse,
     ResponseInit as EdgeResponseInit,
 };
+use http::{header::HeaderName, HeaderMap, HeaderValue};
 use js_sys::{Array, JsString};
 use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
@@ -143,7 +145,7 @@ impl<T: AsRef<str>> FromIterator<(T, T)> for Headers {
     fn from_iter<U: IntoIterator<Item = (T, T)>>(iter: U) -> Self {
         let mut headers = Headers::new();
         iter.into_iter().for_each(|(name, value)| {
-            headers.set(name.as_ref(), value.as_ref()).ok();
+            headers.append(name.as_ref(), value.as_ref()).ok();
         });
         headers
     }
@@ -153,7 +155,7 @@ impl<'a, T: AsRef<str>> FromIterator<&'a (T, T)> for Headers {
     fn from_iter<U: IntoIterator<Item = &'a (T, T)>>(iter: U) -> Self {
         let mut headers = Headers::new();
         iter.into_iter().for_each(|(name, value)| {
-            headers.set(name.as_ref(), value.as_ref()).ok();
+            headers.append(name.as_ref(), value.as_ref()).ok();
         });
         headers
     }
@@ -162,6 +164,44 @@ impl<'a, T: AsRef<str>> FromIterator<&'a (T, T)> for Headers {
 impl AsRef<JsValue> for Headers {
     fn as_ref(&self) -> &JsValue {
         &self.0
+    }
+}
+
+impl From<&HeaderMap> for Headers {
+    fn from(map: &HeaderMap) -> Self {
+        map.keys()
+            .flat_map(|name| {
+                map.get_all(name)
+                    .into_iter()
+                    .map(move |value| (name.to_string(), value.to_str().unwrap().to_owned()))
+            })
+            .collect()
+    }
+}
+
+impl From<HeaderMap> for Headers {
+    fn from(map: HeaderMap) -> Self {
+        (&map).into()
+    }
+}
+
+impl From<&Headers> for HeaderMap {
+    fn from(headers: &Headers) -> Self {
+        headers
+            .into_iter()
+            .map(|(name, value)| {
+                (
+                    HeaderName::from_str(&name).unwrap(),
+                    HeaderValue::from_str(&value).unwrap(),
+                )
+            })
+            .collect()
+    }
+}
+
+impl From<Headers> for HeaderMap {
+    fn from(headers: Headers) -> Self {
+        (&headers).into()
     }
 }
 

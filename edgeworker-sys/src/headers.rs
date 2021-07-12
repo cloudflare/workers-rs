@@ -8,7 +8,7 @@ extern "C" {
 
     #[wasm_bindgen(catch, constructor, js_class = "Headers")]
     pub fn new() -> Result<Headers, JsValue>;
-    
+
     #[wasm_bindgen(catch, constructor, js_class = "Headers")]
     pub fn new_with_headers(init: &Headers) -> Result<Headers, JsValue>;
 
