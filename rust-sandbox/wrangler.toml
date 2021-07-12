@@ -1,4 +1,4 @@
-name = "rust-sandbox"
+name = "rust-sandbox-router"
 type = "rust"
 
 account_id = ""
@@ -6,9 +6,9 @@ workers_dev = true
 route = ""
 zone_id = ""
 
-kv_namespaces = [ 
-         { binding = "JOB_LOG", id = "cd15a9f2f6564a4f8f0736cb3da7d705" }
-]
+# kv_namespaces = [ 
+#          { binding = "JOB_LOG", id = "cd15a9f2f6564a4f8f0736cb3da7d705" }
+# ]
 
-[triggers]
-crons = ["* * * * *"]
+# [triggers]
+# crons = ["* * * * *"]
