@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use worker::{kv::KvStore, prelude::*, Router};
-use worker::{fetch_with_str, fetch_with_request};
 
 mod utils;
 
@@ -11,6 +10,15 @@ struct MyData {
     is: bool,
     #[serde(default)]
     data: Vec<u8>,
+}
+
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ApiData {
+    user_id: i32,
+    title: String,
+    completed: bool
 }
 
 #[derive(Serialize)]
@@ -77,16 +85,20 @@ pub async fn main(req: Request) -> Result<Response> {
     })?;
 
     // Router currently only supports synchronous functions as callbacks
-    // So the async ones are handled
+    // So the async ones are handled separately
     match (req.method(), req.path().as_str()) {
         (_, "/fetch") => {
-            let resp = fetch_with_str("https://example.com/test.txt").await?;
-            Response::ok(format!("successfully received response with code {}", resp.status_code()))
+            let req = Request::new("https://example.com", "POST")?;
+            let resp = Fetch::Request(&req).fetch().await?;
+            let resp2 = Fetch::Url("https://example.com").fetch().await?;
+            Response::ok(format!("received responses with codes {} and {}", resp.status_code(), resp2.status_code()))
         },
-        (_, "/fetch_with_req") => {
-            let worker_req = Request::new("https://example.com/test.txt", "POST")?;
-            let resp = fetch_with_request(&worker_req).await?;
-            Response::ok(format!("successfully received response with code {}", resp.status_code()))
+        (_, "/proxy_request") => {
+            Fetch::Url("https://example.com").fetch().await
+        },
+        (_, "/fetch_json") => {
+            let data: ApiData = Fetch::Url("https://jsonplaceholder.typicode.com/todos/1").fetch().await?.json().await?;
+            Response::ok(format!("API Returned user: {} with title: {} and completed: {}", data.user_id, data.title, data.completed))
         }
         _ => router.run(req)
     }

@@ -12,11 +12,11 @@ use matchit::{InsertError, Match, Node, Params};
 use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
 use wasm_bindgen::JsValue;
-use web_sys::ReadableStream;
+use wasm_bindgen_futures::JsFuture;
 
 pub use crate::headers::Headers;
-pub  use web_sys::RequestInit;
-pub use global::{fetch_with_str, fetch_with_request};
+pub use web_sys::RequestInit;
+pub use global::Fetch;
 
 pub use worker_kv as kv;
 
@@ -31,6 +31,7 @@ pub mod prelude {
     pub use crate::Schedule;
     pub use crate::{Date, DateInit};
     pub use matchit::Params;
+    pub use crate::Fetch;
 }
 
 #[derive(Debug)]
@@ -295,7 +296,7 @@ impl Request {
 pub enum ResponseBody {
     Empty,
     Text(String),
-    Stream(ReadableStream)
+    Stream(EdgeResponse)
 }
 
 pub struct Response {
@@ -342,13 +343,23 @@ impl Response {
         self.status_code
     }
 
+    pub async fn text(&mut self) -> Result<String> {
+        match &self.body {
+            ResponseBody::Text(string) => Ok(string.clone()),
+            ResponseBody::Empty => Ok(String::new()),
+            ResponseBody::Stream(response) => {
+                JsFuture::from(response.text()?).await.map(|value| value.as_string().unwrap()).map_err(Error::from)
+            }
+        }
+    }
+
+    pub async fn json<B: DeserializeOwned>(&mut self) -> Result<B> {
+        serde_json::from_str(&self.text().await?).map_err(|_| Error::JsError("JSON deserialization error".into()))
+    }
+
     pub fn with_headers(mut self, headers: Headers) -> Self {
         self.headers = headers;
         self
-    }
-
-    pub fn set_headers(&mut self, headers: Headers) {
-        self.headers = headers
     }
 
     pub fn headers(&self) -> &Headers {
@@ -378,14 +389,8 @@ impl From<Response> for EdgeResponse {
                 )
                 .unwrap()
             }
-            ResponseBody::Stream(stream) => {
-                EdgeResponse::new_with_opt_readable_stream_and_init(
-                    Some(&stream),
-                    &ResponseInit {
-                        status: res.status_code,
-                        headers: res.headers
-                    }.into()
-                ).unwrap()
+            ResponseBody::Stream(response) => {
+                response
             }
             ResponseBody::Empty => {
                 EdgeResponse::new_with_opt_str_and_init(
@@ -404,12 +409,12 @@ impl From<Response> for EdgeResponse {
 impl From<EdgeResponse> for Response {
     fn from(res: EdgeResponse) -> Self {
         Self {
-            body: match res.body() {
-                Some(stream) => ResponseBody::Stream(stream),
-                None => ResponseBody::Empty
-            },
             headers: Headers(res.headers()),
             status_code: res.status(),
+            body: match res.body() {
+                Some(_) => ResponseBody::Stream(res),
+                None => ResponseBody::Empty
+            },
         }
     }
 }
