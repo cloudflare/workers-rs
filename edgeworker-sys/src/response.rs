@@ -68,7 +68,7 @@ extern "C" {
     #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/headers)"]
     #[doc = ""]
     #[doc = "*This API requires the following crate features to be activated: `Headers`, `Response`*"]
-    pub fn headers(this: &Response) -> web_sys::Headers;
+    pub fn headers(this: &Response) -> crate::headers::Headers;
 
     #[wasm_bindgen(structural, method, getter, js_class=Response, js_name=bodyUsed)]
     #[doc = "Getter for the `bodyUsed` field of this object."]
@@ -177,7 +177,7 @@ extern "C" {
     #[doc = "*This API requires the following crate features to be activated: `Response`, `ResponseInit`*"]
     pub fn new_with_opt_buffer_source_and_init(
         body: Option<&::js_sys::Object>,
-        init: &ResponseInit,
+        init: &web_sys::ResponseInit,
     ) -> Result<Response, JsValue>;
     #[cfg(feature = "ResponseInit")]
     #[wasm_bindgen(catch, constructor, js_class=Response)]
@@ -188,7 +188,7 @@ extern "C" {
     #[doc = "*This API requires the following crate features to be activated: `Response`, `ResponseInit`*"]
     pub fn new_with_opt_u8_array_and_init(
         body: Option<&mut [u8]>,
-        init: &ResponseInit,
+        init: &web_sys::ResponseInit,
     ) -> Result<Response, JsValue>;
     #[cfg(all(feature = "FormData", feature = "ResponseInit",))]
     #[wasm_bindgen(catch, constructor, js_class=Response)]
@@ -221,7 +221,7 @@ extern "C" {
     #[doc = "*This API requires the following crate features to be activated: `Response`, `ResponseInit`*"]
     pub fn new_with_opt_str_and_init(
         body: Option<&str>,
-        init: &ResponseInit,
+        init: &web_sys::ResponseInit,
     ) -> Result<Response, JsValue>;
     #[cfg(all(feature = "ReadableStream", feature = "ResponseInit",))]
     #[wasm_bindgen(catch, constructor, js_class=Response)]
@@ -232,7 +232,7 @@ extern "C" {
     #[doc = "*This API requires the following crate features to be activated: `ReadableStream`, `Response`, `ResponseInit`*"]
     pub fn new_with_opt_readable_stream_and_init(
         body: Option<&web_sys::ReadableStream>,
-        init: &ResponseInit,
+        init: &web_sys::ResponseInit,
     ) -> Result<Response, JsValue>;
     #[wasm_bindgen(catch, method, structural, js_class=Response, js_name=clone)]
     #[doc = "The `clone()` method."]
@@ -305,75 +305,4 @@ extern "C" {
     #[doc = ""]
     #[doc = "*This API requires the following crate features to be activated: `Response`*"]
     pub fn text(this: &Response) -> Result<::js_sys::Promise, JsValue>;
-}
-
-#[wasm_bindgen]
-extern "C" {
-    # [wasm_bindgen (extends =::js_sys::Object, js_name=ResponseInit)]
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    #[doc = "The `ResponseInit` dictionary."]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `ResponseInit`*"]
-    pub type ResponseInit;
-}
-
-impl ResponseInit {
-    #[doc = "Construct a new `ResponseInit`."]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `ResponseInit`*"]
-    pub fn new() -> Self {
-        #[allow(unused_mut)]
-        let mut ret: Self = ::wasm_bindgen::JsCast::unchecked_into(::js_sys::Object::new());
-        ret
-    }
-    #[doc = "Change the `headers` field of this object."]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `ResponseInit`*"]
-    pub fn headers(&mut self, val: &::wasm_bindgen::JsValue) -> &mut Self {
-        let r = ::js_sys::Reflect::set(
-            self.as_ref(),
-            &JsValue::from("headers"),
-            &JsValue::from(val),
-        );
-        debug_assert!(
-            r.is_ok(),
-            "setting properties should never fail on our dictionary objects"
-        );
-        let _ = r;
-        self
-    }
-    #[doc = "Change the `status` field of this object."]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `ResponseInit`*"]
-    pub fn status(&mut self, val: u16) -> &mut Self {
-        let r =
-            ::js_sys::Reflect::set(self.as_ref(), &JsValue::from("status"), &JsValue::from(val));
-        debug_assert!(
-            r.is_ok(),
-            "setting properties should never fail on our dictionary objects"
-        );
-        let _ = r;
-        self
-    }
-    #[doc = "Change the `statusText` field of this object."]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `ResponseInit`*"]
-    pub fn status_text(&mut self, val: &str) -> &mut Self {
-        let r = ::js_sys::Reflect::set(
-            self.as_ref(),
-            &JsValue::from("statusText"),
-            &JsValue::from(val),
-        );
-        debug_assert!(
-            r.is_ok(),
-            "setting properties should never fail on our dictionary objects"
-        );
-        let _ = r;
-        self
-    }
-}
-impl Default for ResponseInit {
-    fn default() -> Self {
-        ResponseInit::new()
-    }
 }

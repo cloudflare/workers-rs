@@ -12,10 +12,11 @@ use matchit::{InsertError, Match, Node, Params};
 use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
 use wasm_bindgen::JsValue;
+use web_sys::ReadableStream;
 
 pub use crate::headers::Headers;
-use web_sys::RequestInit;
-pub use global::fetch_with_str;
+pub  use web_sys::RequestInit;
+pub use global::{fetch_with_str, fetch_with_request};
 
 pub use worker_kv as kv;
 
@@ -30,7 +31,6 @@ pub mod prelude {
     pub use crate::Schedule;
     pub use crate::{Date, DateInit};
     pub use matchit::Params;
-    pub use web_sys::RequestInit;
 }
 
 #[derive(Debug)]
@@ -292,17 +292,23 @@ impl Request {
     }
 }
 
+pub enum ResponseBody {
+    Empty,
+    Text(String),
+    Stream(ReadableStream)
+}
+
 pub struct Response {
-    body: Option<String>,
+    body: ResponseBody,
     headers: Headers,
     status_code: u16,
 }
 
 impl Response {
-    pub fn json<B: Serialize>(value: &B) -> Result<Self> {
+    pub fn from_json<B: Serialize>(value: &B) -> Result<Self> {
         if let Ok(data) = serde_json::to_string(value) {
             return Ok(Self {
-                body: Some(data),
+                body: ResponseBody::Text(data),
                 headers: Headers::new(),
                 status_code: 200,
             });
@@ -310,26 +316,30 @@ impl Response {
 
         Err(Error::Json(("Failed to encode data to json".into(), 500)))
     }
-    pub fn ok(body: Option<String>) -> Result<Self> {
+    pub fn ok(body: String) -> Result<Self> {
         Ok(Self {
-            body,
+            body: ResponseBody::Text(body),
             headers: Headers::new(),
             status_code: 200,
         })
     }
     pub fn empty() -> Result<Self> {
         Ok(Self {
-            body: None,
+            body: ResponseBody::Empty,
             headers: Headers::new(),
             status_code: 200,
         })
     }
     pub fn error(msg: String, status: u16) -> Result<Self> {
         Ok(Self {
-            body: Some(msg),
+            body: ResponseBody::Text(msg),
             headers: Headers::new(),
             status_code: status,
         })
+    }
+
+    pub fn status_code(&self) -> u16 {
+        self.status_code
     }
 
     pub fn with_headers(mut self, headers: Headers) -> Self {
@@ -355,17 +365,38 @@ impl From<Response> for EdgeResponse {
         // if let Ok(res) = EdgeResponse::new_with_opt_str(Some(res.body.as_str())) {
         //     return res;
         // }
-
-        EdgeResponse::new_with_opt_str_and_init(
-            res.body.as_deref(),
-            &ResponseInit {
-                status: res.status_code,
-                headers: res.headers,
+        
+        match res.body {
+            ResponseBody::Text(string) => {
+                EdgeResponse::new_with_opt_str_and_init(
+                    Some(&string),
+                    &ResponseInit {
+                        status: res.status_code,
+                        headers: res.headers,
+                    }
+                    .into(),
+                )
+                .unwrap()
             }
-            .into(),
-        )
-        .unwrap()
-
+            ResponseBody::Stream(stream) => {
+                EdgeResponse::new_with_opt_readable_stream_and_init(
+                    Some(&stream),
+                    &ResponseInit {
+                        status: res.status_code,
+                        headers: res.headers
+                    }.into()
+                ).unwrap()
+            }
+            ResponseBody::Empty => {
+                EdgeResponse::new_with_opt_str_and_init(
+                    None,
+                    &ResponseInit {
+                        status: res.status_code,
+                        headers: res.headers
+                    }.into()
+                ).unwrap()
+            }
+        }
         // TODO: add logging, ideally using the log crate facade over the wasm_bindgen console.log
     }
 }
@@ -373,8 +404,11 @@ impl From<Response> for EdgeResponse {
 impl From<EdgeResponse> for Response {
     fn from(res: EdgeResponse) -> Self {
         Self {
-            body: None,
-            headers: Headers::new(),
+            body: match res.body() {
+                Some(stream) => ResponseBody::Stream(stream),
+                None => ResponseBody::Empty
+            },
+            headers: Headers(res.headers()),
             status_code: res.status(),
         }
     }

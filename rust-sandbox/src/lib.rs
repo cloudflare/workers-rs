@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use worker::{kv::KvStore, prelude::*, Router};
-use worker::fetch_with_str;
+use worker::{fetch_with_str, fetch_with_request};
 
 mod utils;
 
@@ -22,7 +22,7 @@ struct User {
 }
 
 fn handle_a_request(_req: Request, _params: Params) -> Result<Response> {
-    Response::ok(Some("weeee".into()))
+    Response::ok("weeee".into())
 }
 
 #[cf::worker(fetch)]
@@ -37,7 +37,7 @@ pub async fn main(req: Request) -> Result<Response> {
         headers.append("Hello", "World!".parse().unwrap());
 
         // TODO: make api for Response new and mut to add headers
-        Response::ok(Some("returned your headers to you.".into()))
+        Response::ok("returned your headers to you.".into())
             .map(|res| res.with_headers(headers.into()))
     })?;
 
@@ -46,12 +46,12 @@ pub async fn main(req: Request) -> Result<Response> {
             return Response::error("Method Not Allowed".into(), 405);
         }
         let id = params.get("id").unwrap_or("not found");
-        Response::ok(Some(format!("TEST user id: {}", id)))
+        Response::ok(format!("TEST user id: {}", id))
     })?;
 
     router.on("/user/:id", |_req, params| {
         let id = params.get("id").unwrap_or("not found");
-        Response::json(&User {
+        Response::from_json(&User {
             id: id.into(),
             timestamp: Date::now().as_millis(),
             date_from_int: Date::new(DateInit::Millis(1234567890)).to_string(),
@@ -63,34 +63,31 @@ pub async fn main(req: Request) -> Result<Response> {
     })?;
 
     router.post("/account/:id/zones", |_, params| {
-        Response::ok(Some(format!(
+        Response::ok(format!(
             "Create new zone for Account: {}",
             params.get("id").unwrap_or("not found")
-        )))
+        ))
     })?;
 
     router.get("/account/:id/zones", |_, params| {
-        Response::ok(Some(format!(
+        Response::ok(format!(
             "Account id: {}..... You get a zone, you get a zone!",
             params.get("id").unwrap_or("not found")
-        )))
+        ))
     })?;
 
-    // Router currently only supports synchronous functions as callbacks.
+    // Router currently only supports synchronous functions as callbacks
+    // So the async ones are handled
     match (req.method(), req.path().as_str()) {
         (_, "/fetch") => {
-            let resp = fetch_with_str("https://example.com/test.txt").await;
-            return match resp {
-                Ok(r) => {
-                    if r.status() == 200 {
-                        Response::ok(Some("test".into()))
-                    } else {
-                        Response::error("failed".into(), r.status())
-                    }
-                }
-                Err(_e) => Response::error("failed".into(), 500),
-            };
+            let resp = fetch_with_str("https://example.com/test.txt").await?;
+            Response::ok(format!("successfully received response with code {}", resp.status_code()))
         },
+        (_, "/fetch_with_req") => {
+            let worker_req = Request::new("https://example.com/test.txt", "POST")?;
+            let resp = fetch_with_request(&worker_req).await?;
+            Response::ok(format!("successfully received response with code {}", resp.status_code()))
+        }
         _ => router.run(req)
     }
 
