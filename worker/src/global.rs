@@ -1,19 +1,19 @@
-use edgeworker_sys::{Response as EdgeResponse, WorkerGlobalScope};
 use crate::{Request as WorkerRequest, Response as WorkerResponse, Result};
+use edgeworker_sys::{Response as EdgeResponse, WorkerGlobalScope};
 
-use wasm_bindgen::{JsCast};
+use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 
 pub enum Fetch<'a> {
     Url(&'a str),
-    Request(&'a WorkerRequest)
+    Request(&'a WorkerRequest),
 }
 
 impl Fetch<'_> {
     pub async fn fetch(&self) -> Result<WorkerResponse> {
         match self {
             Fetch::Url(url) => fetch_with_str(url).await,
-            Fetch::Request(req) => fetch_with_request(req).await
+            Fetch::Request(req) => fetch_with_request(req).await,
         }
     }
 }

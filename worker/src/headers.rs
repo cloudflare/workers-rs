@@ -11,6 +11,7 @@ use http::{header::HeaderName, HeaderMap, HeaderValue};
 use js_sys::Array;
 use wasm_bindgen::JsValue;
 
+#[derive(Debug)]
 pub struct Headers(pub EdgeHeaders);
 
 #[allow(clippy::new_without_default)]

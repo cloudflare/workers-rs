@@ -11,18 +11,18 @@ use js_sys::{Date as JsDate, JsString};
 use matchit::{InsertError, Match, Node, Params};
 use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
-use wasm_bindgen::JsValue;
+use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 
-pub use crate::headers::Headers;
-pub use web_sys::RequestInit;
-pub use global::Fetch;
+use crate::headers::Headers;
+use web_sys::RequestInit;
 
 pub use worker_kv as kv;
 
 pub type Result<T> = StdResult<T, Error>;
 
 pub mod prelude {
+    pub use crate::global::Fetch;
     pub use crate::headers::Headers;
     pub use crate::Method;
     pub use crate::Request;
@@ -31,7 +31,7 @@ pub mod prelude {
     pub use crate::Schedule;
     pub use crate::{Date, DateInit};
     pub use matchit::Params;
-    pub use crate::Fetch;
+    pub use web_sys::RequestInit;
 }
 
 #[derive(Debug)]
@@ -293,12 +293,14 @@ impl Request {
     }
 }
 
+#[derive(Debug)]
 pub enum ResponseBody {
     Empty,
     Text(String),
-    Stream(EdgeResponse)
+    Stream(EdgeResponse),
 }
 
+#[derive(Debug)]
 pub struct Response {
     body: ResponseBody,
     headers: Headers,
@@ -347,14 +349,16 @@ impl Response {
         match &self.body {
             ResponseBody::Text(string) => Ok(string.clone()),
             ResponseBody::Empty => Ok(String::new()),
-            ResponseBody::Stream(response) => {
-                JsFuture::from(response.text()?).await.map(|value| value.as_string().unwrap()).map_err(Error::from)
-            }
+            ResponseBody::Stream(response) => JsFuture::from(response.text()?)
+                .await
+                .map(|value| value.as_string().unwrap())
+                .map_err(Error::from),
         }
     }
 
     pub async fn json<B: DeserializeOwned>(&mut self) -> Result<B> {
-        serde_json::from_str(&self.text().await?).map_err(|_| Error::JsError("JSON deserialization error".into()))
+        serde_json::from_str(&self.text().await?)
+            .map_err(|_| Error::JsError("JSON deserialization error".into()))
     }
 
     pub fn with_headers(mut self, headers: Headers) -> Self {
@@ -376,31 +380,27 @@ impl From<Response> for EdgeResponse {
         // if let Ok(res) = EdgeResponse::new_with_opt_str(Some(res.body.as_str())) {
         //     return res;
         // }
-        
+
         match res.body {
-            ResponseBody::Text(string) => {
-                EdgeResponse::new_with_opt_str_and_init(
-                    Some(&string),
-                    &ResponseInit {
-                        status: res.status_code,
-                        headers: res.headers,
-                    }
-                    .into(),
-                )
-                .unwrap()
-            }
-            ResponseBody::Stream(response) => {
-                response
-            }
-            ResponseBody::Empty => {
-                EdgeResponse::new_with_opt_str_and_init(
-                    None,
-                    &ResponseInit {
-                        status: res.status_code,
-                        headers: res.headers
-                    }.into()
-                ).unwrap()
-            }
+            ResponseBody::Text(string) => EdgeResponse::new_with_opt_str_and_init(
+                Some(&string),
+                &ResponseInit {
+                    status: res.status_code,
+                    headers: res.headers,
+                }
+                .into(),
+            )
+            .unwrap(),
+            ResponseBody::Stream(response) => response,
+            ResponseBody::Empty => EdgeResponse::new_with_opt_str_and_init(
+                None,
+                &ResponseInit {
+                    status: res.status_code,
+                    headers: res.headers,
+                }
+                .into(),
+            )
+            .unwrap(),
         }
         // TODO: add logging, ideally using the log crate facade over the wasm_bindgen console.log
     }
@@ -413,7 +413,7 @@ impl From<EdgeResponse> for Response {
             status_code: res.status(),
             body: match res.body() {
                 Some(_) => ResponseBody::Stream(res),
-                None => ResponseBody::Empty
+                None => ResponseBody::Empty,
             },
         }
     }
@@ -525,7 +525,7 @@ impl From<String> for Redirect {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Error {
     BodyUsed,
     Json((String, u16)),
@@ -555,6 +555,7 @@ impl From<JsValue> for Error {
     fn from(v: JsValue) -> Self {
         Error::JsError(
             v.as_string()
+                .or_else(|| v.dyn_ref::<js_sys::Error>().map(|e| e.to_string().into()))
                 .unwrap_or_else(|| "Failed to convert value to error.".into()),
         )
     }
