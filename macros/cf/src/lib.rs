@@ -33,7 +33,6 @@ pub fn worker(attr: TokenStream, item: TokenStream) -> TokenStream {
                     // get the worker::Result<worker::Response> by calling the original fn
                     #output_fn_ident(worker::Request::from((ty, req))).await
                         .map(edgeworker_sys::Response::from)
-                        .map_err(worker::Error::from)
                 }
             };
             let wasm_bindgen_code =

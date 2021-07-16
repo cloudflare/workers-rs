@@ -12,6 +12,14 @@ struct MyData {
     data: Vec<u8>,
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ApiData {
+    user_id: i32,
+    title: String,
+    completed: bool,
+}
+
 #[derive(Serialize)]
 struct User {
     id: String,
@@ -21,7 +29,7 @@ struct User {
 }
 
 fn handle_a_request(_req: Request, _params: Params) -> Result<Response> {
-    Response::ok(Some("weeee".into()))
+    Response::ok("weeee".into())
 }
 
 #[cf::worker(fetch)]
@@ -36,7 +44,7 @@ pub async fn main(req: Request) -> Result<Response> {
         headers.append("Hello", "World!".parse().unwrap());
 
         // TODO: make api for Response new and mut to add headers
-        Response::ok(Some("returned your headers to you.".into()))
+        Response::ok("returned your headers to you.".into())
             .map(|res| res.with_headers(headers.into()))
     })?;
 
@@ -45,12 +53,12 @@ pub async fn main(req: Request) -> Result<Response> {
             return Response::error("Method Not Allowed".into(), 405);
         }
         let id = params.get("id").unwrap_or("not found");
-        Response::ok(Some(format!("TEST user id: {}", id)))
+        Response::ok(format!("TEST user id: {}", id))
     })?;
 
     router.on("/user/:id", |_req, params| {
         let id = params.get("id").unwrap_or("not found");
-        Response::json(&User {
+        Response::from_json(&User {
             id: id.into(),
             timestamp: Date::now().as_millis(),
             date_from_int: Date::new(DateInit::Millis(1234567890)).to_string(),
@@ -62,20 +70,46 @@ pub async fn main(req: Request) -> Result<Response> {
     })?;
 
     router.post("/account/:id/zones", |_, params| {
-        Response::ok(Some(format!(
+        Response::ok(format!(
             "Create new zone for Account: {}",
             params.get("id").unwrap_or("not found")
-        )))
+        ))
     })?;
 
     router.get("/account/:id/zones", |_, params| {
-        Response::ok(Some(format!(
+        Response::ok(format!(
             "Account id: {}..... You get a zone, you get a zone!",
             params.get("id").unwrap_or("not found")
-        )))
+        ))
     })?;
 
-    router.run(req)
+    // Router currently only supports synchronous functions as callbacks
+    // So the async ones are handled separately
+    match (req.method(), req.path().as_str()) {
+        (_, "/fetch") => {
+            let req = Request::new("https://example.com", "POST")?;
+            let resp = Fetch::Request(&req).send().await?;
+            let resp2 = Fetch::Url("https://example.com").send().await?;
+            Response::ok(format!(
+                "received responses with codes {} and {}",
+                resp.status_code(),
+                resp2.status_code()
+            ))
+        }
+        (_, "/proxy_request") => Fetch::Url("https://example.com").send().await,
+        (_, "/fetch_json") => {
+            let data: ApiData = Fetch::Url("https://jsonplaceholder.typicode.com/todos/1")
+                .send()
+                .await?
+                .json()
+                .await?;
+            Response::ok(format!(
+                "API Returned user: {} with title: {} and completed: {}",
+                data.user_id, data.title, data.completed
+            ))
+        }
+        _ => router.run(req),
+    }
 
     // match (req.method(), req.path().as_str()) {
     //     (Method::Get, "/") => {

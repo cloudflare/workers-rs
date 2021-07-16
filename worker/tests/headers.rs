@@ -82,7 +82,7 @@ fn response_headers() {
 }
 
 fn response_headers_test() -> Result<()> {
-    let mut response = Response::ok(Some("Hello, World!".into()))?;
+    let mut response = Response::ok("Hello, World!".into())?;
     response
         .headers_mut()
         .set("Content-Type", "application/json")?;
@@ -101,7 +101,7 @@ fn response_headers_test() -> Result<()> {
     headers.append("Accept-Encoding", "deflate")?;
     headers.append("Accept-Encoding", "gzip")?;
 
-    response.set_headers(headers);
+    *response.headers_mut() = headers;
     assert_eq!(response.headers().get("Content-Type")?, None);
     assert_eq!(
         response.headers().get("Accept-Encoding")?.as_deref(),
