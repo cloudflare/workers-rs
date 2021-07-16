@@ -10,7 +10,7 @@ pub enum Fetch<'a> {
 }
 
 impl Fetch<'_> {
-    pub async fn fetch(&self) -> Result<WorkerResponse> {
+    pub async fn send(&self) -> Result<WorkerResponse> {
         match self {
             Fetch::Url(url) => fetch_with_str(url).await,
             Fetch::Request(req) => fetch_with_request(req).await,

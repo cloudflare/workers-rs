@@ -88,18 +88,18 @@ pub async fn main(req: Request) -> Result<Response> {
     match (req.method(), req.path().as_str()) {
         (_, "/fetch") => {
             let req = Request::new("https://example.com", "POST")?;
-            let resp = Fetch::Request(&req).fetch().await?;
-            let resp2 = Fetch::Url("https://example.com").fetch().await?;
+            let resp = Fetch::Request(&req).send().await?;
+            let resp2 = Fetch::Url("https://example.com").send().await?;
             Response::ok(format!(
                 "received responses with codes {} and {}",
                 resp.status_code(),
                 resp2.status_code()
             ))
         }
-        (_, "/proxy_request") => Fetch::Url("https://example.com").fetch().await,
+        (_, "/proxy_request") => Fetch::Url("https://example.com").send().await,
         (_, "/fetch_json") => {
             let data: ApiData = Fetch::Url("https://jsonplaceholder.typicode.com/todos/1")
-                .fetch()
+                .send()
                 .await?
                 .json()
                 .await?;

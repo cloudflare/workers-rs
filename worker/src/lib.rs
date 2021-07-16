@@ -7,7 +7,7 @@ mod global;
 use edgeworker_sys::{
     Cf, Request as EdgeRequest, Response as EdgeResponse, ResponseInit as EdgeResponseInit,
 };
-use js_sys::{Date as JsDate, JsString};
+use js_sys::{Date as JsDate};
 use matchit::{InsertError, Match, Node, Params};
 use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
@@ -558,7 +558,7 @@ impl std::fmt::Display for Error {
             Error::BodyUsed => write!(f, "request body has already been read"),
             Error::Json((msg, status)) => write!(f, "{} (status: {})", msg, status),
             Error::JsError(s) | Error::RustError(s) => write!(f, "{}", s),
-            Error::Internal(v) => write!(f, "unrecognized JavaScript object"),
+            Error::Internal(_) => write!(f, "unrecognized JavaScript object"),
             Error::RouteInsertError(e) => write!(f, "failed to insert route: {}", e),
         }
     }

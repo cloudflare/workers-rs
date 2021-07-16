@@ -10,14 +10,14 @@ use worker::prelude::*;
 
 #[wasm_bindgen_test]
 async fn fetch_errors() {
-    let response = Fetch::Url("ftp://example.com").fetch().await;
+    let response = Fetch::Url("ftp://example.com").send().await;
     assert!(response.is_err());
 
-    let response = Fetch::Url("https://notarealwebsite.asdf").fetch().await;
+    let response = Fetch::Url("https://notarealwebsite.asdf").send().await;
     assert!(response.is_err());
 
     let response = Fetch::Url("https://username:password@example.com")
-        .fetch()
+        .send()
         .await;
     assert!(response.is_err());
 }
@@ -28,11 +28,11 @@ async fn using_fetch() {
 }
 
 async fn using_fetch_test() -> Result<()> {
-    let response = Fetch::Url("https://reqres.in/api/users").fetch().await;
+    let response = Fetch::Url("https://reqres.in/api/users").send().await;
     assert!(response.is_ok());
 
     let request = Request::new("https://reqres.in/api/users", "POST")?;
-    let mut response = Fetch::Request(&request).fetch().await;
+    let mut response = Fetch::Request(&request).send().await;
     assert!(response.is_ok());
     let text = response.as_mut().unwrap().bytes().await?;
     assert_eq!(
@@ -50,7 +50,7 @@ async fn using_fetch_test() -> Result<()> {
         "https://reqres.in/api/users",
         RequestInit::new().method("POST").headers(headers.as_ref()),
     )?;
-    let mut response = Fetch::Request(&request).fetch().await;
+    let mut response = Fetch::Request(&request).send().await;
     assert!(response.is_ok());
 
     let _json: Value = response.as_mut().unwrap().json().await?;
