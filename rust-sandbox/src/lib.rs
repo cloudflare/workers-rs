@@ -12,13 +12,12 @@ struct MyData {
     data: Vec<u8>,
 }
 
-
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ApiData {
     user_id: i32,
     title: String,
-    completed: bool
+    completed: bool,
 }
 
 #[derive(Serialize)]
@@ -91,16 +90,25 @@ pub async fn main(req: Request) -> Result<Response> {
             let req = Request::new("https://example.com", "POST")?;
             let resp = Fetch::Request(&req).fetch().await?;
             let resp2 = Fetch::Url("https://example.com").fetch().await?;
-            Response::ok(format!("received responses with codes {} and {}", resp.status_code(), resp2.status_code()))
-        },
-        (_, "/proxy_request") => {
-            Fetch::Url("https://example.com").fetch().await
-        },
-        (_, "/fetch_json") => {
-            let data: ApiData = Fetch::Url("https://jsonplaceholder.typicode.com/todos/1").fetch().await?.json().await?;
-            Response::ok(format!("API Returned user: {} with title: {} and completed: {}", data.user_id, data.title, data.completed))
+            Response::ok(format!(
+                "received responses with codes {} and {}",
+                resp.status_code(),
+                resp2.status_code()
+            ))
         }
-        _ => router.run(req)
+        (_, "/proxy_request") => Fetch::Url("https://example.com").fetch().await,
+        (_, "/fetch_json") => {
+            let data: ApiData = Fetch::Url("https://jsonplaceholder.typicode.com/todos/1")
+                .fetch()
+                .await?
+                .json()
+                .await?;
+            Response::ok(format!(
+                "API Returned user: {} with title: {} and completed: {}",
+                data.user_id, data.title, data.completed
+            ))
+        }
+        _ => router.run(req),
     }
 
     // match (req.method(), req.path().as_str()) {

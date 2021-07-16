@@ -221,12 +221,15 @@ impl Request {
             self.body_used = true;
             return wasm_bindgen_futures::JsFuture::from(EdgeRequest::json(&self.edge_request)?)
                 .await
-                .map(|val| val.into_serde().unwrap())
                 .map_err(|e| {
                     Error::JsError(
                         e.as_string()
                             .unwrap_or_else(|| "failed to get JSON for body value".into()),
                     )
+                })
+                .and_then(|val| {
+                    val.into_serde()
+                        .map_err(|e| Error::RustError(e.to_string()))
                 });
         }
 
@@ -279,13 +282,7 @@ impl Request {
         self.edge_request
             .clone()
             .map(|req| (self.event_type(), req).into())
-            .map_err(|e| {
-                if let Some(s) = e.as_string() {
-                    Error::JsError(s)
-                } else {
-                    Error::BodyUsed
-                }
-            })
+            .map_err(Error::from)
     }
 
     pub fn inner(&self) -> &EdgeRequest {
@@ -296,7 +293,7 @@ impl Request {
 #[derive(Debug)]
 pub enum ResponseBody {
     Empty,
-    Text(String),
+    Body(Vec<u8>),
     Stream(EdgeResponse),
 }
 
@@ -311,7 +308,7 @@ impl Response {
     pub fn from_json<B: Serialize>(value: &B) -> Result<Self> {
         if let Ok(data) = serde_json::to_string(value) {
             return Ok(Self {
-                body: ResponseBody::Text(data),
+                body: ResponseBody::Body(data.into_bytes()),
                 headers: Headers::new(),
                 status_code: 200,
             });
@@ -321,7 +318,14 @@ impl Response {
     }
     pub fn ok(body: String) -> Result<Self> {
         Ok(Self {
-            body: ResponseBody::Text(body),
+            body: ResponseBody::Body(body.into_bytes()),
+            headers: Headers::new(),
+            status_code: 200,
+        })
+    }
+    pub fn from_bytes(bytes: Vec<u8>) -> Result<Self> {
+        Ok(Self {
+            body: ResponseBody::Body(bytes),
             headers: Headers::new(),
             status_code: 200,
         })
@@ -335,7 +339,7 @@ impl Response {
     }
     pub fn error(msg: String, status: u16) -> Result<Self> {
         Ok(Self {
-            body: ResponseBody::Text(msg),
+            body: ResponseBody::Body(msg.into_bytes()),
             headers: Headers::new(),
             status_code: status,
         })
@@ -347,7 +351,9 @@ impl Response {
 
     pub async fn text(&mut self) -> Result<String> {
         match &self.body {
-            ResponseBody::Text(string) => Ok(string.clone()),
+            ResponseBody::Body(bytes) => Ok(
+                String::from_utf8(bytes.clone()).map_err(|e| Error::RustError(e.to_string()))?
+            ),
             ResponseBody::Empty => Ok(String::new()),
             ResponseBody::Stream(response) => JsFuture::from(response.text()?)
                 .await
@@ -358,7 +364,18 @@ impl Response {
 
     pub async fn json<B: DeserializeOwned>(&mut self) -> Result<B> {
         serde_json::from_str(&self.text().await?)
-            .map_err(|_| Error::JsError("JSON deserialization error".into()))
+            .map_err(|_| Error::RustError("JSON deserialization error".into()))
+    }
+
+    pub async fn bytes(&mut self) -> Result<Vec<u8>> {
+        match &self.body {
+            ResponseBody::Body(bytes) => Ok(bytes.clone()),
+            ResponseBody::Empty => Ok(Vec::new()),
+            ResponseBody::Stream(response) => JsFuture::from(response.text()?)
+                .await
+                .map(|value| value.as_string().unwrap().into_bytes())
+                .map_err(Error::from),
+        }
     }
 
     pub fn with_headers(mut self, headers: Headers) -> Self {
@@ -382,8 +399,8 @@ impl From<Response> for EdgeResponse {
         // }
 
         match res.body {
-            ResponseBody::Text(string) => EdgeResponse::new_with_opt_str_and_init(
-                Some(&string),
+            ResponseBody::Body(mut bytes) => EdgeResponse::new_with_opt_u8_array_and_init(
+                Some(&mut bytes),
                 &ResponseInit {
                     status: res.status_code,
                     headers: res.headers,
@@ -422,7 +439,7 @@ impl From<EdgeResponse> for Response {
 impl From<worker_kv::KvError> for Error {
     fn from(e: worker_kv::KvError) -> Self {
         let val: JsValue = e.into();
-        Error::Internal(val)
+        val.into()
     }
 }
 
@@ -532,6 +549,7 @@ pub enum Error {
     JsError(String),
     Internal(JsValue),
     RouteInsertError(matchit::InsertError),
+    RustError(String),
 }
 
 impl std::fmt::Display for Error {
@@ -539,11 +557,8 @@ impl std::fmt::Display for Error {
         match self {
             Error::BodyUsed => write!(f, "request body has already been read"),
             Error::Json((msg, status)) => write!(f, "{} (status: {})", msg, status),
-            Error::JsError(s) => write!(f, "{}", s),
-            Error::Internal(v) => {
-                let s: String = JsString::from(v.clone()).into();
-                write!(f, "{}", s)
-            }
+            Error::JsError(s) | Error::RustError(s) => write!(f, "{}", s),
+            Error::Internal(v) => write!(f, "unrecognized JavaScript object"),
             Error::RouteInsertError(e) => write!(f, "failed to insert route: {}", e),
         }
     }
@@ -553,11 +568,13 @@ impl std::error::Error for Error {}
 
 impl From<JsValue> for Error {
     fn from(v: JsValue) -> Self {
-        Error::JsError(
-            v.as_string()
-                .or_else(|| v.dyn_ref::<js_sys::Error>().map(|e| e.to_string().into()))
-                .unwrap_or_else(|| "Failed to convert value to error.".into()),
-        )
+        match v
+            .as_string()
+            .or_else(|| v.dyn_ref::<js_sys::Error>().map(|e| e.to_string().into()))
+        {
+            Some(s) => Self::JsError(s),
+            None => Self::Internal(v),
+        }
     }
 }
 

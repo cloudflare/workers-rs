@@ -34,7 +34,7 @@ async fn using_fetch_test() -> Result<()> {
     let request = Request::new("https://reqres.in/api/users", "POST")?;
     let mut response = Fetch::Request(&request).fetch().await;
     assert!(response.is_ok());
-    let text = response.as_mut().unwrap().text().await?;
+    let text = response.as_mut().unwrap().bytes().await?;
     assert_eq!(
         text.len(),
         response?
@@ -53,7 +53,7 @@ async fn using_fetch_test() -> Result<()> {
     let mut response = Fetch::Request(&request).fetch().await;
     assert!(response.is_ok());
 
-    let json: Value = response.as_mut().unwrap().json().await?;
+    let _json: Value = response.as_mut().unwrap().json().await?;
     let text = response?.text().await;
     assert!(text.is_err()); // Body used already
 
