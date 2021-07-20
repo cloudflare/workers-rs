@@ -113,6 +113,7 @@ pub struct Request {
     event_type: String,
     edge_request: EdgeRequest,
     body_used: bool,
+    immutable: bool
 }
 
 impl From<(String, EdgeRequest)> for Request {
@@ -122,9 +123,10 @@ impl From<(String, EdgeRequest)> for Request {
             path: Url::parse(&req.1.url()).unwrap().path().into(),
             headers: Headers(req.1.headers()),
             cf: req.1.cf(),
+            immutable: &req.0 == "fetch",
             event_type: req.0,
             edge_request: req.1,
-            body_used: false,
+            body_used: false
         }
     }
 }
@@ -193,8 +195,12 @@ impl Request {
         &self.headers
     }
 
-    pub fn headers_mut(&mut self) -> &mut Headers {
-        &mut self.headers
+    // Headers can only be modified if the request was created from scratch or cloned
+    pub fn headers_mut(&mut self) -> Result<&mut Headers> {
+        if self.immutable {
+            return Err(Error::JsError("Cannot get a mutable reference to an immutable headers object.".into()))
+        }
+        Ok(&mut self.headers)
     }
 
     pub fn cf(&self) -> Cf {
@@ -215,8 +221,7 @@ impl Request {
 
     #[allow(clippy::clippy::should_implement_trait)]
     pub fn clone(&self) -> Result<Self> {
-        self.edge_request
-            .clone()
+        EdgeRequest::new_with_request(&self.edge_request)
             .map(|req| (self.event_type(), req).into())
             .map_err(Error::from)
     }

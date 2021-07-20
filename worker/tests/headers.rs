@@ -40,7 +40,7 @@ fn request_headers() {
 fn request_headers_test() -> Result<()> {
     let mut request = Request::new("https://google.com", "get")?;
     request
-        .headers_mut()
+        .headers_mut()?
         .set("Content-Type", "application/json")?;
     assert_eq!(
         request.headers().get("Content-Type")?,
@@ -65,13 +65,16 @@ fn request_headers_test() -> Result<()> {
         request.headers().get("Authorization")?.as_deref(),
         Some("Bearer hello")
     );
-    request.headers_mut().set("Authorization", "Bearer world")?;
+    request.headers_mut()?.set("Authorization", "Bearer world")?;
     assert_eq!(
         request.headers().get("Authorization")?.as_deref(),
         Some("Bearer world")
     );
 
-    console::log_1(request.inner());
+    // Simulate the request coming in from the 'fetch' eventListener
+    let mut request = Request::from(("fetch".to_string(), edgeworker_sys::Request::new_with_str("helo")?));
+    // Check that the header guard is immutable
+    assert!(request.headers_mut().is_err());
 
     Ok(())
 }
