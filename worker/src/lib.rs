@@ -1,4 +1,5 @@
 mod headers;
+mod router;
 
 use std::result::Result as StdResult;
 
@@ -8,13 +9,14 @@ use edgeworker_sys::{
     Cf, Request as EdgeRequest, Response as EdgeResponse, ResponseInit as EdgeResponseInit,
 };
 use js_sys::{Date as JsDate};
-use matchit::{InsertError, Match, Node, Params};
+use matchit::{InsertError};
 use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 
-use crate::headers::Headers;
+pub use crate::headers::Headers;
+pub use crate::router::Router;
 use web_sys::RequestInit;
 
 pub use worker_kv as kv;
@@ -72,72 +74,6 @@ impl ToString for Date {
         self.js_date.to_string().into()
     }
 }
-
-pub type HandlerFn = fn(Request, Params) -> Result<Response>;
-pub type HandlerSet = [Option<HandlerFn>; 9];
-
-pub struct Router {
-    handlers: matchit::Node<HandlerSet>,
-}
-
-impl Router {
-    pub fn new() -> Self {
-        Default::default()
-    }
-
-    pub fn get(&mut self, pattern: &str, func: HandlerFn) -> Result<()> {
-        self.add_handler(pattern, func, vec![Method::Get])
-    }
-
-    pub fn post(&mut self, pattern: &str, func: HandlerFn) -> Result<()> {
-        self.add_handler(pattern, func, vec![Method::Post])
-    }
-
-    pub fn on(&mut self, pattern: &str, func: HandlerFn) -> Result<()> {
-        self.add_handler(pattern, func, Method::all())
-    }
-
-    fn add_handler(&mut self, pattern: &str, func: HandlerFn, methods: Vec<Method>) -> Result<()> {
-        // Did some testing and it appears as though a pattern can always match itself
-        // i.e. the path "/user/:id" will always match the pattern "/user/:id"
-        if let Ok(Match {
-            value: handler_set,
-            params: _,
-        }) = self.handlers.at_mut(pattern)
-        {
-            for method in methods {
-                handler_set[method as usize] = Some(func);
-            }
-        } else {
-            let mut handler_set = [None; 9];
-            for method in methods {
-                handler_set[method as usize] = Some(func);
-            }
-            self.handlers.insert(pattern, handler_set)?;
-        }
-
-        Ok(())
-    }
-
-    pub fn run(&self, req: Request) -> Result<Response> {
-        if let Ok(Match { value, params }) = self.handlers.at(&req.path()) {
-            if let Some(handler) = value[req.method() as usize] {
-                return (handler)(req, params);
-            }
-            return Response::error("Method Not Allowed".into(), 405);
-        }
-        Response::error("Not Found".into(), 404)
-    }
-}
-
-impl Default for Router {
-    fn default() -> Self {
-        Self {
-            handlers: Node::new(),
-        }
-    }
-}
-
 #[derive(Serialize)]
 pub struct Schedule {
     event_type: String,

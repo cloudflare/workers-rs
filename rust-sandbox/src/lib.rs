@@ -83,33 +83,42 @@ pub async fn main(req: Request) -> Result<Response> {
         ))
     })?;
 
-    // Router currently only supports synchronous functions as callbacks
-    // So the async ones are handled separately
-    match (req.method(), req.path().as_str()) {
-        (_, "/fetch") => {
-            let req = Request::new("https://example.com", "POST")?;
-            let resp = Fetch::Request(&req).send().await?;
-            let resp2 = Fetch::Url("https://example.com").send().await?;
-            Response::ok(format!(
-                "received responses with codes {} and {}",
-                resp.status_code(),
-                resp2.status_code()
-            ))
+    router.on_async("/async", |mut req, _params| async move {
+        Response::ok(format!("Request body: {}", req.text().await?))
+    })?;
+
+    router.on_async("/fetch", |_req, _params| async move {
+        let req = Request::new("https://example.com", "POST")?;
+        let resp = Fetch::Request(&req).send().await?;
+        let resp2 = Fetch::Url("https://example.com").send().await?;
+        Response::ok(format!(
+            "received responses with codes {} and {}",
+            resp.status_code(),
+            resp2.status_code()
+        ))
+    })?;
+
+    router.on_async("/fetch_json", |_req, _params| async move {
+        let data: ApiData = Fetch::Url("https://jsonplaceholder.typicode.com/todos/1")
+            .send()
+            .await?
+            .json()
+            .await?;
+        Response::ok(format!(
+            "API Returned user: {} with title: {} and completed: {}",
+            data.user_id, data.title, data.completed
+        ))
+    })?;
+    
+    router.on_async("/proxy_request/:url", |_req, params| {
+        // Must copy the parameters into the heap here for lifetime purposes
+        let url = params.get("url").unwrap().to_string();
+        async move {
+            Fetch::Url(&url).send().await
         }
-        (_, "/proxy_request") => Fetch::Url("https://example.com").send().await,
-        (_, "/fetch_json") => {
-            let data: ApiData = Fetch::Url("https://jsonplaceholder.typicode.com/todos/1")
-                .send()
-                .await?
-                .json()
-                .await?;
-            Response::ok(format!(
-                "API Returned user: {} with title: {} and completed: {}",
-                data.user_id, data.title, data.completed
-            ))
-        }
-        _ => router.run(req),
-    }
+    })?;
+
+    router.run(req).await
 
     // match (req.method(), req.path().as_str()) {
     //     (Method::Get, "/") => {
