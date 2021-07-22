@@ -34,6 +34,8 @@ fn handle_a_request(_req: Request, _params: Params) -> Result<Response> {
 
 #[cf::worker(fetch)]
 pub async fn main(req: Request) -> Result<Response> {
+    console_log!("request at: {:?}", req.path());
+
     utils::set_panic_hook();
 
     let mut router = Router::new();
@@ -109,13 +111,11 @@ pub async fn main(req: Request) -> Result<Response> {
             data.user_id, data.title, data.completed
         ))
     })?;
-    
+
     router.on_async("/proxy_request/:url", |_req, params| {
         // Must copy the parameters into the heap here for lifetime purposes
         let url = params.get("url").unwrap().to_string();
-        async move {
-            Fetch::Url(&url).send().await
-        }
+        async move { Fetch::Url(&url).send().await }
     })?;
 
     router.run(req).await

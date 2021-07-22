@@ -80,4 +80,7 @@ extern "C" {
         input: &str,
         init: &RequestInit,
     ) -> ::js_sys::Promise;
+
+    #[wasm_bindgen(js_namespace = console)]
+    pub fn log(s: &str);
 }

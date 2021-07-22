@@ -8,8 +8,8 @@ mod global;
 use edgeworker_sys::{
     Cf, Request as EdgeRequest, Response as EdgeResponse, ResponseInit as EdgeResponseInit,
 };
-use js_sys::{Date as JsDate};
-use matchit::{InsertError};
+use js_sys::Date as JsDate;
+use matchit::InsertError;
 use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
 use wasm_bindgen::{JsCast, JsValue};
@@ -19,6 +19,7 @@ pub use crate::headers::Headers;
 pub use crate::router::Router;
 use web_sys::RequestInit;
 
+pub use edgeworker_sys::console_log;
 pub use worker_kv as kv;
 
 pub type Result<T> = StdResult<T, Error>;
@@ -32,6 +33,7 @@ pub mod prelude {
     pub use crate::Result;
     pub use crate::Schedule;
     pub use crate::{Date, DateInit};
+    pub use edgeworker_sys::console_log;
     pub use matchit::Params;
     pub use web_sys::RequestInit;
 }
@@ -113,7 +115,7 @@ pub struct Request {
     event_type: String,
     edge_request: EdgeRequest,
     body_used: bool,
-    immutable: bool
+    immutable: bool,
 }
 
 impl From<(String, EdgeRequest)> for Request {
@@ -126,7 +128,7 @@ impl From<(String, EdgeRequest)> for Request {
             immutable: &req.0 == "fetch",
             event_type: req.0,
             edge_request: req.1,
-            body_used: false
+            body_used: false,
         }
     }
 }
@@ -198,7 +200,9 @@ impl Request {
     // Headers can only be modified if the request was created from scratch or cloned
     pub fn headers_mut(&mut self) -> Result<&mut Headers> {
         if self.immutable {
-            return Err(Error::JsError("Cannot get a mutable reference to an immutable headers object.".into()))
+            return Err(Error::JsError(
+                "Cannot get a mutable reference to an immutable headers object.".into(),
+            ));
         }
         Ok(&mut self.headers)
     }
