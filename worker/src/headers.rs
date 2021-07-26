@@ -11,8 +11,17 @@ use http::{header::HeaderName, HeaderMap, HeaderValue};
 use js_sys::Array;
 use wasm_bindgen::JsValue;
 
-#[derive(Debug)]
 pub struct Headers(pub EdgeHeaders);
+
+impl std::fmt::Debug for Headers {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Headers {\n")?;
+        for (k, v) in self.entries() {
+            f.write_str(&format!("{} = {}\n", k, v))?;
+        }
+        f.write_str("}\n")
+    }
+}
 
 #[allow(clippy::new_without_default)]
 impl Headers {
