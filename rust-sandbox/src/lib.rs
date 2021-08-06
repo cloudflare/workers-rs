@@ -34,7 +34,7 @@ fn handle_a_request(_req: Request, _env: Env, _params: Params) -> Result<Respons
     Response::ok("weeee")
 }
 
-#[cf::worker(fetch)]
+#[cf::worker(fetch, respond_with_errors)]
 pub async fn main(req: Request, env: Env) -> Result<Response> {
     utils::set_panic_hook();
 
@@ -111,13 +111,13 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         ))
     })?;
 
-    router.on_async("/proxy_request/:url", |_req, _env, params| {
+    router.on_async("/proxy_request/*url", |_req, _env, params| {
         // Must copy the parameters into the heap here for lifetime purposes
-        let url = params.get("url").unwrap().to_string();
+        let url = params.get("url").unwrap().strip_prefix('/').unwrap().to_string();
         async move { Fetch::Url(&url).send().await }
     })?;
 
-    router.on_async("durable", |_req, e, _params| async move {
+    router.on_async("/durable", |_req, e, _params| async move {
         let namespace = e.get_binding::<ObjectNamespace>("COUNTER")?;
         let stub = namespace.id_from_name("A")?.get_stub()?;
         stub.fetch_with_str("/").await

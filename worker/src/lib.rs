@@ -37,6 +37,7 @@ pub mod prelude {
     pub use crate::{Date, DateInit};
     pub use matchit::Params;
     pub use web_sys::RequestInit;
+    pub use edgeworker_sys::console_log;
 }
 
 #[derive(Debug)]
