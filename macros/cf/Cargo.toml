@@ -14,3 +14,4 @@ syn = "1.0.72"
 wasm-bindgen-macro-support = "0.2.74"
 web-sys = "0.3.51"
 worker = { path = "../../worker" }
+durable_object = { path = "../durable_object" }

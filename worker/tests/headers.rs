@@ -85,7 +85,7 @@ fn response_headers() {
 }
 
 fn response_headers_test() -> Result<()> {
-    let mut response = Response::ok("Hello, World!".into())?;
+    let mut response = Response::ok("Hello, World!")?;
     response
         .headers_mut()
         .set("Content-Type", "application/json")?;

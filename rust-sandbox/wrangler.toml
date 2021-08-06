@@ -1,7 +1,30 @@
-name = "rust-sandbox-router"
-type = "rust"
+name = "do-test-rust"
+type = "javascript"
 
-account_id = ""
+account_id = "615f1f0479e7014f0bebcd10d379f10e"
 workers_dev = true
 route = ""
 zone_id = ""
+
+[build]
+command = """wasm-pack build --no-typescript --out-dir worker/build --out-name index && \
+             mkdir -p worker/generated && \
+             rm -rf worker/generated/* && \
+             cp worker/build/index_bg.js worker/generated/index_bg.mjs && \
+             sed -i '' "1s/.*/import wasm from '.\\/export_wasm.mjs'/" worker/generated/index_bg.mjs && \
+             cp worker/build/index_bg.wasm worker/shim.mjs worker/export_wasm.mjs worker/generated/"""
+
+[build.upload]
+# The "modules" upload format is required for all projects that implement a Durable Object namespace.
+format = "modules"
+dir = "worker/generated"
+main = "./shim.mjs"
+
+[[build.upload.rules]]
+type = "CompiledWasm"
+globs = ["**/*.wasm"]
+
+[durable_objects]
+bindings = [
+  { name = "COUNTER", class_name = "Counter" }
+]

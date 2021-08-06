@@ -1,2 +1,2 @@
 [workspace]
-members = ["edgeworker-sys", "macros/cf", "rust-sandbox", "worker"]
+members = ["edgeworker-sys", "macros/cf", "macros/durable_object", "rust-sandbox", "worker"]

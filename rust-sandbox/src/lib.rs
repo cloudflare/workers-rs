@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
-use worker::{kv::KvStore, prelude::*, Router};
+use worker::{durable::ObjectNamespace, kv::KvStore, prelude::*, Router};
 
+mod test;
+mod counter;
 mod utils;
 
 #[derive(Deserialize, Serialize)]
@@ -28,37 +30,34 @@ struct User {
     date_from_str: String,
 }
 
-fn handle_a_request(_req: Request, _params: Params) -> Result<Response> {
-    Response::ok("weeee".into())
+fn handle_a_request(_req: Request, _env: Env, _params: Params) -> Result<Response> {
+    Response::ok("weeee")
 }
 
 #[cf::worker(fetch)]
-pub async fn main(req: Request) -> Result<Response> {
-    console_log!("request at: {:?}", req.path());
-
+pub async fn main(req: Request, env: Env) -> Result<Response> {
     utils::set_panic_hook();
 
     let mut router = Router::new();
 
     router.get("/request", handle_a_request)?;
-    router.post("/headers", |req, _| {
+    router.post("/headers", |req, _, _| {
         let mut headers: http::HeaderMap = req.headers().into();
         headers.append("Hello", "World!".parse().unwrap());
 
         // TODO: make api for Response new and mut to add headers
-        Response::ok("returned your headers to you.".into())
-            .map(|res| res.with_headers(headers.into()))
+        Response::ok("returned your headers to you.").map(|res| res.with_headers(headers.into()))
     })?;
 
-    router.on("/user/:id/test", |req, params| {
+    router.on("/user/:id/test", |req, _env, params| {
         if !matches!(req.method(), Method::Get) {
-            return Response::error("Method Not Allowed".into(), 405);
+            return Response::error("Method Not Allowed", 405);
         }
         let id = params.get("id").unwrap_or("not found");
         Response::ok(format!("TEST user id: {}", id))
     })?;
 
-    router.on("/user/:id", |_req, params| {
+    router.on("/user/:id", |_req, _env, params| {
         let id = params.get("id").unwrap_or("not found");
         Response::from_json(&User {
             id: id.into(),
@@ -71,25 +70,25 @@ pub async fn main(req: Request) -> Result<Response> {
         })
     })?;
 
-    router.post("/account/:id/zones", |_, params| {
+    router.post("/account/:id/zones", |_, _, params| {
         Response::ok(format!(
             "Create new zone for Account: {}",
             params.get("id").unwrap_or("not found")
         ))
     })?;
 
-    router.get("/account/:id/zones", |_, params| {
+    router.get("/account/:id/zones", |_, _, params| {
         Response::ok(format!(
             "Account id: {}..... You get a zone, you get a zone!",
             params.get("id").unwrap_or("not found")
         ))
     })?;
 
-    router.on_async("/async", |mut req, _params| async move {
+    router.on_async("/async", |mut req, _env,  _params| async move {
         Response::ok(format!("Request body: {}", req.text().await?))
     })?;
 
-    router.on_async("/fetch", |_req, _params| async move {
+    router.on_async("/fetch", |_req, _env, _params| async move {
         let req = Request::new("https://example.com", "POST")?;
         let resp = Fetch::Request(&req).send().await?;
         let resp2 = Fetch::Url("https://example.com").send().await?;
@@ -100,7 +99,7 @@ pub async fn main(req: Request) -> Result<Response> {
         ))
     })?;
 
-    router.on_async("/fetch_json", |_req, _params| async move {
+    router.on_async("/fetch_json", |_req, _env, _params| async move {
         let data: ApiData = Fetch::Url("https://jsonplaceholder.typicode.com/todos/1")
             .send()
             .await?
@@ -112,13 +111,19 @@ pub async fn main(req: Request) -> Result<Response> {
         ))
     })?;
 
-    router.on_async("/proxy_request/:url", |_req, params| {
+    router.on_async("/proxy_request/:url", |_req, _env, params| {
         // Must copy the parameters into the heap here for lifetime purposes
         let url = params.get("url").unwrap().to_string();
         async move { Fetch::Url(&url).send().await }
     })?;
 
-    router.run(req).await
+    router.on_async("durable", |_req, e, _params| async move {
+        let namespace = e.get_binding::<ObjectNamespace>("COUNTER")?;
+        let stub = namespace.id_from_name("A")?.get_stub()?;
+        stub.fetch_with_str("/").await
+    })?;
+
+    router.run(req, env).await
 
     // match (req.method(), req.path().as_str()) {
     //     (Method::Get, "/") => {

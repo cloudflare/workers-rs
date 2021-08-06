@@ -3,10 +3,10 @@ use std::rc::Rc;
 use futures::{future::LocalBoxFuture, Future};
 use matchit::{Match, Node, Params};
 
-use crate::{Method, Request, Response, Result};
+use crate::{Env, Method, Request, Response, Result};
 
-pub type HandlerFn = fn(Request, Params) -> Result<Response>;
-type AsyncHandler<'a> = Rc<dyn Fn(Request, Params) -> LocalBoxFuture<'a, Result<Response>>>;
+pub type HandlerFn = fn(Request, Env, Params) -> Result<Response>;
+type AsyncHandler<'a> = Rc<dyn Fn(Request, Env, Params) -> LocalBoxFuture<'a, Result<Response>>>;
 
 pub enum Handler<'a> {
     Async(AsyncHandler<'a>),
@@ -25,7 +25,7 @@ impl Clone for Handler<'_> {
 pub type HandlerSet<'a> = [Option<Handler<'a>>; 9];
 
 pub struct Router<'a> {
-    handlers: matchit::Node<HandlerSet<'a>>,
+    handlers: Node<HandlerSet<'a>>
 }
 
 impl<'a> Router<'a> {
@@ -45,35 +45,35 @@ impl<'a> Router<'a> {
         self.add_handler(pattern, Handler::Sync(func), Method::all())
     }
 
-    pub fn get_async<T>(&mut self, pattern: &str, func: fn(Request, Params) -> T) -> Result<()>
+    pub fn get_async<T>(&mut self, pattern: &str, func: fn(Request, Env, Params) -> T) -> Result<()>
     where
         T: Future<Output = Result<Response>> + 'static,
     {
         self.add_handler(
             pattern,
-            Handler::Async(Rc::new(move |req, par| Box::pin(func(req, par)))),
+            Handler::Async(Rc::new(move |req, env, par| Box::pin(func(req, env, par)))),
             vec![Method::Get],
         )
     }
 
-    pub fn post_async<T>(&mut self, pattern: &str, func: fn(Request, Params) -> T) -> Result<()>
+    pub fn post_async<T>(&mut self, pattern: &str, func: fn(Request, Env, Params) -> T) -> Result<()>
     where
         T: Future<Output = Result<Response>> + 'static,
     {
         self.add_handler(
             pattern,
-            Handler::Async(Rc::new(move |req, par| Box::pin(func(req, par)))),
+            Handler::Async(Rc::new(move |req, env,  par| Box::pin(func(req, env, par)))),
             vec![Method::Post],
         )
     }
 
-    pub fn on_async<T>(&mut self, pattern: &str, func: fn(Request, Params) -> T) -> Result<()>
+    pub fn on_async<T>(&mut self, pattern: &str, func: fn(Request, Env, Params) -> T) -> Result<()>
     where
         T: Future<Output = Result<Response>> + 'static,
     {
         self.add_handler(
             pattern,
-            Handler::Async(Rc::new(move |req, par| Box::pin(func(req, par)))),
+            Handler::Async(Rc::new(move |req, env, par| Box::pin(func(req, env, par)))),
             Method::all(),
         )
     }
@@ -100,24 +100,24 @@ impl<'a> Router<'a> {
         Ok(())
     }
 
-    pub async fn run(&self, req: Request) -> Result<Response> {
+    pub async fn run(&self, req: Request, env: Env) -> Result<Response> {
         if let Ok(Match { value, params }) = self.handlers.at(&req.path()) {
             if let Some(handler) = value[req.method() as usize].as_ref() {
                 return match handler {
-                    Handler::Sync(func) => (func)(req, params),
-                    Handler::Async(func) => (func)(req, params).await
+                    Handler::Sync(func) => (func)(req, env, params),
+                    Handler::Async(func) => (func)(req, env, params).await
                 }
             }
-            return Response::error("Method Not Allowed".into(), 405);
+            return Response::error("Method Not Allowed", 405);
         }
-        Response::error("Not Found".into(), 404)
+        Response::error("Not Found", 404)
     }
 }
 
 impl Default for Router<'_> {
     fn default() -> Self {
         Self {
-            handlers: Node::new(),
+            handlers: Node::new()
         }
     }
 }

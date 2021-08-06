@@ -1,6 +1,8 @@
 mod headers;
 mod router;
 
+pub mod durable;
+
 use std::result::Result as StdResult;
 
 mod global;
@@ -8,18 +10,17 @@ mod global;
 use edgeworker_sys::{
     Cf, Request as EdgeRequest, Response as EdgeResponse, ResponseInit as EdgeResponseInit,
 };
-use js_sys::Date as JsDate;
+use js_sys::{Date as JsDate, Object};
 use matchit::InsertError;
 use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
-use wasm_bindgen::{JsCast, JsValue};
+use wasm_bindgen::{prelude::*, JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 
 pub use crate::headers::Headers;
 pub use crate::router::Router;
 use web_sys::RequestInit;
 
-pub use edgeworker_sys::console_log;
 pub use worker_kv as kv;
 
 pub type Result<T> = StdResult<T, Error>;
@@ -27,13 +28,13 @@ pub type Result<T> = StdResult<T, Error>;
 pub mod prelude {
     pub use crate::global::Fetch;
     pub use crate::headers::Headers;
+    pub use crate::Env;
     pub use crate::Method;
     pub use crate::Request;
     pub use crate::Response;
     pub use crate::Result;
     pub use crate::Schedule;
     pub use crate::{Date, DateInit};
-    pub use edgeworker_sys::console_log;
     pub use matchit::Params;
     pub use web_sys::RequestInit;
 }
@@ -107,28 +108,71 @@ impl From<(String, u64, String)> for Schedule {
     }
 }
 
+#[wasm_bindgen]
+extern "C" {
+    pub type Env;
+}
+
+pub trait EnvBinding: Sized + JsCast {
+    const TYPE_NAME: &'static str;
+
+    fn get(val: JsValue) -> Result<Self> {
+        let obj = Object::from(val);
+        if obj.constructor().name() == Self::TYPE_NAME {
+            Ok(obj.unchecked_into())
+        } else {
+            Err(format!(
+                "Binding cannot be cast to the type {}",
+                Self::TYPE_NAME
+            ).into())
+        }
+    }
+}
+
+impl Env {
+    pub fn get_binding<T: EnvBinding>(&self, name: &str) -> Result<T> {
+        // Weird rust-analyzer bug is causing it to think Reflect::get is unsafe
+        #[allow(unused_unsafe)]
+        let binding = unsafe { js_sys::Reflect::get(self, &JsValue::from(name)) }
+            .map_err(|_| Error::JsError(format!("Env does not contain binding {}", name)))?;
+        if binding.is_undefined() {
+            Err("Binding is undefined.".to_string().into())
+        } else {
+            // Can't just use JsCast::dyn_into here because the type name might not be in scope
+            // resulting in a terribly annoying javascript error which can't be caught
+            T::get(binding)
+        }
+    }
+}
+
 pub struct Request {
     method: Method,
+    url: String,
     path: String,
     headers: Headers,
     cf: Cf,
-    event_type: String,
     edge_request: EdgeRequest,
     body_used: bool,
     immutable: bool,
 }
 
-impl From<(String, EdgeRequest)> for Request {
-    fn from(req: (String, EdgeRequest)) -> Self {
+impl From<EdgeRequest> for Request {
+    fn from(req: EdgeRequest) -> Self {
         Self {
-            method: req.1.method().into(),
-            path: Url::parse(&req.1.url()).unwrap().path().into(),
-            headers: Headers(req.1.headers()),
-            cf: req.1.cf(),
-            immutable: &req.0 == "fetch",
-            event_type: req.0,
-            edge_request: req.1,
+            method: req.method().into(),
+            url: req.url(),
+            path: Url::parse(&req.url()).map(|u| u.path().into()).unwrap_or_else(|_| {
+                let u = req.url();
+                if !u.starts_with('/') {
+                    return "/".to_string() + &u
+                }
+                u
+            }),
+            headers: Headers(req.headers()),
+            cf: req.cf(),
+            edge_request: req,
             body_used: false,
+            immutable: true
         }
     }
 }
@@ -136,7 +180,11 @@ impl From<(String, EdgeRequest)> for Request {
 impl Request {
     pub fn new(uri: &str, method: &str) -> Result<Self> {
         EdgeRequest::new_with_str_and_init(uri, RequestInit::new().method(method))
-            .map(|req| (String::new(), req).into())
+            .map(|req| {
+                let mut req: Request = req.into();
+                req.immutable = false;
+                req
+            })
             .map_err(|e| {
                 Error::JsError(
                     e.as_string()
@@ -147,7 +195,11 @@ impl Request {
 
     pub fn new_with_init(uri: &str, init: &RequestInit) -> Result<Self> {
         EdgeRequest::new_with_str_and_init(uri, init)
-            .map(|req| (String::new(), req).into())
+            .map(|req| {
+                let mut req: Request = req.into();
+                req.immutable = false;
+                req
+            })
             .map_err(|e| {
                 Error::JsError(
                     e.as_string()
@@ -169,7 +221,7 @@ impl Request {
                 })
                 .and_then(|val| {
                     val.into_serde()
-                        .map_err(|e| Error::RustError(e.to_string()))
+                        .map_err(Error::from)
                 });
         }
 
@@ -219,14 +271,11 @@ impl Request {
         self.path.clone()
     }
 
-    pub fn event_type(&self) -> String {
-        self.event_type.clone()
-    }
-
-    #[allow(clippy::clippy::should_implement_trait)]
+    #[allow(clippy::should_implement_trait)]
     pub fn clone(&self) -> Result<Self> {
-        EdgeRequest::new_with_request(&self.edge_request)
-            .map(|req| (self.event_type(), req).into())
+        self.edge_request
+            .clone()
+            .map(|req| req.into())
             .map_err(Error::from)
     }
 
@@ -261,9 +310,9 @@ impl Response {
 
         Err(Error::Json(("Failed to encode data to json".into(), 500)))
     }
-    pub fn ok(body: String) -> Result<Self> {
+    pub fn ok(body: impl Into<String>) -> Result<Self> {
         Ok(Self {
-            body: ResponseBody::Body(body.into_bytes()),
+            body: ResponseBody::Body(body.into().into_bytes()),
             headers: Headers::new(),
             status_code: 200,
         })
@@ -282,9 +331,9 @@ impl Response {
             status_code: 200,
         })
     }
-    pub fn error(msg: String, status: u16) -> Result<Self> {
+    pub fn error(msg: impl Into<String>, status: u16) -> Result<Self> {
         Ok(Self {
-            body: ResponseBody::Body(msg.into_bytes()),
+            body: ResponseBody::Body(msg.into().into_bytes()),
             headers: Headers::new(),
             status_code: status,
         })
@@ -297,7 +346,7 @@ impl Response {
     pub async fn text(&mut self) -> Result<String> {
         match &self.body {
             ResponseBody::Body(bytes) => Ok(
-                String::from_utf8(bytes.clone()).map_err(|e| Error::RustError(e.to_string()))?
+                String::from_utf8(bytes.clone()).map_err(|e| Error::from(e.to_string()))?
             ),
             ResponseBody::Empty => Ok(String::new()),
             ResponseBody::Stream(response) => JsFuture::from(response.text()?)
@@ -309,7 +358,7 @@ impl Response {
 
     pub async fn json<B: DeserializeOwned>(&mut self) -> Result<B> {
         serde_json::from_str(&self.text().await?)
-            .map_err(|_| Error::RustError("JSON deserialization error".into()))
+            .map_err(Error::from)
     }
 
     pub async fn bytes(&mut self) -> Result<Vec<u8>> {
@@ -487,7 +536,7 @@ impl From<String> for Redirect {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub enum Error {
     BodyUsed,
     Json((String, u16)),
@@ -495,6 +544,7 @@ pub enum Error {
     Internal(JsValue),
     RouteInsertError(matchit::InsertError),
     RustError(String),
+    SerdeJsonError(serde_json::Error)
 }
 
 impl std::fmt::Display for Error {
@@ -505,6 +555,7 @@ impl std::fmt::Display for Error {
             Error::JsError(s) | Error::RustError(s) => write!(f, "{}", s),
             Error::Internal(_) => write!(f, "unrecognized JavaScript object"),
             Error::RouteInsertError(e) => write!(f, "failed to insert route: {}", e),
+            Error::SerdeJsonError(e) => write!(f, "Serde Error: {}", e)
         }
     }
 }
@@ -529,8 +580,26 @@ impl From<Error> for JsValue {
     }
 }
 
+impl From<&str> for Error {
+    fn from(a: &str) -> Self {
+        Error::RustError(a.to_string())
+    }
+}
+
+impl From<String> for Error {
+    fn from(a: String) -> Self {
+        Error::RustError(a)
+    }
+}
+
 impl From<InsertError> for Error {
     fn from(e: InsertError) -> Self {
         Error::RouteInsertError(e)
+    }
+}
+
+impl From<serde_json::Error> for Error {
+    fn from(e: serde_json::Error) -> Self {
+        Error::SerdeJsonError(e)
     }
 }

@@ -1,0 +1,10 @@
+[package]
+name = "durable_object"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+worker = { path = "../../worker" }
+syn = "1.0.74"
+quote = "1.0.9"
+proc-macro2 = "1.0.28"
