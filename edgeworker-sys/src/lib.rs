@@ -1,4 +1,5 @@
 mod cf;
+mod form_data;
 pub mod global;
 mod headers;
 mod request;
@@ -12,6 +13,7 @@ macro_rules! console_log {
 pub mod prelude {
     pub use crate::cf::Cf;
     pub use crate::console_log;
+    pub use crate::form_data::FormData;
     pub use crate::global::WorkerGlobalScope;
     pub use crate::headers::Headers;
     pub use crate::request::Request;
@@ -19,6 +21,7 @@ pub mod prelude {
 }
 
 pub use cf::Cf;
+pub use form_data::FormData;
 pub use global::WorkerGlobalScope;
 pub use headers::Headers;
 pub use request::Request;
