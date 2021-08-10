@@ -1,7 +1,7 @@
 [package]
 name = "edgeworker-sys"
 version = "0.1.0"
-authors = ["Steve Manuel <nilslice@gmail.com>"]
+authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
 edition = "2018"
 
 [lib]

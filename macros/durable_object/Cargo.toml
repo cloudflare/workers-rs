@@ -1,6 +1,7 @@
 [package]
 name = "durable_object"
 version = "0.1.0"
+authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
 edition = "2018"
 
 [dependencies]
