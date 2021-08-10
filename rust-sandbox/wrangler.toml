@@ -1,10 +1,11 @@
 name = "do-test-rust"
 type = "javascript"
 
-account_id = "615f1f0479e7014f0bebcd10d379f10e"
 workers_dev = true
-route = ""
-zone_id = ""
+kv_namespaces = [
+  { binding = "SOME_NAMESPACE", id = "e019ce08616d48f2a498e49fe0c51be2" },
+  { binding = "SOME_KV", id = "23e78ed5402541b4a8c1bffef4726408" }
+]
 
 [build]
 command = """wasm-pack build --no-typescript --out-dir worker/build --out-name index && \

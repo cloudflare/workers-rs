@@ -11,6 +11,7 @@ use edgeworker_sys::{
     Cf, Request as EdgeRequest, Response as EdgeResponse, ResponseInit as EdgeResponseInit,
 };
 use js_sys::{Date as JsDate, Object};
+use kv::KvStore;
 use matchit::InsertError;
 use serde::{de::DeserializeOwned, Serialize};
 use url::Url;
@@ -35,9 +36,9 @@ pub mod prelude {
     pub use crate::Result;
     pub use crate::Schedule;
     pub use crate::{Date, DateInit};
+    pub use edgeworker_sys::console_log;
     pub use matchit::Params;
     pub use web_sys::RequestInit;
-    pub use edgeworker_sys::console_log;
 }
 
 #[derive(Debug)]
@@ -122,10 +123,7 @@ pub trait EnvBinding: Sized + JsCast {
         if obj.constructor().name() == Self::TYPE_NAME {
             Ok(obj.unchecked_into())
         } else {
-            Err(format!(
-                "Binding cannot be cast to the type {}",
-                Self::TYPE_NAME
-            ).into())
+            Err(format!("Binding cannot be cast to the type {}", Self::TYPE_NAME).into())
         }
     }
 }
@@ -137,12 +135,30 @@ impl Env {
         let binding = unsafe { js_sys::Reflect::get(self, &JsValue::from(name)) }
             .map_err(|_| Error::JsError(format!("Env does not contain binding {}", name)))?;
         if binding.is_undefined() {
-            Err("Binding is undefined.".to_string().into())
+            Err(format!("Binding '{}' is undefined.", name)
+                .to_string()
+                .into())
         } else {
             // Can't just use JsCast::dyn_into here because the type name might not be in scope
             // resulting in a terribly annoying javascript error which can't be caught
             T::get(binding)
         }
+    }
+
+    pub fn secret(&self, binding: &str) -> Result<String> {
+        #[allow(unused_unsafe)]
+        let val = unsafe { js_sys::Reflect::get(&self, &JsValue::from(binding)) }?;
+
+        match val.as_string() {
+            Some(secret) => Ok(secret),
+            None => Err(Error::RustError(
+                "failed to get string value from secret".into(),
+            )),
+        }
+    }
+
+    pub fn kv(&self, binding: &str) -> Result<KvStore> {
+        KvStore::from_this(&self, binding).map_err(From::from)
     }
 }
 
@@ -162,18 +178,20 @@ impl From<EdgeRequest> for Request {
         Self {
             method: req.method().into(),
             url: req.url(),
-            path: Url::parse(&req.url()).map(|u| u.path().into()).unwrap_or_else(|_| {
-                let u = req.url();
-                if !u.starts_with('/') {
-                    return "/".to_string() + &u
-                }
-                u
-            }),
+            path: Url::parse(&req.url())
+                .map(|u| u.path().into())
+                .unwrap_or_else(|_| {
+                    let u = req.url();
+                    if !u.starts_with('/') {
+                        return "/".to_string() + &u;
+                    }
+                    u
+                }),
             headers: Headers(req.headers()),
             cf: req.cf(),
             edge_request: req,
             body_used: false,
-            immutable: true
+            immutable: true,
         }
     }
 }
@@ -220,10 +238,7 @@ impl Request {
                             .unwrap_or_else(|| "failed to get JSON for body value".into()),
                     )
                 })
-                .and_then(|val| {
-                    val.into_serde()
-                        .map_err(Error::from)
-                });
+                .and_then(|val| val.into_serde().map_err(Error::from));
         }
 
         Err(Error::BodyUsed)
@@ -346,9 +361,9 @@ impl Response {
 
     pub async fn text(&mut self) -> Result<String> {
         match &self.body {
-            ResponseBody::Body(bytes) => Ok(
-                String::from_utf8(bytes.clone()).map_err(|e| Error::from(e.to_string()))?
-            ),
+            ResponseBody::Body(bytes) => {
+                Ok(String::from_utf8(bytes.clone()).map_err(|e| Error::from(e.to_string()))?)
+            }
             ResponseBody::Empty => Ok(String::new()),
             ResponseBody::Stream(response) => JsFuture::from(response.text()?)
                 .await
@@ -358,8 +373,7 @@ impl Response {
     }
 
     pub async fn json<B: DeserializeOwned>(&mut self) -> Result<B> {
-        serde_json::from_str(&self.text().await?)
-            .map_err(Error::from)
+        serde_json::from_str(&self.text().await?).map_err(Error::from)
     }
 
     pub async fn bytes(&mut self) -> Result<Vec<u8>> {
@@ -543,9 +557,10 @@ pub enum Error {
     Json((String, u16)),
     JsError(String),
     Internal(JsValue),
+    BindingError(String),
     RouteInsertError(matchit::InsertError),
     RustError(String),
-    SerdeJsonError(serde_json::Error)
+    SerdeJsonError(serde_json::Error),
 }
 
 impl std::fmt::Display for Error {
@@ -555,8 +570,9 @@ impl std::fmt::Display for Error {
             Error::Json((msg, status)) => write!(f, "{} (status: {})", msg, status),
             Error::JsError(s) | Error::RustError(s) => write!(f, "{}", s),
             Error::Internal(_) => write!(f, "unrecognized JavaScript object"),
+            Error::BindingError(name) => write!(f, "no binding found for `{}`", name),
             Error::RouteInsertError(e) => write!(f, "failed to insert route: {}", e),
-            Error::SerdeJsonError(e) => write!(f, "Serde Error: {}", e)
+            Error::SerdeJsonError(e) => write!(f, "Serde Error: {}", e),
         }
     }
 }

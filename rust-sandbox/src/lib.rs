@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
-use worker::{durable::ObjectNamespace, kv::KvStore, prelude::*, Router};
+use worker::{durable::ObjectNamespace, prelude::*, Router};
 
-mod test;
 mod counter;
+mod test;
 mod utils;
 
 #[derive(Deserialize, Serialize)]
@@ -84,7 +84,7 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         ))
     })?;
 
-    router.on_async("/async", |mut req, _env,  _params| async move {
+    router.on_async("/async", |mut req, _env, _params| async move {
         Response::ok(format!("Request body: {}", req.text().await?))
     })?;
 
@@ -113,7 +113,12 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
 
     router.on_async("/proxy_request/*url", |_req, _env, params| {
         // Must copy the parameters into the heap here for lifetime purposes
-        let url = params.get("url").unwrap().strip_prefix('/').unwrap().to_string();
+        let url = params
+            .get("url")
+            .unwrap()
+            .strip_prefix('/')
+            .unwrap()
+            .to_string();
         async move { Fetch::Url(&url).send().await }
     })?;
 
@@ -121,6 +126,17 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         let namespace = e.get_binding::<ObjectNamespace>("COUNTER")?;
         let stub = namespace.id_from_name("A")?.get_stub()?;
         stub.fetch_with_str("/").await
+    })?;
+
+    router.get("/secret", |_req, env, _params| {
+        Response::ok(env.secret("SOME_SECRET")?)
+    })?;
+
+    router.on_async("/kv", |_req, env, _params| async move {
+        let kv = env.kv("SOME_NAMESPACE")?;
+        kv.put("a-key", "a-value")?.execute().await?;
+
+        Response::empty()
     })?;
 
     router.run(req, env).await
@@ -200,18 +216,4 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
     //     (_, "/404") => Response::error("Not Found".to_string(), 404),
     //     _ => Response::ok(Some(format!("{:?} {}", req.method(), req.path()))),
     // }
-}
-
-#[cf::worker(scheduled)]
-pub async fn job(s: Schedule) -> Result<()> {
-    utils::set_panic_hook();
-
-    let kv = KvStore::create("JOB_LOG").expect("no binding for JOB_LOG");
-    kv.put(&format!("{}", s.time()), s)
-        .expect("fail to build KV put operation")
-        .execute()
-        .await
-        .map_err(worker::Error::from)
-
-    // s.time() = 1621579157181, s.cron() = "15 * * * *", s.event_type() == "scheduled";
 }
