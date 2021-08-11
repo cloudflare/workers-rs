@@ -1,4 +1,4 @@
-use crate::{Request as WorkerRequest, Response as WorkerResponse, Result};
+use crate::{request::Request as WorkerRequest, response::Response as WorkerResponse, Result};
 use edgeworker_sys::{Response as EdgeResponse, WorkerGlobalScope};
 
 use wasm_bindgen::JsCast;

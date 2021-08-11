@@ -1,0 +1,78 @@
+use wasm_bindgen::{JsCast, JsValue};
+
+#[derive(Debug)]
+pub enum Error {
+    BodyUsed,
+    Json((String, u16)),
+    JsError(String),
+    Internal(JsValue),
+    BindingError(String),
+    RouteInsertError(matchit::InsertError),
+    RustError(String),
+    SerdeJsonError(serde_json::Error),
+}
+
+impl From<worker_kv::KvError> for Error {
+    fn from(e: worker_kv::KvError) -> Self {
+        let val: JsValue = e.into();
+        val.into()
+    }
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::BodyUsed => write!(f, "request body has already been read"),
+            Error::Json((msg, status)) => write!(f, "{} (status: {})", msg, status),
+            Error::JsError(s) | Error::RustError(s) => write!(f, "{}", s),
+            Error::Internal(_) => write!(f, "unrecognized JavaScript object"),
+            Error::BindingError(name) => write!(f, "no binding found for `{}`", name),
+            Error::RouteInsertError(e) => write!(f, "failed to insert route: {}", e),
+            Error::SerdeJsonError(e) => write!(f, "Serde Error: {}", e),
+        }
+    }
+}
+
+impl std::error::Error for Error {}
+
+impl From<JsValue> for Error {
+    fn from(v: JsValue) -> Self {
+        match v
+            .as_string()
+            .or_else(|| v.dyn_ref::<js_sys::Error>().map(|e| e.to_string().into()))
+        {
+            Some(s) => Self::JsError(s),
+            None => Self::Internal(v),
+        }
+    }
+}
+
+impl From<Error> for JsValue {
+    fn from(e: Error) -> Self {
+        JsValue::from_str(&e.to_string())
+    }
+}
+
+impl From<&str> for Error {
+    fn from(a: &str) -> Self {
+        Error::RustError(a.to_string())
+    }
+}
+
+impl From<String> for Error {
+    fn from(a: String) -> Self {
+        Error::RustError(a)
+    }
+}
+
+impl From<matchit::InsertError> for Error {
+    fn from(e: matchit::InsertError) -> Self {
+        Error::RouteInsertError(e)
+    }
+}
+
+impl From<serde_json::Error> for Error {
+    fn from(e: serde_json::Error) -> Self {
+        Error::SerdeJsonError(e)
+    }
+}

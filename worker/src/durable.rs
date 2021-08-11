@@ -1,4 +1,11 @@
-use crate::{Env, Error, Request, Response, Result};
+use crate::{
+    env::{Env, EnvBinding},
+    error::Error,
+    request::Request,
+    response::Response,
+    Result,
+};
+
 use async_trait::async_trait;
 use edgeworker_sys::{Request as EdgeRequest, Response as EdgeResponse};
 use js_sys::{Map, Object};
@@ -191,20 +198,6 @@ impl ObjectId<'_> {
 }
 
 impl ObjectNamespace {
-    // Get a Durable Object binding from the global namespace
-    // if your build is configured with ES6 modules, use Env::get_binding instead
-    // pub fn global(name: &str) -> Result<Self> {
-    //     let global = js_sys::global();
-    //     #[allow(unused_unsafe)]
-    //     // Weird rust-analyzer bug is causing it to think Reflect::get is unsafe
-    //     let class_binding = unsafe { js_sys::Reflect::get(&global, &JsValue::from(name))? };
-    //     if class_binding.is_undefined() {
-    //         Err(Error::JsError("namespace binding does not exist".into()))
-    //     } else {
-    //         Ok(class_binding.unchecked_into())
-    //     }
-    // }
-
     pub fn id_from_name(&self, name: &str) -> Result<ObjectId> {
         self.id_from_name_internal(name)
             .map_err(Error::from)
@@ -235,7 +228,6 @@ impl ObjectNamespace {
     pub fn unique_id_with_jurisdiction(&self, jd: &str) -> Result<ObjectId> {
         let options = Object::new();
         #[allow(unused_unsafe)]
-        // Weird rust-analyzer bug is causing it to think Reflect::set is unsafe
         unsafe {
             js_sys::Reflect::set(&options, &JsValue::from("jurisdiction"), &jd.into())?
         };
@@ -522,7 +514,7 @@ impl<'a> ListOptions<'a> {
     }
 }
 
-impl crate::EnvBinding for ObjectNamespace {
+impl EnvBinding for ObjectNamespace {
     const TYPE_NAME: &'static str = "DurableObjectNamespace";
 }
 

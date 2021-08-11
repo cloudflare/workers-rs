@@ -3,7 +3,7 @@ use std::rc::Rc;
 use futures::{future::LocalBoxFuture, Future};
 use matchit::{Match, Node, Params};
 
-use crate::{Env, Method, Request, Response, Result};
+use crate::{env::Env, http::Method, request::Request, response::Response, Result};
 
 pub type HandlerFn = fn(Request, Env, Params) -> Result<Response>;
 type AsyncHandler<'a> = Rc<dyn Fn(Request, Env, Params) -> LocalBoxFuture<'a, Result<Response>>>;
