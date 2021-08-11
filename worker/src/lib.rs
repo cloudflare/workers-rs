@@ -5,12 +5,13 @@ pub mod durable;
 
 use std::result::Result as StdResult;
 
+mod date;
 mod global;
 
 use edgeworker_sys::{
     Cf, Request as EdgeRequest, Response as EdgeResponse, ResponseInit as EdgeResponseInit,
 };
-use js_sys::{Date as JsDate, Object};
+use js_sys::Object;
 use kv::KvStore;
 use matchit::InsertError;
 use serde::{de::DeserializeOwned, Serialize};
@@ -27,6 +28,8 @@ pub use worker_kv as kv;
 pub type Result<T> = StdResult<T, Error>;
 
 pub mod prelude {
+    pub use crate::date::{Date, DateInit};
+    pub use crate::durable;
     pub use crate::global::Fetch;
     pub use crate::headers::Headers;
     pub use crate::Env;
@@ -35,50 +38,15 @@ pub mod prelude {
     pub use crate::Response;
     pub use crate::Result;
     pub use crate::Schedule;
-    pub use crate::{Date, DateInit};
     pub use edgeworker_sys::console_log;
     pub use matchit::Params;
     pub use web_sys::RequestInit;
 }
 
-#[derive(Debug)]
-pub struct Date {
-    js_date: JsDate,
+pub mod storage {
+    pub use crate::durable::*;
 }
 
-pub enum DateInit {
-    Millis(u64),
-    String(String),
-}
-
-impl Date {
-    pub fn new(init: DateInit) -> Self {
-        let val = match init {
-            DateInit::Millis(n) => JsValue::from_f64(n as f64),
-            DateInit::String(s) => JsValue::from_str(&s),
-        };
-
-        Self {
-            js_date: JsDate::new(&val),
-        }
-    }
-
-    pub fn now() -> Self {
-        Self {
-            js_date: JsDate::new_0(),
-        }
-    }
-
-    pub fn as_millis(&self) -> u64 {
-        self.js_date.get_time() as u64
-    }
-}
-
-impl ToString for Date {
-    fn to_string(&self) -> String {
-        self.js_date.to_string().into()
-    }
-}
 #[derive(Serialize)]
 pub struct Schedule {
     event_type: String,
@@ -128,14 +96,61 @@ pub trait EnvBinding: Sized + JsCast {
     }
 }
 
+pub struct StringBinding(JsValue);
+
+impl EnvBinding for StringBinding {
+    const TYPE_NAME: &'static str = "String";
+}
+
+impl JsCast for StringBinding {
+    fn instanceof(val: &JsValue) -> bool {
+        val.is_string()
+    }
+
+    fn unchecked_from_js(val: JsValue) -> Self {
+        StringBinding(val)
+    }
+
+    fn unchecked_from_js_ref(val: &JsValue) -> &Self {
+        unsafe { &*(val as *const JsValue as *const Self) }
+    }
+}
+
+impl AsRef<JsValue> for StringBinding {
+    fn as_ref(&self) -> &wasm_bindgen::JsValue {
+        unsafe { &*(&self.0 as *const JsValue) }
+    }
+}
+
+impl From<JsValue> for StringBinding {
+    fn from(val: JsValue) -> Self {
+        StringBinding(val)
+    }
+}
+
+impl From<StringBinding> for JsValue {
+    fn from(sec: StringBinding) -> Self {
+        sec.0
+    }
+}
+
+impl ToString for StringBinding {
+    fn to_string(&self) -> String {
+        self.0.as_string().unwrap_or_default()
+    }
+}
+
+type Secret = StringBinding;
+type Var = StringBinding;
+
 impl Env {
     pub fn get_binding<T: EnvBinding>(&self, name: &str) -> Result<T> {
         // Weird rust-analyzer bug is causing it to think Reflect::get is unsafe
         #[allow(unused_unsafe)]
         let binding = unsafe { js_sys::Reflect::get(self, &JsValue::from(name)) }
-            .map_err(|_| Error::JsError(format!("Env does not contain binding {}", name)))?;
+            .map_err(|_| Error::JsError(format!("Env does not contain binding `{}`", name)))?;
         if binding.is_undefined() {
-            Err(format!("Binding '{}' is undefined.", name)
+            Err(format!("Binding `{}` is undefined.", name)
                 .to_string()
                 .into())
         } else {
@@ -145,16 +160,12 @@ impl Env {
         }
     }
 
-    pub fn secret(&self, binding: &str) -> Result<String> {
-        #[allow(unused_unsafe)]
-        let val = unsafe { js_sys::Reflect::get(&self, &JsValue::from(binding)) }?;
+    pub fn secret(&self, binding: &str) -> Result<Secret> {
+        self.get_binding::<Secret>(binding)
+    }
 
-        match val.as_string() {
-            Some(secret) => Ok(secret),
-            None => Err(Error::RustError(
-                "failed to get string value from secret".into(),
-            )),
-        }
+    pub fn var(&self, binding: &str) -> Result<Var> {
+        self.get_binding::<Var>(binding)
     }
 
     pub fn kv(&self, binding: &str) -> Result<KvStore> {

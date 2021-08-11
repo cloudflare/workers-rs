@@ -6,6 +6,7 @@ kv_namespaces = [
   { binding = "SOME_NAMESPACE", id = "e019ce08616d48f2a498e49fe0c51be2" },
   { binding = "SOME_KV", id = "23e78ed5402541b4a8c1bffef4726408" }
 ]
+vars = { SOME_VARIABLE = "some value" }
 
 [build]
 command = """wasm-pack build --no-typescript --out-dir worker/build --out-name index && \

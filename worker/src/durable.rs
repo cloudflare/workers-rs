@@ -5,7 +5,7 @@ use js_sys::{Map, Object};
 use serde::{Deserialize, Serialize};
 use std::{future::Future, ops::Deref, result::Result as StdResult};
 use wasm_bindgen::{prelude::*, JsCast};
-use wasm_bindgen_futures::{JsFuture, future_to_promise};
+use wasm_bindgen_futures::{future_to_promise, JsFuture};
 
 #[wasm_bindgen]
 extern "C" {
@@ -77,7 +77,10 @@ extern "C" {
     ) -> StdResult<::js_sys::Promise, JsValue>;
 
     #[wasm_bindgen(catch, method, js_class = "DurableObjectStorage", js_name = put)]
-    fn put_multiple_internal(this: &Storage, value: JsValue) -> StdResult<::js_sys::Promise, JsValue>;
+    fn put_multiple_internal(
+        this: &Storage,
+        value: JsValue,
+    ) -> StdResult<::js_sys::Promise, JsValue>;
 
     #[wasm_bindgen(catch, method, js_class = "DurableObjectStorage", js_name = delete)]
     fn delete_internal(this: &Storage, key: &str) -> StdResult<::js_sys::Promise, JsValue>;
@@ -101,14 +104,17 @@ extern "C" {
     ) -> StdResult<::js_sys::Promise, JsValue>;
 
     #[wasm_bindgen(catch, method, js_class = "DurableObjectStorage", js_name = transaction)]
-    fn transaction_internal(this: &Storage, closure: &mut dyn FnMut(Transaction) -> ::js_sys::Promise) -> StdResult<::js_sys::Promise, JsValue>;
+    fn transaction_internal(
+        this: &Storage,
+        closure: &mut dyn FnMut(Transaction) -> ::js_sys::Promise,
+    ) -> StdResult<::js_sys::Promise, JsValue>;
 }
 
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(extends = ::js_sys::Object, js_name = DurableObjectTransaction)]
     pub type Transaction;
-    
+
     #[wasm_bindgen(catch, method, js_class = "DurableObjectTransaction", js_name = get)]
     fn get_internal(this: &Transaction, key: &str) -> StdResult<::js_sys::Promise, JsValue>;
 
@@ -126,7 +132,10 @@ extern "C" {
     ) -> StdResult<::js_sys::Promise, JsValue>;
 
     #[wasm_bindgen(catch, method, js_class = "DurableObjectTransaction", js_name = put)]
-    fn put_multiple_internal(this: &Transaction, value: JsValue) -> StdResult<::js_sys::Promise, JsValue>;
+    fn put_multiple_internal(
+        this: &Transaction,
+        value: JsValue,
+    ) -> StdResult<::js_sys::Promise, JsValue>;
 
     #[wasm_bindgen(catch, method, js_class = "DurableObjectTransaction", js_name = delete)]
     fn delete_internal(this: &Transaction, key: &str) -> StdResult<::js_sys::Promise, JsValue>;
@@ -184,17 +193,17 @@ impl ObjectId<'_> {
 impl ObjectNamespace {
     // Get a Durable Object binding from the global namespace
     // if your build is configured with ES6 modules, use Env::get_binding instead
-    pub fn global(name: &str) -> Result<Self> {
-        let global = js_sys::global();
-        #[allow(unused_unsafe)]
-        // Weird rust-analyzer bug is causing it to think Reflect::get is unsafe
-        let class_binding = unsafe { js_sys::Reflect::get(&global, &JsValue::from(name))? };
-        if class_binding.is_undefined() {
-            Err(Error::JsError("namespace binding does not exist".into()))
-        } else {
-            Ok(class_binding.unchecked_into())
-        }
-    }
+    // pub fn global(name: &str) -> Result<Self> {
+    //     let global = js_sys::global();
+    //     #[allow(unused_unsafe)]
+    //     // Weird rust-analyzer bug is causing it to think Reflect::get is unsafe
+    //     let class_binding = unsafe { js_sys::Reflect::get(&global, &JsValue::from(name))? };
+    //     if class_binding.is_undefined() {
+    //         Err(Error::JsError("namespace binding does not exist".into()))
+    //     } else {
+    //         Ok(class_binding.unchecked_into())
+    //     }
+    // }
 
     pub fn id_from_name(&self, name: &str) -> Result<ObjectId> {
         self.id_from_name_internal(name)
@@ -268,22 +277,20 @@ impl Storage {
     }
 
     pub async fn get_multiple(&self, keys: Vec<impl Deref<Target = str>>) -> Result<Map> {
-        let keys = self.get_multiple_internal(keys.into_iter().map(|key| JsValue::from(key.deref())).collect())?;
+        let keys = self.get_multiple_internal(
+            keys.into_iter()
+                .map(|key| JsValue::from(key.deref()))
+                .collect(),
+        )?;
         let keys = JsFuture::from(keys).await?;
         keys.dyn_into::<Map>().map_err(Error::from)
     }
 
     pub async fn put<T: Serialize>(&mut self, key: &str, value: T) -> Result<()> {
-        JsFuture::from(
-            self.put_internal(
-                key,
-                JsValue::from_serde(&value)?,
-            )
-            ?,
-        )
-        .await
-        .map_err(Error::from)
-        .map(|_| ())
+        JsFuture::from(self.put_internal(key, JsValue::from_serde(&value)?)?)
+            .await
+            .map_err(Error::from)
+            .map(|_| ())
     }
 
     // Each key-value pair in the serialized object will be added to the storage
@@ -310,7 +317,11 @@ impl Storage {
 
     pub async fn delete_multiple(&mut self, keys: Vec<impl Deref<Target = str>>) -> Result<usize> {
         let fut: JsFuture = self
-            .delete_multiple_internal(keys.into_iter().map(|key| JsValue::from(key.deref())).collect())?
+            .delete_multiple_internal(
+                keys.into_iter()
+                    .map(|key| JsValue::from(key.deref()))
+                    .collect(),
+            )?
             .into();
         fut.await
             .and_then(|jsv| {
@@ -335,9 +346,7 @@ impl Storage {
 
     pub async fn list_with_options(&self, opts: ListOptions<'_>) -> Result<Map> {
         let fut: JsFuture = self
-            .list_with_options_internal(
-                JsValue::from_serde(&opts)?.into(),
-            )?
+            .list_with_options_internal(JsValue::from_serde(&opts)?.into())?
             .into();
         fut.await
             .and_then(|jsv| jsv.dyn_into())
@@ -347,13 +356,21 @@ impl Storage {
     //This function doesn't work on stable yet because the wasm_bindgen `Closure` type is still nightly-gated
     #[allow(dead_code)]
     async fn transaction<F>(&mut self, closure: fn(Transaction) -> F) -> Result<()>
-    where F: Future<Output = Result<()>> + 'static {
+    where
+        F: Future<Output = Result<()>> + 'static,
+    {
         let mut clos = |t: Transaction| {
             future_to_promise(async move {
-                closure(t).await.map_err(JsValue::from).map(|_| JsValue::NULL)
+                closure(t)
+                    .await
+                    .map_err(JsValue::from)
+                    .map(|_| JsValue::NULL)
             })
         };
-        JsFuture::from(self.transaction_internal(&mut clos)?).await.map_err(Error::from).map(|_| ())
+        JsFuture::from(self.transaction_internal(&mut clos)?)
+            .await
+            .map_err(Error::from)
+            .map(|_| ())
     }
 }
 
@@ -372,22 +389,20 @@ impl Transaction {
     }
 
     pub async fn get_multiple(&self, keys: Vec<impl Deref<Target = str>>) -> Result<Map> {
-        let keys = self.get_multiple_internal(keys.into_iter().map(|key| JsValue::from(key.deref())).collect())?;
+        let keys = self.get_multiple_internal(
+            keys.into_iter()
+                .map(|key| JsValue::from(key.deref()))
+                .collect(),
+        )?;
         let keys = JsFuture::from(keys).await?;
         keys.dyn_into::<Map>().map_err(Error::from)
     }
 
     pub async fn put<T: Serialize>(&mut self, key: &str, value: T) -> Result<()> {
-        JsFuture::from(
-            self.put_internal(
-                key,
-                JsValue::from_serde(&value)?,
-            )
-            ?,
-        )
-        .await
-        .map_err(Error::from)
-        .map(|_| ())
+        JsFuture::from(self.put_internal(key, JsValue::from_serde(&value)?)?)
+            .await
+            .map_err(Error::from)
+            .map(|_| ())
     }
 
     // Each key-value pair in the serialized object will be added to the storage
@@ -414,7 +429,11 @@ impl Transaction {
 
     pub async fn delete_multiple(&mut self, keys: Vec<impl Deref<Target = str>>) -> Result<usize> {
         let fut: JsFuture = self
-            .delete_multiple_internal(keys.into_iter().map(|key| JsValue::from(key.deref())).collect())?
+            .delete_multiple_internal(
+                keys.into_iter()
+                    .map(|key| JsValue::from(key.deref()))
+                    .collect(),
+            )?
             .into();
         fut.await
             .and_then(|jsv| {
@@ -439,9 +458,7 @@ impl Transaction {
 
     pub async fn list_with_options(&self, opts: ListOptions<'_>) -> Result<Map> {
         let fut: JsFuture = self
-            .list_with_options_internal(
-                JsValue::from_serde(&opts)?.into(),
-            )?
+            .list_with_options_internal(JsValue::from_serde(&opts)?.into())?
             .into();
         fut.await
             .and_then(|jsv| jsv.dyn_into())
