@@ -11,8 +11,8 @@ extern "C" {
         this: &FormData,
         name: String,
         value: String,
-        // TODO: do we or dont we support files? Also, how to do optional args
-        // filename: Option<JsValue>,
+        // ok so the deal is this can be undefined, actually
+        filename: JsValue,
     );
 
     #[wasm_bindgen(structural, method, js_class=FormData, js_name=delete)]
@@ -38,8 +38,7 @@ extern "C" {
         this: &FormData,
         name: String,
         value: String,
-        // TODO: do we or dont we support files? Also, how to do optional args
-        // filename: Option<JsValue>,
+        filename: JsValue, // possibly undefined
     );
 
     #[wasm_bindgen(structural, method, js_class=FormData, js_name=values)]
