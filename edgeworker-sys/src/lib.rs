@@ -1,4 +1,5 @@
 mod cf;
+pub mod durable_object;
 pub mod global;
 mod headers;
 mod request;
@@ -12,6 +13,7 @@ macro_rules! console_log {
 pub mod prelude {
     pub use crate::cf::Cf;
     pub use crate::console_log;
+    pub use crate::durable_object;
     pub use crate::global::WorkerGlobalScope;
     pub use crate::headers::Headers;
     pub use crate::request::Request;
