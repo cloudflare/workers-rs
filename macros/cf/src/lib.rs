@@ -5,7 +5,7 @@ use quote::quote;
 use syn::{parse_macro_input, punctuated::Punctuated, token::Comma, Ident, ItemFn};
 
 #[proc_macro_attribute]
-pub fn worker(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attrs: Punctuated<Ident, Comma> =
         parse_macro_input!(attr with Punctuated::parse_terminated);
 

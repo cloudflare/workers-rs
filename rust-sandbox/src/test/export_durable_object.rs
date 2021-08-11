@@ -13,11 +13,11 @@ pub struct MyClass {
 
 #[cf::durable_object]
 impl DurableObject for MyClass {
-    fn constructor(state: worker::durable::State, _env: worker::Env) -> Self {
+    fn constructor(state: worker::durable::State, _env: Env) -> Self {
         Self { state, number: 0 }
     }
 
-    async fn fetch(&mut self, req: worker::Request) -> Result<Response> {
+    async fn fetch(&mut self, req: Request) -> Result<Response> {
         let handler = async move {
             match req.path().as_str() {
                 "/hello" => Response::ok("Hello!"),

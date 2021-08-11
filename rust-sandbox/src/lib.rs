@@ -34,7 +34,7 @@ fn handle_a_request(_req: Request, _env: Env, _params: Params) -> Result<Respons
     Response::ok("hello, world.")
 }
 
-#[cf::worker(fetch, respond_with_errors)]
+#[cf::event(fetch, respond_with_errors)]
 pub async fn main(req: Request, env: Env) -> Result<Response> {
     utils::set_panic_hook();
 

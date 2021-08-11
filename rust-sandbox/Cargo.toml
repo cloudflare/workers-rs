@@ -13,7 +13,6 @@ cfg-if = "0.1.2"
 console_error_panic_hook = { version = "0.1.1", optional = true }
 wee_alloc = { version = "0.4.2", optional = true }
 cf = { path = "../macros/cf" }
-durable_object = { path = "../macros/durable_object" }
 edgeworker-sys = { path = "../edgeworker-sys" }
 serde = { version = "1.0.126", features = ["derive"] }
 worker = { path = "../worker" }

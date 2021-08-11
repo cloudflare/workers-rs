@@ -3,7 +3,7 @@
 **Work-in-progress** ergonomic Rust bindings to Cloudflare Workers environment. Write your entire worker in Rust!
 
 ```rust
-#[cf::worker(fetch)]
+#[cf::event(fetch)]
 pub async fn main(req: Request) -> Result<Response> {
     console_log!("request at: {:?}", req.path());
 
