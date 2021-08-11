@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use serde::Serialize;
+use std::collections::HashMap;
 
 use worker::prelude::*;
 
@@ -60,19 +60,32 @@ impl DurableObject for MyClass {
                         "Didn't get the right array using get_multiple"
                     );
                     ensure!(
-                        vals.get(&"map".into()).into_serde::<HashMap<String, i32>>()? == map,
+                        vals.get(&"map".into())
+                            .into_serde::<HashMap<String, i32>>()?
+                            == map,
                         "Didn't get the right HashMap<String, i32> using get_multiple"
                     );
 
                     #[derive(Serialize)]
                     struct Stuff {
                         thing: String,
-                        other: i32
+                        other: i32,
                     }
-                    storage.put_multiple(Stuff {thing: "Hello there".to_string(), other: 56}).await?;
+                    storage
+                        .put_multiple(Stuff {
+                            thing: "Hello there".to_string(),
+                            other: 56,
+                        })
+                        .await?;
 
-                    ensure!(storage.get::<String>("thing").await? == "Hello there", "Didn't put the right thing with put_multiple");
-                    ensure!(storage.get::<i32>("other").await? == 56, "Didn't put the right thing with put_multiple");
+                    ensure!(
+                        storage.get::<String>("thing").await? == "Hello there",
+                        "Didn't put the right thing with put_multiple"
+                    );
+                    ensure!(
+                        storage.get::<i32>("other").await? == 56,
+                        "Didn't put the right thing with put_multiple"
+                    );
 
                     storage.delete_multiple(vec!["thing", "other"]).await?;
 

@@ -2,15 +2,16 @@ extern crate wasm_bindgen_macro_support;
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{Ident, ItemFn, parse_macro_input, punctuated::Punctuated, token::Comma};
+use syn::{parse_macro_input, punctuated::Punctuated, token::Comma, Ident, ItemFn};
 
 #[proc_macro_attribute]
 pub fn worker(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let attrs: Punctuated<Ident, Comma> = parse_macro_input!(attr with Punctuated::parse_terminated);
+    let attrs: Punctuated<Ident, Comma> =
+        parse_macro_input!(attr with Punctuated::parse_terminated);
 
     enum HandlerType {
         Fetch,
-        Scheduled
+        Scheduled,
     }
     use HandlerType::*;
 
@@ -19,19 +20,16 @@ pub fn worker(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     for attr in attrs {
         match attr.to_string().as_str() {
-            "fetch" => {
-                handler_type = Some(Fetch)
-            }
-            "scheduled" => {
-                handler_type = Some(Scheduled)
-            }
+            "fetch" => handler_type = Some(Fetch),
+            "scheduled" => handler_type = Some(Scheduled),
             "respond_with_errors" => {
                 respond_with_errors = true;
-            },
-            _ => panic!("Invalid attribute: {}", attr.to_string())
+            }
+            _ => panic!("Invalid attribute: {}", attr.to_string()),
         }
     }
-    let handler_type = handler_type.expect("must have either 'fetch' or 'scheduled' attribute, e.g. #[cf::worker(fetch)]");
+    let handler_type = handler_type
+        .expect("must have either 'fetch' or 'scheduled' attribute, e.g. #[cf::worker(fetch)]");
 
     // create new var using syn item of the attributed fn
     let mut input_fn = parse_macro_input!(item as ItemFn);
@@ -42,7 +40,10 @@ pub fn worker(attr: TokenStream, item: TokenStream) -> TokenStream {
             // let input_arg = input_fn.sig.inputs.first().expect("#[cf::worker(fetch)] attribute requires exactly one input, of type `worker::Request`");
 
             // save original fn name for re-use in the wrapper fn
-            let input_fn_ident = Ident::new(&(input_fn.sig.ident.to_string() + "_fetch_glue"), input_fn.sig.ident.span());
+            let input_fn_ident = Ident::new(
+                &(input_fn.sig.ident.to_string() + "_fetch_glue"),
+                input_fn.sig.ident.span(),
+            );
             let wrapper_fn_ident = Ident::new("fetch", input_fn.sig.ident.span());
             // rename the original attributed fn
             input_fn.sig.ident = input_fn_ident.clone();
@@ -52,7 +53,7 @@ pub fn worker(attr: TokenStream, item: TokenStream) -> TokenStream {
                     quote! {
                         Response::error(e.to_string(), 500).unwrap().into()
                     }
-                },
+                }
                 false => {
                     quote! { panic!("{}", e) }
                 }
@@ -114,5 +115,7 @@ pub fn worker(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 #[proc_macro_attribute]
 pub fn durable_object(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    durable_object::expand_macro(item.into()).unwrap_or_else(syn::Error::into_compile_error).into()
+    durable_object::expand_macro(item.into())
+        .unwrap_or_else(syn::Error::into_compile_error)
+        .into()
 }

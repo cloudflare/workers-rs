@@ -1,6 +1,6 @@
 use proc_macro2::{Ident, TokenStream};
-use quote::{ToTokens, quote};
-use syn::{Error, ImplItem, Item, spanned::Spanned};
+use quote::{quote, ToTokens};
+use syn::{spanned::Spanned, Error, ImplItem, Item};
 
 pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
     let item = syn::parse2::<Item>(tokens)?;
@@ -22,7 +22,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
             let mut tokenized = vec![];
             for item in items {
                 let mut method = match item {
-                    ImplItem::Method(m) => m, 
+                    ImplItem::Method(m) => m,
                     _ => return Err(Error::new_spanned(item, "Impl block must only contain methods"))
                 };
                 let tokens = match method.sig.ident.to_string().as_str() {

@@ -10,14 +10,14 @@ type AsyncHandler<'a> = Rc<dyn Fn(Request, Env, Params) -> LocalBoxFuture<'a, Re
 
 pub enum Handler<'a> {
     Async(AsyncHandler<'a>),
-    Sync(HandlerFn)
+    Sync(HandlerFn),
 }
 
 impl Clone for Handler<'_> {
     fn clone(&self) -> Self {
         match self {
             Self::Async(rc) => Self::Async(rc.clone()),
-            Self::Sync(func) => Self::Sync(*func)
+            Self::Sync(func) => Self::Sync(*func),
         }
     }
 }
@@ -25,7 +25,7 @@ impl Clone for Handler<'_> {
 pub type HandlerSet<'a> = [Option<Handler<'a>>; 9];
 
 pub struct Router<'a> {
-    handlers: Node<HandlerSet<'a>>
+    handlers: Node<HandlerSet<'a>>,
 }
 
 impl<'a> Router<'a> {
@@ -56,13 +56,17 @@ impl<'a> Router<'a> {
         )
     }
 
-    pub fn post_async<T>(&mut self, pattern: &str, func: fn(Request, Env, Params) -> T) -> Result<()>
+    pub fn post_async<T>(
+        &mut self,
+        pattern: &str,
+        func: fn(Request, Env, Params) -> T,
+    ) -> Result<()>
     where
         T: Future<Output = Result<Response>> + 'static,
     {
         self.add_handler(
             pattern,
-            Handler::Async(Rc::new(move |req, env,  par| Box::pin(func(req, env, par)))),
+            Handler::Async(Rc::new(move |req, env, par| Box::pin(func(req, env, par)))),
             vec![Method::Post],
         )
     }
@@ -78,7 +82,12 @@ impl<'a> Router<'a> {
         )
     }
 
-    fn add_handler(&mut self, pattern: &str, func: Handler<'a>, methods: Vec<Method>) -> Result<()> {
+    fn add_handler(
+        &mut self,
+        pattern: &str,
+        func: Handler<'a>,
+        methods: Vec<Method>,
+    ) -> Result<()> {
         // Did some testing and it appears as though a pattern can always match itself
         // i.e. the path "/user/:id" will always match the pattern "/user/:id"
         if let Ok(Match {
@@ -105,8 +114,8 @@ impl<'a> Router<'a> {
             if let Some(handler) = value[req.method() as usize].as_ref() {
                 return match handler {
                     Handler::Sync(func) => (func)(req, env, params),
-                    Handler::Async(func) => (func)(req, env, params).await
-                }
+                    Handler::Async(func) => (func)(req, env, params).await,
+                };
             }
             return Response::error("Method Not Allowed", 405);
         }
@@ -117,7 +126,7 @@ impl<'a> Router<'a> {
 impl Default for Router<'_> {
     fn default() -> Self {
         Self {
-            handlers: Node::new()
+            handlers: Node::new(),
         }
     }
 }

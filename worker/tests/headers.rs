@@ -65,14 +65,19 @@ fn request_headers_test() -> Result<()> {
         request.headers().get("Authorization")?.as_deref(),
         Some("Bearer hello")
     );
-    request.headers_mut()?.set("Authorization", "Bearer world")?;
+    request
+        .headers_mut()?
+        .set("Authorization", "Bearer world")?;
     assert_eq!(
         request.headers().get("Authorization")?.as_deref(),
         Some("Bearer world")
     );
 
     // Simulate the request coming in from the 'fetch' eventListener
-    let mut request = Request::from(("fetch".to_string(), edgeworker_sys::Request::new_with_str("helo")?));
+    let mut request = Request::from((
+        "fetch".to_string(),
+        edgeworker_sys::Request::new_with_str("helo")?,
+    ));
     // Check that the header guard is immutable
     assert!(request.headers_mut().is_err());
 
