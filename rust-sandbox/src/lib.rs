@@ -31,7 +31,7 @@ struct User {
 }
 
 fn handle_a_request(_req: Request, _env: Env, _params: Params) -> Result<Response> {
-    Response::ok("weeee")
+    Response::ok("hello, world.")
 }
 
 #[cf::worker(fetch, respond_with_errors)]
@@ -129,91 +129,19 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
     })?;
 
     router.get("/secret", |_req, env, _params| {
-        Response::ok(env.secret("SOME_SECRET")?)
+        Response::ok(env.secret("SOME_SECRET")?.to_string())
+    })?;
+
+    router.get("/var", |_req, env, _params| {
+        Response::ok(env.var("SOME_VARIABLE")?.to_string())
     })?;
 
     router.on_async("/kv", |_req, env, _params| async move {
         let kv = env.kv("SOME_NAMESPACE")?;
-        kv.put("a-key", "a-value")?.execute().await?;
+        kv.put("another-key", "another-value")?.execute().await?;
 
         Response::empty()
     })?;
 
     router.run(req, env).await
-
-    // match (req.method(), req.path().as_str()) {
-    //     (Method::Get, "/") => {
-    //         let msg = format!(
-    //             "[rustwasm] event type: {}, colo: {}, asn: {}",
-    //             req.event_type(),
-    //             req.cf().colo(),
-    //             req.cf().asn(),
-    //         );
-    //         Response::ok(Some(msg))
-    //     }
-    //     (Method::Post, "/") => {
-    //         let data: MyData = req.json().await?;
-    //         Response::ok(Some(format!("[POST /] message = {}", data.message)))
-    //     }
-    //     (Method::Post, "/read-text") => Response::ok(Some(format!(
-    //         "[POST /read-text] text = {}",
-    //         req.text().await?
-    //     ))),
-    //     (_, "/json") => Response::json(&MyData {
-    //         message: "hello!".into(),
-    //         is: true,
-    //         data: vec![1, 2, 3, 4, 5],
-    //     }),
-    // (Method::Get, "/headers") => {
-    //     for (_, value) in req.headers() {
-    //         if &value == "evil value" {
-    //             return Response::error("stop that!".into(), 400);
-    //         }
-    //     }
-    //     let msg = req
-    //         .headers()
-    //         .into_iter()
-    //         .map(|(name, value)| format!("{}: {}\n", name, value))
-    //         .collect();
-    //     let mut headers: worker::Headers = [
-    //         ("Content-Type", "application/json"),
-    //         ("Set-Cookie", "hello=true"),
-    //     ]
-    //     .iter()
-    //     .collect();
-    //     headers.append("Set-Cookie", "world=true")?;
-    //     Response::ok(Some(msg)).map(|res| res.with_headers(headers))
-    // }
-    // (Method::Post, "/headers") => {
-    //     let mut headers: http::HeaderMap = req.headers().into();
-    //     headers.append("Hello", "World!".parse().unwrap());
-    //     Response::ok(Some("returned your headers to you.".into()))
-    //         .map(|res| res.with_headers(headers.into()))
-    // }
-    //     (Method::Post, "/job") => {
-    //         let kv = KvStore::create("JOB_LOG").expect("no binding for JOB_LOG");
-    //         if kv
-    //             .put("manual entry", 123)
-    //             .expect("fail to build KV put operation")
-    //             .execute()
-    //             .await
-    //             .is_err()
-    //         {
-    //             return Response::error("Failed to put into KV".into(), 500);
-    //         } else {
-    //             return Response::empty();
-    //         }
-    //     }
-    //     (_, "/jobs") => {
-    //         if let Ok(kv) = KvStore::create("JOB_LOG") {
-    //             return match kv.list().execute().await {
-    //                 Ok(jobs) => Response::json(&jobs),
-    //                 Err(e) => Response::error(format!("KV list error: {:?}", e), 500),
-    //             };
-    //         }
-    //         Response::error("Failed to access KV binding".into(), 500)
-    //     }
-    //     (_, "/404") => Response::error("Not Found".to_string(), 404),
-    //     _ => Response::ok(Some(format!("{:?} {}", req.method(), req.path()))),
-    // }
 }

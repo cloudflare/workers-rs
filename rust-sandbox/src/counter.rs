@@ -1,5 +1,5 @@
 use cf::durable_object;
-use worker::{prelude::*, durable::{State}};
+use worker::{durable::State, prelude::*};
 
 const ONE_HOUR: u64 = 3600000;
 
@@ -8,13 +8,18 @@ pub struct Counter {
     count: usize,
     state: State,
     initialized: bool,
-    last_backup: Date
+    last_backup: Date,
 }
 
 #[durable_object]
 impl DurableObject for Counter {
     fn constructor(state: worker::durable::State, _env: worker::Env) -> Self {
-        Self { count: 0, initialized: false, state, last_backup: Date::now() }
+        Self {
+            count: 0,
+            initialized: false,
+            state,
+            last_backup: Date::now(),
+        }
     }
 
     async fn fetch(&mut self, _req: worker::Request) -> worker::Result<worker::Response> {
