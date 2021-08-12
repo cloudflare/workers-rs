@@ -76,7 +76,7 @@ fn request_headers_test() -> Result<()> {
     // Simulate the request coming in from the 'fetch' eventListener
     let mut request = Request::from((
         "fetch".to_string(),
-        edgeworker_sys::Request::new_with_str("helo")?,
+        edgeworker_ffi::Request::new_with_str("helo")?,
     ));
     // Check that the header guard is immutable
     assert!(request.headers_mut().is_err());

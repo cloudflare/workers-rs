@@ -3,7 +3,7 @@ use crate::headers::Headers;
 use crate::http::Method;
 use crate::Result;
 
-use edgeworker_sys::{Cf, Request as EdgeRequest};
+use edgeworker_ffi::{Cf, Request as EdgeRequest};
 use serde::de::DeserializeOwned;
 use url::Url;
 use web_sys::RequestInit;
