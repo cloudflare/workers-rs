@@ -1,5 +1,5 @@
 use crate::ensure;
-use worker::{durable::ObjectNamespace, prelude::*, Result};
+use worker::{durable::ObjectNamespace, *};
 
 pub async fn basic_test(env: &Env) -> Result<()> {
     let namespace: ObjectNamespace = env.get_binding("MY_CLASS")?;

@@ -1,17 +1,17 @@
 use serde::Serialize;
 use std::collections::HashMap;
 
-use worker::prelude::*;
+use worker::*;
 
 use crate::ensure;
 
-#[cf::durable_object]
+#[durable_object]
 pub struct MyClass {
     state: worker::durable::State,
     number: usize,
 }
 
-#[cf::durable_object]
+#[durable_object]
 impl DurableObject for MyClass {
     fn constructor(state: worker::durable::State, _env: Env) -> Self {
         Self { state, number: 0 }

@@ -1,5 +1,4 @@
-use cf::durable_object;
-use worker::{durable::State, prelude::*};
+use worker::{durable::State, *};
 
 const ONE_HOUR: u64 = 3600000;
 

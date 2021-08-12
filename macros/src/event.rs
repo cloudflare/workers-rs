@@ -4,8 +4,7 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, punctuated::Punctuated, token::Comma, Ident, ItemFn};
 
-#[proc_macro_attribute]
-pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attrs: Punctuated<Ident, Comma> =
         parse_macro_input!(attr with Punctuated::parse_terminated);
 
@@ -67,7 +66,7 @@ pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
                     match #input_fn_ident(worker::Request::from(req), env).await.map(edgeworker_ffi::Response::from) {
                         Ok(res) => res,
                         Err(e) => {
-                            ::worker::prelude::console_log!("{}", &e);
+                            ::worker::console_log!("{}", &e);
                             #error_handling
                         }
                     }
@@ -111,11 +110,4 @@ pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
             TokenStream::from(output)
         }
     }
-}
-
-#[proc_macro_attribute]
-pub fn durable_object(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    durable_object::expand_macro(item.into())
-        .unwrap_or_else(syn::Error::into_compile_error)
-        .into()
 }

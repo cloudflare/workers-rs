@@ -13,8 +13,10 @@
 ## Example Usage
 
 ```rust
-#[cf::event(fetch)]
-pub async fn main(req: Request) -> Result<Response> {
+use worker::*;
+
+#[event(fetch)]
+pub async fn main(req: Request, _env: Env) -> Result<Response> {
     console_log!("request at: {:?}", req.path());
 
     utils::set_panic_hook();
@@ -105,8 +107,10 @@ wrangler login
 All "bindings" to your script (KV Namespaces, Secrets, and Variables) are accessible from the `env` parameter provided to both the entrypoint (`main` in this example), and to the route handler closure, if you use the `Router` from the `worker` crate.
 
 ```rust
-#[cf::event(fetch, respond_with_errors)]
-pub async fn main(req: Request, env: Env) -> Result<Response> {
+use worker::*;
+
+#[event(fetch, respond_with_errors)]
+pub async fn main(req: Request, _env: Env) -> Result<Response> {
     utils::set_panic_hook();
 
     let mut router = Router::new();
@@ -139,10 +143,16 @@ Durable Objects are still in **BETA**, so the same rules apply to the Durable Ob
 To define a Durable Object using the `worker` crate you need to implement the `DurableObject` trait on your own struct. Additionally, the `#[durable_object]` attribute macro must be applied to _both_ your struct definition and the trait `impl` block for it.
 
 ```rust
+use worker::*;
+
 #[durable_object]
 pub struct Chatroom {
     users: Vec<User>,
     messages: Vec<Message>
+    state: State,
+    some_secret: Secret,
+    some_kv_store: KvStore,
+
 }
 
 #[durable_object]
@@ -151,6 +161,9 @@ impl DurableObject for Chatroom {
         Self {
             users: vec![],
             messages: vec![],
+            state: state,
+            some_secret: env.secret("SOME_SECRET").unwrap(),
+            some_kv_store: env.kv("SOME_KV_STORE").unwrap()
         }
     }
 

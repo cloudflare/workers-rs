@@ -1,0 +1,18 @@
+[package]
+name = "macros"
+version = "0.1.0"
+authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
+repository = "https://github.com/cloudflare/workers-rs"
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+libworker = { path = "../libworker" }
+edgeworker-ffi = { path = "../edgeworker-ffi" }
+syn = "1.0.74"
+proc-macro2 = "1.0.28"
+quote = "1.0.9"
+wasm-bindgen-macro-support = "0.2.74"
+web-sys = "0.3.51"

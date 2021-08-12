@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use worker::{durable::ObjectNamespace, prelude::*, Router};
+use worker::{durable::ObjectNamespace, *};
 
 mod counter;
 mod test;
@@ -34,7 +34,7 @@ fn handle_a_request(_req: Request, _env: Env, _params: Params) -> Result<Respons
     Response::ok("hello, world.")
 }
 
-#[cf::event(fetch, respond_with_errors)]
+#[event(fetch, respond_with_errors)]
 pub async fn main(req: Request, env: Env) -> Result<Response> {
     utils::set_panic_hook();
 

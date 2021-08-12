@@ -2,8 +2,7 @@
 members = [
   "edgeworker-ffi",
   "libworker",
-  "macros/cf",
-  "macros/durable_object",
+  "macros",
   "rust-sandbox",
   "worker",
 ]
