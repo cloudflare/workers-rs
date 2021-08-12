@@ -4,7 +4,7 @@ use edgeworker_sys::cf::TlsClientAuth as FfiTlsClientAuth;
 /// In addition to the methods on the `Request` struct, the `Cf` struct on an inbound Request contains information about the request provided by Cloudflare’s edge.
 ///
 /// [Details](https://developers.cloudflare.com/workers/runtime-apis/request#incomingrequestcfproperties)
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct Cf {
     inner: FfiCf,
 }
@@ -81,7 +81,7 @@ impl Cf {
     /// Information about the client's authorization.
     /// Only set when using Cloudflare Access or API Shield.
     pub fn tls_client_auth(&self) -> Option<TlsClientAuth> {
-        todo!()
+        self.inner.tls_client_auth().map(Into::into)
     }
 
     /// The TLS version of the connection to Cloudflare, e.g. TLSv1.3.
@@ -164,7 +164,67 @@ impl From<FfiCf> for Cf {
     }
 }
 
-#[derive(Debug, Clone)]
+/// Only set when using Cloudflare Access or API Shield
+#[derive(Debug)]
 pub struct TlsClientAuth {
-    // cert_issuer_
+    inner: FfiTlsClientAuth,
+}
+
+impl TlsClientAuth {
+    // TODO: document these
+
+    pub fn cert_issuer_dn_legacy(&self) -> String {
+        self.inner.cert_issuer_dn_legacy()
+    }
+
+    pub fn cert_issuer_dn(&self) -> String {
+        self.inner.cert_issuer_dn()
+    }
+
+    //TODO this should almost certainly be `rfc`, not `rcf`
+    pub fn cert_issuer_dn_rcf2253(&self) -> String {
+        self.inner.cert_issuer_dn_rcf2253()
+    }
+
+    pub fn cert_subject_dn_legacy(&self) -> String {
+        self.inner.cert_subject_dn_legacy()
+    }
+
+    pub fn cert_verified(&self) -> String {
+        self.inner.cert_verified()
+    }
+
+    pub fn cert_not_after(&self) -> String {
+        self.inner.cert_not_after()
+    }
+
+    pub fn cert_subject_dn(&self) -> String {
+        self.inner.cert_subject_dn()
+    }
+
+    pub fn cert_fingerprint_sha1(&self) -> String {
+        self.inner.cert_fingerprint_sha1()
+    }
+
+    pub fn cert_not_before(&self) -> String {
+        self.inner.cert_not_before()
+    }
+
+    pub fn cert_serial(&self) -> String {
+        self.inner.cert_serial()
+    }
+
+    pub fn cert_presented(&self) -> String {
+        self.inner.cert_presented()
+    }
+
+    pub fn cert_subject_dn_rfc225(&self) -> String {
+        self.inner.cert_subject_dn_rfc225()
+    }
+}
+
+impl From<FfiTlsClientAuth> for TlsClientAuth {
+    fn from(inner: FfiTlsClientAuth) -> Self {
+        Self { inner }
+    }
 }
