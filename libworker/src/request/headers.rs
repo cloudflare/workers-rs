@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use edgeworker_ffi::headers::Headers as FfiHeaders;
-use js_sys::{Array, IteratorNext, JsString};
+use js_sys::{IteratorNext, JsString};
 
 use crate::error::WorkerError;
 
