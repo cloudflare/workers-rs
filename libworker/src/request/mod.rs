@@ -2,8 +2,7 @@ pub mod cf;
 pub mod headers;
 pub mod method;
 
-use cf::Cf;
-use edgeworker_sys::request::Request as FfiRequest;
+use edgeworker_ffi::request::Request as FfiRequest;
 use headers::Headers;
 use method::Method;
 use url::Url;
