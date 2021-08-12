@@ -181,9 +181,8 @@ impl TlsClientAuth {
         self.inner.cert_issuer_dn()
     }
 
-    //TODO this should almost certainly be `rfc`, not `rcf`
-    pub fn cert_issuer_dn_rcf2253(&self) -> String {
-        self.inner.cert_issuer_dn_rcf2253()
+    pub fn cert_issuer_dn_rfc2253(&self) -> String {
+        self.inner.cert_issuer_dn_rfc2253()
     }
 
     pub fn cert_subject_dn_legacy(&self) -> String {
