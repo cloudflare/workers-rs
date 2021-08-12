@@ -59,12 +59,12 @@ pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             };
 
-            // create a new "main" function that takes the edgeworker_sys::Request, and calls the
+            // create a new "main" function that takes the edgeworker_ffi::Request, and calls the
             // original attributed function, passing in a converted worker::Request
             let wrapper_fn = quote! {
-                pub async fn #wrapper_fn_ident(req: ::edgeworker_sys::Request, env: ::worker::Env) -> ::edgeworker_sys::Response {
+                pub async fn #wrapper_fn_ident(req: ::edgeworker_ffi::Request, env: ::worker::Env) -> ::edgeworker_ffi::Response {
                     // get the worker::Result<worker::Response> by calling the original fn
-                    match #input_fn_ident(worker::Request::from(req), env).await.map(edgeworker_sys::Response::from) {
+                    match #input_fn_ident(worker::Request::from(req), env).await.map(edgeworker_ffi::Response::from) {
                         Ok(res) => res,
                         Err(e) => {
                             ::worker::prelude::console_log!("{}", &e);

@@ -1,9 +1,9 @@
-mod cf;
+pub mod cf;
 pub mod durable_object;
 pub mod global;
-mod headers;
-mod request;
-mod response;
+pub mod headers;
+pub mod request;
+pub mod response;
 
 #[macro_export]
 macro_rules! console_log {

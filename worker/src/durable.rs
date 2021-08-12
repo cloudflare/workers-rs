@@ -7,7 +7,7 @@ use crate::{
 };
 
 use async_trait::async_trait;
-use edgeworker_sys::{Request as EdgeRequest, Response as EdgeResponse};
+use edgeworker_ffi::{Request as EdgeRequest, Response as EdgeResponse};
 use js_sys::{Map, Object};
 use serde::{Deserialize, Serialize};
 use std::{future::Future, ops::Deref, result::Result as StdResult};

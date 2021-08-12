@@ -1,8 +1,9 @@
 [workspace]
 members = [
-    "edgeworker-sys", 
-    "macros/cf", 
-    "macros/durable_object", 
-    "rust-sandbox", 
-    "worker"
+  "edgeworker-ffi",
+  "libworker",
+  "macros/cf",
+  "macros/durable_object",
+  "rust-sandbox",
+  "worker",
 ]

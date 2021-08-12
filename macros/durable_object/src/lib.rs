@@ -37,7 +37,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                         method.sig.ident = Ident::new("_fetch_raw", method.sig.ident.span());
                         quote! {
                             #pound[::wasm_bindgen::prelude::wasm_bindgen(js_name = fetch)]
-                            pub fn _fetch(&mut self, req: ::edgeworker_sys::Request) -> ::js_sys::Promise {
+                            pub fn _fetch(&mut self, req: ::edgeworker_ffi::Request) -> ::js_sys::Promise {
                                 // SAFETY:
                                 // On the surface, this is unsound because the Durable Object could be dropped
                                 // while JavaScript still has possession of the future. However,
@@ -47,7 +47,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                                 let static_self: &'static mut Self = unsafe {&mut *(self as *mut _)};
 
                                 ::wasm_bindgen_futures::future_to_promise(async move {
-                                    static_self._fetch_raw(req.into()).await.map(::edgeworker_sys::Response::from).map(::wasm_bindgen::JsValue::from)
+                                    static_self._fetch_raw(req.into()).await.map(::edgeworker_ffi::Response::from).map(::wasm_bindgen::JsValue::from)
                                         .map_err(::wasm_bindgen::JsValue::from)
                                 })
                             }

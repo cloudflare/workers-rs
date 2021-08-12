@@ -6,7 +6,7 @@ use std::{
     str::FromStr,
 };
 
-use edgeworker_sys::Headers as EdgeHeaders;
+use edgeworker_ffi::Headers as EdgeHeaders;
 use http::{header::HeaderName, HeaderMap, HeaderValue};
 use js_sys::Array;
 use wasm_bindgen::JsValue;

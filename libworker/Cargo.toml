@@ -1,0 +1,12 @@
+[package]
+edition = "2018"
+name    = "edgeworker"
+version = "0.1.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+chrono         = { version = "0.4", default-features = false }
+chrono-tz      = { version = "0.4", default-features = false }
+edgeworker-ffi = { path = "../edgeworker-ffi" }
+js-sys         = "0.3.51"

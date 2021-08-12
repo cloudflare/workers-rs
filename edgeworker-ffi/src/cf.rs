@@ -22,7 +22,7 @@ extern "C" {
     pub fn request_priority(this: &Cf) -> Option<String>;
 
     #[wasm_bindgen(structural, method, getter, js_class=IncomingRequestCfProperties, js_name=tlsClientAuth)]
-    pub fn tls_client_auth(this: &Cf) -> TlsClientAuth;
+    pub fn tls_client_auth(this: &Cf) -> Option<TlsClientAuth>;
 
     #[wasm_bindgen(structural, method, getter, js_class=IncomingRequestCfProperties, js_name=tlsCipher)]
     pub fn tls_cipher(this: &Cf) -> String;
@@ -71,7 +71,7 @@ extern "C" {
     pub fn cert_issuer_dn(this: &TlsClientAuth) -> String;
 
     #[wasm_bindgen(structural, method, getter, js_name=certIssuerDNRFC2253, js_class = "tlsClientAuth")]
-    pub fn cert_issuer_dn_rcf2253(this: &TlsClientAuth) -> String;
+    pub fn cert_issuer_dn_rfc2253(this: &TlsClientAuth) -> String;
 
     #[wasm_bindgen(structural, method, getter, js_name=certSubjectDNLegacy, js_class = "tlsClientAuth")]
     pub fn cert_subject_dn_legacy(this: &TlsClientAuth) -> String;
