@@ -122,8 +122,8 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         async move { Fetch::Url(&url).send().await }
     })?;
 
-    router.on_async("/durable", |_req, e, _params| async move {
-        let namespace = e.get_binding::<ObjectNamespace>("COUNTER")?;
+    router.on_async("/durable", |_req, env, _params| async move {
+        let namespace = env.durable_object("COUNTER")?;
         let stub = namespace.id_from_name("A")?.get_stub()?;
         stub.fetch_with_str("/").await
     })?;
