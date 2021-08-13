@@ -9,10 +9,11 @@ edition = "2018"
 proc-macro = true
 
 [dependencies]
-libworker = { path = "../libworker" }
+async-trait = "0.1.51"
 edgeworker-ffi = { path = "../edgeworker-ffi" }
 syn = "1.0.74"
 proc-macro2 = "1.0.28"
 quote = "1.0.9"
+wasm-bindgen = "=0.2.74" 
+wasm-bindgen-futures = "0.4.24"
 wasm-bindgen-macro-support = "0.2.74"
-web-sys = "0.3.51"

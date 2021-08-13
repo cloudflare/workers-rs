@@ -14,7 +14,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
             }
 
             let pound = syn::Token![#](imp.span()).to_token_stream();
-            let wasm_bindgen_attr = quote! {#pound[::wasm_bindgen::prelude::wasm_bindgen]};
+            let wasm_bindgen_attr = quote! {#pound[wasm_bindgen::prelude::wasm_bindgen]};
 
 
             let struct_name = imp.self_ty;
@@ -29,15 +29,15 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                     "constructor" => {
                         method.sig.ident = Ident::new("_constructor", method.sig.ident.span());
                         quote! {
-                            #pound[::wasm_bindgen::prelude::wasm_bindgen(constructor)]
+                            #pound[wasm_bindgen::prelude::wasm_bindgen(constructor)]
                             pub #method
                         }
                     },
                     "fetch" => {
                         method.sig.ident = Ident::new("_fetch_raw", method.sig.ident.span());
                         quote! {
-                            #pound[::wasm_bindgen::prelude::wasm_bindgen(js_name = fetch)]
-                            pub fn _fetch(&mut self, req: ::edgeworker_ffi::Request) -> ::js_sys::Promise {
+                            #pound[wasm_bindgen::prelude::wasm_bindgen(js_name = fetch)]
+                            pub fn _fetch(&mut self, req: edgeworker_ffi::Request) -> js_sys::Promise {
                                 // SAFETY:
                                 // On the surface, this is unsound because the Durable Object could be dropped
                                 // while JavaScript still has possession of the future. However,
@@ -46,9 +46,9 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                                 // to the durable object escape into a static-lifetime future.
                                 let static_self: &'static mut Self = unsafe {&mut *(self as *mut _)};
 
-                                ::wasm_bindgen_futures::future_to_promise(async move {
-                                    static_self._fetch_raw(req.into()).await.map(::edgeworker_ffi::Response::from).map(::wasm_bindgen::JsValue::from)
-                                        .map_err(::wasm_bindgen::JsValue::from)
+                                wasm_bindgen_futures::future_to_promise(async move {
+                                    static_self._fetch_raw(req.into()).await.map(edgeworker_ffi::Response::from).map(wasm_bindgen::JsValue::from)
+                                        .map_err(wasm_bindgen::JsValue::from)
                                 })
                             }
 
@@ -85,7 +85,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
             let pound = syn::Token![#](struc.span()).to_token_stream();
             let struct_name = struc.ident;
             Ok(quote! {
-                #pound[::wasm_bindgen::prelude::wasm_bindgen]
+                #pound[wasm_bindgen::prelude::wasm_bindgen]
                 #tokens
 
                 const _: bool = <#struct_name as __Need_Durable_Object_Trait_Impl_With_durable_object_Attribute>::MACROED;

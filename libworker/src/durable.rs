@@ -248,7 +248,6 @@ impl State {
         }
     }
 
-    // Just to improve visibility to code analysis tools
     pub fn storage(&self) -> Storage {
         self.storage_internal()
     }

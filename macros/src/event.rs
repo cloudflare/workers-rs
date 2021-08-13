@@ -1,8 +1,7 @@
-extern crate wasm_bindgen_macro_support;
-
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, punctuated::Punctuated, token::Comma, Ident, ItemFn};
+use wasm_bindgen_macro_support;
 
 pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attrs: Punctuated<Ident, Comma> =
@@ -36,8 +35,6 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
     match handler_type {
         Fetch => {
             // TODO: validate the inputs / signature
-            // let input_arg = input_fn.sig.inputs.first().expect("#[cf::worker(fetch)] attribute requires exactly one input, of type `worker::Request`");
-
             // save original fn name for re-use in the wrapper fn
             let input_fn_ident = Ident::new(
                 &(input_fn.sig.ident.to_string() + "_fetch_glue"),
@@ -61,7 +58,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             // create a new "main" function that takes the edgeworker_ffi::Request, and calls the
             // original attributed function, passing in a converted worker::Request
             let wrapper_fn = quote! {
-                pub async fn #wrapper_fn_ident(req: ::edgeworker_ffi::Request, env: ::worker::Env) -> ::edgeworker_ffi::Response {
+                pub async fn #wrapper_fn_ident(req: edgeworker_ffi::Request, env: ::worker::Env) -> edgeworker_ffi::Response {
                     // get the worker::Result<worker::Response> by calling the original fn
                     match #input_fn_ident(worker::Request::from(req), env).await.map(edgeworker_ffi::Response::from) {
                         Ok(res) => res,
