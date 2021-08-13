@@ -102,7 +102,7 @@ And then go live:
 wrangler login
 ```
 
-## KV, Secret, & Variable Bindings
+## Durable Object, KV, Secret, & Variable Bindings
 
 All "bindings" to your script (KV Namespaces, Secrets, and Variables) are accessible from the `env` parameter provided to both the entrypoint (`main` in this example), and to the route handler closure, if you use the `Router` from the `worker` crate.
 
@@ -114,6 +114,12 @@ pub async fn main(req: Request, _env: Env) -> Result<Response> {
     utils::set_panic_hook();
 
     let mut router = Router::new();
+
+    router.on_async("/durable", |_req, env, _params| async move {
+        let namespace = env.durable_object("CHATROOM")?;
+        let stub = namespace.id_from_name("A")?.get_stub()?;
+        stub.fetch_with_str("/").await
+    })?;
 
     router.get("/secret", |_req, env, _params| {
         Response::ok(env.secret("SOME_SECRET")?.to_string())
@@ -133,6 +139,10 @@ pub async fn main(req: Request, _env: Env) -> Result<Response> {
     router.run(req, env).await
 }
 ```
+
+For more information about how to configure these bindings, see: 
+- https://developers.cloudflare.com/workers/cli-wrangler/configuration#keys
+- https://developers.cloudflare.com/workers/learning/using-durable-objects#configuring-durable-object-bindings
 
 ## Durable Objects
 
