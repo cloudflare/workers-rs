@@ -1,3 +1,4 @@
+use crate::durable::ObjectNamespace;
 use crate::error::Error;
 use crate::Result;
 
@@ -8,6 +9,40 @@ use worker_kv::KvStore;
 #[wasm_bindgen]
 extern "C" {
     pub type Env;
+}
+
+impl Env {
+    pub fn get_binding<T: EnvBinding>(&self, name: &str) -> Result<T> {
+        // Weird rust-analyzer bug is causing it to think Reflect::get is unsafe
+        #[allow(unused_unsafe)]
+        let binding = unsafe { js_sys::Reflect::get(self, &JsValue::from(name)) }
+            .map_err(|_| Error::JsError(format!("Env does not contain binding `{}`", name)))?;
+        if binding.is_undefined() {
+            Err(format!("Binding `{}` is undefined.", name)
+                .to_string()
+                .into())
+        } else {
+            // Can't just use JsCast::dyn_into here because the type name might not be in scope
+            // resulting in a terribly annoying javascript error which can't be caught
+            T::get(binding)
+        }
+    }
+
+    pub fn secret(&self, binding: &str) -> Result<Secret> {
+        self.get_binding::<Secret>(binding)
+    }
+
+    pub fn var(&self, binding: &str) -> Result<Var> {
+        self.get_binding::<Var>(binding)
+    }
+
+    pub fn kv(&self, binding: &str) -> Result<KvStore> {
+        KvStore::from_this(&self, binding).map_err(From::from)
+    }
+
+    pub fn durable_object(&self, binding: &str) -> Result<ObjectNamespace> {
+        self.get_binding(binding)
+    }
 }
 
 pub trait EnvBinding: Sized + JsCast {
@@ -69,33 +104,3 @@ impl ToString for StringBinding {
 
 type Secret = StringBinding;
 type Var = StringBinding;
-
-impl Env {
-    pub fn get_binding<T: EnvBinding>(&self, name: &str) -> Result<T> {
-        // Weird rust-analyzer bug is causing it to think Reflect::get is unsafe
-        #[allow(unused_unsafe)]
-        let binding = unsafe { js_sys::Reflect::get(self, &JsValue::from(name)) }
-            .map_err(|_| Error::JsError(format!("Env does not contain binding `{}`", name)))?;
-        if binding.is_undefined() {
-            Err(format!("Binding `{}` is undefined.", name)
-                .to_string()
-                .into())
-        } else {
-            // Can't just use JsCast::dyn_into here because the type name might not be in scope
-            // resulting in a terribly annoying javascript error which can't be caught
-            T::get(binding)
-        }
-    }
-
-    pub fn secret(&self, binding: &str) -> Result<Secret> {
-        self.get_binding::<Secret>(binding)
-    }
-
-    pub fn var(&self, binding: &str) -> Result<Var> {
-        self.get_binding::<Var>(binding)
-    }
-
-    pub fn kv(&self, binding: &str) -> Result<KvStore> {
-        KvStore::from_this(&self, binding).map_err(From::from)
-    }
-}
