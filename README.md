@@ -157,7 +157,7 @@ pub struct Chatroom {
 
 #[durable_object]
 impl DurableObject for Chatroom {
-    fn constructor(state: State, _env: Env) -> Self {
+    fn new(state: State, _env: Env) -> Self {
         Self {
             users: vec![],
             messages: vec![],

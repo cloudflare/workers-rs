@@ -519,6 +519,6 @@ impl EnvBinding for ObjectNamespace {
 
 #[async_trait(?Send)]
 pub trait DurableObject {
-    fn constructor(state: State, env: Env) -> Self;
+    fn new(state: State, env: Env) -> Self;
     async fn fetch(&mut self, req: Request) -> Result<Response>;
 }

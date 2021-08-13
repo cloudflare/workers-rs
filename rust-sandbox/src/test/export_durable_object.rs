@@ -13,7 +13,7 @@ pub struct MyClass {
 
 #[durable_object]
 impl DurableObject for MyClass {
-    fn constructor(state: worker::durable::State, _env: Env) -> Self {
+    fn new(state: worker::durable::State, _env: Env) -> Self {
         Self { state, number: 0 }
     }
 

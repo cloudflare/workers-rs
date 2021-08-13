@@ -9,7 +9,7 @@ pub struct Counter {
 
 #[durable_object]
 impl DurableObject for Counter {
-    fn constructor(state: worker::durable::State, _env: worker::Env) -> Self {
+    fn new(state: worker::durable::State, _env: worker::Env) -> Self {
         Self {
             count: 0,
             initialized: false,
@@ -24,7 +24,7 @@ impl DurableObject for Counter {
             self.count = self.state.storage().get("count").await.unwrap_or(0);
         }
 
-        self.count += 1;
+        self.count += 10;
         self.state.storage().put("count", self.count).await?;
         Response::ok(self.count.to_string())
     }

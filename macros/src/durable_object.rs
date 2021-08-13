@@ -26,8 +26,8 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                     _ => return Err(Error::new_spanned(item, "Impl block must only contain methods"))
                 };
                 let tokens = match method.sig.ident.to_string().as_str() {
-                    "constructor" => {
-                        method.sig.ident = Ident::new("_constructor", method.sig.ident.span());
+                    "new" => {
+                        method.sig.ident = Ident::new("_new", method.sig.ident.span());
                         quote! {
                             #pound[wasm_bindgen::prelude::wasm_bindgen(constructor)]
                             pub #method
@@ -67,8 +67,8 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
 
                 #pound[async_trait::async_trait(?Send)]
                 impl ::worker::durable::DurableObject for #struct_name {
-                    fn constructor(state: ::worker::durable::State, env: ::worker::Env) -> Self {
-                        Self::_constructor(state, env)
+                    fn new(state: ::worker::durable::State, env: ::worker::Env) -> Self {
+                        Self::_new(state, env)
                     }
 
                     async fn fetch(&mut self, req: ::worker::Request) -> ::worker::Result<worker::Response> {
