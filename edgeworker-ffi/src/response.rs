@@ -1,3 +1,5 @@
+use crate::FormData;
+use crate::ResponseInit;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
