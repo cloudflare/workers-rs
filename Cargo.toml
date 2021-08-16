@@ -1,8 +1,25 @@
 [workspace]
-members = [
-  "edgeworker-ffi",
-  "libworker",
-  "macros",
-  "rust-sandbox",
-  "worker",
-]
+members = ["edgeworker-ffi", "libworker", "macros", "rust-sandbox", "worker"]
+
+[profile.release]
+# rustc supports two "optimize for size" levels:  opt-level = "s" and "z". 
+# These names were inherited from clang / LLVM and are not too descriptive
+# but "z" is meant to give the idea that it produces smaller binaries than "s".
+# https://docs.rust-embedded.org/book/unsorted/speed-vs-size.html#optimize-for-size
+opt-level = "z"
+
+# by compiling as a single codegen unit (i.e. not in parallel),
+# it's possible to reduce size even further at the expense of
+# compilation time
+codegen-units = 1
+
+# by enabling link-time optimization, we can reduce size even further
+# by telling cargo to optimize at the link stage (in addition to the
+# normal optimizations during the compilation stage)
+lto = true
+
+# by overriding our dependencies' compilation settings, we can further optimize for size
+# https://docs.rust-embedded.org/book/unsorted/speed-vs-size.html#optimizing-dependencies
+[profile.release.package."*"]
+codegen-units = 1
+opt-level     = "z"
