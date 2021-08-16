@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use worker::{durable::ObjectNamespace, *};
+use worker::*;
 
 mod counter;
 mod test;
@@ -47,6 +47,19 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
 
         // TODO: make api for Response new and mut to add headers
         Response::ok("returned your headers to you.").map(|res| res.with_headers(headers.into()))
+    })?;
+
+    router.on_async("/formdata-name", |req, _env, _params| async move {
+        let form = req.form_data().await?;
+
+        if !form.has("name") {
+            return Response::error("Bad Request", 400);
+        }
+
+        Response::ok(format!(
+            "Request form data, key: `name`: {:?}",
+            form.get("name").unwrap()
+        ))
     })?;
 
     router.on("/user/:id/test", |req, _env, params| {

@@ -1,5 +1,6 @@
 pub mod cf;
 pub mod durable_object;
+pub mod formdata;
 pub mod global;
 pub mod headers;
 pub mod request;
@@ -14,12 +15,14 @@ pub mod prelude {
     pub use crate::cf::Cf;
     pub use crate::console_log;
     pub use crate::durable_object;
+    pub use crate::formdata::FormData;
     pub use crate::global::WorkerGlobalScope;
     pub use crate::headers::Headers;
     pub use crate::request::Request;
     pub use crate::response::Response;
 }
 
+pub use crate::formdata::FormData;
 pub use cf::Cf;
 pub use global::WorkerGlobalScope;
 pub use headers::Headers;

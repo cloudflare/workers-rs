@@ -1,7 +1,7 @@
-use crate::error::Error;
 use crate::headers::Headers;
 use crate::http::Method;
 use crate::Result;
+use crate::{error::Error, FormData};
 
 use edgeworker_ffi::{Cf, Request as EdgeRequest};
 use serde::de::DeserializeOwned;
@@ -105,6 +105,18 @@ impl Request {
         }
 
         Err(Error::BodyUsed)
+    }
+
+    pub async fn form_data(&self) -> Result<FormData> {
+        wasm_bindgen_futures::JsFuture::from(self.edge_request.form_data()?)
+            .await
+            .map(|val| val.into())
+            .map_err(|e| {
+                Error::JsError(
+                    e.as_string()
+                        .unwrap_or_else(|| "failed to get form data from request".into()),
+                )
+            })
     }
 
     pub fn headers(&self) -> &Headers {
