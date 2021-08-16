@@ -102,7 +102,7 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
     })?;
 
     router.on_async("/fetch", |_req, _env, _params| async move {
-        let req = Request::new("https://example.com", "POST")?;
+        let req = Request::new("https://example.com", Method::Post)?;
         let resp = Fetch::Request(&req).send().await?;
         let resp2 = Fetch::Url("https://example.com").send().await?;
         Response::ok(format!(

@@ -43,8 +43,8 @@ impl From<EdgeRequest> for Request {
 }
 
 impl Request {
-    pub fn new(uri: &str, method: &str) -> Result<Self> {
-        EdgeRequest::new_with_str_and_init(uri, RequestInit::new().method(method))
+    pub fn new(uri: &str, method: Method) -> Result<Self> {
+        EdgeRequest::new_with_str_and_init(uri, RequestInit::new().method(&method.to_string()))
             .map(|req| {
                 let mut req: Request = req.into();
                 req.immutable = false;
