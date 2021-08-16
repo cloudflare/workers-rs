@@ -1,25 +1,21 @@
 [package]
-name = "rust-sandbox"
-version = "0.1.0"
 authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
 edition = "2018"
+name    = "rust-sandbox"
+version = "0.1.0"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
-path = "src/lib.rs"
+path       = "src/lib.rs"
 
 [dependencies]
-cfg-if = "0.1.2"
+cfg-if                   = "0.1.2"
 console_error_panic_hook = { version = "0.1.1", optional = true }
-wee_alloc = { version = "0.4.2", optional = true }
-serde = { version = "1.0.126", features = ["derive"] }
-worker = { path = "../worker" }
-http = "0.2.4"
-url = "2.2.2"
+http                     = "0.2.4"
+serde                    = { version = "1.0.126", features = ["derive"] }
+url                      = "2.2.2"
+wee_alloc                = { version = "0.4.2", optional = true }
+worker                   = { path = "../worker" }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.2"
-
-[profile.release]
-# Tell `rustc` to optimize for small code size.
-opt-level = "s"
