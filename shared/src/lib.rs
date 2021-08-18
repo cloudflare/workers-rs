@@ -16,8 +16,8 @@ pub struct CfProperties {
     scrape_shield: Option<bool>,
 }
 
-impl From<CfProperties> for JsValue {
-    fn from(props: CfProperties) -> Self {
+impl From<&CfProperties> for JsValue {
+    fn from(props: &CfProperties) -> Self {
         let obj = js_sys::Object::new();
         if let Some(val) = props.apps {
             #[allow(unused_unsafe)]
