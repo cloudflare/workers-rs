@@ -4,7 +4,6 @@ use worker::*;
 mod counter;
 mod test;
 mod utils;
-
 #[derive(Deserialize, Serialize)]
 struct MyData {
     message: String,
@@ -45,29 +44,28 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         let mut headers: http::HeaderMap = req.headers().into();
         headers.append("Hello", "World!".parse().unwrap());
 
-        // TODO: make api for Response new and mut to add headers
         Response::ok("returned your headers to you.").map(|res| res.with_headers(headers.into()))
     })?;
 
-    router.on_async("/formdata-name", |req, _env, _params| async move {
+    router.on_async("/formdata-name", |mut req, _env, _params| async move {
         let form = req.form_data().await?;
 
         if !form.has("name") {
             return Response::error("Bad Request", 400);
         }
 
-        Response::ok(format!(
-            "Request form data, key: `name`: {:?}",
-            form.get("name").unwrap()
-        ))
+        Response::ok(format!("key: `name`: {:?}", form.get("name").unwrap()))
     })?;
 
     router.on("/user/:id/test", |req, _env, params| {
         if !matches!(req.method(), Method::Get) {
             return Response::error("Method Not Allowed", 405);
         }
-        let id = params.get("id").unwrap_or("not found");
-        Response::ok(format!("TEST user id: {}", id))
+        if let Some(id) = params.get("id") {
+            return Response::ok(format!("TEST user id: {}", id));
+        }
+
+        Response::error("Error", 500)
     })?;
 
     router.on("/user/:id", |_req, _env, params| {
