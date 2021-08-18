@@ -25,8 +25,8 @@ pub use crate::response::Response;
 pub use crate::router::Router;
 pub use cf::Cf;
 pub use edgeworker_ffi::console_log;
+pub use edgeworker_ffi::request_init::RequestInit;
 pub use matchit::Params;
-pub use web_sys::RequestInit;
 
 pub mod prelude {
     pub use crate::cf::Cf;
@@ -41,6 +41,6 @@ pub mod prelude {
     pub use crate::router::Router;
     pub use crate::Result;
     pub use edgeworker_ffi::console_log;
+    pub use edgeworker_ffi::request_init::RequestInit;
     pub use matchit::Params;
-    pub use web_sys::RequestInit;
 }

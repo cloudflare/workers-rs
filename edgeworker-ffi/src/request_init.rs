@@ -95,6 +95,14 @@ impl RequestInit {
     #[doc = "Change the `cf` field of this object."]
     pub fn cf_properties(&mut self, props: &CfProperties) -> &mut Self {
         #[allow(unused_unsafe)]
+        let r = unsafe {
+            ::js_sys::Reflect::set(self.as_ref(), &JsValue::from("cf"), &JsValue::from(props))
+        };
+        debug_assert!(
+            r.is_ok(),
+            "setting properties should never fail on our dictionary objects"
+        );
+        let _ = r;
         self
     }
 }

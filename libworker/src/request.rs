@@ -1,10 +1,9 @@
 use crate::{error::Error, headers::Headers, http::Method, FormData, Result};
 
-use edgeworker_ffi::{Cf, Request as EdgeRequest};
+use edgeworker_ffi::{Cf, Request as EdgeRequest, RequestInit as EdgeRequestInit};
 use serde::de::DeserializeOwned;
 use url::Url;
 use wasm_bindgen_futures::JsFuture;
-use web_sys::RequestInit;
 
 pub struct Request {
     method: Method,
@@ -40,7 +39,7 @@ impl From<EdgeRequest> for Request {
 
 impl Request {
     pub fn new(uri: &str, method: Method) -> Result<Self> {
-        EdgeRequest::new_with_str_and_init(uri, RequestInit::new().method(&method.to_string()))
+        EdgeRequest::new_with_str_and_init(uri, EdgeRequestInit::new().method(&method.to_string()))
             .map(|req| {
                 let mut req: Request = req.into();
                 req.immutable = false;
@@ -54,7 +53,7 @@ impl Request {
             })
     }
 
-    pub fn new_with_init(uri: &str, init: &RequestInit) -> Result<Self> {
+    pub fn new_with_init(uri: &str, init: &EdgeRequestInit) -> Result<Self> {
         EdgeRequest::new_with_str_and_init(uri, init)
             .map(|req| {
                 let mut req: Request = req.into();
