@@ -13,6 +13,8 @@ pub enum ResponseBody {
     Stream(EdgeResponse),
 }
 
+const CONTENT_TYPE: &str = "content-type";
+
 #[derive(Debug)]
 pub struct Response {
     body: ResponseBody,
@@ -23,9 +25,12 @@ pub struct Response {
 impl Response {
     pub fn from_json<B: Serialize>(value: &B) -> Result<Self> {
         if let Ok(data) = serde_json::to_string(value) {
+            let mut headers = Headers::new();
+            headers.set(CONTENT_TYPE, "application/json")?;
+
             return Ok(Self {
                 body: ResponseBody::Body(data.into_bytes()),
-                headers: Headers::new(),
+                headers,
                 status_code: 200,
             });
         }
@@ -33,16 +38,22 @@ impl Response {
         Err(Error::Json(("Failed to encode data to json".into(), 500)))
     }
     pub fn ok(body: impl Into<String>) -> Result<Self> {
+        let mut headers = Headers::new();
+        headers.set(CONTENT_TYPE, "text/plain")?;
+
         Ok(Self {
             body: ResponseBody::Body(body.into().into_bytes()),
-            headers: Headers::new(),
+            headers,
             status_code: 200,
         })
     }
     pub fn from_bytes(bytes: Vec<u8>) -> Result<Self> {
+        let mut headers = Headers::new();
+        headers.set(CONTENT_TYPE, "application/octet-stream")?;
+
         Ok(Self {
             body: ResponseBody::Body(bytes),
-            headers: Headers::new(),
+            headers,
             status_code: 200,
         })
     }
@@ -79,6 +90,10 @@ impl Response {
     }
 
     pub async fn json<B: DeserializeOwned>(&mut self) -> Result<B> {
+        let content_type = self.headers().get(CONTENT_TYPE)?.unwrap_or_default();
+        if !content_type.contains("application/json") {
+            return Err(Error::BadEncoding);
+        }
         serde_json::from_str(&self.text().await?).map_err(Error::from)
     }
 
@@ -144,7 +159,6 @@ impl From<Response> for EdgeResponse {
             )
             .unwrap(),
         }
-        // TODO: add logging, ideally using the log crate facade over the wasm_bindgen console.log
     }
 }
 

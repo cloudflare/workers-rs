@@ -1,16 +1,13 @@
-use crate::headers::Headers;
-use crate::http::Method;
-use crate::Result;
-use crate::{error::Error, FormData};
+use crate::{error::Error, headers::Headers, http::Method, FormData, Result};
 
 use edgeworker_ffi::{Cf, Request as EdgeRequest};
 use serde::de::DeserializeOwned;
 use url::Url;
+use wasm_bindgen_futures::JsFuture;
 use web_sys::RequestInit;
 
 pub struct Request {
     method: Method,
-    url: String,
     path: String,
     headers: Headers,
     cf: Cf,
@@ -23,7 +20,6 @@ impl From<EdgeRequest> for Request {
     fn from(req: EdgeRequest) -> Self {
         Self {
             method: req.method().into(),
-            url: req.url(),
             path: Url::parse(&req.url())
                 .map(|u| u.path().into())
                 .unwrap_or_else(|_| {
@@ -76,7 +72,7 @@ impl Request {
     pub async fn json<B: DeserializeOwned>(&mut self) -> Result<B> {
         if !self.body_used {
             self.body_used = true;
-            return wasm_bindgen_futures::JsFuture::from(EdgeRequest::json(&self.edge_request)?)
+            return JsFuture::from(EdgeRequest::json(&self.edge_request)?)
                 .await
                 .map_err(|e| {
                     Error::JsError(
@@ -93,7 +89,7 @@ impl Request {
     pub async fn text(&mut self) -> Result<String> {
         if !self.body_used {
             self.body_used = true;
-            return wasm_bindgen_futures::JsFuture::from(EdgeRequest::text(&self.edge_request)?)
+            return JsFuture::from(EdgeRequest::text(&self.edge_request)?)
                 .await
                 .map(|val| val.as_string().unwrap())
                 .map_err(|e| {
@@ -107,16 +103,21 @@ impl Request {
         Err(Error::BodyUsed)
     }
 
-    pub async fn form_data(&self) -> Result<FormData> {
-        wasm_bindgen_futures::JsFuture::from(self.edge_request.form_data()?)
-            .await
-            .map(|val| val.into())
-            .map_err(|e| {
-                Error::JsError(
-                    e.as_string()
-                        .unwrap_or_else(|| "failed to get form data from request".into()),
-                )
-            })
+    pub async fn form_data(&mut self) -> Result<FormData> {
+        if !self.body_used {
+            self.body_used = true;
+            return JsFuture::from(self.edge_request.form_data()?)
+                .await
+                .map(|val| val.into())
+                .map_err(|e| {
+                    Error::JsError(
+                        e.as_string()
+                            .unwrap_or_else(|| "failed to get form data from request".into()),
+                    )
+                });
+        }
+
+        Err(Error::BodyUsed)
     }
 
     pub fn headers(&self) -> &Headers {

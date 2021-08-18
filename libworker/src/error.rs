@@ -2,6 +2,7 @@ use wasm_bindgen::{JsCast, JsValue};
 
 #[derive(Debug)]
 pub enum Error {
+    BadEncoding,
     BodyUsed,
     Json((String, u16)),
     JsError(String),
@@ -22,7 +23,8 @@ impl From<worker_kv::KvError> for Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Error::BodyUsed => write!(f, "request body has already been read"),
+            Error::BadEncoding => write!(f, "content-type mismatch"),
+            Error::BodyUsed => write!(f, "body has already been read"),
             Error::Json((msg, status)) => write!(f, "{} (status: {})", msg, status),
             Error::JsError(s) | Error::RustError(s) => write!(f, "{}", s),
             Error::Internal(_) => write!(f, "unrecognized JavaScript object"),
