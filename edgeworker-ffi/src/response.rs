@@ -3,15 +3,6 @@ use crate::ResponseInit;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
-pub enum Body {
-    BufferSource,
-    FormData,
-    ReadableStream,
-    UrlSearchParams,
-    UsvString,
-}
-
-#[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(extends=::js_sys::Object, js_name=Response)]
     #[derive(Debug, Clone, PartialEq, Eq)]
