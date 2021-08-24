@@ -20,7 +20,7 @@ pub mod prelude {
     pub use crate::global::WorkerGlobalScope;
     pub use crate::headers::Headers;
     pub use crate::request::Request;
-    pub use crate::request_init::RequestInit;
+    pub use crate::request_init::*;
     pub use crate::response::Response;
 }
 
@@ -29,6 +29,6 @@ pub use cf::Cf;
 pub use global::WorkerGlobalScope;
 pub use headers::Headers;
 pub use request::Request;
-pub use request_init::RequestInit;
+pub use request_init::*;
 pub use response::Response;
 pub use web_sys::ResponseInit;
