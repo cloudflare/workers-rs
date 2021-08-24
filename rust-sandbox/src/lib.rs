@@ -13,7 +13,7 @@ struct MyData {
     data: Vec<u8>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ApiData {
     user_id: i32,
@@ -49,12 +49,18 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
 
     router.on_async("/formdata-name", |mut req, _env, _params| async move {
         let form = req.form_data().await?;
+        const NAME: &str = "name";
 
-        if !form.has("name") {
+        if !form.has(NAME) {
             return Response::error("Bad Request", 400);
         }
 
-        Response::ok(format!("key: `name`: {:?}", form.get("name").unwrap()))
+        let names = form.get_all(NAME).unwrap_or_default();
+        if names.len() > 1 {
+            return Response::from_json(&serde_json::json!({ "names": names }));
+        }
+
+        Response::from_json(&serde_json::json!({NAME: form.get(NAME).unwrap()}))
     })?;
 
     router.on("/user/:id/test", |req, _env, params| {
@@ -133,7 +139,7 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         async move { Fetch::Url(&url).send().await }
     })?;
 
-    router.on_async("/durable", |_req, env, _params| async move {
+    router.on_async("/durable/:id", |_req, env, _params| async move {
         let namespace = env.durable_object("COUNTER")?;
         let stub = namespace.id_from_name("A")?.get_stub()?;
         stub.fetch_with_str("/").await
@@ -152,6 +158,21 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         kv.put("another-key", "another-value")?.execute().await?;
 
         Response::empty()
+    })?;
+
+    router.get("/bytes", |_, _, _| {
+        Response::from_bytes(vec![1, 2, 3, 4, 5, 6, 7])
+    })?;
+
+    router.post_async("/api-data", |mut req, _, _| async move {
+        let data = req.bytes().await?;
+        let mut todo: ApiData = serde_json::from_slice(&data)?;
+
+        unsafe { todo.title.as_mut_vec().reverse() };
+
+        console_log!("todo = (title {}) (id {})", todo.title, todo.user_id);
+
+        Response::from_bytes(serde_json::to_vec(&todo)?)
     })?;
 
     router.run(req, env).await
