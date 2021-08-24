@@ -6,7 +6,7 @@ use matchit::{Match, Node, Params};
 use crate::{env::Env, http::Method, request::Request, response::Response, Result};
 
 type HandlerFn = fn(Request, Env, Params) -> Result<Response>;
-type AsyncHandlerFn<'a> = Rc<dyn Fn(Request, Env, Params) -> LocalBoxFuture<'a, Result<Response>>>;
+type AsyncHandlerFn<'a> = Rc<dyn 'a + Fn(Request, Env, Params) -> LocalBoxFuture<'a, Result<Response>>>;
 
 pub enum Handler<'a> {
     Async(AsyncHandlerFn<'a>),
@@ -45,7 +45,7 @@ impl<'a> Router<'a> {
         self.add_handler(pattern, Handler::Sync(func), Method::all())
     }
 
-    pub fn get_async<T>(&mut self, pattern: &str, func: fn(Request, Env, Params) -> T) -> Result<()>
+    pub fn get_async<T>(&mut self, pattern: &str, func: impl 'a + Fn(Request, Env, Params) -> T) -> Result<()>
     where
         T: Future<Output = Result<Response>> + 'static,
     {
@@ -59,7 +59,7 @@ impl<'a> Router<'a> {
     pub fn post_async<T>(
         &mut self,
         pattern: &str,
-        func: fn(Request, Env, Params) -> T,
+        func: impl 'a + Fn(Request, Env, Params) -> T,
     ) -> Result<()>
     where
         T: Future<Output = Result<Response>> + 'static,
@@ -71,9 +71,33 @@ impl<'a> Router<'a> {
         )
     }
 
-    pub fn on_async<T>(&mut self, pattern: &str, func: fn(Request, Env, Params) -> T) -> Result<()>
+    /// Call the async function `func` if the request path matches `pattern`.
+    ///
+    /// # Examples
+    /// The async function may have borrows ...
+    /// ```no_run
+    /// # use libworker::{Fetch, Router};
+    /// let my_string = String::from("hello");
+    /// let mut router = Router::new();
+    /// router.on_async("/url", |_req, _env, params| async {
+    ///     Fetch::Url(&my_string).send().await
+    /// });
+    /// ```
+    /// ... but since `Params` has an arbitrary lifetime, `func` may not borrow from it across a
+    /// yield point, because it may be dropped by the time `func` resumes executing.
+    /// ```compile_fail
+    /// # use libworker::{Fetch, Router};
+    /// let mut router = Router::new();
+    /// router.on_async("/url", |_req, _env, params| {
+    ///     let url = params
+    ///         .get("url")
+    ///         .unwrap();
+    ///     async move { Fetch::Url(url).send().await }
+    /// });
+    /// ```
+    pub fn on_async<T>(&mut self, pattern: &str, func: impl 'a + Fn(Request, Env, Params) -> T) -> Result<()>
     where
-        T: Future<Output = Result<Response>> + 'static,
+        T: Future<Output = Result<Response>> + 'a
     {
         self.add_handler(
             pattern,
