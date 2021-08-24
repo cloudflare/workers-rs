@@ -23,41 +23,90 @@ pub async fn main(req: Request, _env: Env) -> Result<Response> {
 
     let mut router = Router::new();
 
-    router.on("/user/:id/test", |req, _env, params| {
-        if !matches!(req.method(), Method::Get) {
-            return Response::error("Method Not Allowed".into(), 405);
-        }
-        let id = params.get("id").unwrap_or("not found");
-        Response::ok(format!("TEST user id: {}", id))
-    })?;
-
-    router.post("/headers", |req, _env, _params| {
+    // set headers on a response
+    router.post("/headers", |req, _, _| {
         let mut headers: http::HeaderMap = req.headers().into();
         headers.append("Hello", "World!".parse().unwrap());
 
-        Response::ok("returned your headers to you.".into())
-            .map(|res| res.with_headers(headers.into()))
+        Response::ok("returned your headers to you.").map(|res| res.with_headers(headers.into()))
     })?;
-    
+
+    // work with FormData from incoming requests
+    router.on_async("/formdata-name", |mut req, _env, _params| async move {
+        let form = req.form_data().await?;
+        const NAME: &str = "name";
+
+        if !form.has(NAME) {
+            return Response::error("Bad Request", 400);
+        }
+
+        let names = form.get_all(NAME).unwrap_or_default();
+        if names.len() > 1 {
+            return Response::from_json(&serde_json::json!({ "names": names }));
+        }
+
+        Response::from_json(&serde_json::json!({NAME: form.get(NAME).unwrap()}))
+    })?;
+
+    // paramaterize URL paths with the Router
+    router.on("/user/:id/test", |req, _env, params| {
+        if !matches!(req.method(), Method::Get) {
+            return Response::error("Method Not Allowed", 405);
+        }
+        if let Some(id) = params.get("id") {
+            return Response::ok(format!("TEST user id: {}", id));
+        }
+
+        Response::error("Error", 500)
+    })?;
+
+    // respond with JSON
+    router.on("/user/:id", |_req, _env, params| {
+        let id = params.get("id").unwrap_or("not found");
+        Response::from_json(&User {
+            id: id.into(),
+            timestamp: Date::now().as_millis(),
+            date_from_int: Date::new(DateInit::Millis(1234567890)).to_string(),
+            date_from_str: Date::new(DateInit::String(
+                "Wed Jan 14 1980 23:56:07 GMT-0700 (Mountain Standard Time)".into(),
+            ))
+            .to_string(),
+        })
+    })?;
+
+    // execute async operations inside routes
     router.on_async("/fetch_json", |_req, _env, _params| async move {
-        let data: Todo = Fetch::Url("https://jsonplaceholder.typicode.com/todos/1")
+        let data: ApiData = Fetch::Url("https://jsonplaceholder.typicode.com/todos/1")
             .send()
             .await?
             .json()
             .await?;
-
         Response::ok(format!(
             "API Returned user: {} with title: {} and completed: {}",
             data.user_id, data.title, data.completed
         ))
     })?;
 
-    router.get_async("/proxy_request/:url", |_req, _env, params| {
+    // call fetch for subrequests
+    router.on_async("/proxy_request/*url", |_req, _env, params| {
         // Must copy the parameters into the heap here for lifetime purposes
-        let url = params.get("url").unwrap().to_string();
+        let url = params
+            .get("url")
+            .unwrap()
+            .strip_prefix('/')
+            .unwrap()
+            .to_string();
         async move { Fetch::Url(&url).send().await }
     })?;
 
+    // work with existing (or create new) Durable Objects
+    router.on_async("/durable/:id", |_req, env, _params| async move {
+        let namespace = env.durable_object("COUNTER")?;
+        let stub = namespace.id_from_name("A")?.get_stub()?;
+        stub.fetch_with_str("/increment").await
+    })?;
+
+    // access Secret, Var, KV bindings
     router.get("/secret", |_req, env, _params| {
         Response::ok(env.secret("SOME_SECRET")?.to_string())
     })?;
@@ -66,14 +115,32 @@ pub async fn main(req: Request, _env: Env) -> Result<Response> {
         Response::ok(env.var("SOME_VARIABLE")?.to_string())
     })?;
 
-    router.post_async("/kv", |_req, env, _params| async move {
+    router.on_async("/kv", |_req, env, _params| async move {
         let kv = env.kv("SOME_NAMESPACE")?;
         kv.put("another-key", "another-value")?.execute().await?;
 
         Response::empty()
     })?;
 
-    router.run(req).await
+    // work with binary data 
+    router.get("/bytes", |_, _, _| {
+        Response::from_bytes(vec![1, 2, 3, 4, 5, 6, 7])
+    })?;
+
+    // console_log to dashboard or wrangler tail
+    router.post_async("/api-data", |mut req, _, _| async move {
+        let data = req.bytes().await?;
+        let mut todo: ApiData = serde_json::from_slice(&data)?;
+
+        unsafe { todo.title.as_mut_vec().reverse() };
+
+        console_log!("todo = (title {}) (id {})", todo.title, todo.user_id);
+
+        Response::from_bytes(serde_json::to_vec(&todo)?)
+    })?;
+
+    router.run(req, env).await
+
 ```
 
 ## Getting Started
@@ -99,7 +166,7 @@ wrangler dev
 And then go live:
 ```bash
 # configure your routes, zones & more in your worker's `wrangler.toml` file
-wrangler login
+wrangler publish
 ```
 
 ## Durable Object, KV, Secret, & Variable Bindings
@@ -118,7 +185,7 @@ pub async fn main(req: Request, _env: Env) -> Result<Response> {
     router.on_async("/durable", |_req, env, _params| async move {
         let namespace = env.durable_object("CHATROOM")?;
         let stub = namespace.id_from_name("A")?.get_stub()?;
-        stub.fetch_with_str("/").await
+        stub.fetch_with_str("/messages").await
     })?;
 
     router.get("/secret", |_req, env, _params| {
