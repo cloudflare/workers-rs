@@ -1,9 +1,0 @@
-[package]
-name = "shared"
-version = "0.1.0"
-authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
-edition = "2018"
-
-[dependencies]
-wasm-bindgen = "=0.2.74"
-js-sys = "0.3.51"
