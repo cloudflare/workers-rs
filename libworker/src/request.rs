@@ -1,6 +1,10 @@
-use crate::{error::Error, headers::Headers, http::Method, FormData, Result};
+use crate::{
+    error::Error, headers::Headers, http::Method, FormData, RequestInit as WorkerRequestInit,
+    Result,
+};
 
 use edgeworker_ffi::{Cf, Request as EdgeRequest, RequestInit as EdgeRequestInit};
+use js_sys;
 use serde::de::DeserializeOwned;
 use url::Url;
 use wasm_bindgen_futures::JsFuture;
@@ -53,8 +57,8 @@ impl Request {
             })
     }
 
-    pub fn new_with_init(uri: &str, init: &EdgeRequestInit) -> Result<Self> {
-        EdgeRequest::new_with_str_and_init(uri, init)
+    pub fn new_with_init(uri: &str, init: &WorkerRequestInit) -> Result<Self> {
+        EdgeRequest::new_with_str_and_init(uri, &init.into())
             .map(|req| {
                 let mut req: Request = req.into();
                 req.immutable = false;
@@ -71,7 +75,7 @@ impl Request {
     pub async fn json<B: DeserializeOwned>(&mut self) -> Result<B> {
         if !self.body_used {
             self.body_used = true;
-            return JsFuture::from(EdgeRequest::json(&self.edge_request)?)
+            return JsFuture::from(self.edge_request.json()?)
                 .await
                 .map_err(|e| {
                     Error::JsError(
@@ -88,13 +92,30 @@ impl Request {
     pub async fn text(&mut self) -> Result<String> {
         if !self.body_used {
             self.body_used = true;
-            return JsFuture::from(EdgeRequest::text(&self.edge_request)?)
+            return JsFuture::from(self.edge_request.text()?)
                 .await
                 .map(|val| val.as_string().unwrap())
                 .map_err(|e| {
                     Error::JsError(
                         e.as_string()
                             .unwrap_or_else(|| "failed to get text for body value".into()),
+                    )
+                });
+        }
+
+        Err(Error::BodyUsed)
+    }
+
+    pub async fn bytes(&mut self) -> Result<Vec<u8>> {
+        if !self.body_used {
+            self.body_used = true;
+            return JsFuture::from(self.edge_request.array_buffer()?)
+                .await
+                .map(|val| js_sys::Uint8Array::new(&val).to_vec())
+                .map_err(|e| {
+                    Error::JsError(
+                        e.as_string()
+                            .unwrap_or_else(|| "failed to read array buffer from request".into()),
                     )
                 });
         }

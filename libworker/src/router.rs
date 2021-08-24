@@ -5,11 +5,11 @@ use matchit::{Match, Node, Params};
 
 use crate::{env::Env, http::Method, request::Request, response::Response, Result};
 
-pub type HandlerFn = fn(Request, Env, Params) -> Result<Response>;
-type AsyncHandler<'a> = Rc<dyn Fn(Request, Env, Params) -> LocalBoxFuture<'a, Result<Response>>>;
+type HandlerFn = fn(Request, Env, Params) -> Result<Response>;
+type AsyncHandlerFn<'a> = Rc<dyn Fn(Request, Env, Params) -> LocalBoxFuture<'a, Result<Response>>>;
 
 pub enum Handler<'a> {
-    Async(AsyncHandler<'a>),
+    Async(AsyncHandlerFn<'a>),
     Sync(HandlerFn),
 }
 
