@@ -5,6 +5,7 @@ use crate::Result;
 
 use edgeworker_ffi::FormData as EdgeFormData;
 
+use js_sys::Array;
 use wasm_bindgen::prelude::*;
 
 #[derive(Debug)]
@@ -22,6 +23,24 @@ impl FormData {
         }
 
         val.as_string()
+    }
+
+    pub fn get_all(&self, name: &str) -> Option<Vec<String>> {
+        let val = self.0.get_all(name);
+        if val.is_undefined() {
+            return None;
+        }
+
+        if Array::is_array(&val) {
+            return Some(
+                val.to_vec()
+                    .iter()
+                    .map(|val| val.as_string().unwrap_or_default())
+                    .collect(),
+            );
+        }
+
+        None
     }
 
     pub fn has(&self, name: &str) -> bool {

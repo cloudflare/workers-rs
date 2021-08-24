@@ -66,19 +66,8 @@ impl ToString for Method {
     }
 }
 
-#[derive(Debug)]
-pub enum Redirect {
-    Follow,
-    Error,
-    Manual,
-}
-
-impl From<String> for Redirect {
-    fn from(redirect: String) -> Self {
-        match redirect.as_str() {
-            "error" => Redirect::Error,
-            "manual" => Redirect::Manual,
-            _ => Redirect::Follow,
-        }
+impl Default for Method {
+    fn default() -> Self {
+        Method::Get
     }
 }

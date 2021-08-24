@@ -8,6 +8,7 @@ mod global;
 mod headers;
 mod http;
 mod request;
+mod request_init;
 mod response;
 mod router;
 
@@ -21,11 +22,11 @@ pub use crate::formdata::FormData;
 pub use crate::global::Fetch;
 pub use crate::headers::Headers;
 pub use crate::request::Request;
+pub use crate::request_init::*;
 pub use crate::response::Response;
 pub use crate::router::Router;
 pub use cf::Cf;
 pub use edgeworker_ffi::console_log;
-pub use edgeworker_ffi::request_init::RequestInit;
 pub use matchit::Params;
 
 pub mod prelude {
@@ -37,10 +38,10 @@ pub mod prelude {
     pub use crate::headers::Headers;
     pub use crate::http::Method;
     pub use crate::request::Request;
+    pub use crate::request_init::*;
     pub use crate::response::Response;
     pub use crate::router::Router;
     pub use crate::Result;
     pub use edgeworker_ffi::console_log;
-    pub use edgeworker_ffi::request_init::RequestInit;
     pub use matchit::Params;
 }

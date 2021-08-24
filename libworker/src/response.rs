@@ -37,16 +37,19 @@ impl Response {
 
         Err(Error::Json(("Failed to encode data to json".into(), 500)))
     }
-    pub fn ok(body: impl Into<String>) -> Result<Self> {
-        let mut headers = Headers::new();
-        headers.set(CONTENT_TYPE, "text/plain")?;
 
+    pub fn from_html(html: impl AsRef<str>) -> Result<Self> {
+        let mut headers = Headers::new();
+        headers.set(CONTENT_TYPE, "text/html")?;
+
+        let data = html.as_ref().as_bytes().to_vec();
         Ok(Self {
-            body: ResponseBody::Body(body.into().into_bytes()),
+            body: ResponseBody::Body(data),
             headers,
             status_code: 200,
         })
     }
+
     pub fn from_bytes(bytes: Vec<u8>) -> Result<Self> {
         let mut headers = Headers::new();
         headers.set(CONTENT_TYPE, "application/octet-stream")?;
@@ -57,6 +60,18 @@ impl Response {
             status_code: 200,
         })
     }
+
+    pub fn ok(body: impl Into<String>) -> Result<Self> {
+        let mut headers = Headers::new();
+        headers.set(CONTENT_TYPE, "text/plain")?;
+
+        Ok(Self {
+            body: ResponseBody::Body(body.into().into_bytes()),
+            headers,
+            status_code: 200,
+        })
+    }
+
     pub fn empty() -> Result<Self> {
         Ok(Self {
             body: ResponseBody::Empty,
@@ -64,6 +79,7 @@ impl Response {
             status_code: 200,
         })
     }
+
     pub fn error(msg: impl Into<String>, status: u16) -> Result<Self> {
         Ok(Self {
             body: ResponseBody::Body(msg.into().into_bytes()),
