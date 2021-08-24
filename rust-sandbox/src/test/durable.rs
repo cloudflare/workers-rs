@@ -1,6 +1,7 @@
 use crate::ensure;
 use worker::{durable::ObjectNamespace, *};
 
+#[allow(dead_code)]
 pub async fn basic_test(env: &Env) -> Result<()> {
     let namespace: ObjectNamespace = env.get_binding("MY_CLASS")?;
     let id = namespace.id_from_name("A")?;
@@ -12,7 +13,9 @@ pub async fn basic_test(env: &Env) -> Result<()> {
     let res2 = stub
         .fetch_with_request(Request::new_with_init(
             "hello",
-            RequestInit::new().body(Some(&"lol".into())).method("POST"),
+            RequestInit::new()
+                .with_body(Some("lol".into()))
+                .with_method(Method::Post),
         )?)
         .await?
         .text()
