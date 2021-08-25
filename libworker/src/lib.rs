@@ -14,6 +14,7 @@ mod router;
 
 use std::result::Result as StdResult;
 
+pub use error::Error;
 pub type Result<T> = StdResult<T, error::Error>;
 
 pub use crate::date::{Date, DateInit};

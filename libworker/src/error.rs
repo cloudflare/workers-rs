@@ -1,6 +1,20 @@
 use wasm_bindgen::{JsCast, JsValue};
 
 #[derive(Debug)]
+#[non_exhaustive]
+/// # Examples
+/// ```
+/// # use libworker::{Error, Response, Router};
+/// let mut router = Router::new();
+/// let result: Result<(), Error> = router.post_async("/my_json_api", |mut req, env, _params| async move {
+///     let input = match req.json().await {
+///         Ok(j) => j,
+///         Err(Error::BadEncoding) => return Response::error("POST body must be JSON", 400),
+///         Err(other_err) => return Err(other_err),
+///     };
+///     Response::ok("{}")
+/// });
+/// ```
 pub enum Error {
     BadEncoding,
     BodyUsed,
