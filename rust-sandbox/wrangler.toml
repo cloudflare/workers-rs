@@ -9,12 +9,7 @@ kv_namespaces = [
 vars = { SOME_VARIABLE = "some value" }
 
 [build]
-command = """wasm-pack build --no-typescript --out-dir worker/build --out-name index && \
-             mkdir -p worker/generated && \
-             rm -rf worker/generated/* && \
-             cp worker/build/index_bg.js worker/generated/index_bg.mjs && \
-             sed -i '' "1s/.*/import wasm from '.\\/export_wasm.mjs'/" worker/generated/index_bg.mjs && \
-             cp worker/build/index_bg.wasm worker/shim.mjs worker/export_wasm.mjs worker/generated/"""
+command = "rust-worker-build"
 
 [build.upload]
 # The "modules" upload format is required for all projects that implement a Durable Object namespace.
