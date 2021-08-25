@@ -1,12 +1,13 @@
 use std::rc::Rc;
 
 use futures::{future::LocalBoxFuture, Future};
-use matchit::{Match, Node, Params};
+use matchit::{InsertError, Match, Node, Params};
 
 use crate::{env::Env, http::Method, request::Request, response::Response, Result};
 
 type HandlerFn = fn(Request, Env, Params) -> Result<Response>;
-type AsyncHandlerFn<'a> = Rc<dyn 'a + Fn(Request, Env, Params) -> LocalBoxFuture<'a, Result<Response>>>;
+type AsyncHandlerFn<'a> = Rc<dyn Fn(Request, Env, Params) -> LocalBoxFuture<'a, Result<Response>>>;
+type RouterResult<T = ()> = std::result::Result<T, InsertError>;
 
 pub enum Handler<'a> {
     Async(AsyncHandlerFn<'a>),
@@ -33,19 +34,23 @@ impl<'a> Router<'a> {
         Default::default()
     }
 
-    pub fn get(&mut self, pattern: &str, func: HandlerFn) -> Result<()> {
+    pub fn get(&mut self, pattern: &str, func: HandlerFn) -> RouterResult {
         self.add_handler(pattern, Handler::Sync(func), vec![Method::Get])
     }
 
-    pub fn post(&mut self, pattern: &str, func: HandlerFn) -> Result<()> {
+    pub fn post(&mut self, pattern: &str, func: HandlerFn) -> RouterResult {
         self.add_handler(pattern, Handler::Sync(func), vec![Method::Post])
     }
 
-    pub fn on(&mut self, pattern: &str, func: HandlerFn) -> Result<()> {
+    pub fn on(&mut self, pattern: &str, func: HandlerFn) -> RouterResult {
         self.add_handler(pattern, Handler::Sync(func), Method::all())
     }
 
-    pub fn get_async<T>(&mut self, pattern: &str, func: impl 'a + Fn(Request, Env, Params) -> T) -> Result<()>
+    pub fn get_async<T>(
+        &mut self,
+        pattern: &str,
+        func: fn(Request, Env, Params) -> T,
+    ) -> RouterResult
     where
         T: Future<Output = Result<Response>> + 'static,
     {
@@ -59,8 +64,8 @@ impl<'a> Router<'a> {
     pub fn post_async<T>(
         &mut self,
         pattern: &str,
-        func: impl 'a + Fn(Request, Env, Params) -> T,
-    ) -> Result<()>
+        func: fn(Request, Env, Params) -> T,
+    ) -> RouterResult
     where
         T: Future<Output = Result<Response>> + 'static,
     {
@@ -71,33 +76,13 @@ impl<'a> Router<'a> {
         )
     }
 
-    /// Call the async function `func` if the request path matches `pattern`.
-    ///
-    /// # Examples
-    /// The async function may have borrows ...
-    /// ```no_run
-    /// # use libworker::{Fetch, Router};
-    /// let my_string = String::from("hello");
-    /// let mut router = Router::new();
-    /// router.on_async("/url", |_req, _env, params| async {
-    ///     Fetch::Url(&my_string).send().await
-    /// });
-    /// ```
-    /// ... but since `Params` has an arbitrary lifetime, `func` may not borrow from it across a
-    /// yield point, because it may be dropped by the time `func` resumes executing.
-    /// ```compile_fail
-    /// # use libworker::{Fetch, Router};
-    /// let mut router = Router::new();
-    /// router.on_async("/url", |_req, _env, params| {
-    ///     let url = params
-    ///         .get("url")
-    ///         .unwrap();
-    ///     async move { Fetch::Url(url).send().await }
-    /// });
-    /// ```
-    pub fn on_async<T>(&mut self, pattern: &str, func: impl 'a + Fn(Request, Env, Params) -> T) -> Result<()>
+    pub fn on_async<T>(
+        &mut self,
+        pattern: &str,
+        func: fn(Request, Env, Params) -> T,
+    ) -> RouterResult
     where
-        T: Future<Output = Result<Response>> + 'a
+        T: Future<Output = Result<Response>> + 'a,
     {
         self.add_handler(
             pattern,
@@ -111,7 +96,7 @@ impl<'a> Router<'a> {
         pattern: &str,
         func: Handler<'a>,
         methods: Vec<Method>,
-    ) -> Result<()> {
+    ) -> RouterResult {
         // Did some testing and it appears as though a pattern can always match itself
         // i.e. the path "/user/:id" will always match the pattern "/user/:id"
         if let Ok(Match {
