@@ -45,9 +45,9 @@ impl RequestInit {
     }
 }
 
-impl From<&RequestInit> for edgeworker_ffi::RequestInit {
+impl From<&RequestInit> for edgeworker_sys::RequestInit {
     fn from(req: &RequestInit) -> Self {
-        let mut inner = edgeworker_ffi::RequestInit::new();
+        let mut inner = edgeworker_sys::RequestInit::new();
         inner.headers(req.headers.as_ref());
         inner.method(&req.method.to_string());
         inner.redirect(req.redirect.clone().into());
@@ -262,12 +262,12 @@ impl From<RequestRedirect> for &str {
     }
 }
 
-impl From<RequestRedirect> for edgeworker_ffi::RequestRedirect {
+impl From<RequestRedirect> for edgeworker_sys::RequestRedirect {
     fn from(redir: RequestRedirect) -> Self {
         match redir {
-            RequestRedirect::Error => edgeworker_ffi::RequestRedirect::Error,
-            RequestRedirect::Follow => edgeworker_ffi::RequestRedirect::Follow,
-            RequestRedirect::Manual => edgeworker_ffi::RequestRedirect::Manual,
+            RequestRedirect::Error => edgeworker_sys::RequestRedirect::Error,
+            RequestRedirect::Follow => edgeworker_sys::RequestRedirect::Follow,
+            RequestRedirect::Manual => edgeworker_sys::RequestRedirect::Manual,
         }
     }
 }

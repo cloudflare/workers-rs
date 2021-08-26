@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::error::Error;
 use crate::Result;
 
-use edgeworker_ffi::FormData as EdgeFormData;
+use edgeworker_sys::FormData as EdgeFormData;
 
 use js_sys::Array;
 use wasm_bindgen::prelude::*;

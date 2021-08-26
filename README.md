@@ -4,7 +4,7 @@
 
 ## Project Contents
 
-- **edgeworker-ffi**: Rust extern "C" definitions for FFI compatibility with the Workers JS Runtime.
+- **edgeworker-sys**: Rust extern "C" definitions for FFI compatibility with the Workers JS Runtime.
 - **libworker**: wrappers and convenience library over the FFI bindings.
 - **macros**: `cf` exports macros for wrapping Rust entry point in a `fetch` method of an ES Module, and code generation to create and interact with Durable Objects.
 - **worker**: the user-facing crate, with Rust-famaliar abstractions over the Rust<->JS/WebAssembly interop.

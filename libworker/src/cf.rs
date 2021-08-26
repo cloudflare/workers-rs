@@ -1,5 +1,5 @@
-use edgeworker_ffi::cf::Cf as FfiCf;
-use edgeworker_ffi::cf::TlsClientAuth as FfiTlsClientAuth;
+use edgeworker_sys::cf::Cf as FfiCf;
+use edgeworker_sys::cf::TlsClientAuth as FfiTlsClientAuth;
 
 /// In addition to the methods on the `Request` struct, the `Cf` struct on an inbound Request contains information about the request provided by Cloudflare’s edge.
 ///
