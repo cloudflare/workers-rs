@@ -82,7 +82,7 @@ impl<'a> Router<'a> {
         func: fn(Request, Env, Params) -> T,
     ) -> RouterResult
     where
-        T: Future<Output = Result<Response>> + 'a,
+        T: Future<Output = Result<Response>> + 'static,
     {
         self.add_handler(
             pattern,
