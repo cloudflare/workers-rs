@@ -1,19 +1,22 @@
 name = "do-test-rust"
 type = "javascript"
+workers_dev = true
 
 kv_namespaces = [
-  { binding = "SOME_NAMESPACE", id = "17beea79cf284b9d8373bd75d82c235a", preview_id = "17beea79cf284b9d8373bd75d82c235a" },
-  { binding = "SOME_KV", id = "cac3c7afd1d1474cbc1b510ebf6ddbbc", preview_id = "cac3c7afd1d1474cbc1b510ebf6ddbbc" },
+  { binding = "SOME_NAMESPACE", id = "", preview_id = "" },
+  { binding = "SOME_KV", id = "", preview_id = "" },
 ]
+
 vars = { SOME_VARIABLE = "some value" }
-workers_dev = true
+
+[durable_objects]
+bindings = [{ name = "COUNTER", class_name = "Counter" }]
+
 
 [build]
 command = "rust-worker-build --release"
-# command = "exit 0"
 
 [build.upload]
-# The "modules" upload format is required for all projects that implement a Durable Object namespace.
 dir    = "build/worker"
 format = "modules"
 main   = "./shim.mjs"
@@ -22,5 +25,3 @@ main   = "./shim.mjs"
 globs = ["**/*.wasm"]
 type  = "CompiledWasm"
 
-[durable_objects]
-bindings = [{ name = "COUNTER", class_name = "Counter" }]
