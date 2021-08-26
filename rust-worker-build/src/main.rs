@@ -96,7 +96,10 @@ import * as {0} from "./{0}.mjs";
 import _wasm from "./{0}.wasm";
 
 const _wasm_memory = new WebAssembly.Memory({{initial: 512}});
-let importsObject = {{env: {{memory: _wasm_memory}}, "./{0}.js": {0}}};
+let importsObject = {{
+    env: {{ memory: _wasm_memory }},
+    "./{0}.js": {0}
+}};
 
 export default new WebAssembly.Instance(_wasm, importsObject).exports;
 
@@ -143,8 +146,8 @@ fn replace_generated_import_with_custom_impl() -> Result<()> {
         .join(WORKER_SUBDIR)
         .join(format!("{}_bg.mjs", OUT_NAME));
     let old_bindgen_glue = read_file_to_string(&bindgen_glue_path)?;
-    let old_import = format!("{}_bg.wasm", OUT_NAME);
-    let fixed_bindgen_glue = old_bindgen_glue.replace(&old_import, "export_wasm.mjs");
+    let old_import = format!("import * as wasm from './{}_bg.wasm'", OUT_NAME);
+    let fixed_bindgen_glue = old_bindgen_glue.replace(&old_import, "import wasm from './export_wasm.mjs'");
     write_string_to_file(bindgen_glue_path, fixed_bindgen_glue)?;
     Ok(())
 }
