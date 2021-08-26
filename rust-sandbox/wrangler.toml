@@ -1,32 +1,27 @@
 name = "do-test-rust"
 type = "javascript"
-
 workers_dev = true
+
 kv_namespaces = [
-  { binding = "SOME_NAMESPACE", id = "e019ce08616d48f2a498e49fe0c51be2" },
-  { binding = "SOME_KV", id = "23e78ed5402541b4a8c1bffef4726408" }
+  { binding = "SOME_NAMESPACE", id = "", preview_id = "" },
+  { binding = "SOME_KV", id = "", preview_id = "" },
 ]
+
 vars = { SOME_VARIABLE = "some value" }
 
+[durable_objects]
+bindings = [{ name = "COUNTER", class_name = "Counter" }]
+
+
 [build]
-command = """wasm-pack build --no-typescript --out-dir worker/build --out-name index && \
-             mkdir -p worker/generated && \
-             rm -rf worker/generated/* && \
-             cp worker/build/index_bg.js worker/generated/index_bg.mjs && \
-             sed -i '' "1s/.*/import wasm from '.\\/export_wasm.mjs'/" worker/generated/index_bg.mjs && \
-             cp worker/build/index_bg.wasm worker/shim.mjs worker/export_wasm.mjs worker/generated/"""
+command = "rust-worker-build --release"
 
 [build.upload]
-# The "modules" upload format is required for all projects that implement a Durable Object namespace.
+dir    = "build/worker"
 format = "modules"
-dir = "worker/generated"
-main = "./shim.mjs"
+main   = "./shim.mjs"
 
 [[build.upload.rules]]
-type = "CompiledWasm"
 globs = ["**/*.wasm"]
+type  = "CompiledWasm"
 
-[durable_objects]
-bindings = [
-  { name = "COUNTER", class_name = "Counter" }
-]
