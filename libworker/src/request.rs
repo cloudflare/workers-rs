@@ -3,7 +3,7 @@ use crate::{
     Result,
 };
 
-use edgeworker_ffi::{Cf, Request as EdgeRequest, RequestInit as EdgeRequestInit};
+use edgeworker_sys::{Cf, Request as EdgeRequest, RequestInit as EdgeRequestInit};
 use js_sys;
 use serde::de::DeserializeOwned;
 use url::Url;

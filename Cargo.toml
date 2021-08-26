@@ -1,5 +1,5 @@
 [workspace]
-members = ["edgeworker-ffi", "libworker", "macros", "rust-sandbox", "worker", "rust-worker-build"]
+members = ["edgeworker-sys", "libworker", "macros", "rust-sandbox", "worker", "rust-worker-build"]
 
 [profile.release]
 # rustc supports two "optimize for size" levels:  opt-level = "s" and "z". 

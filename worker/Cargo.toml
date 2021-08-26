@@ -10,7 +10,7 @@ keywords = ["serverless", "ffi", "workers", "wasm", "cloudflare"]
 
 [dependencies]
 async-trait = "0.1.50"
-edgeworker-ffi = { path = "../edgeworker-ffi" }
+edgeworker-sys = { path = "../edgeworker-sys" }
 futures = "0.3.16"
 http = "0.2.4"
 js-sys = "0.3.51"
