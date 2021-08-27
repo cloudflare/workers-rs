@@ -5,9 +5,9 @@ use std::{
     env,
     ffi::OsStr,
     fs::{self, File},
-    io::{Read, Write},
+    io::{self, Read, Write},
     path::{Path, PathBuf},
-    process,
+    process::Command,
 };
 
 use anyhow::{anyhow, Result};
@@ -17,6 +17,7 @@ const OUT_NAME: &str = "index";
 const WORKER_SUBDIR: &str = "worker";
 
 pub fn main() -> Result<()> {
+    check_wasm_pack_installed()?;
     wasm_pack_build(env::args_os().skip(1))?;
     create_worker_dir()?;
     copy_generated_code_to_worker_dir()?;
@@ -26,12 +27,33 @@ pub fn main() -> Result<()> {
     Ok(())
 }
 
+fn check_wasm_pack_installed() -> Result<()> {
+    match Command::new("wasm-pack").spawn() {
+        Err(e) if e.kind() == io::ErrorKind::NotFound => {
+            println!("Installing wasm-pack...");
+            let exit_status = Command::new("cargo")
+                .args(&["install", "wasm-pack"])
+                .spawn()?
+                .wait()?;
+
+            match exit_status.success() {
+                true => Ok(()),
+                false => Err(anyhow!(
+                    "installation of wasm-pack exited with status {}",
+                    exit_status
+                )),
+            }
+        }
+        _ => Ok(()),
+    }
+}
+
 fn wasm_pack_build<I, S>(args: I) -> Result<()>
 where
     I: IntoIterator<Item = S>,
     S: AsRef<OsStr>,
 {
-    let exit_status = process::Command::new("wasm-pack")
+    let exit_status = Command::new("wasm-pack")
         .arg("build")
         .arg("--no-typescript")
         .args(&["--out-dir", OUT_DIR])
@@ -147,7 +169,8 @@ fn replace_generated_import_with_custom_impl() -> Result<()> {
         .join(format!("{}_bg.mjs", OUT_NAME));
     let old_bindgen_glue = read_file_to_string(&bindgen_glue_path)?;
     let old_import = format!("import * as wasm from './{}_bg.wasm'", OUT_NAME);
-    let fixed_bindgen_glue = old_bindgen_glue.replace(&old_import, "import wasm from './export_wasm.mjs'");
+    let fixed_bindgen_glue =
+        old_bindgen_glue.replace(&old_import, "import wasm from './export_wasm.mjs'");
     write_string_to_file(bindgen_glue_path, fixed_bindgen_glue)?;
     Ok(())
 }
