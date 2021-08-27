@@ -33,7 +33,7 @@ fn handle_a_request(_req: Request, _env: Env, _params: Params) -> Result<Respons
     Response::ok("hello, world.")
 }
 
-#[event(fetch, respond_with_errors)]
+#[event(fetch)]
 pub async fn main(req: Request, env: Env) -> Result<Response> {
     utils::set_panic_hook();
 
@@ -50,17 +50,57 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
     router.on_async("/formdata-name", |mut req, _env, _params| async move {
         let form = req.form_data().await?;
         const NAME: &str = "name";
+        let bad_request = Response::error("Bad Request", 400);
 
         if !form.has(NAME) {
-            return Response::error("Bad Request", 400);
+            return bad_request;
         }
 
-        let names = form.get_all(NAME).unwrap_or_default();
+        let names: Vec<String> = form
+            .get_all(NAME)
+            .unwrap_or_default()
+            .into_iter()
+            .map(|entry| match entry {
+                FormDataEntryValue::Field(s) => s,
+                FormDataEntryValue::File(f) => f.name(),
+            })
+            .collect();
         if names.len() > 1 {
             return Response::from_json(&serde_json::json!({ "names": names }));
         }
 
-        Response::from_json(&serde_json::json!({NAME: form.get(NAME).unwrap()}))
+        if let Some(value) = form.get(NAME) {
+            match value {
+                FormDataEntryValue::Field(v) => {
+                    Response::from_json(&serde_json::json!({ NAME: v }))
+                }
+                _ => bad_request,
+            }
+        } else {
+            bad_request
+        }
+    })?;
+
+    router.post_async("/formdata-file-size", |mut req, _, _| async move {
+        let bad_request = Response::error("Bad Request", 400);
+        let form = req.form_data().await?;
+
+        if let Some(entry) = form.get("file") {
+            return match entry {
+                FormDataEntryValue::File(file) => {
+                    // Response::ok(&format!("size = {}", file.bytes().await?.len()))
+                    Response::from_bytes(file.bytes().await?)
+                }
+                _ => bad_request,
+            };
+        }
+
+        bad_request
+    })?;
+
+    router.post_async("/post-file-size", |mut req, _, _| async move {
+        let bytes = req.bytes().await?;
+        Response::from_bytes(bytes)
     })?;
 
     router.on("/user/:id/test", |req, _env, params| {
