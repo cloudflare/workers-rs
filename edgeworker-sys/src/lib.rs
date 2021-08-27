@@ -1,5 +1,6 @@
 pub mod cf;
 pub mod durable_object;
+pub mod file;
 pub mod formdata;
 pub mod global;
 pub mod headers;
@@ -16,6 +17,7 @@ pub mod prelude {
     pub use crate::cf::Cf;
     pub use crate::console_log;
     pub use crate::durable_object;
+    pub use crate::file::File;
     pub use crate::formdata::FormData;
     pub use crate::global::WorkerGlobalScope;
     pub use crate::headers::Headers;
@@ -24,8 +26,9 @@ pub mod prelude {
     pub use crate::response::Response;
 }
 
-pub use crate::formdata::FormData;
 pub use cf::Cf;
+pub use file::File;
+pub use formdata::FormData;
 pub use global::WorkerGlobalScope;
 pub use headers::Headers;
 pub use request::Request;
