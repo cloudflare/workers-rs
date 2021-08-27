@@ -88,8 +88,7 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         if let Some(entry) = form.get("file") {
             return match entry {
                 FormDataEntryValue::File(file) => {
-                    // Response::ok(&format!("size = {}", file.bytes().await?.len()))
-                    Response::from_bytes(file.bytes().await?)
+                    Response::ok(&format!("size = {}", file.bytes().await?.len()))
                 }
                 _ => bad_request,
             };
@@ -100,7 +99,7 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
 
     router.post_async("/post-file-size", |mut req, _, _| async move {
         let bytes = req.bytes().await?;
-        Response::from_bytes(bytes)
+        Response::ok(&format!("size = {}", bytes.len()))
     })?;
 
     router.on("/user/:id/test", |req, _env, params| {
