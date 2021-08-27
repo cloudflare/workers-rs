@@ -14,6 +14,6 @@ edgeworker-sys = { path = "../edgeworker-sys" }
 syn = "1.0.74"
 proc-macro2 = "1.0.28"
 quote = "1.0.9"
-wasm-bindgen = "=0.2.74" 
+wasm-bindgen = "=0.2.76" 
 wasm-bindgen-futures = "0.4.24"
-wasm-bindgen-macro-support = "0.2.74"
+wasm-bindgen-macro-support = "0.2.76"

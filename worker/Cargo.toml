@@ -11,17 +11,8 @@ keywords = ["serverless", "ffi", "workers", "wasm", "cloudflare"]
 [dependencies]
 async-trait = "0.1.50"
 edgeworker-sys = { path = "../edgeworker-sys" }
-futures = "0.3.16"
-http = "0.2.4"
-js-sys = "0.3.51"
+js-sys = "0.3.53"
 libworker = { path = "../libworker" }
 macros = { path = "../macros" }
-serde = { version = "1.0.126", features = ["derive"] }
-serde_json = "1.0.64"
-url = "2.2.2"
-worker-kv = "0.3.0"
-wasm-bindgen = "0.2.74"
+wasm-bindgen = "0.2.76"
 wasm-bindgen-futures = "0.4.24"
-
-[dev-dependencies]
-wasm-bindgen-test = "0.3.24"
