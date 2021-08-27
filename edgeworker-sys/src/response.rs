@@ -6,96 +6,45 @@ use wasm_bindgen::prelude::*;
 extern "C" {
     #[wasm_bindgen(extends=::js_sys::Object, js_name=Response)]
     #[derive(Debug, Clone, PartialEq, Eq)]
-    // #[doc = "*This API requires the following crate features to be activated: `Response`*"]
     pub type Response;
-
-    #[cfg(feature = "ResponseType")]
-    #[wasm_bindgen(structural, method, getter, js_class=Response, js_name=type)]
-    // #[doc = "*This API requires the following crate features to be activated: `Response`, `ResponseType`*"]
-    pub fn type_(this: &Response) -> ResponseType;
 
     #[wasm_bindgen(structural, method, getter, js_class=Response, js_name=url)]
     #[doc = "Getter for the `url` field of this object."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/url)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `Response`*"]
     pub fn url(this: &Response) -> String;
 
     #[wasm_bindgen(structural, method, getter, js_class=Response, js_name=redirected)]
     #[doc = "Getter for the `redirected` field of this object."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/redirected)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `Response`*"]
     pub fn redirected(this: &Response) -> bool;
 
     #[wasm_bindgen(structural, method, getter, js_class=Response, js_name=status)]
     #[doc = "Getter for the `status` field of this object."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/status)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `Response`*"]
     pub fn status(this: &Response) -> u16;
 
     #[wasm_bindgen(structural, method, getter, js_class=Response, js_name=ok)]
     #[doc = "Getter for the `ok` field of this object."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/ok)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `Response`*"]
     pub fn ok(this: &Response) -> bool;
 
     #[wasm_bindgen(structural, method, getter, js_class=Response, js_name=statusText)]
     #[doc = "Getter for the `statusText` field of this object."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/statusText)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `Response`*"]
     pub fn status_text(this: &Response) -> String;
 
     #[cfg(feature = "Headers")]
     #[wasm_bindgen(structural, method, getter, js_class=Response, js_name=headers)]
     #[doc = "Getter for the `headers` field of this object."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/headers)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `Headers`, `Response`*"]
     pub fn headers(this: &Response) -> crate::headers::Headers;
 
     #[wasm_bindgen(structural, method, getter, js_class=Response, js_name=bodyUsed)]
     #[doc = "Getter for the `bodyUsed` field of this object."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/bodyUsed)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `Response`*"]
     pub fn body_used(this: &Response) -> bool;
 
     #[cfg(feature = "ReadableStream")]
     #[wasm_bindgen(structural, method, getter, js_class=Response, js_name=body)]
     #[doc = "Getter for the `body` field of this object."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/body)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `ReadableStream`, `Response`*"]
     pub fn body(this: &Response) -> Option<web_sys::ReadableStream>;
 
     #[wasm_bindgen(catch, constructor, js_class=Response)]
     #[doc = "The `new Response(..)` constructor, creating a new instance of `Response`."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/Response)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `Response`*"]
     pub fn new() -> Result<Response, JsValue>;
-
-    #[cfg(feature = "Blob")]
-    #[wasm_bindgen(catch, constructor, js_class=Response)]
-    #[doc = "The `new Response(..)` constructor, creating a new instance of `Response`."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/Response)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `Blob`, `Response`*"]
-    pub fn new_with_opt_blob(body: Option<&Blob>) -> Result<Response, JsValue>;
 
     #[wasm_bindgen(catch, constructor, js_class=Response)]
     #[doc = "The `new Response(..)` constructor, creating a new instance of `Response`."]
