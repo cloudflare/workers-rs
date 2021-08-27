@@ -81,6 +81,12 @@ impl Response {
     }
 
     pub fn error(msg: impl Into<String>, status: u16) -> Result<Self> {
+        if !(400..=599).contains(&status) {
+            return Err(Error::Internal(
+                "provided error status code is invalid".into(),
+            ));
+        }
+
         Ok(Self {
             body: ResponseBody::Body(msg.into().into_bytes()),
             headers: Headers::new(),
@@ -136,6 +142,13 @@ impl Response {
     pub fn headers_mut(&mut self) -> &mut Headers {
         &mut self.headers
     }
+}
+
+#[test]
+fn no_using_invalid_error_status_code() {
+    assert!(Response::error("OK", 200).is_err());
+    assert!(Response::error("600", 600).is_err());
+    assert!(Response::error("399", 399).is_err());
 }
 
 pub struct ResponseInit {
