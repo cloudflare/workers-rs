@@ -7,22 +7,11 @@ edition = "2018"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
-[features]
-default = ["Request", "Response", "Headers", "ReadableStream", "RequestRedirect", "ResponseInit", "RequestInit", "FormData"]
-Request = []
-Response = []
-Headers = []
-ReadableStream = []
-RequestRedirect = []
-RequestInit = []
-ResponseInit = []
-FormData = []
-
 [dependencies]
 cfg-if = "0.1.2"
-js-sys = "0.3.51"
-wasm-bindgen = "=0.2.74"
+js-sys = "0.3.53"
+wasm-bindgen = "=0.2.76"
 
 [dependencies.web-sys]
-version = "0.3.51"
-features = ["Request", "Response", "Headers", "ReadableStream", "RequestRedirect", "RequestInit", "ResponseInit", "FormData", "Blob"]
+version = "0.3.53"
+features = ["ReadableStream", "RequestRedirect", "RequestInit", "ResponseInit", "FormData", "Blob"]

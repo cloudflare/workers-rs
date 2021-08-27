@@ -31,7 +31,6 @@ extern "C" {
     #[doc = "The `fetch()` method."]
     pub fn fetch_with_str(this: &WorkerGlobalScope, input: &str) -> ::js_sys::Promise;
 
-    #[cfg(all(feature = "Request", feature = "RequestInit",))]
     #[wasm_bindgen (method , structural , js_class = "WorkerGlobalScope" , js_name = fetch)]
     #[doc = "The `fetch()` method."]
     pub fn fetch_with_request_and_init(
@@ -40,7 +39,6 @@ extern "C" {
         init: &RequestInit,
     ) -> ::js_sys::Promise;
 
-    #[cfg(feature = "RequestInit")]
     #[wasm_bindgen (method , structural , js_class = "WorkerGlobalScope" , js_name = fetch)]
     #[doc = "The `fetch()` method."]
     pub fn fetch_with_str_and_init(

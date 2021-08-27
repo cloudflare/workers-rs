@@ -28,7 +28,6 @@ extern "C" {
     #[doc = "Getter for the `statusText` field of this object."]
     pub fn status_text(this: &Response) -> String;
 
-    #[cfg(feature = "Headers")]
     #[wasm_bindgen(structural, method, getter, js_class=Response, js_name=headers)]
     #[doc = "Getter for the `headers` field of this object."]
     pub fn headers(this: &Response) -> crate::headers::Headers;
@@ -37,7 +36,6 @@ extern "C" {
     #[doc = "Getter for the `bodyUsed` field of this object."]
     pub fn body_used(this: &Response) -> bool;
 
-    #[cfg(feature = "ReadableStream")]
     #[wasm_bindgen(structural, method, getter, js_class=Response, js_name=body)]
     #[doc = "Getter for the `body` field of this object."]
     pub fn body(this: &Response) -> Option<web_sys::ReadableStream>;
@@ -48,203 +46,70 @@ extern "C" {
 
     #[wasm_bindgen(catch, constructor, js_class=Response)]
     #[doc = "The `new Response(..)` constructor, creating a new instance of `Response`."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/Response)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `Response`*"]
-    pub fn new_with_opt_buffer_source(body: Option<&::js_sys::Object>)
-        -> Result<Response, JsValue>;
-    #[wasm_bindgen(catch, constructor, js_class=Response)]
-    #[doc = "The `new Response(..)` constructor, creating a new instance of `Response`."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/Response)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `Response`*"]
     pub fn new_with_opt_u8_array(body: Option<&mut [u8]>) -> Result<Response, JsValue>;
 
-    #[cfg(feature = "FormData")]
     #[wasm_bindgen(catch, constructor, js_class=Response)]
     #[doc = "The `new Response(..)` constructor, creating a new instance of `Response`."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/Response)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `FormData`, `Response`*"]
     pub fn new_with_opt_form_data(body: Option<&FormData>) -> Result<Response, JsValue>;
 
-    #[cfg(feature = "UrlSearchParams")]
     #[wasm_bindgen(catch, constructor, js_class=Response)]
     #[doc = "The `new Response(..)` constructor, creating a new instance of `Response`."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/Response)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `Response`, `UrlSearchParams`*"]
-    pub fn new_with_opt_url_search_params(
-        body: Option<&UrlSearchParams>,
-    ) -> Result<Response, JsValue>;
-    #[wasm_bindgen(catch, constructor, js_class=Response)]
-    #[doc = "The `new Response(..)` constructor, creating a new instance of `Response`."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/Response)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `Response`*"]
     pub fn new_with_opt_str(body: Option<&str>) -> Result<Response, JsValue>;
 
-    #[cfg(feature = "ReadableStream")]
     #[wasm_bindgen(catch, constructor, js_class=Response)]
     #[doc = "The `new Response(..)` constructor, creating a new instance of `Response`."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/Response)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `ReadableStream`, `Response`*"]
-    pub fn new_with_opt_readable_stream(
-        body: Option<&web_sys::ReadableStream>,
-    ) -> Result<Response, JsValue>;
-    #[cfg(all(feature = "Blob", feature = "ResponseInit",))]
-    #[wasm_bindgen(catch, constructor, js_class=Response)]
-    #[doc = "The `new Response(..)` constructor, creating a new instance of `Response`."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/Response)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `Blob`, `Response`, `ResponseInit`*"]
-    pub fn new_with_opt_blob_and_init(
-        body: Option<&Blob>,
-        init: &ResponseInit,
-    ) -> Result<Response, JsValue>;
-    #[cfg(feature = "ResponseInit")]
-    #[wasm_bindgen(catch, constructor, js_class=Response)]
-    #[doc = "The `new Response(..)` constructor, creating a new instance of `Response`."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/Response)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `Response`, `ResponseInit`*"]
-    pub fn new_with_opt_buffer_source_and_init(
-        body: Option<&::js_sys::Object>,
-        init: &web_sys::ResponseInit,
-    ) -> Result<Response, JsValue>;
-    #[cfg(feature = "ResponseInit")]
-    #[wasm_bindgen(catch, constructor, js_class=Response)]
-    #[doc = "The `new Response(..)` constructor, creating a new instance of `Response`."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/Response)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `Response`, `ResponseInit`*"]
     pub fn new_with_opt_u8_array_and_init(
         body: Option<&mut [u8]>,
         init: &web_sys::ResponseInit,
     ) -> Result<Response, JsValue>;
-    #[cfg(all(feature = "FormData", feature = "ResponseInit",))]
+
     #[wasm_bindgen(catch, constructor, js_class=Response)]
     #[doc = "The `new Response(..)` constructor, creating a new instance of `Response`."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/Response)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `FormData`, `Response`, `ResponseInit`*"]
     pub fn new_with_opt_form_data_and_init(
         body: Option<&FormData>,
         init: &ResponseInit,
     ) -> Result<Response, JsValue>;
-    #[cfg(all(feature = "ResponseInit", feature = "UrlSearchParams",))]
+
     #[wasm_bindgen(catch, constructor, js_class=Response)]
     #[doc = "The `new Response(..)` constructor, creating a new instance of `Response`."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/Response)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `Response`, `ResponseInit`, `UrlSearchParams`*"]
-    pub fn new_with_opt_url_search_params_and_init(
-        body: Option<&UrlSearchParams>,
-        init: &ResponseInit,
-    ) -> Result<Response, JsValue>;
-    #[cfg(feature = "ResponseInit")]
-    #[wasm_bindgen(catch, constructor, js_class=Response)]
-    #[doc = "The `new Response(..)` constructor, creating a new instance of `Response`."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/Response)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `Response`, `ResponseInit`*"]
     pub fn new_with_opt_str_and_init(
         body: Option<&str>,
         init: &web_sys::ResponseInit,
     ) -> Result<Response, JsValue>;
-    #[cfg(all(feature = "ReadableStream", feature = "ResponseInit",))]
-    #[wasm_bindgen(catch, constructor, js_class=Response)]
-    #[doc = "The `new Response(..)` constructor, creating a new instance of `Response`."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/Response)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `ReadableStream`, `Response`, `ResponseInit`*"]
-    pub fn new_with_opt_readable_stream_and_init(
-        body: Option<&web_sys::ReadableStream>,
-        init: &web_sys::ResponseInit,
-    ) -> Result<Response, JsValue>;
+
     #[wasm_bindgen(catch, method, structural, js_class=Response, js_name=clone)]
     #[doc = "The `clone()` method."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/clone)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `Response`*"]
     pub fn clone(this: &Response) -> Result<Response, JsValue>;
 
     #[wasm_bindgen(static_method_of=Response, js_class=Response, js_name=error)]
     #[doc = "The `error()` method."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/error)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `Response`*"]
     pub fn error() -> Response;
 
     #[wasm_bindgen(catch, static_method_of=Response, js_class=Response, js_name=redirect)]
     #[doc = "The `redirect()` method."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/redirect)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `Response`*"]
     pub fn redirect(url: &str) -> Result<Response, JsValue>;
 
     #[wasm_bindgen(catch, static_method_of=Response, js_class=Response, js_name=redirect)]
     #[doc = "The `redirect()` method."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/redirect)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `Response`*"]
     pub fn redirect_with_status(url: &str, status: u16) -> Result<Response, JsValue>;
 
     #[wasm_bindgen(catch, method, structural, js_class=Response, js_name=arrayBuffer)]
     #[doc = "The `arrayBuffer()` method."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/arrayBuffer)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `Response`*"]
     pub fn array_buffer(this: &Response) -> Result<::js_sys::Promise, JsValue>;
 
     #[wasm_bindgen(catch, method, structural, js_class=Response, js_name=blob)]
     #[doc = "The `blob()` method."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/blob)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `Response`*"]
     pub fn blob(this: &Response) -> Result<::js_sys::Promise, JsValue>;
 
     #[wasm_bindgen(catch, method, structural, js_class=Response, js_name=formData)]
     #[doc = "The `formData()` method."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/formData)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `Response`*"]
     pub fn form_data(this: &Response) -> Result<::js_sys::Promise, JsValue>;
 
     #[wasm_bindgen(catch, method, structural, js_class=Response, js_name=json)]
     #[doc = "The `json()` method."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/json)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `Response`*"]
     pub fn json(this: &Response) -> Result<::js_sys::Promise, JsValue>;
 
     #[wasm_bindgen(catch, method, structural, js_class=Response, js_name=text)]
     #[doc = "The `text()` method."]
-    #[doc = ""]
-    #[doc = "[MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/API/Response/text)"]
-    #[doc = ""]
-    #[doc = "*This API requires the following crate features to be activated: `Response`*"]
     pub fn text(this: &Response) -> Result<::js_sys::Promise, JsValue>;
 }

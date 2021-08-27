@@ -15,37 +15,30 @@ extern "C" {
     #[wasm_bindgen(structural, method, getter, js_class=Request, js_name=url)]
     pub fn url(this: &Request) -> String;
 
-    #[cfg(feature = "Headers")]
     #[wasm_bindgen(structural, method, getter, js_class=Request, js_name=headers)]
     pub fn headers(this: &Request) -> crate::headers::Headers;
 
-    #[cfg(feature = "RequestRedirect")]
     #[wasm_bindgen(structural, method, getter, js_class=Request, js_name=redirect)]
     pub fn redirect(this: &Request) -> web_sys::RequestRedirect;
 
     #[wasm_bindgen(structural, method, getter, js_class=Request, js_name=bodyUsed)]
     pub fn body_used(this: &Request) -> bool;
 
-    #[cfg(feature = "ReadableStream")]
     #[wasm_bindgen(structural, method, getter, js_class=Request, js_name=body)]
     pub fn body(this: &Request) -> Option<web_sys::ReadableStream>;
 
-    #[cfg(feature = "Request")]
     #[wasm_bindgen(catch, constructor, js_class=Request)]
     pub fn new_with_request(input: &Request) -> Result<Request, JsValue>;
 
-    #[cfg(feature = "Request")]
     #[wasm_bindgen(catch, constructor, js_class=Request)]
     pub fn new_with_str(input: &str) -> Result<Request, JsValue>;
 
-    #[cfg(feature = "RequestInit")]
     #[wasm_bindgen(catch, constructor, js_class=Request)]
     pub fn new_with_request_and_init(
         input: &Request,
         init: &RequestInit,
     ) -> Result<Request, JsValue>;
 
-    #[cfg(feature = "RequestInit")]
     #[wasm_bindgen(catch, constructor, js_class=Request)]
     pub fn new_with_str_and_init(input: &str, init: &RequestInit) -> Result<Request, JsValue>;
 
