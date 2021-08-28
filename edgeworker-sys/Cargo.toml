@@ -3,9 +3,7 @@ name = "edgeworker-sys"
 version = "0.1.0"
 authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
 edition = "2018"
-
-[lib]
-crate-type = ["cdylib", "rlib"]
+license = "Apache-2.0"
 
 [dependencies]
 cfg-if = "0.1.2"
