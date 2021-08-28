@@ -1,6 +1,7 @@
 use wasm_bindgen::{JsCast, JsValue};
 
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum Error {
     BadEncoding,
     BodyUsed,
