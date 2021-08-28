@@ -18,6 +18,7 @@ pub type Result<T> = StdResult<T, error::Error>;
 
 pub use crate::date::{Date, DateInit};
 pub use crate::env::Env;
+pub use crate::error::Error;
 pub use crate::formdata::*;
 pub use crate::global::Fetch;
 pub use crate::headers::Headers;
@@ -33,6 +34,7 @@ pub mod prelude {
     pub use crate::cf::Cf;
     pub use crate::date::{Date, DateInit};
     pub use crate::env::Env;
+    pub use crate::error::Error;
     pub use crate::formdata::*;
     pub use crate::global::Fetch;
     pub use crate::headers::Headers;

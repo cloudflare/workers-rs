@@ -4,6 +4,7 @@ use worker::*;
 mod counter;
 mod test;
 mod utils;
+
 #[derive(Deserialize, Serialize)]
 struct MyData {
     message: String,
