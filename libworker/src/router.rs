@@ -1,13 +1,17 @@
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use futures::{future::LocalBoxFuture, Future};
-use matchit::{InsertError, Match, Node, Params};
+use matchit::{InsertError, Match, Node};
 
 use crate::{env::Env, http::Method, request::Request, response::Response, Result};
 
-type HandlerFn = fn(Request, Env, Params) -> Result<Response>;
-type AsyncHandlerFn<'a> = Rc<dyn Fn(Request, Env, Params) -> LocalBoxFuture<'a, Result<Response>>>;
+type HandlerFn = fn(Request, Env, RouteParams) -> Result<Response>;
+type AsyncHandlerFn<'a> =
+    Rc<dyn Fn(Request, Env, RouteParams) -> LocalBoxFuture<'a, Result<Response>>>;
 type RouterResult<T = ()> = std::result::Result<T, InsertError>;
+
+pub type RouteParams = HashMap<String, String>;
 
 pub enum Handler<'a> {
     Async(AsyncHandlerFn<'a>),
@@ -49,7 +53,7 @@ impl<'a> Router<'a> {
     pub fn get_async<T>(
         &mut self,
         pattern: &str,
-        func: fn(Request, Env, Params) -> T,
+        func: fn(Request, Env, RouteParams) -> T,
     ) -> RouterResult
     where
         T: Future<Output = Result<Response>> + 'static,
@@ -64,7 +68,7 @@ impl<'a> Router<'a> {
     pub fn post_async<T>(
         &mut self,
         pattern: &str,
-        func: fn(Request, Env, Params) -> T,
+        func: fn(Request, Env, RouteParams) -> T,
     ) -> RouterResult
     where
         T: Future<Output = Result<Response>> + 'static,
@@ -79,7 +83,7 @@ impl<'a> Router<'a> {
     pub fn on_async<T>(
         &mut self,
         pattern: &str,
-        func: fn(Request, Env, Params) -> T,
+        func: fn(Request, Env, RouteParams) -> T,
     ) -> RouterResult
     where
         T: Future<Output = Result<Response>> + 'static,
@@ -120,10 +124,15 @@ impl<'a> Router<'a> {
 
     pub async fn run(&self, req: Request, env: Env) -> Result<Response> {
         if let Ok(Match { value, params }) = self.handlers.at(&req.path()) {
+            let mut par: RouteParams = HashMap::new();
+            for (ident, value) in params.iter() {
+                par.insert(ident.into(), value.into());
+            }
+
             if let Some(handler) = value[req.method() as usize].as_ref() {
                 return match handler {
-                    Handler::Sync(func) => (func)(req, env, params),
-                    Handler::Async(func) => (func)(req, env, params).await,
+                    Handler::Sync(func) => (func)(req, env, par),
+                    Handler::Async(func) => (func)(req, env, par).await,
                 };
             }
             return Response::error("Method Not Allowed", 405);

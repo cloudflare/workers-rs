@@ -42,7 +42,7 @@ pub mod prelude {
     pub use crate::request::Request;
     pub use crate::request_init::*;
     pub use crate::response::Response;
-    pub use crate::router::Router;
+    pub use crate::router::*;
     pub use crate::Result;
     pub use edgeworker_sys::console_log;
     pub use matchit::Params;
