@@ -2,146 +2,103 @@
 
 **Work-in-progress** ergonomic Rust bindings to Cloudflare Workers environment. Write your entire worker in Rust!
 
-## Project Contents
-
-- **edgeworker-sys**: Rust extern "C" definitions for FFI compatibility with the Workers JS Runtime.
-- **libworker**: wrappers and convenience library over the FFI bindings.
-- **macros**: `cf` exports macros for wrapping Rust entry point in a `fetch` method of an ES Module, and code generation to create and interact with Durable Objects.
-- **worker**: the user-facing crate, with Rust-famaliar abstractions over the Rust<->JS/WebAssembly interop.
-- **rust-sandbox**: a functioning Cloudflare Worker for testing features and ergonomics.
-
 ## Example Usage
 
 ```rust
 use worker::*;
 
 #[event(fetch)]
-pub async fn main(req: Request, _env: Env) -> Result<Response> {
-    console_log!("request at: {:?}", req.path());
+pub async fn main(req: Request, env: Env) -> Result<Response> {
+    console_log!(
+        "{} {}, located at: {:?}, within: {}",
+        req.method().to_string(),
+        req.path(),
+        req.cf().coordinates().unwrap_or_default(),
+        req.cf().region().unwrap_or("unknown region".into())
+    );
 
-    utils::set_panic_hook();
+    if !matches!(req.method(), Method::Post) {
+        return Response::error("Method Not Allowed", 405);
+    }
 
+    if let Some(file) = req.form_data().await?.get("file") {
+        return match file {
+            FormEntry::File(buf) => {
+                Response::ok(&format!("size = {}", buf.bytes().await?.len()))
+            }
+            _ => Response::error("`file` part of POST form must be a file", 400),
+        };
+    }
+
+    Response::error("Bad Request", 400)
+}
+```
+
+### Or use the `router::Router`:
+
+Parameterize routes and access the parameter values from within a handler. Each hanlder function takes a 
+`Request`, an `Env`, and a `RouteParams` (`HashMap<String, String>`). 
+
+```rust
+use worker::*;
+
+#[event(fetch)]
+pub async fn main(req: Request, env: Env) -> Result<Response> {
     let mut router = Router::new();
 
-    // set headers on a response
-    router.post("/headers", |req, _, _| {
-        let mut headers: http::HeaderMap = req.headers().into();
-        headers.append("Hello", "World!".parse().unwrap());
+    // useful for JSON APIs
+    #[derive(Deserialize, Serialize)]
+    struct Account {
+        id: u64,
+        // ...
+    }
+    router.get_async("/account/:id", |_req, env, params| async move {
+        if let Some(id) = params.get("id") {
+            let accounts = env.kv("ACCOUNTS")?;
+            return match accounts.get(id).await? {
+                Some(account) => Response::from_json(&account.as_json::<Account>()?),
+                None => Response::error("Not found", 404),
+            };
+        }
 
-        Response::ok("returned your headers to you.").map(|res| res.with_headers(headers.into()))
+        Response::error("Bad Request", 400)
     })?;
 
-    // work with FormData from incoming requests
-    router.on_async("/formdata-name", |mut req, _env, _params| async move {
+    // handle files and fields from multipart/form-data requests
+    router.post_async("/upload", |mut req, _, _| async move {
         let form = req.form_data().await?;
-        const NAME: &str = "name";
+        if let Some(entry) = form.get("file") {
+            match entry {
+                FormEntry::File(file) => {
+                    let bytes = file.bytes().await?;
+                }
+                FormEntry::Field(_) => return Response::error("Bad Request", 400),
+            }
+            // ...
 
-        if !form.has(NAME) {
+            if let Some(permissions) = form.get("permissions") {
+                // permissions == "a,b,c,d"
+            }
+            // or call `form.get_all("permissions")` if using multiple entries per field
+        }
+
+        Response::error("Bad Request", 400)
+    })?;
+
+    // read/write binary data
+    router.post_async("/echo-bytes", |mut req, _, _| async move {
+        let data = req.bytes().await?;
+        if data.len() < 1024 {
             return Response::error("Bad Request", 400);
         }
 
-        let names = form.get_all(NAME).unwrap_or_default();
-        if names.len() > 1 {
-            return Response::from_json(&serde_json::json!({ "names": names }));
-        }
-
-        Response::from_json(&serde_json::json!({NAME: form.get(NAME).unwrap()}))
-    })?;
-
-    // paramaterize URL paths with the Router
-    router.on("/user/:id/test", |req, _env, params| {
-        if !matches!(req.method(), Method::Get) {
-            return Response::error("Method Not Allowed", 405);
-        }
-        if let Some(id) = params.get("id") {
-            return Response::ok(format!("TEST user id: {}", id));
-        }
-
-        Response::error("Error", 500)
-    })?;
-
-    // respond with JSON
-    router.on("/user/:id", |_req, _env, params| {
-        let id = params.get("id").unwrap_or("not found");
-        Response::from_json(&User {
-            id: id.into(),
-            timestamp: Date::now().as_millis(),
-            date_from_int: Date::new(DateInit::Millis(1234567890)).to_string(),
-            date_from_str: Date::new(DateInit::String(
-                "Wed Jan 14 1980 23:56:07 GMT-0700 (Mountain Standard Time)".into(),
-            ))
-            .to_string(),
-        })
-    })?;
-
-    // execute async operations inside routes
-    router.on_async("/fetch_json", |_req, _env, _params| async move {
-        let data: ApiData = Fetch::Url("https://jsonplaceholder.typicode.com/todos/1")
-            .send()
-            .await?
-            .json()
-            .await?;
-        Response::ok(format!(
-            "API Returned user: {} with title: {} and completed: {}",
-            data.user_id, data.title, data.completed
-        ))
-    })?;
-
-    // call fetch for subrequests
-    router.on_async("/proxy_request/*url", |_req, _env, params| {
-        // Must copy the parameters into the heap here for lifetime purposes
-        let url = params
-            .get("url")
-            .unwrap()
-            .strip_prefix('/')
-            .unwrap()
-            .to_string();
-        async move { Fetch::Url(&url).send().await }
-    })?;
-
-    // work with existing (or create new) Durable Objects
-    router.on_async("/durable/:id", |_req, env, _params| async move {
-        let namespace = env.durable_object("COUNTER")?;
-        let stub = namespace.id_from_name("A")?.get_stub()?;
-        stub.fetch_with_str("/increment").await
-    })?;
-
-    // access Secret, Var, KV bindings
-    router.get("/secret", |_req, env, _params| {
-        Response::ok(env.secret("SOME_SECRET")?.to_string())
-    })?;
-
-    router.get("/var", |_req, env, _params| {
-        Response::ok(env.var("SOME_VARIABLE")?.to_string())
-    })?;
-
-    router.on_async("/kv", |_req, env, _params| async move {
-        let kv = env.kv("SOME_NAMESPACE")?;
-        kv.put("another-key", "another-value")?.execute().await?;
-
-        Response::empty()
-    })?;
-
-    // work with binary data 
-    router.get("/bytes", |_, _, _| {
-        Response::from_bytes(vec![1, 2, 3, 4, 5, 6, 7])
-    })?;
-
-    // console_log to dashboard or wrangler tail
-    router.post_async("/api-data", |mut req, _, _| async move {
-        let data = req.bytes().await?;
-        let mut todo: ApiData = serde_json::from_slice(&data)?;
-
-        unsafe { todo.title.as_mut_vec().reverse() };
-
-        console_log!("todo = (title {}) (id {})", todo.title, todo.user_id);
-
-        Response::from_bytes(serde_json::to_vec(&todo)?)
+        Response::from_bytes(data)
     })?;
 
     router.run(req, env).await
-
+}   
 ```
+
 
 ## Getting Started
 
@@ -171,7 +128,7 @@ wrangler publish
 
 ## Durable Object, KV, Secret, & Variable Bindings
 
-All "bindings" to your script (KV Namespaces, Secrets, and Variables) are accessible from the `env` parameter provided to both the entrypoint (`main` in this example), and to the route handler closure, if you use the `Router` from the `worker` crate.
+All "bindings" to your script (Durable Object & KV Namespaces, Secrets, and Variables) are accessible from the `env` parameter provided to both the entrypoint (`main` in this example), and to the route handler callback, if you use the `Router` from the `worker` crate.
 
 ```rust
 use worker::*;
@@ -189,16 +146,17 @@ pub async fn main(req: Request, _env: Env) -> Result<Response> {
     })?;
 
     router.get("/secret", |_req, env, _params| {
-        Response::ok(env.secret("SOME_SECRET")?.to_string())
+        Response::ok(env.secret("CF_API_TOKEN")?.to_string())
     })?;
 
     router.get("/var", |_req, env, _params| {
-        Response::ok(env.var("SOME_VARIABLE")?.to_string())
+        Response::ok(env.var("BUILD_NUMBER")?.to_string())
     })?;
 
-    router.post_async("/kv", |_req, env, _params| async move {
+    router.post_async("/kv", |req, env, _params| async move {
         let kv = env.kv("SOME_NAMESPACE")?;
-        kv.put("another-key", "another-value")?.execute().await?;
+
+        kv.put("key", "value")?.execute().await?;
 
         Response::empty()
     })?;
@@ -227,20 +185,18 @@ pub struct Chatroom {
     users: Vec<User>,
     messages: Vec<Message>
     state: State,
-    some_secret: Secret,
-    some_kv_store: KvStore,
+    env: std::sync::Arc<Env>, // access `Env` across requests, use inside `fetch`
 
 }
 
 #[durable_object]
 impl DurableObject for Chatroom {
-    fn new(state: State, _env: Env) -> Self {
+    fn new(state: State, env: Env) -> Self {
         Self {
             users: vec![],
             messages: vec![],
             state: state,
-            some_secret: env.secret("SOME_SECRET").unwrap(),
-            some_kv_store: env.kv("SOME_KV_STORE").unwrap()
+            env: std::sync::Arc::new(env),
         }
     }
 
@@ -270,3 +226,16 @@ new_classes = ["Chatroom"] # Array of new classes
 
 - For more information about migrating your Durable Object as it changes, see the docs here: https://developers.cloudflare.com/workers/learning/using-durable-objects#durable-object-migrations-in-wranglertoml
 
+
+# Contributing
+
+Your feedback is welcome and appreciated! Please use the issue tracker to talk about potential implementations or make feature requests. If you're interested in making a PR, we suggest opening up an issue to talk about the change you'd like to make as early as possible.
+
+## Project Contents
+
+- **worker**: the user-facing crate, with Rust-famaliar abstractions over the Rust<->JS/WebAssembly interop.
+- **libworker**: wrappers and convenience library over the FFI bindings.
+- **edgeworker-sys**: Rust extern "C" definitions for FFI compatibility with the Workers JS Runtime.
+- **macros**: exports `event` and `durable_object` macros for wrapping Rust entry point in a `fetch` method of an ES Module, and code generation to create and interact with Durable Objects.
+- **rust-sandbox**: a functioning Cloudflare Worker for testing features and ergonomics.
+- **rust-worker-build**: a cross-platform build command for `workers-rs`-based projects.
