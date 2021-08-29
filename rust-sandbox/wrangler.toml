@@ -5,9 +5,8 @@ compatibility_date = "2021-08-27"
 compatibility_flags = [ "formdata_parser_supports_files" ]
 
 kv_namespaces = [
-  # { binding = "SOME_NAMESPACE", id = "", preview_id = "" },
-  # { binding = "SOME_KV", id = "", preview_id = "" },
-  { binding = "FILE_SIZES", id = "b85b7be1ec4647279c7348cf8462a002" }
+  { binding = "SOME_NAMESPACE", id = "", preview_id = "" },
+  { binding = "FILE_SIZES", id = "" }
 ]
 
 vars = { SOME_VARIABLE = "some value" }

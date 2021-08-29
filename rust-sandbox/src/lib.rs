@@ -92,7 +92,6 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         size: u32,
     }
     router.post_async("/formdata-file-size", |mut req, env, _| async move {
-        let bad_request = Response::error("Bad Request", 400);
         let form = req.form_data().await?;
 
         if let Some(entry) = form.get("file") {
@@ -120,11 +119,11 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
                     // list the default number of keys from the namespace
                     Response::from_json(&kv.list().execute().await?.keys)
                 }
-                _ => bad_request,
+                _ => Response::error("Bad Request", 400),
             };
         }
 
-        bad_request
+        Response::error("Bad Request", 400)
     })?;
 
     router.get_async("/formdata-file-size/:hash", |_, env, params| async move {
@@ -237,11 +236,15 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         Response::ok(env.var("SOME_VARIABLE")?.to_string())
     })?;
 
-    router.on_async("/kv", |_req, env, _params| async move {
+    router.post_async("/kv/:key/:value", |_req, env, params| async move {
         let kv = env.kv("SOME_NAMESPACE")?;
-        kv.put("another-key", "another-value")?.execute().await?;
+        if let Some(key) = params.get("key") {
+            if let Some(value) = params.get("value") {
+                kv.put(&key, value)?.execute().await?;
+            }
+        }
 
-        Response::empty()
+        Response::from_json(&kv.list().execute().await?)
     })?;
 
     router.get("/bytes", |_, _, _| {

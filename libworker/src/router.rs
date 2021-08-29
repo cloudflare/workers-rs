@@ -101,8 +101,6 @@ impl<'a> Router<'a> {
         func: Handler<'a>,
         methods: Vec<Method>,
     ) -> RouterResult {
-        // Did some testing and it appears as though a pattern can always match itself
-        // i.e. the path "/user/:id" will always match the pattern "/user/:id"
         if let Ok(Match {
             value: handler_set,
             params: _,
