@@ -12,7 +12,7 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 
-pub enum FormDataEntryValue {
+pub enum FormEntry {
     Field(String),
     File(File),
 }
@@ -25,24 +25,24 @@ impl FormData {
         Self(EdgeFormData::new().unwrap())
     }
 
-    pub fn get(&self, name: &str) -> Option<FormDataEntryValue> {
+    pub fn get(&self, name: &str) -> Option<FormEntry> {
         let val = self.0.get(name);
         if val.is_undefined() {
             return None;
         }
 
         if val.is_instance_of::<EdgeFile>() {
-            return Some(FormDataEntryValue::File(File(val.into())));
+            return Some(FormEntry::File(File(val.into())));
         }
 
         if let Some(field) = val.as_string() {
-            return Some(FormDataEntryValue::Field(field));
+            return Some(FormEntry::Field(field));
         }
 
         return None;
     }
 
-    pub fn get_all(&self, name: &str) -> Option<Vec<FormDataEntryValue>> {
+    pub fn get_all(&self, name: &str) -> Option<Vec<FormEntry>> {
         let val = self.0.get_all(name);
         if val.is_undefined() {
             return None;
@@ -54,10 +54,10 @@ impl FormData {
                     .into_iter()
                     .map(|val| {
                         if val.is_instance_of::<EdgeFile>() {
-                            return FormDataEntryValue::File(File(val.into()));
+                            return FormEntry::File(File(val.into()));
                         }
 
-                        return FormDataEntryValue::Field(val.as_string().unwrap_or_default());
+                        return FormEntry::Field(val.as_string().unwrap_or_default());
                     })
                     .collect(),
             );
