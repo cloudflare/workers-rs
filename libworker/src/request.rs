@@ -1,9 +1,9 @@
 use crate::{
-    error::Error, headers::Headers, http::Method, FormData, RequestInit as WorkerRequestInit,
-    Result,
+    cf::Cf, error::Error, headers::Headers, http::Method, FormData,
+    RequestInit as WorkerRequestInit, Result,
 };
 
-use edgeworker_sys::{Cf, Request as EdgeRequest, RequestInit as EdgeRequestInit};
+use edgeworker_sys::{Request as EdgeRequest, RequestInit as EdgeRequestInit};
 use js_sys;
 use serde::de::DeserializeOwned;
 use url::Url;
@@ -33,7 +33,7 @@ impl From<EdgeRequest> for Request {
                     u
                 }),
             headers: Headers(req.headers()),
-            cf: req.cf(),
+            cf: req.cf().into(),
             edge_request: req,
             body_used: false,
             immutable: true,
@@ -154,8 +154,8 @@ impl Request {
         Ok(&mut self.headers)
     }
 
-    pub fn cf(&self) -> Cf {
-        self.cf.clone()
+    pub fn cf(&self) -> &Cf {
+        &self.cf
     }
 
     pub fn method(&self) -> Method {
