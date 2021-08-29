@@ -4,10 +4,10 @@ workers_dev = true
 compatibility_date = "2021-08-27"
 compatibility_flags = [ "formdata_parser_supports_files" ]
 
-kv_namespaces = [
-  { binding = "SOME_NAMESPACE", id = "", preview_id = "" },
-  { binding = "FILE_SIZES", id = "" }
-]
+# kv_namespaces = [
+#   { binding = "SOME_NAMESPACE", id = "", preview_id = "" },
+#   { binding = "FILE_SIZES", id = "" }
+# ]
 
 vars = { SOME_VARIABLE = "some value" }
 
