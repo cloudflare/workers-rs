@@ -13,8 +13,10 @@ path = "src/lib.rs"
 default = ["console_error_panic_hook"]
 
 [dependencies]
+blake2 = "0.9.2"
 cfg-if = "0.1.2"
 console_error_panic_hook = { version = "0.1.1", optional = true }
+hex = "0.4.3"
 http = "0.2.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

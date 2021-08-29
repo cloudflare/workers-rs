@@ -1,3 +1,4 @@
+use blake2::{Blake2b, Digest};
 use serde::{Deserialize, Serialize};
 use worker::*;
 
@@ -30,8 +31,13 @@ struct User {
     date_from_str: String,
 }
 
-fn handle_a_request(_req: Request, _env: Env, _params: Params) -> Result<Response> {
-    Response::ok("hello, world.")
+fn handle_a_request(req: Request, _env: Env, _params: RouteParams) -> Result<Response> {
+    Response::ok(&format!(
+        "req at: {}, located at: {:?}, within: {}",
+        req.path(),
+        req.cf().coordinates().unwrap_or_default(),
+        req.cf().region().unwrap_or("unknown region".into())
+    ))
 }
 
 #[event(fetch)]
@@ -62,8 +68,8 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
             .unwrap_or_default()
             .into_iter()
             .map(|entry| match entry {
-                FormDataEntryValue::Field(s) => s,
-                FormDataEntryValue::File(f) => f.name(),
+                FormEntry::Field(s) => s,
+                FormEntry::File(f) => f.name(),
             })
             .collect();
         if names.len() > 1 {
@@ -72,9 +78,7 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
 
         if let Some(value) = form.get(NAME) {
             match value {
-                FormDataEntryValue::Field(v) => {
-                    Response::from_json(&serde_json::json!({ NAME: v }))
-                }
+                FormEntry::Field(v) => Response::from_json(&serde_json::json!({ NAME: v })),
                 _ => bad_request,
             }
         } else {
@@ -82,20 +86,57 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         }
     })?;
 
-    router.post_async("/formdata-file-size", |mut req, _, _| async move {
+    #[derive(Deserialize, Serialize)]
+    struct FileSize {
+        name: String,
+        size: u32,
+    }
+    router.post_async("/formdata-file-size", |mut req, env, _| async move {
         let bad_request = Response::error("Bad Request", 400);
         let form = req.form_data().await?;
 
         if let Some(entry) = form.get("file") {
             return match entry {
-                FormDataEntryValue::File(file) => {
-                    Response::ok(&format!("size = {}", file.bytes().await?.len()))
+                FormEntry::File(file) => {
+                    let kv = env.kv("FILE_SIZES")?;
+
+                    // create a new FileSize record to store
+                    let b = file.bytes().await?;
+                    let record = FileSize {
+                        name: file.name(),
+                        size: b.len() as u32,
+                    };
+
+                    // hash the file, and use result as the key
+                    let mut hasher = Blake2b::new();
+                    hasher.update(b);
+                    let hash = hasher.finalize();
+                    let key = hex::encode(&hash[..]);
+
+                    // serialize the record and put it into kv
+                    let val = serde_json::to_string(&record)?;
+                    kv.put(&key, val)?.execute().await?;
+
+                    // list the default number of keys from the namespace
+                    Response::from_json(&kv.list().execute().await?.keys)
                 }
                 _ => bad_request,
             };
         }
 
         bad_request
+    })?;
+
+    router.get_async("/formdata-file-size/:hash", |_, env, params| async move {
+        if let Some(hash) = params.get("hash") {
+            let kv = env.kv("FILE_SIZES")?;
+            return match kv.get(&hash).await? {
+                Some(val) => Response::from_json(&val.as_json::<FileSize>()?),
+                None => Response::error("Not Found", 404),
+            };
+        }
+
+        Response::error("Bad Request", 400)
     })?;
 
     router.post_async("/post-file-size", |mut req, _, _| async move {
@@ -115,29 +156,32 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
     })?;
 
     router.on("/user/:id", |_req, _env, params| {
-        let id = params.get("id").unwrap_or("not found");
-        Response::from_json(&User {
-            id: id.into(),
-            timestamp: Date::now().as_millis(),
-            date_from_int: Date::new(DateInit::Millis(1234567890)).to_string(),
-            date_from_str: Date::new(DateInit::String(
-                "Wed Jan 14 1980 23:56:07 GMT-0700 (Mountain Standard Time)".into(),
-            ))
-            .to_string(),
-        })
+        if let Some(id) = params.get("id") {
+            return Response::from_json(&User {
+                id: id.to_string(),
+                timestamp: Date::now().as_millis(),
+                date_from_int: Date::new(DateInit::Millis(1234567890)).to_string(),
+                date_from_str: Date::new(DateInit::String(
+                    "Wed Jan 14 1980 23:56:07 GMT-0700 (Mountain Standard Time)".into(),
+                ))
+                .to_string(),
+            });
+        }
+
+        Response::error("Bad Request", 400)
     })?;
 
     router.post("/account/:id/zones", |_, _, params| {
         Response::ok(format!(
             "Create new zone for Account: {}",
-            params.get("id").unwrap_or("not found")
+            params.get("id").unwrap_or(&"not found".into())
         ))
     })?;
 
     router.get("/account/:id/zones", |_, _, params| {
         Response::ok(format!(
             "Account id: {}..... You get a zone, you get a zone!",
-            params.get("id").unwrap_or("not found")
+            params.get("id").unwrap_or(&"not found".into())
         ))
     })?;
 
@@ -168,15 +212,15 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         ))
     })?;
 
-    router.on_async("/proxy_request/*url", |_req, _env, params| {
-        // Must copy the parameters into the heap here for lifetime purposes
+    router.on_async("/proxy_request/*url", |_req, _env, params| async move {
         let url = params
             .get("url")
             .unwrap()
             .strip_prefix('/')
             .unwrap()
             .to_string();
-        async move { Fetch::Url(&url).send().await }
+
+        Fetch::Url(&url).send().await
     })?;
 
     router.on_async("/durable/:id", |_req, env, _params| async move {
