@@ -216,10 +216,9 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
             .get("url")
             .unwrap()
             .strip_prefix('/')
-            .unwrap()
-            .to_string();
+            .unwrap();
 
-        Fetch::Url(&url).send().await
+        Fetch::Url(url).send().await
     })?;
 
     router.on_async("/durable/:id", |_req, env, _params| async move {
