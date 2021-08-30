@@ -1,6 +1,6 @@
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, ToTokens};
-use syn::{spanned::Spanned, Error, ImplItem, Item};
+use syn::{spanned::Spanned, FnArg, Error, ImplItem, Type, TypePath, PatType, Item};
 
 pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
     let item = syn::parse2::<Item>(tokens)?;
@@ -21,19 +21,47 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
             let items = imp.items;
             let mut tokenized = vec![];
             for item in items {
-                let mut method = match item {
+                let impl_method = match item {
                     ImplItem::Method(m) => m,
                     _ => return Err(Error::new_spanned(item, "Impl block must only contain methods"))
                 };
-                let tokens = match method.sig.ident.to_string().as_str() {
+                
+                let tokens = match impl_method.sig.ident.to_string().as_str() {
                     "new" => {
+                        let mut method = impl_method.clone();
                         method.sig.ident = Ident::new("_new", method.sig.ident.span());
+
+                        // modify the `state` argument so it is type ObjectState
+                        let arg_tokens = method.sig.inputs.first_mut().expect("DurableObject `new` method must have 2 arguments: state and env").into_token_stream();                        
+                        match syn::parse2::<FnArg>(arg_tokens)? {
+                            FnArg::Typed(pat) => {
+                                let path = syn::parse2::<TypePath>(quote!{edgeworker_sys::durable_object::ObjectState}.into())?;
+                                let mut updated_pat = PatType::from(pat);
+                                updated_pat.ty = Box::new(Type::Path(path)); 
+                                
+                                let state_arg = FnArg::Typed(updated_pat);
+                                let env_arg = method.sig.inputs.pop().expect("DurableObject `new` method expects a second argument: env");
+                                method.sig.inputs.clear();
+                                method.sig.inputs.insert(0, state_arg);
+                                method.sig.inputs.insert(1, env_arg.into_value())
+                            },
+                            _ => return Err(Error::new(method.sig.inputs.span(), "DurableObject `new` method expects `state: State` as first argument."))
+                        }
+
+                        // prepend the function block's statements to convert the ObjectState to State type
+                        let mut prepended = vec![syn::parse_quote! {
+                            let state = ::worker::durable::State::from(state);
+                        }];
+                        prepended.extend(method.block.stmts);
+                        method.block.stmts = prepended;
+                        
                         quote! {
                             #pound[wasm_bindgen::prelude::wasm_bindgen(constructor)]
                             pub #method
                         }
                     },
                     "fetch" => {
+                        let mut method = impl_method.clone();
                         method.sig.ident = Ident::new("_fetch_raw", method.sig.ident.span());
                         quote! {
                             #pound[wasm_bindgen::prelude::wasm_bindgen(js_name = fetch)]
@@ -68,7 +96,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                 #pound[async_trait::async_trait(?Send)]
                 impl ::worker::durable::DurableObject for #struct_name {
                     fn new(state: ::worker::durable::State, env: ::worker::Env) -> Self {
-                        Self::_new(state, env)
+                        Self::_new(state._inner(), env)
                     }
 
                     async fn fetch(&mut self, req: ::worker::Request) -> ::worker::Result<worker::Response> {

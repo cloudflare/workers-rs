@@ -12,6 +12,7 @@ proc-macro = true
 [dependencies]
 async-trait = "0.1.51"
 edgeworker-sys = { path = "../edgeworker-sys" }
+libworker = { path = "../libworker" }
 syn = "1.0.74"
 proc-macro2 = "1.0.28"
 quote = "1.0.9"
