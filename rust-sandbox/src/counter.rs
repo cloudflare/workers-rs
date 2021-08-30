@@ -1,4 +1,4 @@
-use worker::{durable::State, *};
+use worker::*;
 
 #[durable_object]
 pub struct Counter {
@@ -10,7 +10,7 @@ pub struct Counter {
 
 #[durable_object]
 impl DurableObject for Counter {
-    fn new(state: worker::durable::State, env: worker::Env) -> Self {
+    fn new(state: State, env: Env) -> Self {
         Self {
             count: 0,
             initialized: false,
@@ -19,7 +19,7 @@ impl DurableObject for Counter {
         }
     }
 
-    async fn fetch(&mut self, _req: worker::Request) -> worker::Result<worker::Response> {
+    async fn fetch(&mut self, _req: Request) -> Result<Response> {
         if !self.initialized {
             self.initialized = true;
             self.count = self.state.storage().get("count").await.unwrap_or(0);
@@ -28,7 +28,7 @@ impl DurableObject for Counter {
         self.count += 10;
         self.state.storage().put("count", self.count).await?;
         Response::ok(&format!(
-            "count: {}, secret: {}",
+            "self.count: {}, secret value: {}",
             self.count.to_string(),
             &self.env.secret("SOME_SECRET")?.to_string()
         ))

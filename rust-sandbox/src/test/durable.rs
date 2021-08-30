@@ -1,5 +1,5 @@
 use crate::ensure;
-use worker::{durable::ObjectNamespace, *};
+use worker::*;
 
 #[allow(dead_code)]
 pub async fn basic_test(env: &Env) -> Result<()> {

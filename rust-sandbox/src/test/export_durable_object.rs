@@ -7,13 +7,13 @@ use crate::ensure;
 
 #[durable_object]
 pub struct MyClass {
-    state: worker::durable::State,
+    state: State,
     number: usize,
 }
 
 #[durable_object]
 impl DurableObject for MyClass {
-    fn new(state: worker::durable::State, _env: Env) -> Self {
+    fn new(state: State, _env: Env) -> Self {
         Self { state, number: 0 }
     }
 
