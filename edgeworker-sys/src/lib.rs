@@ -27,6 +27,7 @@ pub mod prelude {
 }
 
 pub use cf::Cf;
+pub use durable_object::*;
 pub use file::File;
 pub use formdata::FormData;
 pub use global::WorkerGlobalScope;
