@@ -185,7 +185,7 @@ pub struct Chatroom {
     users: Vec<User>,
     messages: Vec<Message>
     state: State,
-    env: std::sync::Arc<Env>, // access `Env` across requests, use inside `fetch`
+    env: Env, // access `Env` across requests, use inside `fetch`
 
 }
 
@@ -196,7 +196,7 @@ impl DurableObject for Chatroom {
             users: vec![],
             messages: vec![],
             state: state,
-            env: std::sync::Arc::new(env),
+            env,
         }
     }
 

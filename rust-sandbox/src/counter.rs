@@ -5,7 +5,7 @@ pub struct Counter {
     count: usize,
     state: State,
     initialized: bool,
-    env: std::sync::Arc<Env>,
+    env: Env,
 }
 
 #[durable_object]
@@ -15,7 +15,7 @@ impl DurableObject for Counter {
             count: 0,
             initialized: false,
             state,
-            env: std::sync::Arc::new(env),
+            env,
         }
     }
 
@@ -28,9 +28,9 @@ impl DurableObject for Counter {
         self.count += 10;
         self.state.storage().put("count", self.count).await?;
         Response::ok(&format!(
-            "self.count: {}, secret value: {}",
+            "[durable_object]: self.count: {}, secret value: {}",
             self.count.to_string(),
-            &self.env.secret("SOME_SECRET")?.to_string()
+            self.env.secret("SOME_SECRET")?.to_string()
         ))
     }
 }
