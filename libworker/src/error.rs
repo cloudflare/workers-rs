@@ -10,6 +10,7 @@ pub enum Error {
     Internal(JsValue),
     BindingError(String),
     RouteInsertError(matchit::InsertError),
+    RouteNoDataError,
     RustError(String),
     SerdeJsonError(serde_json::Error),
 }
@@ -31,6 +32,7 @@ impl std::fmt::Display for Error {
             Error::Internal(_) => write!(f, "unrecognized JavaScript object"),
             Error::BindingError(name) => write!(f, "no binding found for `{}`", name),
             Error::RouteInsertError(e) => write!(f, "failed to insert route: {}", e),
+            Error::RouteNoDataError => write!(f, "route has no corresponding shared data"),
             Error::SerdeJsonError(e) => write!(f, "Serde Error: {}", e),
         }
     }

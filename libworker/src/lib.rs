@@ -25,7 +25,7 @@ pub use crate::headers::Headers;
 pub use crate::request::Request;
 pub use crate::request_init::*;
 pub use crate::response::Response;
-pub use crate::router::Router;
+pub use crate::router::{RouteContext, RouteParams, Router};
 pub use cf::Cf;
 pub use edgeworker_sys::console_log;
 pub use matchit::Params;
@@ -42,7 +42,7 @@ pub mod prelude {
     pub use crate::request::Request;
     pub use crate::request_init::*;
     pub use crate::response::Response;
-    pub use crate::router::*;
+    pub use crate::router::{RouteContext, RouteParams, Router};
     pub use crate::Result;
     pub use edgeworker_sys::console_log;
     pub use matchit::Params;
