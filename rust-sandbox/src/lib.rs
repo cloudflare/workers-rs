@@ -37,7 +37,6 @@ struct FileSize {
     size: u32,
 }
 
-#[derive(Clone)]
 struct SomeSharedData<'a> {
     prefix: &'a str,
     regex: regex::Regex,

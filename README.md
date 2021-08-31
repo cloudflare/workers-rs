@@ -46,8 +46,8 @@ use worker::*;
 pub async fn main(req: Request, env: Env) -> Result<Response> {
     
     // Create an instance of the Router, and pass it some shared data to be used within routes.
-    // In this case, `()` is used so the type information is defined for the generic parameter.
-    // Access this data in your routes using the `ctx.data()` method.
+    // In this case, `()` is used for "no data" so the type information is set for the generic used.
+    // Access the shared data in your routes using the `ctx.data()` method.
     let mut router = Router::new(());
 
     // useful for JSON APIs
