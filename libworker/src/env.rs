@@ -102,5 +102,5 @@ impl ToString for StringBinding {
     }
 }
 
-type Secret = StringBinding;
-type Var = StringBinding;
+pub type Secret = StringBinding;
+pub type Var = StringBinding;
