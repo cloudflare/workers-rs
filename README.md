@@ -37,14 +37,18 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
 ### Or use the `router::Router`:
 
 Parameterize routes and access the parameter values from within a handler. Each hanlder function takes a 
-`Request`, an `Env`, and a `RouteParams` (`HashMap<String, String>`). 
+`Request`, and a `RouteContext`. The `RouteContext` has shared data, route params, `Env` bindings, and more.
 
 ```rust
 use worker::*;
 
 #[event(fetch)]
 pub async fn main(req: Request, env: Env) -> Result<Response> {
-    let mut router = Router::new();
+    
+    // Create an instance of the Router, and pass it some shared data to be used within routes.
+    // In this case, `()` is used so the type information is defined for the generic parameter.
+    // Access this data in your routes using the `ctx.data()` method.
+    let mut router = Router::new(());
 
     // useful for JSON APIs
     #[derive(Deserialize, Serialize)]
@@ -52,9 +56,9 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         id: u64,
         // ...
     }
-    router.get_async("/account/:id", |_req, env, params| async move {
-        if let Some(id) = params.get("id") {
-            let accounts = env.kv("ACCOUNTS")?;
+    router.get_async("/account/:id", |_req, ctx| async move {
+        if let Some(id) = ctx.param("id") {
+            let accounts = ctx.kv("ACCOUNTS")?;
             return match accounts.get(id).await? {
                 Some(account) => Response::from_json(&account.as_json::<Account>()?),
                 None => Response::error("Not found", 404),
@@ -128,40 +132,37 @@ wrangler publish
 
 ## Durable Object, KV, Secret, & Variable Bindings
 
-All "bindings" to your script (Durable Object & KV Namespaces, Secrets, and Variables) are accessible from the `env` parameter provided to both the entrypoint (`main` in this example), and to the route handler callback, if you use the `Router` from the `worker` crate.
+All "bindings" to your script (Durable Object & KV Namespaces, Secrets, and Variables) are accessible from the `env` parameter provided to both the entrypoint (`main` in this example), and to the route handler callback (in the `ctx` argument), if you use the `Router` from the `worker` crate.
 
 ```rust
 use worker::*;
 
 #[event(fetch, respond_with_errors)]
-pub async fn main(req: Request, _env: Env) -> Result<Response> {
+pub async fn main(req: Request, env: Env) -> Result<Response> {
     utils::set_panic_hook();
 
-    let mut router = Router::new();
+    let router = Router::new(()); 
 
-    router.on_async("/durable", |_req, env, _params| async move {
-        let namespace = env.durable_object("CHATROOM")?;
-        let stub = namespace.id_from_name("A")?.get_stub()?;
-        stub.fetch_with_str("/messages").await
-    })?;
+    router
+        .on_async("/durable", |_req, ctx| async move {
+            let namespace = ctx.durable_object("CHATROOM")?;
+            let stub = namespace.id_from_name("A")?.get_stub()?;
+            stub.fetch_with_str("/messages").await
+        })
+        .get("/secret", |_req, ctx| {
+            Response::ok(ctx.secret("CF_API_TOKEN")?.to_string())
+        })
+        .get("/var", |_req, ctx| {
+            Response::ok(ctx.var("BUILD_NUMBER")?.to_string())
+        })
+        .post_async("/kv", |_req, ctx| async move {
+            let kv = ctx.kv("SOME_NAMESPACE")?;
 
-    router.get("/secret", |_req, env, _params| {
-        Response::ok(env.secret("CF_API_TOKEN")?.to_string())
-    })?;
+            kv.put("key", "value")?.execute().await?;
 
-    router.get("/var", |_req, env, _params| {
-        Response::ok(env.var("BUILD_NUMBER")?.to_string())
-    })?;
-
-    router.post_async("/kv", |req, env, _params| async move {
-        let kv = env.kv("SOME_NAMESPACE")?;
-
-        kv.put("key", "value")?.execute().await?;
-
-        Response::empty()
-    })?;
-
-    router.run(req, env).await
+            Response::empty()
+        })
+        .run(req, env).await
 }
 ```
 
