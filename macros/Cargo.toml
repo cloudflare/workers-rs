@@ -1,18 +1,20 @@
 [package]
-name = "macros"
-version = "0.1.0"
+name = "workers-rs-macros"
+version = "0.0.1"
 authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
-repository = "https://github.com/cloudflare/workers-rs"
+repository = "https://github.com/cloudflare/workers-rs/tree/main/macros"
 edition = "2018"
 license = "Apache-2.0"
+description = "Marcos to support the `worker` crate and remove FFI boilerplate / conversion from user code."
 
 [lib]
 proc-macro = true
+path = "src/lib.rs"
 
 [dependencies]
 async-trait = "0.1.51"
-edgeworker-sys = { path = "../edgeworker-sys" }
-libworker = { path = "../libworker" }
+edgeworker-sys = { path = "../edgeworker-sys", version = "0.0.1" }
+libworker = { path = "../libworker", version = "0.0.1" }
 syn = "1.0.74"
 proc-macro2 = "1.0.28"
 quote = "1.0.9"
