@@ -28,7 +28,7 @@ pub fn main() -> Result<()> {
 }
 
 fn check_wasm_pack_installed() -> Result<()> {
-    match Command::new("wasm-pack").spawn() {
+    match Command::new("wasm-pack").output() {
         Err(e) if e.kind() == io::ErrorKind::NotFound => {
             println!("Installing wasm-pack...");
             let exit_status = Command::new("cargo")
