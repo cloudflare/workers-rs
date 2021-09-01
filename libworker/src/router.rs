@@ -8,7 +8,6 @@ use worker_kv::KvStore;
 use crate::{
     durable::ObjectNamespace,
     env::{Env, Secret, Var},
-    error::Error,
     http::Method,
     request::Request,
     response::Response,
@@ -39,7 +38,7 @@ pub type HandlerSet<'a, D> = [Option<Handler<'a, D>>; 9];
 
 pub struct Router<'a, D> {
     handlers: Node<HandlerSet<'a, D>>,
-    data: Option<Data<D>>,
+    data: Option<D>,
     env: Option<Env>,
     params: Option<RouteParams>,
 }
@@ -79,13 +78,13 @@ impl<D> Clone for Data<D> {
 }
 
 pub struct RouteContext<D> {
-    data: Option<Data<D>>,
+    data: Option<D>,
     env: Env,
     params: RouteParams,
 }
 
 impl<D> RouteContext<D> {
-    pub fn data(&self) -> Option<&Data<D>> {
+    pub fn data(&self) -> Option<&D> {
         self.data.as_ref()
     }
 
@@ -118,33 +117,24 @@ impl<'a, D: 'static> Router<'a, D> {
     pub fn new(data: D) -> Self {
         Self {
             handlers: Node::new(),
-            data: Some(Data::new(data)),
+            data: Some(data),
             env: None,
             params: None,
         }
     }
 
-    pub fn with_data(mut self, data: D) -> Self {
-        self.data = Some(Data::new(data));
-
-        self
-    }
-
     pub fn get(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
         self.add_handler(pattern, Handler::Sync(func), vec![Method::Get]);
-
         self
     }
 
     pub fn post(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
         self.add_handler(pattern, Handler::Sync(func), vec![Method::Post]);
-
         self
     }
 
     pub fn on(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
         self.add_handler(pattern, Handler::Sync(func), Method::all());
-
         self
     }
 
@@ -157,7 +147,6 @@ impl<'a, D: 'static> Router<'a, D> {
             Handler::Async(Rc::new(move |req, info| Box::pin(func(req, info)))),
             vec![Method::Get],
         );
-
         self
     }
 
@@ -170,7 +159,6 @@ impl<'a, D: 'static> Router<'a, D> {
             Handler::Async(Rc::new(move |req, info| Box::pin(func(req, info)))),
             vec![Method::Post],
         );
-
         self
     }
 
@@ -183,7 +171,6 @@ impl<'a, D: 'static> Router<'a, D> {
             Handler::Async(Rc::new(move |req, route| Box::pin(func(req, route)))),
             Method::all(),
         );
-
         self
     }
 
@@ -237,7 +224,7 @@ impl<'a, D: 'static> Router<'a, D> {
 type NodeWithHandlers<'a, D> = Node<[Option<Handler<'a, D>>; 9]>;
 
 impl<'a, D: 'static> Router<'a, D> {
-    fn split(self) -> (NodeWithHandlers<'a, D>, Option<Data<D>>) {
+    fn split(self) -> (NodeWithHandlers<'a, D>, Option<D>) {
         (self.handlers, self.data)
     }
 }

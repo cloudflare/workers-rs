@@ -259,10 +259,12 @@ impl Storage {
     // }
 }
 
+#[allow(dead_code)]
 struct Transaction {
     inner: ObjectTransaction,
 }
 
+#[allow(dead_code)]
 impl Transaction {
     async fn get<T: for<'a> Deserialize<'a>>(&self, key: &str) -> Result<T> {
         JsFuture::from(self.inner.get_internal(key)?)
