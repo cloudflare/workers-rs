@@ -2,8 +2,10 @@
 edition = "2018"
 name    = "libworker"
 authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
-version = "0.1.0"
+version = "0.0.1"
 license = "Apache-2.0"
+repository = "https://github.com/cloudflare/workers-rs/tree/main/libworker"
+description = "Idiomatic framework / abstractions over `edgeworker-sys` FFI bindings."
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

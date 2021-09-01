@@ -1,5 +1,5 @@
+use std::collections::HashMap;
 use std::rc::Rc;
-use std::{collections::HashMap, ops::Deref};
 
 use futures::{future::LocalBoxFuture, Future};
 use matchit::{Match, Node};
@@ -39,42 +39,6 @@ pub type HandlerSet<'a, D> = [Option<Handler<'a, D>>; 9];
 pub struct Router<'a, D> {
     handlers: Node<HandlerSet<'a, D>>,
     data: Option<D>,
-    env: Option<Env>,
-    params: Option<RouteParams>,
-}
-
-#[derive(Debug)]
-pub struct Data<D>(Rc<D>);
-
-impl<D> Data<D> {
-    /// Create new `Data` instance.
-    pub fn new(state: D) -> Data<D> {
-        Data(Rc::new(state))
-    }
-
-    /// Get reference to inner app data.
-    pub fn get_ref(&self) -> &D {
-        self.0.as_ref()
-    }
-
-    /// Convert to the internal Rc<D>
-    pub fn into_inner(self) -> Rc<D> {
-        self.0
-    }
-}
-
-impl<D> Deref for Data<D> {
-    type Target = Rc<D>;
-
-    fn deref(&self) -> &Rc<D> {
-        &self.0
-    }
-}
-
-impl<D> Clone for Data<D> {
-    fn clone(&self) -> Data<D> {
-        Data(self.0.clone())
-    }
 }
 
 pub struct RouteContext<D> {
@@ -118,8 +82,6 @@ impl<'a, D: 'static> Router<'a, D> {
         Self {
             handlers: Node::new(),
             data: Some(data),
-            env: None,
-            params: None,
         }
     }
 
@@ -234,8 +196,6 @@ impl<D> Default for Router<'_, D> {
         Self {
             handlers: Node::new(),
             data: None,
-            env: None,
-            params: None,
         }
     }
 }
