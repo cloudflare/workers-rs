@@ -1,4 +1,5 @@
 use blake2::{Blake2b, Digest};
+use cloudflare::framework::{async_api::Client, Environment, HttpApiClientConfig};
 use serde::{Deserialize, Serialize};
 use worker::*;
 
@@ -37,9 +38,9 @@ struct FileSize {
     size: u32,
 }
 
-struct SomeSharedData<'a> {
-    prefix: &'a str,
+struct SomeSharedData {
     regex: regex::Regex,
+    cloudflare_api_client: Client,
 }
 
 fn handle_a_request<D>(req: Request, _ctx: RouteContext<D>) -> Result<Response> {
@@ -64,12 +65,20 @@ async fn handle_async_request<D>(req: Request, _ctx: RouteContext<D>) -> Result<
 pub async fn main(req: Request, env: Env) -> Result<Response> {
     utils::set_panic_hook();
 
+    let creds = cloudflare::framework::auth::Credentials::UserAuthToken {
+        token: env.secret("CF_API_TOKEN")?.to_string(),
+    };
+    let mut config = HttpApiClientConfig::default();
+    config.http_timeout = std::time::Duration::from_millis(500);
+    let client = Client::new(creds, config, Environment::Production).unwrap();
+
     let data = SomeSharedData {
-        prefix: "value".into(),
         regex: regex::Regex::new(r"^\d{4}-\d{2}-\d{2}$").unwrap(),
+        cloudflare_api_client: client,
     };
 
-    let router = Router::new(data); // if no data is needed, pass `()`
+    let router = Router::new(data); // if no data is needed, pass `()` or any other valid data
+
     router
         .get("/request", handle_a_request) // can pass a fn pointer to keep routes tidy
         .get_async("/async-request", handle_async_request)
@@ -246,6 +255,23 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
                 "API Returned user: {} with title: {} and completed: {}",
                 data.user_id, data.title, data.completed
             ))
+        })
+        .on_async("/cloudflare-api", |_req, ctx| async move {
+            let resp = ctx
+                .data()
+                .unwrap()
+                .cloudflare_api_client
+                .request_handle(&cloudflare::endpoints::user::GetUserDetails {})
+                .await
+                .unwrap();
+
+            Response::ok("hello user").map(|res| {
+                let mut headers = Headers::new();
+                headers
+                    .set("user-details-email", &resp.result.email)
+                    .unwrap();
+                res.with_headers(headers)
+            })
         })
         .on_async("/proxy_request/*url", |_req, ctx| async move {
             let url = ctx.param("url").unwrap().strip_prefix('/').unwrap();
