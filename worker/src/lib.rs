@@ -1,7 +1,7 @@
 pub use libworker::durable;
 pub use libworker::durable::*;
 pub use libworker::prelude::*;
-pub use macros::{durable_object, event};
+pub use workers_rs_macros::{durable_object, event};
 
 pub use async_trait;
 pub use edgeworker_sys;
