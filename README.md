@@ -69,7 +69,7 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
             Response::error("Bad Request", 400)
         })
         // handle files and fields from multipart/form-data requests
-        .post_async("/upload", |mut req, _, _| async move {
+        .post_async("/upload", |mut req, _ctx| async move {
             let form = req.form_data().await?;
             if let Some(entry) = form.get("file") {
                 match entry {
@@ -89,7 +89,7 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
             Response::error("Bad Request", 400)
         })
         // read/write binary data
-        .post_async("/echo-bytes", |mut req, _, _| async move {
+        .post_async("/echo-bytes", |mut req, _ctx| async move {
             let data = req.bytes().await?;
             if data.len() < 1024 {
                 return Response::error("Bad Request", 400);
@@ -109,7 +109,7 @@ Make sure you have [`wrangler`](https://github.com/cloudflare/wrangler) installe
 Run `wrangler --version` to check your installation and if it meets the version requirements.
 
 ```bash
-wrangler generate --type=rust project_name
+wrangler generate --type=rust project_name # TODO: update the default rustwasm template
 cd project_name
 wrangler build
 ```
@@ -224,7 +224,6 @@ new_classes = ["Chatroom"] # Array of new classes
 ```
 
 - For more information about migrating your Durable Object as it changes, see the docs here: https://developers.cloudflare.com/workers/learning/using-durable-objects#durable-object-migrations-in-wranglertoml
-
 
 # Contributing
 
