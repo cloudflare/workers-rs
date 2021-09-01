@@ -5,7 +5,6 @@ edition = "2018"
 version = "0.0.1"
 license = "Apache-2.0"
 repository = "https://github.com/cloudflare/workers-rs/tree/main/edgeworker-sys"
-readme = "README.md"
 description = "Low-level extern definitions / FFI bindings to the Cloudflare Workers JS Runtime."
 
 [dependencies]
