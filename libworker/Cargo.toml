@@ -13,7 +13,7 @@ description = "Idiomatic framework / abstractions over `edgeworker-sys` FFI bind
 async-trait = "0.1.50"
 chrono = { version = "0.4", default-features = false }
 chrono-tz = { version = "0.4", default-features = false }
-edgeworker-sys = { path = "../edgeworker-sys" }
+edgeworker-sys = { path = "../edgeworker-sys", version = "0.0.1" }
 futures = "0.3.16"
 http = "0.2.4"
 js-sys = "0.3.53"
