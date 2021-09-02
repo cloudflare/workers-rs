@@ -13,9 +13,17 @@ readme = "../README.md"
 
 [dependencies]
 async-trait = "0.1.50"
-edgeworker-sys = { path = "../edgeworker-sys", version = "0.0.1" }
+worker-sys = { path = "../worker-sys", version = "0.0.2" }
+chrono = { version = "0.4", default-features = false }
+chrono-tz = { version = "0.4", default-features = false }
+futures = "0.3.16"
+http = "0.2.4"
 js-sys = "0.3.53"
-libworker = { path = "../libworker", version = "0.0.1" }
-workers-rs-macros = { path = "../macros", version = "0.0.1" }
+matchit = "0.4.2"
+serde = { version = "1.0.126", features = ["derive"] }
+serde_json = "1.0.64"
+url = "2.2.2"
+worker-kv = "0.3.0"
+worker-macros = { path = "../worker-macros", version = "0.0.2" }
 wasm-bindgen = "0.2.76"
 wasm-bindgen-futures = "0.4.24"

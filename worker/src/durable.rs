@@ -10,16 +10,16 @@ use crate::{
 };
 
 use async_trait::async_trait;
-use edgeworker_sys::{
+use js_sys::{Map, Object};
+use serde::{Deserialize, Serialize};
+use wasm_bindgen::{prelude::*, JsCast};
+use worker_sys::{
     durable_object::{
         JsObjectId, ObjectNamespace as EdgeObjectNamespace, ObjectState, ObjectStorage, ObjectStub,
         ObjectTransaction,
     },
     Response as EdgeResponse,
 };
-use js_sys::{Map, Object};
-use serde::{Deserialize, Serialize};
-use wasm_bindgen::{prelude::*, JsCast};
 // use wasm_bindgen_futures::future_to_promise;
 use wasm_bindgen_futures::JsFuture;
 

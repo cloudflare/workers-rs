@@ -1,8 +1,8 @@
 name = "testing-rust-worker"
 type = "javascript"
 workers_dev = true
-compatibility_date = "2021-08-27"
-compatibility_flags = [ "formdata_parser_supports_files" ]
+compatibility_date = "2021-08-27" # required 
+compatibility_flags = [ "formdata_parser_supports_files" ] # required 
 
 # kv_namespaces = [
 #   { binding = "SOME_NAMESPACE", id = "", preview_id = "" },
@@ -15,7 +15,7 @@ vars = { SOME_VARIABLE = "some value" }
 bindings = [{ name = "COUNTER", class_name = "Counter" }]
 
 [build]
-command = "rust-worker-build --release"
+command = "worker-build --release"
 
 [build.upload]
 dir    = "build/worker"

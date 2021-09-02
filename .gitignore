@@ -2,4 +2,4 @@
 Cargo.lock
 .DS_Store
 **/worker/generated/*
-rust-sandbox/build
+worker-sandbox/build

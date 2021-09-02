@@ -3,11 +3,11 @@ use crate::{
     RequestInit as WorkerRequestInit, Result,
 };
 
-use edgeworker_sys::{Request as EdgeRequest, RequestInit as EdgeRequestInit};
 use js_sys;
 use serde::de::DeserializeOwned;
 use url::Url;
 use wasm_bindgen_futures::JsFuture;
+use worker_sys::{Request as EdgeRequest, RequestInit as EdgeRequestInit};
 
 pub struct Request {
     method: Method,
