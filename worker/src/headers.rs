@@ -11,6 +11,8 @@ use js_sys::Array;
 use wasm_bindgen::JsValue;
 use worker_sys::Headers as EdgeHeaders;
 
+/// A [Headers](https://developer.mozilla.org/en-US/docs/Web/API/Headers) representation used in
+/// Request and Response objects.
 pub struct Headers(pub EdgeHeaders);
 
 impl std::fmt::Debug for Headers {
@@ -25,37 +27,43 @@ impl std::fmt::Debug for Headers {
 
 #[allow(clippy::new_without_default)]
 impl Headers {
+    /// Construct a new `Headers` struct.
     pub fn new() -> Self {
         // This cannot throw an error: https://developer.mozilla.org/en-US/docs/Web/API/Headers/Headers
         Headers(EdgeHeaders::new().unwrap())
     }
 
-    // Returns an error if the name is invalid (e.g. contains spaces)
+    /// Returns all the values of a header within a `Headers` object with a given name.
+    /// Returns an error if the name is invalid (e.g. contains spaces)
     pub fn get(&self, name: &str) -> Result<Option<String>> {
         self.0.get(name).map_err(Error::from)
     }
 
-    // Returns an error if the name is invalid (e.g. contains spaces)
+    /// Returns a boolean stating whether a `Headers` object contains a certain header.
+    /// Returns an error if the name is invalid (e.g. contains spaces)
     pub fn has(&self, name: &str) -> Result<bool> {
         self.0.has(name).map_err(Error::from)
     }
 
-    // Throws an error if the name is invalid (e.g. contains spaces)
+    /// Returns an error if the name is invalid (e.g. contains spaces)
     pub fn append(&mut self, name: &str, value: &str) -> Result<()> {
         self.0.append(name, value).map_err(Error::from)
     }
 
-    // Throws an error if the name is invalid (e.g. contains spaces)
+    /// Sets a new value for an existing header inside a `Headers` object, or adds the header if it does not already exist.
+    /// Returns an error if the name is invalid (e.g. contains spaces)
     pub fn set(&mut self, name: &str, value: &str) -> Result<()> {
         self.0.set(name, value).map_err(Error::from)
     }
 
-    // Throws an error if the name is invalid (e.g. contains spaces)
-    // or if the JS Headers objects's guard is immutable (e.g. for an incoming request)
+    /// Deletes a header from a `Headers` object.
+    /// Returns an error if the name is invalid (e.g. contains spaces)
+    /// or if the JS Headers objects's guard is immutable (e.g. for an incoming request)
     pub fn delete(&mut self, name: &str) -> Result<()> {
         self.0.delete(name).map_err(Error::from)
     }
 
+    /// Returns an iterator allowing to go through all key/value pairs contained in this object.
     pub fn entries(&self) -> HeaderIterator {
         self.0
             .entries()
@@ -68,6 +76,8 @@ impl Headers {
             .map(|a: Array| (a.get(0).as_string().unwrap(), a.get(1).as_string().unwrap()))
     }
 
+    /// Returns an iterator allowing you to go through all keys of the key/value pairs contained in
+    /// this object.
     pub fn keys(&self) -> impl Iterator<Item = String> {
         self.0
             .keys()
@@ -78,6 +88,8 @@ impl Headers {
             .map(|a| a.unwrap().as_string().unwrap())
     }
 
+    /// Returns an iterator allowing you to go through all values of the key/value pairs contained
+    /// in this object.
     pub fn values(&self) -> impl Iterator<Item = String> {
         self.0
             .values()

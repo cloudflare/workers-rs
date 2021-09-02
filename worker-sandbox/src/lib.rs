@@ -237,8 +237,8 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         })
         .on_async("/fetch", |_req, _ctx| async move {
             let req = Request::new("https://example.com", Method::Post)?;
-            let resp = Fetch::Request(&req).send().await?;
-            let resp2 = Fetch::Url("https://example.com").send().await?;
+            let resp = Fetch::Request(req).send().await?;
+            let resp2 = Fetch::Url("https://example.com".parse()?).send().await?;
             Response::ok(format!(
                 "received responses with codes {} and {}",
                 resp.status_code(),
@@ -246,11 +246,15 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
             ))
         })
         .on_async("/fetch_json", |_req, _ctx| async move {
-            let data: ApiData = Fetch::Url("https://jsonplaceholder.typicode.com/todos/1")
-                .send()
-                .await?
-                .json()
-                .await?;
+            let data: ApiData = Fetch::Url(
+                "https://jsonplaceholder.typicode.com/todos/1"
+                    .parse()
+                    .unwrap(),
+            )
+            .send()
+            .await?
+            .json()
+            .await?;
             Response::ok(format!(
                 "API Returned user: {} with title: {} and completed: {}",
                 data.user_id, data.title, data.completed
@@ -276,7 +280,7 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         .on_async("/proxy_request/*url", |_req, ctx| async move {
             let url = ctx.param("url").unwrap().strip_prefix('/').unwrap();
 
-            Fetch::Url(url).send().await
+            Fetch::Url(url.parse()?).send().await
         })
         .on_async("/durable/:id", |_req, ctx| async move {
             let namespace = ctx.durable_object("COUNTER")?;

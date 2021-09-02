@@ -18,9 +18,11 @@ type HandlerFn<D> = fn(Request, RouteContext<D>) -> Result<Response>;
 type AsyncHandlerFn<'a, D> =
     Rc<dyn Fn(Request, RouteContext<D>) -> LocalBoxFuture<'a, Result<Response>>>;
 
+/// Represents the URL parameters parsed from the path, e.g. a route with "/user/:id" pattern would
+/// contain a single "id" key.
 pub type RouteParams = HashMap<String, String>;
 
-pub enum Handler<'a, D> {
+enum Handler<'a, D> {
     Async(AsyncHandlerFn<'a, D>),
     Sync(HandlerFn<D>),
 }
@@ -34,13 +36,16 @@ impl<D> Clone for Handler<'_, D> {
     }
 }
 
-pub type HandlerSet<'a, D> = [Option<Handler<'a, D>>; 9];
+type HandlerSet<'a, D> = [Option<Handler<'a, D>>; 9];
 
+/// A path-based HTTP router supporting exact-match or wildcard placeholders and shared data.
 pub struct Router<'a, D> {
     handlers: Node<HandlerSet<'a, D>>,
     data: Option<D>,
 }
 
+/// Container for a route's parsed parameters, data, and environment bindings from the Runtime (such
+/// as KV Stores, Durable Objects, Variables, and Secrets).
 pub struct RouteContext<D> {
     data: Option<D>,
     env: Env,
@@ -48,36 +53,46 @@ pub struct RouteContext<D> {
 }
 
 impl<D> RouteContext<D> {
+    /// Get a reference to the generic associated data provided to the `Router`.
     pub fn data(&self) -> Option<&D> {
         self.data.as_ref()
     }
 
+    /// Get the `Env` for this Worker. Typically users should opt for the `secret`, `var`, `kv` and
+    /// `durable_object` methods on the `RouteContext` instead.
     pub fn get_env(self) -> Env {
         self.env
     }
 
+    /// Get a Secret value associated with this Worker, should one exist.
     pub fn secret(&self, binding: &str) -> Result<Secret> {
-        self.env.get_binding::<Secret>(binding)
+        self.env.secret(binding)
     }
 
+    /// Get an Environment Variable value associated with this Worker, should one exist.
     pub fn var(&self, binding: &str) -> Result<Var> {
-        self.env.get_binding::<Var>(binding)
+        self.env.var(binding)
     }
 
+    /// Get a KV Namespace associated with this Worker, should one exist.
     pub fn kv(&self, binding: &str) -> Result<KvStore> {
         KvStore::from_this(&self.env, binding).map_err(From::from)
     }
 
+    /// Get a Durable Object Namespace associated with this Worker, should one exist.
     pub fn durable_object(&self, binding: &str) -> Result<ObjectNamespace> {
-        self.env.get_binding(binding)
+        self.env.durable_object(binding)
     }
 
+    /// Get a URL parameter parsed by the router, by the name of its match or wildecard placeholder.
     pub fn param(&self, key: &str) -> Option<&String> {
         self.params.get(key)
     }
 }
 
 impl<'a, D: 'static> Router<'a, D> {
+    /// Construct a new `Router`, with arbitrary data that will be available to your various routes.
+    /// If no data is needed, provide any valid data. The unit type `()` is a good option.
     pub fn new(data: D) -> Self {
         Self {
             handlers: Node::new(),
@@ -85,21 +100,26 @@ impl<'a, D: 'static> Router<'a, D> {
         }
     }
 
+    /// Register an HTTP handler that will exclusively respond to GET requests.
     pub fn get(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
         self.add_handler(pattern, Handler::Sync(func), vec![Method::Get]);
         self
     }
 
+    /// Register an HTTP handler that will exclusively respond to POST requests.
     pub fn post(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
         self.add_handler(pattern, Handler::Sync(func), vec![Method::Post]);
         self
     }
 
+    /// Register an HTTP handler that will respond to any requests.
     pub fn on(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
         self.add_handler(pattern, Handler::Sync(func), Method::all());
         self
     }
 
+    /// Register an HTTP handler that will exclusively respond to GET requests. Enables the use of
+    /// `async/await` syntax in the callback.
     pub fn get_async<T>(mut self, pattern: &str, func: fn(Request, RouteContext<D>) -> T) -> Self
     where
         T: Future<Output = Result<Response>> + 'static,
@@ -112,6 +132,8 @@ impl<'a, D: 'static> Router<'a, D> {
         self
     }
 
+    /// Register an HTTP handler that will exclusively respond to POST requests. Enables the use of
+    /// `async/await` syntax in the callback.
     pub fn post_async<T>(mut self, pattern: &str, func: fn(Request, RouteContext<D>) -> T) -> Self
     where
         T: Future<Output = Result<Response>> + 'static,
@@ -124,6 +146,8 @@ impl<'a, D: 'static> Router<'a, D> {
         self
     }
 
+    /// Register an HTTP handler that will respond to any requests. Enables the use of `async/await`
+    /// syntax in the callback.
     pub fn on_async<T>(mut self, pattern: &str, func: fn(Request, RouteContext<D>) -> T) -> Self
     where
         T: Future<Output = Result<Response>> + 'static,
@@ -157,6 +181,7 @@ impl<'a, D: 'static> Router<'a, D> {
         }
     }
 
+    /// Handle the request provided to the `Router` and return a `Future`.
     pub async fn run(self, req: Request, env: Env) -> Result<Response> {
         let (handlers, data) = self.split();
 

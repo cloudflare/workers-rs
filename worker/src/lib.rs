@@ -12,6 +12,7 @@ mod request_init;
 mod response;
 mod router;
 
+#[doc(hidden)]
 use std::result::Result as StdResult;
 
 pub type Result<T> = StdResult<T, error::Error>;
@@ -34,8 +35,13 @@ pub use worker_sys::console_log;
 pub use crate::durable::*;
 pub use worker_macros::{durable_object, event};
 
+#[doc(hidden)]
 pub use async_trait;
+#[doc(hidden)]
 pub use js_sys;
+#[doc(hidden)]
 pub use wasm_bindgen;
+#[doc(hidden)]
 pub use wasm_bindgen_futures;
+#[doc(hidden)]
 pub use worker_sys;

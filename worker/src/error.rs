@@ -1,5 +1,6 @@
 use wasm_bindgen::{JsCast, JsValue};
 
+/// All possible Error variants that might be encountered while working with a Worker.
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum Error {
@@ -19,6 +20,12 @@ impl From<worker_kv::KvError> for Error {
     fn from(e: worker_kv::KvError) -> Self {
         let val: JsValue = e.into();
         val.into()
+    }
+}
+
+impl From<url::ParseError> for Error {
+    fn from(e: url::ParseError) -> Self {
+        Self::RustError(e.to_string())
     }
 }
 

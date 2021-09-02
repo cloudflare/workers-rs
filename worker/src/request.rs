@@ -1,7 +1,4 @@
-use crate::{
-    cf::Cf, error::Error, headers::Headers, http::Method, FormData,
-    RequestInit as WorkerRequestInit, Result,
-};
+use crate::{cf::Cf, error::Error, headers::Headers, http::Method, FormData, RequestInit, Result};
 
 use js_sys;
 use serde::de::DeserializeOwned;
@@ -9,6 +6,8 @@ use url::Url;
 use wasm_bindgen_futures::JsFuture;
 use worker_sys::{Request as EdgeRequest, RequestInit as EdgeRequestInit};
 
+/// A [Request](https://developer.mozilla.org/en-US/docs/Web/API/Request) representation for
+/// handling incoming and creating outbound HTTP requests.
 pub struct Request {
     method: Method,
     path: String,
@@ -42,6 +41,7 @@ impl From<EdgeRequest> for Request {
 }
 
 impl Request {
+    /// Construct a new `Request` with an HTTP Method.
     pub fn new(uri: &str, method: Method) -> Result<Self> {
         EdgeRequest::new_with_str_and_init(uri, EdgeRequestInit::new().method(&method.to_string()))
             .map(|req| {
@@ -57,7 +57,8 @@ impl Request {
             })
     }
 
-    pub fn new_with_init(uri: &str, init: &WorkerRequestInit) -> Result<Self> {
+    /// Construct a new `Request` with a `RequestInit` configuration.
+    pub fn new_with_init(uri: &str, init: &RequestInit) -> Result<Self> {
         EdgeRequest::new_with_str_and_init(uri, &init.into())
             .map(|req| {
                 let mut req: Request = req.into();
@@ -72,6 +73,7 @@ impl Request {
             })
     }
 
+    /// Access this request's body encoded as JSON.
     pub async fn json<B: DeserializeOwned>(&mut self) -> Result<B> {
         if !self.body_used {
             self.body_used = true;
@@ -89,6 +91,7 @@ impl Request {
         Err(Error::BodyUsed)
     }
 
+    /// Access this request's body as plaintext.
     pub async fn text(&mut self) -> Result<String> {
         if !self.body_used {
             self.body_used = true;
@@ -106,6 +109,7 @@ impl Request {
         Err(Error::BodyUsed)
     }
 
+    /// Access this request's body as raw bytes.
     pub async fn bytes(&mut self) -> Result<Vec<u8>> {
         if !self.body_used {
             self.body_used = true;
@@ -123,6 +127,7 @@ impl Request {
         Err(Error::BodyUsed)
     }
 
+    /// Access this request's body as a form-encoded payload and pull out fields and files.
     pub async fn form_data(&mut self) -> Result<FormData> {
         if !self.body_used {
             self.body_used = true;
@@ -140,11 +145,13 @@ impl Request {
         Err(Error::BodyUsed)
     }
 
+    /// Get the `Headers` for this reuqest.
     pub fn headers(&self) -> &Headers {
         &self.headers
     }
 
-    // Headers can only be modified if the request was created from scratch or cloned
+    /// Get a mutable reference to this request's `Headers`.
+    /// **Note:** they can only be modified if the request was created from scratch or cloned.
     pub fn headers_mut(&mut self) -> Result<&mut Headers> {
         if self.immutable {
             return Err(Error::JsError(
@@ -154,18 +161,22 @@ impl Request {
         Ok(&mut self.headers)
     }
 
+    /// Access this request's Cloudflare-specific properties.
     pub fn cf(&self) -> &Cf {
         &self.cf
     }
 
+    /// The HTTP Method associated with this `Request`.
     pub fn method(&self) -> Method {
         self.method.clone()
     }
 
+    /// The URL Path of this `Request`.
     pub fn path(&self) -> String {
         self.path.clone()
     }
 
+    /// The parsed [`url::Url`] of this `Request`.
     pub fn url(&self) -> Result<Url> {
         let url = self.edge_request.url();
         url.parse()

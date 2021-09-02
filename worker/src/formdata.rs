@@ -12,11 +12,14 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 
+/// Representing the options any FormData value can be, a field or a file.
 pub enum FormEntry {
     Field(String),
     File(File),
 }
 
+/// A [FormData](https://developer.mozilla.org/en-US/docs/Web/API/FormData) representation of the
+/// request body, providing access to form encoded fields and files.
 #[derive(Debug)]
 pub struct FormData(EdgeFormData);
 
@@ -25,6 +28,7 @@ impl FormData {
         Self(EdgeFormData::new().unwrap())
     }
 
+    /// Returns the first value associated with a given key from within a `FormData` object.
     pub fn get(&self, name: &str) -> Option<FormEntry> {
         let val = self.0.get(name);
         if val.is_undefined() {
@@ -42,6 +46,7 @@ impl FormData {
         return None;
     }
 
+    /// Returns a vec of all the values associated with a given key from within a `FormData` object.
     pub fn get_all(&self, name: &str) -> Option<Vec<FormEntry>> {
         let val = self.0.get_all(name);
         if val.is_undefined() {
@@ -66,18 +71,24 @@ impl FormData {
         None
     }
 
+    /// Returns a boolean stating whether a `FormData` object contains a certain key.
     pub fn has(&self, name: &str) -> bool {
         self.0.has(name)
     }
 
+    /// Appends a new value onto an existing key inside a `FormData` object, or adds the key if it
+    /// does not already exist.
     pub fn append(&mut self, name: &str, value: &str) -> Result<()> {
         self.0.append_with_str(name, value).map_err(Error::from)
     }
 
+    /// Sets a new value for an existing key inside a `FormData` object, or adds the key/value if it
+    /// does not already exist.
     pub fn set(&mut self, name: &str, value: &str) -> Result<()> {
         self.0.set_with_str(name, value).map_err(Error::from)
     }
 
+    /// Deletes a key/value pair from a `FormData` object.
     pub fn delete(&mut self, name: &str) {
         self.0.delete(name)
     }
@@ -100,9 +111,12 @@ impl From<HashMap<&dyn AsRef<&str>, &dyn AsRef<&str>>> for FormData {
     }
 }
 
+/// A [File](https://developer.mozilla.org/en-US/docs/Web/API/File) representation used with
+/// `FormData`.
 pub struct File(EdgeFile);
 
 impl File {
+    /// Construct a new named file from a buffer.
     pub fn new(data: Vec<u8>, name: &str) -> Self {
         let arr = Array::new();
         for byte in data.into_iter() {
@@ -113,10 +127,12 @@ impl File {
         Self(file)
     }
 
+    /// Get the file name.
     pub fn name(&self) -> String {
         self.0.name()
     }
 
+    /// Read the file from an internal buffer and get the resulting bytes.
     pub async fn bytes(&self) -> Result<Vec<u8>> {
         JsFuture::from(self.0.array_buffer())
             .await
@@ -129,6 +145,7 @@ impl File {
             })
     }
 
+    /// Get the last_modified metadata property of the file.
     pub fn last_modified(&self) -> Date {
         DateInit::Millis(self.0.last_modified() as u64).into()
     }

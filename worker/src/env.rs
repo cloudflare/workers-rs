@@ -8,11 +8,12 @@ use worker_kv::KvStore;
 
 #[wasm_bindgen]
 extern "C" {
+    /// Env contains any bindings you have associated with the Worker when you uploaded it.
     pub type Env;
 }
 
 impl Env {
-    pub fn get_binding<T: EnvBinding>(&self, name: &str) -> Result<T> {
+    fn get_binding<T: EnvBinding>(&self, name: &str) -> Result<T> {
         // Weird rust-analyzer bug is causing it to think Reflect::get is unsafe
         #[allow(unused_unsafe)]
         let binding = unsafe { js_sys::Reflect::get(self, &JsValue::from(name)) }
@@ -28,18 +29,24 @@ impl Env {
         }
     }
 
+    /// Access Secret value bindings added to your Worker via the UI or `wrangler`:
+    /// <https://developers.cloudflare.com/workers/cli-wrangler/commands#secret>
     pub fn secret(&self, binding: &str) -> Result<Secret> {
         self.get_binding::<Secret>(binding)
     }
 
+    /// Environment variables are defined via the `[vars]` configuration in your wrangler.toml file
+    /// and are always plaintext values.
     pub fn var(&self, binding: &str) -> Result<Var> {
         self.get_binding::<Var>(binding)
     }
 
+    /// Access a Workers KV namespace by the binding name configured in your wrangler.toml file.
     pub fn kv(&self, binding: &str) -> Result<KvStore> {
         KvStore::from_this(&self, binding).map_err(From::from)
     }
 
+    /// Access a Durable Object namespace by the binding name configured in your wrangler.toml file.
     pub fn durable_object(&self, binding: &str) -> Result<ObjectNamespace> {
         self.get_binding(binding)
     }
@@ -102,5 +109,7 @@ impl ToString for StringBinding {
     }
 }
 
+/// A string value representing a binding to a secret in a Worker.
 pub type Secret = StringBinding;
+/// A string value representing a binding to an environment variable in a Worker.
 pub type Var = StringBinding;
