@@ -5,7 +5,7 @@ use crate::Date;
 use crate::DateInit;
 use crate::Result;
 
-use edgeworker_sys::{File as EdgeFile, FormData as EdgeFormData};
+use worker_sys::{File as EdgeFile, FormData as EdgeFormData};
 
 use js_sys::Array;
 use wasm_bindgen::prelude::*;

@@ -287,10 +287,9 @@ an issue to talk about the change you'd like to make as early as possible.
 ## Project Contents
 
 - **worker**: the user-facing crate, with Rust-famaliar abstractions over the Rust<->JS/WebAssembly 
-interop.
-- **libworker**: wrappers and convenience library over the FFI bindings.
-- **edgeworker-sys**: Rust extern "C" definitions for FFI compatibility with the Workers JS Runtime.
-- **macros**: exports `event` and `durable_object` macros for wrapping Rust entry point in a `fetch` 
-method of an ES Module, and code generation to create and interact with Durable Objects.
-- **rust-sandbox**: a functioning Cloudflare Worker for testing features and ergonomics.
-- **rust-worker-build**: a cross-platform build command for `workers-rs`-based projects.
+interop via wrappers and convenience library over the FFI bindings.
+- **worker-sys**: Rust extern "C" definitions for FFI compatibility with the Workers JS Runtime.
+- **worker-macros**: exports `event` and `durable_object` macros for wrapping Rust entry point in a 
+`fetch` method of an ES Module, and code generation to create and interact with Durable Objects.
+- **worker-sandbox**: a functioning Cloudflare Worker for testing features and ergonomics.
+- **worker-build**: a cross-platform build command for `workers-rs`-based projects.

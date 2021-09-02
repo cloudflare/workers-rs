@@ -6,10 +6,10 @@ use std::{
     str::FromStr,
 };
 
-use edgeworker_sys::Headers as EdgeHeaders;
 use http::{header::HeaderName, HeaderMap, HeaderValue};
 use js_sys::Array;
 use wasm_bindgen::JsValue;
+use worker_sys::Headers as EdgeHeaders;
 
 pub struct Headers(pub EdgeHeaders);
 

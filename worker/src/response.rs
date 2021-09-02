@@ -2,9 +2,9 @@ use crate::error::Error;
 use crate::headers::Headers;
 use crate::Result;
 
-use edgeworker_sys::{Response as EdgeResponse, ResponseInit as EdgeResponseInit};
 use serde::{de::DeserializeOwned, Serialize};
 use wasm_bindgen_futures::JsFuture;
+use worker_sys::{Response as EdgeResponse, ResponseInit as EdgeResponseInit};
 
 #[derive(Debug)]
 pub enum ResponseBody {
