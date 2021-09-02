@@ -1,4 +1,6 @@
-# workers-rs
+![workers-rs](.github/logo.png)
+[![crates.io](https://img.shields.io/crates/v/worker)](https://crates.io/crates/worker)
+[![docs.rs](https://img.shields.io/docsrs/worker)](https://docs.rs/worker)
 
 **Work-in-progress** ergonomic Rust bindings to Cloudflare Workers environment. Write your entire worker in Rust!
 

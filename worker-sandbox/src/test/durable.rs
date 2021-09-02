@@ -3,9 +3,9 @@ use worker::*;
 
 #[allow(dead_code)]
 pub async fn basic_test(env: &Env) -> Result<()> {
-    let namespace: ObjectNamespace = env.get_binding("MY_CLASS")?;
+    let namespace: ObjectNamespace = env.durable_object("MY_CLASS")?;
     let id = namespace.id_from_name("A")?;
-    let bad = env.get_binding::<ObjectNamespace>("DFSDF");
+    let bad = env.durable_object("DFSDF_FAKE_BINDING");
     ensure!(bad.is_err(), "Invalid binding did not raise error");
 
     let stub = id.get_stub()?;

@@ -4,15 +4,18 @@ use worker_sys::{Response as EdgeResponse, WorkerGlobalScope};
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 
-pub enum Fetch<'a> {
-    Url(&'a str),
-    Request(&'a WorkerRequest),
+/// Construct a Fetch call from a URL string or a Request object. Call its `send` method to execute
+/// the request.
+pub enum Fetch {
+    Url(url::Url),
+    Request(WorkerRequest),
 }
 
-impl Fetch<'_> {
+impl Fetch {
+    /// Execute a Fetch call and receive a Response.
     pub async fn send(&self) -> Result<WorkerResponse> {
         match self {
-            Fetch::Url(url) => fetch_with_str(url).await,
+            Fetch::Url(url) => fetch_with_str(&url.to_string()).await,
             Fetch::Request(req) => fetch_with_request(req).await,
         }
     }

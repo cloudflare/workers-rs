@@ -6,11 +6,20 @@ use crate::http::Method;
 use js_sys::{self, Object};
 use wasm_bindgen::{prelude::*, JsValue};
 
+/// Optional options struct that contains settings to apply to the `Request`.
 pub struct RequestInit {
+    /// Currently requires a manual conversion from your data into a [`wasm_bindgen::JsValue`].
     pub body: Option<JsValue>,
+    /// Headers associated with the outbound `Request`.
     pub headers: Headers,
+    /// Cloudflare-specific properties that can be set on the `Request` that control how Cloudflare’s
+    /// edge handles the request.
     pub cf: CfProperties,
+    /// The HTTP Method used for this `Request`.
     pub method: Method,
+    /// The redirect mode to use: follow, error, or manual. The default for a new Request object is
+    /// follow. Note, however, that the incoming Request property of a FetchEvent will have redirect
+    /// mode manual.
     pub redirect: RequestRedirect,
 }
 
@@ -78,17 +87,55 @@ impl Default for RequestInit {
     }
 }
 
-// https://developers.cloudflare.com/workers/runtime-apis/request#requestinitcfproperties
+/// <https://developers.cloudflare.com/workers/runtime-apis/request#requestinitcfproperties>
 pub struct CfProperties {
+    /// Whether Cloudflare Apps should be enabled for this request. Defaults to `true`.
     pub apps: Option<bool>,
+    /// This option forces Cloudflare to cache the response for this request, regardless of what
+    /// headers are seen on the response. This is equivalent to setting the page rule “Cache Level”
+    /// (to “Cache Everything”). Defaults to `false`.
     pub cache_everything: Option<bool>,
+    /// A request’s cache key is what determines if two requests are “the same” for caching
+    /// purposes. If a request has the same cache key as some previous request, then we can serve
+    /// the same cached response for both.
     pub cache_key: Option<bool>,
+    /// This option forces Cloudflare to cache the response for this request, regardless of what
+    /// headers are seen on the response. This is equivalent to setting two page rules: “Edge Cache
+    /// TTL” and “Cache Level” (to “Cache Everything”). The value must be zero or a positive number.
+    /// A value of 0 indicates that the cache asset expires immediately.
     pub cache_ttl: Option<u32>,
+    /// This option is a version of the cacheTtl feature which chooses a TTL based on the response’s
+    /// status code. If the response to this request has a status code that matches, Cloudflare will
+    /// cache for the instructed time, and override cache instructives sent by the origin. For
+    /// example: { "200-299": 86400, 404: 1, "500-599": 0 }. The value can be any integer, including
+    /// zero and negative integers. A value of 0 indicates that the cache asset expires immediately.
+    /// Any negative value instructs Cloudflare not to cache at all.
     pub cache_ttl_by_status: Option<HashMap<String, u32>>,
+    /// Enables or disables AutoMinify for various file types.
+    /// For example: `{ javascript: true, css: true, html: false }`.
     pub minify: Option<MinifyConfig>,
+    /// Whether Mirage should be enabled for this request, if otherwise configured for this zone.
+    /// Defaults to true.
     pub mirage: Option<bool>,
+    /// Sets Polish mode. The possible values are lossy, lossless or off.
     pub polish: Option<PolishConfig>,
+    /// Directs the request to an alternate origin server by overriding the DNS lookup. The value of
+    /// `resolve_override` specifies an alternate hostname which will be used when determining the
+    /// origin IP address, instead of using the hostname specified in the URL. The Host header of
+    /// the request will still match what is in the URL. Thus, `resolve_override` allows a request  
+    /// to be sent to a different server than the URL / Host header specifies. However,
+    /// `resolve_override` will only take effect if both the URL host and the host specified by
+    /// `resolve_override` are within your zone. If either specifies a host from a different zone /
+    /// domain, then the option will be ignored for security reasons. If you need to direct a
+    /// request to a host outside your zone (while keeping the Host header pointing within your
+    /// zone), first create a CNAME record within your zone pointing to the outside host, and then
+    /// set `resolve_override` to point at the CNAME record.
+    ///
+    /// Note that, for security reasons, it is not possible to set the Host header to specify a host
+    /// outside of your zone unless the request is actually being sent to that host.
     pub resolve_override: Option<String>,
+    /// Whether ScrapeShield should be enabled for this request, if otherwise configured for this
+    /// zone. Defaults to `true`.
     pub scrape_shield: Option<bool>,
 }
 
@@ -212,6 +259,8 @@ impl Default for CfProperties {
     }
 }
 
+/// Configuration options for Cloudflare's minification features:
+/// <https://www.cloudflare.com/website-optimization/>
 #[wasm_bindgen]
 #[derive(Clone, Copy)]
 pub struct MinifyConfig {
@@ -220,6 +269,8 @@ pub struct MinifyConfig {
     pub css: bool,
 }
 
+/// Configuration options for Cloudflare's image optimization feature:
+/// <https://blog.cloudflare.com/introducing-polish-automatic-image-optimizati/>
 #[wasm_bindgen]
 #[derive(Clone, Copy)]
 pub enum PolishConfig {

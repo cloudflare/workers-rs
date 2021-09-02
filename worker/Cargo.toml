@@ -1,12 +1,12 @@
 [package]
 name = "worker"
-version = "0.0.2"
+version = "0.0.3"
 authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
 repository = "https://github.com/cloudflare/workers-rs"
 edition = "2018"
 keywords = ["serverless", "ffi", "workers", "wasm", "cloudflare"]
 license = "Apache-2.0"
-description = "A Rust SDK for writing Cloudfare Workers."
+description = "A Rust SDK for writing Cloudflare Workers."
 readme = "../README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

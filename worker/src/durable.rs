@@ -1,3 +1,15 @@
+//! Durable Objects provide low-latency coordination and consistent storage for the Workers platform.
+//! A given namespace can support essentially unlimited Durable Objects, with each Object having
+//! access to a transactional, key-value storage API.
+//!
+//! Durable Objects consist of two components: a class that defines a template for creating Durable
+//! Objects and a Workers script that instantiates and uses those Durable Objects.
+//!
+//! The class and the Workers script are linked together with a binding.
+//!
+//! [Learn more](https://developers.cloudflare.com/workers/learning/using-durable-objects) about
+//! using Durable Objects.
+
 // use std::future::Future;
 use std::ops::Deref;
 
@@ -23,17 +35,20 @@ use worker_sys::{
 // use wasm_bindgen_futures::future_to_promise;
 use wasm_bindgen_futures::JsFuture;
 
+/// A Durable Object stub is a client object used to send requests to a remote Durable Object.
 pub struct Stub {
     inner: ObjectStub,
 }
 
 impl Stub {
+    /// Send an internal Request to the Durable Object to which the stub points.
     pub async fn fetch_with_request(&self, req: Request) -> Result<Response> {
         let promise = self.inner.fetch_with_request_internal(req.inner());
         let response = JsFuture::from(promise).await?;
         Ok(response.dyn_into::<EdgeResponse>()?.into())
     }
 
+    /// Construct a Request from a URL to the Durable Object to which the stub points.
     pub async fn fetch_with_str(&self, url: &str) -> Result<Response> {
         let promise = self.inner.fetch_with_str_internal(url);
         let response = JsFuture::from(promise).await?;
@@ -41,29 +56,16 @@ impl Stub {
     }
 }
 
+/// Use an ObjectNamespace to get access to Stubs for communication with a Durable Object instance.
+/// A given namespace can support essentially unlimited Durable Objects, with each Object having
+/// access to a transactional, key-value storage API.
 pub struct ObjectNamespace {
     inner: EdgeObjectNamespace,
 }
 
-pub struct ObjectId<'a> {
-    inner: JsObjectId,
-    namespace: Option<&'a ObjectNamespace>,
-}
-
-impl ObjectId<'_> {
-    pub fn get_stub(&self) -> Result<Stub> {
-        self.namespace
-            .ok_or_else(|| JsValue::from("Cannot get stub from within a Durable Object"))
-            .and_then(|n| {
-                Ok(Stub {
-                    inner: n.inner.get_internal(&self.inner)?,
-                })
-            })
-            .map_err(Error::from)
-    }
-}
-
 impl ObjectNamespace {
+    /// This method derives a unique object ID from the given name string. It will always return the
+    /// same ID when given the same name as input.
     pub fn id_from_name(&self, name: &str) -> Result<ObjectId> {
         self.inner
             .id_from_name_internal(name)
@@ -74,9 +76,17 @@ impl ObjectNamespace {
             })
     }
 
-    pub fn id_from_string(&self, string: &str) -> Result<ObjectId> {
+    /// This method parses an ID that was previously stringified. This is useful in particular with
+    /// IDs created using `unique_id(&self)`, as these IDs need to be stored somewhere, probably as
+    // as a string.
+    ///
+    /// A stringified object ID is a 64-digit hexadecimal number. However, not all 64-digit hex
+    /// numbers are valid IDs. This method will throw if it is passed an ID that was not originally
+    /// created by newUniqueId() or idFromName(). It will also throw if the ID was originally
+    /// created for a different namespace.
+    pub fn id_from_string(&self, hex_id: &str) -> Result<ObjectId> {
         self.inner
-            .id_from_string_internal(string)
+            .id_from_string_internal(hex_id)
             .map_err(Error::from)
             .map(|id| ObjectId {
                 inner: id,
@@ -84,6 +94,9 @@ impl ObjectNamespace {
             })
     }
 
+    /// Creates a new object ID randomly. This method will never return the same ID twice, and thus
+    /// it is guaranteed that the object does not yet exist and has never existed at the time the
+    /// method returns.
     pub fn unique_id(&self) -> Result<ObjectId> {
         self.inner
             .new_unique_id_internal()
@@ -94,6 +107,15 @@ impl ObjectNamespace {
             })
     }
 
+    /// Durable Objects can be created so that they only run and store data within a specific
+    /// jurisdiction to comply with local regulations. You must specify the jurisdiction when
+    /// generating the Durable Object's id.
+    ///
+    /// Jurisdiction constraints can only be used with ids created by `unique_id()` and are not
+    /// currently compatible with ids created by `id_from_name()`.
+    ///
+    /// See supported jurisdictions and more documentation at:
+    /// <https://developers.cloudflare.com/workers/runtime-apis/durable-objects#restricting-objects-to-a-jurisdiction>
     pub fn unique_id_with_jurisdiction(&self, jd: &str) -> Result<ObjectId> {
         let options = Object::new();
         #[allow(unused_unsafe)]
@@ -110,11 +132,42 @@ impl ObjectNamespace {
     }
 }
 
+/// An ObjectId is used to identify, locate, and access a Durable Object via interaction with its
+/// Stub.
+pub struct ObjectId<'a> {
+    inner: JsObjectId,
+    namespace: Option<&'a ObjectNamespace>,
+}
+
+impl ObjectId<'_> {
+    /// Get a Stub for the Durable Object instance identified by this ObjectId.
+    pub fn get_stub(&self) -> Result<Stub> {
+        self.namespace
+            .ok_or_else(|| JsValue::from("Cannot get stub from within a Durable Object"))
+            .and_then(|n| {
+                Ok(Stub {
+                    inner: n.inner.get_internal(&self.inner)?,
+                })
+            })
+            .map_err(Error::from)
+    }
+}
+
+impl ToString for ObjectId<'_> {
+    fn to_string(&self) -> String {
+        self.inner.to_string().into()
+    }
+}
+
+/// Passed from the runtime to provide access to the Durable Object's storage as well as various
+/// metadata about the Object.
 pub struct State {
     inner: ObjectState,
 }
 
 impl State {
+    /// The ID of this Durable Object which can be converted into a hex string using its `to_string()`
+    /// method.
     pub fn id(&self) -> ObjectId<'_> {
         ObjectId {
             inner: self.inner.id_internal(),
@@ -122,6 +175,8 @@ impl State {
         }
     }
 
+    /// Contains methods for accessing persistent storage via the transactional storage API. See
+    /// [Transactional Storage API](https://developers.cloudflare.com/workers/runtime-apis/durable-objects#transactional-storage-api) for a detailed reference.
     pub fn storage(&self) -> Storage {
         Storage {
             inner: self.inner.storage_internal(),
@@ -140,11 +195,16 @@ impl From<ObjectState> for State {
     }
 }
 
+/// Access a Durable Object's Storage API. Each method is implicitly wrapped inside a transaction,
+/// such that its results are atomic and isolated from all other storage operations, even when
+/// accessing multiple key-value pairs.
 pub struct Storage {
     inner: ObjectStorage,
 }
 
 impl Storage {
+    /// Retrieves the value associated with the given key. The type of the returned value will be
+    /// whatever was previously written for the key, or undefined if the key does not exist.
     pub async fn get<T: for<'a> Deserialize<'a>>(&self, key: &str) -> Result<T> {
         JsFuture::from(self.inner.get_internal(key)?)
             .await
@@ -158,6 +218,7 @@ impl Storage {
             .map_err(Error::from)
     }
 
+    /// Retrieves the values associated with each of the provided keys.
     pub async fn get_multiple(&self, keys: Vec<impl Deref<Target = str>>) -> Result<Map> {
         let keys = self.inner.get_multiple_internal(
             keys.into_iter()
@@ -168,6 +229,7 @@ impl Storage {
         keys.dyn_into::<Map>().map_err(Error::from)
     }
 
+    /// Stores the value and associates it with the given key.
     pub async fn put<T: Serialize>(&mut self, key: &str, value: T) -> Result<()> {
         JsFuture::from(self.inner.put_internal(key, JsValue::from_serde(&value)?)?)
             .await
@@ -175,7 +237,7 @@ impl Storage {
             .map(|_| ())
     }
 
-    // Each key-value pair in the serialized object will be added to the storage
+    /// Takes a serializable struct and stores each of its keys and values to storage.
     pub async fn put_multiple<T: Serialize>(&mut self, values: T) -> Result<()> {
         let values = JsValue::from_serde(&values)?;
         if !values.is_object() {
@@ -187,6 +249,7 @@ impl Storage {
             .map(|_| ())
     }
 
+    /// Deletes the key and associated value. Returns true if the key existed or false if it didn't.
     pub async fn delete(&mut self, key: &str) -> Result<bool> {
         let fut: JsFuture = self.inner.delete_internal(key)?.into();
         fut.await
@@ -197,6 +260,8 @@ impl Storage {
             .map_err(Error::from)
     }
 
+    /// Deletes the provided keys and their associated values. Returns a count of the number of
+    /// key-value pairs deleted.
     pub async fn delete_multiple(&mut self, keys: Vec<impl Deref<Target = str>>) -> Result<usize> {
         let fut: JsFuture = self
             .inner
@@ -215,11 +280,21 @@ impl Storage {
             .map_err(Error::from)
     }
 
+    /// Deletes all keys and associated values, effectively deallocating all storage used by the
+    /// Durable Object. In the event of a failure while the operation is still in flight, it may be
+    /// that only a subset of the data is properly deleted.
     pub async fn delete_all(&mut self) -> Result<()> {
         let fut: JsFuture = self.inner.delete_all_internal()?.into();
         fut.await.map(|_| ()).map_err(Error::from)
     }
 
+    /// Returns all keys and values associated with the current Durable Object in ascending
+    /// lexicographic sorted order.
+    ///
+    /// Be aware of how much data may be stored in your Durable Object before calling this version
+    /// of list without options, because it will all be loaded into the Durable Object's memory,
+    /// potentially hitting its [limit](https://developers.cloudflare.com/workers/platform/limits#durable-objects-limits).
+    /// If that is a concern, use the alternate `list_with_options()` method.
     pub async fn list(&self) -> Result<Map> {
         let fut: JsFuture = self.inner.list_internal()?.into();
         fut.await
@@ -227,6 +302,8 @@ impl Storage {
             .map_err(Error::from)
     }
 
+    /// Returns keys associated with the current Durable Object according to the parameters in the
+    /// provided options object.
     pub async fn list_with_options(&self, opts: ListOptions<'_>) -> Result<Map> {
         let fut: JsFuture = self
             .inner
@@ -365,19 +442,26 @@ impl Transaction {
 
 #[derive(Serialize)]
 pub struct ListOptions<'a> {
+    /// Key at which the list results should start, inclusive.
     #[serde(skip_serializing_if = "Option::is_none")]
     start: Option<&'a str>,
+    /// Key at which the list results should end, exclusive.
     #[serde(skip_serializing_if = "Option::is_none")]
     end: Option<&'a str>,
+    /// Restricts results to only include key-value pairs whose keys begin with the prefix.
     #[serde(skip_serializing_if = "Option::is_none")]
     prefix: Option<&'a str>,
+    /// If true, return results in descending lexicographic order instead of the default ascending
+    /// order.
     #[serde(skip_serializing_if = "Option::is_none")]
     reverse: Option<bool>,
+    /// Maximum number of key-value pairs to return.
     #[serde(skip_serializing_if = "Option::is_none")]
     limit: Option<usize>,
 }
 
 impl<'a> ListOptions<'a> {
+    /// Create a new ListOptions struct with no options set.
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
@@ -389,26 +473,32 @@ impl<'a> ListOptions<'a> {
         }
     }
 
+    /// Key at which the list results should start, inclusive.
     pub fn start(mut self, val: &'a str) -> Self {
         self.start = Some(val);
         self
     }
 
+    /// Key at which the list results should end, exclusive.
     pub fn end(mut self, val: &'a str) -> Self {
         self.end = Some(val);
         self
     }
 
+    /// Restricts results to only include key-value pairs whose keys begin with the prefix.
     pub fn prefix(mut self, val: &'a str) -> Self {
         self.prefix = Some(val);
         self
     }
 
+    /// If true, return results in descending lexicographic order instead of the default ascending
+    /// order.
     pub fn reverse(mut self, val: bool) -> Self {
         self.reverse = Some(val);
         self
     }
 
+    /// Maximum number of key-value pairs to return.
     pub fn limit(mut self, val: usize) -> Self {
         self.limit = Some(val);
         self
@@ -445,6 +535,42 @@ impl AsRef<JsValue> for ObjectNamespace {
     }
 }
 
+/**
+**Note:** Implement this trait with a standard `impl DurableObject for YourType` block, but in order to
+integrate them with the Workers Runtime, you must also add the **`#[durable_object]`** attribute
+macro to both the impl block and the struct type definition.
+
+## Example
+```no_run
+use worker::*;
+
+#[durable_object]
+pub struct Chatroom {
+    users: Vec<User>,
+    messages: Vec<Message>
+    state: State,
+    env: Env, // access `Env` across requests, use inside `fetch`
+
+}
+
+#[durable_object]
+impl DurableObject for Chatroom {
+    fn new(state: State, env: Env) -> Self {
+        Self {
+            users: vec![],
+            messages: vec![],
+            state: state,
+            env,
+        }
+    }
+
+    async fn fetch(&mut self, _req: Request) -> Result<Response> {
+        // do some work when a worker makes a request to this DO
+        Response::ok(&format!("{} active users.", self.users.len()))
+    }
+}
+```
+*/
 #[async_trait(?Send)]
 pub trait DurableObject {
     fn new(state: State, env: Env) -> Self;

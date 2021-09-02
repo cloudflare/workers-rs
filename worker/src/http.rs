@@ -1,3 +1,5 @@
+/// A [`Method`](https://developer.mozilla.org/en-US/docs/Web/API/Request/method) representation
+/// used on Request objects.
 #[derive(Debug, Clone, PartialEq, Hash, Eq)]
 pub enum Method {
     Head = 0,

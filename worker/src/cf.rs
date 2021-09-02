@@ -171,8 +171,6 @@ pub struct TlsClientAuth {
 }
 
 impl TlsClientAuth {
-    // TODO: document these
-
     pub fn cert_issuer_dn_legacy(&self) -> String {
         self.inner.cert_issuer_dn_legacy()
     }

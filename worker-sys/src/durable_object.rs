@@ -2,12 +2,16 @@ use std::result::Result as StdResult;
 
 use crate::Request as EdgeRequest;
 
+use js_sys::JsString;
 use wasm_bindgen::{closure::Closure, prelude::*};
 
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen (extends = ::js_sys::Object, js_name = DurableObjectId)]
     pub type JsObjectId;
+
+    #[wasm_bindgen(method, js_class = "JsObjectId", js_name = toString)]
+    pub fn to_string(this: &JsObjectId) -> JsString;
 
     #[wasm_bindgen (extends = ::js_sys::Object, js_name = DurableObject)]
     pub type ObjectStub;
