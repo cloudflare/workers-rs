@@ -112,6 +112,24 @@ impl<'a, D: 'static> Router<'a, D> {
         self
     }
 
+    /// Register an HTTP handler that will exclusively respond to PUT requests.
+    pub fn put(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
+        self.add_handler(pattern, Handler::Sync(func), vec![Method::Put]);
+        self
+    }
+
+    /// Register an HTTP handler that will exclusively respond to PATCH requests.
+    pub fn patch(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
+        self.add_handler(pattern, Handler::Sync(func), vec![Method::Patch]);
+        self
+    }
+
+    /// Register an HTTP handler that will exclusively respond to DELETE requests.
+    pub fn delete(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
+        self.add_handler(pattern, Handler::Sync(func), vec![Method::Delete]);
+        self
+    }
+
     /// Register an HTTP handler that will respond to any requests.
     pub fn on(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
         self.add_handler(pattern, Handler::Sync(func), Method::all());
@@ -142,6 +160,48 @@ impl<'a, D: 'static> Router<'a, D> {
             pattern,
             Handler::Async(Rc::new(move |req, info| Box::pin(func(req, info)))),
             vec![Method::Post],
+        );
+        self
+    }
+
+    /// Register an HTTP handler that will exclusively respond to PUT requests. Enables the use of
+    /// `async/await` syntax in the callback.
+    pub fn put_async<T>(mut self, pattern: &str, func: fn(Request, RouteContext<D>) -> T) -> Self
+    where
+        T: Future<Output = Result<Response>> + 'static,
+    {
+        self.add_handler(
+            pattern,
+            Handler::Async(Rc::new(move |req, info| Box::pin(func(req, info)))),
+            vec![Method::Put],
+        );
+        self
+    }
+
+    /// Register an HTTP handler that will exclusively respond to PATCH requests. Enables the use of
+    /// `async/await` syntax in the callback.
+    pub fn patch_async<T>(mut self, pattern: &str, func: fn(Request, RouteContext<D>) -> T) -> Self
+    where
+        T: Future<Output = Result<Response>> + 'static,
+    {
+        self.add_handler(
+            pattern,
+            Handler::Async(Rc::new(move |req, info| Box::pin(func(req, info)))),
+            vec![Method::Patch],
+        );
+        self
+    }
+
+    /// Register an HTTP handler that will exclusively respond to DELETE requests. Enables the use of
+    /// `async/await` syntax in the callback.
+    pub fn delete_async<T>(mut self, pattern: &str, func: fn(Request, RouteContext<D>) -> T) -> Self
+    where
+        T: Future<Output = Result<Response>> + 'static,
+    {
+        self.add_handler(
+            pattern,
+            Handler::Async(Rc::new(move |req, info| Box::pin(func(req, info)))),
+            vec![Method::Delete],
         );
         self
     }
