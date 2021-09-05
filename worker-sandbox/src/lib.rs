@@ -328,6 +328,17 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
                 Response::error("no data", 500)
             }
         })
+        .get("/status/:code", |_, ctx| {
+            if let Some(code) = ctx.param("code") {
+                return match code.parse::<u16>() {
+                    Ok(status) => Response::ok("You set the status code!")
+                        .map(|resp| resp.with_status(status)),
+                    Err(_e) => Response::error("Failed to parse your status code.", 400),
+                };
+            }
+
+            Response::error("Bad Request", 400)
+        })
         .run(req, env)
         .await
 }
