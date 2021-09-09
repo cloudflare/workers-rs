@@ -40,7 +40,7 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
 
 ### Or use the `Router`:
 
-Parameterize routes and access the parameter values from within a handler. Each hanlder function takes a 
+Parameterize routes and access the parameter values from within a handler. Each handler function takes a
 `Request`, and a `RouteContext`. The `RouteContext` has shared data, route params, `Env` bindings, and more.
 
 ```rust
