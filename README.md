@@ -1,12 +1,13 @@
-![workers-rs](.github/logo.png)
+# workers-rs
 [![crates.io](https://img.shields.io/crates/v/worker)](https://crates.io/crates/worker)
 [![docs.rs](https://img.shields.io/docsrs/worker)](https://docs.rs/worker)
+[![discord](https://img.shields.io/discord/595317990191398933?label=discord)](https://docs.rs/worker)
 
-**Work-in-progress** ergonomic Rust bindings to Cloudflare Workers environment. Write your entire worker in Rust!
+![workers-rs](.github/logo.png)
 
-Read the [Notes and FAQ](#notes-and-faq)
+Ergonomic, idiomatic Rust bindings for [Cloudflare Workers](https://workers.cloudflare.com/). Write a Worker in 100% Rust!
 
-## Example Usage
+## Usage
 
 ```rust
 use worker::*;
@@ -38,7 +39,7 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
 }
 ```
 
-### Or use the `Router`:
+### Or use the `Router`
 
 Parameterize routes and access the parameter values from within a handler. Each handler function takes a
 `Request`, and a `RouteContext`. The `RouteContext` has shared data, route params, `Env` bindings, and more.
@@ -108,11 +109,16 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
 
 ## Getting Started
 
-Make sure you have [`wrangler`](https://github.com/cloudflare/wrangler) installed at a recent 
-version (>v1.19.2). If you want to publish your Rust worker code, you will need to have a 
-[Cloudflare account](https://cloudflare.com).
+First, make sure you've installed [`wrangler`](https://github.com/cloudflare/wrangler), a CLI that makes it easy to deploy a Cloudflare Worker.
 
-Run `wrangler --version` to check your installation and if it meets the version requirements.
+```bash
+cargo install wrangler
+wrangler login
+```
+
+Then, run `wrangler --version` to check your installation and if it meets the version requirements. If the version is *less* than `1.19.2`, run the install command again with `--force`.
+
+Now you can generate your first Rust project!
 
 ```bash
 wrangler generate --type=rust project_name
@@ -121,25 +127,22 @@ wrangler build
 ```
 
 You should see a new project layout with a `src/lib.rs`. Start there! Use any local or remote crates 
-and modules (as long as they compile to the `wasm32-unknown-unknown` target). 
+and modules, as long as they compile to the `wasm32-unknown-unknown` target.
 
-Once you're ready to run your project:
+To test your project, run:
 
 ```bash
 wrangler dev
 ```
 
-And then go live:
+When you're ready to deploy your project, run:
 ```bash
-# configure your routes, zones & more in your worker's `wrangler.toml` file
 wrangler publish
 ```
 
-## Durable Object, KV, Secret, & Variable Bindings
+## Using Bindings
 
-All "bindings" to your script (Durable Object & KV Namespaces, Secrets, and Variables) are 
-accessible from the `env` parameter provided to both the entrypoint (`main` in this example), and to 
-the route handler callback (in the `ctx` argument), if you use the `Router` from the `worker` crate.
+Bindings are similar to environment variables, but can also be non-text, like a KV namespace or Durable Object class. They are accessible using the `env` parameter on entrypoint.
 
 ```rust
 use worker::*;
@@ -173,39 +176,40 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
 }
 ```
 
-For more information about how to configure these bindings, see: 
-- https://developers.cloudflare.com/workers/cli-wrangler/configuration#keys
-- https://developers.cloudflare.com/workers/learning/using-durable-objects#configuring-durable-object-bindings
+### Supported bindings
 
-## Durable Objects
+* [Plain text](https://developers.cloudflare.com/workers/cli-wrangler/configuration#vars)
+* [Secret text](https://developers.cloudflare.com/workers/cli-wrangler/commands#secret)
+* [KV namespace](https://developers.cloudflare.com/workers/cli-wrangler/configuration#kv_namespaces)
+* [Durable Object class](https://developers.cloudflare.com/workers/learning/using-durable-objects#configuring-durable-object-bindings)
 
-### BETA WARNING
-Durable Objects are still in **BETA**, so the same rules apply to the Durable Object code and APIs here in these crates.
 
-### Define a Durable Object in Rust
-To define a Durable Object using the `worker` crate you need to implement the `DurableObject` trait 
-on your own struct. Additionally, the `#[durable_object]` attribute macro must be applied to _both_ 
-your struct definition and the trait `impl` block for it.
+## Using Durable Objects
+
+> Durable Objects are still in [**BETA**](https://developers.cloudflare.com/workers/runtime-apis/durable-objects), please read the documentation for more details such as limits.
+
+### Define a Durable Object
+
+To define a Durable Object you need to implement the `DurableObject` trait on your own struct. Additionally, the `#[durable_object]` attribute macro must be applied to _both_ your struct definition and the trait `impl` block for it.
 
 ```rust
 use worker::*;
 
 #[durable_object]
-pub struct Chatroom {
+pub struct ChatRoom {
     users: Vec<User>,
     messages: Vec<Message>
     state: State,
     env: Env, // access `Env` across requests, use inside `fetch`
-
 }
 
 #[durable_object]
-impl DurableObject for Chatroom {
+impl DurableObject for ChatRoom {
     fn new(state: State, env: Env) -> Self {
         Self {
             users: vec![],
             messages: vec![],
-            state: state,
+            state,
             env,
         }
     }
@@ -217,28 +221,20 @@ impl DurableObject for Chatroom {
 }
 ```
 
-You'll need to "migrate" your worker script when it's published so that it is aware of this new 
-Durable Object, and include a binding in your `wrangler.toml`.
-
-- Include the Durable Object binding type in you `wrangler.toml` file:
+You'll need to "migrate" your Worker when it's published so that it is aware of this new Durable Object, and include a binding in your `wrangler.toml`:
 
 ```toml
-# ...
-
 [durable_objects]
 bindings = [
-  { name = "CHATROOM", class_name = "Chatroom" } # the `class_name` uses the Rust struct identifier name
+  { name = "CHATROOM", class_name = "ChatRoom" }
+  # `class_name` should match the Rust struct name
 ]
-
-[[migrations]]
-tag = "v1" # Should be unique for each entry
-new_classes = ["Chatroom"] # Array of new classes
 ```
 
-- For more information about migrating your Durable Object as it changes, see the docs here: 
-https://developers.cloudflare.com/workers/learning/using-durable-objects#durable-object-migrations-in-wranglertoml
+You can also read more about how migrations work [here](https://developers.cloudflare.com/workers/learning/using-durable-objects#durable-object-migrations-in-wranglertoml).
 
-# Notes and FAQ
+
+## Notes
 
 It is exciting to see how much is possible with a framework like this, by expanding the options 
 developers have when building on top of the Workers platform. However, there is still much to be 
@@ -262,31 +258,29 @@ ecosystem types (we have an example conversion for [Headers](https://github.com/
 and more. In fact, we’re always on the lookout for great engineers, and hiring for many open roles - 
 please [take a look](https://www.cloudflare.com/careers/).
 
-### FAQ
+## FAQ
 
 1. Can I deploy a Worker that uses `tokio` or `async_std` runtimes? 
 
-- Currently no. All crates in your Worker project must compile to `wasm32-unknown-unknown` target, 
-which is more limited in some ways than targets for x86 and ARM64.
+Currently no. All crates in your Worker project must compile to `wasm32-unknown-unknown` target, which is more limited in some ways than targets for x86 and ARM64.
 
 2. The `worker` crate doesn't have _X_! Why not?
 
-- Most likely, it should, we just haven't had the time to fully implement it or add a library to 
-wrap the FFI. Please let us know you need a feature by [opening an issue](https://github.com/cloudflare/workers-rs/issues).
+Most likely, it should, we just haven't had the time to fully implement it or add a library to wrap the FFI. Please let us know you need a feature by [opening an issue](https://github.com/cloudflare/workers-rs/issues).
 
 3. My bundle size exceeds Workers 1MB limits, what do I do?
 
-- We're working on solutions here, but in the meantime you'll need to minimize the number of crates
+We're working on solutions here, but in the meantime you'll need to minimize the number of crates
 your code depends on, or strip as much from the `.wasm` binary as possible. Here are some extra 
 steps you can try: https://rustwasm.github.io/book/reference/code-size.html#optimizing-builds-for-code-size
 
-# Contributing
+## Contributing
 
 Your feedback is welcome and appreciated! Please use the issue tracker to talk about potential 
 implementations or make feature requests. If you're interested in making a PR, we suggest opening up 
 an issue to talk about the change you'd like to make as early as possible.
 
-## Project Contents
+### Project Layout
 
 - **worker**: the user-facing crate, with Rust-famaliar abstractions over the Rust<->JS/WebAssembly 
 interop via wrappers and convenience library over the FFI bindings.
