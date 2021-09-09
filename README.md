@@ -115,7 +115,7 @@ version (>v1.19.2). If you want to publish your Rust worker code, you will need 
 Run `wrangler --version` to check your installation and if it meets the version requirements.
 
 ```bash
-wrangler generate --type=rust project_name # TODO: update the default rustwasm template
+wrangler generate --type=rust project_name
 cd project_name
 wrangler build
 ```
