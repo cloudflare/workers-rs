@@ -96,7 +96,7 @@ fn copy_generated_code_to_worker_dir() -> Result<()> {
         .join(WORKER_SUBDIR)
         .join(format!("{}_bg.wasm", OUT_NAME));
 
-    for (src, dest) in [(glue_src, glue_dest), (wasm_src, wasm_dest)] {
+    for (src, dest) in [(glue_src, glue_dest), (wasm_src, wasm_dest)].iter() {
         fs::rename(src, dest)?;
     }
 
@@ -146,15 +146,15 @@ export default {{ fetch }};
     let shim_path = PathBuf::from(OUT_DIR).join(WORKER_SUBDIR).join("shim.mjs");
 
     // write our content out to files
-    for (mut content, path) in [
+    for (content, path) in [
         (export_wasm_content, export_wasm_path),
         (shim_content, shim_path),
-    ] {
+    ].iter() {
         let mut file = File::create(path)?;
         let buf = unsafe {
             // SAFETY: this string contains valid UTF-8, and will continue to do so
             // until the write is complete. So this operation is safe.
-            content.as_bytes_mut()
+            content.as_bytes()
         };
 
         file.write_all(buf)?;
