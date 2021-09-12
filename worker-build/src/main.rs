@@ -151,7 +151,7 @@ export default {{ fetch }};
         (shim_content, shim_path),
     ].iter() {
         let mut file = File::create(path)?;
-        let buf = unsafe {
+        let buf = {
             // SAFETY: this string contains valid UTF-8, and will continue to do so
             // until the write is complete. So this operation is safe.
             content.as_bytes()
