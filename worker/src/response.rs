@@ -154,17 +154,9 @@ impl Response {
     }
 
     /// Set this response's status code.
-    ///
-    /// Will return Err if the status code provided is outside the valid HTTP
-    /// error range of 100-599.
-    pub fn with_status(mut self, status_code: u16) -> Result<Self> {
-        if !(100..=599).contains(&status_code) {
-            return Err(Error::Internal(
-                "provided error status code is invalid".into(),
-            ));
-        }
+    pub fn with_status(mut self, status_code: u16) -> Self {
         self.status_code = status_code;
-        Ok(self)
+        self
     }
 
     /// Read the `Headers` on this response.
