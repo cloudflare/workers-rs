@@ -107,7 +107,7 @@ impl Response {
         })
     }
 
-    /// Set the HTTP Status code on this `Response`.
+    /// Get the HTTP Status code of this `Response`.
     pub fn status_code(&self) -> u16 {
         self.status_code
     }
