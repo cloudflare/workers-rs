@@ -339,6 +339,32 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
 
             Response::error("Bad Request", 400)
         })
+        .options("/", respond)
+        .put("/", respond)
+        .patch("/", respond)
+        .delete("/", respond)
+        .head("/", respond)
+        .options_async("/async", respond_async)
+        .put_async("/async", respond_async)
+        .patch_async("/async", respond_async)
+        .delete_async("/async", respond_async)
+        .head_async("/async", respond_async)
         .run(req, env)
         .await
+}
+
+fn respond<D>(req: Request, _ctx: RouteContext<D>) -> Result<Response> {
+    Response::ok(format!("Ok: {}", String::from(req.method()))).map(|resp| {
+        let mut headers = Headers::new();
+        headers.set("x-testing", "123").unwrap();
+        resp.with_headers(headers)
+    })
+}
+
+async fn respond_async<D>(req: Request, _ctx: RouteContext<D>) -> Result<Response> {
+    Response::ok(format!("Ok (async): {}", String::from(req.method()))).map(|resp| {
+        let mut headers = Headers::new();
+        headers.set("x-testing", "123").unwrap();
+        resp.with_headers(headers)
+    })
 }

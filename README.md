@@ -109,7 +109,7 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
 ## Getting Started
 
 Make sure you have [`wrangler`](https://github.com/cloudflare/wrangler) installed at a recent 
-version (>v1.19.2). If you want to publish your Rust worker code, you will need to have a 
+version (>=v1.19.2). If you want to publish your Rust worker code, you will need to have a 
 [Cloudflare account](https://cloudflare.com).
 
 Run `wrangler --version` to check your installation and if it meets the version requirements.

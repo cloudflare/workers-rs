@@ -140,18 +140,6 @@ impl<'a, D: 'static> Router<'a, D> {
         self
     }
 
-    /// Register an HTTP handler that will exclusively respond to CONNECT requests.
-    pub fn connect(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
-        self.add_handler(pattern, Handler::Sync(func), vec![Method::Connect]);
-        self
-    }
-
-    /// Register an HTTP handler that will exclusively respond to TRACE requests.
-    pub fn trace(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
-        self.add_handler(pattern, Handler::Sync(func), vec![Method::Trace]);
-        self
-    }
-
     /// Register an HTTP handler that will respond to any requests.
     pub fn on(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
         self.add_handler(pattern, Handler::Sync(func), Method::all());
@@ -228,8 +216,8 @@ impl<'a, D: 'static> Router<'a, D> {
         self
     }
 
-    /// Register an HTTP handler that will exclusively respond to DELETE requests. Enables the use of
-    /// `async/await` syntax in the callback.
+    /// Register an HTTP handler that will exclusively respond to DELETE requests. Enables the use
+    /// of `async/await` syntax in the callback.
     pub fn delete_async<T>(mut self, pattern: &str, func: fn(Request, RouteContext<D>) -> T) -> Self
     where
         T: Future<Output = Result<Response>> + 'static,
@@ -242,8 +230,8 @@ impl<'a, D: 'static> Router<'a, D> {
         self
     }
 
-    /// Register an HTTP handler that will exclusively respond to OPTIONS requests. Enables the use of
-    /// `async/await` syntax in the callback.
+    /// Register an HTTP handler that will exclusively respond to OPTIONS requests. Enables the use
+    /// of `async/await` syntax in the callback.
     pub fn options_async<T>(
         mut self,
         pattern: &str,
@@ -256,38 +244,6 @@ impl<'a, D: 'static> Router<'a, D> {
             pattern,
             Handler::Async(Rc::new(move |req, info| Box::pin(func(req, info)))),
             vec![Method::Options],
-        );
-        self
-    }
-
-    /// Register an HTTP handler that will exclusively respond to CONNECT requests. Enables the use of
-    /// `async/await` syntax in the callback.
-    pub fn connect_async<T>(
-        mut self,
-        pattern: &str,
-        func: fn(Request, RouteContext<D>) -> T,
-    ) -> Self
-    where
-        T: Future<Output = Result<Response>> + 'static,
-    {
-        self.add_handler(
-            pattern,
-            Handler::Async(Rc::new(move |req, info| Box::pin(func(req, info)))),
-            vec![Method::Connect],
-        );
-        self
-    }
-
-    /// Register an HTTP handler that will exclusively respond to TRACE requests. Enables the use of
-    /// `async/await` syntax in the callback.
-    pub fn trace_async<T>(mut self, pattern: &str, func: fn(Request, RouteContext<D>) -> T) -> Self
-    where
-        T: Future<Output = Result<Response>> + 'static,
-    {
-        self.add_handler(
-            pattern,
-            Handler::Async(Rc::new(move |req, info| Box::pin(func(req, info)))),
-            vec![Method::Trace],
         );
         self
     }
