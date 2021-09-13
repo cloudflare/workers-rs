@@ -169,7 +169,7 @@ fn replace_generated_import_with_custom_impl() -> Result<()> {
 fn read_file_to_string<P: AsRef<Path>>(path: P) -> Result<String> {
     let file_size = path.as_ref().metadata()?.len().try_into()?;
     let mut file = File::open(path)?;
-    let mut buf: Vec<u8> = Vec::with_capacity(file_size);
+    let mut buf = Vec::with_capacity(file_size);
     file.read_to_end(&mut buf)?;
     String::from_utf8(buf).map_err(anyhow::Error::from)
 }
