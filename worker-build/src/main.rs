@@ -96,7 +96,7 @@ fn copy_generated_code_to_worker_dir() -> Result<()> {
         .join(WORKER_SUBDIR)
         .join(format!("{}_bg.wasm", OUT_NAME));
 
-    for (src, dest) in [(glue_src, glue_dest), (wasm_src, wasm_dest)].iter() {
+    for (src, dest) in [(glue_src, glue_dest), (wasm_src, wasm_dest)] {
         fs::rename(src, dest)?;
     }
 
@@ -146,9 +146,7 @@ export default {{ fetch }};
     for (content, path) in [
         (export_wasm_content, export_wasm_path),
         (shim_content, shim_path),
-    ]
-    .iter()
-    {
+    ] {
         let mut file = File::create(path)?;
         file.write_all(content.as_bytes())?;
     }
