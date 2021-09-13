@@ -104,10 +104,7 @@ fn copy_generated_code_to_worker_dir() -> Result<()> {
 }
 
 fn write_worker_shims_to_worker_dir() -> Result<()> {
-    // write some shims to make our wasm worker-compatible
-    // this is handled by higher-level crates automatically
-
-    // _bg implies background, i think
+    // _bg implies "bindgen" from wasm-bindgen tooling
     let bg_name = format!("{}_bg", OUT_NAME);
 
     // this shim exports a webassembly instance with 512 pages
@@ -146,18 +143,12 @@ export default {{ fetch }};
     let shim_path = PathBuf::from(OUT_DIR).join(WORKER_SUBDIR).join("shim.mjs");
 
     // write our content out to files
-    for (mut content, path) in [
+    for (content, path) in [
         (export_wasm_content, export_wasm_path),
         (shim_content, shim_path),
     ] {
         let mut file = File::create(path)?;
-        let buf = unsafe {
-            // SAFETY: this string contains valid UTF-8, and will continue to do so
-            // until the write is complete. So this operation is safe.
-            content.as_bytes_mut()
-        };
-
-        file.write_all(buf)?;
+        file.write_all(content.as_bytes())?;
     }
 
     Ok(())
@@ -178,22 +169,14 @@ fn replace_generated_import_with_custom_impl() -> Result<()> {
 fn read_file_to_string<P: AsRef<Path>>(path: P) -> Result<String> {
     let file_size = path.as_ref().metadata()?.len().try_into()?;
     let mut file = File::open(path)?;
-    let mut contents = String::with_capacity(file_size);
-    let buf = unsafe {
-        // SAFETY: these bytes are valid UTF-8, and we don't mutate them
-        // while reading into them.
-        contents.as_mut_vec()
-    };
-    file.read_to_end(buf)?;
-    Ok(contents)
+    let mut buf = Vec::with_capacity(file_size);
+    file.read_to_end(&mut buf)?;
+    String::from_utf8(buf).map_err(anyhow::Error::from)
 }
 
-fn write_string_to_file<P: AsRef<Path>>(path: P, mut contents: String) -> Result<()> {
+fn write_string_to_file<P: AsRef<Path>>(path: P, contents: String) -> Result<()> {
     let mut file = File::create(path)?;
-    unsafe {
-        // safety: we own the string, so we know it's not going to be mutated
-        file.write_all(contents.as_bytes_mut())?;
-    };
+    file.write_all(contents.as_bytes())?;
 
     Ok(())
 }
