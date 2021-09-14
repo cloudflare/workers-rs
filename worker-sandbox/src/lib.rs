@@ -101,7 +101,7 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
             Response::ok("returned your headers to you.")
                 .map(|res| res.with_headers(headers.into()))
         })
-        .on_async("/formdata-name", |mut req, _ctx| async move {
+        .post_async("/formdata-name", |mut req, _ctx| async move {
             let form = req.form_data().await?;
             const NAME: &str = "name";
             let bad_request = Response::error("Bad Request", 400);
@@ -195,17 +195,14 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
             let bytes = req.bytes().await?;
             Response::ok(&format!("size = {}", bytes.len()))
         })
-        .on("/user/:id/test", |req, ctx| {
-            if !matches!(req.method(), Method::Get) {
-                return Response::error("Method Not Allowed", 405);
-            }
+        .get("/user/:id/test", |_req, ctx| {
             if let Some(id) = ctx.param("id") {
                 return Response::ok(format!("TEST user id: {}", id));
             }
 
             Response::error("Error", 500)
         })
-        .on("/user/:id", |_req, ctx| {
+        .get("/user/:id", |_req, ctx| {
             if let Some(id) = ctx.param("id") {
                 return Response::from_json(&User {
                     id: id.to_string(),
@@ -232,10 +229,10 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
                 ctx.param("id").unwrap_or(&"not found".into())
             ))
         })
-        .on_async("/async", |mut req, _ctx| async move {
-            Response::ok(format!("Request body: {}", req.text().await?))
+        .get_async("/async-text-echo", |mut req, _ctx| async move {
+            Response::ok(req.text().await?)
         })
-        .on_async("/fetch", |_req, _ctx| async move {
+        .get_async("/fetch", |_req, _ctx| async move {
             let req = Request::new("https://example.com", Method::Post)?;
             let resp = Fetch::Request(req).send().await?;
             let resp2 = Fetch::Url("https://example.com".parse()?).send().await?;
@@ -245,7 +242,7 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
                 resp2.status_code()
             ))
         })
-        .on_async("/fetch_json", |_req, _ctx| async move {
+        .get_async("/fetch_json", |_req, _ctx| async move {
             let data: ApiData = Fetch::Url(
                 "https://jsonplaceholder.typicode.com/todos/1"
                     .parse()
@@ -260,7 +257,7 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
                 data.user_id, data.title, data.completed
             ))
         })
-        .on_async("/cloudflare-api", |_req, ctx| async move {
+        .get_async("/cloudflare-api", |_req, ctx| async move {
             let resp = ctx
                 .data()
                 .unwrap()
@@ -277,12 +274,12 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
                 res.with_headers(headers)
             })
         })
-        .on_async("/proxy_request/*url", |_req, ctx| async move {
+        .get_async("/proxy_request/*url", |_req, ctx| async move {
             let url = ctx.param("url").unwrap().strip_prefix('/').unwrap();
 
             Fetch::Url(url.parse()?).send().await
         })
-        .on_async("/durable/:id", |_req, ctx| async move {
+        .get_async("/durable/:id", |_req, ctx| async move {
             let namespace = ctx.durable_object("COUNTER")?;
             let stub = namespace.id_from_name("A")?.get_stub()?;
             stub.fetch_with_str("/").await
@@ -339,16 +336,22 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
 
             Response::error("Bad Request", 400)
         })
-        .options("/", respond)
         .put("/", respond)
         .patch("/", respond)
         .delete("/", respond)
         .head("/", respond)
-        .options_async("/async", respond_async)
         .put_async("/async", respond_async)
         .patch_async("/async", respond_async)
         .delete_async("/async", respond_async)
         .head_async("/async", respond_async)
+        .options("/*catchall", |_, ctx| {
+            Response::ok(ctx.param("catchall").unwrap())
+        })
+        .not_found_async(|_, _| async move {
+            Fetch::Url("https://github.com/404".parse().unwrap())
+                .send()
+                .await
+        })
         .run(req, env)
         .await
 }
