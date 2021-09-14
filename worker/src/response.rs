@@ -154,17 +154,11 @@ impl Response {
     }
 
     /// Set this response's status code.
-    ///
-    /// Will return Err if the status code provided is outside the valid HTTP
-    /// error range of 100-599.
-    pub fn with_status(mut self, status_code: u16) -> Result<Self> {
-        if !(100..=599).contains(&status_code) {
-            return Err(Error::Internal(
-                "provided error status code is invalid".into(),
-            ));
-        }
+    /// The Workers platform will reject HTTP status codes outside the range of 200..599 inclusive,
+    /// and will throw a JavaScript `RangeError`, returning a response with an HTTP 500 status code.
+    pub fn with_status(mut self, status_code: u16) -> Self {
         self.status_code = status_code;
-        Ok(self)
+        self
     }
 
     /// Read the `Headers` on this response.

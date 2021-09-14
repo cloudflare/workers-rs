@@ -39,6 +39,7 @@ impl<D> Clone for Handler<'_, D> {
 /// A path-based HTTP router supporting exact-match or wildcard placeholders and shared data.
 pub struct Router<'a, D> {
     handlers: HashMap<Method, Node<Handler<'a, D>>>,
+    not_found_handler: Option<Handler<'a, D>>,
     data: Option<D>,
 }
 
@@ -94,6 +95,7 @@ impl<'a, D: 'static> Router<'a, D> {
     pub fn new(data: D) -> Self {
         Self {
             handlers: HashMap::new(),
+            not_found_handler: None,
             data: Some(data),
         }
     }
@@ -143,6 +145,13 @@ impl<'a, D: 'static> Router<'a, D> {
     /// Register an HTTP handler that will respond to any requests.
     pub fn on(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
         self.add_handler(pattern, Handler::Sync(func), Method::all());
+        self
+    }
+
+    /// Register an HTTP handler that will catch any route that has no matched pattern for any
+    /// method. Any wildcard route will override this.
+    pub fn not_found(mut self, func: HandlerFn<D>) -> Self {
+        self.not_found_handler = Some(Handler::Sync(func));
         self
     }
 
@@ -262,6 +271,19 @@ impl<'a, D: 'static> Router<'a, D> {
         self
     }
 
+    /// Register an HTTP handler that will catch any route that has no matched pattern for any
+    /// method. Any wildcard route will override this. Enables the use of `async/await` syntax in
+    /// the callback.
+    pub fn not_found_async<T>(mut self, func: fn(Request, RouteContext<D>) -> T) -> Self
+    where
+        T: Future<Output = Result<Response>> + 'static,
+    {
+        self.not_found_handler = Some(Handler::Async(Rc::new(move |req, route| {
+            Box::pin(func(req, route))
+        })));
+        self
+    }
+
     fn add_handler(&mut self, pattern: &str, func: Handler<'a, D>, methods: Vec<Method>) {
         for method in methods {
             self.handlers
@@ -277,10 +299,10 @@ impl<'a, D: 'static> Router<'a, D> {
 
     /// Handle the request provided to the `Router` and return a `Future`.
     pub async fn run(self, req: Request, env: Env) -> Result<Response> {
-        let (handlers, data) = self.split();
+        let (handlers, data, not_found_handler) = self.split();
 
         if let Some(handlers) = handlers.get(&req.method()) {
-            if let Ok(Match { value, params }) = handlers.at(&req.path()) {
+            if let Ok(Match { value, params }) = &handlers.at(&req.path()) {
                 let mut par: RouteParams = HashMap::new();
                 for (ident, value) in params.iter() {
                     par.insert(ident.into(), value.into());
@@ -296,6 +318,7 @@ impl<'a, D: 'static> Router<'a, D> {
                 };
             }
         }
+
         for method in Method::all() {
             if method == Method::Head || method == Method::Options || method == Method::Trace {
                 continue;
@@ -306,6 +329,21 @@ impl<'a, D: 'static> Router<'a, D> {
                 }
             }
         }
+
+        if let Some(handler) = not_found_handler {
+            let route_info = RouteContext {
+                data,
+                env,
+                params: HashMap::new(),
+            };
+            return match handler {
+                Handler::Sync(func) => (func)(req, route_info).map(|resp| resp.with_status(404)),
+                Handler::Async(func) => (func)(req, route_info)
+                    .await
+                    .map(|resp| resp.with_status(404)),
+            };
+        }
+
         Response::error("Not Found", 404)
     }
 }
@@ -313,16 +351,13 @@ impl<'a, D: 'static> Router<'a, D> {
 type NodeWithHandlers<'a, D> = Node<Handler<'a, D>>;
 
 impl<'a, D: 'static> Router<'a, D> {
-    fn split(self) -> (HashMap<Method, NodeWithHandlers<'a, D>>, Option<D>) {
-        (self.handlers, self.data)
-    }
-}
-
-impl<D> Default for Router<'_, D> {
-    fn default() -> Self {
-        Self {
-            handlers: HashMap::new(),
-            data: None,
-        }
+    fn split(
+        self,
+    ) -> (
+        HashMap<Method, NodeWithHandlers<'a, D>>,
+        Option<D>,
+        Option<Handler<'a, D>>,
+    ) {
+        (self.handlers, self.data, self.not_found_handler)
     }
 }
