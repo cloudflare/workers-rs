@@ -290,10 +290,12 @@ impl<'a, D: 'static> Router<'a, D> {
                 .entry(method.clone())
                 .or_insert_with(Node::new)
                 .insert(pattern, func.clone())
-                .expect(&format!(
-                    "failed to register {:?} route for {} pattern",
-                    method, pattern
-                ));
+                .unwrap_or_else(|e| {
+                    panic!(
+                        "failed to register {:?} route for {} pattern: {}",
+                        method, pattern, e
+                    )
+                });
         }
     }
 
