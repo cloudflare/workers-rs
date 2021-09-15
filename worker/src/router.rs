@@ -16,11 +16,17 @@ use crate::{
 
 type HandlerFn<D> = fn(Request, RouteContext<D>) -> Result<Response>;
 type AsyncHandlerFn<'a, D> =
-    Rc<dyn Fn(Request, RouteContext<D>) -> LocalBoxFuture<'a, Result<Response>>>;
+    Rc<dyn 'a + Fn(Request, RouteContext<D>) -> LocalBoxFuture<'a, Result<Response>>>;
 
 /// Represents the URL parameters parsed from the path, e.g. a route with "/user/:id" pattern would
 /// contain a single "id" key.
-pub type RouteParams = HashMap<String, String>;
+pub struct RouteParams(HashMap<String, String>);
+
+impl RouteParams {
+    fn get(&self, key: &str) -> Option<&String> {
+        self.0.get(key)
+    }
+}
 
 enum Handler<'a, D> {
     Async(AsyncHandlerFn<'a, D>),
@@ -36,11 +42,10 @@ impl<D> Clone for Handler<'_, D> {
     }
 }
 
-type HandlerSet<'a, D> = [Option<Handler<'a, D>>; 9];
-
 /// A path-based HTTP router supporting exact-match or wildcard placeholders and shared data.
 pub struct Router<'a, D> {
-    handlers: Node<HandlerSet<'a, D>>,
+    handlers: HashMap<Method, Node<Handler<'a, D>>>,
+    or_else_any_method: Node<Handler<'a, D>>,
     data: Option<D>,
 }
 
@@ -90,12 +95,13 @@ impl<D> RouteContext<D> {
     }
 }
 
-impl<'a, D: 'static> Router<'a, D> {
+impl<'a, D: 'a> Router<'a, D> {
     /// Construct a new `Router`, with arbitrary data that will be available to your various routes.
     /// If no data is needed, provide any valid data. The unit type `()` is a good option.
     pub fn new(data: D) -> Self {
         Self {
-            handlers: Node::new(),
+            handlers: HashMap::new(),
+            or_else_any_method: Node::new(),
             data: Some(data),
         }
     }
@@ -148,11 +154,20 @@ impl<'a, D: 'static> Router<'a, D> {
         self
     }
 
+    /// Register an HTTP handler that will respond to all methods that are not handled explicitly by
+    /// other handlers.
+    pub fn or_else_any_method(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
+        self.or_else_any_method
+            .insert(pattern, Handler::Sync(func))
+            .unwrap_or_else(|e| panic!("failed to register route for {} pattern: {}", pattern, e));
+        self
+    }
+
     /// Register an HTTP handler that will exclusively respond to HEAD requests. Enables the use of
     /// `async/await` syntax in the callback.
     pub fn head_async<T>(mut self, pattern: &str, func: fn(Request, RouteContext<D>) -> T) -> Self
     where
-        T: Future<Output = Result<Response>> + 'static,
+        T: Future<Output = Result<Response>> + 'a,
     {
         self.add_handler(
             pattern,
@@ -166,7 +181,7 @@ impl<'a, D: 'static> Router<'a, D> {
     /// `async/await` syntax in the callback.
     pub fn get_async<T>(mut self, pattern: &str, func: fn(Request, RouteContext<D>) -> T) -> Self
     where
-        T: Future<Output = Result<Response>> + 'static,
+        T: Future<Output = Result<Response>> + 'a,
     {
         self.add_handler(
             pattern,
@@ -180,7 +195,7 @@ impl<'a, D: 'static> Router<'a, D> {
     /// `async/await` syntax in the callback.
     pub fn post_async<T>(mut self, pattern: &str, func: fn(Request, RouteContext<D>) -> T) -> Self
     where
-        T: Future<Output = Result<Response>> + 'static,
+        T: Future<Output = Result<Response>> + 'a,
     {
         self.add_handler(
             pattern,
@@ -194,7 +209,7 @@ impl<'a, D: 'static> Router<'a, D> {
     /// `async/await` syntax in the callback.
     pub fn put_async<T>(mut self, pattern: &str, func: fn(Request, RouteContext<D>) -> T) -> Self
     where
-        T: Future<Output = Result<Response>> + 'static,
+        T: Future<Output = Result<Response>> + 'a,
     {
         self.add_handler(
             pattern,
@@ -208,7 +223,7 @@ impl<'a, D: 'static> Router<'a, D> {
     /// `async/await` syntax in the callback.
     pub fn patch_async<T>(mut self, pattern: &str, func: fn(Request, RouteContext<D>) -> T) -> Self
     where
-        T: Future<Output = Result<Response>> + 'static,
+        T: Future<Output = Result<Response>> + 'a,
     {
         self.add_handler(
             pattern,
@@ -222,7 +237,7 @@ impl<'a, D: 'static> Router<'a, D> {
     /// of `async/await` syntax in the callback.
     pub fn delete_async<T>(mut self, pattern: &str, func: fn(Request, RouteContext<D>) -> T) -> Self
     where
-        T: Future<Output = Result<Response>> + 'static,
+        T: Future<Output = Result<Response>> + 'a,
     {
         self.add_handler(
             pattern,
@@ -240,7 +255,7 @@ impl<'a, D: 'static> Router<'a, D> {
         func: fn(Request, RouteContext<D>) -> T,
     ) -> Self
     where
-        T: Future<Output = Result<Response>> + 'static,
+        T: Future<Output = Result<Response>> + 'a,
     {
         self.add_handler(
             pattern,
@@ -254,7 +269,7 @@ impl<'a, D: 'static> Router<'a, D> {
     /// syntax in the callback.
     pub fn on_async<T>(mut self, pattern: &str, func: fn(Request, RouteContext<D>) -> T) -> Self
     where
-        T: Future<Output = Result<Response>> + 'static,
+        T: Future<Output = Result<Response>> + 'a,
     {
         self.add_handler(
             pattern,
@@ -264,67 +279,106 @@ impl<'a, D: 'static> Router<'a, D> {
         self
     }
 
+    /// Register an HTTP handler that will respond to all methods that are not handled explicitly by
+    /// other handlers. Enables the use of `async/await` syntax in the callback.
+    pub fn or_else_any_method_async<T>(
+        mut self,
+        pattern: &str,
+        func: fn(Request, RouteContext<D>) -> T,
+    ) -> Self
+    where
+        T: Future<Output = Result<Response>> + 'a,
+    {
+        self.or_else_any_method
+            .insert(
+                pattern,
+                Handler::Async(Rc::new(move |req, route| Box::pin(func(req, route)))),
+            )
+            .unwrap_or_else(|e| panic!("failed to register route for {} pattern: {}", pattern, e));
+        self
+    }
+
     fn add_handler(&mut self, pattern: &str, func: Handler<'a, D>, methods: Vec<Method>) {
-        if let Ok(Match {
-            value: handler_set,
-            params: _,
-        }) = self.handlers.at_mut(pattern)
-        {
-            for method in methods {
-                handler_set[method as usize] = Some(func.clone());
-            }
-        } else {
-            let mut handler_set = [None, None, None, None, None, None, None, None, None];
-            for method in methods.clone() {
-                handler_set[method as usize] = Some(func.clone());
-            }
-            self.handlers.insert(pattern, handler_set).expect(&format!(
-                "failed to register {:?} route for {} pattern",
-                methods, pattern
-            ));
+        for method in methods {
+            self.handlers
+                .entry(method.clone())
+                .or_insert_with(Node::new)
+                .insert(pattern, func.clone())
+                .unwrap_or_else(|e| {
+                    panic!(
+                        "failed to register {:?} route for {} pattern: {}",
+                        method, pattern, e
+                    )
+                });
         }
     }
 
     /// Handle the request provided to the `Router` and return a `Future`.
     pub async fn run(self, req: Request, env: Env) -> Result<Response> {
-        let (handlers, data) = self.split();
+        let (handlers, data, or_else_any_method_handler) = self.split();
 
-        if let Ok(Match { value, params }) = handlers.at(&req.path()) {
-            let mut par: RouteParams = HashMap::new();
-            for (ident, value) in params.iter() {
-                par.insert(ident.into(), value.into());
-            }
-            let route_info = RouteContext {
-                data,
-                env,
-                params: par,
-            };
-
-            if let Some(handler) = value[req.method() as usize].as_ref() {
-                return match handler {
+        if let Some(handlers) = handlers.get(&req.method()) {
+            if let Ok(Match { value, params }) = handlers.at(&req.path()) {
+                let route_info = RouteContext {
+                    data,
+                    env,
+                    params: params.into(),
+                };
+                return match value {
                     Handler::Sync(func) => (func)(req, route_info),
                     Handler::Async(func) => (func)(req, route_info).await,
                 };
             }
-            return Response::error("Method Not Allowed", 405);
         }
+
+        for method in Method::all() {
+            if method == Method::Head || method == Method::Options || method == Method::Trace {
+                continue;
+            }
+            if let Some(handlers) = handlers.get(&method) {
+                if let Ok(Match { .. }) = handlers.at(&req.path()) {
+                    return Response::error("Method Not Allowed", 405);
+                }
+            }
+        }
+
+        if let Ok(Match { value, params }) = or_else_any_method_handler.at(&req.path()) {
+            let route_info = RouteContext {
+                data,
+                env,
+                params: params.into(),
+            };
+            return match value {
+                Handler::Sync(func) => (func)(req, route_info),
+                Handler::Async(func) => (func)(req, route_info).await,
+            };
+        }
+
         Response::error("Not Found", 404)
     }
 }
 
-type NodeWithHandlers<'a, D> = Node<[Option<Handler<'a, D>>; 9]>;
+type NodeWithHandlers<'a, D> = Node<Handler<'a, D>>;
 
-impl<'a, D: 'static> Router<'a, D> {
-    fn split(self) -> (NodeWithHandlers<'a, D>, Option<D>) {
-        (self.handlers, self.data)
+impl<'a, D: 'a> Router<'a, D> {
+    fn split(
+        self,
+    ) -> (
+        HashMap<Method, NodeWithHandlers<'a, D>>,
+        Option<D>,
+        NodeWithHandlers<'a, D>,
+    ) {
+        (self.handlers, self.data, self.or_else_any_method)
     }
 }
 
-impl<D> Default for Router<'_, D> {
-    fn default() -> Self {
-        Self {
-            handlers: Node::new(),
-            data: None,
+impl From<matchit::Params<'_, '_>> for RouteParams {
+    fn from(p: matchit::Params) -> Self {
+        let mut route_params = RouteParams(HashMap::new());
+        for (ident, value) in p.iter() {
+            route_params.0.insert(ident.into(), value.into());
         }
+
+        route_params
     }
 }
