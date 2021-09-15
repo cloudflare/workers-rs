@@ -16,7 +16,7 @@ use crate::{
 
 type HandlerFn<D> = fn(Request, RouteContext<D>) -> Result<Response>;
 type AsyncHandlerFn<'a, D> =
-    Rc<dyn Fn(Request, RouteContext<D>) -> LocalBoxFuture<'a, Result<Response>>>;
+    Rc<dyn 'a + Fn(Request, RouteContext<D>) -> LocalBoxFuture<'a, Result<Response>>>;
 
 /// Represents the URL parameters parsed from the path, e.g. a route with "/user/:id" pattern would
 /// contain a single "id" key.
@@ -39,7 +39,7 @@ impl<D> Clone for Handler<'_, D> {
 /// A path-based HTTP router supporting exact-match or wildcard placeholders and shared data.
 pub struct Router<'a, D> {
     handlers: HashMap<Method, Node<Handler<'a, D>>>,
-    not_found_handler: Option<Handler<'a, D>>,
+    or_else_any_method: Node<Handler<'a, D>>,
     data: Option<D>,
 }
 
@@ -89,13 +89,13 @@ impl<D> RouteContext<D> {
     }
 }
 
-impl<'a, D: 'static> Router<'a, D> {
+impl<'a, D: 'a> Router<'a, D> {
     /// Construct a new `Router`, with arbitrary data that will be available to your various routes.
     /// If no data is needed, provide any valid data. The unit type `()` is a good option.
     pub fn new(data: D) -> Self {
         Self {
             handlers: HashMap::new(),
-            not_found_handler: None,
+            or_else_any_method: Node::new(),
             data: Some(data),
         }
     }
@@ -148,10 +148,12 @@ impl<'a, D: 'static> Router<'a, D> {
         self
     }
 
-    /// Register an HTTP handler that will catch any route that has no matched pattern for any
-    /// method. Any wildcard route will override this.
-    pub fn not_found(mut self, func: HandlerFn<D>) -> Self {
-        self.not_found_handler = Some(Handler::Sync(func));
+    /// Register an HTTP handler that will respond to all methods that are not handled explicitly by
+    /// other handlers.
+    pub fn or_else_any_method(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
+        self.or_else_any_method
+            .insert(pattern, Handler::Sync(func))
+            .unwrap_or_else(|e| panic!("failed to register route for {} pattern: {}", pattern, e));
         self
     }
 
@@ -159,7 +161,7 @@ impl<'a, D: 'static> Router<'a, D> {
     /// `async/await` syntax in the callback.
     pub fn head_async<T>(mut self, pattern: &str, func: fn(Request, RouteContext<D>) -> T) -> Self
     where
-        T: Future<Output = Result<Response>> + 'static,
+        T: Future<Output = Result<Response>> + 'a,
     {
         self.add_handler(
             pattern,
@@ -173,7 +175,7 @@ impl<'a, D: 'static> Router<'a, D> {
     /// `async/await` syntax in the callback.
     pub fn get_async<T>(mut self, pattern: &str, func: fn(Request, RouteContext<D>) -> T) -> Self
     where
-        T: Future<Output = Result<Response>> + 'static,
+        T: Future<Output = Result<Response>> + 'a,
     {
         self.add_handler(
             pattern,
@@ -187,7 +189,7 @@ impl<'a, D: 'static> Router<'a, D> {
     /// `async/await` syntax in the callback.
     pub fn post_async<T>(mut self, pattern: &str, func: fn(Request, RouteContext<D>) -> T) -> Self
     where
-        T: Future<Output = Result<Response>> + 'static,
+        T: Future<Output = Result<Response>> + 'a,
     {
         self.add_handler(
             pattern,
@@ -201,7 +203,7 @@ impl<'a, D: 'static> Router<'a, D> {
     /// `async/await` syntax in the callback.
     pub fn put_async<T>(mut self, pattern: &str, func: fn(Request, RouteContext<D>) -> T) -> Self
     where
-        T: Future<Output = Result<Response>> + 'static,
+        T: Future<Output = Result<Response>> + 'a,
     {
         self.add_handler(
             pattern,
@@ -215,7 +217,7 @@ impl<'a, D: 'static> Router<'a, D> {
     /// `async/await` syntax in the callback.
     pub fn patch_async<T>(mut self, pattern: &str, func: fn(Request, RouteContext<D>) -> T) -> Self
     where
-        T: Future<Output = Result<Response>> + 'static,
+        T: Future<Output = Result<Response>> + 'a,
     {
         self.add_handler(
             pattern,
@@ -229,7 +231,7 @@ impl<'a, D: 'static> Router<'a, D> {
     /// of `async/await` syntax in the callback.
     pub fn delete_async<T>(mut self, pattern: &str, func: fn(Request, RouteContext<D>) -> T) -> Self
     where
-        T: Future<Output = Result<Response>> + 'static,
+        T: Future<Output = Result<Response>> + 'a,
     {
         self.add_handler(
             pattern,
@@ -247,7 +249,7 @@ impl<'a, D: 'static> Router<'a, D> {
         func: fn(Request, RouteContext<D>) -> T,
     ) -> Self
     where
-        T: Future<Output = Result<Response>> + 'static,
+        T: Future<Output = Result<Response>> + 'a,
     {
         self.add_handler(
             pattern,
@@ -261,7 +263,7 @@ impl<'a, D: 'static> Router<'a, D> {
     /// syntax in the callback.
     pub fn on_async<T>(mut self, pattern: &str, func: fn(Request, RouteContext<D>) -> T) -> Self
     where
-        T: Future<Output = Result<Response>> + 'static,
+        T: Future<Output = Result<Response>> + 'a,
     {
         self.add_handler(
             pattern,
@@ -271,16 +273,22 @@ impl<'a, D: 'static> Router<'a, D> {
         self
     }
 
-    /// Register an HTTP handler that will catch any route that has no matched pattern for any
-    /// method. Any wildcard route will override this. Enables the use of `async/await` syntax in
-    /// the callback.
-    pub fn not_found_async<T>(mut self, func: fn(Request, RouteContext<D>) -> T) -> Self
+    /// Register an HTTP handler that will respond to all methods that are not handled explicitly by
+    /// other handlers. Enables the use of `async/await` syntax in the callback.
+    pub fn or_else_any_method_async<T>(
+        mut self,
+        pattern: &str,
+        func: fn(Request, RouteContext<D>) -> T,
+    ) -> Self
     where
-        T: Future<Output = Result<Response>> + 'static,
+        T: Future<Output = Result<Response>> + 'a,
     {
-        self.not_found_handler = Some(Handler::Async(Rc::new(move |req, route| {
-            Box::pin(func(req, route))
-        })));
+        self.or_else_any_method
+            .insert(
+                pattern,
+                Handler::Async(Rc::new(move |req, route| Box::pin(func(req, route)))),
+            )
+            .unwrap_or_else(|e| panic!("failed to register route for {} pattern: {}", pattern, e));
         self
     }
 
@@ -301,7 +309,7 @@ impl<'a, D: 'static> Router<'a, D> {
 
     /// Handle the request provided to the `Router` and return a `Future`.
     pub async fn run(self, req: Request, env: Env) -> Result<Response> {
-        let (handlers, data, not_found_handler) = self.split();
+        let (handlers, data, or_else_any_method_handler) = self.split();
 
         if let Some(handlers) = handlers.get(&req.method()) {
             if let Ok(Match { value, params }) = &handlers.at(&req.path()) {
@@ -332,17 +340,15 @@ impl<'a, D: 'static> Router<'a, D> {
             }
         }
 
-        if let Some(handler) = not_found_handler {
+        if let Ok(Match { value, .. }) = or_else_any_method_handler.at(&req.path()) {
             let route_info = RouteContext {
                 data,
                 env,
                 params: HashMap::new(),
             };
-            return match handler {
-                Handler::Sync(func) => (func)(req, route_info).map(|resp| resp.with_status(404)),
-                Handler::Async(func) => (func)(req, route_info)
-                    .await
-                    .map(|resp| resp.with_status(404)),
+            return match value {
+                Handler::Sync(func) => (func)(req, route_info),
+                Handler::Async(func) => (func)(req, route_info).await,
             };
         }
 
@@ -352,14 +358,14 @@ impl<'a, D: 'static> Router<'a, D> {
 
 type NodeWithHandlers<'a, D> = Node<Handler<'a, D>>;
 
-impl<'a, D: 'static> Router<'a, D> {
+impl<'a, D: 'a> Router<'a, D> {
     fn split(
         self,
     ) -> (
         HashMap<Method, NodeWithHandlers<'a, D>>,
         Option<D>,
-        Option<Handler<'a, D>>,
+        NodeWithHandlers<'a, D>,
     ) {
-        (self.handlers, self.data, self.not_found_handler)
+        (self.handlers, self.data, self.or_else_any_method)
     }
 }
