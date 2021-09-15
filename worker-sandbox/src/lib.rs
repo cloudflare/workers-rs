@@ -347,10 +347,11 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         .options("/*catchall", |_, ctx| {
             Response::ok(ctx.param("catchall").unwrap())
         })
-        .not_found_async(|_, _| async move {
+        .or_else_any_method_async("/*catchall", |_, _| async move {
             Fetch::Url("https://github.com/404".parse().unwrap())
                 .send()
                 .await
+                .map(|resp| resp.with_status(404))
         })
         .run(req, env)
         .await
