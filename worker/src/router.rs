@@ -16,7 +16,7 @@ use crate::{
 
 type HandlerFn<D> = fn(Request, RouteContext<D>) -> Result<Response>;
 type AsyncHandlerFn<'a, D> =
-    Rc<dyn Fn(Request, RouteContext<D>) -> LocalBoxFuture<'a, Result<Response>>>;
+    Rc<dyn 'a + Fn(Request, RouteContext<D>) -> LocalBoxFuture<'a, Result<Response>>>;
 
 /// Represents the URL parameters parsed from the path, e.g. a route with "/user/:id" pattern would
 /// contain a single "id" key.
@@ -89,7 +89,7 @@ impl<D> RouteContext<D> {
     }
 }
 
-impl<'a, D: 'static> Router<'a, D> {
+impl<'a, D: 'a> Router<'a, D> {
     /// Construct a new `Router`, with arbitrary data that will be available to your various routes.
     /// If no data is needed, provide any valid data. The unit type `()` is a good option.
     pub fn new(data: D) -> Self {
@@ -159,7 +159,7 @@ impl<'a, D: 'static> Router<'a, D> {
     /// `async/await` syntax in the callback.
     pub fn head_async<T>(mut self, pattern: &str, func: fn(Request, RouteContext<D>) -> T) -> Self
     where
-        T: Future<Output = Result<Response>> + 'static,
+        T: Future<Output = Result<Response>> + 'a,
     {
         self.add_handler(
             pattern,
@@ -173,7 +173,7 @@ impl<'a, D: 'static> Router<'a, D> {
     /// `async/await` syntax in the callback.
     pub fn get_async<T>(mut self, pattern: &str, func: fn(Request, RouteContext<D>) -> T) -> Self
     where
-        T: Future<Output = Result<Response>> + 'static,
+        T: Future<Output = Result<Response>> + 'a,
     {
         self.add_handler(
             pattern,
@@ -187,7 +187,7 @@ impl<'a, D: 'static> Router<'a, D> {
     /// `async/await` syntax in the callback.
     pub fn post_async<T>(mut self, pattern: &str, func: fn(Request, RouteContext<D>) -> T) -> Self
     where
-        T: Future<Output = Result<Response>> + 'static,
+        T: Future<Output = Result<Response>> + 'a,
     {
         self.add_handler(
             pattern,
@@ -201,7 +201,7 @@ impl<'a, D: 'static> Router<'a, D> {
     /// `async/await` syntax in the callback.
     pub fn put_async<T>(mut self, pattern: &str, func: fn(Request, RouteContext<D>) -> T) -> Self
     where
-        T: Future<Output = Result<Response>> + 'static,
+        T: Future<Output = Result<Response>> + 'a,
     {
         self.add_handler(
             pattern,
@@ -215,7 +215,7 @@ impl<'a, D: 'static> Router<'a, D> {
     /// `async/await` syntax in the callback.
     pub fn patch_async<T>(mut self, pattern: &str, func: fn(Request, RouteContext<D>) -> T) -> Self
     where
-        T: Future<Output = Result<Response>> + 'static,
+        T: Future<Output = Result<Response>> + 'a,
     {
         self.add_handler(
             pattern,
@@ -229,7 +229,7 @@ impl<'a, D: 'static> Router<'a, D> {
     /// of `async/await` syntax in the callback.
     pub fn delete_async<T>(mut self, pattern: &str, func: fn(Request, RouteContext<D>) -> T) -> Self
     where
-        T: Future<Output = Result<Response>> + 'static,
+        T: Future<Output = Result<Response>> + 'a,
     {
         self.add_handler(
             pattern,
@@ -247,7 +247,7 @@ impl<'a, D: 'static> Router<'a, D> {
         func: fn(Request, RouteContext<D>) -> T,
     ) -> Self
     where
-        T: Future<Output = Result<Response>> + 'static,
+        T: Future<Output = Result<Response>> + 'a,
     {
         self.add_handler(
             pattern,
@@ -261,7 +261,7 @@ impl<'a, D: 'static> Router<'a, D> {
     /// syntax in the callback.
     pub fn on_async<T>(mut self, pattern: &str, func: fn(Request, RouteContext<D>) -> T) -> Self
     where
-        T: Future<Output = Result<Response>> + 'static,
+        T: Future<Output = Result<Response>> + 'a,
     {
         self.add_handler(
             pattern,
@@ -276,7 +276,7 @@ impl<'a, D: 'static> Router<'a, D> {
     /// the callback.
     pub fn not_found_async<T>(mut self, func: fn(Request, RouteContext<D>) -> T) -> Self
     where
-        T: Future<Output = Result<Response>> + 'static,
+        T: Future<Output = Result<Response>> + 'a,
     {
         self.not_found_handler = Some(Handler::Async(Rc::new(move |req, route| {
             Box::pin(func(req, route))
@@ -352,7 +352,7 @@ impl<'a, D: 'static> Router<'a, D> {
 
 type NodeWithHandlers<'a, D> = Node<Handler<'a, D>>;
 
-impl<'a, D: 'static> Router<'a, D> {
+impl<'a, D: 'a> Router<'a, D> {
     fn split(
         self,
     ) -> (
