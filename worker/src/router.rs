@@ -20,7 +20,13 @@ type AsyncHandlerFn<'a, D> =
 
 /// Represents the URL parameters parsed from the path, e.g. a route with "/user/:id" pattern would
 /// contain a single "id" key.
-pub type RouteParams = HashMap<String, String>;
+pub struct RouteParams(HashMap<String, String>);
+
+impl RouteParams {
+    fn get(&self, key: &str) -> Option<&String> {
+        self.0.get(key)
+    }
+}
 
 enum Handler<'a, D> {
     Async(AsyncHandlerFn<'a, D>),
@@ -312,15 +318,11 @@ impl<'a, D: 'a> Router<'a, D> {
         let (handlers, data, or_else_any_method_handler) = self.split();
 
         if let Some(handlers) = handlers.get(&req.method()) {
-            if let Ok(Match { value, params }) = &handlers.at(&req.path()) {
-                let mut par: RouteParams = HashMap::new();
-                for (ident, value) in params.iter() {
-                    par.insert(ident.into(), value.into());
-                }
+            if let Ok(Match { value, params }) = handlers.at(&req.path()) {
                 let route_info = RouteContext {
                     data,
                     env,
-                    params: par,
+                    params: params.into(),
                 };
                 return match value {
                     Handler::Sync(func) => (func)(req, route_info),
@@ -340,11 +342,11 @@ impl<'a, D: 'a> Router<'a, D> {
             }
         }
 
-        if let Ok(Match { value, .. }) = or_else_any_method_handler.at(&req.path()) {
+        if let Ok(Match { value, params }) = or_else_any_method_handler.at(&req.path()) {
             let route_info = RouteContext {
                 data,
                 env,
-                params: HashMap::new(),
+                params: params.into(),
             };
             return match value {
                 Handler::Sync(func) => (func)(req, route_info),
@@ -367,5 +369,16 @@ impl<'a, D: 'a> Router<'a, D> {
         NodeWithHandlers<'a, D>,
     ) {
         (self.handlers, self.data, self.or_else_any_method)
+    }
+}
+
+impl From<matchit::Params<'_, '_>> for RouteParams {
+    fn from(p: matchit::Params) -> Self {
+        let mut route_params = RouteParams(HashMap::new());
+        for (ident, value) in p.iter() {
+            route_params.0.insert(ident.into(), value.into());
+        }
+
+        route_params
     }
 }
