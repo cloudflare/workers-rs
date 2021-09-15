@@ -347,7 +347,12 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         .options("/*catchall", |_, ctx| {
             Response::ok(ctx.param("catchall").unwrap())
         })
-        .or_else_any_method_async("/*catchall", |_, _| async move {
+        .or_else_any_method_async("/*catchall", |_, ctx| async move {
+            console_log!(
+                "[or_else_any_method_async] caught: {}",
+                ctx.param("catchall").unwrap_or(&"?".to_string())
+            );
+
             Fetch::Url("https://github.com/404".parse().unwrap())
                 .send()
                 .await
