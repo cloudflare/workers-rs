@@ -46,21 +46,21 @@ impl<D> Clone for Handler<'_, D> {
 pub struct Router<'a, D> {
     handlers: HashMap<Method, Node<Handler<'a, D>>>,
     or_else_any_method: Node<Handler<'a, D>>,
-    data: Option<D>,
+    data: D,
 }
 
 /// Container for a route's parsed parameters, data, and environment bindings from the Runtime (such
 /// as KV Stores, Durable Objects, Variables, and Secrets).
 pub struct RouteContext<D> {
-    data: Option<D>,
+    data: D,
     env: Env,
     params: RouteParams,
 }
 
 impl<D> RouteContext<D> {
     /// Get a reference to the generic associated data provided to the `Router`.
-    pub fn data(&self) -> Option<&D> {
-        self.data.as_ref()
+    pub fn data(&self) -> &D {
+        &self.data
     }
 
     /// Get the `Env` for this Worker. Typically users should opt for the `secret`, `var`, `kv` and
@@ -95,14 +95,21 @@ impl<D> RouteContext<D> {
     }
 }
 
+impl<'a> Router<'a, ()> {
+    /// Construct a new `Router`. Or, call `Router::with_data(D)` to add arbitrary data that will be
+    /// available to your various routes.
+    pub fn new() -> Self {
+        Self::with_data(())
+    }
+}
+
 impl<'a, D: 'a> Router<'a, D> {
-    /// Construct a new `Router`, with arbitrary data that will be available to your various routes.
-    /// If no data is needed, provide any valid data. The unit type `()` is a good option.
-    pub fn new(data: D) -> Self {
+    /// Construct a new `Router` with arbitrary data that will be available to your various routes.
+    pub fn with_data(data: D) -> Self {
         Self {
             handlers: HashMap::new(),
             or_else_any_method: Node::new(),
-            data: Some(data),
+            data,
         }
     }
 
@@ -365,7 +372,7 @@ impl<'a, D: 'a> Router<'a, D> {
         self,
     ) -> (
         HashMap<Method, NodeWithHandlers<'a, D>>,
-        Option<D>,
+        D,
         NodeWithHandlers<'a, D>,
     ) {
         (self.handlers, self.data, self.or_else_any_method)
