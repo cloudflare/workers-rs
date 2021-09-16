@@ -83,7 +83,13 @@ impl From<&RequestInit> for worker_sys::RequestInit {
 
 impl Default for RequestInit {
     fn default() -> Self {
-        Self::new()
+        Self {
+            body: None,
+            headers: Headers::new(),
+            cf: CfProperties::default(),
+            method: Method::Get,
+            redirect: RequestRedirect::default(),
+        }
     }
 }
 
@@ -147,7 +153,7 @@ impl From<&CfProperties> for JsValue {
         set_prop(
             &obj,
             &JsValue::from("apps"),
-            &JsValue::from(props.apps.unwrap_or(defaults.apps.unwrap())),
+            &JsValue::from(props.apps.unwrap_or(defaults.apps.unwrap_or_default())),
         );
 
         set_prop(
@@ -156,48 +162,56 @@ impl From<&CfProperties> for JsValue {
             &JsValue::from(
                 props
                     .cache_everything
-                    .unwrap_or(defaults.cache_everything.unwrap()),
+                    .unwrap_or(defaults.cache_everything.unwrap_or_default()),
             ),
         );
 
         set_prop(
             &obj,
             &JsValue::from("cacheKey"),
-            &JsValue::from(props.cache_key.unwrap_or(defaults.cache_key.unwrap())),
+            &JsValue::from(
+                props
+                    .cache_key
+                    .unwrap_or(defaults.cache_key.unwrap_or_default()),
+            ),
         );
 
         set_prop(
             &obj,
             &JsValue::from("cacheTtl"),
-            &JsValue::from(props.cache_ttl.unwrap_or(defaults.cache_ttl.unwrap())),
+            &JsValue::from(
+                props
+                    .cache_ttl
+                    .unwrap_or(defaults.cache_ttl.unwrap_or_default()),
+            ),
         );
 
         let ttl_status_map = props
             .cache_ttl_by_status
             .clone()
-            .unwrap_or(defaults.cache_ttl_by_status.unwrap());
+            .unwrap_or(defaults.cache_ttl_by_status.unwrap_or_default());
         set_prop(
             &obj,
             &JsValue::from("cacheTtlByStatus"),
-            &JsValue::from_serde(&ttl_status_map).unwrap(),
+            &JsValue::from_serde(&ttl_status_map).unwrap_or_default(),
         );
 
         set_prop(
             &obj,
             &JsValue::from("minify"),
-            &JsValue::from(props.minify.unwrap_or(defaults.minify.unwrap())),
+            &JsValue::from(props.minify.unwrap_or(defaults.minify.unwrap_or_default())),
         );
 
         set_prop(
             &obj,
             &JsValue::from("mirage"),
-            &JsValue::from(props.mirage.unwrap_or(defaults.mirage.unwrap())),
+            &JsValue::from(props.mirage.unwrap_or(defaults.mirage.unwrap_or_default())),
         );
 
         let polish_val: &str = props
             .polish
             .clone()
-            .unwrap_or(defaults.polish.unwrap())
+            .unwrap_or(defaults.polish.unwrap_or_default())
             .into();
         set_prop(&obj, &JsValue::from("polish"), &JsValue::from(polish_val));
 
@@ -208,7 +222,7 @@ impl From<&CfProperties> for JsValue {
                 props
                     .resolve_override
                     .clone()
-                    .unwrap_or(defaults.resolve_override.unwrap()),
+                    .unwrap_or(defaults.resolve_override.unwrap_or_default()),
             ),
         );
 
@@ -218,7 +232,7 @@ impl From<&CfProperties> for JsValue {
             &JsValue::from(
                 props
                     .scrape_shield
-                    .unwrap_or(defaults.scrape_shield.unwrap()),
+                    .unwrap_or(defaults.scrape_shield.unwrap_or_default()),
             ),
         );
 
@@ -262,7 +276,7 @@ impl Default for CfProperties {
 /// Configuration options for Cloudflare's minification features:
 /// <https://www.cloudflare.com/website-optimization/>
 #[wasm_bindgen]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub struct MinifyConfig {
     pub js: bool,
     pub html: bool,
@@ -277,6 +291,12 @@ pub enum PolishConfig {
     Off,
     Lossy,
     Lossless,
+}
+
+impl Default for PolishConfig {
+    fn default() -> Self {
+        Self::Off
+    }
 }
 
 impl From<PolishConfig> for &str {
