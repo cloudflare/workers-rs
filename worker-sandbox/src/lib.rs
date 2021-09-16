@@ -77,21 +77,17 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         cloudflare_api_client: client,
     };
 
-    let router = Router::new(data); // if no data is needed, pass `()` or any other valid data
+    let router = Router::with_data(data); // if no data is needed, pass `()` or any other valid data
 
     router
         .get("/request", handle_a_request) // can pass a fn pointer to keep routes tidy
         .get_async("/async-request", handle_async_request)
         .get("/test-data", |_, ctx| {
             // just here to test data works
-            if let Some(data) = ctx.data() {
-                if data.regex.is_match("2014-01-01") {
-                    Response::ok("data ok")
-                } else {
-                    Response::error("bad match", 500)
-                }
+            if ctx.data().regex.is_match("2014-01-01") {
+                Response::ok("data ok")
             } else {
-                Response::error("no data", 500)
+                Response::error("bad match", 500)
             }
         })
         .post("/headers", |req, _ctx| {
@@ -260,7 +256,6 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         .get_async("/cloudflare-api", |_req, ctx| async move {
             let resp = ctx
                 .data()
-                .unwrap()
                 .cloudflare_api_client
                 .request_handle(&cloudflare::endpoints::user::GetUserDetails {})
                 .await
@@ -314,15 +309,13 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
             Response::from_bytes(serde_json::to_vec(&todo)?)
         })
         .post_async("/nonsense-repeat", |_, ctx| async move {
-            //  just here to test data works
-            if let Some(data) = ctx.data() {
-                if data.regex.is_match("2014-01-01") {
-                    Response::ok("data ok")
-                } else {
-                    Response::error("bad match", 500)
-                }
+            //  just here to test data works, and verify borrow
+            let _d = ctx.data();
+
+            if ctx.data().regex.is_match("2014-01-01") {
+                Response::ok("data ok")
             } else {
-                Response::error("no data", 500)
+                Response::error("bad match", 500)
             }
         })
         .get("/status/:code", |_, ctx| {
