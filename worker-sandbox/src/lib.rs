@@ -340,6 +340,19 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         .options("/*catchall", |_, ctx| {
             Response::ok(ctx.param("catchall").unwrap())
         })
+        .get_async("/request-init-fetch", |_, _| async move {
+            let init = RequestInit::new();
+            Fetch::Request(Request::new_with_init("https://cloudflare.com", &init)?)
+                .send()
+                .await
+        })
+        .get_async("/request-init-fetch-post", |_, _| async move {
+            let mut init = RequestInit::new();
+            init.method = Method::Post;
+            Fetch::Request(Request::new_with_init("https://httpbin.org/post", &init)?)
+                .send()
+                .await
+        })
         .or_else_any_method_async("/*catchall", |_, ctx| async move {
             console_log!(
                 "[or_else_any_method_async] caught: {}",
