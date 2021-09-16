@@ -2,7 +2,7 @@
 authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
 edition = "2018"
 name    = "worker-build"
-version = "0.0.1"
+version = "0.0.2"
 license = "Apache-2.0"
 repository = "https://github.com/cloudflare/workers-rs/tree/main/worker-build"
 readme = "README.md"
