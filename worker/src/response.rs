@@ -107,6 +107,27 @@ impl Response {
         })
     }
 
+    /// Create a `Response` which redirects to the specified URL with default status_code of 302
+    pub fn redirect(url: url::Url) -> Result<Self> {
+        match EdgeResponse::redirect(&url.as_str()) {
+            Ok(edge_response) => Ok(Response::from(edge_response)),
+            Err(err) => Err(Error::from(err)),
+        }
+    }
+
+    /// Create a `Response` which redirects to the specified URL with a custom status_code
+    pub fn redirect_with_status_code(url: url::Url, status_code: u16) -> Result<Self> {
+        if !(300..=399).contains(&status_code) {
+            return Err(Error::Internal(
+                "provided error status code is invalid".into(),
+            ));
+        }
+        match EdgeResponse::redirect_with_status(&url.as_str(), status_code) {
+            Ok(edge_response) => Ok(Response::from(edge_response)),
+            Err(err) => Err(Error::from(err)),
+        }
+    }
+
     /// Get the HTTP Status code of this `Response`.
     pub fn status_code(&self) -> u16 {
         self.status_code
