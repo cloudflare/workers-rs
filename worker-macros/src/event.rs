@@ -1,7 +1,6 @@
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, punctuated::Punctuated, token::Comma, Ident, ItemFn};
-use wasm_bindgen_macro_support;
 
 pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attrs: Punctuated<Ident, Comma> =

@@ -1,6 +1,6 @@
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, ToTokens};
-use syn::{spanned::Spanned, FnArg, Error, ImplItem, Type, TypePath, PatType, Item};
+use syn::{spanned::Spanned, FnArg, Error, ImplItem, Type, TypePath, Item};
 
 pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
     let item = syn::parse2::<Item>(tokens)?;

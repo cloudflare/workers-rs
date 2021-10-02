@@ -1,6 +1,5 @@
 use crate::{cf::Cf, error::Error, headers::Headers, http::Method, FormData, RequestInit, Result};
 
-use js_sys;
 use serde::de::DeserializeOwned;
 use url::Url;
 use wasm_bindgen_futures::JsFuture;
