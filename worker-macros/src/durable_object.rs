@@ -34,12 +34,11 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                         // modify the `state` argument so it is type ObjectState
                         let arg_tokens = method.sig.inputs.first_mut().expect("DurableObject `new` method must have 2 arguments: state and env").into_token_stream();                        
                         match syn::parse2::<FnArg>(arg_tokens)? {
-                            FnArg::Typed(pat) => {
-                                let path = syn::parse2::<TypePath>(quote!{worker_sys::durable_object::ObjectState}.into())?;
-                                let mut updated_pat = PatType::from(pat);
-                                updated_pat.ty = Box::new(Type::Path(path)); 
+                            FnArg::Typed(mut pat) => {
+                                let path = syn::parse2::<TypePath>(quote!{worker_sys::durable_object::ObjectState})?;
+                                pat.ty = Box::new(Type::Path(path)); 
                                 
-                                let state_arg = FnArg::Typed(updated_pat);
+                                let state_arg = FnArg::Typed(pat);
                                 let env_arg = method.sig.inputs.pop().expect("DurableObject `new` method expects a second argument: env");
                                 method.sig.inputs.clear();
                                 method.sig.inputs.insert(0, state_arg);
