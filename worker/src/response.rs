@@ -96,7 +96,7 @@ impl Response {
     pub fn error(msg: impl Into<String>, status: u16) -> Result<Self> {
         if !(400..=599).contains(&status) {
             return Err(Error::Internal(
-                "provided error status code is invalid".into(),
+                "error status codes must be in the 400-599 range! see https://developer.mozilla.org/en-US/docs/Web/HTTP/Status for more".into(),
             ));
         }
 
@@ -116,10 +116,10 @@ impl Response {
     }
 
     /// Create a `Response` which redirects to the specified URL with a custom status_code
-    pub fn redirect_with_status_code(url: url::Url, status_code: u16) -> Result<Self> {
+    pub fn redirect_with_status(url: url::Url, status_code: u16) -> Result<Self> {
         if !(300..=399).contains(&status_code) {
             return Err(Error::Internal(
-                "provided error status code is invalid".into(),
+                "redirect status codes must be in the 300-399 range! Please checkout https://developer.mozilla.org/en-US/docs/Web/HTTP/Status#redirection_messages for more".into(),
             ));
         }
         match EdgeResponse::redirect_with_status(&url.as_str(), status_code) {
