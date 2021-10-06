@@ -1,3 +1,4 @@
+pub mod cache;
 pub mod cf;
 pub mod durable_object;
 pub mod file;
