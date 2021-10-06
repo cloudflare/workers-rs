@@ -1,6 +1,7 @@
 #![allow(clippy::manual_non_exhaustive)]
 
 pub mod abort;
+pub mod cache;
 pub mod cf;
 pub mod context;
 pub mod durable_object;
