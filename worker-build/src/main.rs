@@ -96,7 +96,16 @@ fn copy_generated_code_to_worker_dir() -> Result<()> {
         .join(WORKER_SUBDIR)
         .join(format!("{}_bg.wasm", OUT_NAME));
 
-    for (src, dest) in [(glue_src, glue_dest), (wasm_src, wasm_dest)] {
+    // wasm-bindgen supports adding arbitrary JavaScript for a library, so we need to move that as well.
+    // https://rustwasm.github.io/wasm-bindgen/reference/js-snippets.html
+    let snippets_src = PathBuf::from(OUT_DIR).join("snippets");
+    let snippets_dest = PathBuf::from(OUT_DIR).join(WORKER_SUBDIR).join("snippets");
+
+    for (src, dest) in [
+        (glue_src, glue_dest),
+        (wasm_src, wasm_dest),
+        (snippets_src, snippets_dest),
+    ] {
         fs::rename(src, dest)?;
     }
 
