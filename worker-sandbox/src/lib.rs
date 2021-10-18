@@ -353,6 +353,12 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
                 .send()
                 .await
         })
+        .get("/redirect-default", |_, _| {
+            Response::redirect("https://example.com".parse().unwrap())
+        })
+        .get("/redirect-307", |_, _| {
+            Response::redirect_with_status("https://example.com".parse().unwrap(), 307)
+        })
         .or_else_any_method_async("/*catchall", |_, ctx| async move {
             console_log!(
                 "[or_else_any_method_async] caught: {}",
