@@ -1,3 +1,5 @@
+use chrono::offset::TimeZone;
+use chrono::Datelike;
 use js_sys::Date as JsDate;
 use wasm_bindgen::JsValue;
 
@@ -60,5 +62,17 @@ impl Date {
 impl ToString for Date {
     fn to_string(&self) -> String {
         self.js_date.to_string().into()
+    }
+}
+
+impl<T: TimeZone> From<chrono::Date<T>> for Date {
+    fn from(d: chrono::Date<T>) -> Self {
+        Self {
+            js_date: JsDate::new_with_year_month_day(
+                d.year() as u32,
+                d.month() as i32,
+                d.day() as i32,
+            ),
+        }
     }
 }
