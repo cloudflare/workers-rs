@@ -1,4 +1,5 @@
 use blake2::{Blake2b, Digest};
+use chrono;
 use cloudflare::framework::{async_api::Client, Environment, HttpApiClientConfig};
 use serde::{Deserialize, Serialize};
 use worker::*;
@@ -358,6 +359,11 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         })
         .get("/redirect-307", |_, _| {
             Response::redirect_with_status("https://example.com".parse().unwrap(), 307)
+        })
+        .get("/now", |_, _| {
+            let now = chrono::Utc::now();
+            let js_date: Date = now.date().into();
+            Response::ok(format!("{}", js_date.to_string()))
         })
         .or_else_any_method_async("/*catchall", |_, ctx| async move {
             console_log!(
