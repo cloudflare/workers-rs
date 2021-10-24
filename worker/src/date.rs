@@ -70,7 +70,7 @@ impl<T: TimeZone> From<chrono::Date<T>> for Date {
         Self {
             js_date: JsDate::new_with_year_month_day(
                 d.year() as u32,
-                d.month() as i32,
+                d.month() as i32 - 1,
                 d.day() as i32,
             ),
         }
