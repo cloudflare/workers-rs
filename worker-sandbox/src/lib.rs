@@ -85,7 +85,7 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         .get_async("/async-request", handle_async_request)
         .get("/test-data", |_, ctx| {
             // just here to test data works
-            if ctx.data().regex.is_match("2014-01-01") {
+            if ctx.data.regex.is_match("2014-01-01") {
                 Response::ok("data ok")
             } else {
                 Response::error("bad match", 500)
@@ -256,7 +256,7 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         })
         .get_async("/cloudflare-api", |_req, ctx| async move {
             let resp = ctx
-                .data()
+                .data
                 .cloudflare_api_client
                 .request_handle(&cloudflare::endpoints::user::GetUserDetails {})
                 .await
@@ -310,10 +310,7 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
             Response::from_bytes(serde_json::to_vec(&todo)?)
         })
         .post_async("/nonsense-repeat", |_, ctx| async move {
-            //  just here to test data works, and verify borrow
-            let _d = ctx.data();
-
-            if ctx.data().regex.is_match("2014-01-01") {
+            if ctx.data.regex.is_match("2014-01-01") {
                 Response::ok("data ok")
             } else {
                 Response::error("bad match", 500)
