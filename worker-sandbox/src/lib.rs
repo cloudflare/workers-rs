@@ -365,6 +365,9 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
             let js_date: Date = now.into();
             Response::ok(format!("{}", js_date.to_string()))
         })
+        .get("/custom-response-body", |_, _| {
+            Response::from_body(ResponseBody::Body(vec![b'h', b'e', b'l', b'l', b'o']))
+        })
         .or_else_any_method_async("/*catchall", |_, ctx| async move {
             console_log!(
                 "[or_else_any_method_async] caught: {}",
