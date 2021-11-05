@@ -161,9 +161,10 @@ impl Response {
         match &self.body {
             ResponseBody::Body(bytes) => Ok(bytes.clone()),
             ResponseBody::Empty => Ok(Vec::new()),
-            ResponseBody::Stream(response) => JsFuture::from(response.text()?)
+            ResponseBody::Stream(response) => JsFuture::from(response.array_buffer()?)
                 .await
-                .map(|value| value.as_string().unwrap().into_bytes())
+                .map(|value| js_sys::Uint8Array::new(&value))
+                .map(|value| value.to_vec())
                 .map_err(Error::from),
         }
     }
