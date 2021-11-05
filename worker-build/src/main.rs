@@ -89,7 +89,7 @@ fn copy_generated_code_to_worker_dir() -> Result<()> {
     let glue_src = PathBuf::from(OUT_DIR).join(format!("{}_bg.js", OUT_NAME));
     let glue_dest = PathBuf::from(OUT_DIR)
         .join(WORKER_SUBDIR)
-        .join(format!("{}_bg.mjs", OUT_NAME));
+        .join(format!("{}_bg.js", OUT_NAME));
 
     let wasm_src = PathBuf::from(OUT_DIR).join(format!("{}_bg.wasm", OUT_NAME));
     let wasm_dest = PathBuf::from(OUT_DIR)
@@ -130,7 +130,7 @@ export default {{ fetch, scheduled }};
 "#,
         bg_name
     );
-    let shim_path = PathBuf::from(OUT_DIR).join(WORKER_SUBDIR).join("shim.mjs");
+    let shim_path = PathBuf::from(OUT_DIR).join(WORKER_SUBDIR).join("shim.js");
 
     // write our content out to files
     let mut file = File::create(shim_path)?;
@@ -143,7 +143,7 @@ fn replace_generated_import_with_custom_impl() -> Result<()> {
     let bg_name = format!("{}_bg", OUT_NAME);
     let bindgen_glue_path = PathBuf::from(OUT_DIR)
         .join(WORKER_SUBDIR)
-        .join(format!("{}_bg.mjs", OUT_NAME));
+        .join(format!("{}_bg.js", OUT_NAME));
     let old_bindgen_glue = read_file_to_string(&bindgen_glue_path)?;
     let old_import = format!("import * as wasm from './{}_bg.wasm'", OUT_NAME);
     let mut fixed_bindgen_glue = old_bindgen_glue.replace(&old_import, "let wasm;");
