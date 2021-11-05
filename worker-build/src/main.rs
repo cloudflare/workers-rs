@@ -89,7 +89,7 @@ fn copy_generated_code_to_worker_dir() -> Result<()> {
     let glue_src = PathBuf::from(OUT_DIR).join(format!("{}_bg.js", OUT_NAME));
     let glue_dest = PathBuf::from(OUT_DIR)
         .join(WORKER_SUBDIR)
-        .join(format!("{}_bg.mjs", OUT_NAME));
+        .join(format!("{}_bg.js", OUT_NAME));
 
     let wasm_src = PathBuf::from(OUT_DIR).join(format!("{}_bg.wasm", OUT_NAME));
     let wasm_dest = PathBuf::from(OUT_DIR)
@@ -120,7 +120,7 @@ fn write_worker_shims_to_worker_dir() -> Result<()> {
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Memory/Memory#parameters
     let export_wasm_content = format!(
         r#"
-import * as {0} from "./{0}.mjs";
+import * as {0} from "./{0}.js";
 import _wasm from "./{0}.wasm";
 
 const _wasm_memory = new WebAssembly.Memory({{initial: 512}});
@@ -136,20 +136,20 @@ export default new WebAssembly.Instance(_wasm, importsObject).exports;
     );
     let export_wasm_path = PathBuf::from(OUT_DIR)
         .join(WORKER_SUBDIR)
-        .join("export_wasm.mjs");
+        .join("export_wasm.js");
 
     // this shim just re-exports things in the pattern workers expects
     let shim_content = format!(
         r#"
-import {{ fetch }} from "./{0}.mjs";
+import {{ fetch }} from "./{0}.js";
 
-export * from "./{0}.mjs";
+export * from "./{0}.js";
 export default {{ fetch }};
 
 "#,
         bg_name
     );
-    let shim_path = PathBuf::from(OUT_DIR).join(WORKER_SUBDIR).join("shim.mjs");
+    let shim_path = PathBuf::from(OUT_DIR).join(WORKER_SUBDIR).join("shim.js");
 
     // write our content out to files
     for (content, path) in [
@@ -166,11 +166,11 @@ export default {{ fetch }};
 fn replace_generated_import_with_custom_impl() -> Result<()> {
     let bindgen_glue_path = PathBuf::from(OUT_DIR)
         .join(WORKER_SUBDIR)
-        .join(format!("{}_bg.mjs", OUT_NAME));
+        .join(format!("{}_bg.js", OUT_NAME));
     let old_bindgen_glue = read_file_to_string(&bindgen_glue_path)?;
     let old_import = format!("import * as wasm from './{}_bg.wasm'", OUT_NAME);
     let fixed_bindgen_glue =
-        old_bindgen_glue.replace(&old_import, "import wasm from './export_wasm.mjs'");
+        old_bindgen_glue.replace(&old_import, "import wasm from './export_wasm.js'");
     write_string_to_file(bindgen_glue_path, fixed_bindgen_glue)?;
     Ok(())
 }
