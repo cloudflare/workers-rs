@@ -149,7 +149,7 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
             if let Some(entry) = form.get("file") {
                 return match entry {
                     FormEntry::File(file) => {
-                        let kv = ctx.kv("FILE_SIZES")?;
+                        let kv: kv::KvStore = ctx.kv("FILE_SIZES")?;
 
                         // create a new FileSize record to store
                         let b = file.bytes().await?;

@@ -36,6 +36,8 @@ pub use worker_sys::console_log;
 pub use crate::durable::*;
 pub use worker_macros::{durable_object, event};
 
+pub use worker_kv as kv;
+
 #[doc(hidden)]
 pub use async_trait;
 #[doc(hidden)]
