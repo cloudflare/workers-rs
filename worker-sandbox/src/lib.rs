@@ -362,7 +362,7 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         })
         .get("/now", |_, _| {
             let now = chrono::Utc::now();
-            let js_date: Date = now.date().into();
+            let js_date: Date = now.into();
             Response::ok(format!("{}", js_date.to_string()))
         })
         .or_else_any_method_async("/*catchall", |_, ctx| async move {
