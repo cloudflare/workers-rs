@@ -149,7 +149,7 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
             if let Some(entry) = form.get("file") {
                 return match entry {
                     FormEntry::File(file) => {
-                        let kv = ctx.kv("FILE_SIZES")?;
+                        let kv: kv::KvStore = ctx.kv("FILE_SIZES")?;
 
                         // create a new FileSize record to store
                         let b = file.bytes().await?;
@@ -362,8 +362,11 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         })
         .get("/now", |_, _| {
             let now = chrono::Utc::now();
-            let js_date: Date = now.date().into();
+            let js_date: Date = now.into();
             Response::ok(format!("{}", js_date.to_string()))
+        })
+        .get("/custom-response-body", |_, _| {
+            Response::from_body(ResponseBody::Body(vec![b'h', b'e', b'l', b'l', b'o']))
         })
         .or_else_any_method_async("/*catchall", |_, ctx| async move {
             console_log!(

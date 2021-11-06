@@ -76,3 +76,9 @@ impl<T: TimeZone> From<chrono::Date<T>> for Date {
         }
     }
 }
+
+impl<T: TimeZone> From<chrono::DateTime<T>> for Date {
+    fn from(dt: chrono::DateTime<T>) -> Self {
+        DateInit::Millis(dt.timestamp_millis() as u64).into()
+    }
+}

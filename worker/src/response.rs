@@ -69,6 +69,16 @@ impl Response {
         })
     }
 
+    // Create a `Response` using a `ResponseBody` variant. Sets a status code of 200 and an empty
+    // set of Headers. Modify the Response with methods such as `with_status` and `with_headers`.
+    pub fn from_body(body: ResponseBody) -> Result<Self> {
+        Ok(Self {
+            body,
+            headers: Headers::new(),
+            status_code: 200,
+        })
+    }
+
     /// Create a `Response` using unprocessed text provided. Sets the associated `Content-Type`
     /// header for the `Response` as `text/plain`.
     pub fn ok(body: impl Into<String>) -> Result<Self> {

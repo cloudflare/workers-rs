@@ -26,7 +26,7 @@ pub use crate::headers::Headers;
 pub use crate::http::Method;
 pub use crate::request::Request;
 pub use crate::request_init::*;
-pub use crate::response::Response;
+pub use crate::response::{Response, ResponseBody};
 pub use crate::router::{RouteContext, RouteParams, Router};
 pub use cf::Cf;
 pub use url::Url;
@@ -35,6 +35,8 @@ pub use worker_sys::console_log;
 
 pub use crate::durable::*;
 pub use worker_macros::{durable_object, event};
+
+pub use worker_kv as kv;
 
 #[doc(hidden)]
 pub use async_trait;
