@@ -290,7 +290,7 @@ an issue to talk about the change you'd like to make as early as possible.
 
 ## Project Contents
 
-- **worker**: the user-facing crate, with Rust-famaliar abstractions over the Rust<->JS/WebAssembly
+- **worker**: the user-facing crate, with Rust-familiar abstractions over the Rust<->JS/WebAssembly
   interop via wrappers and convenience library over the FFI bindings.
 - **worker-sys**: Rust extern "C" definitions for FFI compatibility with the Workers JS Runtime.
 - **worker-macros**: exports `event` and `durable_object` macros for wrapping Rust entry point in a
