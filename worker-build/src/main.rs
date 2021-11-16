@@ -5,10 +5,11 @@ use std::{
     env,
     ffi::OsStr,
     fs::{self, File},
-    io::{self, Read, Write},
+    io::{Read, Write},
     path::{Path, PathBuf},
-    process::Command,
 };
+
+use wasm_pack::{command::build::BuildOptions, command::run_wasm_pack, command::Command};
 
 use anyhow::{anyhow, Result};
 
@@ -21,7 +22,6 @@ mod bundler;
 pub fn main() -> Result<()> {
     // Our tests build the bundle ourselves.
     if !cfg!(test) {
-        check_wasm_pack_installed()?;
         wasm_pack_build(env::args_os().skip(1))?;
     }
 
@@ -34,44 +34,27 @@ pub fn main() -> Result<()> {
     Ok(())
 }
 
-fn check_wasm_pack_installed() -> Result<()> {
-    match Command::new("wasm-pack").output() {
-        Err(e) if e.kind() == io::ErrorKind::NotFound => {
-            println!("Installing wasm-pack...");
-            let exit_status = Command::new("cargo")
-                .args(&["install", "wasm-pack"])
-                .spawn()?
-                .wait()?;
-
-            match exit_status.success() {
-                true => Ok(()),
-                false => Err(anyhow!(
-                    "installation of wasm-pack exited with status {}",
-                    exit_status
-                )),
-            }
-        }
-        _ => Ok(()),
-    }
-}
-
 fn wasm_pack_build<I, S>(args: I) -> Result<()>
 where
     I: IntoIterator<Item = S>,
     S: AsRef<OsStr>,
 {
-    let exit_status = Command::new("wasm-pack")
-        .arg("build")
-        .arg("--no-typescript")
-        .args(&["--out-dir", OUT_DIR])
-        .args(&["--out-name", OUT_NAME])
-        .args(args)
-        .spawn()?
-        .wait()?;
-
-    match exit_status.success() {
-        true => Ok(()),
-        false => Err(anyhow!("wasm-pack exited with status {}", exit_status)),
+    let cmd_args = BuildOptions {
+        disable_dts: true,
+        out_dir: String::from(OUT_DIR),
+        out_name: Some(String::from(OUT_NAME)),
+        extra_options: args
+            .into_iter()
+            .map(|a| match a.as_ref().to_str() {
+                Some(x) => String::from(x),
+                None => String::from(""),
+            })
+            .collect(),
+        ..Default::default()
+    };
+    match run_wasm_pack(Command::Build(cmd_args)) {
+        Ok(()) => Ok(()),
+        Err(x) => Err(anyhow!("wasm-pack exited with status: {}", x)),
     }
 }
 

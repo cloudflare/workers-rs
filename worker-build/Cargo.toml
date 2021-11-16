@@ -18,6 +18,7 @@ swc_common = "0.17.20"
 swc_ecma_codegen = "0.103.0"
 swc_ecma_loader = "0.29.0"
 swc_ecma_parser = "0.100.2"
+wasm-pack = "0.10.2"
 
 [dev-dependencies]
 tempdir = "0.3.7"
