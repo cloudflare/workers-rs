@@ -1,5 +1,6 @@
 use wasm_bindgen::prelude::*;
 
+use crate::cache::Caches;
 use crate::{Request, RequestInit};
 
 #[wasm_bindgen]
@@ -54,6 +55,10 @@ extern "C" {
 
     #[wasm_bindgen(js_namespace = console)]
     pub fn debug(s: &str);
+
+    #[wasm_bindgen(method, structural, getter, js_class = "WorkerGlobalScope")]
+    #[doc = "Provides access to the [caches](https://developers.cloudflare.com/workers/runtime-apis/cache) global"]
+    pub fn caches(this: &WorkerGlobalScope) -> Caches;
 
     #[wasm_bindgen(js_namespace = console)]
     pub fn log(s: &str);
