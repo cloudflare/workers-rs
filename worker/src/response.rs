@@ -6,7 +6,7 @@ use serde::{de::DeserializeOwned, Serialize};
 use wasm_bindgen_futures::JsFuture;
 use worker_sys::{Response as EdgeResponse, ResponseInit as EdgeResponseInit};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ResponseBody {
     Empty,
     Body(Vec<u8>),
@@ -17,7 +17,7 @@ const CONTENT_TYPE: &str = "content-type";
 
 /// A [Response](https://developer.mozilla.org/en-US/docs/Web/API/Response) representation for
 /// working with or returning a response to a `Request`.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Response {
     body: ResponseBody,
     headers: Headers,
