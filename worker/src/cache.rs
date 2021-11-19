@@ -10,6 +10,7 @@ use crate::response::Response;
 use crate::Result;
 
 /// Provides access to the [cache api](https://developers.cloudflare.com/workers/runtime-apis/cache).
+/// Because `match` is a reserved keyword in Rust, the `match` method has been renamed to `get`.
 ///
 /// Our implementation of the Cache API respects the following HTTP headers on the response passed to `put()`:
 ///
@@ -20,11 +21,11 @@ use crate::Result;
 /// - `Cache-Tag`
 ///   - Allows resource purging by tag(s) later (Enterprise only).
 /// - `ETag`
-///   - Allows `cache.match()` to evaluate conditional requests with If-None-Match.
+///   - Allows `cache.get()` to evaluate conditional requests with If-None-Match.
 /// - `Expires`
 ///   - A string that specifies when the resource becomes invalid.
 /// - `Last-Modified`
-///   - Allows `cache.match()` to evaluate conditional requests with If-Modified-Since.
+///   - Allows `cache.get()` to evaluate conditional requests with If-Modified-Since.
 ///
 /// This differs from the web browser Cache API as they do not honor any headers on the request or response.
 ///
@@ -61,7 +62,7 @@ impl Cache {
     /// Adds to the cache a [`Response`] keyed to the given request.
     ///
     /// The `stale-while-revalidate` and `stale-if-error` directives are not supported
-    /// when using the `cache.put` or `cache.match` methods.
+    /// when using the `cache.put` or `cache.get` methods.
     ///
     /// Will throw an error if:
     /// - the request passed is a method other than GET.
@@ -83,9 +84,9 @@ impl Cache {
 
     /// Returns the [`Response`] object keyed to that request. Never sends a subrequest to the origin. If no matching response is found in cache, returns `None`.
     ///
-    /// Unlike the browser Cache API, Cloudflare Workers do not support the `ignoreSearch` or `ignoreVary` options on `match()`. You can accomplish this behavior by removing query strings or HTTP headers at `put()` time.
+    /// Unlike the browser Cache API, Cloudflare Workers do not support the `ignoreSearch` or `ignoreVary` options on `get()`. You can accomplish this behavior by removing query strings or HTTP headers at `put()` time.
     ///
-    /// Our implementation of the Cache API respects the following HTTP headers on the request passed to `match()`:
+    /// Our implementation of the Cache API respects the following HTTP headers on the request passed to `get()`:
     ///
     /// - Range
     ///   - Results in a `206` response if a matching response with a Content-Length header is found. Your Cloudflare cache always respects range requests, even if an `Accept-Ranges` header is on the response.
@@ -93,7 +94,7 @@ impl Cache {
     ///   - Results in a `304` response if a matching response is found with a `Last-Modified` header with a value after the time specified in `If-Modified-Since`.
     /// - If-None-Match
     ///   - Results in a `304` response if a matching response is found with an `ETag` header with a value that matches a value in `If-None-Match.`
-    pub async fn r#match<K: Into<CacheKey>>(
+    pub async fn get<K: Into<CacheKey>>(
         &self,
         key: K,
         ignore_method: bool,
