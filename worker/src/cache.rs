@@ -1,8 +1,9 @@
 use serde::Serialize;
-use wasm_bindgen::JsValue;
+use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
-use worker_sys::cache::{get_cache_from_name, get_default_cache, Cache as EdgeCache};
+use worker_sys::cache::Cache as EdgeCache;
 use worker_sys::Response as EdgeResponse;
+use worker_sys::WorkerGlobalScope;
 
 use crate::request::Request;
 use crate::response::Response;
@@ -14,20 +15,23 @@ pub struct Cache {
 
 impl Default for Cache {
     fn default() -> Self {
+        let global: WorkerGlobalScope = js_sys::global().unchecked_into();
+
         Self {
-            inner: get_default_cache(),
+            inner: global.caches().get_default_cache(),
         }
     }
 }
 
 impl Cache {
-    pub async fn open<S: Into<String>>(name: S) -> Self {
+    pub async fn open(name: String) -> Self {
+        let global: WorkerGlobalScope = js_sys::global().unchecked_into();
+        let cache = global.caches().get_cache_from_name(name);
+
         // unwrap is safe because this promise never rejects
         // https://developer.mozilla.org/en-US/docs/Web/API/CacheStorage/open
-        let inner = JsFuture::from(get_cache_from_name(name.into()))
-            .await
-            .unwrap()
-            .into();
+        let inner = JsFuture::from(cache).await.unwrap().into();
+
         Self { inner }
     }
 

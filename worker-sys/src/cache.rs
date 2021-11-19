@@ -18,14 +18,17 @@ extern "C" {
     pub fn delete(this: &Cache, request: Request, options: JsValue) -> ::js_sys::Promise;
 }
 
-// How to get caches
+// `caches` global object
 #[wasm_bindgen]
 extern "C" {
 
-    #[wasm_bindgen(js_namespace = caches, getter, js_name = default)]
-    pub fn get_default_cache() -> Cache;
+    #[wasm_bindgen(js_name = Caches)]
+    pub type Caches;
 
-    #[wasm_bindgen(js_namespace = caches, js_name = open)]
-    pub fn get_cache_from_name(cache_name: String) -> ::js_sys::Promise;
+    #[wasm_bindgen(method, structural, getter, js_class = "Caches", js_name = default)]
+    pub fn get_default_cache(this: &Caches) -> Cache;
+
+    #[wasm_bindgen(method, structural, js_class = "Caches", js_name = open)]
+    pub fn get_cache_from_name(this: &Caches, cache_name: String) -> ::js_sys::Promise;
 
 }
