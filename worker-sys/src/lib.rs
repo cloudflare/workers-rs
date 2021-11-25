@@ -11,13 +11,33 @@ pub mod response;
 /// When debugging your Worker via `wrangler dev`, `wrangler tail`, or from the Workers Dashboard,
 /// anything passed to this macro will be printed to the terminal or written to the console.
 #[macro_export]
+macro_rules! console_debug {
+    ($($t:tt)*) => (unsafe { $crate::global::debug(&format_args!($($t)*).to_string()) })
+}
+
+/// When debugging your Worker via `wrangler dev`, `wrangler tail`, or from the Workers Dashboard,
+/// anything passed to this macro will be printed to the terminal or written to the console.
+#[macro_export]
 macro_rules! console_log {
     ($($t:tt)*) => (unsafe { $crate::global::log(&format_args!($($t)*).to_string()) })
 }
 
+/// When debugging your Worker via `wrangler dev`, `wrangler tail`, or from the Workers Dashboard,
+/// anything passed to this macro will be printed to the terminal or written to the console.
+#[macro_export]
+macro_rules! console_warn {
+    ($($t:tt)*) => (unsafe { $crate::global::warn(&format_args!($($t)*).to_string()) })
+}
+
+/// When debugging your Worker via `wrangler dev`, `wrangler tail`, or from the Workers Dashboard,
+/// anything passed to this macro will be printed to the terminal or written to the console.
+#[macro_export]
+macro_rules! console_error {
+    ($($t:tt)*) => (unsafe { $crate::global::error(&format_args!($($t)*).to_string()) })
+}
+
 pub mod prelude {
     pub use crate::cf::Cf;
-    pub use crate::console_log;
     pub use crate::durable_object;
     pub use crate::file::File;
     pub use crate::formdata::FormData;
@@ -26,6 +46,7 @@ pub mod prelude {
     pub use crate::request::Request;
     pub use crate::request_init::*;
     pub use crate::response::Response;
+    pub use crate::{console_debug, console_error, console_log, console_warn};
 }
 
 pub use cf::Cf;

@@ -31,7 +31,7 @@ pub use crate::router::{RouteContext, RouteParams, Router};
 pub use cf::Cf;
 pub use url::Url;
 
-pub use worker_sys::console_log;
+pub use worker_sys::{console_debug, console_error, console_log, console_warn};
 
 pub use crate::durable::*;
 pub use worker_macros::{durable_object, event};
