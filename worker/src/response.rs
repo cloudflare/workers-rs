@@ -6,7 +6,7 @@ use serde::{de::DeserializeOwned, Serialize};
 use wasm_bindgen_futures::JsFuture;
 use worker_sys::{Response as EdgeResponse, ResponseInit as EdgeResponseInit};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ResponseBody {
     Empty,
     Body(Vec<u8>),
@@ -17,7 +17,7 @@ const CONTENT_TYPE: &str = "content-type";
 
 /// A [Response](https://developer.mozilla.org/en-US/docs/Web/API/Response) representation for
 /// working with or returning a response to a `Request`.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Response {
     body: ResponseBody,
     headers: Headers,
@@ -242,6 +242,32 @@ impl From<Response> for EdgeResponse {
                 &ResponseInit {
                     status: res.status_code,
                     headers: res.headers,
+                }
+                .into(),
+            )
+            .unwrap(),
+        }
+    }
+}
+
+impl From<&Response> for EdgeResponse {
+    fn from(res: &Response) -> Self {
+        match res.body.clone() {
+            ResponseBody::Body(mut bytes) => EdgeResponse::new_with_opt_u8_array_and_init(
+                Some(&mut bytes),
+                &ResponseInit {
+                    status: res.status_code,
+                    headers: res.headers.clone(),
+                }
+                .into(),
+            )
+            .unwrap(),
+            ResponseBody::Stream(response) => response.clone().unwrap(),
+            ResponseBody::Empty => EdgeResponse::new_with_opt_str_and_init(
+                None,
+                &ResponseInit {
+                    status: res.status_code,
+                    headers: res.headers.clone(),
                 }
                 .into(),
             )
