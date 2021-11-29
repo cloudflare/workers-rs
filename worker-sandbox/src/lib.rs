@@ -368,6 +368,32 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         .get("/custom-response-body", |_, _| {
             Response::from_body(ResponseBody::Body(vec![b'h', b'e', b'l', b'l', b'o']))
         })
+        .get_async("/cached-example", |_, _| async move {
+            const ORIGIN: &str = "https://example.com";
+            let cache = Cache::default();
+
+            if let Some(cached) = cache.get(ORIGIN, true).await? {
+                console_log!("Got response from cache!");
+                Ok(cached)
+            } else {
+                let response = Fetch::Url(Url::parse(ORIGIN)?).send().await?;
+                cache.put(ORIGIN, &response).await?;
+                console_log!("Cached response!");
+                Ok(response)
+            }
+        })
+        .get_async("/cache-api", |req, _| async move {
+            console_log!("url: {}", req.url()?.to_string());
+            let cache = Cache::default();
+            let key = req.url()?.to_string();
+            if let Some(resp) = cache.get(&key, true).await? {
+                return Ok(resp);
+            } else {
+                let resp = Response::ok(format!("timestamp: {}", Date::now().as_millis()))?;
+                cache.put(&key, &Response::from(resp.clone())).await?;
+                return Ok(resp);
+            }
+        })
         .or_else_any_method_async("/*catchall", |_, ctx| async move {
             console_log!(
                 "[or_else_any_method_async] caught: {}",
