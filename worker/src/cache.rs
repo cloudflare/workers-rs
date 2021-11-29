@@ -32,6 +32,7 @@ use crate::Result;
 /// Responses with `Set-Cookie` headers are never cached, because this sometimes indicates that the response contains unique data. To store a response with a `Set-Cookie` header, either delete that header or set `Cache-Control: private=Set-Cookie` on the response before calling `cache.put()`.
 ///
 /// Use the `Cache-Control` method to store the response without the `Set-Cookie` header.
+#[derive(Debug)]
 pub struct Cache {
     inner: EdgeCache,
 }
@@ -68,7 +69,7 @@ impl Cache {
     /// - the request passed is a method other than GET.
     /// - the response passed has a status of 206 Partial Content.
     /// - the response passed contains the header `Vary: *` (required by the Cache API specification).
-    pub async fn put<'a, K: Into<CacheKey<'a>>>(&self, key: K, response: Response) -> Result<()> {
+    pub async fn put<'a, K: Into<CacheKey<'a>>>(&self, key: K, response: &Response) -> Result<()> {
         let promise = match key.into() {
             CacheKey::Url(url) => self.inner.put_url(url, response.into()),
             CacheKey::Request(request) => {
