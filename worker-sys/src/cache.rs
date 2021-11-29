@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::*;
 // An instance of cache
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(js_name = Cache)]
+    #[wasm_bindgen(extends = ::js_sys::Object, js_name = Cache)]
     #[derive(Debug, Clone, PartialEq)]
     pub type Cache;
 
