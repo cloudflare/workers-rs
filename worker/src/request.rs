@@ -146,7 +146,7 @@ impl Request {
         Err(Error::BodyUsed)
     }
 
-    /// Get the `Headers` for this reuqest.
+    /// Get the `Headers` for this request.
     pub fn headers(&self) -> &Headers {
         &self.headers
     }
@@ -175,6 +175,17 @@ impl Request {
     /// The URL Path of this `Request`.
     pub fn path(&self) -> String {
         self.path.clone()
+    }
+
+    /// Get a mutable reference to this request's path.
+    /// **Note:** they can only be modified if the request was created from scratch or cloned.
+    pub fn path_mut(&mut self) -> Result<&mut String> {
+        if self.immutable {
+            return Err(Error::JsError(
+                "Cannot get a mutable reference to an immutable path.".into(),
+            ));
+        }
+        Ok(&mut self.path)
     }
 
     /// The parsed [`url::Url`] of this `Request`.
