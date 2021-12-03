@@ -180,10 +180,6 @@ For more information about how to configure these bindings, see:
 
 ## Durable Objects
 
-### BETA WARNING
-
-Durable Objects are still in **BETA**, so the same rules apply to the Durable Object code and APIs here in these crates.
-
 ### Define a Durable Object in Rust
 
 To define a Durable Object using the `worker` crate you need to implement the `DurableObject` trait
