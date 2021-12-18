@@ -18,7 +18,7 @@ chrono-tz = { version = "0.4", default-features = false }
 futures = "0.3.16"
 http = "0.2.4"
 js-sys = "0.3.55"
-matchit = "0.4.2"
+matchit = "0.4.4"
 serde = { version = "1.0.126", features = ["derive"] }
 serde_json = "1.0.64"
 url = "2.2.2"
