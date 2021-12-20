@@ -173,8 +173,7 @@ impl Response {
             ResponseBody::Empty => Ok(Vec::new()),
             ResponseBody::Stream(response) => JsFuture::from(response.array_buffer()?)
                 .await
-                .map(|value| js_sys::Uint8Array::new(&value))
-                .map(|value| value.to_vec())
+                .map(|value| js_sys::Uint8Array::new(&value).to_vec())
                 .map_err(Error::from),
         }
     }
