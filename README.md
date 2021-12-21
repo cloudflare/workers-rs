@@ -64,8 +64,8 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         .get_async("/account/:id", |_req, ctx| async move {
             if let Some(id) = ctx.param("id") {
                 let accounts = ctx.kv("ACCOUNTS")?;
-                return match accounts.get(id).await? {
-                    Some(account) => Response::from_json(&account.as_json::<Account>()?),
+                return match accounts.get(id).json::<Account>().await? {
+                    Some(account) => Response::from_json(&account),
                     None => Response::error("Not found", 404),
                 };
             }
