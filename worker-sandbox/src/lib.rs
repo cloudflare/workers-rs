@@ -180,8 +180,8 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         .get_async("/formdata-file-size/:hash", |_, ctx| async move {
             if let Some(hash) = ctx.param("hash") {
                 let kv = ctx.kv("FILE_SIZES")?;
-                return match kv.get(&hash).await? {
-                    Some(val) => Response::from_json(&val.as_json::<FileSize>()?),
+                return match kv.get(&hash).json::<FileSize>().await? {
+                    Some(val) => Response::from_json(&val),
                     None => Response::error("Not Found", 404),
                 };
             }
