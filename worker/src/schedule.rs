@@ -1,4 +1,3 @@
-use std::fmt::Error;
 use std::future::Future;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::{future_to_promise};
@@ -8,7 +7,7 @@ use worker_sys::{Schedule as EdgeSchedule};
 #[derive(Debug, Clone)]
 pub struct Schedule {
     cron: String,
-    schedule: u64,
+    scheduled_time: f64,
     ty: String,
     pub edge: EdgeSchedule,
     // env: Env,
@@ -16,10 +15,10 @@ pub struct Schedule {
 
 impl From<EdgeSchedule> for Schedule {
     fn from(schedule: EdgeSchedule) -> Self {
-        Self {
+         Self {
             cron: schedule.cron(),
-            schedule: schedule.schedule(),
-            ty: schedule.ty(),
+            scheduled_time: schedule.scheduled_time(),
+            ty: String::from("scheduled"),
             edge: schedule,
         }
     }
@@ -43,8 +42,8 @@ impl Schedule {
     }
 
     /// get trigger time as u64
-    pub fn schedule(&self) -> u64 {
-        self.schedule.clone()
+    pub fn schedule(&self) -> f64 {
+        self.scheduled_time.clone()
     }
 
     /// wrap for waitUntil

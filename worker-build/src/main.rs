@@ -130,6 +130,7 @@ export default new WebAssembly.Instance(_wasm, importsObject).exports;
         .join("export_wasm.mjs");
 
     // this shim just re-exports things in the pattern workers expects
+    // TODO: handle missing scheduled
     let shim_content = format!(
         r#"
 import {{ fetch, scheduled }} from "./{0}.mjs";

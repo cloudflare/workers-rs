@@ -6,11 +6,8 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type Schedule;
 
-    #[wasm_bindgen(structural, method, getter, js_class=Schedule, js_name=schedule)]
-    pub fn schedule(this: &Schedule) -> u64;
-
-    #[wasm_bindgen(structural, method, getter, js_class=Schedule, js_name=type)]
-    pub fn ty(this: &Schedule) -> String;
+    #[wasm_bindgen(structural, method, getter, js_class=Schedule, js_name=scheduledTime)]
+    pub fn scheduled_time(this: &Schedule) -> f64;
 
     #[wasm_bindgen(structural, method, getter, js_class=Schedule, js_name=cron)]
     pub fn cron(this: &Schedule) -> String;
