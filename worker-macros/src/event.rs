@@ -83,15 +83,18 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
         Scheduled => {
             // save original fn name for re-use in the wrapper fn
-            let original_input_fn_ident = input_fn.sig.ident.clone();
-            let output_fn_ident = Ident::new("glue_cron", input_fn.sig.ident.span());
+            let input_fn_ident = Ident::new(
+                &(input_fn.sig.ident.to_string() + "_scheduled_glue"),
+                input_fn.sig.ident.span(),
+            );
+            let wrapper_fn_ident = Ident::new("scheduled", input_fn.sig.ident.span());
             // rename the original attributed fn
-            input_fn.sig.ident = output_fn_ident.clone();
+            input_fn.sig.ident = input_fn_ident.clone();
 
             let wrapper_fn = quote! {
-                pub async fn #original_input_fn_ident(ty: String, schedule: u64, cron: String) -> worker::Result<()> {
+                pub async fn #wrapper_fn_ident(schedule: worker_sys::Schedule) {
                     // get the worker::Result<worker::Response> by calling the original fn
-                    #output_fn_ident(worker::Schedule::from((ty, schedule, cron))).await
+                    #input_fn_ident(worker::Schedule::from(schedule)).await
                 }
             };
             let wasm_bindgen_code =

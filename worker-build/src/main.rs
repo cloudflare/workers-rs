@@ -132,10 +132,10 @@ export default new WebAssembly.Instance(_wasm, importsObject).exports;
     // this shim just re-exports things in the pattern workers expects
     let shim_content = format!(
         r#"
-import {{ fetch }} from "./{0}.mjs";
+import {{ fetch, scheduled }} from "./{0}.mjs";
 
 export * from "./{0}.mjs";
-export default {{ fetch }};
+export default {{ fetch, scheduled }};
 
 "#,
         bg_name
