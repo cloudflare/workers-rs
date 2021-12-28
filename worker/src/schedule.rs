@@ -1,6 +1,3 @@
-use std::future::Future;
-use wasm_bindgen::JsValue;
-use wasm_bindgen_futures::{future_to_promise};
 use worker_sys::{Schedule as EdgeSchedule};
 
 /// [Schedule](https://developers.cloudflare.com/workers/runtime-apis/scheduled-event)
@@ -44,13 +41,5 @@ impl Schedule {
     /// get trigger time as u64
     pub fn schedule(&self) -> f64 {
         self.scheduled_time.clone()
-    }
-
-    /// wrap for waitUntil
-    pub fn wait_until<T>(&self, future: T)
-        where
-            T: Future<Output=Result<JsValue, JsValue>> + 'static
-    {
-        self.edge.wait_until(&future_to_promise(future))
     }
 }
