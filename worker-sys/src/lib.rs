@@ -47,7 +47,7 @@ pub mod prelude {
     pub use crate::request::Request;
     pub use crate::request_init::*;
     pub use crate::response::Response;
-    pub use crate::schedule::Schedule;
+    pub use crate::schedule::ScheduledEvent;
     pub use crate::{console_debug, console_error, console_log, console_warn};
 }
 
@@ -61,4 +61,4 @@ pub use request::Request;
 pub use request_init::*;
 pub use response::Response;
 pub use web_sys::ResponseInit;
-pub use schedule::Schedule;
+pub use schedule::ScheduledEvent;

@@ -92,9 +92,9 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             input_fn.sig.ident = input_fn_ident.clone();
 
             let wrapper_fn = quote! {
-                pub async fn #wrapper_fn_ident(schedule: worker_sys::Schedule) {
-                    // get the worker::Result<worker::Response> by calling the original fn
-                    #input_fn_ident(worker::Schedule::from(schedule)).await
+                pub async fn #wrapper_fn_ident(event: worker_sys::ScheduledEvent, env: ::worker::Env, ctx: ::worker::ScheduleContext) {
+                    // call the original fn
+                    #input_fn_ident(worker::ScheduledEvent::from(event), env, ctx).await
                 }
             };
             let wasm_bindgen_code =
