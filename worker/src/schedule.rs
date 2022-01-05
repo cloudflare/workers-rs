@@ -1,5 +1,8 @@
-use worker_sys::{ScheduledEvent as EdgeScheduledEvent};
+use std::future::Future;
+use std::process::Output;
+use worker_sys::{ScheduledEvent as EdgeScheduledEvent, ScheduleContext as EdgeScheduleContext};
 use wasm_bindgen::prelude::*;
+use wasm_bindgen_futures::future_to_promise;
 
 /// [Schedule](https://developers.cloudflare.com/workers/runtime-apis/scheduled-event#syntax-module-worker)
 #[derive(Debug, Clone)]
@@ -36,14 +39,31 @@ impl ScheduledEvent {
     }
 }
 
+#[derive(Clone)]
+pub struct ScheduleContext {
+    edge: EdgeScheduleContext,
+}
 
-/// [Context](https://developers.cloudflare.com/workers/runtime-apis/scheduled-event#syntax-module-worker)
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(extends=::js_sys::Object, js_name=ScheduleContext)]
-    #[derive(Debug)]
-    pub type ScheduleContext;
+impl From<EdgeScheduleContext> for ScheduleContext {
+    fn from(edge: EdgeScheduleContext) -> Self {
+        Self {
+            edge
+        }
+    }
+}
 
-    #[wasm_bindgen(structural, method, js_class=ScheduleContext, js_name=waitUntil)]
-    pub fn wait_until(this: &ScheduleContext, promise: js_sys::Promise);
+impl ScheduleContext {
+    pub fn wait_until<T>(&self, handler: T)
+        where
+            T: Future<Output=Result<(), ()>> + 'static,
+    {
+        self.edge.wait_until(
+            future_to_promise(
+                async {
+                    handler.await;
+                    Ok(JsValue::null())
+                }
+            )
+        )
+    }
 }
