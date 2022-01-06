@@ -58,9 +58,9 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             // create a new "main" function that takes the worker_sys::Request, and calls the
             // original attributed function, passing in a converted worker::Request
             let wrapper_fn = quote! {
-                pub async fn #wrapper_fn_ident(req: worker_sys::Request, env: ::worker::Env) -> worker_sys::Response {
+                pub async fn #wrapper_fn_ident(req: ::worker::worker_sys::Request, env: ::worker::Env) -> ::worker::worker_sys::Response {
                     // get the worker::Result<worker::Response> by calling the original fn
-                    match #input_fn_ident(worker::Request::from(req), env).await.map(worker_sys::Response::from) {
+                    match #input_fn_ident(::worker::Request::from(req), env).await.map(::worker::worker_sys::Response::from) {
                         Ok(res) => res,
                         Err(e) => {
                             ::worker::console_log!("{}", &e);
@@ -76,7 +76,11 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             let output = quote! {
                 #input_fn
 
-                #wasm_bindgen_code
+                mod _worker_fetch {
+                    use ::worker::{wasm_bindgen, wasm_bindgen_futures};
+                    use super::#input_fn_ident;
+                    #wasm_bindgen_code
+                }
             };
 
             TokenStream::from(output)
@@ -89,9 +93,9 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             input_fn.sig.ident = output_fn_ident.clone();
 
             let wrapper_fn = quote! {
-                pub async fn #original_input_fn_ident(ty: String, schedule: u64, cron: String) -> worker::Result<()> {
+                pub async fn #original_input_fn_ident(ty: String, schedule: u64, cron: String) -> ::worker::Result<()> {
                     // get the worker::Result<worker::Response> by calling the original fn
-                    #output_fn_ident(worker::Schedule::from((ty, schedule, cron))).await
+                    #output_fn_ident(::worker::Schedule::from((ty, schedule, cron))).await
                 }
             };
             let wasm_bindgen_code =
@@ -101,7 +105,11 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             let output = quote! {
                 #input_fn
 
-                #wasm_bindgen_code
+                mod _worker_scheduled {
+                    use ::worker::{wasm_bindgen, wasm_bindgen_futures};
+                    use super::#output_fn_ident;
+                    #wasm_bindgen_code
+                }
             };
 
             TokenStream::from(output)
