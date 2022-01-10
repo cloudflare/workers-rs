@@ -132,6 +132,16 @@ impl File {
         self.0.name()
     }
 
+    /// Get the file size.
+    pub fn size(&self) -> usize {
+        self.0.size() as usize
+    }
+
+    /// Get the file type.
+    pub fn type_(&self) -> String {
+        self.0.type_()
+    }
+
     /// Read the file from an internal buffer and get the resulting bytes.
     pub async fn bytes(&self) -> Result<Vec<u8>> {
         JsFuture::from(self.0.array_buffer())
