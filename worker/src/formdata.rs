@@ -5,6 +5,7 @@ use crate::Date;
 use crate::DateInit;
 use crate::Result;
 
+use js_sys::Uint8Array;
 use worker_sys::{File as EdgeFile, FormData as EdgeFormData};
 
 use js_sys::Array;
@@ -117,13 +118,16 @@ pub struct File(EdgeFile);
 
 impl File {
     /// Construct a new named file from a buffer.
-    pub fn new(data: Vec<u8>, name: &str) -> Self {
-        let arr = Array::new();
-        for byte in data.into_iter() {
-            arr.push(&byte.into());
-        }
+    pub fn new(data: impl AsRef<[u8]>, name: &str) -> Self {
+        let data = data.as_ref();
+        let arr = Uint8Array::new_with_length(data.len() as u32);
+        arr.copy_from(data);
 
-        let file = EdgeFile::new_with_u8_array_sequence(&JsValue::from(arr), name).unwrap();
+        // The first parameter of File's contructor must be an ArrayBuffer or similar types
+        // https://developer.mozilla.org/en-US/docs/Web/API/File/File
+        let buffer = arr.buffer();
+        let file = EdgeFile::new_with_u8_array_sequence(&Array::of1(&buffer), name).unwrap();
+        
         Self(file)
     }
 
