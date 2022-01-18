@@ -14,7 +14,7 @@ readme = "../README.md"
 [dependencies]
 async-trait = "0.1.50"
 chrono = { version = "0.4", default-features = false, features = ["wasmbind"] }
-chrono-tz = { version = "0.4", default-features = false }
+chrono-tz = { version = "0.6", default-features = false }
 futures = "0.3.16"
 http = "0.2.4"
 js-sys = "0.3.55"
