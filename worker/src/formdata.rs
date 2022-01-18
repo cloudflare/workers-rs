@@ -5,10 +5,10 @@ use crate::Date;
 use crate::DateInit;
 use crate::Result;
 
-use js_sys::Uint8Array;
 use worker_sys::{File as EdgeFile, FormData as EdgeFormData};
 
 use js_sys::Array;
+use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
@@ -127,7 +127,7 @@ impl File {
         // https://developer.mozilla.org/en-US/docs/Web/API/File/File
         let buffer = arr.buffer();
         let file = EdgeFile::new_with_u8_array_sequence(&Array::of1(&buffer), name).unwrap();
-        
+
         Self(file)
     }
 
