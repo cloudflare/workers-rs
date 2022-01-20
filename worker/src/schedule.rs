@@ -1,5 +1,4 @@
 use std::future::Future;
-use std::process::Output;
 use worker_sys::{ScheduledEvent as EdgeScheduledEvent, ScheduleContext as EdgeScheduleContext};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::future_to_promise;
@@ -55,7 +54,7 @@ impl From<EdgeScheduleContext> for ScheduleContext {
 impl ScheduleContext {
     pub fn wait_until<T>(&self, handler: T)
         where
-            T: Future<Output=Result<(), ()>> + 'static,
+            T: Future<Output=()> + 'static,
     {
         self.edge.wait_until(
             future_to_promise(
