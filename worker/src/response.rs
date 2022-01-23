@@ -236,7 +236,15 @@ impl From<Response> for EdgeResponse {
                 .into(),
             )
             .unwrap(),
-            ResponseBody::Stream(response) => response,
+            ResponseBody::Stream(response) => EdgeResponse::new_with_opt_stream_and_init(
+                response.body(),
+                &ResponseInit {
+                    status: res.status_code,
+                    headers: res.headers,
+                }
+                .into(),
+            )
+            .unwrap(),
             ResponseBody::Empty => EdgeResponse::new_with_opt_str_and_init(
                 None,
                 &ResponseInit {
