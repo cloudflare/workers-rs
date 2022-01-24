@@ -1,5 +1,4 @@
 use blake2::{Blake2b, Digest};
-use chrono;
 use cloudflare::framework::{async_api::Client, Environment, HttpApiClientConfig};
 use serde::{Deserialize, Serialize};
 use worker::*;
@@ -49,7 +48,7 @@ fn handle_a_request<D>(req: Request, _ctx: RouteContext<D>) -> Result<Response> 
         "req at: {}, located at: {:?}, within: {}",
         req.path(),
         req.cf().coordinates().unwrap_or_default(),
-        req.cf().region().unwrap_or("unknown region".into())
+        req.cf().region().unwrap_or_else(|| "unknown region".into())
     ))
 }
 
@@ -58,7 +57,7 @@ async fn handle_async_request<D>(req: Request, _ctx: RouteContext<D>) -> Result<
         "[async] req at: {}, located at: {:?}, within: {}",
         req.path(),
         req.cf().coordinates().unwrap_or_default(),
-        req.cf().region().unwrap_or("unknown region".into())
+        req.cf().region().unwrap_or_else(|| "unknown region".into())
     ))
 }
 
@@ -69,8 +68,10 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
     let creds = cloudflare::framework::auth::Credentials::UserAuthToken {
         token: env.secret("CF_API_TOKEN")?.to_string(),
     };
-    let mut config = HttpApiClientConfig::default();
-    config.http_timeout = std::time::Duration::from_millis(500);
+    let config = HttpApiClientConfig {
+        http_timeout: std::time::Duration::from_millis(500),
+        ..Default::default()
+    };
     let client = Client::new(creds, config, Environment::Production).unwrap();
 
     let data = SomeSharedData {
@@ -180,7 +181,7 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         .get_async("/formdata-file-size/:hash", |_, ctx| async move {
             if let Some(hash) = ctx.param("hash") {
                 let kv = ctx.kv("FILE_SIZES")?;
-                return match kv.get(&hash).json::<FileSize>().await? {
+                return match kv.get(hash).json::<FileSize>().await? {
                     Some(val) => Response::from_json(&val),
                     None => Response::error("Not Found", 404),
                 };
@@ -293,7 +294,7 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
             let kv = ctx.kv("SOME_NAMESPACE")?;
             if let Some(key) = ctx.param("key") {
                 if let Some(value) = ctx.param("value") {
-                    kv.put(&key, value)?.execute().await?;
+                    kv.put(key, value)?.execute().await?;
                 }
             }
 
@@ -363,7 +364,7 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         .get("/now", |_, _| {
             let now = chrono::Utc::now();
             let js_date: Date = now.into();
-            Response::ok(format!("{}", js_date.to_string()))
+            Response::ok(js_date.to_string())
         })
         .get("/custom-response-body", |_, _| {
             Response::from_body(ResponseBody::Body(vec![b'h', b'e', b'l', b'l', b'o']))

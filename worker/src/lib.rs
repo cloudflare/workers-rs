@@ -1,3 +1,6 @@
+#![allow(clippy::new_without_default)]
+#![allow(clippy::or_fun_call)]
+
 mod cf;
 mod date;
 pub mod durable;

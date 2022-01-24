@@ -120,7 +120,7 @@ impl Response {
 
     /// Create a `Response` which redirects to the specified URL with default status_code of 302
     pub fn redirect(url: url::Url) -> Result<Self> {
-        match EdgeResponse::redirect(&url.as_str()) {
+        match EdgeResponse::redirect(url.as_str()) {
             Ok(edge_response) => Ok(Response::from(edge_response)),
             Err(err) => Err(Error::from(err)),
         }
@@ -133,7 +133,7 @@ impl Response {
                 "redirect status codes must be in the 300-399 range! Please checkout https://developer.mozilla.org/en-US/docs/Web/HTTP/Status#redirection_messages for more".into(),
             ));
         }
-        match EdgeResponse::redirect_with_status(&url.as_str(), status_code) {
+        match EdgeResponse::redirect_with_status(url.as_str(), status_code) {
             Ok(edge_response) => Ok(Response::from(edge_response)),
             Err(err) => Err(Error::from(err)),
         }
