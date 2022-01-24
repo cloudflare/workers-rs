@@ -59,7 +59,7 @@ pub struct RouteContext<D> {
 
 impl<D> RouteContext<D> {
     /// Get a reference to the generic associated data provided to the `Router`.
-    #[deprecated(since = "0.0.8", note="please use the `data` field directly")]
+    #[deprecated(since = "0.0.8", note = "please use the `data` field directly")]
     pub fn data(&self) -> &D {
         &self.data
     }

@@ -3,7 +3,8 @@ use std::{
     time::Duration,
 };
 
-use serde::de::DeserializeOwned;
+use http::Method;
+use reqwest::blocking::{Client, RequestBuilder, Response};
 
 /// How long we'll attempt to connect to wrangler before we assume it's not running.
 const WAIT_FOR_WRANGLER: Duration = Duration::from_secs(1);
@@ -19,24 +20,63 @@ pub fn expect_wrangler() {
     }
 }
 
-pub fn get(endpoint: &str) -> String {
+#[allow(unused)]
+pub fn get(endpoint: &str, builder_fn: impl FnOnce(RequestBuilder) -> RequestBuilder) -> Response {
     expect_wrangler();
 
-    reqwest::blocking::get(&format!("http://127.0.0.1:8787/{endpoint}"))
+    let builder = Client::new().get(&format!("http://127.0.0.1:8787/{endpoint}"));
+    let builder = builder_fn(builder);
+
+    builder
+        .send()
         .expect("could not make request to wrangler")
         .error_for_status()
         .expect(&format!("received invalid status code for {endpoint}"))
-        .text()
-        .expect("body could not be decoded into valid UTF-8")
 }
 
-pub fn get_json<T: DeserializeOwned>(endpoint: &str) -> T {
+#[allow(unused)]
+pub fn post(endpoint: &str, builder_fn: impl FnOnce(RequestBuilder) -> RequestBuilder) -> Response {
     expect_wrangler();
 
-    reqwest::blocking::get(&format!("http://127.0.0.1:8787/{endpoint}"))
+    let builder = Client::new().post(&format!("http://127.0.0.1:8787/{endpoint}"));
+    let builder = builder_fn(builder);
+
+    builder
+        .send()
         .expect("could not make request to wrangler")
         .error_for_status()
         .expect(&format!("received invalid status code for {endpoint}"))
-        .json()
-        .expect("body could not be decoded into valid UTF-8")
+}
+
+#[allow(unused)]
+pub fn put(endpoint: &str, builder_fn: impl FnOnce(RequestBuilder) -> RequestBuilder) -> Response {
+    expect_wrangler();
+
+    let builder = Client::new().put(&format!("http://127.0.0.1:8787/{endpoint}"));
+    let builder = builder_fn(builder);
+
+    builder
+        .send()
+        .expect("could not make request to wrangler")
+        .error_for_status()
+        .expect(&format!("received invalid status code for {endpoint}"))
+}
+
+#[allow(unused)]
+pub fn options(
+    endpoint: &str,
+    builder_fn: impl FnOnce(RequestBuilder) -> RequestBuilder,
+) -> Response {
+    expect_wrangler();
+    let builder = Client::new().request(
+        Method::OPTIONS,
+        &format!("http://127.0.0.1:8787/{endpoint}"),
+    );
+    let builder = builder_fn(builder);
+
+    builder
+        .send()
+        .expect("could not make request to wrangler")
+        .error_for_status()
+        .expect(&format!("received invalid status code for {endpoint}"))
 }
