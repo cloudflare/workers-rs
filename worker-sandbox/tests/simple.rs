@@ -100,7 +100,7 @@ fn get_account_id_zones() {
 #[test]
 #[ignore = "does not work on miniflare https://github.com/cloudflare/miniflare/issues/59"]
 fn async_text_echo() {
-    const TEXT: &'static str = "Example text!";
+    const TEXT: &str = "Example text!";
     let body = get("async-text-echo", |req| req.body(TEXT)).text().unwrap();
     assert_eq!(body, TEXT);
 }
@@ -167,7 +167,7 @@ fn kv_key_value() {
         keys: Vec<serde_json::Value>,
     }
     let keys: Keys = post("kv/a/b", |r| r).json().unwrap();
-    assert!(keys.keys.len() > 0);
+    assert!(!keys.keys.is_empty());
 }
 
 #[test]

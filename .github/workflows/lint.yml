@@ -13,6 +13,12 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+          target: wasm32-unknown-unknown
+          override: true
 
       - name: Check Formatting
         run: cargo fmt --all -- --check
+
+      # Re-enable when https://github.com/rustwasm/wasm-bindgen/issues/2774 is fixed
+      # - name: Check for idiomatic code
+      #   run: cargo clippy --all --all-features -- -D warnings
