@@ -14,7 +14,7 @@ default = ["console_error_panic_hook"]
 
 [dependencies]
 blake2 = "0.9.2"
-chrono = { version = "0.4", default-features = false, features = ["wasmbind"]}
+chrono = { version = "0.4", default-features = false, features = ["wasmbind"] }
 cloudflare = "0.8.7"
 cfg-if = "0.1.2"
 console_error_panic_hook = { version = "0.1.1", optional = true }
@@ -28,4 +28,5 @@ wee_alloc = { version = "0.4.2", optional = true }
 worker = { path = "../worker", version = "0.0.7" }
 
 [dev-dependencies]
+reqwest = { version = "0.11.9", features = ["blocking", "json", "multipart"] }
 wasm-bindgen-test = "0.2"
