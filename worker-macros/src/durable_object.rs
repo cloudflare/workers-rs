@@ -1,6 +1,6 @@
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, ToTokens};
-use syn::{spanned::Spanned, Error, FnArg, ImplItem, Item, PatType, Type, TypePath};
+use syn::{spanned::Spanned, Error, FnArg, ImplItem, Item, Type, TypePath};
 
 pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
     let item = syn::parse2::<Item>(tokens)?;
@@ -35,8 +35,8 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                         let arg_tokens = method.sig.inputs.first_mut().expect("DurableObject `new` method must have 2 arguments: state and env").into_token_stream();                        
                         match syn::parse2::<FnArg>(arg_tokens)? {
                             FnArg::Typed(pat) => {
-                                let path = syn::parse2::<TypePath>(quote!{worker_sys::durable_object::ObjectState}.into())?;
-                                let mut updated_pat = PatType::from(pat);
+                                let path = syn::parse2::<TypePath>(quote!{worker_sys::durable_object::ObjectState})?;
+                                let mut updated_pat = pat;
                                 updated_pat.ty = Box::new(Type::Path(path));
 
                                 let state_arg = FnArg::Typed(updated_pat);

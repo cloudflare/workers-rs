@@ -12,5 +12,5 @@ pub fn durable_object(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
 #[proc_macro_attribute]
 pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
-    event::expand_macro(attr, item.into()).into()
+    event::expand_macro(attr, item)
 }
