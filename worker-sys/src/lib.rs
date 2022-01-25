@@ -60,5 +60,5 @@ pub use headers::Headers;
 pub use request::Request;
 pub use request_init::*;
 pub use response::Response;
-pub use web_sys::ResponseInit;
 pub use schedule::*;
+pub use web_sys::ResponseInit;

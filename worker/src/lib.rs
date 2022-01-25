@@ -31,8 +31,8 @@ pub use crate::http::Method;
 pub use crate::request::Request;
 pub use crate::request_init::*;
 pub use crate::response::{Response, ResponseBody};
-pub use crate::schedule::*;
 pub use crate::router::{RouteContext, RouteParams, Router};
+pub use crate::schedule::*;
 pub use cf::Cf;
 pub use url::Url;
 

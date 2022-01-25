@@ -25,7 +25,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                     ImplItem::Method(m) => m,
                     _ => return Err(Error::new_spanned(item, "Impl block must only contain methods"))
                 };
-                
+
                 let tokens = match impl_method.sig.ident.to_string().as_str() {
                     "new" => {
                         let mut method = impl_method.clone();
@@ -54,7 +54,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                         }];
                         prepended.extend(method.block.stmts);
                         method.block.stmts = prepended;
-                        
+
                         quote! {
                             #pound[wasm_bindgen::prelude::wasm_bindgen(constructor)]
                             pub #method
