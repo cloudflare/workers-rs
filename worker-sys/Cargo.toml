@@ -10,8 +10,15 @@ description = "Low-level extern definitions / FFI bindings to the Cloudflare Wor
 [dependencies]
 cfg-if = "0.1.2"
 js-sys = "0.3.55"
-wasm-bindgen = "0.2.78"
+wasm-bindgen = "=0.2.78"
 
 [dependencies.web-sys]
 version = "0.3.55"
-features = ["ReadableStream", "RequestRedirect", "RequestInit", "ResponseInit", "FormData", "Blob"]
+features = [
+    "ReadableStream",
+    "RequestRedirect",
+    "RequestInit",
+    "ResponseInit",
+    "FormData",
+    "Blob",
+]
