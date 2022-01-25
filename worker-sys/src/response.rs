@@ -79,6 +79,13 @@ extern "C" {
         init: &web_sys::ResponseInit,
     ) -> Result<Response, JsValue>;
 
+    #[wasm_bindgen(catch, constructor, js_class=Response)]
+    #[doc = "The `new Response(..)` constructor, creating a new instance of `Response`."]
+    pub fn new_with_opt_stream_and_init(
+        body: Option<web_sys::ReadableStream>,
+        init: &web_sys::ResponseInit,
+    ) -> Result<Response, JsValue>;
+
     #[wasm_bindgen(catch, method, structural, js_class=Response, js_name=clone)]
     #[doc = "The `clone()` method."]
     pub fn clone(this: &Response) -> Result<Response, JsValue>;
