@@ -1,7 +1,6 @@
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, punctuated::Punctuated, token::Comma, Ident, ItemFn};
-use wasm_bindgen_macro_support;
 
 pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attrs: Punctuated<Ident, Comma> =
@@ -23,7 +22,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             "respond_with_errors" => {
                 respond_with_errors = true;
             }
-            _ => panic!("Invalid attribute: {}", attr.to_string()),
+            _ => panic!("Invalid attribute: {}", attr),
         }
     }
     let handler_type = handler_type
