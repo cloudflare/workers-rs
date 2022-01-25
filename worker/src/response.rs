@@ -2,6 +2,7 @@ use crate::error::Error;
 use crate::headers::Headers;
 use crate::Result;
 
+use js_sys::Uint8Array;
 use serde::{de::DeserializeOwned, Serialize};
 use wasm_bindgen_futures::JsFuture;
 use worker_sys::{Response as EdgeResponse, ResponseInit as EdgeResponseInit};
@@ -227,15 +228,20 @@ impl From<ResponseInit> for EdgeResponseInit {
 impl From<Response> for EdgeResponse {
     fn from(res: Response) -> Self {
         match res.body {
-            ResponseBody::Body(mut bytes) => EdgeResponse::new_with_opt_u8_array_and_init(
-                Some(&mut bytes),
-                &ResponseInit {
-                    status: res.status_code,
-                    headers: res.headers,
-                }
-                .into(),
-            )
-            .unwrap(),
+            ResponseBody::Body(bytes) => {
+                let array = Uint8Array::new_with_length(bytes.len() as u32);
+                array.copy_from(&bytes);
+
+                EdgeResponse::new_with_opt_u8_array_and_init(
+                    Some(array),
+                    &ResponseInit {
+                        status: res.status_code,
+                        headers: res.headers,
+                    }
+                    .into(),
+                )
+                .unwrap()
+            }
             ResponseBody::Stream(response) => response,
             ResponseBody::Empty => EdgeResponse::new_with_opt_str_and_init(
                 None,
