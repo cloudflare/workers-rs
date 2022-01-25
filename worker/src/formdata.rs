@@ -44,7 +44,7 @@ impl FormData {
             return Some(FormEntry::Field(field));
         }
 
-        return None;
+        None
     }
 
     /// Returns a vec of all the values associated with a given key from within a `FormData` object.
@@ -63,7 +63,7 @@ impl FormData {
                             return FormEntry::File(File(val.into()));
                         }
 
-                        return FormEntry::Field(val.as_string().unwrap_or_default());
+                        FormEntry::Field(val.as_string().unwrap_or_default())
                     })
                     .collect(),
             );

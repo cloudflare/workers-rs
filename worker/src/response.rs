@@ -2,6 +2,7 @@ use crate::error::Error;
 use crate::headers::Headers;
 use crate::Result;
 
+use js_sys::Uint8Array;
 use serde::{de::DeserializeOwned, Serialize};
 use wasm_bindgen_futures::JsFuture;
 use worker_sys::{Response as EdgeResponse, ResponseInit as EdgeResponseInit};
@@ -119,7 +120,7 @@ impl Response {
 
     /// Create a `Response` which redirects to the specified URL with default status_code of 302
     pub fn redirect(url: url::Url) -> Result<Self> {
-        match EdgeResponse::redirect(&url.as_str()) {
+        match EdgeResponse::redirect(url.as_str()) {
             Ok(edge_response) => Ok(Response::from(edge_response)),
             Err(err) => Err(Error::from(err)),
         }
@@ -132,7 +133,7 @@ impl Response {
                 "redirect status codes must be in the 300-399 range! Please checkout https://developer.mozilla.org/en-US/docs/Web/HTTP/Status#redirection_messages for more".into(),
             ));
         }
-        match EdgeResponse::redirect_with_status(&url.as_str(), status_code) {
+        match EdgeResponse::redirect_with_status(url.as_str(), status_code) {
             Ok(edge_response) => Ok(Response::from(edge_response)),
             Err(err) => Err(Error::from(err)),
         }
@@ -227,15 +228,20 @@ impl From<ResponseInit> for EdgeResponseInit {
 impl From<Response> for EdgeResponse {
     fn from(res: Response) -> Self {
         match res.body {
-            ResponseBody::Body(mut bytes) => EdgeResponse::new_with_opt_u8_array_and_init(
-                Some(&mut bytes),
-                &ResponseInit {
-                    status: res.status_code,
-                    headers: res.headers,
-                }
-                .into(),
-            )
-            .unwrap(),
+            ResponseBody::Body(bytes) => {
+                let array = Uint8Array::new_with_length(bytes.len() as u32);
+                array.copy_from(&bytes);
+
+                EdgeResponse::new_with_opt_u8_array_and_init(
+                    Some(array),
+                    &ResponseInit {
+                        status: res.status_code,
+                        headers: res.headers,
+                    }
+                    .into(),
+                )
+                .unwrap()
+            }
             ResponseBody::Stream(response) => EdgeResponse::new_with_opt_stream_and_init(
                 response.body(),
                 &ResponseInit {

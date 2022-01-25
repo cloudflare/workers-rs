@@ -59,7 +59,7 @@ impl From<&RequestInit> for worker_sys::RequestInit {
         let mut inner = worker_sys::RequestInit::new();
         inner.headers(req.headers.as_ref());
         inner.method(&req.method.to_string());
-        inner.redirect(req.redirect.clone().into());
+        inner.redirect(req.redirect.into());
         inner.body(req.body.as_ref());
 
         // set the Cloudflare-specific `cf` property on FFI RequestInit
@@ -210,7 +210,6 @@ impl From<&CfProperties> for JsValue {
 
         let polish_val: &str = props
             .polish
-            .clone()
             .unwrap_or(defaults.polish.unwrap_or_default())
             .into();
         set_prop(&obj, &JsValue::from("polish"), &JsValue::from(polish_val));
@@ -242,7 +241,7 @@ impl From<&CfProperties> for JsValue {
 
 fn set_prop(target: &Object, key: &JsValue, val: &JsValue) {
     #[allow(unused_unsafe)]
-    let r = unsafe { ::js_sys::Reflect::set(&target, key, val) };
+    let r = unsafe { ::js_sys::Reflect::set(target, key, val) };
     debug_assert!(
         r.is_ok(),
         "setting properties should never fail on our dictionary objects"
