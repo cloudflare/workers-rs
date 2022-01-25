@@ -7,6 +7,7 @@ pub mod headers;
 pub mod request;
 pub mod request_init;
 pub mod response;
+pub mod schedule;
 
 /// When debugging your Worker via `wrangler dev`, `wrangler tail`, or from the Workers Dashboard,
 /// anything passed to this macro will be printed to the terminal or written to the console.
@@ -46,6 +47,7 @@ pub mod prelude {
     pub use crate::request::Request;
     pub use crate::request_init::*;
     pub use crate::response::Response;
+    pub use crate::schedule::*;
     pub use crate::{console_debug, console_error, console_log, console_warn};
 }
 
@@ -59,3 +61,4 @@ pub use request::Request;
 pub use request_init::*;
 pub use response::Response;
 pub use web_sys::ResponseInit;
+pub use schedule::*;
