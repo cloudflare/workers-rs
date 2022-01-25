@@ -1,7 +1,7 @@
 use std::future::Future;
-use worker_sys::{ScheduledEvent as EdgeScheduledEvent, ScheduleContext as EdgeScheduleContext};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::future_to_promise;
+use worker_sys::{ScheduleContext as EdgeScheduleContext, ScheduledEvent as EdgeScheduledEvent};
 
 /// [Schedule](https://developers.cloudflare.com/workers/runtime-apis/scheduled-event#syntax-module-worker)
 #[derive(Debug, Clone)]
@@ -45,24 +45,18 @@ pub struct ScheduleContext {
 
 impl From<EdgeScheduleContext> for ScheduleContext {
     fn from(edge: EdgeScheduleContext) -> Self {
-        Self {
-            edge
-        }
+        Self { edge }
     }
 }
 
 impl ScheduleContext {
     pub fn wait_until<T>(&self, handler: T)
-        where
-            T: Future<Output=()> + 'static,
+    where
+        T: Future<Output = ()> + 'static,
     {
-        self.edge.wait_until(
-            future_to_promise(
-                async {
-                    handler.await;
-                    Ok(JsValue::null())
-                }
-            )
-        )
+        self.edge.wait_until(future_to_promise(async {
+            handler.await;
+            Ok(JsValue::null())
+        }))
     }
 }
