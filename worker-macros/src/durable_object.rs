@@ -25,7 +25,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                     ImplItem::Method(m) => m,
                     _ => return Err(Error::new_spanned(item, "Impl block must only contain methods"))
                 };
-                
+
                 let tokens = match impl_method.sig.ident.to_string().as_str() {
                     "new" => {
                         let mut method = impl_method.clone();
@@ -37,8 +37,8 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                             FnArg::Typed(pat) => {
                                 let path = syn::parse2::<TypePath>(quote!{worker_sys::durable_object::ObjectState}.into())?;
                                 let mut updated_pat = PatType::from(pat);
-                                updated_pat.ty = Box::new(Type::Path(path)); 
-                                
+                                updated_pat.ty = Box::new(Type::Path(path));
+
                                 let state_arg = FnArg::Typed(updated_pat);
                                 let env_arg = method.sig.inputs.pop().expect("DurableObject `new` method expects a second argument: env");
                                 method.sig.inputs.clear();
@@ -54,7 +54,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                         }];
                         prepended.extend(method.block.stmts);
                         method.block.stmts = prepended;
-                        
+
                         quote! {
                             #pound[wasm_bindgen::prelude::wasm_bindgen(constructor)]
                             pub #method
