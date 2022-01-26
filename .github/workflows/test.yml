@@ -42,13 +42,10 @@ jobs:
       - name: Run tests
         shell: bash
         working-directory: ./worker-sandbox
-        env:
-          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
         run: |
           set -e
 
           echo "
-          CF_API_TOKEN=\"$CF_API_TOKEN\"
           EXAMPLE_SECRET=\"example\"
           SOME_SECRET=\"secret!\"
           SOME_VARIABLE=\"some value\"
