@@ -12,7 +12,7 @@ Read the [Notes and FAQ](#notes-and-faq)
 use worker::*;
 
 #[event(fetch)]
-pub async fn main(req: Request, env: Env) -> Result<Response> {
+pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
     console_log!(
         "{} {}, located at: {:?}, within: {}",
         req.method().to_string(),
@@ -47,7 +47,7 @@ Parameterize routes and access the parameter values from within a handler. Each 
 use worker::*;
 
 #[event(fetch)]
-pub async fn main(req: Request, env: Env) -> Result<Response> {
+pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
 
     // Create an instance of the Router, which can use paramaters (/user/:name) or wildcard values
     // (/file/*pathname). Alternatively, use `Router::with_data(D)` and pass in arbitrary data for
@@ -145,7 +145,7 @@ the route handler callback (in the `ctx` argument), if you use the `Router` from
 use worker::*;
 
 #[event(fetch, respond_with_errors)]
-pub async fn main(req: Request, env: Env) -> Result<Response> {
+pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
     utils::set_panic_hook();
 
     let router = Router::new();
