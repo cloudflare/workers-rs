@@ -100,7 +100,7 @@ fn get_account_id_zones() {
 #[test]
 #[ignore = "does not work on miniflare https://github.com/cloudflare/miniflare/issues/59"]
 fn async_text_echo() {
-    const TEXT: &'static str = "Example text!";
+    const TEXT: &str = "Example text!";
     let body = get("async-text-echo", |req| req.body(TEXT)).text().unwrap();
     assert_eq!(body, TEXT);
 }
@@ -118,22 +118,6 @@ fn fetch_json() {
         body,
         "API Returned user: 1 with title: delectus aut autem and completed: false"
     );
-}
-
-#[test]
-fn cloudflare_api() {
-    expect_wrangler();
-
-    let response = get("cloudflare-api", |r| r);
-    let email_header = response
-        .headers()
-        .get("user-details-email")
-        .cloned()
-        .expect("no user-details-email header specified");
-    let body = response.text().expect("body not valid utf8");
-
-    assert_eq!(body, "hello user");
-    assert!(email_header.to_str().is_ok());
 }
 
 #[test]
@@ -167,7 +151,7 @@ fn kv_key_value() {
         keys: Vec<serde_json::Value>,
     }
     let keys: Keys = post("kv/a/b", |r| r).json().unwrap();
-    assert!(keys.keys.len() > 0);
+    assert!(!keys.keys.is_empty());
 }
 
 #[test]

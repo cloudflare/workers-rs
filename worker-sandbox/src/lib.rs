@@ -1,5 +1,4 @@
 use blake2::{Blake2b, Digest};
-use cloudflare::framework::{async_api::Client, Environment, HttpApiClientConfig};
 use serde::{Deserialize, Serialize};
 use worker::*;
 
@@ -40,7 +39,6 @@ struct FileSize {
 
 struct SomeSharedData {
     regex: regex::Regex,
-    cloudflare_api_client: Client,
 }
 
 fn handle_a_request<D>(req: Request, _ctx: RouteContext<D>) -> Result<Response> {
@@ -65,18 +63,8 @@ async fn handle_async_request<D>(req: Request, _ctx: RouteContext<D>) -> Result<
 pub async fn main(req: Request, env: Env) -> Result<Response> {
     utils::set_panic_hook();
 
-    let creds = cloudflare::framework::auth::Credentials::UserAuthToken {
-        token: env.secret("CF_API_TOKEN")?.to_string(),
-    };
-    let config = HttpApiClientConfig {
-        http_timeout: std::time::Duration::from_millis(500),
-        ..Default::default()
-    };
-    let client = Client::new(creds, config, Environment::Production).unwrap();
-
     let data = SomeSharedData {
         regex: regex::Regex::new(r"^\d{4}-\d{2}-\d{2}$").unwrap(),
-        cloudflare_api_client: client,
     };
 
     let router = Router::with_data(data); // if no data is needed, pass `()` or any other valid data
@@ -254,22 +242,6 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
                 "API Returned user: {} with title: {} and completed: {}",
                 data.user_id, data.title, data.completed
             ))
-        })
-        .get_async("/cloudflare-api", |_req, ctx| async move {
-            let resp = ctx
-                .data
-                .cloudflare_api_client
-                .request_handle(&cloudflare::endpoints::user::GetUserDetails {})
-                .await
-                .unwrap();
-
-            Response::ok("hello user").map(|res| {
-                let mut headers = Headers::new();
-                headers
-                    .set("user-details-email", &resp.result.email)
-                    .unwrap();
-                res.with_headers(headers)
-            })
         })
         .get_async("/proxy_request/*url", |_req, ctx| async move {
             let url = ctx.param("url").unwrap().strip_prefix('/').unwrap();
