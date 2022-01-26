@@ -60,7 +60,7 @@ async fn handle_async_request<D>(req: Request, _ctx: RouteContext<D>) -> Result<
 }
 
 #[event(fetch)]
-pub async fn main(req: Request, env: Env) -> Result<Response> {
+pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
     utils::set_panic_hook();
 
     let data = SomeSharedData {
