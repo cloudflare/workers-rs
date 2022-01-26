@@ -121,22 +121,6 @@ fn fetch_json() {
 }
 
 #[test]
-fn cloudflare_api() {
-    expect_wrangler();
-
-    let response = get("cloudflare-api", |r| r);
-    let email_header = response
-        .headers()
-        .get("user-details-email")
-        .cloned()
-        .expect("no user-details-email header specified");
-    let body = response.text().expect("body not valid utf8");
-
-    assert_eq!(body, "hello user");
-    assert!(email_header.to_str().is_ok());
-}
-
-#[test]
 fn proxy_request() {
     // Because the sandbox worker passes the response without touching it, we might get a response
     // with a body thats compressed. So we'll just use this which isn't compressed and is small.
