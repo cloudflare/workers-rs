@@ -59,7 +59,7 @@ impl Cors {
 
     /// Configures which headers are allowed for cors.
     pub fn with_allowed_headers<S: Into<String>, V: IntoIterator<Item=S>>(mut self, origins: V) -> Self {
-        self.origins = origins.into_iter()
+        self.allowed_headers = origins.into_iter()
             .map(|item| item.into())
             .collect::<Vec<String>>();
         self
@@ -67,7 +67,7 @@ impl Cors {
 
     /// Configures which headers the client is allowed to access.
     pub fn with_exposed_headers<S: Into<String>, V: IntoIterator<Item=S>>(mut self, origins: V) -> Self {
-        self.origins = origins.into_iter()
+        self.exposed_headers = origins.into_iter()
             .map(|item| item.into())
             .collect::<Vec<String>>();
         self
