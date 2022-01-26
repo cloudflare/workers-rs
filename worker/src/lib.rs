@@ -1,3 +1,6 @@
+#![allow(clippy::new_without_default)]
+#![allow(clippy::or_fun_call)]
+
 mod cf;
 mod context;
 mod date;
@@ -12,6 +15,7 @@ mod request;
 mod request_init;
 mod response;
 mod router;
+mod schedule;
 
 #[doc(hidden)]
 use std::result::Result as StdResult;
@@ -30,6 +34,7 @@ pub use crate::request::Request;
 pub use crate::request_init::*;
 pub use crate::response::{Response, ResponseBody};
 pub use crate::router::{RouteContext, RouteParams, Router};
+pub use crate::schedule::*;
 pub use cf::Cf;
 pub use url::Url;
 

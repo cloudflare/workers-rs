@@ -1,7 +1,6 @@
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, punctuated::Punctuated, token::Comma, Ident, ItemFn};
-use wasm_bindgen_macro_support;
 
 pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attrs: Punctuated<Ident, Comma> =
@@ -23,7 +22,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             "respond_with_errors" => {
                 respond_with_errors = true;
             }
-            _ => panic!("Invalid attribute: {}", attr.to_string()),
+            _ => panic!("Invalid attribute: {}", attr),
         }
     }
     let handler_type = handler_type
@@ -59,13 +58,13 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             // original attributed function, passing in a converted worker::Request
             let wrapper_fn = quote! {
                 pub async fn #wrapper_fn_ident(
-                    req: worker_sys::Request,
+                    req: ::worker::worker_sys::Request,
                     env: ::worker::Env,
-                    ctx: worker_sys::Context
-                ) -> worker_sys::Response {
+                    ctx: ::worker::worker_sys::Context
+                ) -> ::worker::worker_sys::Response {
                     let ctx = worker::Context::new(ctx);
                     // get the worker::Result<worker::Response> by calling the original fn
-                    match #input_fn_ident(worker::Request::from(req), env, ctx).await.map(worker_sys::Response::from) {
+                    match #input_fn_ident(::worker::Request::from(req), env, ctx).await.map(::worker::worker_sys::Response::from) {
                         Ok(res) => res,
                         Err(e) => {
                             ::worker::console_log!("{}", &e);
@@ -81,22 +80,29 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             let output = quote! {
                 #input_fn
 
-                #wasm_bindgen_code
+                mod _worker_fetch {
+                    use ::worker::{wasm_bindgen, wasm_bindgen_futures};
+                    use super::#input_fn_ident;
+                    #wasm_bindgen_code
+                }
             };
 
             TokenStream::from(output)
         }
         Scheduled => {
             // save original fn name for re-use in the wrapper fn
-            let original_input_fn_ident = input_fn.sig.ident.clone();
-            let output_fn_ident = Ident::new("glue_cron", input_fn.sig.ident.span());
+            let input_fn_ident = Ident::new(
+                &(input_fn.sig.ident.to_string() + "_scheduled_glue"),
+                input_fn.sig.ident.span(),
+            );
+            let wrapper_fn_ident = Ident::new("scheduled", input_fn.sig.ident.span());
             // rename the original attributed fn
-            input_fn.sig.ident = output_fn_ident.clone();
+            input_fn.sig.ident = input_fn_ident.clone();
 
             let wrapper_fn = quote! {
-                pub async fn #original_input_fn_ident(ty: String, schedule: u64, cron: String) -> worker::Result<()> {
-                    // get the worker::Result<worker::Response> by calling the original fn
-                    #output_fn_ident(worker::Schedule::from((ty, schedule, cron))).await
+                pub async fn #wrapper_fn_ident(event: ::worker::worker_sys::ScheduledEvent, env: ::worker::Env, ctx: ::worker::worker_sys::ScheduleContext) {
+                    // call the original fn
+                    #input_fn_ident(::worker::ScheduledEvent::from(event), env, ::worker::ScheduleContext::from(ctx)).await
                 }
             };
             let wasm_bindgen_code =
@@ -106,7 +112,11 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             let output = quote! {
                 #input_fn
 
-                #wasm_bindgen_code
+                mod _worker_scheduled {
+                    use ::worker::{wasm_bindgen, wasm_bindgen_futures};
+                    use super::#input_fn_ident;
+                    #wasm_bindgen_code
+                }
             };
 
             TokenStream::from(output)

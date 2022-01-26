@@ -53,19 +53,20 @@ pub struct Router<'a, D> {
 /// as KV Stores, Durable Objects, Variables, and Secrets).
 pub struct RouteContext<D> {
     pub data: D,
-    env: Env,
+    pub env: Env,
     params: RouteParams,
 }
 
 impl<D> RouteContext<D> {
     /// Get a reference to the generic associated data provided to the `Router`.
-    #[deprecated(since = "0.0.8", note="please use the `data` field directly")]
+    #[deprecated(since = "0.0.8", note = "please use the `data` field directly")]
     pub fn data(&self) -> &D {
         &self.data
     }
 
     /// Get the `Env` for this Worker. Typically users should opt for the `secret`, `var`, `kv` and
     /// `durable_object` methods on the `RouteContext` instead.
+    #[deprecated(since = "0.0.8", note = "please use the `env` field directly")]
     pub fn get_env(self) -> Env {
         self.env
     }

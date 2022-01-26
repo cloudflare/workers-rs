@@ -1,5 +1,7 @@
 use crate::FormData;
 use crate::ResponseInit;
+
+use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -46,7 +48,7 @@ extern "C" {
 
     #[wasm_bindgen(catch, constructor, js_class=Response)]
     #[doc = "The `new Response(..)` constructor, creating a new instance of `Response`."]
-    pub fn new_with_opt_u8_array(body: Option<&mut [u8]>) -> Result<Response, JsValue>;
+    pub fn new_with_opt_u8_array(body: Option<Uint8Array>) -> Result<Response, JsValue>;
 
     #[wasm_bindgen(catch, constructor, js_class=Response)]
     #[doc = "The `new Response(..)` constructor, creating a new instance of `Response`."]
@@ -59,7 +61,7 @@ extern "C" {
     #[wasm_bindgen(catch, constructor, js_class=Response)]
     #[doc = "The `new Response(..)` constructor, creating a new instance of `Response`."]
     pub fn new_with_opt_u8_array_and_init(
-        body: Option<&mut [u8]>,
+        body: Option<Uint8Array>,
         init: &web_sys::ResponseInit,
     ) -> Result<Response, JsValue>;
 
@@ -74,6 +76,13 @@ extern "C" {
     #[doc = "The `new Response(..)` constructor, creating a new instance of `Response`."]
     pub fn new_with_opt_str_and_init(
         body: Option<&str>,
+        init: &web_sys::ResponseInit,
+    ) -> Result<Response, JsValue>;
+
+    #[wasm_bindgen(catch, constructor, js_class=Response)]
+    #[doc = "The `new Response(..)` constructor, creating a new instance of `Response`."]
+    pub fn new_with_opt_stream_and_init(
+        body: Option<web_sys::ReadableStream>,
         init: &web_sys::ResponseInit,
     ) -> Result<Response, JsValue>;
 

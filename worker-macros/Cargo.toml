@@ -17,6 +17,6 @@ worker-sys = { path = "../worker-sys", version = "0.0.2" }
 syn = "1.0.74"
 proc-macro2 = "1.0.28"
 quote = "1.0.9"
-wasm-bindgen = "0.2.78" 
+wasm-bindgen = "=0.2.78"
 wasm-bindgen-futures = "0.4.28"
 wasm-bindgen-macro-support = "0.2.78"
