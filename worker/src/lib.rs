@@ -16,6 +16,7 @@ mod request_init;
 mod response;
 mod router;
 mod schedule;
+mod cors;
 
 #[doc(hidden)]
 use std::result::Result as StdResult;

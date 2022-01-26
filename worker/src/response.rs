@@ -6,6 +6,7 @@ use js_sys::Uint8Array;
 use serde::{de::DeserializeOwned, Serialize};
 use wasm_bindgen_futures::JsFuture;
 use worker_sys::{Response as EdgeResponse, ResponseInit as EdgeResponseInit};
+use crate::cors::Cors;
 
 #[derive(Debug)]
 pub enum ResponseBody {
@@ -193,6 +194,19 @@ impl Response {
         self
     }
 
+    /// Sets this response's cors headers from the `Cors` struct.
+    pub fn with_cors(mut self, cors: &Cors) -> Result<Self> {
+        cors.apply_headers(self.headers_mut())?;
+        Ok(self)
+    }
+
+    /// Sets this response's cors headers from the `Cors` struct without checking for the
+    /// `apply_headers` `Result`.
+    pub fn with_cors_unsafe(mut self, cors: &Cors) -> Self {
+        cors.apply_headers(self.headers_mut()).ok();
+        self
+    }
+
     /// Read the `Headers` on this response.
     pub fn headers(&self) -> &Headers {
         &self.headers
@@ -238,9 +252,9 @@ impl From<Response> for EdgeResponse {
                         status: res.status_code,
                         headers: res.headers,
                     }
-                    .into(),
+                        .into(),
                 )
-                .unwrap()
+                    .unwrap()
             }
             ResponseBody::Stream(response) => EdgeResponse::new_with_opt_stream_and_init(
                 response.body(),
@@ -248,18 +262,18 @@ impl From<Response> for EdgeResponse {
                     status: res.status_code,
                     headers: res.headers,
                 }
-                .into(),
+                    .into(),
             )
-            .unwrap(),
+                .unwrap(),
             ResponseBody::Empty => EdgeResponse::new_with_opt_str_and_init(
                 None,
                 &ResponseInit {
                     status: res.status_code,
                     headers: res.headers,
                 }
-                .into(),
+                    .into(),
             )
-            .unwrap(),
+                .unwrap(),
         }
     }
 }
