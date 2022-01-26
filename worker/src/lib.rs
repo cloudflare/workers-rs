@@ -36,6 +36,7 @@ pub use crate::request_init::*;
 pub use crate::response::{Response, ResponseBody};
 pub use crate::router::{RouteContext, RouteParams, Router};
 pub use crate::schedule::*;
+pub use crate::cors::Cors;
 pub use cf::Cf;
 pub use url::Url;
 
