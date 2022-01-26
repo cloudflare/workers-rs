@@ -43,4 +43,3 @@ impl Context {
         self.inner.pass_through_on_exception()
     }
 }
-
