@@ -119,25 +119,25 @@ impl Cors {
         if let Some(ref max_age) = self.max_age {
             headers.set("Access-Control-Max-Age", format!("{}", max_age).as_str())?;
         }
-        if self.origins.len() > 0 {
+        if !self.origins.is_empty() {
             headers.set(
                 "Access-Control-Allow-Origin",
                 concat_vec_to_string(&self.origins)?.as_str(),
             )?;
         }
-        if self.methods.len() > 0 {
+        if !self.methods.is_empty() {
             headers.set(
                 "Access-Control-Allow-Methods",
                 concat_vec_to_string(&self.methods)?.as_str(),
             )?;
         }
-        if self.allowed_headers.len() > 0 {
+        if !self.allowed_headers.is_empty() {
             headers.set(
                 "Access-Control-Allow-Headers",
                 concat_vec_to_string(&self.allowed_headers)?.as_str(),
             )?;
         }
-        if self.exposed_headers.len() > 0 {
+        if !self.exposed_headers.is_empty() {
             headers.set(
                 "Access-Control-Expose-headers",
                 concat_vec_to_string(&self.exposed_headers)?.as_str(),
@@ -149,7 +149,7 @@ impl Cors {
 
 fn concat_vec_to_string<S: AsRef<str>>(vec: &Vec<S>) -> Result<String> {
     let str = vec.iter().fold("".to_owned(), |mut init, item| {
-        init.push_str(",");
+        init.push(',');
         init.push_str(item.as_ref());
         init
     });
