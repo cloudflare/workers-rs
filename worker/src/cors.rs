@@ -122,38 +122,38 @@ impl Cors {
         if !self.origins.is_empty() {
             headers.set(
                 "Access-Control-Allow-Origin",
-                concat_vec_to_string(&self.origins)?.as_str(),
+                concat_vec_to_string(self.origins.as_slice())?.as_str(),
             )?;
         }
         if !self.methods.is_empty() {
             headers.set(
                 "Access-Control-Allow-Methods",
-                concat_vec_to_string(&self.methods)?.as_str(),
+                concat_vec_to_string(self.methods.as_slice())?.as_str(),
             )?;
         }
         if !self.allowed_headers.is_empty() {
             headers.set(
                 "Access-Control-Allow-Headers",
-                concat_vec_to_string(&self.allowed_headers)?.as_str(),
+                concat_vec_to_string(self.allowed_headers.as_slice())?.as_str(),
             )?;
         }
         if !self.exposed_headers.is_empty() {
             headers.set(
                 "Access-Control-Expose-headers",
-                concat_vec_to_string(&self.exposed_headers)?.as_str(),
+                concat_vec_to_string(self.exposed_headers.as_slice())?.as_str(),
             )?;
         }
         Ok(())
     }
 }
 
-fn concat_vec_to_string<S: AsRef<str>>(vec: &Vec<S>) -> Result<String> {
+fn concat_vec_to_string<S: AsRef<str>>(vec: &[S]) -> Result<String> {
     let str = vec.iter().fold("".to_owned(), |mut init, item| {
         init.push(',');
         init.push_str(item.as_ref());
         init
     });
-    if str.len() > 0 {
+    if !str.is_empty() {
         Ok(str[1..].to_string())
     } else {
         Err(Error::RustError(
