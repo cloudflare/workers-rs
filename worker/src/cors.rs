@@ -73,30 +73,39 @@ impl Cors {
     }
 
     /// Configures which origins are allowed for cors.
-    pub fn with_origins<S: Into<String>, V: IntoIterator<Item=S>>(mut self, origins: V) -> Self {
-        self.origins = origins.into_iter()
+    pub fn with_origins<S: Into<String>, V: IntoIterator<Item = S>>(mut self, origins: V) -> Self {
+        self.origins = origins
+            .into_iter()
             .map(|item| item.into())
             .collect::<Vec<String>>();
         self
     }
 
     /// Configures which methods are allowed for cors.
-    pub fn with_methods<V: IntoIterator<Item=Method>>(mut self, methods: V) -> Self {
+    pub fn with_methods<V: IntoIterator<Item = Method>>(mut self, methods: V) -> Self {
         self.methods = methods.into_iter().collect();
         self
     }
 
     /// Configures which headers are allowed for cors.
-    pub fn with_allowed_headers<S: Into<String>, V: IntoIterator<Item=S>>(mut self, origins: V) -> Self {
-        self.allowed_headers = origins.into_iter()
+    pub fn with_allowed_headers<S: Into<String>, V: IntoIterator<Item = S>>(
+        mut self,
+        origins: V,
+    ) -> Self {
+        self.allowed_headers = origins
+            .into_iter()
             .map(|item| item.into())
             .collect::<Vec<String>>();
         self
     }
 
     /// Configures which headers the client is allowed to access.
-    pub fn with_exposed_headers<S: Into<String>, V: IntoIterator<Item=S>>(mut self, origins: V) -> Self {
-        self.exposed_headers = origins.into_iter()
+    pub fn with_exposed_headers<S: Into<String>, V: IntoIterator<Item = S>>(
+        mut self,
+        origins: V,
+    ) -> Self {
+        self.exposed_headers = origins
+            .into_iter()
             .map(|item| item.into())
             .collect::<Vec<String>>();
         self
@@ -111,16 +120,28 @@ impl Cors {
             headers.set("Access-Control-Max-Age", format!("{}", max_age).as_str())?;
         }
         if self.origins.len() > 0 {
-            headers.set("Access-Control-Allow-Origin", concat_vec_to_string(&self.origins)?.as_str())?;
+            headers.set(
+                "Access-Control-Allow-Origin",
+                concat_vec_to_string(&self.origins)?.as_str(),
+            )?;
         }
         if self.methods.len() > 0 {
-            headers.set("Access-Control-Allow-Methods", concat_vec_to_string(&self.methods)?.as_str())?;
+            headers.set(
+                "Access-Control-Allow-Methods",
+                concat_vec_to_string(&self.methods)?.as_str(),
+            )?;
         }
         if self.allowed_headers.len() > 0 {
-            headers.set("Access-Control-Allow-Headers", concat_vec_to_string(&self.allowed_headers)?.as_str())?;
+            headers.set(
+                "Access-Control-Allow-Headers",
+                concat_vec_to_string(&self.allowed_headers)?.as_str(),
+            )?;
         }
         if self.exposed_headers.len() > 0 {
-            headers.set("Access-Control-Expose-headers", concat_vec_to_string(&self.exposed_headers)?.as_str())?;
+            headers.set(
+                "Access-Control-Expose-headers",
+                concat_vec_to_string(&self.exposed_headers)?.as_str(),
+            )?;
         }
         Ok(())
     }
@@ -135,6 +156,8 @@ fn concat_vec_to_string<S: AsRef<str>>(vec: &Vec<S>) -> Result<String> {
     if str.len() > 0 {
         Ok(str[1..].to_string())
     } else {
-        Err(Error::RustError("Tried to concat header values without values.".to_string()))
+        Err(Error::RustError(
+            "Tried to concat header values without values.".to_string(),
+        ))
     }
 }
