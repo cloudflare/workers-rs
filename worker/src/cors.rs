@@ -1,34 +1,5 @@
 use crate::{Error, Headers, Method, Result};
 
-/// Utility macro which applies cors to a response while properly handling the error results
-/// produced by the `with_cors` call.
-///
-/// This macro requires the calling method to have a `Result<T, From<worker::Error>>` return type!
-///
-/// Example code
-/// ```
-/// pub fn fetch() -> Result<worker::Response, worker::Error> {
-///     let cors = worker::Cors::default();
-///     let response = worker::Response::empty();
-///     return with_cors!(response, cors);
-/// }
-/// ```
-#[macro_export]
-macro_rules! with_cors {
-    ($response:expr, $cors:ident) => {
-        match $response {
-            Ok(response) => Ok(response.with_cors(&$cors)?),
-            err => err,
-        }
-    };
-    ($response:ident, $cors:ident) => {
-        match $response {
-            Ok(response) => Ok(response.with_cors(&$cors)?),
-            err => err,
-        }
-    };
-}
-
 /// Cors struct, holding cors configuration
 #[derive(Debug, Clone)]
 pub struct Cors {

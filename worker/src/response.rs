@@ -195,16 +195,18 @@ impl Response {
     }
 
     /// Sets this response's cors headers from the `Cors` struct.
+    /// Example usage:
+    /// ```
+    /// use worker::*;
+    /// fn fetch() -> worker::Result<Response> {
+    ///     let cors = Cors::default();
+    ///     Response::empty()?
+    ///         .with_cors(&cors)
+    /// }
+    /// ```
     pub fn with_cors(mut self, cors: &Cors) -> Result<Self> {
         cors.apply_headers(self.headers_mut())?;
         Ok(self)
-    }
-
-    /// Sets this response's cors headers from the `Cors` struct without checking for the
-    /// `apply_headers` `Result`.
-    pub fn with_cors_unsafe(mut self, cors: &Cors) -> Self {
-        cors.apply_headers(self.headers_mut()).ok();
-        self
     }
 
     /// Read the `Headers` on this response.
