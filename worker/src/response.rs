@@ -1,3 +1,4 @@
+use crate::cors::Cors;
 use crate::error::Error;
 use crate::headers::Headers;
 use crate::Result;
@@ -191,6 +192,21 @@ impl Response {
     pub fn with_status(mut self, status_code: u16) -> Self {
         self.status_code = status_code;
         self
+    }
+
+    /// Sets this response's cors headers from the `Cors` struct.
+    /// Example usage:
+    /// ```
+    /// use worker::*;
+    /// fn fetch() -> worker::Result<Response> {
+    ///     let cors = Cors::default();
+    ///     Response::empty()?
+    ///         .with_cors(&cors)
+    /// }
+    /// ```
+    pub fn with_cors(mut self, cors: &Cors) -> Result<Self> {
+        cors.apply_headers(self.headers_mut())?;
+        Ok(self)
     }
 
     /// Read the `Headers` on this response.

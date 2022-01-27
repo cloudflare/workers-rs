@@ -3,6 +3,7 @@
 
 mod cf;
 mod context;
+mod cors;
 mod date;
 pub mod durable;
 mod env;
@@ -23,6 +24,7 @@ use std::result::Result as StdResult;
 pub type Result<T> = StdResult<T, error::Error>;
 
 pub use crate::context::Context;
+pub use crate::cors::Cors;
 pub use crate::date::{Date, DateInit};
 pub use crate::env::Env;
 pub use crate::error::Error;
