@@ -262,9 +262,9 @@ impl From<Response> for EdgeResponse {
                     status: res.status_code,
                     headers: res.headers,
                 }
-                    .into(),
+                .into(),
             )
-                .unwrap(),
+            .unwrap(),
             ResponseBody::Empty => EdgeResponse::new_with_opt_str_and_init(
                 None,
                 &ResponseInit {
