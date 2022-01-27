@@ -252,9 +252,9 @@ impl From<Response> for EdgeResponse {
                         status: res.status_code,
                         headers: res.headers,
                     }
-                        .into(),
+                    .into(),
                 )
-                    .unwrap()
+                .unwrap()
             }
             ResponseBody::Stream(response) => EdgeResponse::new_with_opt_stream_and_init(
                 response.body(),
@@ -271,9 +271,9 @@ impl From<Response> for EdgeResponse {
                     status: res.status_code,
                     headers: res.headers,
                 }
-                    .into(),
+                .into(),
             )
-                .unwrap(),
+            .unwrap(),
         }
     }
 }
