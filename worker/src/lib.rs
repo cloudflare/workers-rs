@@ -3,6 +3,7 @@
 
 mod cf;
 mod context;
+mod cors;
 mod date;
 pub mod durable;
 mod env;
@@ -16,7 +17,6 @@ mod request_init;
 mod response;
 mod router;
 mod schedule;
-mod cors;
 
 #[doc(hidden)]
 use std::result::Result as StdResult;
@@ -24,6 +24,7 @@ use std::result::Result as StdResult;
 pub type Result<T> = StdResult<T, error::Error>;
 
 pub use crate::context::Context;
+pub use crate::cors::Cors;
 pub use crate::date::{Date, DateInit};
 pub use crate::env::Env;
 pub use crate::error::Error;
@@ -36,7 +37,6 @@ pub use crate::request_init::*;
 pub use crate::response::{Response, ResponseBody};
 pub use crate::router::{RouteContext, RouteParams, Router};
 pub use crate::schedule::*;
-pub use crate::cors::Cors;
 pub use cf::Cf;
 pub use url::Url;
 

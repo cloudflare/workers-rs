@@ -1,3 +1,4 @@
+use crate::cors::Cors;
 use crate::error::Error;
 use crate::headers::Headers;
 use crate::Result;
@@ -6,7 +7,6 @@ use js_sys::Uint8Array;
 use serde::{de::DeserializeOwned, Serialize};
 use wasm_bindgen_futures::JsFuture;
 use worker_sys::{Response as EdgeResponse, ResponseInit as EdgeResponseInit};
-use crate::cors::Cors;
 
 #[derive(Debug)]
 pub enum ResponseBody {
