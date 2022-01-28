@@ -18,7 +18,10 @@ features = [
     "ReadableStream",
     "RequestRedirect",
     "RequestInit",
-    "ResponseInit",
     "FormData",
     "Blob",
+    "BinaryType",
+    "ErrorEvent",
+    "MessageEvent",
+    "ProgressEvent",
 ]

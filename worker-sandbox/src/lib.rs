@@ -72,6 +72,21 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
     router
         .get("/request", handle_a_request) // can pass a fn pointer to keep routes tidy
         .get_async("/async-request", handle_async_request)
+        .get("/websocket", |_, _| {
+            let pair = WebSocketPair::new()?;
+            let server = pair.server;
+            server.accept()?;
+            server.send_with_str("Hi")?;
+            server.send_with_str("Other message")?;
+            let inner_server = server.clone();
+            server.on_message(move |_evt| {
+                inner_server.send_with_str("Message received").unwrap();
+                console_log!("Message received");
+            });
+            Ok(Response::empty()?
+                .with_status(101)
+                .with_websocket(Some(pair.client)))
+        })
         .get("/test-data", |_, ctx| {
             // just here to test data works
             if ctx.data.regex.is_match("2014-01-01") {
