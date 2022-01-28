@@ -73,6 +73,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         .get("/request", handle_a_request) // can pass a fn pointer to keep routes tidy
         .get_async("/async-request", handle_async_request)
         .get("/websocket", |_, _| {
+            // Accept / handle a websocket connection
             let pair = WebSocketPair::new()?;
             let server = pair.server;
             server.accept()?;

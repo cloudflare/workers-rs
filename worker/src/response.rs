@@ -75,14 +75,25 @@ impl Response {
         })
     }
 
-    // Create a `Response` using a `ResponseBody` variant. Sets a status code of 200 and an empty
-    // set of Headers. Modify the Response with methods such as `with_status` and `with_headers`.
+    /// Create a `Response` using a `ResponseBody` variant. Sets a status code of 200 and an empty
+    /// set of Headers. Modify the Response with methods such as `with_status` and `with_headers`.
     pub fn from_body(body: ResponseBody) -> Result<Self> {
         Ok(Self {
             body,
             headers: Headers::new(),
             status_code: 200,
             websocket: None,
+        })
+    }
+
+    /// Create a `Response` using a `WebSocket` client. Configures the browser to switch protocols
+    /// (using status code 101) and returns the websocket.
+    pub fn from_websocket(websocket: WebSocket) -> Result<Self> {
+        Ok(Self {
+            body: ResponseBody::Empty,
+            headers: Headers::new(),
+            status_code: 101,
+            websocket: Some(websocket),
         })
     }
 
@@ -217,6 +228,8 @@ impl Response {
         Ok(self)
     }
 
+    /// Sets this response's `webSocket` option.
+    /// This will require a status code 101 to work.
     pub fn with_websocket(mut self, websocket: Option<WebSocket>) -> Self {
         self.websocket = websocket;
         self
