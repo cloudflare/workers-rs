@@ -67,5 +67,5 @@ pub use request_init::*;
 pub use response::Response;
 pub use response_init::ResponseInit;
 pub use schedule::*;
-pub use web_sys::MessageEvent;
+pub use web_sys::{CloseEvent, ErrorEvent, MessageEvent};
 pub use websocket::*;

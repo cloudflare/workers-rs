@@ -23,5 +23,6 @@ features = [
     "BinaryType",
     "ErrorEvent",
     "MessageEvent",
+    "CloseEvent",
     "ProgressEvent",
 ]

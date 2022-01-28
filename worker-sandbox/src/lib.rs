@@ -79,10 +79,18 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             server.send_with_str("Hi")?;
             server.send_with_str("Other message")?;
             let inner_server = server.clone();
-            server.on_message(move |_evt| {
-                inner_server.send_with_str("Message received").unwrap();
+            server.on_message(move |event| {
+                inner_server
+                    .send_with_str(event.get_data().as_string().unwrap())
+                    .unwrap();
                 console_log!("Message received");
-            });
+            })?;
+            server.on_close(|close| {
+                console_log!("{:?}", close);
+            })?;
+            server.on_error(|error| {
+                console_log!("{:?}", error);
+            })?;
             Ok(Response::empty()?
                 .with_status(101)
                 .with_websocket(Some(pair.client)))

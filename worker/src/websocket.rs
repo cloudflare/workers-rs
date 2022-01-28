@@ -1,9 +1,9 @@
-use crate::ws_events::MessageEvent;
+use crate::ws_events::{CloseEvent, ErrorEvent, MessageEvent};
 use crate::{Error, Result};
-use std::convert::TryFrom;
+use serde::Serialize;
+use wasm_bindgen::convert::FromWasmAbi;
 use wasm_bindgen::prelude::Closure;
-use wasm_bindgen::JsCast;
-use worker_sys::console_log;
+use wasm_bindgen::{JsCast, JsValue};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WebSocketPair {
@@ -26,46 +26,18 @@ pub struct WebSocket {
 }
 
 impl WebSocket {
-    pub fn new(url: &str) -> Result<Self> {
-        worker_sys::WebSocket::new(url)
-            .map(|ws| ws.into())
-            .map_err(|err| Error::from(err))
-    }
-
-    pub fn new_with_protocols(url: &str, protocols: &str) -> Result<Self> {
-        worker_sys::WebSocket::new_with_str(url, protocols)
-            .map(|ws| ws.into())
-            .map_err(|err| Error::from(err))
-    }
-
     pub fn accept(&self) -> Result<()> {
         self.socket.accept().map_err(|err| Error::from(err))
     }
 
-    pub fn url(&self) -> String {
-        self.socket.url()
+    pub fn send<T: Serialize>(&self, data: &T) -> Result<()> {
+        let value = serde_json::to_string(data)?;
+        self.send_with_str(value.as_str())
     }
 
-    pub fn ready_state(&self) -> Result<ReadyState> {
-        let value = self.socket.ready_state();
-        ReadyState::try_from(value)
-    }
-
-    pub fn buffered_amount(&self) -> u32 {
-        self.socket.buffered_amount()
-    }
-
-    pub fn extensions(&self) -> String {
-        self.socket.extensions()
-    }
-
-    pub fn protocol(&self) -> String {
-        self.socket.protocol()
-    }
-
-    pub fn send_with_str(&self, data: &str) -> Result<()> {
+    pub fn send_with_str<S: AsRef<str>>(&self, data: S) -> Result<()> {
         self.socket
-            .send_with_str(data)
+            .send_with_str(data.as_ref())
             .map_err(|err| Error::from(err))
     }
 
@@ -89,11 +61,40 @@ impl WebSocket {
         .map_err(|err| Error::from(err))
     }
 
-    pub fn on_message<F: Fn(MessageEvent) + 'static>(&self, fun: F) {
-        let js_callback = Closure::wrap(Box::new(move |e: worker_sys::MessageEvent| fun(e.into()))
-            as Box<dyn FnMut(worker_sys::MessageEvent)>);
-        self.socket
-            .set_onmessage(Some(js_callback.as_ref().unchecked_ref()));
+    pub fn on_message<F: Fn(MessageEvent) + 'static>(&self, fun: F) -> Result<()> {
+        self.add_event_listener("message", move |event: worker_sys::MessageEvent| {
+            fun(event.into());
+        })
+    }
+
+    pub fn on_close<F: Fn(CloseEvent) + 'static>(&self, fun: F) -> Result<()> {
+        self.add_event_listener("close", move |event: worker_sys::CloseEvent| {
+            fun(event.into());
+        })
+    }
+
+    pub fn on_error<F: Fn(ErrorEvent) + 'static>(&self, fun: F) -> Result<()> {
+        self.add_event_listener("error", move |event: worker_sys::ErrorEvent| {
+            fun(event.into());
+        })
+    }
+
+    fn add_event_listener<T: FromWasmAbi + 'static, F: FnMut(T) + 'static>(
+        &self,
+        r#type: &str,
+        fun: F,
+    ) -> Result<()> {
+        let js_callback = Closure::wrap(Box::new(fun) as Box<dyn FnMut(T)>);
+        let result = self
+            .socket
+            .add_event_listener(
+                JsValue::from_str(r#type),
+                Some(js_callback.as_ref().unchecked_ref()),
+            )
+            .map_err(|err| Error::from(err));
+        // we need to leak this closure, or it will be invalidated at the end of the function.
+        js_callback.forget();
+        return result;
     }
 }
 
@@ -109,28 +110,10 @@ impl AsRef<worker_sys::WebSocket> for WebSocket {
     }
 }
 
-pub enum ReadyState {
-    Connecting,
-    Open,
-    Closing,
-    Closed,
-}
-
-impl TryFrom<u16> for ReadyState {
-    type Error = Error;
-
-    fn try_from(value: u16) -> std::result::Result<Self, Self::Error> {
-        match value {
-            worker_sys::WebSocket::CONNECTING => Ok(Self::Connecting),
-            worker_sys::WebSocket::OPEN => Ok(Self::Open),
-            worker_sys::WebSocket::CLOSING => Ok(Self::Closing),
-            worker_sys::WebSocket::CLOSED => Ok(Self::Closed),
-            _ => Err(Error::from("Invalid ready state")),
-        }
-    }
-}
-
 pub mod ws_events {
+    use wasm_bindgen::JsValue;
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
     pub struct MessageEvent {
         event: worker_sys::MessageEvent,
     }
@@ -138,6 +121,52 @@ pub mod ws_events {
     impl From<worker_sys::MessageEvent> for MessageEvent {
         fn from(event: worker_sys::MessageEvent) -> Self {
             Self { event }
+        }
+    }
+
+    impl AsRef<worker_sys::MessageEvent> for MessageEvent {
+        fn as_ref(&self) -> &worker_sys::MessageEvent {
+            &self.event
+        }
+    }
+
+    impl MessageEvent {
+        pub fn get_data(&self) -> JsValue {
+            self.event.data()
+        }
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub struct CloseEvent {
+        event: worker_sys::CloseEvent,
+    }
+
+    impl From<worker_sys::CloseEvent> for CloseEvent {
+        fn from(event: worker_sys::CloseEvent) -> Self {
+            Self { event }
+        }
+    }
+
+    impl AsRef<worker_sys::CloseEvent> for CloseEvent {
+        fn as_ref(&self) -> &worker_sys::CloseEvent {
+            &self.event
+        }
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub struct ErrorEvent {
+        event: worker_sys::ErrorEvent,
+    }
+
+    impl From<worker_sys::ErrorEvent> for ErrorEvent {
+        fn from(event: worker_sys::ErrorEvent) -> Self {
+            Self { event }
+        }
+    }
+
+    impl AsRef<worker_sys::ErrorEvent> for ErrorEvent {
+        fn as_ref(&self) -> &worker_sys::ErrorEvent {
+            &self.event
         }
     }
 }
