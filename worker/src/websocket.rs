@@ -5,8 +5,6 @@ use std::future::Future;
 use wasm_bindgen::convert::FromWasmAbi;
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::{JsCast, JsValue};
-use wasm_bindgen_futures::JsFuture;
-use worker_sys::Response;
 
 /// Struct holding the values for a JavaScript `WebSocketPair`
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -34,7 +32,7 @@ pub struct WebSocket {
 impl WebSocket {
     /// Accept the server-side of a websocket connection
     pub fn accept(&self) -> Result<()> {
-        self.socket.accept().map_err(|err| Error::from(err))
+        self.socket.accept().map_err(Error::from)
     }
 
     /// Serialize data into a string using serde and send it through the `WebSocket`
@@ -47,16 +45,14 @@ impl WebSocket {
     pub fn send_with_str<S: AsRef<str>>(&self, data: S) -> Result<()> {
         self.socket
             .send_with_str(data.as_ref())
-            .map_err(|err| Error::from(err))
+            .map_err(Error::from)
     }
 
     /// Sends raw binary data through the `WebSocket`.
     pub fn send_with_binary(&self, bytes: Vec<u8>) -> Result<()> {
         let array = js_sys::Uint8Array::new_with_length(bytes.len() as u32);
         array.copy_from(&bytes);
-        self.socket
-            .send_with_u8_array(array)
-            .map_err(|err| Error::from(err))
+        self.socket.send_with_u8_array(array).map_err(Error::from)
     }
 
     /// Closes this channel.
@@ -78,7 +74,7 @@ impl WebSocket {
         } else {
             self.socket.close()
         }
-        .map_err(|err| Error::from(err))
+        .map_err(Error::from)
     }
 
     /// Registers an event-handler for the `message` event.
@@ -186,10 +182,10 @@ impl WebSocket {
                 JsValue::from_str(r#type),
                 Some(js_callback.as_ref().unchecked_ref()),
             )
-            .map_err(|err| Error::from(err));
+            .map_err(Error::from);
         // we need to leak this closure, or it will be invalidated at the end of the function.
         js_callback.forget();
-        return result;
+        result
     }
 }
 
