@@ -46,7 +46,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             let error_handling = match respond_with_errors {
                 true => {
                     quote! {
-                        Response::error(e.to_string(), 500).unwrap().into()
+                        worker::Response::error(e.to_string(), 500).unwrap().into()
                     }
                 }
                 false => {
