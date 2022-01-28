@@ -8,7 +8,9 @@ pub mod headers;
 pub mod request;
 pub mod request_init;
 pub mod response;
+pub mod response_init;
 pub mod schedule;
+pub mod websocket;
 
 /// When debugging your Worker via `wrangler dev`, `wrangler tail`, or from the Workers Dashboard,
 /// anything passed to this macro will be printed to the terminal or written to the console.
@@ -63,5 +65,7 @@ pub use headers::Headers;
 pub use request::Request;
 pub use request_init::*;
 pub use response::Response;
+pub use response_init::ResponseInit;
 pub use schedule::*;
-pub use web_sys::ResponseInit;
+pub use web_sys::{CloseEvent, ErrorEvent, MessageEvent};
+pub use websocket::*;

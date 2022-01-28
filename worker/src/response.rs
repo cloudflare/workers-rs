@@ -1,12 +1,12 @@
 use crate::cors::Cors;
 use crate::error::Error;
 use crate::headers::Headers;
-use crate::Result;
+use crate::{Result, WebSocket};
 
 use js_sys::Uint8Array;
 use serde::{de::DeserializeOwned, Serialize};
 use wasm_bindgen_futures::JsFuture;
-use worker_sys::{Response as EdgeResponse, ResponseInit as EdgeResponseInit};
+use worker_sys::{response_init::ResponseInit as EdgeResponseInit, Response as EdgeResponse};
 
 #[derive(Debug)]
 pub enum ResponseBody {
@@ -24,6 +24,7 @@ pub struct Response {
     body: ResponseBody,
     headers: Headers,
     status_code: u16,
+    websocket: Option<WebSocket>,
 }
 
 impl Response {
@@ -38,6 +39,7 @@ impl Response {
                 body: ResponseBody::Body(data.into_bytes()),
                 headers,
                 status_code: 200,
+                websocket: None,
             });
         }
 
@@ -55,6 +57,7 @@ impl Response {
             body: ResponseBody::Body(data),
             headers,
             status_code: 200,
+            websocket: None,
         })
     }
 
@@ -68,16 +71,29 @@ impl Response {
             body: ResponseBody::Body(bytes),
             headers,
             status_code: 200,
+            websocket: None,
         })
     }
 
-    // Create a `Response` using a `ResponseBody` variant. Sets a status code of 200 and an empty
-    // set of Headers. Modify the Response with methods such as `with_status` and `with_headers`.
+    /// Create a `Response` using a `ResponseBody` variant. Sets a status code of 200 and an empty
+    /// set of Headers. Modify the Response with methods such as `with_status` and `with_headers`.
     pub fn from_body(body: ResponseBody) -> Result<Self> {
         Ok(Self {
             body,
             headers: Headers::new(),
             status_code: 200,
+            websocket: None,
+        })
+    }
+
+    /// Create a `Response` using a `WebSocket` client. Configures the browser to switch protocols
+    /// (using status code 101) and returns the websocket.
+    pub fn from_websocket(websocket: WebSocket) -> Result<Self> {
+        Ok(Self {
+            body: ResponseBody::Empty,
+            headers: Headers::new(),
+            status_code: 101,
+            websocket: Some(websocket),
         })
     }
 
@@ -91,6 +107,7 @@ impl Response {
             body: ResponseBody::Body(body.into().into_bytes()),
             headers,
             status_code: 200,
+            websocket: None,
         })
     }
 
@@ -100,6 +117,7 @@ impl Response {
             body: ResponseBody::Empty,
             headers: Headers::new(),
             status_code: 200,
+            websocket: None,
         })
     }
 
@@ -116,6 +134,7 @@ impl Response {
             body: ResponseBody::Body(msg.into().into_bytes()),
             headers: Headers::new(),
             status_code: status,
+            websocket: None,
         })
     }
 
@@ -209,6 +228,13 @@ impl Response {
         Ok(self)
     }
 
+    /// Sets this response's `webSocket` option.
+    /// This will require a status code 101 to work.
+    pub fn with_websocket(mut self, websocket: Option<WebSocket>) -> Self {
+        self.websocket = websocket;
+        self
+    }
+
     /// Read the `Headers` on this response.
     pub fn headers(&self) -> &Headers {
         &self.headers
@@ -230,6 +256,7 @@ fn no_using_invalid_error_status_code() {
 pub struct ResponseInit {
     pub status: u16,
     pub headers: Headers,
+    pub websocket: Option<WebSocket>,
 }
 
 impl From<ResponseInit> for EdgeResponseInit {
@@ -237,6 +264,9 @@ impl From<ResponseInit> for EdgeResponseInit {
         let mut edge_init = EdgeResponseInit::new();
         edge_init.status(init.status);
         edge_init.headers(&init.headers.0);
+        if let Some(websocket) = &init.websocket {
+            edge_init.websocket(websocket.as_ref());
+        }
         edge_init
     }
 }
@@ -253,6 +283,7 @@ impl From<Response> for EdgeResponse {
                     &ResponseInit {
                         status: res.status_code,
                         headers: res.headers,
+                        websocket: res.websocket,
                     }
                     .into(),
                 )
@@ -263,6 +294,7 @@ impl From<Response> for EdgeResponse {
                 &ResponseInit {
                     status: res.status_code,
                     headers: res.headers,
+                    websocket: res.websocket,
                 }
                 .into(),
             )
@@ -272,6 +304,7 @@ impl From<Response> for EdgeResponse {
                 &ResponseInit {
                     status: res.status_code,
                     headers: res.headers,
+                    websocket: res.websocket,
                 }
                 .into(),
             )
@@ -285,6 +318,7 @@ impl From<EdgeResponse> for Response {
         Self {
             headers: Headers(res.headers()),
             status_code: res.status(),
+            websocket: res.websocket().map(|ws| ws.into()),
             body: match res.body() {
                 Some(_) => ResponseBody::Stream(res),
                 None => ResponseBody::Empty,

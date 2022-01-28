@@ -17,6 +17,7 @@ mod request_init;
 mod response;
 mod router;
 mod schedule;
+mod websocket;
 
 #[doc(hidden)]
 use std::result::Result as StdResult;
@@ -37,6 +38,7 @@ pub use crate::request_init::*;
 pub use crate::response::{Response, ResponseBody};
 pub use crate::router::{RouteContext, RouteParams, Router};
 pub use crate::schedule::*;
+pub use crate::websocket::*;
 pub use cf::Cf;
 pub use url::Url;
 

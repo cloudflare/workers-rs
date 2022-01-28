@@ -1,5 +1,5 @@
+use crate::response_init::ResponseInit;
 use crate::FormData;
-use crate::ResponseInit;
 
 use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
@@ -34,6 +34,10 @@ extern "C" {
     #[doc = "Getter for the `headers` field of this object."]
     pub fn headers(this: &Response) -> crate::headers::Headers;
 
+    #[wasm_bindgen(structural, method, getter, js_class=Response, js_name=webSocket)]
+    #[doc = "Getter for the `webSocket` field of this object."]
+    pub fn websocket(this: &Response) -> Option<crate::websocket::WebSocket>;
+
     #[wasm_bindgen(structural, method, getter, js_class=Response, js_name=bodyUsed)]
     #[doc = "Getter for the `bodyUsed` field of this object."]
     pub fn body_used(this: &Response) -> bool;
@@ -62,7 +66,7 @@ extern "C" {
     #[doc = "The `new Response(..)` constructor, creating a new instance of `Response`."]
     pub fn new_with_opt_u8_array_and_init(
         body: Option<Uint8Array>,
-        init: &web_sys::ResponseInit,
+        init: &ResponseInit,
     ) -> Result<Response, JsValue>;
 
     #[wasm_bindgen(catch, constructor, js_class=Response)]
@@ -76,14 +80,14 @@ extern "C" {
     #[doc = "The `new Response(..)` constructor, creating a new instance of `Response`."]
     pub fn new_with_opt_str_and_init(
         body: Option<&str>,
-        init: &web_sys::ResponseInit,
+        init: &ResponseInit,
     ) -> Result<Response, JsValue>;
 
     #[wasm_bindgen(catch, constructor, js_class=Response)]
     #[doc = "The `new Response(..)` constructor, creating a new instance of `Response`."]
     pub fn new_with_opt_stream_and_init(
         body: Option<web_sys::ReadableStream>,
-        init: &web_sys::ResponseInit,
+        init: &ResponseInit,
     ) -> Result<Response, JsValue>;
 
     #[wasm_bindgen(catch, method, structural, js_class=Response, js_name=clone)]
