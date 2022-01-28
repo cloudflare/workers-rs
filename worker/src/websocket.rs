@@ -1,9 +1,12 @@
 use crate::ws_events::{CloseEvent, ErrorEvent, MessageEvent};
 use crate::{Error, Result};
 use serde::Serialize;
+use std::future::Future;
 use wasm_bindgen::convert::FromWasmAbi;
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::{JsCast, JsValue};
+use wasm_bindgen_futures::JsFuture;
+use worker_sys::Response;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WebSocketPair {
@@ -67,15 +70,54 @@ impl WebSocket {
         })
     }
 
+    pub fn on_message_async<
+        Fut: Future<Output = ()> + 'static,
+        F: Fn(MessageEvent) -> Fut + 'static,
+    >(
+        &self,
+        fun: F,
+    ) -> Result<()> {
+        self.add_event_listener("message", move |event: worker_sys::MessageEvent| {
+            let fut = fun(event.into());
+            wasm_bindgen_futures::spawn_local(async move { fut.await });
+        })
+    }
+
     pub fn on_close<F: Fn(CloseEvent) + 'static>(&self, fun: F) -> Result<()> {
         self.add_event_listener("close", move |event: worker_sys::CloseEvent| {
             fun(event.into());
         })
     }
 
+    pub fn on_close_async<
+        Fut: Future<Output = ()> + 'static,
+        F: Fn(CloseEvent) -> Fut + 'static,
+    >(
+        &self,
+        fun: F,
+    ) -> Result<()> {
+        self.add_event_listener("close", move |event: worker_sys::CloseEvent| {
+            let fut = fun(event.into());
+            wasm_bindgen_futures::spawn_local(async move { fut.await });
+        })
+    }
+
     pub fn on_error<F: Fn(ErrorEvent) + 'static>(&self, fun: F) -> Result<()> {
         self.add_event_listener("error", move |event: worker_sys::ErrorEvent| {
             fun(event.into());
+        })
+    }
+
+    pub fn on_error_async<
+        Fut: Future<Output = ()> + 'static,
+        F: Fn(ErrorEvent) -> Fut + 'static,
+    >(
+        &self,
+        fun: F,
+    ) -> Result<()> {
+        self.add_event_listener("error", move |event: worker_sys::ErrorEvent| {
+            let fut = fun(event.into());
+            wasm_bindgen_futures::spawn_local(async move { fut.await });
         })
     }
 

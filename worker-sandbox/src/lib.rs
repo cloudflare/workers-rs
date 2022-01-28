@@ -80,11 +80,14 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             server.send_with_str("Hi")?;
             server.send_with_str("Other message")?;
             let inner_server = server.clone();
-            server.on_message(move |event| {
-                inner_server
-                    .send_with_str(event.get_data().as_string().unwrap())
-                    .unwrap();
-                console_log!("Message received");
+            server.on_message_async(move |event| {
+                let server = inner_server.clone();
+                async move {
+                    server
+                        .send_with_str(event.get_data().as_string().unwrap())
+                        .unwrap();
+                    console_log!("Message received");
+                }
             })?;
             server.on_close(|close| {
                 console_log!("{:?}", close);
