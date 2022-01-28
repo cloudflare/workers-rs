@@ -34,6 +34,10 @@ extern "C" {
     #[doc = "Getter for the `headers` field of this object."]
     pub fn headers(this: &Response) -> crate::headers::Headers;
 
+    #[wasm_bindgen(structural, method, getter, js_class=Response, js_name=webSocket)]
+    #[doc = "Getter for the `webSocket` field of this object."]
+    pub fn websocket(this: &Response) -> Option<crate::websocket::WebSocket>;
+
     #[wasm_bindgen(structural, method, getter, js_class=Response, js_name=bodyUsed)]
     #[doc = "Getter for the `bodyUsed` field of this object."]
     pub fn body_used(this: &Response) -> bool;

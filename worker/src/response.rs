@@ -318,11 +318,11 @@ impl From<EdgeResponse> for Response {
         Self {
             headers: Headers(res.headers()),
             status_code: res.status(),
+            websocket: res.websocket().map(|ws| ws.into()),
             body: match res.body() {
                 Some(_) => ResponseBody::Stream(res),
                 None => ResponseBody::Empty,
             },
-            websocket: None, // todo: can we get the websocket field here?
         }
     }
 }
