@@ -50,8 +50,9 @@ impl WebSocket {
 
     /// Sends raw binary data through the `WebSocket`.
     pub fn send_with_binary<D: AsRef<[u8]>>(&self, bytes: D) -> Result<()> {
-        let array = js_sys::Uint8Array::new_with_length(bytes.len() as u32);
-        array.copy_from(bytes.as_ref());
+        let slice = bytes.as_ref();
+        let array = js_sys::Uint8Array::new_with_length(slice.len() as u32);
+        array.copy_from(slice);
         self.socket.send_with_u8_array(array).map_err(Error::from)
     }
 
