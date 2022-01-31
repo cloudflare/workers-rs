@@ -10,9 +10,7 @@ extern "C" {
 impl RequestInit {
     #[doc = "Construct a new `RequestInit`."]
     pub fn new() -> Self {
-        #[allow(unused_mut)]
-        let mut ret: Self = ::wasm_bindgen::JsCast::unchecked_into(::js_sys::Object::new());
-        ret
+        ::wasm_bindgen::JsCast::unchecked_into(::js_sys::Object::new())
     }
     #[doc = "Change the `body` field of this object."]
     pub fn body(&mut self, val: Option<&::wasm_bindgen::JsValue>) -> &mut Self {

@@ -44,9 +44,7 @@ extern "C" {
 impl FilePropertyBag {
     #[doc = "Construct a new `FilePropertyBag`."]
     pub fn new() -> Self {
-        #[allow(unused_mut)]
-        let mut ret: Self = ::wasm_bindgen::JsCast::unchecked_into(::js_sys::Object::new());
-        ret
+        ::wasm_bindgen::JsCast::unchecked_into(::js_sys::Object::new())
     }
 
     #[doc = "Change the `lastModified` field of this object."]

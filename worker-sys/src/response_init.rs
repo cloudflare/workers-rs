@@ -11,9 +11,7 @@ extern "C" {
 impl ResponseInit {
     #[doc = "Construct a new `ResponseInit`."]
     pub fn new() -> Self {
-        #[allow(unused_mut)]
-        let mut ret: Self = wasm_bindgen::JsCast::unchecked_into(js_sys::Object::new());
-        ret
+        ::wasm_bindgen::JsCast::unchecked_into(js_sys::Object::new())
     }
 
     #[doc = "Change the `headers` field of this object."]
