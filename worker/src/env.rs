@@ -14,9 +14,7 @@ extern "C" {
 
 impl Env {
     fn get_binding<T: EnvBinding>(&self, name: &str) -> Result<T> {
-        // Weird rust-analyzer bug is causing it to think Reflect::get is unsafe
-        #[allow(unused_unsafe)]
-        let binding = unsafe { js_sys::Reflect::get(self, &JsValue::from(name)) }
+        let binding = js_sys::Reflect::get(self, &JsValue::from(name))
             .map_err(|_| Error::JsError(format!("Env does not contain binding `{}`", name)))?;
         if binding.is_undefined() {
             Err(format!("Binding `{}` is undefined.", name).into())

@@ -118,10 +118,7 @@ impl ObjectNamespace {
     /// <https://developers.cloudflare.com/workers/runtime-apis/durable-objects#restricting-objects-to-a-jurisdiction>
     pub fn unique_id_with_jurisdiction(&self, jd: &str) -> Result<ObjectId> {
         let options = Object::new();
-        #[allow(unused_unsafe)]
-        unsafe {
-            js_sys::Reflect::set(&options, &JsValue::from("jurisdiction"), &jd.into())?
-        };
+        js_sys::Reflect::set(&options, &JsValue::from("jurisdiction"), &jd.into())?;
         self.inner
             .new_unique_id_with_options_internal(&options)
             .map_err(Error::from)
