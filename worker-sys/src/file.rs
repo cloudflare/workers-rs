@@ -44,21 +44,16 @@ extern "C" {
 impl FilePropertyBag {
     #[doc = "Construct a new `FilePropertyBag`."]
     pub fn new() -> Self {
-        #[allow(unused_mut)]
-        let mut ret: Self = ::wasm_bindgen::JsCast::unchecked_into(::js_sys::Object::new());
-        ret
+        ::wasm_bindgen::JsCast::unchecked_into(::js_sys::Object::new())
     }
 
     #[doc = "Change the `lastModified` field of this object."]
     pub fn last_modified(&mut self, val: f64) -> &mut Self {
-        #[allow(unused_unsafe)]
-        let r = unsafe {
-            ::js_sys::Reflect::set(
-                self.as_ref(),
-                &JsValue::from("lastModified"),
-                &JsValue::from(val),
-            )
-        };
+        let r = ::js_sys::Reflect::set(
+            self.as_ref(),
+            &JsValue::from("lastModified"),
+            &JsValue::from(val),
+        );
         debug_assert!(
             r.is_ok(),
             "setting properties should never fail on our dictionary objects"
@@ -69,10 +64,7 @@ impl FilePropertyBag {
 
     #[doc = "Change the `type` field of this object."]
     pub fn type_(&mut self, val: &str) -> &mut Self {
-        #[allow(unused_unsafe)]
-        let r = unsafe {
-            ::js_sys::Reflect::set(self.as_ref(), &JsValue::from("type"), &JsValue::from(val))
-        };
+        let r = ::js_sys::Reflect::set(self.as_ref(), &JsValue::from("type"), &JsValue::from(val));
         debug_assert!(
             r.is_ok(),
             "setting properties should never fail on our dictionary objects"

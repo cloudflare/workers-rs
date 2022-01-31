@@ -15,12 +15,11 @@ pub fn expect_wrangler() {
     let addr = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 8787).into();
 
     // Try to connect to wrangler's dev server, if it can't be reached assume the user isn't running it.
-    if let Err(_) = TcpStream::connect_timeout(&addr, WAIT_FOR_WRANGLER) {
+    if TcpStream::connect_timeout(&addr, WAIT_FOR_WRANGLER).is_err() {
         panic!("Unable to verify wrangler is running");
     }
 }
 
-#[allow(unused)]
 pub fn get(endpoint: &str, builder_fn: impl FnOnce(RequestBuilder) -> RequestBuilder) -> Response {
     expect_wrangler();
 
@@ -31,10 +30,9 @@ pub fn get(endpoint: &str, builder_fn: impl FnOnce(RequestBuilder) -> RequestBui
         .send()
         .expect("could not make request to wrangler")
         .error_for_status()
-        .expect(&format!("received invalid status code for {endpoint}"))
+        .unwrap_or_else(|_| panic!("received invalid status code for {}", endpoint))
 }
 
-#[allow(unused)]
 pub fn post(endpoint: &str, builder_fn: impl FnOnce(RequestBuilder) -> RequestBuilder) -> Response {
     expect_wrangler();
 
@@ -45,10 +43,9 @@ pub fn post(endpoint: &str, builder_fn: impl FnOnce(RequestBuilder) -> RequestBu
         .send()
         .expect("could not make request to wrangler")
         .error_for_status()
-        .expect(&format!("received invalid status code for {endpoint}"))
+        .unwrap_or_else(|_| panic!("received invalid status code for {}", endpoint))
 }
 
-#[allow(unused)]
 pub fn put(endpoint: &str, builder_fn: impl FnOnce(RequestBuilder) -> RequestBuilder) -> Response {
     expect_wrangler();
 
@@ -59,10 +56,9 @@ pub fn put(endpoint: &str, builder_fn: impl FnOnce(RequestBuilder) -> RequestBui
         .send()
         .expect("could not make request to wrangler")
         .error_for_status()
-        .expect(&format!("received invalid status code for {endpoint}"))
+        .unwrap_or_else(|_| panic!("received invalid status code for {}", endpoint))
 }
 
-#[allow(unused)]
 pub fn options(
     endpoint: &str,
     builder_fn: impl FnOnce(RequestBuilder) -> RequestBuilder,
@@ -78,5 +74,5 @@ pub fn options(
         .send()
         .expect("could not make request to wrangler")
         .error_for_status()
-        .expect(&format!("received invalid status code for {endpoint}"))
+        .unwrap_or_else(|_| panic!("received invalid status code for {}", endpoint))
 }
