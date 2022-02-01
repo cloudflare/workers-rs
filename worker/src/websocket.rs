@@ -228,6 +228,20 @@ pub mod ws_events {
         pub fn get_data(&self) -> JsValue {
             self.event.data()
         }
+
+        pub fn get_text(&self) -> Option<String> {
+            let value = self.get_data();
+            value.as_string()
+        }
+
+        pub fn get_blob(&self) -> Option<Vec<u8>> {
+            let value = self.get_data();
+            if value.is_object() {
+                Some(js_sys::Uint8Array::new(&value).to_vec())
+            } else {
+                None
+            }
+        }
     }
 
     /// Wrapper/Utility struct for the `web_sys::CloseEvent`
