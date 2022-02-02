@@ -223,9 +223,10 @@ impl Response {
     ///         .with_cors(&cors)
     /// }
     /// ```
-    pub fn with_cors(mut self, cors: &Cors) -> Result<Self> {
-        cors.apply_headers(self.headers_mut())?;
-        Ok(self)
+    pub fn with_cors(self, cors: &Cors) -> Result<Self> {
+        let mut headers = self.headers.clone();
+        cors.apply_headers(&mut headers)?;
+        Ok(self.with_headers(headers))
     }
 
     /// Sets this response's `webSocket` option.
