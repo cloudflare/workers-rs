@@ -1,6 +1,7 @@
 use blake2::{Blake2b, Digest};
+use futures::StreamExt;
 use serde::{Deserialize, Serialize};
-use worker::*;
+use worker::{ws_events::WebsocketEvent, *};
 
 mod counter;
 mod test;
@@ -77,27 +78,23 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             let pair = WebSocketPair::new()?;
             let server = pair.server;
             server.accept()?;
-            server.send_with_str("Hi")?;
-            server.send_with_str("Other message")?;
-            let inner_server = server.clone();
-            server.on_message_async(move |event| {
-                let server = inner_server.clone();
-                async move {
-                    server
-                        .send_with_str(event.get_data().as_string().unwrap())
-                        .unwrap();
-                    console_log!("Message received");
+
+            wasm_bindgen_futures::spawn_local(async move {
+                let mut event_stream = server.events().expect("could not open stream");
+
+                while let Some(event) = event_stream.next().await {
+                    match event.expect("received error in websocket") {
+                        WebsocketEvent::Message(msg) => {
+                            if let Some(text) = msg.get_text() {
+                                server.send_with_str(text).expect("could not relay text");
+                            }
+                        }
+                        WebsocketEvent::Close(_) => console_log!("Closed!"),
+                    }
                 }
-            })?;
-            server.on_close(|close| {
-                console_log!("{:?}", close);
-            })?;
-            server.on_error(|error| {
-                console_log!("{:?}", error);
-            })?;
-            Ok(Response::empty()?
-                .with_status(101)
-                .with_websocket(Some(pair.client)))
+            });
+
+            Response::from_websocket(pair.client)
         })
         .get("/test-data", |_, ctx| {
             // just here to test data works
