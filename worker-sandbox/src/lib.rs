@@ -1,7 +1,7 @@
 use blake2::{Blake2b, Digest};
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
-use worker::{ws_events::WebsocketEvent, *};
+use worker::*;
 
 mod counter;
 mod test;
