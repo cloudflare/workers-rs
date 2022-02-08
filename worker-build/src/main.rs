@@ -210,3 +210,40 @@ fn find_exports(js: &str) -> Vec<&str> {
         })
         .collect::<Vec<_>>()
 }
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use crate::find_exports;
+    use wasm_bindgen_cli_support::Bindgen;
+
+    #[test]
+    fn all_exports_found() {
+        let input_path = Path::new(
+            "./bindgen-test-subject/target/wasm32-unknown-unknown/release/bindgen_test_subject.wasm",
+        );
+        assert!(
+            input_path.exists(),
+            "The bindgen-test-subject module is not present, did you forget to compile it?"
+        );
+
+        let bindings = Bindgen::new()
+            .input_path(input_path)
+            .typescript(false)
+            .generate_output()
+            .expect("could not generate wasm bindings");
+        let export_names = find_exports(bindings.js());
+
+        // Ensure that every import in the final wasm binary can be found in the names we collected
+        // from the generated JavaScript.
+        for import in bindings.wasm().imports.iter() {
+            if !export_names.iter().any(|name| &import.name == name) {
+                panic!(
+                    "No matching name was found for module: \"{}\" import: \"{}\"\nexports: {:?}",
+                    import.module, import.name, &export_names
+                )
+            }
+        }
+    }
+}
