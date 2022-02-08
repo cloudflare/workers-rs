@@ -12,3 +12,6 @@ description = "This is a tool to be used as a custom build command for a Cloudfl
 
 [dependencies]
 anyhow = "1"
+
+[dev-dependencies]
+wasm-bindgen-cli-support = "=0.2.78"
