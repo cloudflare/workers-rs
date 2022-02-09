@@ -293,17 +293,17 @@ pub mod ws_events {
 
     impl MessageEvent {
         /// Gets the data/payload from the message.
-        fn get_data(&self) -> JsValue {
+        fn data(&self) -> JsValue {
             self.event.data()
         }
 
-        pub fn get_text(&self) -> Option<String> {
-            let value = self.get_data();
+        pub fn text(&self) -> Option<String> {
+            let value = self.data();
             value.as_string()
         }
 
-        pub fn get_blob(&self) -> Option<Vec<u8>> {
-            let value = self.get_data();
+        pub fn bytes(&self) -> Option<Vec<u8>> {
+            let value = self.data();
             if value.is_object() {
                 Some(js_sys::Uint8Array::new(&value).to_vec())
             } else {
@@ -311,8 +311,8 @@ pub mod ws_events {
             }
         }
 
-        pub fn get_json<T: DeserializeOwned>(&self) -> crate::Result<T> {
-            let text = match self.get_text() {
+        pub fn json<T: DeserializeOwned>(&self) -> crate::Result<T> {
+            let text = match self.text() {
                 Some(text) => text,
                 None => return Err(Error::from("data of message event is not text")),
             };

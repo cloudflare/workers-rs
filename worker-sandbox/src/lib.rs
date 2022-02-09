@@ -85,7 +85,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                 while let Some(event) = event_stream.next().await {
                     match event.expect("received error in websocket") {
                         WebsocketEvent::Message(msg) => {
-                            if let Some(text) = msg.get_text() {
+                            if let Some(text) = msg.text() {
                                 server.send_with_str(text).expect("could not relay text");
                             }
                         }
