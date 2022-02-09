@@ -110,7 +110,11 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         })
         .get_async("/got-close-event", |_, ctx| async move {
             let some_namespace_kv = ctx.kv("SOME_NAMESPACE")?;
-            let got_close_event = some_namespace_kv.get("got-close-event").text().await?.unwrap_or_else(|| "false".into());
+            let got_close_event = some_namespace_kv
+                .get("got-close-event")
+                .text()
+                .await?
+                .unwrap_or_else(|| "false".into());
 
             // Let the integration tests have some way of knowing if we successfully received the closed event.
             Response::ok(got_close_event)
