@@ -261,7 +261,10 @@ impl AsRef<worker_sys::WebSocket> for WebSocket {
 }
 
 pub mod ws_events {
+    use serde::de::DeserializeOwned;
     use wasm_bindgen::JsValue;
+
+    use crate::Error;
 
     /// Events that can be yielded by a [`EventStream`](crate::EventStream).
     #[derive(Debug, Clone)]
@@ -290,7 +293,7 @@ pub mod ws_events {
 
     impl MessageEvent {
         /// Gets the data/payload from the message.
-        pub fn get_data(&self) -> JsValue {
+        fn get_data(&self) -> JsValue {
             self.event.data()
         }
 
@@ -306,6 +309,15 @@ pub mod ws_events {
             } else {
                 None
             }
+        }
+
+        pub fn get_json<T: DeserializeOwned>(&self) -> crate::Result<T> {
+            let text = match self.get_text() {
+                Some(text) => text,
+                None => return Err(Error::from("data of message event is not text")),
+            };
+
+            serde_json::from_str(&text).map_err(Error::from)
         }
     }
 
