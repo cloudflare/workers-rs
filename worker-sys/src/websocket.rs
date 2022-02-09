@@ -86,4 +86,14 @@ extern "C" {
         r#type: JsValue,
         value: Option<&::js_sys::Function>,
     ) -> Result<(), JsValue>;
+
+    #[wasm_bindgen(catch, method, structural, js_class = "WebSocket", js_name = removeEventListener)]
+    #[doc = "The `removeEventListener()` method."]
+    #[doc = ""]
+    #[doc = "[MDN Documentation](hhttps://developer.mozilla.org/en-US/docs/Web/API/EventTarget/removeEventListener)"]
+    pub fn remove_event_listener(
+        this: &WebSocket,
+        r#type: JsValue,
+        value: Option<&::js_sys::Function>,
+    ) -> Result<(), JsValue>;
 }

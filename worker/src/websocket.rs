@@ -1,10 +1,16 @@
-use crate::ws_events::{CloseEvent, ErrorEvent, MessageEvent};
 use crate::{Error, Result};
+use futures::channel::mpsc::UnboundedReceiver;
+use futures::Stream;
 use serde::Serialize;
-use std::future::Future;
+
+use std::pin::Pin;
+use std::rc::Rc;
+use std::task::{Context, Poll};
 use wasm_bindgen::convert::FromWasmAbi;
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::{JsCast, JsValue};
+
+pub use crate::ws_events::*;
 
 /// Struct holding the values for a JavaScript `WebSocketPair`
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -49,7 +55,7 @@ impl WebSocket {
     }
 
     /// Sends raw binary data through the `WebSocket`.
-    pub fn send_with_binary<D: AsRef<[u8]>>(&self, bytes: D) -> Result<()> {
+    pub fn send_with_bytes<D: AsRef<[u8]>>(&self, bytes: D) -> Result<()> {
         let slice = bytes.as_ref();
         let array = js_sys::Uint8Array::new_with_length(slice.len() as u32);
         array.copy_from(slice);
@@ -78,115 +84,167 @@ impl WebSocket {
         .map_err(Error::from)
     }
 
-    /// Registers an event-handler for the `message` event.
+    /// Internal utility method to avoid verbose code.
+    /// This method registers a closure in the underlying JS environment, which calls back into the
+    /// Rust/wasm environment.
     ///
-    /// This event will be fired when the `WebSocket` receives a payload.
-    ///
-    /// https://developers.cloudflare.com/workers/runtime-apis/websockets#events     
-    pub fn on_message<F: Fn(MessageEvent) + 'static>(&self, fun: F) -> Result<()> {
-        self.add_event_handler("message", move |event: worker_sys::MessageEvent| {
-            fun(event.into());
-        })
-    }
-
-    /// Registers an async event-handler for the `message` event.
-    ///
-    /// This event will be fired when the `WebSocket` receives a payload.
-    ///
-    /// https://developers.cloudflare.com/workers/runtime-apis/websockets#events    
-    pub fn on_message_async<
-        Fut: Future<Output = ()> + 'static,
-        F: Fn(MessageEvent) -> Fut + 'static,
-    >(
+    /// Since this is a 'long living closure', we need to keep the lifetime of this closure until
+    /// we remove any references to the closure. So the caller of this must not drop the closure
+    /// until they call [`Self::remove_event_handler`].
+    fn add_event_handler<T: FromWasmAbi + 'static, F: FnMut(T) + 'static>(
         &self,
+        r#type: &str,
         fun: F,
-    ) -> Result<()> {
-        self.add_event_handler("message", move |event: worker_sys::MessageEvent| {
-            let fut = fun(event.into());
-            wasm_bindgen_futures::spawn_local(async move { fut.await });
-        })
-    }
+    ) -> Result<Closure<dyn FnMut(T)>> {
+        let js_callback = Closure::wrap(Box::new(fun) as Box<dyn FnMut(T)>);
+        self.socket
+            .add_event_listener(
+                JsValue::from_str(r#type),
+                Some(js_callback.as_ref().unchecked_ref()),
+            )
+            .map_err(Error::from)?;
 
-    /// Registers an event-handler for the `close` event.
-    ///
-    /// This event will be fired when the `WebSocket` closes.
-    ///
-    /// https://developers.cloudflare.com/workers/runtime-apis/websockets#events    
-    pub fn on_close<F: Fn(CloseEvent) + 'static>(&self, fun: F) -> Result<()> {
-        self.add_event_handler("close", move |event: worker_sys::CloseEvent| {
-            fun(event.into());
-        })
-    }
-
-    /// Registers an async event-handler for the `close` event.
-    ///
-    /// This event will be fired when the `WebSocket` closes.
-    ///
-    /// https://developers.cloudflare.com/workers/runtime-apis/websockets#events
-    pub fn on_close_async<
-        Fut: Future<Output = ()> + 'static,
-        F: Fn(CloseEvent) -> Fut + 'static,
-    >(
-        &self,
-        fun: F,
-    ) -> Result<()> {
-        self.add_event_handler("close", move |event: worker_sys::CloseEvent| {
-            let fut = fun(event.into());
-            wasm_bindgen_futures::spawn_local(async move { fut.await });
-        })
-    }
-
-    /// Registers an event-handler for the `error` event.
-    ///
-    /// This event will be fired when the `WebSocket` caught an error.
-    ///
-    /// https://developers.cloudflare.com/workers/runtime-apis/websockets#events
-    pub fn on_error<F: Fn(ErrorEvent) + 'static>(&self, fun: F) -> Result<()> {
-        self.add_event_handler("error", move |event: worker_sys::ErrorEvent| {
-            fun(event.into());
-        })
-    }
-
-    /// Registers an async event-handler for the `error` event.
-    ///
-    /// This event will be fired when the `WebSocket` caught an error.
-    ///
-    /// https://developers.cloudflare.com/workers/runtime-apis/websockets#events
-    pub fn on_error_async<
-        Fut: Future<Output = ()> + 'static,
-        F: Fn(ErrorEvent) -> Fut + 'static,
-    >(
-        &self,
-        fun: F,
-    ) -> Result<()> {
-        self.add_event_handler("error", move |event: worker_sys::ErrorEvent| {
-            let fut = fun(event.into());
-            wasm_bindgen_futures::spawn_local(async move { fut.await });
-        })
+        Ok(js_callback)
     }
 
     /// Internal utility method to avoid verbose code.
     /// This method registers a closure in the underlying JS environment, which calls back
     /// into the Rust/wasm environment.
-    /// Since this is a 'long living closure', we need to actively "leak" memory in this,
-    /// as we need to drop the reference to the `WasmClosure` or it will be destroyed with
-    /// it's lifetime at the end of the function.
-    fn add_event_handler<T: FromWasmAbi + 'static, F: FnMut(T) + 'static>(
+    fn remove_event_handler<T: FromWasmAbi + 'static>(
         &self,
         r#type: &str,
-        fun: F,
+        js_callback: Closure<dyn FnMut(T)>,
     ) -> Result<()> {
-        let js_callback = Closure::wrap(Box::new(fun) as Box<dyn FnMut(T)>);
-        let result = self
-            .socket
-            .add_event_listener(
+        self.socket
+            .remove_event_listener(
                 JsValue::from_str(r#type),
                 Some(js_callback.as_ref().unchecked_ref()),
             )
-            .map_err(Error::from);
-        // we need to leak this closure, or it will be invalidated at the end of the function.
-        js_callback.forget();
-        result
+            .map_err(Error::from)
+    }
+
+    /// Gets an implementation [`Stream`](futures::Stream) that yields events from the inner
+    /// WebSocket.
+    pub fn events(&self) -> Result<EventStream> {
+        let (tx, rx) = futures::channel::mpsc::unbounded::<Result<WebsocketEvent>>();
+        let tx = Rc::new(tx);
+
+        let close_closure = self.add_event_handler("close", {
+            let tx = tx.clone();
+            move |event: worker_sys::CloseEvent| {
+                tx.unbounded_send(Ok(WebsocketEvent::Close(event.into())))
+                    .unwrap();
+            }
+        })?;
+        let message_closure = self.add_event_handler("message", {
+            let tx = tx.clone();
+            move |event: worker_sys::MessageEvent| {
+                tx.unbounded_send(Ok(WebsocketEvent::Message(event.into())))
+                    .unwrap();
+            }
+        })?;
+        let error_closure =
+            self.add_event_handler("error", move |event: worker_sys::ErrorEvent| {
+                let error = event.error();
+                tx.unbounded_send(Err(error.into())).unwrap();
+            })?;
+
+        Ok(EventStream {
+            ws: self,
+            rx,
+            closed: false,
+            closures: Some((message_closure, error_closure, close_closure)),
+        })
+    }
+}
+
+type EvCallback<T> = Closure<dyn FnMut(T)>;
+
+/// A [`Stream`](futures::Stream) that yields [`WebsocketEvent`](crate::ws_events::WebsocketEvent)s
+/// emitted by the inner [`WebSocket`](crate::WebSocket). The stream is guranteed to always yield a
+/// `WebsocketEvent::Close` as the final non-none item.
+///
+/// # Example
+/// ```rust,ignore
+/// use futures::StreamExt;
+///
+/// let pair = WebSocketPair::new()?;
+/// let server = pair.server;
+///
+/// server.accept()?;
+///
+/// // Spawn a future for handling the stream of events from the websocket.
+/// wasm_bindgen_futures::spawn_local(async move {
+///     let mut event_stream = server.events().expect("could not open stream");
+///
+///     while let Some(event) = event_stream.next().await {
+///         match event.expect("received error in websocket") {
+///             WebsocketEvent::Message(msg) => console_log!("{:#?}", msg),
+///             WebsocketEvent::Close(event) => console_log!("Closed!"),
+///         }
+///     }
+/// });
+/// ```
+#[pin_project::pin_project(PinnedDrop)]
+pub struct EventStream<'ws> {
+    ws: &'ws WebSocket,
+    #[pin]
+    rx: UnboundedReceiver<Result<WebsocketEvent>>,
+    closed: bool,
+    /// Once we have decided we need to finish the stream, we need to remove any listeners we
+    /// registered with the websocket.
+    closures: Option<(
+        EvCallback<worker_sys::MessageEvent>,
+        EvCallback<worker_sys::ErrorEvent>,
+        EvCallback<worker_sys::CloseEvent>,
+    )>,
+}
+
+impl<'ws> Stream for EventStream<'ws> {
+    type Item = Result<WebsocketEvent>;
+
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        let this = self.project();
+
+        if *this.closed {
+            return Poll::Ready(None);
+        }
+
+        // Poll the inner receiver to check if theres any events from our event callbacks.
+        let item = futures::ready!(this.rx.poll_next(cx));
+
+        // Mark the stream as closed if we get a close event and yield None next iteration.
+        if let Some(item) = &item {
+            if matches!(&item, Ok(WebsocketEvent::Close(_))) {
+                *this.closed = true;
+            }
+        }
+
+        Poll::Ready(item)
+    }
+}
+
+// Because we don't want to receive messages once our stream is done we need to remove all our
+// listeners when we go to drop the stream.
+#[pin_project::pinned_drop]
+impl PinnedDrop for EventStream<'_> {
+    fn drop(self: Pin<&'_ mut Self>) {
+        let this = self.project();
+
+        // remove_event_handler takes an owned closure, so we'll do this little hack and wrap our
+        // closures in an Option. This should never panic because we should never call drop twice.
+        let (message_closure, error_closure, close_closure) =
+            std::mem::take(this.closures).expect("double drop on worker::EventStream");
+
+        this.ws
+            .remove_event_handler("message", message_closure)
+            .expect("could not remove message handler");
+        this.ws
+            .remove_event_handler("error", error_closure)
+            .expect("could not remove error handler");
+        this.ws
+            .remove_event_handler("close", close_closure)
+            .expect("could not remove close handler");
     }
 }
 
@@ -203,7 +261,17 @@ impl AsRef<worker_sys::WebSocket> for WebSocket {
 }
 
 pub mod ws_events {
+    use serde::de::DeserializeOwned;
     use wasm_bindgen::JsValue;
+
+    use crate::Error;
+
+    /// Events that can be yielded by a [`EventStream`](crate::EventStream).
+    #[derive(Debug, Clone)]
+    pub enum WebsocketEvent {
+        Message(MessageEvent),
+        Close(CloseEvent),
+    }
 
     /// Wrapper/Utility struct for the `web_sys::MessageEvent`
     #[derive(Debug, Clone, PartialEq, Eq)]
@@ -225,22 +293,31 @@ pub mod ws_events {
 
     impl MessageEvent {
         /// Gets the data/payload from the message.
-        pub fn get_data(&self) -> JsValue {
+        fn data(&self) -> JsValue {
             self.event.data()
         }
 
-        pub fn get_text(&self) -> Option<String> {
-            let value = self.get_data();
+        pub fn text(&self) -> Option<String> {
+            let value = self.data();
             value.as_string()
         }
 
-        pub fn get_blob(&self) -> Option<Vec<u8>> {
-            let value = self.get_data();
+        pub fn bytes(&self) -> Option<Vec<u8>> {
+            let value = self.data();
             if value.is_object() {
                 Some(js_sys::Uint8Array::new(&value).to_vec())
             } else {
                 None
             }
+        }
+
+        pub fn json<T: DeserializeOwned>(&self) -> crate::Result<T> {
+            let text = match self.text() {
+                Some(text) => text,
+                None => return Err(Error::from("data of message event is not text")),
+            };
+
+            serde_json::from_str(&text).map_err(Error::from)
         }
     }
 
@@ -248,6 +325,20 @@ pub mod ws_events {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub struct CloseEvent {
         event: worker_sys::CloseEvent,
+    }
+
+    impl CloseEvent {
+        pub fn reason(&self) -> String {
+            self.event.reason()
+        }
+
+        pub fn code(&self) -> u16 {
+            self.event.code()
+        }
+
+        pub fn was_clean(&self) -> bool {
+            self.event.was_clean()
+        }
     }
 
     impl From<worker_sys::CloseEvent> for CloseEvent {
@@ -258,24 +349,6 @@ pub mod ws_events {
 
     impl AsRef<worker_sys::CloseEvent> for CloseEvent {
         fn as_ref(&self) -> &worker_sys::CloseEvent {
-            &self.event
-        }
-    }
-
-    /// Wrapper/Utility struct for the `web_sys::ErrorEvent`
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    pub struct ErrorEvent {
-        event: worker_sys::ErrorEvent,
-    }
-
-    impl From<worker_sys::ErrorEvent> for ErrorEvent {
-        fn from(event: worker_sys::ErrorEvent) -> Self {
-            Self { event }
-        }
-    }
-
-    impl AsRef<worker_sys::ErrorEvent> for ErrorEvent {
-        fn as_ref(&self) -> &worker_sys::ErrorEvent {
             &self.event
         }
     }

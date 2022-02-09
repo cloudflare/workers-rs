@@ -1,4 +1,5 @@
 use blake2::{Blake2b, Digest};
+use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use worker::*;
 
@@ -72,32 +73,51 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
     router
         .get("/request", handle_a_request) // can pass a fn pointer to keep routes tidy
         .get_async("/async-request", handle_async_request)
-        .get("/websocket", |_, _| {
+        .get("/websocket", |_, ctx| {
             // Accept / handle a websocket connection
             let pair = WebSocketPair::new()?;
             let server = pair.server;
             server.accept()?;
-            server.send_with_str("Hi")?;
-            server.send_with_str("Other message")?;
-            let inner_server = server.clone();
-            server.on_message_async(move |event| {
-                let server = inner_server.clone();
-                async move {
-                    server
-                        .send_with_str(event.get_data().as_string().unwrap())
-                        .unwrap();
-                    console_log!("Message received");
+
+            let some_namespace_kv = ctx.kv("SOME_NAMESPACE")?;
+
+            wasm_bindgen_futures::spawn_local(async move {
+                let mut event_stream = server.events().expect("could not open stream");
+
+                while let Some(event) = event_stream.next().await {
+                    match event.expect("received error in websocket") {
+                        WebsocketEvent::Message(msg) => {
+                            if let Some(text) = msg.text() {
+                                server.send_with_str(text).expect("could not relay text");
+                            }
+                        }
+                        WebsocketEvent::Close(_) => {
+                            // Sets a key in a test KV so the integration tests can query if we
+                            // actually got the close event. We can't use the shared dat a for this
+                            // because miniflare resets that every request.
+                            some_namespace_kv
+                                .put("got-close-event", "true")
+                                .unwrap()
+                                .execute()
+                                .await
+                                .unwrap();
+                        }
+                    }
                 }
-            })?;
-            server.on_close(|close| {
-                console_log!("{:?}", close);
-            })?;
-            server.on_error(|error| {
-                console_log!("{:?}", error);
-            })?;
-            Ok(Response::empty()?
-                .with_status(101)
-                .with_websocket(Some(pair.client)))
+            });
+
+            Response::from_websocket(pair.client)
+        })
+        .get_async("/got-close-event", |_, ctx| async move {
+            let some_namespace_kv = ctx.kv("SOME_NAMESPACE")?;
+            let got_close_event = some_namespace_kv
+                .get("got-close-event")
+                .text()
+                .await?
+                .unwrap_or_else(|| "false".into());
+
+            // Let the integration tests have some way of knowing if we successfully received the closed event.
+            Response::ok(got_close_event)
         })
         .get("/test-data", |_, ctx| {
             // just here to test data works
