@@ -73,11 +73,13 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
     router
         .get("/request", handle_a_request) // can pass a fn pointer to keep routes tidy
         .get_async("/async-request", handle_async_request)
-        .get("/websocket", |_, _| {
+        .get("/websocket", |_, ctx| {
             // Accept / handle a websocket connection
             let pair = WebSocketPair::new()?;
             let server = pair.server;
             server.accept()?;
+
+            let some_namespace_kv = ctx.kv("SOME_NAMESPACE")?;
 
             wasm_bindgen_futures::spawn_local(async move {
                 let mut event_stream = server.events().expect("could not open stream");
@@ -89,12 +91,29 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                                 server.send_with_str(text).expect("could not relay text");
                             }
                         }
-                        WebsocketEvent::Close(_) => console_log!("Closed!"),
+                        WebsocketEvent::Close(_) => {
+                            // Sets a key in a test KV so the integration tests can query if we
+                            // actually got the close event. We can't use the shared dat a for this
+                            // because miniflare resets that every request.
+                            some_namespace_kv
+                                .put("got-close-event", "true")
+                                .unwrap()
+                                .execute()
+                                .await
+                                .unwrap();
+                        }
                     }
                 }
             });
 
             Response::from_websocket(pair.client)
+        })
+        .get_async("/got-close-event", |_, ctx| async move {
+            let some_namespace_kv = ctx.kv("SOME_NAMESPACE")?;
+            let got_close_event = some_namespace_kv.get("got-close-event").text().await?.unwrap_or_else(|| "false".into());
+
+            // Let the integration tests have some way of knowing if we successfully received the closed event.
+            Response::ok(got_close_event)
         })
         .get("/test-data", |_, ctx| {
             // just here to test data works

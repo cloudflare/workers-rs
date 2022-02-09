@@ -19,5 +19,17 @@ fn websocket() {
         .and_then(|msg| msg.into_text())
         .unwrap();
 
-    assert_eq!(&msg, "Hello, world!")
+    assert_eq!(&msg, "Hello, world!");
+
+    // Drop the socket, causing the connection to get closed.
+    drop(socket);
+
+    println!("Dropped socket");
+
+    let got_close_event: bool = util::get("got-close-event", |r| r)
+        .text()
+        .expect("could not deserialize as text")
+        .parse()
+        .expect("body was not boolean");
+    assert!(got_close_event)
 }
