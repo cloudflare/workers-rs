@@ -1,7 +1,8 @@
-use crate::{Error, Result};
+use crate::{Error, Fetch, Method, Request, Result};
 use futures::channel::mpsc::UnboundedReceiver;
 use futures::Stream;
 use serde::Serialize;
+use url::Url;
 
 use std::pin::Pin;
 use std::rc::Rc;
@@ -15,8 +16,8 @@ pub use crate::ws_events::*;
 /// Struct holding the values for a JavaScript `WebSocketPair`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WebSocketPair {
-    pub client: WebSocket,
-    pub server: WebSocket,
+    pub client: WebSocketClient,
+    pub server: WebSocketServer,
 }
 
 impl WebSocketPair {
@@ -31,11 +32,11 @@ impl WebSocketPair {
 
 /// Wrapper struct for underlying worker-sys `WebSocket`
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct WebSocket {
+pub struct WebSocketServer {
     socket: worker_sys::WebSocket,
 }
 
-impl WebSocket {
+impl WebSocketServer {
     /// Accept the server-side of a websocket connection
     pub fn accept(&self) -> Result<()> {
         self.socket.accept().map_err(Error::from)
@@ -125,7 +126,7 @@ impl WebSocket {
 
     /// Gets an implementation [`Stream`](futures::Stream) that yields events from the inner
     /// WebSocket.
-    pub fn events(&self) -> Result<EventStream> {
+    pub fn events(&self) -> Result<ServerEventStream> {
         let (tx, rx) = futures::channel::mpsc::unbounded::<Result<WebsocketEvent>>();
         let tx = Rc::new(tx);
 
@@ -149,7 +150,155 @@ impl WebSocket {
                 tx.unbounded_send(Err(error.into())).unwrap();
             })?;
 
-        Ok(EventStream {
+        Ok(ServerEventStream {
+            ws: self,
+            rx,
+            closed: false,
+            closures: Some((message_closure, error_closure, close_closure)),
+        })
+    }
+}
+
+/// Wrapper struct for underlying worker-sys `WebSocket`
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WebSocketClient {
+    socket: worker_sys::WebSocket,
+}
+
+impl WebSocketClient {
+    pub async fn connect(mut url: Url) -> Result<Self> {
+        let scheme: String = match url.scheme() {
+            "ws" => "http".into(),
+            "wss" => "https".into(),
+            scheme => scheme.into(),
+        };
+        url.set_scheme(&scheme).unwrap();
+
+        let mut req = Request::new(url.as_str(), Method::Get)?;
+        req.headers_mut()?.set("Upgrade", "websocket")?;
+
+        let res = Fetch::Request(req).send().await?;
+
+        match res.websocket() {
+            Some(ws) => Ok(ws),
+            None => Err(Error::RustError("server did not accepts".into())),
+        }
+    }
+
+    /// Accept the server-side of a websocket connection
+    pub fn accept(&self) -> Result<()> {
+        self.socket.accept().map_err(Error::from)
+    }
+
+    /// Serialize data into a string using serde and send it through the `WebSocket`
+    pub fn send<T: Serialize>(&self, data: &T) -> Result<()> {
+        let value = serde_json::to_string(data)?;
+        self.send_with_str(value.as_str())
+    }
+
+    /// Sends a raw string through the `WebSocket`
+    pub fn send_with_str<S: AsRef<str>>(&self, data: S) -> Result<()> {
+        self.socket
+            .send_with_str(data.as_ref())
+            .map_err(Error::from)
+    }
+
+    /// Sends raw binary data through the `WebSocket`.
+    pub fn send_with_bytes<D: AsRef<[u8]>>(&self, bytes: D) -> Result<()> {
+        let slice = bytes.as_ref();
+        let array = js_sys::Uint8Array::new_with_length(slice.len() as u32);
+        array.copy_from(slice);
+        self.socket.send_with_u8_array(array).map_err(Error::from)
+    }
+
+    /// Closes this channel.
+    /// This method translates to three different underlying method calls based of the
+    /// parameters passed.
+    ///
+    /// If the following parameters are Some:
+    /// * `code` and `reason` -> `close_with_code_and_reason`
+    /// * `code`              -> `close_with_code`
+    /// * `reason` or `none`  -> `close`
+    ///
+    /// Effectively, if only `reason` is `Some`, the `reason` argument will be ignored.
+    pub fn close<S: AsRef<str>>(&self, code: Option<u16>, reason: Option<S>) -> Result<()> {
+        if let Some((code, reason)) = code.zip(reason) {
+            self.socket
+                .close_with_code_and_reason(code, reason.as_ref())
+        } else if let Some(code) = code {
+            self.socket.close_with_code(code)
+        } else {
+            self.socket.close()
+        }
+        .map_err(Error::from)
+    }
+
+    /// Internal utility method to avoid verbose code.
+    /// This method registers a closure in the underlying JS environment, which calls back into the
+    /// Rust/wasm environment.
+    ///
+    /// Since this is a 'long living closure', we need to keep the lifetime of this closure until
+    /// we remove any references to the closure. So the caller of this must not drop the closure
+    /// until they call [`Self::remove_event_handler`].
+    fn add_event_handler<T: FromWasmAbi + 'static, F: FnMut(T) + 'static>(
+        &self,
+        r#type: &str,
+        fun: F,
+    ) -> Result<Closure<dyn FnMut(T)>> {
+        let js_callback = Closure::wrap(Box::new(fun) as Box<dyn FnMut(T)>);
+        self.socket
+            .add_event_listener(
+                JsValue::from_str(r#type),
+                Some(js_callback.as_ref().unchecked_ref()),
+            )
+            .map_err(Error::from)?;
+
+        Ok(js_callback)
+    }
+
+    /// Internal utility method to avoid verbose code.
+    /// This method registers a closure in the underlying JS environment, which calls back
+    /// into the Rust/wasm environment.
+    fn remove_event_handler<T: FromWasmAbi + 'static>(
+        &self,
+        r#type: &str,
+        js_callback: Closure<dyn FnMut(T)>,
+    ) -> Result<()> {
+        self.socket
+            .remove_event_listener(
+                JsValue::from_str(r#type),
+                Some(js_callback.as_ref().unchecked_ref()),
+            )
+            .map_err(Error::from)
+    }
+
+    /// Gets an implementation [`Stream`](futures::Stream) that yields events from the inner
+    /// WebSocket.
+    pub fn events(&self) -> Result<ClientEventStream> {
+        let (tx, rx) = futures::channel::mpsc::unbounded::<Result<WebsocketEvent>>();
+        let tx = Rc::new(tx);
+
+        let close_closure = self.add_event_handler("close", {
+            let tx = tx.clone();
+            move |event: worker_sys::CloseEvent| {
+                tx.unbounded_send(Ok(WebsocketEvent::Close(event.into())))
+                    .unwrap();
+            }
+        })?;
+        let message_closure = self.add_event_handler("message", {
+            let tx = tx.clone();
+            move |event: worker_sys::MessageEvent| {
+                tx.unbounded_send(Ok(WebsocketEvent::Message(event.into())))
+                    .unwrap();
+            }
+        })?;
+        let error_closure =
+            self.add_event_handler("error", move |event: worker_sys::ErrorEvent| {
+                let error = event.error();
+                tx.unbounded_send(Err(error.into())).unwrap();
+            })?;
+
+        Ok(ClientEventStream {
             ws: self,
             rx,
             closed: false,
@@ -186,8 +335,8 @@ type EvCallback<T> = Closure<dyn FnMut(T)>;
 /// });
 /// ```
 #[pin_project::pin_project(PinnedDrop)]
-pub struct EventStream<'ws> {
-    ws: &'ws WebSocket,
+pub struct ServerEventStream<'ws> {
+    ws: &'ws WebSocketServer,
     #[pin]
     rx: UnboundedReceiver<Result<WebsocketEvent>>,
     closed: bool,
@@ -200,7 +349,7 @@ pub struct EventStream<'ws> {
     )>,
 }
 
-impl<'ws> Stream for EventStream<'ws> {
+impl<'ws> Stream for ServerEventStream<'ws> {
     type Item = Result<WebsocketEvent>;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
@@ -227,7 +376,7 @@ impl<'ws> Stream for EventStream<'ws> {
 // Because we don't want to receive messages once our stream is done we need to remove all our
 // listeners when we go to drop the stream.
 #[pin_project::pinned_drop]
-impl PinnedDrop for EventStream<'_> {
+impl PinnedDrop for ServerEventStream<'_> {
     fn drop(self: Pin<&'_ mut Self>) {
         let this = self.project();
 
@@ -248,15 +397,109 @@ impl PinnedDrop for EventStream<'_> {
     }
 }
 
-impl From<worker_sys::WebSocket> for WebSocket {
+/// A [`Stream`](futures::Stream) that yields [`WebsocketEvent`](crate::ws_events::WebsocketEvent)s
+/// emitted by the inner [`WebSocket`](crate::WebSocket). The stream is guranteed to always yield a
+/// `WebsocketEvent::Close` as the final non-none item.
+///
+/// # Example
+/// ```rust,ignore
+/// use futures::StreamExt;
+///
+/// let pair = WebSocketPair::new()?;
+/// let server = pair.server;
+///
+/// server.accept()?;
+///
+/// // Spawn a future for handling the stream of events from the websocket.
+/// wasm_bindgen_futures::spawn_local(async move {
+///     let mut event_stream = server.events().expect("could not open stream");
+///
+///     while let Some(event) = event_stream.next().await {
+///         match event.expect("received error in websocket") {
+///             WebsocketEvent::Message(msg) => console_log!("{:#?}", msg),
+///             WebsocketEvent::Close(event) => console_log!("Closed!"),
+///         }
+///     }
+/// });
+/// ```
+#[pin_project::pin_project(PinnedDrop)]
+pub struct ClientEventStream<'ws> {
+    ws: &'ws WebSocketClient,
+    #[pin]
+    rx: UnboundedReceiver<Result<WebsocketEvent>>,
+    closed: bool,
+    /// Once we have decided we need to finish the stream, we need to remove any listeners we
+    /// registered with the websocket.
+    closures: Option<(
+        EvCallback<worker_sys::MessageEvent>,
+        EvCallback<worker_sys::ErrorEvent>,
+        EvCallback<worker_sys::CloseEvent>,
+    )>,
+}
+
+impl<'ws> Stream for ClientEventStream<'ws> {
+    type Item = Result<WebsocketEvent>;
+
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        let this = self.project();
+
+        if *this.closed {
+            return Poll::Ready(None);
+        }
+
+        // Poll the inner receiver to check if theres any events from our event callbacks.
+        let item = futures::ready!(this.rx.poll_next(cx));
+
+        // Mark the stream as closed if we get a close event and yield None next iteration.
+        if let Some(item) = &item {
+            if matches!(&item, Ok(WebsocketEvent::Close(_))) {
+                *this.closed = true;
+            }
+        }
+
+        Poll::Ready(item)
+    }
+}
+
+// Because we don't want to receive messages once our stream is done we need to remove all our
+// listeners when we go to drop the stream.
+#[pin_project::pinned_drop]
+impl PinnedDrop for ClientEventStream<'_> {
+    fn drop(self: Pin<&'_ mut Self>) {
+        let this = self.project();
+
+        // remove_event_handler takes an owned closure, so we'll do this little hack and wrap our
+        // closures in an Option. This should never panic because we should never call drop twice.
+        let (message_closure, error_closure, close_closure) =
+            std::mem::take(this.closures).expect("double drop on worker::EventStream");
+
+        this.ws
+            .remove_event_handler("message", message_closure)
+            .expect("could not remove message handler");
+        this.ws
+            .remove_event_handler("error", error_closure)
+            .expect("could not remove error handler");
+        this.ws
+            .remove_event_handler("close", close_closure)
+            .expect("could not remove close handler");
+    }
+}
+
+impl From<worker_sys::WebSocket> for WebSocketServer {
     fn from(socket: worker_sys::WebSocket) -> Self {
         Self { socket }
     }
 }
 
-impl AsRef<worker_sys::WebSocket> for WebSocket {
+impl AsRef<worker_sys::WebSocket> for WebSocketClient {
     fn as_ref(&self) -> &worker_sys::WebSocket {
         &self.socket
+    }
+}
+
+impl From<worker_sys::WebSocket> for WebSocketClient {
+    fn from(socket: worker_sys::WebSocket) -> Self {
+        Self { socket }
     }
 }
 

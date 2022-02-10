@@ -1,7 +1,7 @@
 use crate::cors::Cors;
 use crate::error::Error;
 use crate::headers::Headers;
-use crate::{Result, WebSocket};
+use crate::{Result, WebSocketClient};
 
 use js_sys::Uint8Array;
 use serde::{de::DeserializeOwned, Serialize};
@@ -24,7 +24,7 @@ pub struct Response {
     body: ResponseBody,
     headers: Headers,
     status_code: u16,
-    websocket: Option<WebSocket>,
+    websocket: Option<WebSocketClient>,
 }
 
 impl Response {
@@ -88,7 +88,7 @@ impl Response {
 
     /// Create a `Response` using a `WebSocket` client. Configures the browser to switch protocols
     /// (using status code 101) and returns the websocket.
-    pub fn from_websocket(websocket: WebSocket) -> Result<Self> {
+    pub fn from_websocket(websocket: WebSocketClient) -> Result<Self> {
         Ok(Self {
             body: ResponseBody::Empty,
             headers: Headers::new(),
@@ -199,6 +199,11 @@ impl Response {
         }
     }
 
+    // Get the WebSocket returned by the the server.
+    pub fn websocket(self) -> Option<WebSocketClient> {
+        self.websocket
+    }
+
     /// Set this response's `Headers`.
     pub fn with_headers(mut self, headers: Headers) -> Self {
         self.headers = headers;
@@ -231,7 +236,7 @@ impl Response {
 
     /// Sets this response's `webSocket` option.
     /// This will require a status code 101 to work.
-    pub fn with_websocket(mut self, websocket: Option<WebSocket>) -> Self {
+    pub fn with_websocket(mut self, websocket: Option<WebSocketClient>) -> Self {
         self.websocket = websocket;
         self
     }
@@ -257,7 +262,7 @@ fn no_using_invalid_error_status_code() {
 pub struct ResponseInit {
     pub status: u16,
     pub headers: Headers,
-    pub websocket: Option<WebSocket>,
+    pub websocket: Option<WebSocketClient>,
 }
 
 impl From<ResponseInit> for EdgeResponseInit {

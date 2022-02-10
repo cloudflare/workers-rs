@@ -119,6 +119,26 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             // Let the integration tests have some way of knowing if we successfully received the closed event.
             Response::ok(got_close_event)
         })
+        .get_async("/ws-client", |_, _| async move {
+            let ws = WebSocketClient::connect("wss://echo.zeb.workers.dev/".parse()?).await?;
+
+            let mut event_stream = ws.events()?;
+
+            ws.accept()?;
+            ws.send_with_str("Hello, world!")?;
+
+            while let Some(event) = event_stream.next().await {
+                let event = event?;
+
+                if let WebsocketEvent::Message(msg) = event {
+                    if let Some(text) = msg.text() {
+                        return Response::ok(text);
+                    }
+                }
+            }
+
+            Response::error("never got a message echoed back :(", 500)
+        })
         .get("/test-data", |_, ctx| {
             // just here to test data works
             if ctx.data.regex.is_match("2014-01-01") {
