@@ -1,3 +1,9 @@
+// Cargo compiles each integration test individually so we can run into scenarios like this where
+// cargo emits a warning in `util.rs` saying that some of the exported functions aren't used. This
+// warning is raised because the websocket specifically doesn't use those functions, it doesn't
+// consider their usage in `requests.rs` when compiling this test.
+#![allow(unused)]
+
 use reqwest::Url;
 use tungstenite::{connect, Message};
 
