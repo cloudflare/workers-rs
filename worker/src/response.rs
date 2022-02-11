@@ -1,7 +1,8 @@
 use crate::cors::Cors;
 use crate::error::Error;
 use crate::headers::Headers;
-use crate::{Result, WebSocket};
+use crate::Result;
+use crate::WebSocket;
 
 use js_sys::Uint8Array;
 use serde::{de::DeserializeOwned, Serialize};
@@ -197,6 +198,11 @@ impl Response {
                 .map(|value| js_sys::Uint8Array::new(&value).to_vec())
                 .map_err(Error::from),
         }
+    }
+
+    // Get the WebSocket returned by the the server.
+    pub fn websocket(self) -> Option<WebSocket> {
+        self.websocket
     }
 
     /// Set this response's `Headers`.
