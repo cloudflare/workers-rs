@@ -1711,7 +1711,7 @@ dependencies = [
 
 [[package]]
 name = "worker"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "async-trait",
  "chrono",
@@ -1733,7 +1733,7 @@ dependencies = [
 
 [[package]]
 name = "worker-build"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "anyhow",
  "wasm-bindgen-cli-support",
@@ -1755,7 +1755,7 @@ dependencies = [
 
 [[package]]
 name = "worker-macros"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "async-trait",
  "proc-macro2 1.0.28",
@@ -1791,7 +1791,7 @@ dependencies = [
 
 [[package]]
 name = "worker-sys"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "cfg-if 0.1.10",
  "js-sys",
