@@ -13,53 +13,6 @@ use wasm_bindgen::{JsCast, JsValue};
 
 pub use crate::ws_events::*;
 
-/// Attempts to establish a [`WebSocket`] connection to the provided [`Url`].
-///
-/// # Example:
-/// ```rust,ignore
-/// let ws = worker::connect("wss://echo.zeb.workers.dev/".parse()?).await?;
-///
-/// // It's important that we call this before we send our first message, otherwise we will
-/// // not have any event listeners on the socket to receive the echoed message.
-/// let mut event_stream = ws.events()?;
-///
-/// ws.accept()?;
-/// ws.send_with_str("Hello, world!")?;
-///
-/// while let Some(event) = event_stream.next().await {
-///     let event = event?;
-///
-///     if let WebsocketEvent::Message(msg) = event {
-///         if let Some(text) = msg.text() {
-///             return Response::ok(text);
-///         }
-///     }
-/// }
-///
-/// Response::error("never got a message echoed back :(", 500)
-/// ```
-pub async fn connect(mut url: Url) -> Result<WebSocket> {
-    let scheme: String = match url.scheme() {
-        "ws" => "http".into(),
-        "wss" => "https".into(),
-        scheme => scheme.into(),
-    };
-
-    // With fetch we can only make requests to http(s) urls, but Workers will allow us to upgrade
-    // those connections into websockets if we use the `Upgrade` header.
-    url.set_scheme(&scheme).unwrap();
-
-    let mut req = Request::new(url.as_str(), Method::Get)?;
-    req.headers_mut()?.set("upgrade", "websocket")?;
-
-    let res = Fetch::Request(req).send().await?;
-
-    match res.websocket() {
-        Some(ws) => Ok(ws),
-        None => Err(Error::RustError("server did not accepts".into())),
-    }
-}
-
 /// Struct holding the values for a JavaScript `WebSocketPair`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WebSocketPair {
@@ -84,6 +37,53 @@ pub struct WebSocket {
 }
 
 impl WebSocket {
+    /// Attempts to establish a [`WebSocket`] connection to the provided [`Url`].
+    ///
+    /// # Example:
+    /// ```rust,ignore
+    /// let ws = WebSocket::connect("wss://echo.zeb.workers.dev/".parse()?).await?;
+    ///
+    /// // It's important that we call this before we send our first message, otherwise we will
+    /// // not have any event listeners on the socket to receive the echoed message.
+    /// let mut event_stream = ws.events()?;
+    ///
+    /// ws.accept()?;
+    /// ws.send_with_str("Hello, world!")?;
+    ///
+    /// while let Some(event) = event_stream.next().await {
+    ///     let event = event?;
+    ///
+    ///     if let WebsocketEvent::Message(msg) = event {
+    ///         if let Some(text) = msg.text() {
+    ///             return Response::ok(text);
+    ///         }
+    ///     }
+    /// }
+    ///
+    /// Response::error("never got a message echoed back :(", 500)
+    /// ```
+    pub async fn connect(mut url: Url) -> Result<WebSocket> {
+        let scheme: String = match url.scheme() {
+            "ws" => "http".into(),
+            "wss" => "https".into(),
+            scheme => scheme.into(),
+        };
+
+        // With fetch we can only make requests to http(s) urls, but Workers will allow us to upgrade
+        // those connections into websockets if we use the `Upgrade` header.
+        url.set_scheme(&scheme).unwrap();
+
+        let mut req = Request::new(url.as_str(), Method::Get)?;
+        req.headers_mut()?.set("upgrade", "websocket")?;
+
+        let res = Fetch::Request(req).send().await?;
+
+        match res.websocket() {
+            Some(ws) => Ok(ws),
+            None => Err(Error::RustError("server did not accept".into())),
+        }
+    }
+
     /// Accepts the connection, allowing for messages to be sent to and from the `WebSocket`.
     pub fn accept(&self) -> Result<()> {
         self.socket.accept().map_err(Error::from)
