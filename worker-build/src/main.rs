@@ -19,8 +19,12 @@ const WORKER_SUBDIR: &str = "worker";
 mod bundler;
 
 pub fn main() -> Result<()> {
-    check_wasm_pack_installed()?;
-    wasm_pack_build(env::args_os().skip(1))?;
+    // Our tests build the bundle ourselves.
+    if !cfg!(test) {
+        check_wasm_pack_installed()?;
+        wasm_pack_build(env::args_os().skip(1))?;
+    }
+
     create_worker_dir()?;
     copy_generated_code_to_worker_dir()?;
     replace_generated_import_with_custom_impl()?;
@@ -223,8 +227,10 @@ fn find_exports(js: &str) -> Vec<&str> {
 mod tests {
     use std::path::Path;
 
-    use crate::find_exports;
+    use tempdir::TempDir;
     use wasm_bindgen_cli_support::Bindgen;
+
+    use crate::find_exports;
 
     #[test]
     fn all_exports_found() {
@@ -253,5 +259,36 @@ mod tests {
                 )
             }
         }
+    }
+
+    #[test]
+    fn ensure_snippets_in_bundle() {
+        let input_path = Path::new(
+            "./bindgen-test-subject/target/wasm32-unknown-unknown/release/bindgen_test_subject.wasm",
+        );
+        assert!(
+            input_path.exists(),
+            "The bindgen-test-subject module is not present, did you forget to compile it?"
+        );
+
+        let path = TempDir::new("worker-build-test")
+            .expect("could not create tempdir")
+            .into_path();
+
+        Bindgen::new()
+            .input_path(input_path)
+            .typescript(false)
+            .out_name("index")
+            .generate(&path.join("build"))
+            .expect("could not generate wasm bindings");
+
+        std::env::set_current_dir(&path).expect("could not change CWD");
+        super::main().expect("could not build worker");
+
+        let bundled = std::fs::read_to_string(path.join("build/worker/shim.mjs"))
+            .expect("could not read bundle");
+
+        // Ensures some unique string that we defined as a JS snippet is in our bundle.
+        assert!(bundled.contains("f408ee6cdad87526c64656984fb6637d09203ca4"))
     }
 }
