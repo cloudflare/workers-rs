@@ -108,6 +108,10 @@ fn copy_generated_code_to_worker_dir() -> Result<()> {
         (wasm_src, wasm_dest),
         (snippets_src, snippets_dest),
     ] {
+        if !src.exists() {
+            continue;
+        }
+
         fs::rename(src, dest)?;
     }
 
