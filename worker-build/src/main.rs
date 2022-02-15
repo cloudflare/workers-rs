@@ -16,13 +16,15 @@ const OUT_DIR: &str = "build";
 const OUT_NAME: &str = "index";
 const WORKER_SUBDIR: &str = "worker";
 
+mod bundler;
+
 pub fn main() -> Result<()> {
     check_wasm_pack_installed()?;
     wasm_pack_build(env::args_os().skip(1))?;
     create_worker_dir()?;
     copy_generated_code_to_worker_dir()?;
-    write_worker_shims_to_worker_dir()?;
     replace_generated_import_with_custom_impl()?;
+    write_worker_shim()?;
 
     Ok(())
 }
@@ -112,31 +114,24 @@ fn copy_generated_code_to_worker_dir() -> Result<()> {
     Ok(())
 }
 
-fn write_worker_shims_to_worker_dir() -> Result<()> {
-    // _bg implies "bindgen" from wasm-bindgen tooling
-    let bg_name = format!("{}_bg", OUT_NAME);
+fn write_worker_shim() -> Result<()> {
+    let path = PathBuf::from(OUT_DIR).join(WORKER_SUBDIR).join("shim.mjs");
+    let mut file = File::create(path)?;
 
     // this shim just re-exports things in the pattern workers expects
-    let shim_content = format!(
-        r#"
-import * as imports from "./{0}.mjs";
+    // SWC will optimize out a `imports.fetch` because it thinks we'll always have a `fetch` and
+    // `scheduled` in the current scope, causing our worker to crash, so we need to do some tricky.
+    bundler::bundle_worker(
+        format!(
+            r#"
+            import * as imports from "./{OUT_NAME}_bg.js";
 
-const fetch = imports.fetch;
-const scheduled = imports.scheduled;
-
-export * from "./{0}.mjs";
-export default {{ fetch, scheduled }};
-
-"#,
-        bg_name
-    );
-    let shim_path = PathBuf::from(OUT_DIR).join(WORKER_SUBDIR).join("shim.js");
-
-    // write our content out to files
-    let mut file = File::create(shim_path)?;
-    file.write_all(shim_content.as_bytes())?;
-
-    Ok(())
+            const swcIsSneaky = {{...imports}};
+            export default {{ fetch: swcIsSneaky.fetch, scheduled: swcIsSneaky.scheduled }};
+            "#
+        ),
+        &mut file,
+    )
 }
 
 fn replace_generated_import_with_custom_impl() -> Result<()> {
@@ -150,10 +145,10 @@ fn replace_generated_import_with_custom_impl() -> Result<()> {
 
     // Previously we just used a namespace import as the wasm's import obj but this had a problem
     // where wasm-bindgen would re-export built-in functions as a const variable. This caused a
-    // problem because the OUTNAME_bg.mjs imported the wasm from another file causing a circular
+    // problem because the OUTNAME_bg.js imported the wasm from another file causing a circular
     // import so the const function items were never initialized.
     //
-    // Because can't use import OUTNAME_bg.mjs module and use that module's exports as the import
+    // Because can't use import OUTNAME_bg.js module and use that module's exports as the import
     // object, we'll have to find all the exports and use that to construct the wasm's import obj.
     let names_for_import_obj = find_exports(&fixed_bindgen_glue);
 
