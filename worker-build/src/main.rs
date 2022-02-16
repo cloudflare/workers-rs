@@ -133,6 +133,7 @@ fn write_worker_shim() -> Result<()> {
         format!(
             r#"
             import * as imports from "./{OUT_NAME}_bg.js";
+            export * from "./{OUT_NAME}_bg.js";
 
             const swcIsSneaky = {{...imports}};
             export default {{ fetch: swcIsSneaky.fetch, scheduled: swcIsSneaky.scheduled }};
