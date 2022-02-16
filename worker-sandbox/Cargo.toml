@@ -31,6 +31,13 @@ worker = { path = "../worker", version = "0.0.9" }
 futures = "0.3.21"
 
 [dev-dependencies]
-reqwest = { version = "0.11.9", features = ["blocking", "json", "multipart"] }
+futures = "0.3.21"
+reqwest = { version = "0.11.9", features = [
+    "blocking",
+    "json",
+    "multipart",
+    "stream",
+] }
+tokio = { version = "1.16.1", features = ["macros", "rt", "test-util"] }
 tungstenite = "0.16.0"
 wasm-bindgen-test = "0.2"
