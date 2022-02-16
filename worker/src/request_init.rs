@@ -101,7 +101,7 @@ pub struct CfProperties {
     /// A request’s cache key is what determines if two requests are “the same” for caching
     /// purposes. If a request has the same cache key as some previous request, then we can serve
     /// the same cached response for both.
-    pub cache_key: Option<bool>,
+    pub cache_key: Option<String>,
     /// This option forces Cloudflare to cache the response for this request, regardless of what
     /// headers are seen on the response. This is equivalent to setting two page rules: “Edge Cache
     /// TTL” and “Cache Level” (to “Cache Everything”). The value must be zero or a positive number.
@@ -169,6 +169,7 @@ impl From<&CfProperties> for JsValue {
             &JsValue::from(
                 props
                     .cache_key
+                    .clone()
                     .unwrap_or(defaults.cache_key.unwrap_or_default()),
             ),
         );
