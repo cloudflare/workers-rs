@@ -64,6 +64,11 @@ extern "C" {
 
     #[wasm_bindgen(catch, constructor, js_class=Response)]
     #[doc = "The `new Response(..)` constructor, creating a new instance of `Response`."]
+    pub fn new_with_opt_stream(body: Option<&web_sys::ReadableStream>)
+        -> Result<Response, JsValue>;
+
+    #[wasm_bindgen(catch, constructor, js_class=Response)]
+    #[doc = "The `new Response(..)` constructor, creating a new instance of `Response`."]
     pub fn new_with_opt_u8_array_and_init(
         body: Option<Uint8Array>,
         init: &ResponseInit,

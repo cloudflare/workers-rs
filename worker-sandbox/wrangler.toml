@@ -14,7 +14,7 @@ vars = { SOME_VARIABLE = "some value" }
 bindings = [{ name = "COUNTER", class_name = "Counter" }]
 
 [build]
-command = "cargo install -q worker-build && worker-build --release"
+# command = "worker-build --dev"
 
 [build.upload]
 dir = "build/worker"

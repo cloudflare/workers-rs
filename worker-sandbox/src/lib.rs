@@ -1,5 +1,5 @@
 use blake2::{Blake2b, Digest};
-use futures::StreamExt;
+use futures::{StreamExt, TryStreamExt};
 use serde::{Deserialize, Serialize};
 use worker::*;
 
@@ -148,6 +148,19 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             } else {
                 Response::error("bad match", 500)
             }
+        })
+        .post("/xor/:num", |mut req, ctx| {
+            let num: u8 = match ctx.param("num").unwrap().parse() {
+                Ok(num) => num,
+                Err(_) => return Response::error("invalid byte", 400),
+            };
+
+            let xor_stream = req.stream()?.map_ok(move |mut buf| {
+                buf.iter_mut().for_each(|x| *x ^= num);
+                buf
+            });
+
+            Response::from_stream(xor_stream)
         })
         .post("/headers", |req, _ctx| {
             let mut headers: http::HeaderMap = req.headers().into();

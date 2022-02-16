@@ -3131,6 +3131,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "wasm-streams"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "076e644811919817f3d28f9344a7d359d8a45cc72a7187c7ace7281d081a74ad"
+dependencies = [
+ "futures 0.3.21",
+ "js-sys",
+ "wasm-bindgen",
+ "wasm-bindgen-futures 0.4.28",
+ "web-sys",
+]
+
+[[package]]
 name = "wasmparser"
 version = "0.59.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3294,6 +3307,8 @@ dependencies = [
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures 0.4.28",
+ "wasm-streams",
+ "web-sys",
  "worker-kv",
  "worker-macros",
  "worker-sys",
