@@ -51,6 +51,12 @@ jobs:
       - name: Install wasmpack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
+      - name: Build local worker-build
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: --path ./worker-build --force --debug
+
       - name: Run tests
         shell: bash
         working-directory: ./worker-sandbox
@@ -64,7 +70,7 @@ jobs:
           " > .env
 
           # Start miniflare and register a trap to kill it once we're done
-          miniflare --no-cf-fetch --no-update-check -c ./wrangler.toml &
+          miniflare --no-cf-fetch --no-update-check -c ./wrangler.toml -B "worker-build --release" &
           MINIFLARE_PID=$!
           trap "kill $MINIFLARE_PID" EXIT
 

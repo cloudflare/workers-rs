@@ -1,3 +1,4 @@
+use futures::{channel::mpsc, SinkExt, StreamExt};
 use http::StatusCode;
 use reqwest::{
     blocking::{
@@ -5,6 +6,7 @@ use reqwest::{
         Client,
     },
     redirect::Policy,
+    Body, Client as AsyncClient,
 };
 use serde::{Deserialize, Serialize};
 use util::*;
@@ -301,4 +303,50 @@ fn custom_response_body() {
     // any 200 status code is a pass.
     let body = get("custom-response-body", |r| r).bytes().unwrap();
     assert_eq!(body.to_vec(), b"hello");
+}
+
+#[tokio::test]
+async fn xor() {
+    expect_wrangler();
+
+    let (mut body_sink, rx) = mpsc::channel::<u8>(32);
+    let req_stream = rx.map(|byte| Ok::<Vec<u8>, std::io::Error>(vec![byte]));
+    let body = Body::wrap_stream(req_stream);
+
+    let xor_num = 10;
+
+    // We need to send a single byte for us to get the initial response.
+    body_sink.send(0).await.unwrap();
+
+    let client = AsyncClient::new();
+    let mut res_stream = client
+        .post(&format!("http://127.0.0.1:8787/xor/{xor_num}"))
+        .body(body)
+        .send()
+        .await
+        .expect("could not make request")
+        .bytes_stream();
+
+    // Skip that first byte we use to get the stream.
+    let _ = res_stream.next().await;
+
+    for byte in 0..=255u8 {
+        body_sink.send(byte).await.unwrap();
+        let xored_byte = res_stream
+            .next()
+            .await
+            .expect("XOR stream closed unexpectedly")
+            .map(|chunk| chunk[0])
+            .expect("unexpected error with response stream");
+
+        assert_eq!(xored_byte, byte ^ xor_num);
+    }
+
+    body_sink
+        .close()
+        .await
+        .expect("unable to close body stream");
+
+    // Ensure that closing our request stream ends the body.
+    assert!(res_stream.next().await.is_none());
 }

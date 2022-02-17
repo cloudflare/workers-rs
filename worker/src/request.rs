@@ -1,7 +1,10 @@
-use crate::{cf::Cf, error::Error, headers::Headers, http::Method, FormData, RequestInit, Result};
+use crate::{
+    cf::Cf, error::Error, headers::Headers, http::Method, ByteStream, FormData, RequestInit, Result,
+};
 
 use serde::de::DeserializeOwned;
 use url::Url;
+use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 use worker_sys::{Request as EdgeRequest, RequestInit as EdgeRequestInit};
 
@@ -143,6 +146,25 @@ impl Request {
         }
 
         Err(Error::BodyUsed)
+    }
+
+    /// Access this request's body as a [`Stream`](futures::stream::Stream) of bytes.
+    pub fn stream(&mut self) -> Result<ByteStream> {
+        if self.body_used {
+            return Err(Error::BodyUsed);
+        }
+
+        self.body_used = true;
+
+        let stream = self
+            .edge_request
+            .body()
+            .ok_or_else(|| Error::RustError("no body for request".into()))?;
+
+        let stream = wasm_streams::ReadableStream::from_raw(stream.dyn_into().unwrap());
+        Ok(ByteStream {
+            inner: stream.into_stream(),
+        })
     }
 
     /// Get the `Headers` for this request.
