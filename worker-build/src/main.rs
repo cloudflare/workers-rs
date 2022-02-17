@@ -16,13 +16,20 @@ const OUT_DIR: &str = "build";
 const OUT_NAME: &str = "index";
 const WORKER_SUBDIR: &str = "worker";
 
+mod bundler;
+
 pub fn main() -> Result<()> {
-    check_wasm_pack_installed()?;
-    wasm_pack_build(env::args_os().skip(1))?;
+    // Our tests build the bundle ourselves.
+    if !cfg!(test) {
+        check_wasm_pack_installed()?;
+        wasm_pack_build(env::args_os().skip(1))?;
+    }
+
     create_worker_dir()?;
     copy_generated_code_to_worker_dir()?;
-    write_worker_shims_to_worker_dir()?;
     replace_generated_import_with_custom_impl()?;
+    write_worker_shim()?;
+    remove_unused_js()?;
 
     Ok(())
 }
@@ -89,62 +96,69 @@ fn copy_generated_code_to_worker_dir() -> Result<()> {
     let glue_src = PathBuf::from(OUT_DIR).join(format!("{}_bg.js", OUT_NAME));
     let glue_dest = PathBuf::from(OUT_DIR)
         .join(WORKER_SUBDIR)
-        .join(format!("{}_bg.mjs", OUT_NAME));
+        .join(format!("{}_bg.js", OUT_NAME));
 
     let wasm_src = PathBuf::from(OUT_DIR).join(format!("{}_bg.wasm", OUT_NAME));
     let wasm_dest = PathBuf::from(OUT_DIR)
         .join(WORKER_SUBDIR)
         .join(format!("{}_bg.wasm", OUT_NAME));
 
-    for (src, dest) in [(glue_src, glue_dest), (wasm_src, wasm_dest)] {
+    // wasm-bindgen supports adding arbitrary JavaScript for a library, so we need to move that as well.
+    // https://rustwasm.github.io/wasm-bindgen/reference/js-snippets.html
+    let snippets_src = PathBuf::from(OUT_DIR).join("snippets");
+    let snippets_dest = PathBuf::from(OUT_DIR).join(WORKER_SUBDIR).join("snippets");
+
+    for (src, dest) in [
+        (glue_src, glue_dest),
+        (wasm_src, wasm_dest),
+        (snippets_src, snippets_dest),
+    ] {
+        if !src.exists() {
+            continue;
+        }
+
         fs::rename(src, dest)?;
     }
 
     Ok(())
 }
 
-fn write_worker_shims_to_worker_dir() -> Result<()> {
-    // _bg implies "bindgen" from wasm-bindgen tooling
-    let bg_name = format!("{}_bg", OUT_NAME);
+fn write_worker_shim() -> Result<()> {
+    let path = PathBuf::from(OUT_DIR).join(WORKER_SUBDIR).join("shim.mjs");
+    let mut file = File::create(path)?;
 
     // this shim just re-exports things in the pattern workers expects
-    let shim_content = format!(
-        r#"
-import * as imports from "./{0}.mjs";
+    // SWC will optimize out a `imports.fetch` because it thinks we'll always have a `fetch` and
+    // `scheduled` in the current scope, causing our worker to crash, so we need to do some tricky.
+    bundler::bundle_worker(
+        format!(
+            r#"
+            import * as imports from "./{OUT_NAME}_bg.js";
+            export * from "./{OUT_NAME}_bg.js";
 
-const fetch = imports.fetch;
-const scheduled = imports.scheduled;
-
-export * from "./{0}.mjs";
-export default {{ fetch, scheduled }};
-
-"#,
-        bg_name
-    );
-    let shim_path = PathBuf::from(OUT_DIR).join(WORKER_SUBDIR).join("shim.mjs");
-
-    // write our content out to files
-    let mut file = File::create(shim_path)?;
-    file.write_all(shim_content.as_bytes())?;
-
-    Ok(())
+            const swcIsSneaky = {{...imports}};
+            export default {{ fetch: swcIsSneaky.fetch, scheduled: swcIsSneaky.scheduled }};
+            "#
+        ),
+        &mut file,
+    )
 }
 
 fn replace_generated_import_with_custom_impl() -> Result<()> {
     let bg_name = format!("{}_bg", OUT_NAME);
     let bindgen_glue_path = PathBuf::from(OUT_DIR)
         .join(WORKER_SUBDIR)
-        .join(format!("{}_bg.mjs", OUT_NAME));
+        .join(format!("{}_bg.js", OUT_NAME));
     let old_bindgen_glue = read_file_to_string(&bindgen_glue_path)?;
     let old_import = format!("import * as wasm from './{}_bg.wasm'", OUT_NAME);
     let mut fixed_bindgen_glue = old_bindgen_glue.replace(&old_import, "let wasm;");
 
     // Previously we just used a namespace import as the wasm's import obj but this had a problem
     // where wasm-bindgen would re-export built-in functions as a const variable. This caused a
-    // problem because the OUTNAME_bg.mjs imported the wasm from another file causing a circular
+    // problem because the OUTNAME_bg.js imported the wasm from another file causing a circular
     // import so the const function items were never initialized.
     //
-    // Because can't use import OUTNAME_bg.mjs module and use that module's exports as the import
+    // Because can't use import OUTNAME_bg.js module and use that module's exports as the import
     // object, we'll have to find all the exports and use that to construct the wasm's import obj.
     let names_for_import_obj = find_exports(&fixed_bindgen_glue);
 
@@ -170,6 +184,21 @@ wasm = new WebAssembly.Instance(_wasm, importsObject).exports;
     fixed_bindgen_glue.push_str(&initialization_glue);
 
     write_string_to_file(bindgen_glue_path, fixed_bindgen_glue)?;
+
+    Ok(())
+}
+
+// After bundling there's no reason why we'd want to upload our now un-used JavaScript so we'll
+// delete it.
+fn remove_unused_js() -> Result<()> {
+    let workers_dir = PathBuf::from(OUT_DIR).join(WORKER_SUBDIR);
+    let snippets_dir = workers_dir.join("snippets");
+
+    if snippets_dir.exists() {
+        std::fs::remove_dir_all(&snippets_dir)?;
+    }
+
+    std::fs::remove_file(workers_dir.join(format!("{}_bg.js", OUT_NAME)))?;
 
     Ok(())
 }
@@ -215,8 +244,10 @@ fn find_exports(js: &str) -> Vec<&str> {
 mod tests {
     use std::path::Path;
 
-    use crate::find_exports;
+    use tempdir::TempDir;
     use wasm_bindgen_cli_support::Bindgen;
+
+    use crate::find_exports;
 
     #[test]
     fn all_exports_found() {
@@ -245,5 +276,36 @@ mod tests {
                 )
             }
         }
+    }
+
+    #[test]
+    fn ensure_snippets_in_bundle() {
+        let input_path = Path::new(
+            "./bindgen-test-subject/target/wasm32-unknown-unknown/release/bindgen_test_subject.wasm",
+        );
+        assert!(
+            input_path.exists(),
+            "The bindgen-test-subject module is not present, did you forget to compile it?"
+        );
+
+        let path = TempDir::new("worker-build-test")
+            .expect("could not create tempdir")
+            .into_path();
+
+        Bindgen::new()
+            .input_path(input_path)
+            .typescript(false)
+            .out_name("index")
+            .generate(&path.join("build"))
+            .expect("could not generate wasm bindings");
+
+        std::env::set_current_dir(&path).expect("could not change CWD");
+        super::main().expect("could not build worker");
+
+        let bundled = std::fs::read_to_string(path.join("build/worker/shim.mjs"))
+            .expect("could not read bundle");
+
+        // Ensures some unique string that we defined as a JS snippet is in our bundle.
+        assert!(bundled.contains("f408ee6cdad87526c64656984fb6637d09203ca4"))
     }
 }
