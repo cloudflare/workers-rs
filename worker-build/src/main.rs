@@ -29,6 +29,7 @@ pub fn main() -> Result<()> {
     copy_generated_code_to_worker_dir()?;
     replace_generated_import_with_custom_impl()?;
     write_worker_shim()?;
+    remove_unused_js()?;
 
     Ok(())
 }
@@ -183,6 +184,21 @@ wasm = new WebAssembly.Instance(_wasm, importsObject).exports;
     fixed_bindgen_glue.push_str(&initialization_glue);
 
     write_string_to_file(bindgen_glue_path, fixed_bindgen_glue)?;
+
+    Ok(())
+}
+
+// After bundling there's no reason why we'd want to upload our now un-used JavaScript so we'll
+// delete it.
+fn remove_unused_js() -> Result<()> {
+    let workers_dir = PathBuf::from(OUT_DIR).join(WORKER_SUBDIR);
+    let snippets_dir = workers_dir.join("snippets");
+
+    if snippets_dir.exists() {
+        std::fs::remove_dir_all(&snippets_dir)?;
+    }
+
+    std::fs::remove_file(workers_dir.join(format!("{}_bg.js", OUT_NAME)))?;
 
     Ok(())
 }
