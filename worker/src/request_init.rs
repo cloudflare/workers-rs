@@ -113,7 +113,7 @@ pub struct CfProperties {
     /// example: { "200-299": 86400, 404: 1, "500-599": 0 }. The value can be any integer, including
     /// zero and negative integers. A value of 0 indicates that the cache asset expires immediately.
     /// Any negative value instructs Cloudflare not to cache at all.
-    pub cache_ttl_by_status: Option<HashMap<String, u32>>,
+    pub cache_ttl_by_status: Option<HashMap<String, i32>>,
     /// Enables or disables AutoMinify for various file types.
     /// For example: `{ javascript: true, css: true, html: false }`.
     pub minify: Option<MinifyConfig>,
