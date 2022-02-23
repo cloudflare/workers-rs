@@ -3,7 +3,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use blake2::{Blake2b, Digest};
 use futures::{StreamExt, TryStreamExt};
 use serde::{Deserialize, Serialize};
-use wasm_bindgen::prelude::*;
 use worker::*;
 
 mod counter;
@@ -65,7 +64,7 @@ async fn handle_async_request<D>(req: Request, _ctx: RouteContext<D>) -> Result<
 
 static GLOBAL_STATE: AtomicBool = AtomicBool::new(false);
 
-#[wasm_bindgen(start)]
+#[event(start)]
 pub fn start() {
     GLOBAL_STATE.store(true, Ordering::SeqCst)
 }
