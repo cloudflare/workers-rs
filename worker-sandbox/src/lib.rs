@@ -1,6 +1,9 @@
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use blake2::{Blake2b, Digest};
 use futures::{StreamExt, TryStreamExt};
 use serde::{Deserialize, Serialize};
+use wasm_bindgen::prelude::*;
 use worker::*;
 
 mod counter;
@@ -58,6 +61,13 @@ async fn handle_async_request<D>(req: Request, _ctx: RouteContext<D>) -> Result<
         req.cf().coordinates().unwrap_or_default(),
         req.cf().region().unwrap_or_else(|| "unknown region".into())
     ))
+}
+
+static GLOBAL_STATE: AtomicBool = AtomicBool::new(false);
+
+#[wasm_bindgen(start)]
+pub fn start() {
+    GLOBAL_STATE.store(true, Ordering::SeqCst)
 }
 
 #[event(fetch)]
@@ -422,6 +432,10 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         })
         .get("/custom-response-body", |_, _| {
             Response::from_body(ResponseBody::Body(vec![b'h', b'e', b'l', b'l', b'o']))
+        })
+        .get("/init-called", |_, _| {
+            let init_called = GLOBAL_STATE.load(Ordering::SeqCst);
+            Response::ok(init_called.to_string())
         })
         .or_else_any_method_async("/*catchall", |_, ctx| async move {
             console_log!(

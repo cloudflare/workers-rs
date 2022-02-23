@@ -305,6 +305,14 @@ fn custom_response_body() {
     assert_eq!(body.to_vec(), b"hello");
 }
 
+#[test]
+fn init_called() {
+    // JavaScript doesn't use a date format that chrono can natively parse, so we'll just assume
+    // any 200 status code is a pass.
+    let body = get("init-called", |r| r).text().unwrap();
+    assert_eq!(body, "true");
+}
+
 #[tokio::test]
 async fn xor() {
     expect_wrangler();
