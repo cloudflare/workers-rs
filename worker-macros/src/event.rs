@@ -9,6 +9,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
     enum HandlerType {
         Fetch,
         Scheduled,
+        Start,
     }
     use HandlerType::*;
 
@@ -19,14 +20,16 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
         match attr.to_string().as_str() {
             "fetch" => handler_type = Some(Fetch),
             "scheduled" => handler_type = Some(Scheduled),
+            "start" => handler_type = Some(Start),
             "respond_with_errors" => {
                 respond_with_errors = true;
             }
             _ => panic!("Invalid attribute: {}", attr),
         }
     }
-    let handler_type = handler_type
-        .expect("must have either 'fetch' or 'scheduled' attribute, e.g. #[event(fetch)]");
+    let handler_type = handler_type.expect(
+        "must have either 'fetch', 'scheduled', or 'start' attribute, e.g. #[event(fetch)]",
+    );
 
     // create new var using syn item of the attributed fn
     let mut input_fn = parse_macro_input!(item as ItemFn);
@@ -113,6 +116,38 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                 #input_fn
 
                 mod _worker_scheduled {
+                    use ::worker::{wasm_bindgen, wasm_bindgen_futures};
+                    use super::#input_fn_ident;
+                    #wasm_bindgen_code
+                }
+            };
+
+            TokenStream::from(output)
+        }
+        Start => {
+            // save original fn name for re-use in the wrapper fn
+            let input_fn_ident = Ident::new(
+                &(input_fn.sig.ident.to_string() + "_start_glue"),
+                input_fn.sig.ident.span(),
+            );
+            let wrapper_fn_ident = Ident::new("start", input_fn.sig.ident.span());
+            // rename the original attributed fn
+            input_fn.sig.ident = input_fn_ident.clone();
+
+            let wrapper_fn = quote! {
+                pub fn #wrapper_fn_ident() {
+                    // call the original fn
+                    #input_fn_ident()
+                }
+            };
+            let wasm_bindgen_code =
+                wasm_bindgen_macro_support::expand(quote! { start }, wrapper_fn)
+                    .expect("wasm_bindgen macro failed to expand");
+
+            let output = quote! {
+                #input_fn
+
+                mod _worker_start {
                     use ::worker::{wasm_bindgen, wasm_bindgen_futures};
                     use super::#input_fn_ident;
                     #wasm_bindgen_code

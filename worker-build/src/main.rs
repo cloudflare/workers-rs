@@ -175,6 +175,7 @@ let importsObject = {{
 }};
 
 wasm = new WebAssembly.Instance(_wasm, importsObject).exports;
+wasm.__wbindgen_start?.();
 "#,
         bg_name,
         names_for_import_obj.join(", ")

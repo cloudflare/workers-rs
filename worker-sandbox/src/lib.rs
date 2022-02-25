@@ -1,3 +1,5 @@
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use blake2::{Blake2b, Digest};
 use futures::{StreamExt, TryStreamExt};
 use serde::{Deserialize, Serialize};
@@ -60,10 +62,21 @@ async fn handle_async_request<D>(req: Request, _ctx: RouteContext<D>) -> Result<
     ))
 }
 
-#[event(fetch)]
-pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
+static GLOBAL_STATE: AtomicBool = AtomicBool::new(false);
+
+// We're able to specify a start event that is called when the WASM is initialized before any
+// requests. This is useful if you have some global state or setup code, like a logger. This is
+// only called once for the entire lifetime of the worker.
+#[event(start)]
+pub fn start() {
     utils::set_panic_hook();
 
+    // Change some global state so we know that we ran our setup function.
+    GLOBAL_STATE.store(true, Ordering::SeqCst);
+}
+
+#[event(fetch)]
+pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
     let data = SomeSharedData {
         regex: regex::Regex::new(r"^\d{4}-\d{2}-\d{2}$").unwrap(),
     };
@@ -422,6 +435,10 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         })
         .get("/custom-response-body", |_, _| {
             Response::from_body(ResponseBody::Body(vec![b'h', b'e', b'l', b'l', b'o']))
+        })
+        .get("/init-called", |_, _| {
+            let init_called = GLOBAL_STATE.load(Ordering::SeqCst);
+            Response::ok(init_called.to_string())
         })
         .or_else_any_method_async("/*catchall", |_, ctx| async move {
             console_log!(
