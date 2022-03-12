@@ -49,7 +49,7 @@ use worker::*;
 #[event(fetch)]
 pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
 
-    // Create an instance of the Router, which can use paramaters (/user/:name) or wildcard values
+    // Create an instance of the Router, which can use parameters (/user/:name) or wildcard values
     // (/file/*pathname). Alternatively, use `Router::with_data(D)` and pass in arbitrary data for
     // routes to access and share using the `ctx.data()` method.
     let router = Router::new();
