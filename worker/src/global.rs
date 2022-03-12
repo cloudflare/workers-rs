@@ -15,7 +15,7 @@ impl Fetch {
     /// Execute a Fetch call and receive a Response.
     pub async fn send(&self) -> Result<WorkerResponse> {
         match self {
-            Fetch::Url(url) => fetch_with_str(&url.to_string()).await,
+            Fetch::Url(url) => fetch_with_str(url.as_ref()).await,
             Fetch::Request(req) => fetch_with_request(req).await,
         }
     }
