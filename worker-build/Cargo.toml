@@ -12,12 +12,12 @@ description = "This is a tool to be used as a custom build command for a Cloudfl
 
 [dependencies]
 anyhow = "1.0.53"
-swc = "0.124.8"
-swc_bundler = "0.106.0"
-swc_common = "0.17.5"
-swc_ecma_codegen = "0.90.0"
-swc_ecma_loader = "0.28.0"
-swc_ecma_parser = "0.88.3"
+swc = "0.150.4"
+swc_bundler = "0.123.0"
+swc_common = "0.17.17"
+swc_ecma_codegen = "0.96.0"
+swc_ecma_loader = "0.29.0"
+swc_ecma_parser = "0.94.0"
 
 [dev-dependencies]
 tempdir = "0.3.7"
