@@ -30,3 +30,5 @@ web-sys = "0.3.55"
 worker-kv = "0.5.0"
 worker-macros = { path = "../worker-macros", version = "0.0.4" }
 worker-sys = { path = "../worker-sys", version = "0.0.4" }
+thiserror = "1.0"
+anyhow = "1.0"

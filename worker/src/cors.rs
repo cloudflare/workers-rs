@@ -127,7 +127,7 @@ fn concat_vec_to_string<S: AsRef<str>>(vec: &[S]) -> Result<String> {
     if !str.is_empty() {
         Ok(str[1..].to_string())
     } else {
-        Err(Error::RustError(
+        Err(Error::StringError(
             "Tried to concat header values without values.".to_string(),
         ))
     }

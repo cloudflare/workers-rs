@@ -159,7 +159,7 @@ impl Request {
         let stream = self
             .edge_request
             .body()
-            .ok_or_else(|| Error::RustError("no body for request".into()))?;
+            .ok_or_else(|| Error::StringError("no body for request".into()))?;
 
         let stream = wasm_streams::ReadableStream::from_raw(stream.dyn_into().unwrap());
         Ok(ByteStream {
@@ -213,7 +213,7 @@ impl Request {
     pub fn url(&self) -> Result<Url> {
         let url = self.edge_request.url();
         url.parse()
-            .map_err(|e| Error::RustError(format!("failed to parse Url from {}: {}", e, url)))
+            .map_err(|e| Error::StringError(format!("failed to parse Url from {}: {}", e, url)))
     }
 
     #[allow(clippy::should_implement_trait)]

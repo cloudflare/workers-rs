@@ -1,19 +1,70 @@
+use crate::Response;
+use serde_json::json;
+use std::result::Result;
+use thiserror::Error;
 use wasm_bindgen::{JsCast, JsValue};
 
 /// All possible Error variants that might be encountered while working with a Worker.
-#[derive(Debug)]
+
+#[derive(Error, Debug)]
 #[non_exhaustive]
 pub enum Error {
     BadEncoding,
     BodyUsed,
+    ResponseError(Response),
     Json((String, u16)),
     JsError(String),
     Internal(JsValue),
     BindingError(String),
-    RouteInsertError(matchit::InsertError),
+    RouteInsertError(#[from] matchit::InsertError),
     RouteNoDataError,
-    RustError(String),
-    SerdeJsonError(serde_json::Error),
+    ParseError(#[from] url::ParseError),
+    StringError(String),
+    SerdeJsonError(#[from] serde_json::Error),
+    RustError(#[from] anyhow::Error),
+}
+
+#[inline]
+pub fn unwrap_abort<T, E>(o: Result<T, E>) -> T {
+    use std::process;
+    match o {
+        Ok(t) => t,
+        Err(_) => process::abort(),
+    }
+}
+
+impl From<Error> for Response {
+    fn from(e: Error) -> Self {
+        match e {
+            Error::ResponseError(resp) => resp,
+            Error::Json((msg, code)) => {
+                let res = Response::from_json(&json!({
+                    "msg": msg,
+                    "code": code
+                }))
+                .map(|r| r.with_status(code));
+                unwrap_abort(res)
+            }
+            _ => unwrap_abort(Response::error("An error occurred.", 500)),
+        }
+    }
+}
+
+impl From<Error> for worker_sys::Response {
+    fn from(e: Error) -> Self {
+        match e {
+            Error::ResponseError(resp) => resp.into(),
+            Error::Json((msg, code)) => {
+                let res = Response::from_json(&json!({
+                    "msg": msg,
+                    "code": code
+                }))
+                .map(|r| r.with_status(code));
+                unwrap_abort(res).into()
+            }
+            _ => unwrap_abort(Response::error("An error occurred.", 500)).into(),
+        }
+    }
 }
 
 impl From<worker_kv::KvError> for Error {
@@ -23,29 +74,24 @@ impl From<worker_kv::KvError> for Error {
     }
 }
 
-impl From<url::ParseError> for Error {
-    fn from(e: url::ParseError) -> Self {
-        Self::RustError(e.to_string())
-    }
-}
-
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Error::BadEncoding => write!(f, "content-type mismatch"),
             Error::BodyUsed => write!(f, "body has already been read"),
             Error::Json((msg, status)) => write!(f, "{} (status: {})", msg, status),
-            Error::JsError(s) | Error::RustError(s) => write!(f, "{}", s),
+            Error::JsError(s) | Error::StringError(s) => write!(f, "{}", s),
             Error::Internal(_) => write!(f, "unrecognized JavaScript object"),
+            Error::ParseError(e) => write!(f, "{}", e),
             Error::BindingError(name) => write!(f, "no binding found for `{}`", name),
             Error::RouteInsertError(e) => write!(f, "failed to insert route: {}", e),
             Error::RouteNoDataError => write!(f, "route has no corresponding shared data"),
             Error::SerdeJsonError(e) => write!(f, "Serde Error: {}", e),
+            Error::RustError(e) => write!(f, "{}", e),
+            Error::ResponseError(e) => write!(f, "{e:?}"),
         }
     }
 }
-
-impl std::error::Error for Error {}
 
 impl From<JsValue> for Error {
     fn from(v: JsValue) -> Self {
@@ -67,24 +113,12 @@ impl From<Error> for JsValue {
 
 impl From<&str> for Error {
     fn from(a: &str) -> Self {
-        Error::RustError(a.to_string())
+        Error::StringError(a.to_string())
     }
 }
 
 impl From<String> for Error {
     fn from(a: String) -> Self {
-        Error::RustError(a)
-    }
-}
-
-impl From<matchit::InsertError> for Error {
-    fn from(e: matchit::InsertError) -> Self {
-        Error::RouteInsertError(e)
-    }
-}
-
-impl From<serde_json::Error> for Error {
-    fn from(e: serde_json::Error) -> Self {
-        Error::SerdeJsonError(e)
+        Error::StringError(a)
     }
 }

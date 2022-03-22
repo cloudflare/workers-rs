@@ -237,12 +237,12 @@ impl Response {
     pub fn stream(&mut self) -> Result<ByteStream> {
         let edge_request = match &self.body {
             ResponseBody::Stream(edge_request) => edge_request,
-            _ => return Err(Error::RustError("body is not streamable".into())),
+            _ => return Err(Error::StringError("body is not streamable".into())),
         };
 
         let stream = edge_request
             .body()
-            .ok_or_else(|| Error::RustError("no body for request".into()))?;
+            .ok_or_else(|| Error::StringError("no body for request".into()))?;
 
         let stream = wasm_streams::ReadableStream::from_raw(stream.dyn_into().unwrap());
         Ok(ByteStream {
