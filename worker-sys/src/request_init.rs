@@ -1,5 +1,7 @@
 use wasm_bindgen::prelude::*;
 
+use crate::abort::AbortSignal;
+
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = :: js_sys :: Object , js_name = RequestInit)]
@@ -57,6 +59,18 @@ impl RequestInit {
             &JsValue::from("redirect"),
             &JsValue::from(val),
         );
+        debug_assert!(
+            r.is_ok(),
+            "setting properties should never fail on our dictionary objects"
+        );
+        let _ = r;
+        self
+    }
+
+    #[doc = "Change the `signal` field of this object."]
+    pub fn signal(&mut self, val: Option<&AbortSignal>) -> &mut Self {
+        let r =
+            ::js_sys::Reflect::set(self.as_ref(), &JsValue::from("signal"), &JsValue::from(val));
         debug_assert!(
             r.is_ok(),
             "setting properties should never fail on our dictionary objects"

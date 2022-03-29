@@ -422,6 +422,33 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                 .send()
                 .await
         })
+        .get_async("/cancelled-fetch", |_, _| async move {
+            let controller = AbortController::default();
+            let signal = controller.signal();
+
+            let (tx, rx) = futures::channel::oneshot::channel();
+
+            // Spawns a future that'll make our fetch request and not block this function.
+            wasm_bindgen_futures::spawn_local({
+                async move {
+                    let fetch = Fetch::Url("https://cloudflare.com".parse().unwrap());
+                    let res = fetch.send_with_signal(&signal).await;
+                    tx.send(res).unwrap();
+                }
+            });
+
+            // And then we try to abort that fetch as soon as we start it, hopefully before
+            // cloudflare.com responds.
+            controller.abort();
+
+            let res = rx.await.unwrap();
+            let res = res.unwrap_or_else(|err| {
+                let text = err.to_string();
+                Response::ok(text).unwrap()
+            });
+
+            Ok(res)
+        })
         .get("/redirect-default", |_, _| {
             Response::redirect("https://example.com".parse().unwrap())
         })

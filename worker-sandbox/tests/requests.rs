@@ -245,6 +245,12 @@ fn request_init_fetch() {
 }
 
 #[test]
+fn cancelled_fetch() {
+    let body = get("cancelled-fetch", |r| r).text().unwrap();
+    assert_eq!(body, "AbortError: The operation was aborted");
+}
+
+#[test]
 fn request_init_fetch_post() {
     #[derive(Deserialize)]
     struct Data {

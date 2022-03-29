@@ -1,3 +1,4 @@
+pub mod abort;
 pub mod cf;
 pub mod context;
 pub mod durable_object;
@@ -55,6 +56,7 @@ pub mod prelude {
     pub use crate::{console_debug, console_error, console_log, console_warn};
 }
 
+pub use abort::*;
 pub use cf::Cf;
 pub use context::Context;
 pub use durable_object::*;
