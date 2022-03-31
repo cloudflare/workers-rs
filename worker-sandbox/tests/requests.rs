@@ -310,8 +310,7 @@ fn wait() {
     const MILLIS: u64 = 100;
     let then = Instant::now();
     get(&format!("wait/{MILLIS}"), |r| r);
-    let duration = Instant::elapsed(&then);
-    assert!(duration >= Duration::from_millis(MILLIS));
+    assert!(then.elapsed() >= Duration::from_millis(MILLIS));
 }
 
 #[test]

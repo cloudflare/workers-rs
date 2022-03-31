@@ -10,6 +10,18 @@ use worker_sys::global::clear_timeout;
 
 use crate::worker_sys::prelude::set_timeout;
 
+/// A [Future] for asynchronously waiting.
+///
+/// # Example:
+/// ```rust,ignore
+/// use std::time::Duration;
+/// use worker::Delay;
+///
+/// let duration = Duration::from_millis(1000);
+///
+/// // Waits a second
+/// Delay::from(duration).await;
+/// ```
 #[pin_project::pin_project(PinnedDrop)]
 pub struct Delay {
     inner: Duration,
