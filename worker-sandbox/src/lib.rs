@@ -1,4 +1,7 @@
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::{
+    sync::atomic::{AtomicBool, Ordering},
+    time::Duration,
+};
 
 use blake2::{Blake2b, Digest};
 use futures::{StreamExt, TryStreamExt};
@@ -459,6 +462,17 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             let now = chrono::Utc::now();
             let js_date: Date = now.into();
             Response::ok(js_date.to_string())
+        })
+        .get_async("/wait/:delay", |_, ctx| async move {
+            let delay: Delay = match ctx.param("delay").unwrap().parse() {
+                Ok(delay) => Duration::from_millis(delay).into(),
+                Err(_) => return Response::error("invalid delay", 400),
+            };
+
+            // Wait for the delay to pass
+            delay.await;
+
+            Response::ok("Waited!\n")
         })
         .get("/custom-response-body", |_, _| {
             Response::from_body(ResponseBody::Body(vec![b'h', b'e', b'l', b'l', b'o']))

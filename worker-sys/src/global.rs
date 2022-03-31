@@ -46,6 +46,12 @@ extern "C" {
         init: &RequestInit,
     ) -> ::js_sys::Promise;
 
+    #[wasm_bindgen(js_name = setTimeout)]
+    pub fn set_timeout(closure: &Closure<dyn FnMut()>, millis: u32) -> u32;
+
+    #[wasm_bindgen(js_name = clearTimeout)]
+    pub fn clear_timeout(id: u32);
+
     #[wasm_bindgen(js_namespace = console)]
     pub fn debug(s: &str);
 
