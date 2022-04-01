@@ -467,7 +467,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             let init_called = GLOBAL_STATE.load(Ordering::SeqCst);
             Response::ok(init_called.to_string())
         })
-        .or_else_any_method_async("/*catchall", |_, ctx| async move {
+        .get_async("/*catchall", |_, ctx| async move {
             console_log!(
                 "[or_else_any_method_async] caught: {}",
                 ctx.param("catchall").unwrap_or(&"?".to_string())

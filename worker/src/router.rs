@@ -45,7 +45,6 @@ impl<D> Clone for Handler<'_, D> {
 /// A path-based HTTP router supporting exact-match or wildcard placeholders and shared data.
 pub struct Router<'a, D> {
     handlers: HashMap<Method, Node<Handler<'a, D>>>,
-    or_else_any_method: Node<Handler<'a, D>>,
     data: D,
 }
 
@@ -110,7 +109,6 @@ impl<'a, D: 'a> Router<'a, D> {
     pub fn with_data(data: D) -> Self {
         Self {
             handlers: HashMap::new(),
-            or_else_any_method: Node::new(),
             data,
         }
     }
@@ -160,15 +158,6 @@ impl<'a, D: 'a> Router<'a, D> {
     /// Register an HTTP handler that will respond to any requests.
     pub fn on(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
         self.add_handler(pattern, Handler::Sync(func), Method::all());
-        self
-    }
-
-    /// Register an HTTP handler that will respond to all methods that are not handled explicitly by
-    /// other handlers.
-    pub fn or_else_any_method(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
-        self.or_else_any_method
-            .insert(pattern, Handler::Sync(func))
-            .unwrap_or_else(|e| panic!("failed to register route for {} pattern: {}", pattern, e));
         self
     }
 
@@ -288,25 +277,6 @@ impl<'a, D: 'a> Router<'a, D> {
         self
     }
 
-    /// Register an HTTP handler that will respond to all methods that are not handled explicitly by
-    /// other handlers. Enables the use of `async/await` syntax in the callback.
-    pub fn or_else_any_method_async<T>(
-        mut self,
-        pattern: &str,
-        func: fn(Request, RouteContext<D>) -> T,
-    ) -> Self
-    where
-        T: Future<Output = Result<Response>> + 'a,
-    {
-        self.or_else_any_method
-            .insert(
-                pattern,
-                Handler::Async(Rc::new(move |req, route| Box::pin(func(req, route)))),
-            )
-            .unwrap_or_else(|e| panic!("failed to register route for {} pattern: {}", pattern, e));
-        self
-    }
-
     fn add_handler(&mut self, pattern: &str, func: Handler<'a, D>, methods: Vec<Method>) {
         for method in methods {
             self.handlers
@@ -324,7 +294,7 @@ impl<'a, D: 'a> Router<'a, D> {
 
     /// Handle the request provided to the `Router` and return a `Future`.
     pub async fn run(self, req: Request, env: Env) -> Result<Response> {
-        let (handlers, data, or_else_any_method_handler) = self.split();
+        let (handlers, data) = self.split();
 
         if let Some(handlers) = handlers.get(&req.method()) {
             if let Ok(Match { value, params }) = handlers.at(&req.path()) {
@@ -351,18 +321,6 @@ impl<'a, D: 'a> Router<'a, D> {
             }
         }
 
-        if let Ok(Match { value, params }) = or_else_any_method_handler.at(&req.path()) {
-            let route_info = RouteContext {
-                data,
-                env,
-                params: params.into(),
-            };
-            return match value {
-                Handler::Sync(func) => (func)(req, route_info),
-                Handler::Async(func) => (func)(req, route_info).await,
-            };
-        }
-
         Response::error("Not Found", 404)
     }
 }
@@ -375,9 +333,8 @@ impl<'a, D: 'a> Router<'a, D> {
     ) -> (
         HashMap<Method, NodeWithHandlers<'a, D>>,
         D,
-        NodeWithHandlers<'a, D>,
     ) {
-        (self.handlers, self.data, self.or_else_any_method)
+        (self.handlers, self.data)
     }
 }
 
