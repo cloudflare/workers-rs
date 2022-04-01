@@ -118,10 +118,7 @@ impl ObjectNamespace {
     /// <https://developers.cloudflare.com/workers/runtime-apis/durable-objects#restricting-objects-to-a-jurisdiction>
     pub fn unique_id_with_jurisdiction(&self, jd: &str) -> Result<ObjectId> {
         let options = Object::new();
-        #[allow(unused_unsafe)]
-        unsafe {
-            js_sys::Reflect::set(&options, &JsValue::from("jurisdiction"), &jd.into())?
-        };
+        js_sys::Reflect::set(&options, &JsValue::from("jurisdiction"), &jd.into())?;
         self.inner
             .new_unique_id_with_options_internal(&options)
             .map_err(Error::from)
@@ -440,7 +437,7 @@ impl Transaction {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Default, Serialize)]
 pub struct ListOptions<'a> {
     /// Key at which the list results should start, inclusive.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -462,15 +459,8 @@ pub struct ListOptions<'a> {
 
 impl<'a> ListOptions<'a> {
     /// Create a new ListOptions struct with no options set.
-    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
-        Self {
-            start: None,
-            end: None,
-            prefix: None,
-            reverse: None,
-            limit: None,
-        }
+        Default::default()
     }
 
     /// Key at which the list results should start, inclusive.

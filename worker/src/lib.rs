@@ -1,4 +1,10 @@
+#![allow(clippy::new_without_default)]
+#![allow(clippy::or_fun_call)]
+
+mod abort;
 mod cf;
+mod context;
+mod cors;
 mod date;
 pub mod durable;
 mod env;
@@ -11,12 +17,18 @@ mod request;
 mod request_init;
 mod response;
 mod router;
+mod schedule;
+mod streams;
+mod websocket;
 
 #[doc(hidden)]
 use std::result::Result as StdResult;
 
 pub type Result<T> = StdResult<T, error::Error>;
 
+pub use crate::abort::*;
+pub use crate::context::Context;
+pub use crate::cors::Cors;
 pub use crate::date::{Date, DateInit};
 pub use crate::env::Env;
 pub use crate::error::Error;
@@ -28,6 +40,9 @@ pub use crate::request::Request;
 pub use crate::request_init::*;
 pub use crate::response::{Response, ResponseBody};
 pub use crate::router::{RouteContext, RouteParams, Router};
+pub use crate::schedule::*;
+pub use crate::streams::*;
+pub use crate::websocket::*;
 pub use cf::Cf;
 pub use url::Url;
 

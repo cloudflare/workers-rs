@@ -8,6 +8,7 @@ use crate::Result;
 use worker_sys::{File as EdgeFile, FormData as EdgeFormData};
 
 use js_sys::Array;
+use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
@@ -43,7 +44,7 @@ impl FormData {
             return Some(FormEntry::Field(field));
         }
 
-        return None;
+        None
     }
 
     /// Returns a vec of all the values associated with a given key from within a `FormData` object.
@@ -62,7 +63,7 @@ impl FormData {
                             return FormEntry::File(File(val.into()));
                         }
 
-                        return FormEntry::Field(val.as_string().unwrap_or_default());
+                        FormEntry::Field(val.as_string().unwrap_or_default())
                     })
                     .collect(),
             );
@@ -117,19 +118,32 @@ pub struct File(EdgeFile);
 
 impl File {
     /// Construct a new named file from a buffer.
-    pub fn new(data: Vec<u8>, name: &str) -> Self {
-        let arr = Array::new();
-        for byte in data.into_iter() {
-            arr.push(&byte.into());
-        }
+    pub fn new(data: impl AsRef<[u8]>, name: &str) -> Self {
+        let data = data.as_ref();
+        let arr = Uint8Array::new_with_length(data.len() as u32);
+        arr.copy_from(data);
 
-        let file = EdgeFile::new_with_u8_array_sequence(&JsValue::from(arr), name).unwrap();
+        // The first parameter of File's contructor must be an ArrayBuffer or similar types
+        // https://developer.mozilla.org/en-US/docs/Web/API/File/File
+        let buffer = arr.buffer();
+        let file = EdgeFile::new_with_u8_array_sequence(&Array::of1(&buffer), name).unwrap();
+
         Self(file)
     }
 
     /// Get the file name.
     pub fn name(&self) -> String {
         self.0.name()
+    }
+
+    /// Get the file size.
+    pub fn size(&self) -> usize {
+        self.0.size() as usize
+    }
+
+    /// Get the file type.
+    pub fn type_(&self) -> String {
+        self.0.type_()
     }
 
     /// Read the file from an internal buffer and get the resulting bytes.

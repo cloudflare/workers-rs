@@ -1,13 +1,12 @@
 name = "testing-rust-worker"
 type = "javascript"
 workers_dev = true
-compatibility_date = "2021-08-27" # required 
-compatibility_flags = [ "formdata_parser_supports_files" ] # required 
+compatibility_date = "2021-11-27" # required
 
-# kv_namespaces = [
-#   { binding = "SOME_NAMESPACE", id = "", preview_id = "" },
-#   { binding = "FILE_SIZES", id = "" }
-# ]
+kv_namespaces = [
+    { binding = "SOME_NAMESPACE", id = "", preview_id = "" },
+    { binding = "FILE_SIZES", id = "", preview_id = "" },
+]
 
 vars = { SOME_VARIABLE = "some value" }
 
@@ -18,10 +17,10 @@ bindings = [{ name = "COUNTER", class_name = "Counter" }]
 command = "cargo install -q worker-build && worker-build --release"
 
 [build.upload]
-dir    = "build/worker"
+dir = "build/worker"
 format = "modules"
-main   = "./shim.mjs"
+main = "./shim.mjs"
 
 [[build.upload.rules]]
 globs = ["**/*.wasm"]
-type  = "CompiledWasm"
+type = "CompiledWasm"

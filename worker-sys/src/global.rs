@@ -1,7 +1,6 @@
 use wasm_bindgen::prelude::*;
 
-use crate::Request;
-use web_sys::RequestInit;
+use crate::{Request, RequestInit};
 
 #[wasm_bindgen]
 extern "C" {
