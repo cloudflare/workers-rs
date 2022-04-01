@@ -469,7 +469,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         })
         .get_async("/*catchall", |_, ctx| async move {
             console_log!(
-                "[or_else_any_method_async] caught: {}",
+                "[catchall] caught: {}",
                 ctx.param("catchall").unwrap_or(&"?".to_string())
             );
 
