@@ -1,3 +1,5 @@
+use std::time::{Duration, Instant};
+
 use futures::{channel::mpsc, SinkExt, StreamExt};
 use http::StatusCode;
 use reqwest::{
@@ -251,6 +253,12 @@ fn cancelled_fetch() {
 }
 
 #[test]
+fn fetch_timeout() {
+    let body = get("fetch-timeout", |r| r).text().unwrap();
+    assert_eq!(body, "Cancelled");
+}
+
+#[test]
 fn request_init_fetch_post() {
     #[derive(Deserialize)]
     struct Data {
@@ -300,13 +308,19 @@ fn redirect_307() {
 fn now() {
     // JavaScript doesn't use a date format that chrono can natively parse, so we'll just assume
     // any 200 status code is a pass.
-    let _ = get("now", |r| r);
+    get("now", |r| r);
+}
+
+#[test]
+fn wait() {
+    const MILLIS: u64 = 100;
+    let then = Instant::now();
+    get(&format!("wait/{MILLIS}"), |r| r);
+    assert!(then.elapsed() >= Duration::from_millis(MILLIS));
 }
 
 #[test]
 fn custom_response_body() {
-    // JavaScript doesn't use a date format that chrono can natively parse, so we'll just assume
-    // any 200 status code is a pass.
     let body = get("custom-response-body", |r| r).bytes().unwrap();
     assert_eq!(body.to_vec(), b"hello");
 }
