@@ -253,6 +253,12 @@ fn cancelled_fetch() {
 }
 
 #[test]
+fn fetch_timeout() {
+    let body = get("fetch-timeout", |r| r).text().unwrap();
+    assert_eq!(body, "Cancelled");
+}
+
+#[test]
 fn request_init_fetch_post() {
     #[derive(Deserialize)]
     struct Data {

@@ -1,5 +1,7 @@
 use std::{
+    cell::Cell,
     pin::Pin,
+    rc::Rc,
     task::{Context, Poll},
     time::Duration,
 };
@@ -27,6 +29,7 @@ pub struct Delay {
     inner: Duration,
     closure: Option<Closure<dyn FnMut()>>,
     timeout_id: Option<u32>,
+    awoken: Rc<Cell<bool>>,
 }
 
 impl Future for Delay {
@@ -35,16 +38,23 @@ impl Future for Delay {
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.project();
 
-        if this.closure.is_none() {
-            let callback_ref = this.closure.get_or_insert_with(move || {
-                let waker = cx.waker().clone();
-                let wake = Box::new(move || waker.wake_by_ref());
-                Closure::wrap(wake as _)
-            });
+        if !this.awoken.get() {
+            if this.closure.is_none() {
+                let awoken = this.awoken.clone();
+                let callback_ref = this.closure.get_or_insert_with(move || {
+                    let waker = cx.waker().clone();
+                    let wake = Box::new(move || {
+                        waker.wake_by_ref();
+                        awoken.set(true);
+                    });
 
-            // Then get that closure back and pass it to setTimeout so we can get woken up later.
-            let timeout_id = set_timeout(callback_ref, this.inner.as_millis() as u32);
-            *this.timeout_id = Some(timeout_id);
+                    Closure::wrap(wake as _)
+                });
+
+                // Then get that closure back and pass it to setTimeout so we can get woken up later.
+                let timeout_id = set_timeout(callback_ref, this.inner.as_millis() as u32);
+                *this.timeout_id = Some(timeout_id);
+            }
 
             Poll::Pending
         } else {
@@ -59,6 +69,7 @@ impl From<Duration> for Delay {
             inner,
             closure: None,
             timeout_id: None,
+            awoken: Rc::new(Cell::default()),
         }
     }
 }
@@ -69,7 +80,15 @@ impl From<Duration> for Delay {
 #[pin_project::pinned_drop]
 impl PinnedDrop for Delay {
     fn drop(self: Pin<&'_ mut Self>) {
-        if let Some(id) = self.project().timeout_id {
+        let this = self.project();
+
+        // If we've already completed the future we don't need to clear the timeout.
+        if this.awoken.get() {
+            return;
+        }
+
+        if let Some(id) = this.timeout_id {
+            crate::console_debug!("{:#?} has been dropped", &this.inner);
             clear_timeout(*id);
         }
     }

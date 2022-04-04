@@ -4,7 +4,7 @@ use std::{
 };
 
 use blake2::{Blake2b, Digest};
-use futures::{StreamExt, TryStreamExt};
+use futures::{future::Either, StreamExt, TryStreamExt};
 use serde::{Deserialize, Serialize};
 use worker::*;
 
@@ -451,6 +451,37 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             });
 
             Ok(res)
+        })
+        .get_async("/fetch-timeout", |_, _| async move {
+            let controller = AbortController::default();
+            let signal = controller.signal();
+
+            let fetch_fut = async {
+                let fetch = Fetch::Url("http://localhost:8787/wait/200".parse().unwrap());
+                fetch.send_with_signal(&signal).await
+            };
+            let delay_fut = async {
+                Delay::from(Duration::from_millis(100)).await;
+                controller.abort();
+                Response::ok("Cancelled")
+            };
+
+            futures::pin_mut!(fetch_fut);
+            futures::pin_mut!(delay_fut);
+
+            match futures::future::select(delay_fut, fetch_fut).await {
+                Either::Left((res, cancelled_fut)) => {
+                    // Ensure that the cancelled future returns an AbortError.
+                    match cancelled_fut.await {
+                        Err(e) if e.to_string().starts_with("AbortError") => { /* Yay! It worked, let's do nothing to celebrate */},
+                        Err(e) => panic!("Fetch errored with a different error than expected: {:#?}", e),
+                        Ok(_) => panic!("Fetch unexpectedly succeeded")
+                    }
+
+                    res
+                },
+                Either::Right(_) => panic!("Delay future should have resolved first"),
+            }
         })
         .get("/redirect-default", |_, _| {
             Response::redirect("https://example.com".parse().unwrap())
