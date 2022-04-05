@@ -21,4 +21,4 @@ swc_ecma_parser = "0.94.0"
 
 [dev-dependencies]
 tempdir = "0.3.7"
-wasm-bindgen-cli-support = "=0.2.78"
+wasm-bindgen-cli-support = "0.2.79"
