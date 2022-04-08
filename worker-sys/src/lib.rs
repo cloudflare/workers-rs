@@ -1,3 +1,5 @@
+#![allow(clippy::manual_non_exhaustive)]
+
 pub mod abort;
 pub mod cf;
 pub mod context;

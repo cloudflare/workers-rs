@@ -3,7 +3,7 @@ use std::{
     time::Duration,
 };
 
-use blake2::{Blake2b, Digest};
+use blake2::{Blake2b512, Digest};
 use futures::{future::Either, StreamExt, TryStreamExt};
 use serde::{Deserialize, Serialize};
 use worker::*;
@@ -246,7 +246,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                         };
 
                         // hash the file, and use result as the key
-                        let mut hasher = Blake2b::new();
+                        let mut hasher = Blake2b512::new();
                         hasher.update(b);
                         let hash = hasher.finalize();
                         let key = hex::encode(&hash[..]);

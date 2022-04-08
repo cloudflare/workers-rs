@@ -12,11 +12,11 @@ proc-macro = true
 path = "src/lib.rs"
 
 [dependencies]
-async-trait = "0.1.51"
+async-trait = "0.1.53"
 worker-sys = { path = "../worker-sys", version = "0.0.4" }
-syn = "1.0.74"
-proc-macro2 = "1.0.28"
-quote = "1.0.9"
-wasm-bindgen = "=0.2.78"
-wasm-bindgen-futures = "0.4.28"
-wasm-bindgen-macro-support = "0.2.78"
+syn = "1.0.91"
+proc-macro2 = "1.0.37"
+quote = "1.0.17"
+wasm-bindgen = "0.2.80"
+wasm-bindgen-futures = "0.4.30"
+wasm-bindgen-macro-support = "0.2.80"
