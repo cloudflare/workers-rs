@@ -1,7 +1,8 @@
 use wasm_bindgen::prelude::*;
 
 use crate::cache::Caches;
-use crate::{Request, RequestInit};
+use crate::Request;
+use web_sys::RequestInit;
 
 #[wasm_bindgen]
 extern "C" {
