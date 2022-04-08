@@ -1,6 +1,7 @@
 use serde::Serialize;
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
+
 use worker_sys::cache::Cache as EdgeCache;
 use worker_sys::Response as EdgeResponse;
 use worker_sys::WorkerGlobalScope;
