@@ -1,5 +1,6 @@
-use crate::{Request, Response};
 use wasm_bindgen::prelude::*;
+
+use crate::{Request, Response};
 
 // An instance of cache
 #[wasm_bindgen]

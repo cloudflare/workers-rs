@@ -1,3 +1,20 @@
+pub use web_sys::{CloseEvent, ErrorEvent, MessageEvent};
+
+pub use abort::*;
+pub use cf::Cf;
+pub use context::Context;
+pub use durable_object::*;
+pub use file::File;
+pub use formdata::FormData;
+pub use global::WorkerGlobalScope;
+pub use headers::Headers;
+pub use request::Request;
+pub use request_init::*;
+pub use response::Response;
+pub use response_init::ResponseInit;
+pub use schedule::*;
+pub use websocket::*;
+
 pub mod abort;
 pub mod cache;
 pub mod cf;
@@ -56,19 +73,3 @@ pub mod prelude {
     pub use crate::schedule::*;
     pub use crate::{console_debug, console_error, console_log, console_warn};
 }
-
-pub use abort::*;
-pub use cf::Cf;
-pub use context::Context;
-pub use durable_object::*;
-pub use file::File;
-pub use formdata::FormData;
-pub use global::WorkerGlobalScope;
-pub use headers::Headers;
-pub use request::Request;
-pub use request_init::*;
-pub use response::Response;
-pub use response_init::ResponseInit;
-pub use schedule::*;
-pub use web_sys::{CloseEvent, ErrorEvent, MessageEvent};
-pub use websocket::*;
