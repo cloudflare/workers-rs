@@ -1,5 +1,7 @@
 use wasm_bindgen::prelude::*;
 
+use crate::abort::AbortSignal;
+
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = :: js_sys :: Object , js_name = RequestInit)]
@@ -10,16 +12,11 @@ extern "C" {
 impl RequestInit {
     #[doc = "Construct a new `RequestInit`."]
     pub fn new() -> Self {
-        #[allow(unused_mut)]
-        let mut ret: Self = ::wasm_bindgen::JsCast::unchecked_into(::js_sys::Object::new());
-        ret
+        ::wasm_bindgen::JsCast::unchecked_into(::js_sys::Object::new())
     }
     #[doc = "Change the `body` field of this object."]
     pub fn body(&mut self, val: Option<&::wasm_bindgen::JsValue>) -> &mut Self {
-        #[allow(unused_unsafe)]
-        let r = unsafe {
-            ::js_sys::Reflect::set(self.as_ref(), &JsValue::from("body"), &JsValue::from(val))
-        };
+        let r = ::js_sys::Reflect::set(self.as_ref(), &JsValue::from("body"), &JsValue::from(val));
         debug_assert!(
             r.is_ok(),
             "setting properties should never fail on our dictionary objects"
@@ -30,14 +27,11 @@ impl RequestInit {
 
     #[doc = "Change the `headers` field of this object."]
     pub fn headers(&mut self, val: &::wasm_bindgen::JsValue) -> &mut Self {
-        #[allow(unused_unsafe)]
-        let r = unsafe {
-            ::js_sys::Reflect::set(
-                self.as_ref(),
-                &JsValue::from("headers"),
-                &JsValue::from(val),
-            )
-        };
+        let r = ::js_sys::Reflect::set(
+            self.as_ref(),
+            &JsValue::from("headers"),
+            &JsValue::from(val),
+        );
         debug_assert!(
             r.is_ok(),
             "setting properties should never fail on our dictionary objects"
@@ -48,10 +42,8 @@ impl RequestInit {
 
     #[doc = "Change the `method` field of this object."]
     pub fn method(&mut self, val: &str) -> &mut Self {
-        #[allow(unused_unsafe)]
-        let r = unsafe {
-            ::js_sys::Reflect::set(self.as_ref(), &JsValue::from("method"), &JsValue::from(val))
-        };
+        let r =
+            ::js_sys::Reflect::set(self.as_ref(), &JsValue::from("method"), &JsValue::from(val));
         debug_assert!(
             r.is_ok(),
             "setting properties should never fail on our dictionary objects"
@@ -62,14 +54,23 @@ impl RequestInit {
 
     #[doc = "Change the `redirect` field of this object."]
     pub fn redirect(&mut self, val: RequestRedirect) -> &mut Self {
-        #[allow(unused_unsafe)]
-        let r = unsafe {
-            ::js_sys::Reflect::set(
-                self.as_ref(),
-                &JsValue::from("redirect"),
-                &JsValue::from(val),
-            )
-        };
+        let r = ::js_sys::Reflect::set(
+            self.as_ref(),
+            &JsValue::from("redirect"),
+            &JsValue::from(val),
+        );
+        debug_assert!(
+            r.is_ok(),
+            "setting properties should never fail on our dictionary objects"
+        );
+        let _ = r;
+        self
+    }
+
+    #[doc = "Change the `signal` field of this object."]
+    pub fn signal(&mut self, val: Option<&AbortSignal>) -> &mut Self {
+        let r =
+            ::js_sys::Reflect::set(self.as_ref(), &JsValue::from("signal"), &JsValue::from(val));
         debug_assert!(
             r.is_ok(),
             "setting properties should never fail on our dictionary objects"

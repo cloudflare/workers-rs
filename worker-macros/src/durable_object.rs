@@ -1,6 +1,6 @@
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote, ToTokens};
-use syn::{spanned::Spanned, FnArg, Error, ImplItem, Type, TypePath, PatType, Item};
+use syn::{spanned::Spanned, Error, FnArg, ImplItem, Item, Type, TypePath};
 
 pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
     let item = syn::parse2::<Item>(tokens)?;
@@ -25,7 +25,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                     ImplItem::Method(m) => m,
                     _ => return Err(Error::new_spanned(item, "Impl block must only contain methods"))
                 };
-                
+
                 let tokens = match impl_method.sig.ident.to_string().as_str() {
                     "new" => {
                         let mut method = impl_method.clone();
@@ -35,10 +35,10 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                         let arg_tokens = method.sig.inputs.first_mut().expect("DurableObject `new` method must have 2 arguments: state and env").into_token_stream();                        
                         match syn::parse2::<FnArg>(arg_tokens)? {
                             FnArg::Typed(pat) => {
-                                let path = syn::parse2::<TypePath>(quote!{worker_sys::durable_object::ObjectState}.into())?;
-                                let mut updated_pat = PatType::from(pat);
-                                updated_pat.ty = Box::new(Type::Path(path)); 
-                                
+                                let path = syn::parse2::<TypePath>(quote!{worker_sys::durable_object::ObjectState})?;
+                                let mut updated_pat = pat;
+                                updated_pat.ty = Box::new(Type::Path(path));
+
                                 let state_arg = FnArg::Typed(updated_pat);
                                 let env_arg = method.sig.inputs.pop().expect("DurableObject `new` method expects a second argument: env");
                                 method.sig.inputs.clear();
@@ -54,7 +54,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                         }];
                         prepended.extend(method.block.stmts);
                         method.block.stmts = prepended;
-                        
+
                         quote! {
                             #pound[wasm_bindgen::prelude::wasm_bindgen(constructor)]
                             pub #method

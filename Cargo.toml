@@ -1,10 +1,10 @@
 [workspace]
 members = [
-    "worker", 
+    "worker",
     "worker-build",
-    "worker-macros", 
+    "worker-macros",
     "worker-sandbox",
-    "worker-sys"
+    "worker-sys",
 ]
 
 [profile.release]
@@ -28,4 +28,4 @@ lto = true
 # https://docs.rust-embedded.org/book/unsorted/speed-vs-size.html#optimizing-dependencies
 [profile.release.package."*"]
 codegen-units = 1
-opt-level     = "z"
+opt-level = "z"

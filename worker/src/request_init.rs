@@ -59,18 +59,15 @@ impl From<&RequestInit> for worker_sys::RequestInit {
         let mut inner = worker_sys::RequestInit::new();
         inner.headers(req.headers.as_ref());
         inner.method(&req.method.to_string());
-        inner.redirect(req.redirect.clone().into());
+        inner.redirect(req.redirect.into());
         inner.body(req.body.as_ref());
 
         // set the Cloudflare-specific `cf` property on FFI RequestInit
-        #[allow(unused_unsafe)]
-        let r = unsafe {
-            ::js_sys::Reflect::set(
-                inner.as_ref(),
-                &JsValue::from("cf"),
-                &JsValue::from(&req.cf),
-            )
-        };
+        let r = ::js_sys::Reflect::set(
+            inner.as_ref(),
+            &JsValue::from("cf"),
+            &JsValue::from(&req.cf),
+        );
         debug_assert!(
             r.is_ok(),
             "setting properties should never fail on our dictionary objects"
@@ -104,7 +101,7 @@ pub struct CfProperties {
     /// A request’s cache key is what determines if two requests are “the same” for caching
     /// purposes. If a request has the same cache key as some previous request, then we can serve
     /// the same cached response for both.
-    pub cache_key: Option<bool>,
+    pub cache_key: Option<String>,
     /// This option forces Cloudflare to cache the response for this request, regardless of what
     /// headers are seen on the response. This is equivalent to setting two page rules: “Edge Cache
     /// TTL” and “Cache Level” (to “Cache Everything”). The value must be zero or a positive number.
@@ -116,7 +113,7 @@ pub struct CfProperties {
     /// example: { "200-299": 86400, 404: 1, "500-599": 0 }. The value can be any integer, including
     /// zero and negative integers. A value of 0 indicates that the cache asset expires immediately.
     /// Any negative value instructs Cloudflare not to cache at all.
-    pub cache_ttl_by_status: Option<HashMap<String, u32>>,
+    pub cache_ttl_by_status: Option<HashMap<String, i32>>,
     /// Enables or disables AutoMinify for various file types.
     /// For example: `{ javascript: true, css: true, html: false }`.
     pub minify: Option<MinifyConfig>,
@@ -172,6 +169,7 @@ impl From<&CfProperties> for JsValue {
             &JsValue::from(
                 props
                     .cache_key
+                    .clone()
                     .unwrap_or(defaults.cache_key.unwrap_or_default()),
             ),
         );
@@ -210,7 +208,6 @@ impl From<&CfProperties> for JsValue {
 
         let polish_val: &str = props
             .polish
-            .clone()
             .unwrap_or(defaults.polish.unwrap_or_default())
             .into();
         set_prop(&obj, &JsValue::from("polish"), &JsValue::from(polish_val));
@@ -241,8 +238,7 @@ impl From<&CfProperties> for JsValue {
 }
 
 fn set_prop(target: &Object, key: &JsValue, val: &JsValue) {
-    #[allow(unused_unsafe)]
-    let r = unsafe { ::js_sys::Reflect::set(&target, key, val) };
+    let r = ::js_sys::Reflect::set(target, key, val);
     debug_assert!(
         r.is_ok(),
         "setting properties should never fail on our dictionary objects"

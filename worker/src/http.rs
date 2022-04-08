@@ -47,7 +47,13 @@ impl From<String> for Method {
 
 impl From<Method> for String {
     fn from(val: Method) -> Self {
-        match val {
+        val.as_ref().to_string()
+    }
+}
+
+impl AsRef<str> for Method {
+    fn as_ref(&self) -> &'static str {
+        match self {
             Method::Head => "HEAD",
             Method::Post => "POST",
             Method::Put => "PUT",
@@ -58,7 +64,6 @@ impl From<Method> for String {
             Method::Trace => "TRACE",
             Method::Get => "GET",
         }
-        .to_string()
     }
 }
 

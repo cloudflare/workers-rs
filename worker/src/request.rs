@@ -1,8 +1,10 @@
-use crate::{cf::Cf, error::Error, headers::Headers, http::Method, FormData, RequestInit, Result};
+use crate::{
+    cf::Cf, error::Error, headers::Headers, http::Method, ByteStream, FormData, RequestInit, Result,
+};
 
-use js_sys;
 use serde::de::DeserializeOwned;
 use url::Url;
+use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 use worker_sys::{Request as EdgeRequest, RequestInit as EdgeRequestInit};
 
@@ -146,7 +148,26 @@ impl Request {
         Err(Error::BodyUsed)
     }
 
-    /// Get the `Headers` for this reuqest.
+    /// Access this request's body as a [`Stream`](futures::stream::Stream) of bytes.
+    pub fn stream(&mut self) -> Result<ByteStream> {
+        if self.body_used {
+            return Err(Error::BodyUsed);
+        }
+
+        self.body_used = true;
+
+        let stream = self
+            .edge_request
+            .body()
+            .ok_or_else(|| Error::RustError("no body for request".into()))?;
+
+        let stream = wasm_streams::ReadableStream::from_raw(stream.dyn_into().unwrap());
+        Ok(ByteStream {
+            inner: stream.into_stream(),
+        })
+    }
+
+    /// Get the `Headers` for this request.
     pub fn headers(&self) -> &Headers {
         &self.headers
     }
@@ -175,6 +196,17 @@ impl Request {
     /// The URL Path of this `Request`.
     pub fn path(&self) -> String {
         self.path.clone()
+    }
+
+    /// Get a mutable reference to this request's path.
+    /// **Note:** they can only be modified if the request was created from scratch or cloned.
+    pub fn path_mut(&mut self) -> Result<&mut String> {
+        if self.immutable {
+            return Err(Error::JsError(
+                "Cannot get a mutable reference to an immutable path.".into(),
+            ));
+        }
+        Ok(&mut self.path)
     }
 
     /// The parsed [`url::Url`] of this `Request`.

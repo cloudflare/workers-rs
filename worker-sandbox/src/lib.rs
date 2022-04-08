@@ -1,6 +1,10 @@
+use std::{
+    sync::atomic::{AtomicBool, Ordering},
+    time::Duration,
+};
+
 use blake2::{Blake2b, Digest};
-use chrono;
-use cloudflare::framework::{async_api::Client, Environment, HttpApiClientConfig};
+use futures::{future::Either, StreamExt, TryStreamExt};
 use serde::{Deserialize, Serialize};
 use worker::*;
 
@@ -41,7 +45,6 @@ struct FileSize {
 
 struct SomeSharedData {
     regex: regex::Regex,
-    cloudflare_api_client: Client,
 }
 
 fn handle_a_request<D>(req: Request, _ctx: RouteContext<D>) -> Result<Response> {
@@ -49,7 +52,7 @@ fn handle_a_request<D>(req: Request, _ctx: RouteContext<D>) -> Result<Response> 
         "req at: {}, located at: {:?}, within: {}",
         req.path(),
         req.cf().coordinates().unwrap_or_default(),
-        req.cf().region().unwrap_or("unknown region".into())
+        req.cf().region().unwrap_or_else(|| "unknown region".into())
     ))
 }
 
@@ -58,24 +61,27 @@ async fn handle_async_request<D>(req: Request, _ctx: RouteContext<D>) -> Result<
         "[async] req at: {}, located at: {:?}, within: {}",
         req.path(),
         req.cf().coordinates().unwrap_or_default(),
-        req.cf().region().unwrap_or("unknown region".into())
+        req.cf().region().unwrap_or_else(|| "unknown region".into())
     ))
 }
 
-#[event(fetch)]
-pub async fn main(req: Request, env: Env) -> Result<Response> {
+static GLOBAL_STATE: AtomicBool = AtomicBool::new(false);
+
+// We're able to specify a start event that is called when the WASM is initialized before any
+// requests. This is useful if you have some global state or setup code, like a logger. This is
+// only called once for the entire lifetime of the worker.
+#[event(start)]
+pub fn start() {
     utils::set_panic_hook();
 
-    let creds = cloudflare::framework::auth::Credentials::UserAuthToken {
-        token: env.secret("CF_API_TOKEN")?.to_string(),
-    };
-    let mut config = HttpApiClientConfig::default();
-    config.http_timeout = std::time::Duration::from_millis(500);
-    let client = Client::new(creds, config, Environment::Production).unwrap();
+    // Change some global state so we know that we ran our setup function.
+    GLOBAL_STATE.store(true, Ordering::SeqCst);
+}
 
+#[event(fetch)]
+pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
     let data = SomeSharedData {
         regex: regex::Regex::new(r"^\d{4}-\d{2}-\d{2}$").unwrap(),
-        cloudflare_api_client: client,
     };
 
     let router = Router::with_data(data); // if no data is needed, pass `()` or any other valid data
@@ -83,13 +89,94 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
     router
         .get("/request", handle_a_request) // can pass a fn pointer to keep routes tidy
         .get_async("/async-request", handle_async_request)
+        .get("/websocket", |_, ctx| {
+            // Accept / handle a websocket connection
+            let pair = WebSocketPair::new()?;
+            let server = pair.server;
+            server.accept()?;
+
+            let some_namespace_kv = ctx.kv("SOME_NAMESPACE")?;
+
+            wasm_bindgen_futures::spawn_local(async move {
+                let mut event_stream = server.events().expect("could not open stream");
+
+                while let Some(event) = event_stream.next().await {
+                    match event.expect("received error in websocket") {
+                        WebsocketEvent::Message(msg) => {
+                            if let Some(text) = msg.text() {
+                                server.send_with_str(text).expect("could not relay text");
+                            }
+                        }
+                        WebsocketEvent::Close(_) => {
+                            // Sets a key in a test KV so the integration tests can query if we
+                            // actually got the close event. We can't use the shared dat a for this
+                            // because miniflare resets that every request.
+                            some_namespace_kv
+                                .put("got-close-event", "true")
+                                .unwrap()
+                                .execute()
+                                .await
+                                .unwrap();
+                        }
+                    }
+                }
+            });
+
+            Response::from_websocket(pair.client)
+        })
+        .get_async("/got-close-event", |_, ctx| async move {
+            let some_namespace_kv = ctx.kv("SOME_NAMESPACE")?;
+            let got_close_event = some_namespace_kv
+                .get("got-close-event")
+                .text()
+                .await?
+                .unwrap_or_else(|| "false".into());
+
+            // Let the integration tests have some way of knowing if we successfully received the closed event.
+            Response::ok(got_close_event)
+        })
+        .get_async("/ws-client", |_, _| async move {
+            let ws = WebSocket::connect("wss://echo.zeb.workers.dev/".parse()?).await?;
+
+            // It's important that we call this before we send our first message, otherwise we will
+            // not have any event listeners on the socket to receive the echoed message.
+            let mut event_stream = ws.events()?;
+
+            ws.accept()?;
+            ws.send_with_str("Hello, world!")?;
+
+            while let Some(event) = event_stream.next().await {
+                let event = event?;
+
+                if let WebsocketEvent::Message(msg) = event {
+                    if let Some(text) = msg.text() {
+                        return Response::ok(text);
+                    }
+                }
+            }
+
+            Response::error("never got a message echoed back :(", 500)
+        })
         .get("/test-data", |_, ctx| {
             // just here to test data works
-            if ctx.data().regex.is_match("2014-01-01") {
+            if ctx.data.regex.is_match("2014-01-01") {
                 Response::ok("data ok")
             } else {
                 Response::error("bad match", 500)
             }
+        })
+        .post("/xor/:num", |mut req, ctx| {
+            let num: u8 = match ctx.param("num").unwrap().parse() {
+                Ok(num) => num,
+                Err(_) => return Response::error("invalid byte", 400),
+            };
+
+            let xor_stream = req.stream()?.map_ok(move |mut buf| {
+                buf.iter_mut().for_each(|x| *x ^= num);
+                buf
+            });
+
+            Response::from_stream(xor_stream)
         })
         .post("/headers", |req, _ctx| {
             let mut headers: http::HeaderMap = req.headers().into();
@@ -180,8 +267,8 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         .get_async("/formdata-file-size/:hash", |_, ctx| async move {
             if let Some(hash) = ctx.param("hash") {
                 let kv = ctx.kv("FILE_SIZES")?;
-                return match kv.get(&hash).await? {
-                    Some(val) => Response::from_json(&val.as_json::<FileSize>()?),
+                return match kv.get(hash).json::<FileSize>().await? {
+                    Some(val) => Response::from_json(&val),
                     None => Response::error("Not Found", 404),
                 };
             }
@@ -254,22 +341,6 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
                 data.user_id, data.title, data.completed
             ))
         })
-        .get_async("/cloudflare-api", |_req, ctx| async move {
-            let resp = ctx
-                .data()
-                .cloudflare_api_client
-                .request_handle(&cloudflare::endpoints::user::GetUserDetails {})
-                .await
-                .unwrap();
-
-            Response::ok("hello user").map(|res| {
-                let mut headers = Headers::new();
-                headers
-                    .set("user-details-email", &resp.result.email)
-                    .unwrap();
-                res.with_headers(headers)
-            })
-        })
         .get_async("/proxy_request/*url", |_req, ctx| async move {
             let url = ctx.param("url").unwrap().strip_prefix('/').unwrap();
 
@@ -278,7 +349,10 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         .get_async("/durable/:id", |_req, ctx| async move {
             let namespace = ctx.durable_object("COUNTER")?;
             let stub = namespace.id_from_name("A")?.get_stub()?;
-            stub.fetch_with_str("/").await
+            // when calling fetch to a Durable Object, a full URL must be used. Alternatively, a
+            // compatibility flag can be provided in wrangler.toml to opt-in to older behavior:
+            // https://developers.cloudflare.com/workers/platform/compatibility-dates#durable-object-stubfetch-requires-a-full-url
+            stub.fetch_with_str("https://fake-host/").await
         })
         .get("/secret", |_req, ctx| {
             Response::ok(ctx.secret("SOME_SECRET")?.to_string())
@@ -290,7 +364,7 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
             let kv = ctx.kv("SOME_NAMESPACE")?;
             if let Some(key) = ctx.param("key") {
                 if let Some(value) = ctx.param("value") {
-                    kv.put(&key, value)?.execute().await?;
+                    kv.put(key, value)?.execute().await?;
                 }
             }
 
@@ -310,10 +384,7 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
             Response::from_bytes(serde_json::to_vec(&todo)?)
         })
         .post_async("/nonsense-repeat", |_, ctx| async move {
-            //  just here to test data works, and verify borrow
-            let _d = ctx.data();
-
-            if ctx.data().regex.is_match("2014-01-01") {
+            if ctx.data.regex.is_match("2014-01-01") {
                 Response::ok("data ok")
             } else {
                 Response::error("bad match", 500)
@@ -354,6 +425,64 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
                 .send()
                 .await
         })
+        .get_async("/cancelled-fetch", |_, _| async move {
+            let controller = AbortController::default();
+            let signal = controller.signal();
+
+            let (tx, rx) = futures::channel::oneshot::channel();
+
+            // Spawns a future that'll make our fetch request and not block this function.
+            wasm_bindgen_futures::spawn_local({
+                async move {
+                    let fetch = Fetch::Url("https://cloudflare.com".parse().unwrap());
+                    let res = fetch.send_with_signal(&signal).await;
+                    tx.send(res).unwrap();
+                }
+            });
+
+            // And then we try to abort that fetch as soon as we start it, hopefully before
+            // cloudflare.com responds.
+            controller.abort();
+
+            let res = rx.await.unwrap();
+            let res = res.unwrap_or_else(|err| {
+                let text = err.to_string();
+                Response::ok(text).unwrap()
+            });
+
+            Ok(res)
+        })
+        .get_async("/fetch-timeout", |_, _| async move {
+            let controller = AbortController::default();
+            let signal = controller.signal();
+
+            let fetch_fut = async {
+                let fetch = Fetch::Url("http://localhost:8787/wait/200".parse().unwrap());
+                fetch.send_with_signal(&signal).await
+            };
+            let delay_fut = async {
+                Delay::from(Duration::from_millis(100)).await;
+                controller.abort();
+                Response::ok("Cancelled")
+            };
+
+            futures::pin_mut!(fetch_fut);
+            futures::pin_mut!(delay_fut);
+
+            match futures::future::select(delay_fut, fetch_fut).await {
+                Either::Left((res, cancelled_fut)) => {
+                    // Ensure that the cancelled future returns an AbortError.
+                    match cancelled_fut.await {
+                        Err(e) if e.to_string().starts_with("AbortError") => { /* Yay! It worked, let's do nothing to celebrate */},
+                        Err(e) => panic!("Fetch errored with a different error than expected: {:#?}", e),
+                        Ok(_) => panic!("Fetch unexpectedly succeeded")
+                    }
+
+                    res
+                },
+                Either::Right(_) => panic!("Delay future should have resolved first"),
+            }
+        })
         .get("/redirect-default", |_, _| {
             Response::redirect("https://example.com".parse().unwrap())
         })
@@ -363,10 +492,25 @@ pub async fn main(req: Request, env: Env) -> Result<Response> {
         .get("/now", |_, _| {
             let now = chrono::Utc::now();
             let js_date: Date = now.into();
-            Response::ok(format!("{}", js_date.to_string()))
+            Response::ok(js_date.to_string())
+        })
+        .get_async("/wait/:delay", |_, ctx| async move {
+            let delay: Delay = match ctx.param("delay").unwrap().parse() {
+                Ok(delay) => Duration::from_millis(delay).into(),
+                Err(_) => return Response::error("invalid delay", 400),
+            };
+
+            // Wait for the delay to pass
+            delay.await;
+
+            Response::ok("Waited!\n")
         })
         .get("/custom-response-body", |_, _| {
             Response::from_body(ResponseBody::Body(vec![b'h', b'e', b'l', b'l', b'o']))
+        })
+        .get("/init-called", |_, _| {
+            let init_called = GLOBAL_STATE.load(Ordering::SeqCst);
+            Response::ok(init_called.to_string())
         })
         .or_else_any_method_async("/*catchall", |_, ctx| async move {
             console_log!(

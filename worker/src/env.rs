@@ -14,14 +14,10 @@ extern "C" {
 
 impl Env {
     fn get_binding<T: EnvBinding>(&self, name: &str) -> Result<T> {
-        // Weird rust-analyzer bug is causing it to think Reflect::get is unsafe
-        #[allow(unused_unsafe)]
-        let binding = unsafe { js_sys::Reflect::get(self, &JsValue::from(name)) }
+        let binding = js_sys::Reflect::get(self, &JsValue::from(name))
             .map_err(|_| Error::JsError(format!("Env does not contain binding `{}`", name)))?;
         if binding.is_undefined() {
-            Err(format!("Binding `{}` is undefined.", name)
-                .to_string()
-                .into())
+            Err(format!("Binding `{}` is undefined.", name).into())
         } else {
             // Can't just use JsCast::dyn_into here because the type name might not be in scope
             // resulting in a terribly annoying javascript error which can't be caught
@@ -43,7 +39,7 @@ impl Env {
 
     /// Access a Workers KV namespace by the binding name configured in your wrangler.toml file.
     pub fn kv(&self, binding: &str) -> Result<KvStore> {
-        KvStore::from_this(&self, binding).map_err(From::from)
+        KvStore::from_this(self, binding).map_err(From::from)
     }
 
     /// Access a Durable Object namespace by the binding name configured in your wrangler.toml file.

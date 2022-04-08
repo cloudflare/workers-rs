@@ -25,12 +25,10 @@ impl std::fmt::Debug for Headers {
     }
 }
 
-#[allow(clippy::new_without_default)]
 impl Headers {
     /// Construct a new `Headers` struct.
     pub fn new() -> Self {
-        // This cannot throw an error: https://developer.mozilla.org/en-US/docs/Web/API/Headers/Headers
-        Headers(EdgeHeaders::new().unwrap())
+        Default::default()
     }
 
     /// Returns all the values of a header within a `Headers` object with a given name.
@@ -98,6 +96,13 @@ impl Headers {
             .into_iter()
             // The values iterator.next() will always return a proper value containing a string
             .map(|a| a.unwrap().as_string().unwrap())
+    }
+}
+
+impl Default for Headers {
+    fn default() -> Self {
+        // This cannot throw an error: https://developer.mozilla.org/en-US/docs/Web/API/Headers/Headers
+        Headers(EdgeHeaders::new().unwrap())
     }
 }
 
