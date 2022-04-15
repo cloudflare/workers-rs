@@ -24,46 +24,25 @@ pub enum Error {
     RustError(#[from] anyhow::Error),
 }
 
-#[inline]
-pub fn unwrap_abort<T, E>(o: Result<T, E>) -> T {
-    use std::process;
-    match o {
-        Ok(t) => t,
-        Err(_) => process::abort(),
-    }
-}
-
 impl From<Error> for Response {
     fn from(e: Error) -> Self {
         match e {
             Error::ResponseError(resp) => resp,
-            Error::Json((msg, code)) => {
-                let res = Response::from_json(&json!({
-                    "msg": msg,
-                    "code": code
-                }))
-                .map(|r| r.with_status(code));
-                unwrap_abort(res)
-            }
-            _ => unwrap_abort(Response::error("An error occurred.", 500)),
+            Error::Json((msg, code)) => Response::from_json(&json!({
+                "msg": msg,
+                "code": code
+            }))
+            .map(|r| r.with_status(code))
+            .expect("Encoding to JSON failed"),
+            _ => Response::error("An error occurred.", 500).expect("Failed to create a 500 error"),
         }
     }
 }
 
 impl From<Error> for worker_sys::Response {
     fn from(e: Error) -> Self {
-        match e {
-            Error::ResponseError(resp) => resp.into(),
-            Error::Json((msg, code)) => {
-                let res = Response::from_json(&json!({
-                    "msg": msg,
-                    "code": code
-                }))
-                .map(|r| r.with_status(code));
-                unwrap_abort(res).into()
-            }
-            _ => unwrap_abort(Response::error("An error occurred.", 500)).into(),
-        }
+        let r: Response = e.into();
+        r.into()
     }
 }
 
