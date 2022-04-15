@@ -80,7 +80,7 @@ impl WebSocket {
 
         match res.websocket() {
             Some(ws) => Ok(ws),
-            None => Err(Error::RustError("server did not accept".into())),
+            None => Err(Error::StringError("server did not accept".into())),
         }
     }
 

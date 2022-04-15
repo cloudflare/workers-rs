@@ -3469,6 +3469,7 @@ dependencies = [
 name = "worker"
 version = "0.0.9"
 dependencies = [
+ "anyhow",
  "async-trait",
  "chrono",
  "chrono-tz",
@@ -3479,6 +3480,7 @@ dependencies = [
  "pin-project",
  "serde",
  "serde_json",
+ "thiserror",
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
