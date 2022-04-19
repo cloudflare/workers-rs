@@ -198,6 +198,11 @@ impl Response {
         self.status_code
     }
 
+    /// Access this response's body
+    pub fn body(&self) -> &ResponseBody {
+        &self.body
+    }
+
     /// Access this response's body as plaintext.
     pub async fn text(&mut self) -> Result<String> {
         match &self.body {
