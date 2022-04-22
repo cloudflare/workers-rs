@@ -207,7 +207,7 @@ impl Response {
             ResponseBody::Stream(_) => {
                 let bytes = self.bytes().await?;
                 String::from_utf8(bytes).map_err(|e| Error::RustError(e.to_string()))
-            },
+            }
         }
     }
 
