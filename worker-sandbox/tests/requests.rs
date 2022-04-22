@@ -312,6 +312,24 @@ fn now() {
 }
 
 #[test]
+fn cloned() {
+    let resp = get("cloned", |r| r);
+    assert_eq!(resp.text().unwrap(), "true")
+}
+
+#[test]
+fn cloned_stream() {
+    let resp = get("cloned-stream", |r| r);
+    assert_eq!(resp.text().unwrap(), "true")
+}
+
+#[test]
+fn cloned_fetch() {
+    let resp = get("cloned-fetch", |r| r);
+    assert_eq!(resp.text().unwrap(), "true")
+}
+
+#[test]
 fn wait() {
     const MILLIS: u64 = 100;
     let then = Instant::now();
