@@ -494,6 +494,47 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             let js_date: Date = now.into();
             Response::ok(js_date.to_string())
         })
+        .get_async("/cloned", |_, _| async {
+            let mut resp = Response::ok("Hello")?;
+            let mut resp1 = resp.cloned()?;
+
+            let left = resp.text().await?;
+            let right = resp1.text().await?;
+
+            Response::ok((left == right).to_string())
+        })
+        .get_async("/cloned-stream", |_, _| async {
+            let stream = futures::stream::repeat(())
+                .take(10)
+                .enumerate()
+                .then(|(index, _)| async move {
+                    Delay::from(Duration::from_millis(100)).await;
+                    Result::Ok(index.to_string().into_bytes())
+                });
+
+            let mut resp = Response::from_stream(stream)?;
+            let mut resp1 = resp.cloned()?;
+
+            let left = resp.text().await?;
+            let right = resp1.text().await?;
+
+            Response::ok((left == right).to_string())
+        })
+        .get_async("/cloned-fetch", |_, _| async {
+            let mut resp = Fetch::Url(
+                "https://jsonplaceholder.typicode.com/todos/1"
+                    .parse()
+                    .unwrap(),
+            )
+            .send()
+            .await?;
+            let mut resp1 = resp.cloned()?;
+
+            let left = resp.text().await?;
+            let right = resp1.text().await?;
+
+            Response::ok((left == right).to_string())
+        })
         .get_async("/wait/:delay", |_, ctx| async move {
             let delay: Delay = match ctx.param("delay").unwrap().parse() {
                 Ok(delay) => Duration::from_millis(delay).into(),
