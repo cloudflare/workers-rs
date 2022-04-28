@@ -43,6 +43,19 @@ impl From<EdgeRequest> for Request {
     }
 }
 
+// TODO: is there a better alternative than using unwrap?
+impl From<Request> for EdgeRequest {
+    fn from(req: Request) -> Self {
+        req.inner().clone().unwrap()
+    }
+}
+
+impl From<&Request> for EdgeRequest {
+    fn from(req: &Request) -> Self {
+        req.inner().clone().unwrap()
+    }
+}
+
 impl Request {
     /// Construct a new `Request` with an HTTP Method.
     pub fn new(uri: &str, method: Method) -> Result<Self> {

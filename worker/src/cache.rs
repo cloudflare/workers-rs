@@ -8,6 +8,7 @@ use worker_sys::WorkerGlobalScope;
 
 use crate::request::Request;
 use crate::response::Response;
+use crate::Headers;
 use crate::Result;
 
 /// Provides access to the [cache api](https://developers.cloudflare.com/workers/runtime-apis/cache).
@@ -33,6 +34,7 @@ use crate::Result;
 /// Responses with `Set-Cookie` headers are never cached, because this sometimes indicates that the response contains unique data. To store a response with a `Set-Cookie` header, either delete that header or set `Cache-Control: private=Set-Cookie` on the response before calling `cache.put()`.
 ///
 /// Use the `Cache-Control` method to store the response without the `Set-Cookie` header.
+#[derive(Debug)]
 pub struct Cache {
     inner: EdgeCache,
 }
@@ -43,6 +45,36 @@ impl Default for Cache {
 
         Self {
             inner: global.caches().default(),
+        }
+    }
+}
+
+// Helper function to validate the headers of a Request or Response.
+// The cache API does not support 'stale-while-revalidate' and 'stale-if-error' values for cache-control directives.
+// More importantly, the cache API does NOT cache if the Response to be cached is missing a 'cache-control' header value.
+fn check_headers(headers: &Headers, is_response: bool) {
+    let cache_control_header = headers.get("cache-control");
+    match cache_control_header {
+        Ok(res) => match res {
+            Some(directive_value) => {
+                if directive_value == "stale-while-revalidate"
+                    || directive_value == "stale-if-error"
+                {
+                    log::debug!("'stale-while-revalidate' and 'stale-if-error' directives are not supported values for 'cache-control' header.");
+                }
+
+                if is_response && directive_value.is_empty() {
+                    log::debug!("Empty value found for 'cache-control' header. The response will not be cached by the cache API.");
+                }
+            }
+            None => {
+                if is_response {
+                    log::debug!("Missing cache-control directive in Response");
+                }
+            }
+        },
+        Err(e) => {
+            log::debug!("{:?}", e);
         }
     }
 }
@@ -69,13 +101,17 @@ impl Cache {
     /// - the request passed is a method other than GET.
     /// - the response passed has a status of 206 Partial Content.
     /// - the response passed contains the header `Vary: *` (required by the Cache API specification).
-    pub async fn put<'a, K: Into<CacheKey<'a>>>(&self, key: K, response: Response) -> Result<()> {
+    pub async fn put<'a, K: Into<CacheKey<'a>>>(&self, key: K, response: &Response) -> Result<()> {
+        // Check cache-control directives in the response for debugging
+        check_headers(response.headers(), true);
+
         let promise = match key.into() {
-            CacheKey::Url(url) => self.inner.put_url(url, response.into()),
+            CacheKey::Url(url) => self.inner.put_url(url.as_str(), &response.into()),
             CacheKey::Request(request) => {
-                // TODO: use from?
-                let ffi_request = request.inner().clone()?;
-                self.inner.put_request(ffi_request, response.into())
+                // Check cache-control directives in the request for debugging
+                check_headers(request.headers(), false);
+
+                self.inner.put_request(&request.into(), &response.into())
             }
         };
         let _ = JsFuture::from(promise).await?;
@@ -100,17 +136,21 @@ impl Cache {
         ignore_method: bool,
     ) -> Result<Option<Response>> {
         let options = JsValue::from_serde(&MatchOptions { ignore_method })?;
+        log::debug!("options: {:?}\n", options);
         let promise = match key.into() {
-            CacheKey::Url(url) => self.inner.match_url(url, options),
+            CacheKey::Url(url) => self.inner.match_url(url.as_str(), options),
             CacheKey::Request(request) => {
-                // TODO: the same thing as above, why can't i use Into::into()?
-                let ffi_request = request.inner().clone()?;
-                self.inner.match_request(ffi_request, options)
+                // Check cache-control directives in the response for debugging
+                check_headers(request.headers(), true);
+
+                self.inner.match_request(&request.into(), options)
             }
         };
 
+        log::debug!("promise: {:?}\n", promise);
         // `match` returns either a response or undefined
         let result = JsFuture::from(promise).await?;
+        log::debug!("{:?}", result);
         if result.is_undefined() {
             Ok(None)
         } else {
@@ -120,6 +160,11 @@ impl Cache {
         }
     }
 
+    /// Deletes the [`Response`] object associated with the key.
+    ///
+    /// Returns:
+    ///   - Success, if the response was cached but is now deleted
+    ///   - ResponseNotFound, if the response was not in the cache at the time of deletion
     pub async fn delete<'a, K: Into<CacheKey<'a>>>(
         &self,
         key: K,
@@ -128,16 +173,12 @@ impl Cache {
         let options = JsValue::from_serde(&MatchOptions { ignore_method })?;
 
         let promise = match key.into() {
-            CacheKey::Url(url) => self.inner.delete_url(url, options),
-            CacheKey::Request(request) => {
-                // TODO: the same thing as above, why can't i use Into::into()?
-                let ffi_request = request.inner().clone()?;
-                self.inner.delete_request(ffi_request, options)
-            }
+            CacheKey::Url(url) => self.inner.delete_url(url.as_str(), options),
+            CacheKey::Request(request) => self.inner.delete_request(&request.into(), options),
         };
         let result = JsFuture::from(promise).await?;
 
-        // unwrap is safe because we know this is a boolean
+        // Unwrap is safe because we know this is a boolean
         // https://developers.cloudflare.com/workers/runtime-apis/cache#delete
         if result.as_bool().unwrap() {
             Ok(CacheDeletionOutcome::Success)
@@ -161,9 +202,21 @@ pub enum CacheKey<'a> {
     Request(&'a Request),
 }
 
-impl<S: Into<String>> From<S> for CacheKey<'_> {
-    fn from(url: S) -> Self {
-        Self::Url(url.into())
+impl From<&str> for CacheKey<'_> {
+    fn from(url: &str) -> Self {
+        Self::Url(url.to_string())
+    }
+}
+
+impl From<String> for CacheKey<'_> {
+    fn from(url: String) -> Self {
+        Self::Url(url)
+    }
+}
+
+impl From<&String> for CacheKey<'_> {
+    fn from(url: &String) -> Self {
+        Self::Url(url.clone())
     }
 }
 

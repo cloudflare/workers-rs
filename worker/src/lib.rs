@@ -22,7 +22,7 @@ pub use worker_sys;
 pub use worker_sys::{console_debug, console_error, console_log, console_warn};
 
 pub use crate::abort::*;
-pub use crate::cache::Cache;
+pub use crate::cache::{Cache, CacheDeletionOutcome};
 pub use crate::context::Context;
 pub use crate::cors::Cors;
 pub use crate::date::{Date, DateInit};
