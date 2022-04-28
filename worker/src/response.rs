@@ -14,7 +14,7 @@ use wasm_bindgen::JsValue;
 use web_sys::ReadableStream;
 use worker_sys::{response_init::ResponseInit as EdgeResponseInit, Response as EdgeResponse};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ResponseBody {
     Empty,
     Body(Vec<u8>),
@@ -25,7 +25,7 @@ const CONTENT_TYPE: &str = "content-type";
 
 /// A [Response](https://developer.mozilla.org/en-US/docs/Web/API/Response) representation for
 /// working with or returning a response to a `Request`.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Response {
     body: ResponseBody,
     headers: Headers,
@@ -349,6 +349,38 @@ impl From<ResponseInit> for EdgeResponseInit {
             edge_init.websocket(websocket.as_ref());
         }
         edge_init
+    }
+}
+
+impl From<&Response> for EdgeResponse {
+    fn from(res: &Response) -> Self {
+        match res.body.clone() {
+            ResponseBody::Body(bytes) => {
+                let array = Uint8Array::new_with_length(bytes.len() as u32);
+                array.copy_from(&bytes);
+                EdgeResponse::new_with_opt_u8_array_and_init(
+                    Some(array),
+                    &ResponseInit {
+                        status: res.status_code,
+                        headers: res.headers.clone(),
+                        websocket: res.websocket.clone(),
+                    }
+                    .into(),
+                )
+                .unwrap()
+            }
+            ResponseBody::Stream(response) => response.clone().unwrap(),
+            ResponseBody::Empty => EdgeResponse::new_with_opt_str_and_init(
+                None,
+                &ResponseInit {
+                    status: res.status_code,
+                    headers: res.headers.clone(),
+                    websocket: res.websocket.clone(),
+                }
+                .into(),
+            )
+            .unwrap(),
+        }
     }
 }
 
