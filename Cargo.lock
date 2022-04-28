@@ -3475,6 +3475,7 @@ dependencies = [
  "futures",
  "http",
  "js-sys",
+ "log",
  "matchit",
  "pin-project",
  "serde",
