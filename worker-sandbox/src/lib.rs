@@ -512,6 +512,59 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             let init_called = GLOBAL_STATE.load(Ordering::SeqCst);
             Response::ok(init_called.to_string())
         })
+        .get_async("/cache-example", |req, _| async move {
+            console_log!("url: {}", req.url()?.to_string());
+            let cache = Cache::default();
+            let key = req.url()?.to_string();
+            if let Some(resp) = cache.get(&key, true).await? {
+                console_log!("Cache HIT!");
+                Ok(resp)
+            } else {
+
+                console_log!("Cache MISS!");
+                let mut resp = Response::from_json(&serde_json::json!({ "timestamp": Date::now().as_millis() }))?;
+
+                // Cache API respects Cache-Control headers. Setting s-max-age to 10
+                // will limit the response to be in cache for 10 seconds max
+                resp.headers_mut().set("cache-control", "s-maxage=10")?;
+                cache.put(key, &resp).await?;
+                Ok(resp)
+            }
+        })
+        .get_async("/cache-api/get/:key", |_req, ctx| async move {
+            if let Some(key) = ctx.param("key") {
+                let cache = Cache::default();
+                if let Some(resp) = cache.get(format!("https://{}", key), true).await? {
+                    return Ok(resp);
+                } else {
+                    return Response::ok("cache miss");
+                }
+            }
+            Response::error("key missing", 400)
+        })
+        .put_async("/cache-api/put/:key", |_req, ctx| async move {
+            if let Some(key) = ctx.param("key") {
+                let cache = Cache::default();
+
+                let mut resp = Response::from_json(&serde_json::json!({ "timestamp": Date::now().as_millis() }))?;
+
+                // Cache API respects Cache-Control headers. Setting s-max-age to 10
+                // will limit the response to be in cache for 10 seconds max
+                resp.headers_mut().set("cache-control", "s-maxage=10")?;
+                cache.put(format!("https://{}", key), &resp).await?;
+                return Ok(resp);
+            }
+            Response::error("key missing", 400)
+        })
+        .post_async("/cache-api/delete/:key", |_req, ctx| async move {
+            if let Some(key) = ctx.param("key") {
+                let cache = Cache::default();
+
+                let res = cache.delete(format!("https://{}", key), true).await?;
+                return Response::ok(serde_json::to_string(&res)?);
+            }
+            Response::error("key missing", 400)
+        })
         .or_else_any_method_async("/*catchall", |_, ctx| async move {
             console_log!(
                 "[or_else_any_method_async] caught: {}",
