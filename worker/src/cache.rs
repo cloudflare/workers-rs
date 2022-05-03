@@ -227,6 +227,7 @@ impl<'a> From<&'a Request> for CacheKey<'a> {
 }
 
 /// Successful outcomes when attempting to delete a `Response` from the cache
+#[derive(Serialize)]
 pub enum CacheDeletionOutcome {
     /// The response was cached but is now deleted
     Success,
