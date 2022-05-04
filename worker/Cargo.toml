@@ -18,7 +18,6 @@ chrono-tz = { version = "0.6", default-features = false }
 futures = "0.3.16"
 http = "0.2.4"
 js-sys = "0.3.55"
-log = "0.4.16"
 matchit = "0.4.2"
 pin-project = "1.0.10"
 serde = { version = "1.0.136", features = ["derive"] }

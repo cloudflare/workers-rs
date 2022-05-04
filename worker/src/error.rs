@@ -6,6 +6,7 @@ use wasm_bindgen::{JsCast, JsValue};
 pub enum Error {
     BadEncoding,
     BodyUsed,
+    CacheControlHeader(String),
     Json((String, u16)),
     JsError(String),
     Internal(JsValue),
@@ -35,7 +36,9 @@ impl std::fmt::Display for Error {
             Error::BadEncoding => write!(f, "content-type mismatch"),
             Error::BodyUsed => write!(f, "body has already been read"),
             Error::Json((msg, status)) => write!(f, "{} (status: {})", msg, status),
-            Error::JsError(s) | Error::RustError(s) => write!(f, "{}", s),
+            Error::JsError(s) | Error::RustError(s) | Error::CacheControlHeader(s) => {
+                write!(f, "{}", s)
+            }
             Error::Internal(_) => write!(f, "unrecognized JavaScript object"),
             Error::BindingError(name) => write!(f, "no binding found for `{}`", name),
             Error::RouteInsertError(e) => write!(f, "failed to insert route: {}", e),
