@@ -8,6 +8,7 @@ use worker_sys::WorkerGlobalScope;
 
 use crate::request::Request;
 use crate::response::Response;
+use crate::Error;
 use crate::Headers;
 use crate::Result;
 
@@ -51,8 +52,9 @@ impl Default for Cache {
 
 // Helper function to validate the headers of a Request or Response.
 // The cache API does not support 'stale-while-revalidate' and 'stale-if-error' values for cache-control directives.
-// More importantly, the cache API does NOT cache if the Response to be cached is missing a 'cache-control' header value.
-fn check_headers(headers: &Headers, is_response: bool) {
+// More importantly, the cache API does NOT cache if the Response to be cached is missing a 'cache-control' header
+// with 'max-age' or 's-maxage' directives.
+fn check_headers(headers: &Headers, is_response: bool) -> Result<()> {
     let cache_control_header = headers.get("cache-control");
     match cache_control_header {
         Ok(res) => match res {
@@ -60,23 +62,30 @@ fn check_headers(headers: &Headers, is_response: bool) {
                 if directive_value == "stale-while-revalidate"
                     || directive_value == "stale-if-error"
                 {
-                    log::debug!("'stale-while-revalidate' and 'stale-if-error' directives are not supported values for 'cache-control' header.");
+                    return Err(Error::CacheControlHeader("'stale-while-revalidate' and 'stale-if-error' directives are not supported by the Cache API".to_string()));
                 }
 
-                if is_response && directive_value.is_empty() {
-                    log::debug!("Empty value found for 'cache-control' header. The response will not be cached by the cache API.");
+                if is_response {
+                    if directive_value.is_empty() {
+                        return Err(Error::CacheControlHeader("Empty value found for 'cache-control' header. The response will not be cached by the Cache API.".to_string()));
+                    } else if !directive_value.contains("max-age")
+                        && !directive_value.contains("s-maxage")
+                    {
+                        return Err(Error::CacheControlHeader("'cache-control' header must contain 'max-age' or 's-maxage' directives for the Response to be cached by the Cache API.".to_string()));
+                    }
                 }
             }
             None => {
                 if is_response {
-                    log::debug!("Missing cache-control directive in Response");
+                    return Err(Error::CacheControlHeader("Missing cache-control directive in Response. This is required by the Cache API.".to_string()));
                 }
             }
         },
         Err(e) => {
-            log::debug!("{:?}", e);
+            return Err(e);
         }
     }
+    Ok(())
 }
 
 impl Cache {
@@ -94,22 +103,24 @@ impl Cache {
 
     /// Adds to the cache a [`Response`] keyed to the given request.
     ///
+    /// The [`Response`] must include a `cache-control` header with 'max-age' or 's-maxage' directives
+    /// (the Cache API does not cache responses missing these directives).
     /// The `stale-while-revalidate` and `stale-if-error` directives are not supported
     /// when using the `cache.put` or `cache.get` methods.
     ///
-    /// Will throw an error if:
+    /// The Cache API will throw an error if:
     /// - the request passed is a method other than GET.
     /// - the response passed has a status of 206 Partial Content.
     /// - the response passed contains the header `Vary: *` (required by the Cache API specification).
     pub async fn put<'a, K: Into<CacheKey<'a>>>(&self, key: K, response: &Response) -> Result<()> {
-        // Check cache-control directives in the response for debugging
-        check_headers(response.headers(), true);
+        // Validate preconditions for cache-control directives in the response
+        check_headers(response.headers(), true)?;
 
         let promise = match key.into() {
             CacheKey::Url(url) => self.inner.put_url(url.as_str(), &response.into()),
             CacheKey::Request(request) => {
-                // Check cache-control directives in the request for debugging
-                check_headers(request.headers(), false);
+                // Validate precoditions for cache-control directives in the request
+                check_headers(request.headers(), false)?;
 
                 self.inner.put_request(&request.into(), &response.into())
             }
@@ -136,21 +147,18 @@ impl Cache {
         ignore_method: bool,
     ) -> Result<Option<Response>> {
         let options = JsValue::from_serde(&MatchOptions { ignore_method })?;
-        log::debug!("options: {:?}\n", options);
         let promise = match key.into() {
             CacheKey::Url(url) => self.inner.match_url(url.as_str(), options),
             CacheKey::Request(request) => {
-                // Check cache-control directives in the response for debugging
-                check_headers(request.headers(), true);
+                // Validate precoditions for cache-control directives in the request
+                check_headers(request.headers(), true)?;
 
                 self.inner.match_request(&request.into(), options)
             }
         };
 
-        log::debug!("promise: {:?}\n", promise);
         // `match` returns either a response or undefined
         let result = JsFuture::from(promise).await?;
-        log::debug!("{:?}", result);
         if result.is_undefined() {
             Ok(None)
         } else {
