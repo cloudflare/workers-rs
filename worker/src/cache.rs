@@ -65,7 +65,7 @@ impl Cache {
 
     /// Adds to the cache a [`Response`] keyed to the given request.
     ///
-    /// The [`Response`] must include a `cache-control` header with 'max-age' or 's-maxage' directives,
+    /// The [`Response`] should include a `cache-control` header with `max-age` or `s-maxage` directives,
     /// otherwise the Cache API will not cache the response.
     /// The `stale-while-revalidate` and `stale-if-error` directives are not supported
     /// when using the `cache.put` or `cache.get` methods.
