@@ -352,6 +352,38 @@ impl From<ResponseInit> for EdgeResponseInit {
     }
 }
 
+impl From<&Response> for EdgeResponse {
+    fn from(res: &Response) -> Self {
+        match res.body.clone() {
+            ResponseBody::Body(bytes) => {
+                let array = Uint8Array::new_with_length(bytes.len() as u32);
+                array.copy_from(&bytes);
+                EdgeResponse::new_with_opt_u8_array_and_init(
+                    Some(array),
+                    &ResponseInit {
+                        status: res.status_code,
+                        headers: res.headers.clone(),
+                        websocket: res.websocket.clone(),
+                    }
+                    .into(),
+                )
+                .unwrap()
+            }
+            ResponseBody::Stream(response) => response.clone().unwrap(),
+            ResponseBody::Empty => EdgeResponse::new_with_opt_str_and_init(
+                None,
+                &ResponseInit {
+                    status: res.status_code,
+                    headers: res.headers.clone(),
+                    websocket: res.websocket.clone(),
+                }
+                .into(),
+            )
+            .unwrap(),
+        }
+    }
+}
+
 impl From<Response> for EdgeResponse {
     fn from(res: Response) -> Self {
         match res.body {
