@@ -8,8 +8,6 @@ use worker_sys::WorkerGlobalScope;
 
 use crate::request::Request;
 use crate::response::Response;
-use crate::Error;
-use crate::Headers;
 use crate::Result;
 
 /// Provides access to the [cache api](https://developers.cloudflare.com/workers/runtime-apis/cache).
@@ -50,44 +48,6 @@ impl Default for Cache {
     }
 }
 
-// Helper function to validate the headers of a Request or Response.
-// The cache API does not support 'stale-while-revalidate' and 'stale-if-error' values for cache-control directives.
-// More importantly, the cache API does NOT cache if the Response to be cached is missing a 'cache-control' header
-// with 'max-age' or 's-maxage' directives.
-fn check_headers(headers: &Headers, is_response: bool) -> Result<()> {
-    let cache_control_header = headers.get("cache-control");
-    match cache_control_header {
-        Ok(res) => match res {
-            Some(directive_value) => {
-                if directive_value == "stale-while-revalidate"
-                    || directive_value == "stale-if-error"
-                {
-                    return Err(Error::CacheControlHeader("'stale-while-revalidate' and 'stale-if-error' directives are not supported by the Cache API".to_string()));
-                }
-
-                if is_response {
-                    if directive_value.is_empty() {
-                        return Err(Error::CacheControlHeader("Empty value found for 'cache-control' header. The response will not be cached by the Cache API.".to_string()));
-                    } else if !directive_value.contains("max-age")
-                        && !directive_value.contains("s-maxage")
-                    {
-                        return Err(Error::CacheControlHeader("'cache-control' header must contain 'max-age' or 's-maxage' directives for the Response to be cached by the Cache API.".to_string()));
-                    }
-                }
-            }
-            None => {
-                if is_response {
-                    return Err(Error::CacheControlHeader("Missing cache-control directive in Response. This is required by the Cache API.".to_string()));
-                }
-            }
-        },
-        Err(e) => {
-            return Err(e);
-        }
-    }
-    Ok(())
-}
-
 impl Cache {
     /// Opens a [`Cache`] by name. To access the default global cache, use [`Cache::default()`](`Default::default`).
     pub async fn open(name: String) -> Self {
@@ -103,27 +63,21 @@ impl Cache {
 
     /// Adds to the cache a [`Response`] keyed to the given request.
     ///
-    /// The [`Response`] must include a `cache-control` header with 'max-age' or 's-maxage' directives
-    /// (the Cache API does not cache responses missing these directives).
+    /// The [`Response`] must include a `cache-control` header with 'max-age' or 's-maxage' directives,
+    /// otherwise the Cache API will not cache the response.
     /// The `stale-while-revalidate` and `stale-if-error` directives are not supported
     /// when using the `cache.put` or `cache.get` methods.
+    /// For more information about the Cache API, visit the documentation at https://developers.cloudflare.com/workers/runtime-apis/cache/
+    /// and https://developers.cloudflare.com/cache/about/cache-control/
     ///
     /// The Cache API will throw an error if:
     /// - the request passed is a method other than GET.
     /// - the response passed has a status of 206 Partial Content.
     /// - the response passed contains the header `Vary: *` (required by the Cache API specification).
     pub async fn put<'a, K: Into<CacheKey<'a>>>(&self, key: K, response: &Response) -> Result<()> {
-        // Validate preconditions for cache-control directives in the response
-        check_headers(response.headers(), true)?;
-
         let promise = match key.into() {
             CacheKey::Url(url) => self.inner.put_url(url.as_str(), &response.into()),
-            CacheKey::Request(request) => {
-                // Validate precoditions for cache-control directives in the request
-                check_headers(request.headers(), false)?;
-
-                self.inner.put_request(&request.into(), &response.into())
-            }
+            CacheKey::Request(request) => self.inner.put_request(&request.into(), &response.into()),
         };
         let _ = JsFuture::from(promise).await?;
         Ok(())
@@ -132,7 +86,9 @@ impl Cache {
     /// Returns the [`Response`] object keyed to that request. Never sends a subrequest to the origin. If no matching response is found in cache, returns `None`.
     ///
     /// Unlike the browser Cache API, Cloudflare Workers do not support the `ignoreSearch` or `ignoreVary` options on `get()`. You can accomplish this behavior by removing query strings or HTTP headers at `put()` time.
-    ///
+    /// In addition, the `stale-while-revalidate` and `stale-if-error` directives are not supported
+    /// when using the `cache.put` or `cache.get` methods.
+    /// 
     /// Our implementation of the Cache API respects the following HTTP headers on the request passed to `get()`:
     ///
     /// - Range
@@ -149,12 +105,7 @@ impl Cache {
         let options = JsValue::from_serde(&MatchOptions { ignore_method })?;
         let promise = match key.into() {
             CacheKey::Url(url) => self.inner.match_url(url.as_str(), options),
-            CacheKey::Request(request) => {
-                // Validate precoditions for cache-control directives in the request
-                check_headers(request.headers(), true)?;
-
-                self.inner.match_request(&request.into(), options)
-            }
+            CacheKey::Request(request) => self.inner.match_request(&request.into(), options),
         };
 
         // `match` returns either a response or undefined
