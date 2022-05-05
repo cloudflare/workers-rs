@@ -1,3 +1,5 @@
+use std::convert::TryFrom;
+
 use crate::{
     cf::Cf, error::Error, headers::Headers, http::Method, ByteStream, FormData, RequestInit, Result,
 };
@@ -43,16 +45,17 @@ impl From<EdgeRequest> for Request {
     }
 }
 
-// TODO: is there a better alternative than using unwrap?
-impl From<Request> for EdgeRequest {
-    fn from(req: Request) -> Self {
-        req.inner().clone().unwrap()
+impl TryFrom<Request> for EdgeRequest {
+    type Error = Error;
+    fn try_from(req: Request) -> Result<Self> {
+        req.inner().clone().map_err(Error::from)
     }
 }
 
-impl From<&Request> for EdgeRequest {
-    fn from(req: &Request) -> Self {
-        req.inner().clone().unwrap()
+impl TryFrom<&Request> for EdgeRequest {
+    type Error = Error;
+    fn try_from(req: &Request) -> Result<Self> {
+        req.inner().clone().map_err(Error::from)
     }
 }
 

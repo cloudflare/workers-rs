@@ -1,3 +1,5 @@
+use std::convert::TryInto;
+
 use serde::Serialize;
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
@@ -10,7 +12,7 @@ use crate::request::Request;
 use crate::response::Response;
 use crate::Result;
 
-/// Provides access to the [cache api](https://developers.cloudflare.com/workers/runtime-apis/cache).
+/// Provides access to the [Cache API](https://developers.cloudflare.com/workers/runtime-apis/cache).
 /// Because `match` is a reserved keyword in Rust, the `match` method has been renamed to `get`.
 ///
 /// Our implementation of the Cache API respects the following HTTP headers on the response passed to `put()`:
@@ -67,8 +69,8 @@ impl Cache {
     /// otherwise the Cache API will not cache the response.
     /// The `stale-while-revalidate` and `stale-if-error` directives are not supported
     /// when using the `cache.put` or `cache.get` methods.
-    /// For more information about the Cache API, visit the documentation at https://developers.cloudflare.com/workers/runtime-apis/cache/
-    /// and https://developers.cloudflare.com/cache/about/cache-control/
+    /// For more information about how the Cache works, visit the documentation at [Cache API](https://developers.cloudflare.com/workers/runtime-apis/cache/)
+    /// and [Cloudflare Cache-Control Directives](https://developers.cloudflare.com/cache/about/cache-control#cache-control-directives)
     ///
     /// The Cache API will throw an error if:
     /// - the request passed is a method other than GET.
@@ -77,7 +79,9 @@ impl Cache {
     pub async fn put<'a, K: Into<CacheKey<'a>>>(&self, key: K, response: Response) -> Result<()> {
         let promise = match key.into() {
             CacheKey::Url(url) => self.inner.put_url(url.as_str(), &response.into()),
-            CacheKey::Request(request) => self.inner.put_request(&request.into(), &response.into()),
+            CacheKey::Request(request) => self
+                .inner
+                .put_request(&request.try_into()?, &response.into()),
         };
         let _ = JsFuture::from(promise).await?;
         Ok(())
@@ -105,7 +109,7 @@ impl Cache {
         let options = JsValue::from_serde(&MatchOptions { ignore_method })?;
         let promise = match key.into() {
             CacheKey::Url(url) => self.inner.match_url(url.as_str(), options),
-            CacheKey::Request(request) => self.inner.match_request(&request.into(), options),
+            CacheKey::Request(request) => self.inner.match_request(&request.try_into()?, options),
         };
 
         // `match` returns either a response or undefined
@@ -133,7 +137,7 @@ impl Cache {
 
         let promise = match key.into() {
             CacheKey::Url(url) => self.inner.delete_url(url.as_str(), options),
-            CacheKey::Request(request) => self.inner.delete_request(&request.into(), options),
+            CacheKey::Request(request) => self.inner.delete_request(&request.try_into()?, options),
         };
         let result = JsFuture::from(promise).await?;
 
