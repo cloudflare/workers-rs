@@ -5,6 +5,7 @@ use std::{
 
 use blake2::{Blake2b512, Digest};
 use futures::{future::Either, StreamExt, TryStreamExt};
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use worker::*;
 
@@ -568,7 +569,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                 // Cache API respects Cache-Control headers. Setting s-max-age to 10
                 // will limit the response to be in cache for 10 seconds max
                 resp.headers_mut().set("cache-control", "s-maxage=10")?;
-                cache.put(key, &resp).await?;
+                cache.put(key, resp.cloned()?).await?;
                 Ok(resp)
             }
         })
@@ -592,7 +593,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                 // Cache API respects Cache-Control headers. Setting s-max-age to 10
                 // will limit the response to be in cache for 10 seconds max
                 resp.headers_mut().set("cache-control", "s-maxage=10")?;
-                cache.put(format!("https://{}", key), &resp).await?;
+                cache.put(format!("https://{}", key), resp.cloned()?).await?;
                 return Ok(resp);
             }
             Response::error("key missing", 400)
@@ -605,6 +606,34 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                 return Response::ok(serde_json::to_string(&res)?);
             }
             Response::error("key missing", 400)
+        })
+        .get_async("/cache-stream", |req, _| async move {
+            console_log!("url: {}", req.url()?.to_string());
+            let cache = Cache::default();
+            let key = req.url()?.to_string();
+            if let Some(resp) = cache.get(&key, true).await? {
+                console_log!("Cache HIT!");
+                Ok(resp)
+            } else {
+                console_log!("Cache MISS!");
+                let mut rng = rand::thread_rng();
+                let count = rng.gen_range(0..10);
+                let stream = futures::stream::repeat("Hello, world!\n")
+                    .take(count)
+                    .then(|text| async move {
+                        Delay::from(Duration::from_millis(50)).await;
+                        Result::Ok(text.as_bytes().to_vec())
+                    });
+
+                let mut resp = Response::from_stream(stream)?;
+                console_log!("resp = {:?}", resp);
+                // Cache API respects Cache-Control headers. Setting s-max-age to 10
+                // will limit the response to be in cache for 10 seconds max
+                resp.headers_mut().set("cache-control", "s-maxage=10")?;
+
+                cache.put(key, resp.cloned()?).await?;
+                Ok(resp)
+            }
         })
         .or_else_any_method_async("/*catchall", |_, ctx| async move {
             console_log!(

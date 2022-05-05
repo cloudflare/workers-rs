@@ -74,7 +74,7 @@ impl Cache {
     /// - the request passed is a method other than GET.
     /// - the response passed has a status of 206 Partial Content.
     /// - the response passed contains the header `Vary: *` (required by the Cache API specification).
-    pub async fn put<'a, K: Into<CacheKey<'a>>>(&self, key: K, response: &Response) -> Result<()> {
+    pub async fn put<'a, K: Into<CacheKey<'a>>>(&self, key: K, response: Response) -> Result<()> {
         let promise = match key.into() {
             CacheKey::Url(url) => self.inner.put_url(url.as_str(), &response.into()),
             CacheKey::Request(request) => self.inner.put_request(&request.into(), &response.into()),
@@ -88,7 +88,7 @@ impl Cache {
     /// Unlike the browser Cache API, Cloudflare Workers do not support the `ignoreSearch` or `ignoreVary` options on `get()`. You can accomplish this behavior by removing query strings or HTTP headers at `put()` time.
     /// In addition, the `stale-while-revalidate` and `stale-if-error` directives are not supported
     /// when using the `cache.put` or `cache.get` methods.
-    /// 
+    ///
     /// Our implementation of the Cache API respects the following HTTP headers on the request passed to `get()`:
     ///
     /// - Range
