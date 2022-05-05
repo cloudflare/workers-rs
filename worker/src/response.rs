@@ -25,7 +25,7 @@ const CONTENT_TYPE: &str = "content-type";
 
 /// A [Response](https://developer.mozilla.org/en-US/docs/Web/API/Response) representation for
 /// working with or returning a response to a `Request`.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Response {
     body: ResponseBody,
     headers: Headers,
