@@ -1,12 +1,14 @@
 use std::{collections::HashMap, future::Future, rc::Rc};
+use std::panic::{catch_unwind, AssertUnwindSafe};
 
-use futures_util::future::LocalBoxFuture;
+use futures_util::future::{LocalBoxFuture, FutureExt};
 use matchit::{Match, Node};
 use worker_kv::KvStore;
 
 use crate::{
     durable::ObjectNamespace,
     env::{Env, Secret, Var},
+    error::Error,
     http::Method,
     request::Request,
     response::Response,
@@ -356,9 +358,19 @@ impl<'a, D: 'a> Router<'a, D> {
                 env,
                 params: params.into(),
             };
-            return match value {
-                Handler::Sync(func) => (func)(req, route_info),
-                Handler::Async(func) => (func)(req, route_info).await,
+
+            let result = match value {
+                Handler::Sync(func) => catch_unwind(AssertUnwindSafe(|| (func)(req, route_info))),
+                Handler::Async(func) => {
+                    AssertUnwindSafe((func)(req, route_info))
+                        .catch_unwind()
+                        .await
+                }
+            };
+
+            return match result {
+                Ok(v) => v,
+                Err(_) => Err(Error::PanicError),
             };
         }
 

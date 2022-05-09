@@ -14,6 +14,7 @@ pub enum Error {
     RouteNoDataError,
     RustError(String),
     SerdeJsonError(serde_json::Error),
+    PanicError,
 }
 
 impl From<worker_kv::KvError> for Error {
@@ -43,6 +44,7 @@ impl std::fmt::Display for Error {
             Error::RouteInsertError(e) => write!(f, "failed to insert route: {}", e),
             Error::RouteNoDataError => write!(f, "route has no corresponding shared data"),
             Error::SerdeJsonError(e) => write!(f, "Serde Error: {}", e),
+            Error::PanicError => write!(f, "program panicked"),
         }
     }
 }
