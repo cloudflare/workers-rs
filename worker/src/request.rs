@@ -232,8 +232,11 @@ impl Request {
 
 /// Used to add additional helper functions to url::Url
 pub trait UrlExt {
+    /// Given a query parameter, returns an Iterator of values for that parameter in the url's
+    /// query string
     fn param<'a>(&'a self, key: &'a str) -> Box<dyn Iterator<Item = Cow<'a, str>> + 'a>;
 }
+
 impl UrlExt for Url {
     fn param<'a>(&'a self, key: &'a str) -> Box<dyn Iterator<Item = Cow<'a, str>> + 'a> {
         Box::new(
