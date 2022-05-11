@@ -3,6 +3,7 @@ use crate::{
 };
 
 use serde::de::DeserializeOwned;
+use std::borrow::Cow;
 use url::Url;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
@@ -227,4 +228,26 @@ impl Request {
     pub fn inner(&self) -> &EdgeRequest {
         &self.edge_request
     }
+}
+
+/// Used to add additional helper functions to url::Url
+pub trait UrlExt {
+    fn param<'a>(&'a self, key: &'a str) -> Box<dyn Iterator<Item = Cow<'a, str>> + 'a>;
+}
+impl UrlExt for Url {
+    fn param<'a>(&'a self, key: &'a str) -> Box<dyn Iterator<Item = Cow<'a, str>> + 'a> {
+        Box::new(
+            self.query_pairs()
+                .filter_map(move |(k, v)| if k == key { Some(v) } else { None }),
+        )
+    }
+}
+
+#[test]
+fn url_param_works() {
+    let url = Url::parse("https://example.com/foo.html?a=foo&b=bar&a=baz").unwrap();
+    let mut a_values = url.param("a");
+    assert_eq!(a_values.next().as_deref(), Some("foo"));
+    assert_eq!(a_values.next().as_deref(), Some("baz"));
+    assert_eq!(a_values.next(), None);
 }
