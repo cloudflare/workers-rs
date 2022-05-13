@@ -12,13 +12,13 @@ readme = "../README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-async-trait = "0.1.53"
-chrono = { version = "0.4.19", default-features = false, features = ["wasmbind"] }
-chrono-tz = { version = "0.6.1", default-features = false }
-futures = "0.3.21"
-http = "0.2.6"
-js-sys = "0.3.57"
-matchit = "0.4.6"
+async-trait = "0.1.50"
+chrono = { version = "0.4", default-features = false, features = ["wasmbind"] }
+chrono-tz = { version = "0.6", default-features = false }
+futures = "0.3.16"
+http = "0.2.4"
+js-sys = "0.3.55"
+matchit = "0.4.2"
 pin-project = "1.0.10"
 serde = { version = "1.0.136", features = ["derive"] }
 serde_json = "1.0.79"

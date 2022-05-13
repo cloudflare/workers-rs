@@ -14,7 +14,7 @@ use wasm_bindgen::JsValue;
 use web_sys::ReadableStream;
 use worker_sys::{response_init::ResponseInit as EdgeResponseInit, Response as EdgeResponse};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ResponseBody {
     Empty,
     Body(Vec<u8>),

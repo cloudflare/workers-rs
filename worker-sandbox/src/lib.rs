@@ -5,6 +5,7 @@ use std::{
 
 use blake2::{Blake2b512, Digest};
 use futures::{future::Either, StreamExt, TryStreamExt};
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use worker::*;
 
@@ -552,6 +553,87 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         .get("/init-called", |_, _| {
             let init_called = GLOBAL_STATE.load(Ordering::SeqCst);
             Response::ok(init_called.to_string())
+        })
+        .get_async("/cache-example", |req, _| async move {
+            console_log!("url: {}", req.url()?.to_string());
+            let cache = Cache::default();
+            let key = req.url()?.to_string();
+            if let Some(resp) = cache.get(&key, true).await? {
+                console_log!("Cache HIT!");
+                Ok(resp)
+            } else {
+
+                console_log!("Cache MISS!");
+                let mut resp = Response::from_json(&serde_json::json!({ "timestamp": Date::now().as_millis() }))?;
+
+                // Cache API respects Cache-Control headers. Setting s-max-age to 10
+                // will limit the response to be in cache for 10 seconds max
+                resp.headers_mut().set("cache-control", "s-maxage=10")?;
+                cache.put(key, resp.cloned()?).await?;
+                Ok(resp)
+            }
+        })
+        .get_async("/cache-api/get/:key", |_req, ctx| async move {
+            if let Some(key) = ctx.param("key") {
+                let cache = Cache::default();
+                if let Some(resp) = cache.get(format!("https://{}", key), true).await? {
+                    return Ok(resp);
+                } else {
+                    return Response::ok("cache miss");
+                }
+            }
+            Response::error("key missing", 400)
+        })
+        .put_async("/cache-api/put/:key", |_req, ctx| async move {
+            if let Some(key) = ctx.param("key") {
+                let cache = Cache::default();
+
+                let mut resp = Response::from_json(&serde_json::json!({ "timestamp": Date::now().as_millis() }))?;
+
+                // Cache API respects Cache-Control headers. Setting s-max-age to 10
+                // will limit the response to be in cache for 10 seconds max
+                resp.headers_mut().set("cache-control", "s-maxage=10")?;
+                cache.put(format!("https://{}", key), resp.cloned()?).await?;
+                return Ok(resp);
+            }
+            Response::error("key missing", 400)
+        })
+        .post_async("/cache-api/delete/:key", |_req, ctx| async move {
+            if let Some(key) = ctx.param("key") {
+                let cache = Cache::default();
+
+                let res = cache.delete(format!("https://{}", key), true).await?;
+                return Response::ok(serde_json::to_string(&res)?);
+            }
+            Response::error("key missing", 400)
+        })
+        .get_async("/cache-stream", |req, _| async move {
+            console_log!("url: {}", req.url()?.to_string());
+            let cache = Cache::default();
+            let key = req.url()?.to_string();
+            if let Some(resp) = cache.get(&key, true).await? {
+                console_log!("Cache HIT!");
+                Ok(resp)
+            } else {
+                console_log!("Cache MISS!");
+                let mut rng = rand::thread_rng();
+                let count = rng.gen_range(0..10);
+                let stream = futures::stream::repeat("Hello, world!\n")
+                    .take(count)
+                    .then(|text| async move {
+                        Delay::from(Duration::from_millis(50)).await;
+                        Result::Ok(text.as_bytes().to_vec())
+                    });
+
+                let mut resp = Response::from_stream(stream)?;
+                console_log!("resp = {:?}", resp);
+                // Cache API respects Cache-Control headers. Setting s-max-age to 10
+                // will limit the response to be in cache for 10 seconds max
+                resp.headers_mut().set("cache-control", "s-maxage=10")?;
+
+                cache.put(key, resp.cloned()?).await?;
+                Ok(resp)
+            }
         })
         .or_else_any_method_async("/*catchall", |_, ctx| async move {
             console_log!(
