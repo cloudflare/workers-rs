@@ -1,12 +1,13 @@
 use std::ops::Deref;
 
+use wasm_bindgen::JsCast;
+use wasm_bindgen_futures::JsFuture;
+
+use worker_sys::{RequestInit as EdgeRequestInit, Response as EdgeResponse, WorkerGlobalScope};
+
 use crate::{
     request::Request as WorkerRequest, response::Response as WorkerResponse, AbortSignal, Result,
 };
-use worker_sys::{RequestInit as EdgeRequestInit, Response as EdgeResponse, WorkerGlobalScope};
-
-use wasm_bindgen::JsCast;
-use wasm_bindgen_futures::JsFuture;
 
 /// Construct a Fetch call from a URL string or a Request object. Call its `send` method to execute
 /// the request.
