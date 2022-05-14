@@ -14,6 +14,7 @@ pub use wasm_bindgen;
 #[doc(hidden)]
 pub use wasm_bindgen_futures;
 pub use worker_kv as kv;
+pub use remote_service::RemoteService;
 
 pub use cf::Cf;
 pub use worker_macros::{durable_object, event};
@@ -56,6 +57,7 @@ mod formdata;
 mod global;
 mod headers;
 mod http;
+mod remote_service;
 mod request;
 mod request_init;
 mod response;

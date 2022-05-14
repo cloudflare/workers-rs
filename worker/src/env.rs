@@ -1,5 +1,6 @@
 use crate::durable::ObjectNamespace;
 use crate::error::Error;
+use crate::remote_service::RemoteService;
 use crate::Result;
 
 use js_sys::Object;
@@ -44,6 +45,11 @@ impl Env {
 
     /// Access a Durable Object namespace by the binding name configured in your wrangler.toml file.
     pub fn durable_object(&self, binding: &str) -> Result<ObjectNamespace> {
+        self.get_binding(binding)
+    }
+
+    /// Access Service bindings by the binding name configured in your wrangler.toml file.
+    pub fn remote_service(&self, binding: &str) -> Result<RemoteService> {
         self.get_binding(binding)
     }
 }

@@ -9,6 +9,7 @@ use crate::{
     durable::ObjectNamespace,
     env::{Env, Secret, Var},
     http::Method,
+    remote_service::RemoteService,
     request::Request,
     response::Response,
     Result,
@@ -89,6 +90,11 @@ impl<D> RouteContext<D> {
     /// Get a Durable Object Namespace associated with this Worker, should one exist.
     pub fn durable_object(&self, binding: &str) -> Result<ObjectNamespace> {
         self.env.durable_object(binding)
+    }
+
+    /// Get a Remote Service associated with this Worker, should one exist.
+    pub fn remote_service(&self, binding: &str) -> Result<RemoteService> {
+        self.env.remote_service(binding)
     }
 
     /// Get a URL parameter parsed by the router, by the name of its match or wildecard placeholder.
