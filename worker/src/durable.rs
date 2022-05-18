@@ -22,7 +22,8 @@ use crate::{
 };
 
 use async_trait::async_trait;
-use js_sys::{Map, Object};
+use chrono::{DateTime, Utc};
+use js_sys::{Map, Number, Object};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::{prelude::*, JsCast};
 use worker_sys::{
@@ -311,6 +312,41 @@ impl Storage {
             .map_err(Error::from)
     }
 
+    /// Retrieves the current alarm time (if set) as integer milliseconds since epoch.
+    /// The alarm is considered to be set if it has not started, or if it has failed
+    /// and any retry has not begun. If no alarm is set, `get_alarm()` returns `None`.
+    pub async fn get_alarm(&self) -> Result<Option<i64>> {
+        let fut: JsFuture = self.inner.get_alarm_internal()?.into();
+        fut.await
+            .map(|jsv| jsv.as_f64().map(|f| f as i64))
+            .map_err(Error::from)
+    }
+
+    /// Sets the current alarm time to the given datetime.
+    ///
+    /// If `set_alarm()` is called with a time equal to or before Date.now(), the alarm
+    /// will be scheduled for asynchronous execution in the immediate future. If the
+    /// alarm handler is currently executing in this case, it will not be canceled.
+    /// Alarms can be set to millisecond granularity and will usually execute within
+    /// a few milliseconds after the set time, but can be delayed by up to a minute
+    /// due to maintenance or failures while failover takes place.
+    pub async fn set_alarm(&self, scheduled_time: DateTime<Utc>) -> Result<()> {
+        let fut: JsFuture = self
+            .inner
+            .set_alarm_internal(js_sys::Date::new(&Number::from(
+                scheduled_time.timestamp_millis() as f64,
+            )))?
+            .into();
+        fut.await.map(|_| ()).map_err(Error::from)
+    }
+
+    /// Deletes the alarm if one exists. Does not cancel the alarm handler if it is
+    /// currently executing.
+    pub async fn delete_alarm(&self) -> Result<()> {
+        let fut: JsFuture = self.inner.delete_alarm_internal()?.into();
+        fut.await.map(|_| ()).map_err(Error::from)
+    }
+
     // TODO(nilslice): follow up with runtime team on transaction API in general
     // This function doesn't work on stable yet because the wasm_bindgen `Closure` type is still nightly-gated
     // #[allow(dead_code)]
@@ -565,4 +601,7 @@ impl DurableObject for Chatroom {
 pub trait DurableObject {
     fn new(state: State, env: Env) -> Self;
     async fn fetch(&mut self, req: Request) -> Result<Response>;
+    async fn alarm(&mut self) -> Result<Response> {
+        unimplemented!("alarm() handler not implemented")
+    }
 }

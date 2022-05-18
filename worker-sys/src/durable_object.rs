@@ -115,6 +115,18 @@ extern "C" {
         this: &ObjectStorage,
         closure: &Closure<dyn FnMut(ObjectTransaction)>,
     ) -> StdResult<::js_sys::Promise, JsValue>;
+
+    #[wasm_bindgen(catch, method, js_class = "DurableObjectStorage", js_name = getAlarm)]
+    pub fn get_alarm_internal(this: &ObjectStorage) -> StdResult<::js_sys::Promise, JsValue>;
+
+    #[wasm_bindgen(catch, method, js_class = "DurableObjectStorage", js_name = setAlarm)]
+    pub fn set_alarm_internal(
+        this: &ObjectStorage,
+        scheduled_time: js_sys::Date,
+    ) -> StdResult<::js_sys::Promise, JsValue>;
+
+    #[wasm_bindgen(catch, method, js_class = "DurableObjectStorage", js_name = deleteAlarm)]
+    pub fn delete_alarm_internal(this: &ObjectStorage) -> StdResult<::js_sys::Promise, JsValue>;
 }
 
 #[wasm_bindgen]
