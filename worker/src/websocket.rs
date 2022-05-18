@@ -1,6 +1,6 @@
 use crate::{Error, Fetch, Method, Request, Result};
-use futures::channel::mpsc::UnboundedReceiver;
-use futures::Stream;
+use futures_channel::mpsc::UnboundedReceiver;
+use futures_util::Stream;
 use serde::Serialize;
 use url::Url;
 
@@ -174,7 +174,7 @@ impl WebSocket {
     /// Gets an implementation [`Stream`](futures::Stream) that yields events from the inner
     /// WebSocket.
     pub fn events(&self) -> Result<EventStream> {
-        let (tx, rx) = futures::channel::mpsc::unbounded::<Result<WebsocketEvent>>();
+        let (tx, rx) = futures_channel::mpsc::unbounded::<Result<WebsocketEvent>>();
         let tx = Rc::new(tx);
 
         let close_closure = self.add_event_handler("close", {
@@ -259,7 +259,7 @@ impl<'ws> Stream for EventStream<'ws> {
         }
 
         // Poll the inner receiver to check if theres any events from our event callbacks.
-        let item = futures::ready!(this.rx.poll_next(cx));
+        let item = futures_util::ready!(this.rx.poll_next(cx));
 
         // Mark the stream as closed if we get a close event and yield None next iteration.
         if let Some(item) = &item {

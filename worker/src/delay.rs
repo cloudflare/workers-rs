@@ -1,12 +1,12 @@
 use std::{
     cell::Cell,
+    future::Future,
     pin::Pin,
     rc::Rc,
     task::{Context, Poll},
     time::Duration,
 };
 
-use futures::Future;
 use wasm_bindgen::prelude::Closure;
 use worker_sys::global::clear_timeout;
 
