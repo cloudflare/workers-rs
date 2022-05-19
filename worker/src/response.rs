@@ -5,8 +5,7 @@ use crate::ByteStream;
 use crate::Result;
 use crate::WebSocket;
 
-use futures::TryStream;
-use futures::TryStreamExt;
+use futures_util::{TryStream, TryStreamExt};
 use js_sys::Uint8Array;
 use serde::{de::DeserializeOwned, Serialize};
 use wasm_bindgen::JsCast;

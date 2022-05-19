@@ -1,7 +1,6 @@
-use std::collections::HashMap;
-use std::rc::Rc;
+use std::{collections::HashMap, future::Future, rc::Rc};
 
-use futures::{future::LocalBoxFuture, Future};
+use futures_util::future::LocalBoxFuture;
 use matchit::{Match, Node};
 use worker_kv::KvStore;
 
