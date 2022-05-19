@@ -4,7 +4,7 @@ use std::{
 };
 
 use blake2::{Blake2b512, Digest};
-use futures::{future::Either, StreamExt, TryStreamExt};
+use futures_util::{future::Either, StreamExt, TryStreamExt};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use worker::*;
@@ -430,7 +430,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             let controller = AbortController::default();
             let signal = controller.signal();
 
-            let (tx, rx) = futures::channel::oneshot::channel();
+            let (tx, rx) = futures_channel::oneshot::channel();
 
             // Spawns a future that'll make our fetch request and not block this function.
             wasm_bindgen_futures::spawn_local({
@@ -467,10 +467,10 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                 Response::ok("Cancelled")
             };
 
-            futures::pin_mut!(fetch_fut);
-            futures::pin_mut!(delay_fut);
+            futures_util::pin_mut!(fetch_fut);
+            futures_util::pin_mut!(delay_fut);
 
-            match futures::future::select(delay_fut, fetch_fut).await {
+            match futures_util::future::select(delay_fut, fetch_fut).await {
                 Either::Left((res, cancelled_fut)) => {
                     // Ensure that the cancelled future returns an AbortError.
                     match cancelled_fut.await {
@@ -505,7 +505,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             Response::ok((left == right).to_string())
         })
         .get_async("/cloned-stream", |_, _| async {
-            let stream = futures::stream::repeat(())
+            let stream = futures_util::stream::repeat(())
                 .take(10)
                 .enumerate()
                 .then(|(index, _)| async move {
@@ -618,7 +618,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                 console_log!("Cache MISS!");
                 let mut rng = rand::thread_rng();
                 let count = rng.gen_range(0..10);
-                let stream = futures::stream::repeat("Hello, world!\n")
+                let stream = futures_util::stream::repeat("Hello, world!\n")
                     .take(count)
                     .then(|text| async move {
                         Delay::from(Duration::from_millis(50)).await;
