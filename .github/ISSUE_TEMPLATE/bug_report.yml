@@ -1,0 +1,39 @@
+name: 🐞 Bug Report
+description: File a bug/issue
+title: "[BUG] <title>"
+body:
+- type: markdown
+  attributes:
+    value: |
+      ## Bug Report Form
+      Thank you for taking the time to file a bug report! Please fill out this form as completely as possible.
+- type: checkboxes
+  attributes:
+    label: Is there an existing issue for this?
+    description: Please search to see if an issue already exists for the bug you encountered.
+    options:
+    - label: I have searched the existing issues
+      required: true
+- type: input
+  attributes:
+    label: What version of `workers-rs` are you using?
+    placeholder: 0.0.0
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Describe the bug
+    description: A concise description of what you're experiencing and the expected behavior.
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Steps To Reproduce
+    description: Steps to reproduce the behavior.
+    placeholder: |
+      1. In this environment...
+      2. With this config...
+      3. Run '...'
+      4. See error...
+  validations:
+    required: false
