@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::headers::Headers;
-use crate::http::Method;
+use crate::method::Method;
 
 use js_sys::{self, Object};
 use wasm_bindgen::{prelude::*, JsValue};

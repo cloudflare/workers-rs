@@ -142,6 +142,10 @@ impl Cf {
     }
 }
 
+/// Single threaded runtime so definitely totally safe! ... right?
+unsafe impl Send for Cf {}
+unsafe impl Sync for Cf {}
+
 /// Browser-requested prioritization information.
 #[derive(Debug, Clone, Copy)]
 pub struct RequestPriority {

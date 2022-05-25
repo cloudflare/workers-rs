@@ -1,7 +1,8 @@
 use std::convert::TryFrom;
 
 use crate::{
-    cf::Cf, error::Error, headers::Headers, http::Method, ByteStream, FormData, RequestInit, Result,
+    cf::Cf, error::Error, headers::Headers, method::Method, ByteStream, FormData, RequestInit,
+    Result,
 };
 
 use serde::de::DeserializeOwned;

@@ -60,3 +60,9 @@ extern "C" {
     #[wasm_bindgen(structural, method, getter, js_class=Request, js_name=cf)]
     pub fn cf(this: &Request) -> Cf;
 }
+
+/// SAFETY: Workers run on a single threaded isolate and therefore Requests will
+/// not be sent across threads. (???)
+unsafe impl Send for Request {}
+/// SAFETY: (???)
+unsafe impl Sync for Request {}

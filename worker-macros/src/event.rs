@@ -15,6 +15,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let mut handler_type = None;
     let mut respond_with_errors = false;
+    let mut http_support = false;
 
     for attr in attrs {
         match attr.to_string().as_str() {
@@ -23,6 +24,9 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             "start" => handler_type = Some(Start),
             "respond_with_errors" => {
                 respond_with_errors = true;
+            }
+            "http" => {
+                http_support = true;
             }
             _ => panic!("Invalid attribute: {}", attr),
         }
@@ -57,6 +61,16 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             };
 
+            let request_transform = if http_support {
+                quote! {
+                    let request: ::worker::http::Request<::worker::ByteStream> = ::worker::http_types::EdgeRequest(req).try_into().unwrap();
+                }
+            } else {
+                quote! {
+                    let request = ::worker::Request::from(req);
+                }
+            };
+
             // create a new "main" function that takes the worker_sys::Request, and calls the
             // original attributed function, passing in a converted worker::Request
             let wrapper_fn = quote! {
@@ -65,10 +79,18 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                     env: ::worker::Env,
                     ctx: ::worker::worker_sys::Context
                 ) -> ::worker::worker_sys::Response {
+                    use std::convert::{TryFrom, TryInto};
+
                     let ctx = worker::Context::new(ctx);
+
+                    #request_transform
+
                     // get the worker::Result<worker::Response> by calling the original fn
-                    match #input_fn_ident(::worker::Request::from(req), env, ctx).await.map(::worker::worker_sys::Response::from) {
-                        Ok(res) => res,
+                    match #input_fn_ident(request, env, ctx).await {
+                        Ok(resp) => {
+                            let resp: ::worker::Response = resp.try_into().unwrap();
+                            resp.try_into().unwrap()
+                        },
                         Err(e) => {
                             ::worker::console_log!("{}", &e);
                             #error_handling

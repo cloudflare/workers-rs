@@ -7,7 +7,7 @@ use worker_kv::KvStore;
 use crate::{
     durable::ObjectNamespace,
     env::{Env, Secret, Var},
-    http::Method,
+    method::Method,
     request::Request,
     response::Response,
     Result,

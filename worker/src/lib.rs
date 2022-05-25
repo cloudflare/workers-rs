@@ -33,7 +33,7 @@ pub use crate::error::Error;
 pub use crate::formdata::*;
 pub use crate::global::Fetch;
 pub use crate::headers::Headers;
-pub use crate::http::Method;
+pub use crate::method::Method;
 pub use crate::request::Request;
 pub use crate::request_init::*;
 pub use crate::response::{Response, ResponseBody};
@@ -55,7 +55,8 @@ mod error;
 mod formdata;
 mod global;
 mod headers;
-mod http;
+pub mod http_types;
+mod method;
 mod request;
 mod request_init;
 mod response;
@@ -65,3 +66,6 @@ mod streams;
 mod websocket;
 
 pub type Result<T> = StdResult<T, error::Error>;
+
+pub use ::http;
+pub type HttpRequest = ::http::Request<ByteStream>;
