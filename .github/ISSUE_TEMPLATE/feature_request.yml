@@ -1,0 +1,22 @@
+name: ⭐ Feature Request
+description: Submit a feature request
+title: "[Feature] <title>"
+body:
+- type: markdown
+  attributes:
+    value: |
+      ## Feature Request Form
+      Thanks for submitting a feature request! Please fill out this form as completely as possible.
+- type: checkboxes
+  attributes:
+    label: Is there an existing issue for this?
+    description: Please search to see if an issue already exists for the bug you encountered.
+    options:
+    - label: I have searched the existing issues
+      required: true
+- type: textarea
+  attributes:
+    label: Description
+    description: A concise description of the feature requested.
+  validations:
+    required: true

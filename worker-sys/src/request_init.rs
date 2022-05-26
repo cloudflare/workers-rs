@@ -86,6 +86,7 @@ impl Default for RequestInit {
     }
 }
 
+#[allow(clippy::manual_non_exhaustive)]
 #[wasm_bindgen]
 #[doc = "The `RequestRedirect` enum."]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -3,7 +3,7 @@ use std::{
     task::{Context, Poll},
 };
 
-use futures::Stream;
+use futures_util::Stream;
 use js_sys::Uint8Array;
 use pin_project::pin_project;
 use wasm_streams::readable::IntoStream;
@@ -22,7 +22,7 @@ impl Stream for ByteStream {
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let this = self.project();
-        let item = match futures::ready!(this.inner.poll_next(cx)) {
+        let item = match futures_util::ready!(this.inner.poll_next(cx)) {
             Some(res) => res.map(Uint8Array::from).map_err(Error::from),
             None => return Poll::Ready(None),
         };

@@ -1,5 +1,6 @@
 use wasm_bindgen::prelude::*;
 
+use crate::cache::Caches;
 use crate::{Request, RequestInit};
 
 #[wasm_bindgen]
@@ -46,8 +47,18 @@ extern "C" {
         init: &RequestInit,
     ) -> ::js_sys::Promise;
 
+    #[wasm_bindgen(js_name = setTimeout)]
+    pub fn set_timeout(closure: &Closure<dyn FnMut()>, millis: u32) -> u32;
+
+    #[wasm_bindgen(js_name = clearTimeout)]
+    pub fn clear_timeout(id: u32);
+
     #[wasm_bindgen(js_namespace = console)]
     pub fn debug(s: &str);
+
+    #[wasm_bindgen(method, structural, getter, js_class = "WorkerGlobalScope")]
+    #[doc = "Provides access to the [caches](https://developers.cloudflare.com/workers/runtime-apis/cache) global"]
+    pub fn caches(this: &WorkerGlobalScope) -> Caches;
 
     #[wasm_bindgen(js_namespace = console)]
     pub fn log(s: &str);

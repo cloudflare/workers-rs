@@ -13,31 +13,34 @@ path = "src/lib.rs"
 default = ["console_error_panic_hook"]
 
 [dependencies]
-blake2 = "0.9.2"
-chrono = { version = "0.4", default-features = false, features = [
+blake2 = "0.10.4"
+chrono = { version = "0.4.19", default-features = false, features = [
     "wasmbind",
     "clock",
 ] }
-cfg-if = "0.1.2"
-console_error_panic_hook = { version = "0.1.1", optional = true }
-getrandom = { version = "0.2", features = ["js"] }
+cfg-if = "1.0.0"
+console_error_panic_hook = { version = "0.1.7", optional = true }
+getrandom = { version = "0.2.6", features = ["js"] }
 hex = "0.4.3"
-http = "0.2.4"
-regex = "1.5.4"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-wee_alloc = { version = "0.4.2", optional = true }
+http = "0.2.6"
+regex = "1.5.5"
+serde = { version = "1.0.136", features = ["derive"] }
+serde_json = "1.0.79"
+wee_alloc = { version = "0.4.5", optional = true }
 worker = { path = "../worker", version = "0.0.9" }
-futures = "0.3.21"
+futures-channel = "0.3.21"
+futures-util = { version = "0.3.21", default-features = false }
+rand = "0.8.5"
 
 [dev-dependencies]
-futures = "0.3.21"
-reqwest = { version = "0.11.9", features = [
+futures-channel = { version = "0.3.21", features = ["sink"] }
+futures-util = { version = "0.3.21", default-features = false, features = ["sink"] }
+reqwest = { version = "0.11.10", features = [
     "blocking",
     "json",
     "multipart",
     "stream",
 ] }
-tokio = { version = "1.16.1", features = ["macros", "rt", "test-util"] }
-tungstenite = "0.16.0"
-wasm-bindgen-test = "0.2"
+tokio = { version = "1.17.0", features = ["macros", "rt", "test-util"] }
+tungstenite = "0.17.2"
+wasm-bindgen-test = "0.3.30"

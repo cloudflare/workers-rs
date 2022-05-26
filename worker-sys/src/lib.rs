@@ -1,4 +1,7 @@
+#![allow(clippy::manual_non_exhaustive)]
+
 pub mod abort;
+pub mod cache;
 pub mod cf;
 pub mod context;
 pub mod durable_object;
@@ -47,7 +50,7 @@ pub mod prelude {
     pub use crate::durable_object;
     pub use crate::file::File;
     pub use crate::formdata::FormData;
-    pub use crate::global::WorkerGlobalScope;
+    pub use crate::global::{set_timeout, WorkerGlobalScope};
     pub use crate::headers::Headers;
     pub use crate::request::Request;
     pub use crate::request_init::*;

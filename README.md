@@ -107,16 +107,12 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
 
 ## Getting Started
 
-Make sure you have [`wrangler`](https://github.com/cloudflare/wrangler) installed at a recent
-version (>=v1.19.2). If you want to publish your Rust worker code, you will need to have a
-[Cloudflare account](https://cloudflare.com).
+The project uses [wrangler](https://github.com/cloudflare/wrangler2) version 2.x for running and publishing your Worker.
 
-Run `wrangler --version` to check your installation and if it meets the version requirements.
-
+Get the Rust worker project [template](https://github.com/cloudflare/templates/tree/main/worker-rust) manually, or run the following command:
 ```bash
-wrangler generate --type=rust project_name
+npm init cloudflare project_name worker-rust
 cd project_name
-wrangler build
 ```
 
 You should see a new project layout with a `src/lib.rs`. Start there! Use any local or remote crates
@@ -124,17 +120,25 @@ and modules (as long as they compile to the `wasm32-unknown-unknown` target).
 
 Once you're ready to run your project:
 
+First check that the wrangler version is 2.x
 ```bash
-wrangler dev
+npx wrangler --version
 ```
 
-And then go live:
+Then, run your worker
+
+```bash
+npx wrangler dev
+```
+
+Finally, go live:
 
 ```bash
 # configure your routes, zones & more in your worker's `wrangler.toml` file
-wrangler publish
+npx wrangler publish
 ```
 
+If you would like to have `wrangler` installed on your machine, see instrunctions in [wrangler repository](https://github.com/cloudflare/wrangler2).
 ## Durable Object, KV, Secret, & Variable Bindings
 
 All "bindings" to your script (Durable Object & KV Namespaces, Secrets, and Variables) are

@@ -1,7 +1,11 @@
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::{
+    sync::atomic::{AtomicBool, Ordering},
+    time::Duration,
+};
 
-use blake2::{Blake2b, Digest};
-use futures::{StreamExt, TryStreamExt};
+use blake2::{Blake2b512, Digest};
+use futures_util::{future::Either, StreamExt, TryStreamExt};
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use worker::*;
 
@@ -243,7 +247,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                         };
 
                         // hash the file, and use result as the key
-                        let mut hasher = Blake2b::new();
+                        let mut hasher = Blake2b512::new();
                         hasher.update(b);
                         let hash = hasher.finalize();
                         let key = hex::encode(&hash[..]);
@@ -426,7 +430,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             let controller = AbortController::default();
             let signal = controller.signal();
 
-            let (tx, rx) = futures::channel::oneshot::channel();
+            let (tx, rx) = futures_channel::oneshot::channel();
 
             // Spawns a future that'll make our fetch request and not block this function.
             wasm_bindgen_futures::spawn_local({
@@ -449,6 +453,37 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
 
             Ok(res)
         })
+        .get_async("/fetch-timeout", |_, _| async move {
+            let controller = AbortController::default();
+            let signal = controller.signal();
+
+            let fetch_fut = async {
+                let fetch = Fetch::Url("http://localhost:8787/wait/200".parse().unwrap());
+                fetch.send_with_signal(&signal).await
+            };
+            let delay_fut = async {
+                Delay::from(Duration::from_millis(100)).await;
+                controller.abort();
+                Response::ok("Cancelled")
+            };
+
+            futures_util::pin_mut!(fetch_fut);
+            futures_util::pin_mut!(delay_fut);
+
+            match futures_util::future::select(delay_fut, fetch_fut).await {
+                Either::Left((res, cancelled_fut)) => {
+                    // Ensure that the cancelled future returns an AbortError.
+                    match cancelled_fut.await {
+                        Err(e) if e.to_string().starts_with("AbortError") => { /* Yay! It worked, let's do nothing to celebrate */},
+                        Err(e) => panic!("Fetch errored with a different error than expected: {:#?}", e),
+                        Ok(_) => panic!("Fetch unexpectedly succeeded")
+                    }
+
+                    res
+                },
+                Either::Right(_) => panic!("Delay future should have resolved first"),
+            }
+        })
         .get("/redirect-default", |_, _| {
             Response::redirect("https://example.com".parse().unwrap())
         })
@@ -460,12 +495,145 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             let js_date: Date = now.into();
             Response::ok(js_date.to_string())
         })
+        .get_async("/cloned", |_, _| async {
+            let mut resp = Response::ok("Hello")?;
+            let mut resp1 = resp.cloned()?;
+
+            let left = resp.text().await?;
+            let right = resp1.text().await?;
+
+            Response::ok((left == right).to_string())
+        })
+        .get_async("/cloned-stream", |_, _| async {
+            let stream = futures_util::stream::repeat(())
+                .take(10)
+                .enumerate()
+                .then(|(index, _)| async move {
+                    Delay::from(Duration::from_millis(100)).await;
+                    Result::Ok(index.to_string().into_bytes())
+                });
+
+            let mut resp = Response::from_stream(stream)?;
+            let mut resp1 = resp.cloned()?;
+
+            let left = resp.text().await?;
+            let right = resp1.text().await?;
+
+            Response::ok((left == right).to_string())
+        })
+        .get_async("/cloned-fetch", |_, _| async {
+            let mut resp = Fetch::Url(
+                "https://jsonplaceholder.typicode.com/todos/1"
+                    .parse()
+                    .unwrap(),
+            )
+            .send()
+            .await?;
+            let mut resp1 = resp.cloned()?;
+
+            let left = resp.text().await?;
+            let right = resp1.text().await?;
+
+            Response::ok((left == right).to_string())
+        })
+        .get_async("/wait/:delay", |_, ctx| async move {
+            let delay: Delay = match ctx.param("delay").unwrap().parse() {
+                Ok(delay) => Duration::from_millis(delay).into(),
+                Err(_) => return Response::error("invalid delay", 400),
+            };
+
+            // Wait for the delay to pass
+            delay.await;
+
+            Response::ok("Waited!\n")
+        })
         .get("/custom-response-body", |_, _| {
             Response::from_body(ResponseBody::Body(vec![b'h', b'e', b'l', b'l', b'o']))
         })
         .get("/init-called", |_, _| {
             let init_called = GLOBAL_STATE.load(Ordering::SeqCst);
             Response::ok(init_called.to_string())
+        })
+        .get_async("/cache-example", |req, _| async move {
+            console_log!("url: {}", req.url()?.to_string());
+            let cache = Cache::default();
+            let key = req.url()?.to_string();
+            if let Some(resp) = cache.get(&key, true).await? {
+                console_log!("Cache HIT!");
+                Ok(resp)
+            } else {
+
+                console_log!("Cache MISS!");
+                let mut resp = Response::from_json(&serde_json::json!({ "timestamp": Date::now().as_millis() }))?;
+
+                // Cache API respects Cache-Control headers. Setting s-max-age to 10
+                // will limit the response to be in cache for 10 seconds max
+                resp.headers_mut().set("cache-control", "s-maxage=10")?;
+                cache.put(key, resp.cloned()?).await?;
+                Ok(resp)
+            }
+        })
+        .get_async("/cache-api/get/:key", |_req, ctx| async move {
+            if let Some(key) = ctx.param("key") {
+                let cache = Cache::default();
+                if let Some(resp) = cache.get(format!("https://{}", key), true).await? {
+                    return Ok(resp);
+                } else {
+                    return Response::ok("cache miss");
+                }
+            }
+            Response::error("key missing", 400)
+        })
+        .put_async("/cache-api/put/:key", |_req, ctx| async move {
+            if let Some(key) = ctx.param("key") {
+                let cache = Cache::default();
+
+                let mut resp = Response::from_json(&serde_json::json!({ "timestamp": Date::now().as_millis() }))?;
+
+                // Cache API respects Cache-Control headers. Setting s-max-age to 10
+                // will limit the response to be in cache for 10 seconds max
+                resp.headers_mut().set("cache-control", "s-maxage=10")?;
+                cache.put(format!("https://{}", key), resp.cloned()?).await?;
+                return Ok(resp);
+            }
+            Response::error("key missing", 400)
+        })
+        .post_async("/cache-api/delete/:key", |_req, ctx| async move {
+            if let Some(key) = ctx.param("key") {
+                let cache = Cache::default();
+
+                let res = cache.delete(format!("https://{}", key), true).await?;
+                return Response::ok(serde_json::to_string(&res)?);
+            }
+            Response::error("key missing", 400)
+        })
+        .get_async("/cache-stream", |req, _| async move {
+            console_log!("url: {}", req.url()?.to_string());
+            let cache = Cache::default();
+            let key = req.url()?.to_string();
+            if let Some(resp) = cache.get(&key, true).await? {
+                console_log!("Cache HIT!");
+                Ok(resp)
+            } else {
+                console_log!("Cache MISS!");
+                let mut rng = rand::thread_rng();
+                let count = rng.gen_range(0..10);
+                let stream = futures_util::stream::repeat("Hello, world!\n")
+                    .take(count)
+                    .then(|text| async move {
+                        Delay::from(Duration::from_millis(50)).await;
+                        Result::Ok(text.as_bytes().to_vec())
+                    });
+
+                let mut resp = Response::from_stream(stream)?;
+                console_log!("resp = {:?}", resp);
+                // Cache API respects Cache-Control headers. Setting s-max-age to 10
+                // will limit the response to be in cache for 10 seconds max
+                resp.headers_mut().set("cache-control", "s-maxage=10")?;
+
+                cache.put(key, resp.cloned()?).await?;
+                Ok(resp)
+            }
         })
         .get_async("/*catchall", |_, ctx| async move {
             console_log!(

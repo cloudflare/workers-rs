@@ -1,4 +1,7 @@
-use futures::{channel::mpsc, SinkExt, StreamExt};
+use std::time::{Duration, Instant};
+
+use futures_channel::mpsc;
+use futures_util::{SinkExt, StreamExt};
 use http::StatusCode;
 use reqwest::{
     blocking::{
@@ -251,6 +254,12 @@ fn cancelled_fetch() {
 }
 
 #[test]
+fn fetch_timeout() {
+    let body = get("fetch-timeout", |r| r).text().unwrap();
+    assert_eq!(body, "Cancelled");
+}
+
+#[test]
 fn request_init_fetch_post() {
     #[derive(Deserialize)]
     struct Data {
@@ -300,13 +309,37 @@ fn redirect_307() {
 fn now() {
     // JavaScript doesn't use a date format that chrono can natively parse, so we'll just assume
     // any 200 status code is a pass.
-    let _ = get("now", |r| r);
+    get("now", |r| r);
+}
+
+#[test]
+fn cloned() {
+    let resp = get("cloned", |r| r);
+    assert_eq!(resp.text().unwrap(), "true")
+}
+
+#[test]
+fn cloned_stream() {
+    let resp = get("cloned-stream", |r| r);
+    assert_eq!(resp.text().unwrap(), "true")
+}
+
+#[test]
+fn cloned_fetch() {
+    let resp = get("cloned-fetch", |r| r);
+    assert_eq!(resp.text().unwrap(), "true")
+}
+
+#[test]
+fn wait() {
+    const MILLIS: u64 = 100;
+    let then = Instant::now();
+    get(&format!("wait/{MILLIS}"), |r| r);
+    assert!(then.elapsed() >= Duration::from_millis(MILLIS));
 }
 
 #[test]
 fn custom_response_body() {
-    // JavaScript doesn't use a date format that chrono can natively parse, so we'll just assume
-    // any 200 status code is a pass.
     let body = get("custom-response-body", |r| r).bytes().unwrap();
     assert_eq!(body.to_vec(), b"hello");
 }
@@ -363,4 +396,64 @@ async fn xor() {
 
     // Ensure that closing our request stream ends the body.
     assert!(res_stream.next().await.is_none());
+}
+
+#[test]
+fn cache_example() {
+    // The first request should be a miss, and the request should be cached
+    let body: serde_json::Value = get("cache-example", |r| r).json().unwrap();
+    let expected_ts = &body["timestamp"];
+
+    // The subsequent request should now be cache hits, so the API should return same
+    // timestamp as first request
+    for _ in 0..5 {
+        let body: serde_json::Value = get("cache-example", |r| r).json().unwrap();
+        let curr_ts = &body["timestamp"];
+
+        assert_eq!(expected_ts, curr_ts);
+    }
+}
+
+#[test]
+fn cache_stream() {
+    // The first request should be a miss, and the request should be cached
+    let expected_body = get("cache-stream", |r| r).text().unwrap();
+
+    // The subsequent request should now be cache hits, so the API should return same body
+    for _ in 0..5 {
+        let curr_body = get("cache-stream", |r| r).text().unwrap();
+        assert_eq!(expected_body, curr_body);
+    }
+}
+
+#[test]
+fn cache_api() {
+    let key = "example.org";
+    let get_endpoint = format!("cache-api/get/{}", key);
+    let put_endpoint = format!("cache-api/put/{}", key);
+    let delete_endpoint = format!("cache-api/delete/{}", key);
+
+    // First time should result in cache miss
+    let body = get(get_endpoint.as_str(), |r| r).text().unwrap();
+    assert_eq!(body, "cache miss");
+
+    // Add key to cache
+    let body: serde_json::Value = put(put_endpoint.as_str(), |r| r).json().unwrap();
+    let expected_ts = &body["timestamp"];
+
+    // Should now be cache hit
+    let body: serde_json::Value = get(get_endpoint.as_str(), |r| r).json().unwrap();
+    assert_eq!(expected_ts, &body["timestamp"]);
+
+    // Delete key from cache
+    let body: serde_json::Value = post(delete_endpoint.as_str(), |r| r).json().unwrap();
+    assert_eq!("Success", body);
+
+    // Make sure key is now deleted
+    let body = get(get_endpoint.as_str(), |r| r).text().unwrap();
+    assert_eq!(body, "cache miss");
+
+    // Another delete should fail
+    let body: serde_json::Value = post(delete_endpoint.as_str(), |r| r).json().unwrap();
+    assert_eq!("ResponseNotFound", body);
 }
