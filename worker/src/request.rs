@@ -232,13 +232,18 @@ impl Request {
 
 /// Used to add additional helper functions to url::Url
 pub trait UrlExt {
+    /// Given a query parameter, returns the value of the first occurrence of that parameter if it
+    /// exists
+    fn param<'a>(&'a self, key: &'a str) -> Option<Cow<'a, str>> {
+        self.param_iter(key).next()
+    }
     /// Given a query parameter, returns an Iterator of values for that parameter in the url's
     /// query string
-    fn param<'a>(&'a self, key: &'a str) -> Box<dyn Iterator<Item = Cow<'a, str>> + 'a>;
+    fn param_iter<'a>(&'a self, key: &'a str) -> Box<dyn Iterator<Item = Cow<'a, str>> + 'a>;
 }
 
 impl UrlExt for Url {
-    fn param<'a>(&'a self, key: &'a str) -> Box<dyn Iterator<Item = Cow<'a, str>> + 'a> {
+    fn param_iter<'a>(&'a self, key: &'a str) -> Box<dyn Iterator<Item = Cow<'a, str>> + 'a> {
         Box::new(
             self.query_pairs()
                 .filter_map(move |(k, v)| if k == key { Some(v) } else { None }),
@@ -249,7 +254,10 @@ impl UrlExt for Url {
 #[test]
 fn url_param_works() {
     let url = Url::parse("https://example.com/foo.html?a=foo&b=bar&a=baz").unwrap();
-    let mut a_values = url.param("a");
+    let a_value = url.param("a");
+    assert_eq!(url.param("a").as_deref(), Some("foo"));
+    assert_eq!(url.param("c").as_deref(), None);
+    let mut a_values = url.param_iter("a");
     assert_eq!(a_values.next().as_deref(), Some("foo"));
     assert_eq!(a_values.next().as_deref(), Some("baz"));
     assert_eq!(a_values.next(), None);
