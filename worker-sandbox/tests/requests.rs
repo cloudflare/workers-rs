@@ -1,6 +1,7 @@
 use std::time::{Duration, Instant};
 
-use futures::{channel::mpsc, SinkExt, StreamExt};
+use futures_channel::mpsc;
+use futures_util::{SinkExt, StreamExt};
 use http::StatusCode;
 use reqwest::{
     blocking::{
