@@ -26,11 +26,12 @@ impl TryFrom<EdgeRequest> for crate::HttpRequest {
     fn try_from(e: EdgeRequest) -> Result<Self, Self::Error> {
         let headers: HeaderMap = crate::Headers(e.0.headers()).into();
 
-        let body = e
-            .0
-            .body()
-            .map(|stream| ReadableStream::from_raw(stream.dyn_into().unwrap()))
-            .unwrap_or_else(|| wasm_streams::ReadableStream::from_stream(futures_util::stream::empty()));
+        let body =
+            e.0.body()
+                .map(|stream| ReadableStream::from_raw(stream.dyn_into().unwrap()))
+                .unwrap_or_else(|| {
+                    wasm_streams::ReadableStream::from_stream(futures_util::stream::empty())
+                });
         let body = ByteStream {
             inner: body.into_stream(),
         };

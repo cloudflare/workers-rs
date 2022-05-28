@@ -68,4 +68,7 @@ mod websocket;
 pub type Result<T> = StdResult<T, error::Error>;
 
 pub use ::http;
+pub use ::http_body;
+
 pub type HttpRequest = ::http::Request<ByteStream>;
+pub type HttpResponse<B> = ::http::Response<B>;

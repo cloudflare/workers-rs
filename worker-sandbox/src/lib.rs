@@ -650,6 +650,21 @@ pub async fn main(req: worker::Request, env: Env, _ctx: worker::Context) -> Resu
         .await
 }
 
+use worker::http_body::Full;
+
+/// Example of using the `http` flag for the fetch proc macro. This
+/// transforms the request into a hyper::Request<ByteStream> and accepts
+/// any response that implementes http_body::Body + 'static.
+// #[event(fetch, http)]
+pub async fn fetch_http(
+    req: worker::HttpRequest,
+    _env: Env,
+    _ctx: worker::Context,
+) -> Result<worker::HttpResponse<Full<&'static [u8]>>> {
+    console_log!("{}", req.method());
+    Ok(worker::HttpResponse::new("Hello, World!".as_bytes().into()))
+}
+
 fn respond<D>(req: Request, _ctx: RouteContext<D>) -> Result<Response> {
     Response::ok(format!("Ok: {}", String::from(req.method()))).map(|resp| {
         let mut headers = Headers::new();
