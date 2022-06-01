@@ -4,7 +4,7 @@ use crate::{
 
 use serde::de::DeserializeOwned;
 use std::borrow::Cow;
-use url::Url;
+use url::{form_urlencoded::Parse, Url};
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 use worker_sys::{Request as EdgeRequest, RequestInit as EdgeRequestInit};
@@ -239,23 +239,37 @@ pub trait UrlExt {
     }
     /// Given a query parameter, returns an Iterator of values for that parameter in the url's
     /// query string
-    fn param_iter<'a>(&'a self, key: &'a str) -> Box<dyn Iterator<Item = Cow<'a, str>> + 'a>;
+    fn param_iter<'a>(&'a self, key: &'a str) -> ParamIter<'a>;
 }
 
 impl UrlExt for Url {
-    fn param_iter<'a>(&'a self, key: &'a str) -> Box<dyn Iterator<Item = Cow<'a, str>> + 'a> {
-        Box::new(
-            self.query_pairs()
-                .filter_map(move |(k, v)| if k == key { Some(v) } else { None }),
-        )
+    fn param_iter<'a>(&'a self, key: &'a str) -> ParamIter<'a> {
+        ParamIter {
+            inner: self.query_pairs(),
+            key,
+        }
+    }
+}
+
+pub struct ParamIter<'a> {
+    inner: Parse<'a>,
+    key: &'a str,
+}
+
+impl<'a> Iterator for ParamIter<'a> {
+    type Item = Cow<'a, str>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let key = self.key;
+        Some(self.inner.find(|(k, _)| k == key)?.1)
     }
 }
 
 #[test]
 fn url_param_works() {
     let url = Url::parse("https://example.com/foo.html?a=foo&b=bar&a=baz").unwrap();
-    let a_value = url.param("a");
     assert_eq!(url.param("a").as_deref(), Some("foo"));
+    assert_eq!(url.param("b").as_deref(), Some("bar"));
     assert_eq!(url.param("c").as_deref(), None);
     let mut a_values = url.param_iter("a");
     assert_eq!(a_values.next().as_deref(), Some("foo"));
