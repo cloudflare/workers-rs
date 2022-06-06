@@ -1,7 +1,7 @@
-use std::{collections::HashMap, future::Future, rc::Rc};
 use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::{collections::HashMap, future::Future, rc::Rc};
 
-use futures_util::future::{LocalBoxFuture, FutureExt};
+use futures_util::future::{FutureExt, LocalBoxFuture};
 use matchit::{Match, Node};
 use worker_kv::KvStore;
 

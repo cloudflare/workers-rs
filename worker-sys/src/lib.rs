@@ -14,6 +14,7 @@ pub mod request_init;
 pub mod response;
 pub mod response_init;
 pub mod schedule;
+pub mod try_future;
 pub mod websocket;
 
 /// When debugging your Worker via `wrangler dev`, `wrangler tail`, or from the Workers Dashboard,

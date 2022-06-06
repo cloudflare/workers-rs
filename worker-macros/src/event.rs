@@ -46,15 +46,8 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             // rename the original attributed fn
             input_fn.sig.ident = input_fn_ident.clone();
 
-            let error_handling = match respond_with_errors {
-                true => {
-                    quote! {
-                        ::worker::Response::error(e.to_string(), 500).unwrap().into()
-                    }
-                }
-                false => {
-                    quote! { panic!("{}", e) }
-                }
+            let error_handling = quote! {
+                ::worker::Response::error(e.to_string(), 500).unwrap().into()
             };
 
             // create a new "main" function that takes the worker_sys::Request, and calls the
@@ -66,9 +59,20 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                     ctx: ::worker::worker_sys::Context
                 ) -> ::worker::worker_sys::Response {
                     let ctx = worker::Context::new(ctx);
+                    let f = #input_fn_ident(::worker::Request::from(req), env, ctx);
+                    let resp = ::worker::worker_sys::try_future::TryFuture{ f };
                     // get the worker::Result<worker::Response> by calling the original fn
-                    match #input_fn_ident(::worker::Request::from(req), env, ctx).await.map(::worker::worker_sys::Response::from) {
+                    //
+
+                    let r = match resp.await {
                         Ok(res) => res,
+                        Err(e) => {
+                            todo!("Reset wasm instance here?");
+                            Err(::worker::Error::PanicError)
+                        },
+                    };
+                    match r {
+                        Ok(res) => ::worker::worker_sys::Response::from(res),
                         Err(e) => {
                             ::worker::console_log!("{}", &e);
                             #error_handling

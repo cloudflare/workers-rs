@@ -184,6 +184,20 @@ wasm.__wbindgen_start?.();
     // Add the code that initializes the `wasm` variable we declared at the top of the file.
     fixed_bindgen_glue.push_str(&initialization_glue);
 
+    let t = format!(
+        r#"
+export function try_(a) {{
+    try {{
+        a()
+    }} catch (e) {{
+        // handle error here
+    }}
+}}
+        "#
+    );
+
+    fixed_bindgen_glue.push_str(&t);
+
     write_string_to_file(bindgen_glue_path, fixed_bindgen_glue)?;
 
     Ok(())
