@@ -456,3 +456,17 @@ fn cache_api() {
     let body: serde_json::Value = post(delete_endpoint.as_str(), |r| r).json().unwrap();
     assert_eq!("ResponseNotFound", body);
 }
+
+#[test]
+fn encoding_api() {
+    let encoding_endpoint = "encoding-api/";
+    let first_msg = "foo";
+
+    let body = post(&format!("{}{}", encoding_endpoint, first_msg), |r| r).text().unwrap();
+    assert_eq!(first_msg, body);
+
+    let second_msg = "foobarbaz123!";
+
+    let body = post(&format!("{}{}", encoding_endpoint, second_msg), |r| r).text().unwrap();
+    assert_eq!(second_msg, body);
+}

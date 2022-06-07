@@ -635,6 +635,39 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                 Ok(resp)
             }
         })
+        .post_async("/encoding-api/:value", |_req, ctx| async move {
+            if let Some(source) = ctx.param("value") {
+                let encoder = TextEncoder::new();
+                let decoder = TextDecoder::new();
+
+                let mut encoded_msg = encoder.encode(source.clone());
+
+                if let Ok(decoded_msg) = decoder.decode_with_input(encoded_msg.as_mut_slice()) {
+                    return Response::ok(decoded_msg);
+                }
+
+                return Response::error("decoding failed", 500);
+            }
+            Response::error("value missing ", 400)
+        })
+        .post_async("/encoding-api-label/:label/:value", |_req, ctx| async move {
+            if let Some(label) = ctx.param("label") {
+                if let Some(source) = ctx.param("value") {
+                    if let Ok(decoder) = TextDecoder::with_label("label".to_string()) {
+
+                        let mut encoded_msg: Vec<u16> = source.encode_utf16().collect();
+
+                        if let Ok(decoded_msg) = decoder.decode_with_input(encoded_msg.as_mut_slice()) {
+                            return Response::ok(decoded_msg);
+                        }
+
+                        return Response::error("decoding failed", 500);
+                    }
+                }
+                return Response::error("value missing ", 400);
+            }
+            Response::error("label missing ", 400)
+        })
         .or_else_any_method_async("/*catchall", |_, ctx| async move {
             console_log!(
                 "[or_else_any_method_async] caught: {}",
