@@ -10,7 +10,6 @@
 //! [Learn more](https://developers.cloudflare.com/workers/learning/using-durable-objects) about
 //! using Durable Objects.
 
-// use std::future::Future;
 use std::ops::Deref;
 
 use crate::{
@@ -316,7 +315,17 @@ impl Storage {
     /// The alarm is considered to be set if it has not started, or if it has failed
     /// and any retry has not begun. If no alarm is set, `get_alarm()` returns `None`.
     pub async fn get_alarm(&self) -> Result<Option<i64>> {
-        let fut: JsFuture = self.inner.get_alarm_internal()?.into();
+        let fut: JsFuture = self.inner.get_alarm_internal(JsValue::NULL.into())?.into();
+        fut.await
+            .map(|jsv| jsv.as_f64().map(|f| f as i64))
+            .map_err(Error::from)
+    }
+
+    pub async fn get_alarm_with_options(&self, options: GetAlarmOptions) -> Result<Option<i64>> {
+        let fut: JsFuture = self
+            .inner
+            .get_alarm_internal(JsValue::from_serde(&options)?.into())?
+            .into();
         fut.await
             .map(|jsv| jsv.as_f64().map(|f| f as i64))
             .map_err(Error::from)
@@ -330,12 +339,25 @@ impl Storage {
     /// Alarms can be set to millisecond granularity and will usually execute within
     /// a few milliseconds after the set time, but can be delayed by up to a minute
     /// due to maintenance or failures while failover takes place.
-    pub async fn set_alarm(&self, scheduled_time: DateTime<Utc>) -> Result<()> {
+    pub async fn set_alarm(&self, scheduled_time: impl Into<ScheduledTime>) -> Result<()> {
         let fut: JsFuture = self
             .inner
-            .set_alarm_internal(js_sys::Date::new(&Number::from(
-                scheduled_time.timestamp_millis() as f64,
-            )))?
+            .set_alarm_internal(scheduled_time.into().date, JsValue::NULL.into())?
+            .into();
+        fut.await.map(|_| ()).map_err(Error::from)
+    }
+
+    pub async fn set_alarm_with_options(
+        &self,
+        scheduled_time: impl Into<ScheduledTime>,
+        options: SetAlarmOptions,
+    ) -> Result<()> {
+        let fut: JsFuture = self
+            .inner
+            .set_alarm_internal(
+                scheduled_time.into().date,
+                JsValue::from_serde(&options)?.into(),
+            )?
             .into();
         fut.await.map(|_| ()).map_err(Error::from)
     }
@@ -343,7 +365,18 @@ impl Storage {
     /// Deletes the alarm if one exists. Does not cancel the alarm handler if it is
     /// currently executing.
     pub async fn delete_alarm(&self) -> Result<()> {
-        let fut: JsFuture = self.inner.delete_alarm_internal()?.into();
+        let fut: JsFuture = self
+            .inner
+            .delete_alarm_internal(JsValue::NULL.into())?
+            .into();
+        fut.await.map(|_| ()).map_err(Error::from)
+    }
+
+    pub async fn delete_alarm_with_options(&self, options: SetAlarmOptions) -> Result<()> {
+        let fut: JsFuture = self
+            .inner
+            .delete_alarm_internal(JsValue::from_serde(&options)?.into())?
+            .into();
         fut.await.map(|_| ()).map_err(Error::from)
     }
 
@@ -529,6 +562,46 @@ impl<'a> ListOptions<'a> {
         self.limit = Some(val);
         self
     }
+}
+
+pub struct ScheduledTime {
+    date: js_sys::Date,
+}
+
+impl ScheduledTime {
+    pub fn new(date: js_sys::Date) -> Self {
+        Self { date }
+    }
+}
+
+impl From<i64> for ScheduledTime {
+    fn from(timestamp: i64) -> Self {
+        ScheduledTime {
+            date: js_sys::Date::new(&Number::from(timestamp as f64)),
+        }
+    }
+}
+
+impl From<DateTime<Utc>> for ScheduledTime {
+    fn from(date: DateTime<Utc>) -> Self {
+        ScheduledTime {
+            date: js_sys::Date::new(&Number::from(date.timestamp_millis() as f64)),
+        }
+    }
+}
+
+#[derive(Default, Serialize)]
+pub struct GetAlarmOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    allow_concurrency: Option<bool>,
+}
+
+#[derive(Default, Serialize)]
+pub struct SetAlarmOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    allow_concurrency: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    allow_unconfirmed: Option<bool>,
 }
 
 impl EnvBinding for ObjectNamespace {
