@@ -28,7 +28,7 @@ pub use crate::cors::Cors;
 pub use crate::date::{Date, DateInit};
 pub use crate::delay::Delay;
 pub use crate::durable::*;
-pub use crate::env::Env;
+pub use crate::env::{Env, Secret, Var};
 pub use crate::error::Error;
 pub use crate::formdata::*;
 pub use crate::global::Fetch;
