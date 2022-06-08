@@ -22,10 +22,10 @@ cfg-if = "1.0.0"
 console_error_panic_hook = { version = "0.1.7", optional = true }
 getrandom = { version = "0.2.6", features = ["js"] }
 hex = "0.4.3"
-http = "0.2.6"
-regex = "1.5.5"
-serde = { version = "1.0.136", features = ["derive"] }
-serde_json = "1.0.79"
+http = "0.2.8"
+regex = "1.5.6"
+serde = { version = "1.0.137", features = ["derive"] }
+serde_json = "1.0.81"
 wee_alloc = { version = "0.4.5", optional = true }
 worker = { path = "../worker", version = "0.0.9" }
 futures-channel = "0.3.21"
@@ -41,6 +41,6 @@ reqwest = { version = "0.11.10", features = [
     "multipart",
     "stream",
 ] }
-tokio = { version = "1.17.0", features = ["macros", "rt", "test-util"] }
+tokio = { version = "1.19.2", features = ["macros", "rt", "test-util"] }
 tungstenite = "0.17.2"
 wasm-bindgen-test = "0.3.30"
