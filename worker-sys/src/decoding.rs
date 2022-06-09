@@ -42,6 +42,10 @@ extern "C" {
 
     # [wasm_bindgen (catch , method , structural , js_class = "TextDecoder" , js_name = decode)]
     #[doc = "The `decode()` method."]
+    pub fn decode_with_u16_array(this: &TextDecoder, input: &mut [u16]) -> Result<String, JsValue>;
+
+    # [wasm_bindgen (catch , method , structural , js_class = "TextDecoder" , js_name = decode)]
+    #[doc = "The `decode()` method."]
     pub fn decode_with_u8_array_and_options(
         this: &TextDecoder,
         input: &mut [u8],

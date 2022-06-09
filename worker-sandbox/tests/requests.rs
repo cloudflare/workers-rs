@@ -462,11 +462,28 @@ fn encoding_api() {
     let encoding_endpoint = "encoding-api/";
     let first_msg = "foo";
 
-    let body = post(&format!("{}{}", encoding_endpoint, first_msg), |r| r).text().unwrap();
+    let body = post(&format!("{}{}", encoding_endpoint, first_msg), |r| r)
+        .text()
+        .unwrap();
     assert_eq!(first_msg, body);
 
     let second_msg = "foobarbaz123!";
 
-    let body = post(&format!("{}{}", encoding_endpoint, second_msg), |r| r).text().unwrap();
+    let body = post(&format!("{}{}", encoding_endpoint, second_msg), |r| r)
+        .text()
+        .unwrap();
     assert_eq!(second_msg, body);
+}
+
+#[test]
+fn encoding_api_with_label() {
+    let encoding_endpoint = "encoding-api-label/";
+    let label = "utf-16";
+    let first_msg = "foo";
+
+    let body = post(&format!("{}{}/{}", encoding_endpoint, label, first_msg), |r| r)
+        .text()
+        .unwrap();
+    assert_eq!(first_msg, body);
+
 }

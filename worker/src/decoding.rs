@@ -67,6 +67,14 @@ impl TextDecoder {
         }
     }
 
+    /// Returns a string containing the decoded text of the given encoded input.
+    pub fn decode_with_input_u16(&self, input: &mut [u16]) -> Result<String, Error> {
+        match self.inner.decode_with_u16_array(input) {
+            Ok(val) => Ok(val),
+            Err(js_err) => Err(Error::from(js_err)),
+        }
+    }
+
     /// Returns a string containing the decoded text of the given encoded input and options.
     pub fn decode_with_input_and_options(
         &self,

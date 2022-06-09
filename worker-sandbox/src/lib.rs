@@ -653,16 +653,17 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         .post_async("/encoding-api-label/:label/:value", |_req, ctx| async move {
             if let Some(label) = ctx.param("label") {
                 if let Some(source) = ctx.param("value") {
-                    if let Ok(decoder) = TextDecoder::with_label("label".to_string()) {
+                    if let Ok(decoder) = TextDecoder::with_label(label.to_string()) {
 
                         let mut encoded_msg: Vec<u16> = source.encode_utf16().collect();
 
-                        if let Ok(decoded_msg) = decoder.decode_with_input(encoded_msg.as_mut_slice()) {
+                        if let Ok(decoded_msg) = decoder.decode_with_input_u16(encoded_msg.as_mut_slice()) {
                             return Response::ok(decoded_msg);
                         }
 
                         return Response::error("decoding failed", 500);
                     }
+                    return Response::error("failed to create decoder with label", 500);
                 }
                 return Response::error("value missing ", 400);
             }
