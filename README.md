@@ -138,7 +138,7 @@ Finally, go live:
 npx wrangler publish
 ```
 
-If you would like to have `wrangler` installed on your machine, see instrunctions in [wrangler repository](https://github.com/cloudflare/wrangler2).
+If you would like to have `wrangler` installed on your machine, see instructions in [wrangler repository](https://github.com/cloudflare/wrangler2).
 ## Durable Object, KV, Secret, & Variable Bindings
 
 All "bindings" to your script (Durable Object & KV Namespaces, Secrets, and Variables) are
