@@ -59,6 +59,22 @@ pub fn put(endpoint: &str, builder_fn: impl FnOnce(RequestBuilder) -> RequestBui
         .unwrap_or_else(|_| panic!("received invalid status code for {}", endpoint))
 }
 
+pub fn delete(
+    endpoint: &str,
+    builder_fn: impl FnOnce(RequestBuilder) -> RequestBuilder,
+) -> Response {
+    expect_wrangler();
+
+    let builder = Client::new().delete(&format!("http://127.0.0.1:8787/{endpoint}"));
+    let builder = builder_fn(builder);
+
+    builder
+        .send()
+        .expect("could not make request to wrangler")
+        .error_for_status()
+        .unwrap_or_else(|_| panic!("received invalid status code for {}", endpoint))
+}
+
 pub fn options(
     endpoint: &str,
     builder_fn: impl FnOnce(RequestBuilder) -> RequestBuilder,

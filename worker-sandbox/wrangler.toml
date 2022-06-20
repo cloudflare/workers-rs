@@ -21,6 +21,26 @@ remote-service = "./remote-service"
 [durable_objects]
 bindings = [{ name = "COUNTER", class_name = "Counter" }, { name = "ALARM", class_name = "AlarmObject" }]
 
+[[r2_buckets]]
+binding = 'EMPTY_BUCKET'
+bucket_name = ''
+preview_bucket_name = 'empty_bucket'
+
+[[r2_buckets]]
+binding = 'PUT_BUCKET'
+bucket_name = ''
+preview_bucket_name = 'put_bucket'
+
+[[r2_buckets]]
+binding = 'SEEDED_BUCKET'
+bucket_name = ''
+preview_bucket_name = 'seeded_bucket'
+
+[[r2_buckets]]
+binding = 'DELETE_BUCKET'
+bucket_name = ''
+preview_bucket_name = 'delete_bucket'
+
 [build]
 command = "worker-build --release"
 

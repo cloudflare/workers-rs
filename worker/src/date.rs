@@ -11,9 +11,15 @@ use wasm_bindgen::JsValue;
 /// let t1: Date = DateInit::Millis(1630611511000).into();
 /// let t2: Date = DateInit::String("Thu, 02 Sep 2021 19:38:31 GMT".to_string()).into();
 /// ```
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Eq)]
 pub struct Date {
     js_date: JsDate,
+}
+
+impl PartialEq for Date {
+    fn eq(&self, other: &Self) -> bool {
+        self.js_date.as_f64() == other.js_date.as_f64()
+    }
 }
 
 /// Initialize a `Date` by constructing this enum.
@@ -80,5 +86,17 @@ impl<T: TimeZone> From<chrono::Date<T>> for Date {
 impl<T: TimeZone> From<chrono::DateTime<T>> for Date {
     fn from(dt: chrono::DateTime<T>) -> Self {
         DateInit::Millis(dt.timestamp_millis() as u64).into()
+    }
+}
+
+impl From<Date> for JsDate {
+    fn from(val: Date) -> Self {
+        val.js_date
+    }
+}
+
+impl From<JsDate> for Date {
+    fn from(js_date: JsDate) -> Self {
+        Self { js_date }
     }
 }

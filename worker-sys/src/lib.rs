@@ -11,11 +11,13 @@ pub mod file;
 pub mod formdata;
 pub mod global;
 pub mod headers;
+pub mod r2;
 pub mod request;
 pub mod request_init;
 pub mod response;
 pub mod response_init;
 pub mod schedule;
+pub mod streams;
 pub mod websocket;
 
 /// When debugging your Worker via `wrangler dev`, `wrangler tail`, or from the Workers Dashboard,
@@ -71,10 +73,12 @@ pub use file::File;
 pub use formdata::FormData;
 pub use global::WorkerGlobalScope;
 pub use headers::Headers;
+pub use r2::*;
 pub use request::Request;
 pub use request_init::*;
 pub use response::Response;
 pub use response_init::ResponseInit;
 pub use schedule::*;
+pub use streams::*;
 pub use web_sys::{CloseEvent, ErrorEvent, MessageEvent};
 pub use websocket::*;
