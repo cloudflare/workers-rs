@@ -29,5 +29,5 @@ wasm-bindgen-futures = "0.4.30"
 wasm-streams = "0.2.3"
 web-sys = "0.3.57"
 worker-kv = "0.5.1"
-worker-macros = { path = "../worker-macros", version = "0.0.4" }
+worker-macros = { path = "../worker-macros", version = "0.0.5" }
 worker-sys = { path = "../worker-sys", version = "0.0.5" }
