@@ -1,7 +1,26 @@
-name: Tests
-on: [pull_request]
+name: Pull Request
+
+on: pull_request
 
 jobs:
+  rustfmt:
+    name: Formatter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: wasm32-unknown-unknown
+          override: true
+
+      - name: Check Formatting
+        run: cargo fmt --all -- --check
+
+      - name: Check for idiomatic code
+        run: cargo clippy --all-features --all-targets --all -- -D warnings
   test:
     name: Test
     runs-on: ubuntu-latest
@@ -35,7 +54,7 @@ jobs:
           args: --manifest-path worker-build/Cargo.toml
 
       - name: Setup node
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v3
         with:
           node-version: v17.4.0
 
