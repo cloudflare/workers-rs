@@ -12,12 +12,10 @@ description = "This is a tool to be used as a custom build command for a Cloudfl
 
 [dependencies]
 anyhow = "1.0.57"
-swc = "0.186.0"
-swc_bundler = "0.151.0"
-swc_common = "0.18.8"
-swc_ecma_codegen = "0.109.1"
-swc_ecma_loader = "0.30.2"
-swc_ecma_parser = "0.105.0"
+dirs-next = "2.0.0"
+flate2 = "1.0.24"
+tar = "0.4.38"
+ureq = { version = "2.4.0", features = ["tls", "gzip"] }
 
 [dev-dependencies]
 tempdir = "0.3.7"
