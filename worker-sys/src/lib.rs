@@ -9,6 +9,7 @@ pub mod file;
 pub mod formdata;
 pub mod global;
 pub mod headers;
+pub mod remote_service;
 pub mod request;
 pub mod request_init;
 pub mod response;
@@ -52,6 +53,7 @@ pub mod prelude {
     pub use crate::formdata::FormData;
     pub use crate::global::{set_timeout, WorkerGlobalScope};
     pub use crate::headers::Headers;
+    pub use crate::remote_service::RemoteService;
     pub use crate::request::Request;
     pub use crate::request_init::*;
     pub use crate::response::Response;
@@ -59,6 +61,7 @@ pub mod prelude {
     pub use crate::{console_debug, console_error, console_log, console_warn};
 }
 
+pub use crate::remote_service::RemoteService;
 pub use abort::*;
 pub use cf::Cf;
 pub use context::Context;
