@@ -124,7 +124,7 @@ fn download_esbuild(writer: &mut impl Write) -> Result<()> {
 pub fn platform() -> &'static str {
     match (std::env::consts::OS, std::env::consts::ARCH) {
         ("macos", "x86_64") => "darwin-64",
-        ("macos", "aarch64") => "danwin-arm64",
+        ("macos", "aarch64") => "darwin-arm64",
         ("linux", "x86") => "linux-32",
         ("linux", "x86_64") => "linux-64",
         ("linux", "arm") => "linux-arm",
