@@ -20,6 +20,8 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
             let struct_name = imp.self_ty;
             let items = imp.items;
             let mut tokenized = vec![];
+            let mut has_alarm = false;
+
             for item in items {
                 let impl_method = match item {
                     ImplItem::Method(m) => m,
@@ -83,10 +85,41 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                             #method
                         }
                     },
+                    "alarm" => {
+                        has_alarm = true;
+
+                        let mut method = impl_method.clone();
+                        method.sig.ident = Ident::new("_alarm_raw", method.sig.ident.span());
+                        quote! {
+                            #pound[wasm_bindgen::prelude::wasm_bindgen(js_name = alarm)]
+                            pub fn _alarm(&mut self) -> js_sys::Promise {
+                                // SAFETY:
+                                // On the surface, this is unsound because the Durable Object could be dropped
+                                // while JavaScript still has possession of the future. However,
+                                // we know something that Rust doesn't: that the Durable Object will never be destroyed
+                                // while there is still a running promise inside of it, therefore we can let a reference
+                                // to the durable object escape into a static-lifetime future.
+                                let static_self: &'static mut Self = unsafe {&mut *(self as *mut _)};
+
+                                wasm_bindgen_futures::future_to_promise(async move {
+                                    static_self._alarm_raw().await.map(worker_sys::Response::from).map(wasm_bindgen::JsValue::from)
+                                        .map_err(wasm_bindgen::JsValue::from)
+                                })
+                            }
+
+                            #method
+                        }
+                    }
                     _ => panic!()
                 };
                 tokenized.push(tokens);
             }
+
+            let alarm_tokens = has_alarm.then(|| quote! {
+                async fn alarm(&mut self) -> ::worker::Result<worker::Response> {
+                    self._alarm_raw().await
+                }
+            });
             Ok(quote! {
                 #wasm_bindgen_attr
                 impl #struct_name {
@@ -102,6 +135,8 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                     async fn fetch(&mut self, req: ::worker::Request) -> ::worker::Result<worker::Response> {
                         self._fetch_raw(req).await
                     }
+
+                    #alarm_tokens
                 }
 
                 trait __Need_Durable_Object_Trait_Impl_With_durable_object_Attribute { const MACROED: bool = true; }
