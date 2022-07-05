@@ -1,7 +1,7 @@
 use std::{
     io::Write,
     path::PathBuf,
-    process::Command,
+    process::Command, fs::OpenOptions,
 };
 
 use anyhow::Result;
@@ -70,10 +70,7 @@ pub fn ensure_esbuild() -> Result<PathBuf> {
 
     let mut options = &mut std::fs::OpenOptions::new();
 
-    if cfg!(unix) {
-        use std::os::unix::prelude::OpenOptionsExt;
-        options = options.mode(0o770);
-    }
+    options = fix_permissions(options);
 
     let mut file = options.create(true).write(true).open(&esbuild_bin_path)?;
 
@@ -117,6 +114,17 @@ fn download_esbuild(writer: &mut impl Write) -> Result<()> {
     }
 
     anyhow::bail!("no esbuild binary in archive")
+}
+
+#[cfg(target_family = "unix")]
+fn fix_permissions(options: &mut OpenOptions) -> &mut OpenOptions {
+    use std::os::unix::fs::OpenOptionsExt;
+    options.mode(0o770)
+}
+
+#[cfg(target_family = "windows")]
+fn fix_permissions(options: &mut OpenOptions) -> &mut OpenOptions {
+    options
 }
 
 /// Converts the user's platform from their Rust representation to their esbuild representation.
