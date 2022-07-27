@@ -10,7 +10,7 @@ use std::{
     process::Command,
 };
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 
 const OUT_DIR: &str = "build";
 const OUT_NAME: &str = "index";
@@ -58,7 +58,7 @@ where
 
     match exit_status.success() {
         true => Ok(()),
-        false => Err(anyhow!("wasm-pack exited with status {}", exit_status)),
+        false => anyhow::bail!("wasm-pack exited with status {}", exit_status),
     }
 }
 
@@ -134,7 +134,7 @@ fn bundle(esbuild_path: &Path) -> Result<()> {
 
     match exit_status.success() {
         true => Ok(()),
-        false => Err(anyhow!("esbuild exited with status {}", exit_status)),
+        false => anyhow::bail!("esbuild exited with status {}", exit_status),
     }
 }
 

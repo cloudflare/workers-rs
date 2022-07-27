@@ -1,8 +1,4 @@
-use std::{
-    io::Write,
-    path::PathBuf,
-    process::Command, fs::OpenOptions,
-};
+use std::{fs::OpenOptions, io::Write, path::PathBuf, process::Command};
 
 use anyhow::Result;
 use flate2::read::GzDecoder;
@@ -11,13 +7,13 @@ use flate2::read::GzDecoder;
 pub fn is_installed(name: &str) -> Result<Option<PathBuf>> {
     let path = std::env::var_os("PATH").expect("could not read PATH environment variable");
     let path_directories = std::env::split_paths(&path).filter_map(|path| {
-        let is_dir = std::fs::metadata(&path)
-        .ok()
-        .map(|meta| meta.is_dir())
-        .unwrap_or(false);
-        is_dir.then(|| path)
+        std::fs::metadata(&path)
+            .ok()
+            .map(|meta| meta.is_dir())
+            .unwrap_or(false)
+            .then(|| path)
     });
-    
+
     for dir in path_directories {
         for entry in dir.read_dir()? {
             let entry = entry?;
@@ -84,9 +80,6 @@ pub fn ensure_esbuild() -> Result<PathBuf> {
         return Err(e);
     }
 
-    // We're done writing to the file, so we should close it.
-    drop(file);
-
     Ok(esbuild_bin_path)
 }
 
@@ -95,6 +88,7 @@ fn download_esbuild(writer: &mut impl Write) -> Result<()> {
         "https://registry.npmjs.org/esbuild-{0}/-/esbuild-{0}-{ESBUILD_VERSION}.tgz",
         platform()
     );
+
     let body = ureq::get(&esbuild_url).call()?.into_reader();
     let deflater = GzDecoder::new(body);
     let mut archive = tar::Archive::new(deflater);
