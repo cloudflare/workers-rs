@@ -58,7 +58,9 @@ pub fn ensure_esbuild() -> Result<PathBuf> {
     };
 
     let esbuild_binary = format!("esbuild-{}", platform());
-    let esbuild_bin_path = dirs_next::cache_dir().unwrap().join(esbuild_binary);
+    let esbuild_bin_path = dirs_next::cache_dir()
+        .unwrap_or_else(std::env::temp_dir)
+        .join(esbuild_binary);
 
     if esbuild_bin_path.exists() {
         return Ok(esbuild_bin_path);
