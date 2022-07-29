@@ -41,12 +41,6 @@ jobs:
         with:
           command: check
 
-      - name: Build bindgen test subject
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --manifest-path worker-build/bindgen-test-subject/Cargo.toml --target wasm32-unknown-unknown --release
-
       - name: Run builder tests
         uses: actions-rs/cargo@v1
         with:
