@@ -2018,6 +2018,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "worker-r2"
+version = "0.1.0"
+dependencies = [
+ "js-sys",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+]
+
+[[package]]
 name = "worker-sandbox"
 version = "0.1.0"
 dependencies = [

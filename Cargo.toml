@@ -3,12 +3,13 @@ members = [
     "worker",
     "worker-build",
     "worker-macros",
+    "worker-r2",
     "worker-sandbox",
     "worker-sys",
 ]
 
 [profile.release]
-# rustc supports two "optimize for size" levels:  opt-level = "s" and "z". 
+# rustc supports two "optimize for size" levels:  opt-level = "s" and "z".
 # These names were inherited from clang / LLVM and are not too descriptive
 # but "z" is meant to give the idea that it produces smaller binaries than "s".
 # https://docs.rust-embedded.org/book/unsorted/speed-vs-size.html#optimize-for-size

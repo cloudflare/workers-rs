@@ -1,0 +1,12 @@
+[package]
+name = "worker-r2"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+js-sys = "0.3.50"
+serde = { version = "1.0.125", features = ["derive"] }
+serde_json = "1.0.64"
+thiserror = "1.0.29"
+wasm-bindgen = { version = "0.2.73", features = ["serde-serialize"] }
+wasm-bindgen-futures = "0.4.23"
