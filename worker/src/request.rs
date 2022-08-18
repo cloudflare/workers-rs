@@ -63,7 +63,7 @@ impl TryFrom<&Request> for EdgeRequest {
 impl Request {
     /// Construct a new `Request` with an HTTP Method.
     pub fn new(uri: &str, method: Method) -> Result<Self> {
-        EdgeRequest::new_with_str_and_init(uri, EdgeRequestInit::new().method(&method.to_string()))
+        EdgeRequest::new_with_str_and_init(uri, EdgeRequestInit::new().method(method.as_ref()))
             .map(|req| {
                 let mut req: Request = req.into();
                 req.immutable = false;

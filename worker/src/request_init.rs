@@ -58,7 +58,7 @@ impl From<&RequestInit> for worker_sys::RequestInit {
     fn from(req: &RequestInit) -> Self {
         let mut inner = worker_sys::RequestInit::new();
         inner.headers(req.headers.as_ref());
-        inner.method(&req.method.to_string());
+        inner.method(req.method.as_ref());
         inner.redirect(req.redirect.into());
         inner.body(req.body.as_ref());
 

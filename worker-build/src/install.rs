@@ -11,7 +11,7 @@ pub fn is_installed(name: &str) -> Result<Option<PathBuf>> {
             .ok()
             .map(|meta| meta.is_dir())
             .unwrap_or(false)
-            .then(|| path)
+            .then_some(path)
     });
 
     for dir in path_directories {
