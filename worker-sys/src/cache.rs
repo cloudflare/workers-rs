@@ -6,7 +6,7 @@ use crate::{Request, Response};
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(extends = ::js_sys::Object, js_name = Cache)]
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
     pub type Cache;
 
     #[wasm_bindgen(structural, method, js_class=Cache, js_name = put)]

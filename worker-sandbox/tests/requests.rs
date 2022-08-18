@@ -144,6 +144,18 @@ fn durable_id() {
 }
 
 #[test]
+fn durable_alarm() {
+    let body = get("durable/alarm", |r| r).text().unwrap();
+    assert_eq!(body, "false");
+
+    // Sleep for 200 milliseconds to make sure the alarm is triggered.
+    std::thread::sleep(std::time::Duration::from_millis(200));
+
+    let body = get("durable/alarm", |r| r).text().unwrap();
+    assert_eq!(body, "true");
+}
+
+#[test]
 fn some_secret() {
     let body = get("secret", |r| r).text().unwrap();
     assert_eq!(body, "secret!");
