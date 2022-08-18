@@ -10,7 +10,7 @@
 //! [Learn more](https://developers.cloudflare.com/workers/learning/using-durable-objects) about
 //! using Durable Objects.
 
-use std::ops::Deref;
+use std::{ops::Deref, time::Duration};
 
 use crate::{
     env::{Env, EnvBinding},
@@ -575,9 +575,9 @@ impl ScheduledTime {
 }
 
 impl From<i64> for ScheduledTime {
-    fn from(timestamp: i64) -> Self {
+    fn from(offset: i64) -> Self {
         ScheduledTime {
-            date: js_sys::Date::new(&Number::from(timestamp as f64)),
+            date: js_sys::Date::new(&Number::from(offset as f64)),
         }
     }
 }
@@ -586,6 +586,14 @@ impl From<DateTime<Utc>> for ScheduledTime {
     fn from(date: DateTime<Utc>) -> Self {
         ScheduledTime {
             date: js_sys::Date::new(&Number::from(date.timestamp_millis() as f64)),
+        }
+    }
+}
+
+impl From<Duration> for ScheduledTime {
+    fn from(offset: Duration) -> Self {
+        ScheduledTime {
+            date: js_sys::Date::new(&Number::from(offset.as_millis() as f64)),
         }
     }
 }
