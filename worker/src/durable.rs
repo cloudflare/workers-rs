@@ -565,7 +565,7 @@ impl<'a> ListOptions<'a> {
 }
 
 /// Determines when a Durable Object alarm should be ran, based on a timestamp or with a delay.
-/// 
+///
 /// Implements [From] for [Duration], [DateTime], and [i64].
 pub struct ScheduledTime {
     date: js_sys::Date,

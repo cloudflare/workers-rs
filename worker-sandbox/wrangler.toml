@@ -11,7 +11,7 @@ kv_namespaces = [
 vars = { SOME_VARIABLE = "some value" }
 
 [durable_objects]
-bindings = [{ name = "COUNTER", class_name = "Counter" }]
+bindings = [{ name = "COUNTER", class_name = "Counter" }, { name = "ALARM", class_name = "AlarmObject" }]
 
 [build]
 command = "worker-build --release"
