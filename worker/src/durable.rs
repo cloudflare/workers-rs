@@ -564,6 +564,9 @@ impl<'a> ListOptions<'a> {
     }
 }
 
+/// Determines when a Durable Object alarm should be ran, based on a timestamp or with a delay.
+/// 
+/// Implements [From] for [Duration], [DateTime], and [i64].
 pub struct ScheduledTime {
     date: js_sys::Date,
 }
@@ -598,18 +601,18 @@ impl From<Duration> for ScheduledTime {
     }
 }
 
-#[derive(Default, Serialize)]
+#[derive(Debug, Clone, Default, Serialize)]
 pub struct GetAlarmOptions {
     #[serde(skip_serializing_if = "Option::is_none")]
-    allow_concurrency: Option<bool>,
+    pub allow_concurrency: Option<bool>,
 }
 
-#[derive(Default, Serialize)]
+#[derive(Debug, Clone, Default, Serialize)]
 pub struct SetAlarmOptions {
     #[serde(skip_serializing_if = "Option::is_none")]
-    allow_concurrency: Option<bool>,
+    pub allow_concurrency: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    allow_unconfirmed: Option<bool>,
+    pub allow_unconfirmed: Option<bool>,
 }
 
 impl EnvBinding for ObjectNamespace {
