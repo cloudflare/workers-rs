@@ -9,5 +9,9 @@ extern "C" {
     pub type DynamicDispatcher;
 
     #[wasm_bindgen(structural, method, js_class=DynamicDispatcher, js_name = get, catch)]
-    pub fn get(this: &DynamicDispatcher, name: String, options: JsValue) -> Result<Fetcher, JsValue>;
+    pub fn get(
+        this: &DynamicDispatcher,
+        name: String,
+        options: JsValue,
+    ) -> Result<Fetcher, JsValue>;
 }

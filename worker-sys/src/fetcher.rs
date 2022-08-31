@@ -13,7 +13,15 @@ extern "C" {
     #[wasm_bindgen(structural, method, js_class=Fetcher, js_name = fetch)]
     pub fn fetch_with_str(this: &Fetcher, input: &str) -> ::js_sys::Promise;
     #[wasm_bindgen(structural, method, js_class=Fetcher, js_name = fetch)]
-    pub fn fetch_with_init(this: &Fetcher, input: &Request, init: &RequestInit) -> ::js_sys::Promise;
+    pub fn fetch_with_init(
+        this: &Fetcher,
+        input: &Request,
+        init: &RequestInit,
+    ) -> ::js_sys::Promise;
     #[wasm_bindgen(structural, method, js_class=Fetcher, js_name = fetch)]
-    pub fn fetch_with_str_and_init(this: &Fetcher, input: &str, init: &RequestInit) -> ::js_sys::Promise;
+    pub fn fetch_with_str_and_init(
+        this: &Fetcher,
+        input: &str,
+        init: &RequestInit,
+    ) -> ::js_sys::Promise;
 }

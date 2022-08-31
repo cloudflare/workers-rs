@@ -1,6 +1,6 @@
-use crate::{durable::ObjectNamespace, DynamicDispatcher};
 use crate::error::Error;
 use crate::Result;
+use crate::{durable::ObjectNamespace, DynamicDispatcher};
 
 use js_sys::Object;
 use wasm_bindgen::{prelude::*, JsCast, JsValue};

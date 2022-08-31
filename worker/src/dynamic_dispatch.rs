@@ -6,9 +6,9 @@ use crate::{env::EnvBinding, Fetcher, Result};
 /// A binding for dispatching events to Workers inside of a dispatch namespace by their name. This
 /// allows for your worker to directly invoke many workers by name instead of having multiple
 /// service worker bindings.
-/// 
+///
 /// # Example:
-/// 
+///
 /// ```no_run
 /// let dispatcher = env.dynamic_dispatcher("DISPATCHER")?;
 /// let fetcher = dispatcher.get("namespaced-worker-name")?;
