@@ -13,6 +13,7 @@
 use std::{ops::Deref, time::Duration};
 
 use crate::{
+    date::Date,
     env::{Env, EnvBinding},
     error::Error,
     request::Request,
@@ -342,7 +343,7 @@ impl Storage {
     pub async fn set_alarm(&self, scheduled_time: impl Into<ScheduledTime>) -> Result<()> {
         let fut: JsFuture = self
             .inner
-            .set_alarm_internal(scheduled_time.into().date, JsValue::NULL.into())?
+            .set_alarm_internal(scheduled_time.into().schedule(), JsValue::NULL.into())?
             .into();
         fut.await.map(|_| ()).map_err(Error::from)
     }
@@ -355,7 +356,7 @@ impl Storage {
         let fut: JsFuture = self
             .inner
             .set_alarm_internal(
-                scheduled_time.into().date,
+                scheduled_time.into().schedule(),
                 JsValue::from_serde(&options)?.into(),
             )?
             .into();
@@ -564,23 +565,46 @@ impl<'a> ListOptions<'a> {
     }
 }
 
-/// Determines when a Durable Object alarm should be ran, based on a timestamp or with a delay.
+enum ScheduledTimeInit {
+    Date(js_sys::Date),
+    Offset(f64),
+}
+
+/// Determines when a Durable Object alarm should be ran, based on a timestamp or offset.
 ///
-/// Implements [From] for [Duration], [DateTime], and [i64].
+/// Implements [`From`] for:
+/// - [`Duration`], interpreted as an offset.
+/// - [`i64`], interpreted as an offset.
+/// - [`DateTime`], interpreted as a timestamp.
+///
+/// When an offset is used, the time at which `set_alarm()` or `set_alarm_with_options()` is called
+/// is used to compute the scheduled time. [`Date::now`] is used as the current time.
 pub struct ScheduledTime {
-    date: js_sys::Date,
+    init: ScheduledTimeInit,
 }
 
 impl ScheduledTime {
     pub fn new(date: js_sys::Date) -> Self {
-        Self { date }
+        Self {
+            init: ScheduledTimeInit::Date(date),
+        }
+    }
+
+    fn schedule(self) -> js_sys::Date {
+        match self.init {
+            ScheduledTimeInit::Date(date) => date,
+            ScheduledTimeInit::Offset(offset) => {
+                let now = Date::now().as_millis() as f64;
+                js_sys::Date::new(&Number::from(now + offset))
+            }
+        }
     }
 }
 
 impl From<i64> for ScheduledTime {
     fn from(offset: i64) -> Self {
         ScheduledTime {
-            date: js_sys::Date::new(&Number::from(offset as f64)),
+            init: ScheduledTimeInit::Offset(offset as f64),
         }
     }
 }
@@ -588,7 +612,9 @@ impl From<i64> for ScheduledTime {
 impl From<DateTime<Utc>> for ScheduledTime {
     fn from(date: DateTime<Utc>) -> Self {
         ScheduledTime {
-            date: js_sys::Date::new(&Number::from(date.timestamp_millis() as f64)),
+            init: ScheduledTimeInit::Date(js_sys::Date::new(&Number::from(
+                date.timestamp_millis() as f64,
+            ))),
         }
     }
 }
@@ -596,7 +622,7 @@ impl From<DateTime<Utc>> for ScheduledTime {
 impl From<Duration> for ScheduledTime {
     fn from(offset: Duration) -> Self {
         ScheduledTime {
-            date: js_sys::Date::new(&Number::from(offset.as_millis() as f64)),
+            init: ScheduledTimeInit::Offset(offset.as_millis() as f64),
         }
     }
 }
