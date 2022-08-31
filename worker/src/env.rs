@@ -1,6 +1,6 @@
-use crate::durable::ObjectNamespace;
 use crate::error::Error;
 use crate::Result;
+use crate::{durable::ObjectNamespace, DynamicDispatcher};
 
 use js_sys::Object;
 use wasm_bindgen::{prelude::*, JsCast, JsValue};
@@ -44,6 +44,11 @@ impl Env {
 
     /// Access a Durable Object namespace by the binding name configured in your wrangler.toml file.
     pub fn durable_object(&self, binding: &str) -> Result<ObjectNamespace> {
+        self.get_binding(binding)
+    }
+
+    /// Access a Dynamic Dispatcher for dispatching events to other workers.
+    pub fn dynamic_dispatcher(&self, binding: &str) -> Result<DynamicDispatcher> {
         self.get_binding(binding)
     }
 }
