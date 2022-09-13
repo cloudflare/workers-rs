@@ -14,7 +14,7 @@ fn websocket() {
     util::expect_wrangler();
 
     let (mut socket, _) =
-        connect(Url::parse("ws://localhost:8787/websocket").unwrap()).expect("Can't connect");
+        connect(Url::parse("ws://127.0.0.1:8787/websocket").unwrap()).expect("Can't connect");
 
     socket
         .write_message(Message::Text("Hello, world!".into()))

@@ -468,7 +468,9 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
 
             let fetch_fut = async {
                 let fetch = Fetch::Url("http://localhost:8787/wait/2000".parse().unwrap());
-                fetch.send_with_signal(&signal).await
+                let mut res = fetch.send_with_signal(&signal).await?;
+                let text = res.text().await?;
+                Ok::<String, worker::Error>(text)
             };
             let delay_fut = async {
                 Delay::from(Duration::from_millis(100)).await;
@@ -485,7 +487,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                     match cancelled_fut.await {
                         Err(e) if e.to_string().starts_with("AbortError") => { /* Yay! It worked, let's do nothing to celebrate */},
                         Err(e) => panic!("Fetch errored with a different error than expected: {:#?}", e),
-                        Ok(_) => panic!("Fetch unexpectedly succeeded")
+                        Ok(text) => panic!("Fetch unexpectedly succeeded: {}", text)
                     }
 
                     res
