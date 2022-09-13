@@ -18,5 +18,4 @@ tar = "0.4.38"
 ureq = { version = "2.4.0", features = ["tls", "gzip"] }
 
 [dev-dependencies]
-tempdir = "0.3.7"
 wasm-bindgen-cli-support = "0.2.80"
