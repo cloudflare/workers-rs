@@ -1,7 +1,8 @@
 name = "testing-rust-worker"
 type = "javascript"
 workers_dev = true
-compatibility_date = "2021-11-27" # required
+compatibility_date = "2022-09-12" # required
+compatibility_flags = ["streams_enable_constructors"]
 
 kv_namespaces = [
     { binding = "SOME_NAMESPACE", id = "", preview_id = "" },

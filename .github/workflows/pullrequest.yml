@@ -90,7 +90,7 @@ jobs:
 
           # Wait for port 8787 to open on miniflare by looping with netcat.
           echo "Waiting miniflare to launch on 8787..."
-          while ! nc -z localhost 8787; do   
+          while ! nc -z 127.0.0.1 8787; do   
             sleep 0.1
           done
 
