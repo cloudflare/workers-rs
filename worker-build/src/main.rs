@@ -2,7 +2,7 @@
 
 use std::{
     convert::TryInto,
-    env,
+    env::{self, VarError},
     ffi::OsStr,
     fs::{self, File},
     io::{Read, Write},
@@ -118,7 +118,10 @@ fn use_glue_import() -> Result<()> {
 
 // Bundles the snippets and worker-related code into a single file.
 fn bundle(esbuild_path: &Path) -> Result<()> {
-    let no_minify = env::var("NO_MINIFY").is_ok();
+    let no_minify = match env::var("NO_MINIFY") {
+        Err(VarError::NotPresent) => false,
+        _ => true,
+    };
     let path = PathBuf::from(OUT_DIR).join(WORKER_SUBDIR).canonicalize()?;
     let esbuild_path = esbuild_path.canonicalize()?;
     let mut command = Command::new(esbuild_path);
