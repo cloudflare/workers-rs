@@ -2,7 +2,7 @@
 
 use std::{
     convert::TryInto,
-    env,
+    env::{self, VarError},
     ffi::OsStr,
     fs::{self, File},
     io::{Read, Write},
@@ -118,19 +118,23 @@ fn use_glue_import() -> Result<()> {
 
 // Bundles the snippets and worker-related code into a single file.
 fn bundle(esbuild_path: &Path) -> Result<()> {
+    let no_minify = !matches!(env::var("NO_MINIFY"), Err(VarError::NotPresent));
     let path = PathBuf::from(OUT_DIR).join(WORKER_SUBDIR).canonicalize()?;
     let esbuild_path = esbuild_path.canonicalize()?;
-    let exit_status = Command::new(esbuild_path)
-        .args(&[
-            "--external:./index.wasm",
-            "--format=esm",
-            "--bundle",
-            "./shim.js",
-            "--outfile=shim.mjs",
-        ])
-        .current_dir(path)
-        .spawn()?
-        .wait()?;
+    let mut command = Command::new(esbuild_path);
+    command.args(&[
+        "--external:./index.wasm",
+        "--format=esm",
+        "--bundle",
+        "./shim.js",
+        "--outfile=shim.mjs",
+    ]);
+
+    if !no_minify {
+        command.arg("--minify");
+    }
+
+    let exit_status = command.current_dir(path).spawn()?.wait()?;
 
     match exit_status.success() {
         true => Ok(()),

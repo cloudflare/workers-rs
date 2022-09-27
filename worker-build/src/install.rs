@@ -20,7 +20,9 @@ pub fn is_installed(name: &str) -> Result<Option<PathBuf>> {
             let file_type = entry.file_type()?;
             let is_file_or_symlink = file_type.is_symlink() || file_type.is_file();
 
-            if is_file_or_symlink && entry.file_name() == name {
+            if is_file_or_symlink
+                && entry.file_name() == format!("{name}{BINARY_EXTENSION}").as_str()
+            {
                 return Ok(Some(entry.path()));
             }
         }
@@ -50,6 +52,7 @@ pub fn ensure_wasm_pack() -> Result<()> {
 }
 
 const ESBUILD_VERSION: &str = "0.14.47";
+const BINARY_EXTENSION: &str = if cfg!(windows) { ".exe" } else { "" };
 
 pub fn ensure_esbuild() -> Result<PathBuf> {
     // If we already have it we can skip the download.
@@ -57,7 +60,7 @@ pub fn ensure_esbuild() -> Result<PathBuf> {
         return Ok(path);
     };
 
-    let esbuild_binary = format!("esbuild-{}", platform());
+    let esbuild_binary = format!("esbuild-{}{BINARY_EXTENSION}", platform());
     let esbuild_bin_path = dirs_next::cache_dir()
         .unwrap_or_else(std::env::temp_dir)
         .join(esbuild_binary);
@@ -101,7 +104,7 @@ fn download_esbuild(writer: &mut impl Write) -> Result<()> {
 
         if path
             .file_name()
-            .map(|name| name == "esbuild")
+            .map(|name| name == format!("esbuild{BINARY_EXTENSION}").as_str())
             .unwrap_or(false)
         {
             std::io::copy(&mut entry, writer)?;
