@@ -1,6 +1,5 @@
 use crate::error::Error;
-use crate::Result;
-use crate::{durable::ObjectNamespace, DynamicDispatcher};
+use crate::{durable::ObjectNamespace, DynamicDispatcher, Fetcher, Result};
 
 use js_sys::Object;
 use wasm_bindgen::{prelude::*, JsCast, JsValue};
@@ -49,6 +48,12 @@ impl Env {
 
     /// Access a Dynamic Dispatcher for dispatching events to other workers.
     pub fn dynamic_dispatcher(&self, binding: &str) -> Result<DynamicDispatcher> {
+        self.get_binding(binding)
+    }
+
+    /// Get a [Service Binding](https://developers.cloudflare.com/workers/runtime-apis/service-bindings/)
+    /// for Worker-to-Worker communication.
+    pub fn service(&self, binding: &str) -> Result<Fetcher> {
         self.get_binding(binding)
     }
 }
