@@ -65,6 +65,7 @@ mod request_init;
 mod response;
 mod router;
 mod schedule;
+mod service;
 mod streams;
 mod websocket;
 

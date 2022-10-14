@@ -1,4 +1,5 @@
 use crate::error::Error;
+use crate::service::Service;
 use crate::Result;
 use crate::{durable::ObjectNamespace, DynamicDispatcher};
 
@@ -49,6 +50,10 @@ impl Env {
 
     /// Access a Dynamic Dispatcher for dispatching events to other workers.
     pub fn dynamic_dispatcher(&self, binding: &str) -> Result<DynamicDispatcher> {
+        self.get_binding(binding)
+    }
+
+    pub fn service(&self, binding: &str) -> Result<Service> {
         self.get_binding(binding)
     }
 }

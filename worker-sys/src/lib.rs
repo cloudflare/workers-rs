@@ -16,6 +16,7 @@ pub mod request_init;
 pub mod response;
 pub mod response_init;
 pub mod schedule;
+pub mod service;
 pub mod websocket;
 
 /// When debugging your Worker via `wrangler dev`, `wrangler tail`, or from the Workers Dashboard,
@@ -76,5 +77,6 @@ pub use request_init::*;
 pub use response::Response;
 pub use response_init::ResponseInit;
 pub use schedule::*;
+pub use service::*;
 pub use web_sys::{CloseEvent, ErrorEvent, MessageEvent};
 pub use websocket::*;

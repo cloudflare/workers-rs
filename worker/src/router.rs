@@ -10,6 +10,7 @@ use crate::{
     http::Method,
     request::Request,
     response::Response,
+    service::Service,
     Result,
 };
 
@@ -93,6 +94,10 @@ impl<D> RouteContext<D> {
     /// Get a URL parameter parsed by the router, by the name of its match or wildecard placeholder.
     pub fn param(&self, key: &str) -> Option<&String> {
         self.params.get(key)
+    }
+
+    pub fn service(&self, binding: &str) -> Result<Service> {
+        self.env.service(binding)
     }
 }
 
