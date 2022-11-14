@@ -1924,7 +1924,7 @@ dependencies = [
 
 [[package]]
 name = "worker-build"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "anyhow",
  "dirs-next",
