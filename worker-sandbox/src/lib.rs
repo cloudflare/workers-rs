@@ -646,6 +646,17 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                 Ok(resp)
             }
         })
+        .get_async("/remote-by-request", |req, ctx| async move {
+            let fetcher = ctx.service("remote")?;
+            fetcher.fetch_request(req).await
+        })
+        .get_async("/remote-by-path", |req, ctx| async move {
+            let fetcher = ctx.service("remote")?;
+            let mut init = RequestInit::new();
+            init.with_method(Method::Post);
+
+            fetcher.fetch(req.url()?.to_string(), Some(init)).await
+        })
         .or_else_any_method_async("/*catchall", |_, ctx| async move {
             console_log!(
                 "[or_else_any_method_async] caught: {}",

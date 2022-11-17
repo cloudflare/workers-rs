@@ -2,19 +2,19 @@ use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use worker_sys::{Fetcher as FetcherSys, Response as ResponseSys};
 
-use crate::{Request, RequestInit, Response, Result, env::EnvBinding};
+use crate::{env::EnvBinding, Request, RequestInit, Response, Result};
 
 /// A struct for invoking fetch events to other Workers.
 pub struct Fetcher(FetcherSys);
 
 impl Fetcher {
-    /// Invoke a fetch event in a worker with a path and optionally a [RequestInit].
+    /// Invoke a fetch event in a worker with a url and optionally a [RequestInit].
     pub async fn fetch(
         &self,
-        path: impl Into<String>,
+        url: impl Into<String>,
         init: Option<RequestInit>,
     ) -> Result<Response> {
-        let path = path.into();
+        let path = url.into();
         let promise = match init {
             Some(ref init) => self.0.fetch_with_str_and_init(&path, &init.into()),
             None => self.0.fetch_with_str(&path),

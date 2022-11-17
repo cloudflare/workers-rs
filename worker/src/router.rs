@@ -10,7 +10,7 @@ use crate::{
     http::Method,
     request::Request,
     response::Response,
-    Result, Fetcher,
+    Fetcher, Result,
 };
 
 type HandlerFn<D> = fn(Request, RouteContext<D>) -> Result<Response>;
