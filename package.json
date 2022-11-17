@@ -4,7 +4,7 @@
     "@changesets/cli": "^2.22.0"
   },
   "name": "workers-rs",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "author": "workers-rs@cloudflare.com",
   "description": "Monorepo for Worker Rust Bindings",
   "license": "MIT OR Apache-2.0",
