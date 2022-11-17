@@ -469,3 +469,12 @@ fn cache_api() {
     let body: serde_json::Value = post(delete_endpoint.as_str(), |r| r).json().unwrap();
     assert_eq!("ResponseNotFound", body);
 }
+
+#[test]
+fn test_service_binding() {
+    let body: String = get("remote-by-request", |r| r).text().unwrap();
+    assert_eq!(body, "hello world");
+
+    let body: String = get("remote-by-path", |r| r).text().unwrap();
+    assert_eq!(body, "hello world");
+}

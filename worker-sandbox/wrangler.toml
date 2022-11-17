@@ -11,6 +11,13 @@ kv_namespaces = [
 
 vars = { SOME_VARIABLE = "some value" }
 
+[[services]]
+binding = "remote"
+service = "remote-service"
+
+[miniflare.mounts]
+remote-service = "./remote-service"
+
 [durable_objects]
 bindings = [{ name = "COUNTER", class_name = "Counter" }, { name = "ALARM", class_name = "AlarmObject" }]
 

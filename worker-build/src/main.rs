@@ -49,9 +49,9 @@ where
     let exit_status = Command::new("wasm-pack")
         .arg("build")
         .arg("--no-typescript")
-        .args(&["--target", "bundler"])
-        .args(&["--out-dir", OUT_DIR])
-        .args(&["--out-name", OUT_NAME])
+        .args(["--target", "bundler"])
+        .args(["--out-dir", OUT_DIR])
+        .args(["--out-name", OUT_NAME])
         .args(args)
         .spawn()?
         .wait()?;
@@ -122,7 +122,7 @@ fn bundle(esbuild_path: &Path) -> Result<()> {
     let path = PathBuf::from(OUT_DIR).join(WORKER_SUBDIR).canonicalize()?;
     let esbuild_path = esbuild_path.canonicalize()?;
     let mut command = Command::new(esbuild_path);
-    command.args(&[
+    command.args([
         "--external:./index.wasm",
         "--format=esm",
         "--bundle",
