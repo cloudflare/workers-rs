@@ -25,6 +25,7 @@ pub use crate::abort::*;
 pub use crate::cache::{Cache, CacheDeletionOutcome};
 pub use crate::context::Context;
 pub use crate::cors::Cors;
+pub use crate::d1::*;
 pub use crate::date::{Date, DateInit};
 pub use crate::delay::Delay;
 pub use crate::durable::*;
