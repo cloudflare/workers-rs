@@ -49,6 +49,7 @@ mod cache;
 mod cf;
 mod context;
 mod cors;
+mod d1;
 mod date;
 mod delay;
 pub mod durable;

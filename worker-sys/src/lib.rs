@@ -4,6 +4,7 @@ pub mod abort;
 pub mod cache;
 pub mod cf;
 pub mod context;
+pub mod d1;
 pub mod durable_object;
 pub mod dynamic_dispatch;
 pub mod fetcher;
