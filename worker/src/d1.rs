@@ -26,10 +26,7 @@ impl D1Database {
         Ok(vec)
     }
 
-    pub async fn batch<T>(&self, statements: Vec<D1PreparedStatement>) -> Result<Vec<D1Result>>
-    where
-        T: JsCast,
-    {
+    pub async fn batch(&self, statements: Vec<D1PreparedStatement>) -> Result<Vec<D1Result>> {
         let statements = statements.into_iter().map(|s| s.0).collect::<Array>();
         let results = JsFuture::from(self.0.batch(statements)).await?;
         let results = results.dyn_into::<Array>()?;
@@ -42,10 +39,7 @@ impl D1Database {
         Ok(vec)
     }
 
-    pub async fn exec<T>(&self, query: &str) -> Result<D1Result>
-    where
-        T: JsCast,
-    {
+    pub async fn exec(&self, query: &str) -> Result<D1Result> {
         let result = JsFuture::from(self.0.exec(query)).await?;
         let result = result.dyn_into::<D1ResultSys>()?;
         Ok(D1Result(result))
