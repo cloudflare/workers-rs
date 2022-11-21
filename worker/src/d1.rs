@@ -4,6 +4,7 @@ use js_sys::Uint8Array;
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use worker_sys::d1::D1Database as D1DatabaseSys;
+use worker_sys::d1::D1ExecResult;
 use worker_sys::d1::D1PreparedStatement as D1PreparedStatementSys;
 use worker_sys::d1::D1Result as D1ResultSys;
 
@@ -39,10 +40,9 @@ impl D1Database {
         Ok(vec)
     }
 
-    pub async fn exec(&self, query: &str) -> Result<D1Result> {
+    pub async fn exec(&self, query: &str) -> Result<D1ExecResult> {
         let result = JsFuture::from(self.0.exec(query)).await?;
-        let result = result.dyn_into::<D1ResultSys>()?;
-        Ok(D1Result(result))
+        Ok(result.into())
     }
 }
 
@@ -129,10 +129,14 @@ impl D1Result {
     }
 
     pub fn error(&self) -> Option<String> {
-        self.0.error().as_string()
+        self.0.error()
     }
 
     pub fn results(&self) -> Vec<JsValue> {
-        self.0.results().iter().collect::<Vec<_>>()
+        if let Some(results) = self.0.results() {
+            results.iter().collect()
+        } else {
+            Vec::new()
+        }
     }
 }

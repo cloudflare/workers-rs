@@ -1,25 +1,36 @@
 use ::js_sys::Object;
 use wasm_bindgen::prelude::*;
 
-use js_sys::{Array, JsString, Promise};
+use js_sys::{Array, Promise};
 
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(extends=::js_sys::Object, js_name=D1Result)]
-    #[derive(Debug, Clone, PartialEq, Eq)]
+    #[derive(Debug, Clone)]
     pub type D1Result;
 
-    #[wasm_bindgen(structural, method, getter, js_class=D1Result, js_name=results)]
-    pub fn results(this: &D1Result) -> Array;
+    #[wasm_bindgen(structural, method, getter, js_name=results)]
+    pub fn results(this: &D1Result) -> Option<Array>;
 
-    #[wasm_bindgen(structural, method, getter, js_class=D1Result, js_name=success)]
+    #[wasm_bindgen(structural, method, getter, js_name=success)]
     pub fn success(this: &D1Result) -> bool;
 
-    #[wasm_bindgen(structural, method, getter, js_class=D1Result, js_name=error)]
-    pub fn error(this: &D1Result) -> JsString;
+    #[wasm_bindgen(structural, method, getter, js_name=error)]
+    pub fn error(this: &D1Result) -> Option<String>;
 
-    #[wasm_bindgen(structural, method, getter, js_class=D1Result, js_name=meta)]
+    #[wasm_bindgen(structural, method, getter, js_name=meta)]
     pub fn meta(this: &D1Result) -> Object;
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[derive(Debug, Clone)]
+    pub type D1ExecResult;
+
+    #[wasm_bindgen(structural, method, getter, js_name=count)]
+    pub fn count(this: &D1ExecResult) -> Option<u32>;
+
+    #[wasm_bindgen(structural, method, getter, js_name=time)]
+    pub fn time(this: &D1ExecResult) -> Option<f64>;
 }
 
 #[wasm_bindgen]
