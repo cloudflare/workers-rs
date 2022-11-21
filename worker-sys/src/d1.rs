@@ -58,8 +58,8 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type D1PreparedStatement;
 
-    #[wasm_bindgen(structural, method, js_class=D1PreparedStatement, js_name=bind)]
-    pub fn bind(this: &D1PreparedStatement, values: Array) -> D1PreparedStatement;
+    #[wasm_bindgen(structural, method, js_class=D1PreparedStatement, js_name=bind, catch)]
+    pub fn bind(this: &D1PreparedStatement, values: Array) -> Result<D1PreparedStatement, JsValue>;
 
     #[wasm_bindgen(structural, method, js_class=D1PreparedStatement, js_name=first)]
     pub fn first(this: &D1PreparedStatement, col_name: Option<&str>) -> Promise;

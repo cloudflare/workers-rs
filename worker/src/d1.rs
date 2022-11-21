@@ -87,7 +87,7 @@ pub struct D1PreparedStatement(D1PreparedStatementSys);
 impl D1PreparedStatement {
     pub fn bind<V: Into<JsValue>>(&self, values: Vec<V>) -> Result<()> {
         let array = values.into_iter().map(Into::into).collect::<Array>();
-        self.0.bind(array);
+        self.0.bind(array)?;
         Ok(())
     }
 
@@ -97,14 +97,12 @@ impl D1PreparedStatement {
 
     pub async fn run(&self) -> Result<D1Result> {
         let result = JsFuture::from(self.0.run()).await?;
-        let result = result.dyn_into::<D1ResultSys>()?;
-        Ok(D1Result(result))
+        Ok(D1Result(result.into()))
     }
 
     pub async fn all(&self) -> Result<D1Result> {
         let result = JsFuture::from(self.0.all()).await?;
-        let result = result.dyn_into::<D1ResultSys>()?;
-        Ok(D1Result(result))
+        Ok(D1Result(result.into()))
     }
 
     pub async fn raw(&self) -> Result<Vec<JsValue>> {
