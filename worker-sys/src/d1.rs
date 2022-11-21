@@ -28,16 +28,16 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type D1Database;
 
-    #[wasm_bindgen(structural, method, getter, js_class=D1Database, js_name=prepare)]
+    #[wasm_bindgen(structural, method, js_class=D1Database, js_name=prepare)]
     pub fn prepare(this: &D1Database, query: &str) -> D1PreparedStatement;
 
-    #[wasm_bindgen(structural, method, getter, js_class=D1Database, js_name=dump)]
+    #[wasm_bindgen(structural, method, js_class=D1Database, js_name=dump)]
     pub fn dump(this: &D1Database) -> Promise;
 
-    #[wasm_bindgen(structural, method, getter, js_class=D1Database, js_name=batch)]
+    #[wasm_bindgen(structural, method, js_class=D1Database, js_name=batch)]
     pub fn batch(this: &D1Database, statements: Array) -> Promise;
 
-    #[wasm_bindgen(structural, method, getter, js_class=D1Database, js_name=exec)]
+    #[wasm_bindgen(structural, method, js_class=D1Database, js_name=exec)]
     pub fn exec(this: &D1Database, query: &str) -> Promise;
 }
 
@@ -47,18 +47,18 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type D1PreparedStatement;
 
-    #[wasm_bindgen(structural, method, getter, js_class=D1PreparedStatement, js_name=bind)]
+    #[wasm_bindgen(structural, method, js_class=D1PreparedStatement, js_name=bind)]
     pub fn bind(this: &D1PreparedStatement, values: Array) -> D1PreparedStatement;
 
-    #[wasm_bindgen(structural, method, getter, js_class=D1PreparedStatement, js_name=first)]
+    #[wasm_bindgen(structural, method, js_class=D1PreparedStatement, js_name=first)]
     pub fn first(this: &D1PreparedStatement, col_name: Option<&str>) -> Promise;
 
-    #[wasm_bindgen(structural, method, getter, js_class=D1PreparedStatement, js_name=run)]
+    #[wasm_bindgen(structural, method, js_class=D1PreparedStatement, js_name=run)]
     pub fn run(this: &D1PreparedStatement) -> Promise;
 
-    #[wasm_bindgen(structural, method, getter, js_class=D1PreparedStatement, js_name=all)]
+    #[wasm_bindgen(structural, method, js_class=D1PreparedStatement, js_name=all)]
     pub fn all(this: &D1PreparedStatement) -> Promise;
 
-    #[wasm_bindgen(structural, method, getter, js_class=D1PreparedStatement, js_name=raw)]
+    #[wasm_bindgen(structural, method, js_class=D1PreparedStatement, js_name=raw)]
     pub fn raw(this: &D1PreparedStatement) -> Promise;
 }
