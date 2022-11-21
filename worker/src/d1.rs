@@ -52,7 +52,7 @@ impl EnvBinding for D1Database {
 
 impl JsCast for D1Database {
     fn instanceof(val: &wasm_bindgen::JsValue) -> bool {
-        val.is_instance_of::<D1Database>()
+        val.is_instance_of::<D1DatabaseSys>()
     }
 
     fn unchecked_from_js(val: wasm_bindgen::JsValue) -> Self {
