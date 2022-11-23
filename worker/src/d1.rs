@@ -1,6 +1,7 @@
 use js_sys::Array;
 use js_sys::ArrayBuffer;
 use js_sys::Uint8Array;
+use serde::de::Deserialize;
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use worker_sys::d1::D1Database as D1DatabaseSys;
@@ -34,7 +35,6 @@ impl D1Database {
         let mut vec = Vec::with_capacity(results.length() as usize);
         for result in results.iter() {
             let result = result.dyn_into::<D1ResultSys>()?;
-            let result = D1ResultSys::from(result);
             vec.push(D1Result(result));
         }
         Ok(vec)
@@ -51,15 +51,15 @@ impl EnvBinding for D1Database {
 }
 
 impl JsCast for D1Database {
-    fn instanceof(val: &wasm_bindgen::JsValue) -> bool {
+    fn instanceof(val: &JsValue) -> bool {
         val.is_instance_of::<D1DatabaseSys>()
     }
 
-    fn unchecked_from_js(val: wasm_bindgen::JsValue) -> Self {
+    fn unchecked_from_js(val: JsValue) -> Self {
         Self(val.into())
     }
 
-    fn unchecked_from_js_ref(val: &wasm_bindgen::JsValue) -> &Self {
+    fn unchecked_from_js_ref(val: &JsValue) -> &Self {
         unsafe { &*(val as *const JsValue as *const Self) }
     }
 }
@@ -70,8 +70,8 @@ impl From<D1Database> for JsValue {
     }
 }
 
-impl AsRef<wasm_bindgen::JsValue> for D1Database {
-    fn as_ref(&self) -> &wasm_bindgen::JsValue {
+impl AsRef<JsValue> for D1Database {
+    fn as_ref(&self) -> &JsValue {
         &self.0
     }
 }
@@ -85,14 +85,23 @@ impl From<D1DatabaseSys> for D1Database {
 pub struct D1PreparedStatement(D1PreparedStatementSys);
 
 impl D1PreparedStatement {
-    pub fn bind<V: Into<JsValue>>(&self, values: Vec<V>) -> Result<()> {
-        let array = values.into_iter().map(Into::into).collect::<Array>();
+    pub fn bind<T>(&self, value: &T) -> Result<()>
+    where
+        T: serde::ser::Serialize + ?Sized,
+    {
+        let value = serde_wasm_bindgen::to_value(value)?;
+        let array = Array::of1(&value);
         self.0.bind(array)?;
         Ok(())
     }
 
-    pub async fn first(&self, col_name: Option<&str>) -> Result<JsValue> {
-        Ok(JsFuture::from(self.0.first(col_name)).await?)
+    pub async fn first<T>(&self, col_name: Option<&str>) -> Result<T>
+    where
+        T: for<'a> Deserialize<'a>,
+    {
+        let js_value = JsFuture::from(self.0.first(col_name)).await?;
+        let value = serde_wasm_bindgen::from_value(js_value)?;
+        Ok(value)
     }
 
     pub async fn run(&self) -> Result<D1Result> {
@@ -105,10 +114,17 @@ impl D1PreparedStatement {
         Ok(D1Result(result.into()))
     }
 
-    pub async fn raw(&self) -> Result<Vec<JsValue>> {
+    pub async fn raw<T>(&self) -> Result<Vec<T>>
+    where
+        T: for<'a> Deserialize<'a>,
+    {
         let result = JsFuture::from(self.0.raw()).await?;
         let result = result.dyn_into::<Array>()?;
-        let vec = result.iter().collect::<Vec<_>>();
+        let mut vec = Vec::with_capacity(result.length() as usize);
+        for value in result.iter() {
+            let value = serde_wasm_bindgen::from_value(value)?;
+            vec.push(value);
+        }
         Ok(vec)
     }
 }
@@ -130,11 +146,19 @@ impl D1Result {
         self.0.error()
     }
 
-    pub fn results(&self) -> Vec<JsValue> {
+    pub fn results<T>(&self) -> Result<Vec<T>>
+    where
+        T: for<'a> Deserialize<'a>,
+    {
         if let Some(results) = self.0.results() {
-            results.iter().collect()
+            let mut vec = Vec::with_capacity(results.length() as usize);
+            for result in results.iter() {
+                let result = serde_wasm_bindgen::from_value(result)?;
+                vec.push(result);
+            }
+            Ok(vec)
         } else {
-            Vec::new()
+            Ok(Vec::new())
         }
     }
 }
