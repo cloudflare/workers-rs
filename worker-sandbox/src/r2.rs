@@ -161,7 +161,13 @@ pub async fn put(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Res
 
     // Ensure that the empty object exists, but don't have a body.
     let empty_obj = bucket.get("empty").execute().await?.unwrap();
-    assert!(empty_obj.body().is_none());
+
+    // Miniflare behavior mismatch, in Miniflare an empty body will just return an object without
+    // a body property. But in workerd it will only return an object without a body property in the
+    // event that a condition failed
+    if let Some(body) = empty_obj.body() {
+        assert_eq!(body.bytes().await?.len(), 0)
+    }
 
     Response::ok("ok")
 }
