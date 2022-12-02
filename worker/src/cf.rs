@@ -140,6 +140,11 @@ impl Cf {
         let tz = self.inner.timezone();
         tz.parse::<chrono_tz::Tz>().unwrap()
     }
+
+    /// Whether the country of the incoming request is in the EU
+    pub fn is_eu_country(&self) -> bool {
+        self.inner.is_eu_country() == Some("1".to_string())
+    }
 }
 
 /// Browser-requested prioritization information.
