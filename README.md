@@ -242,6 +242,15 @@ new_classes = ["Chatroom"] # Array of new classes
 
 ## Queues
 
+### Enabling queues
+As queues are in beta you need to enable the `queue` feature flag.
+
+Enable it by adding it to the worker dependency in your `Cargo.toml`: 
+```toml
+worker = {version = "...", features = ["queue"]}
+```
+
+### Example worker consuming and producing messages:
 ```rust
 use worker::*;
 use serde::{Deserialize, Serialize};
