@@ -5,7 +5,6 @@ use crate::{durable::ObjectNamespace, DynamicDispatcher, Fetcher, Result};
 use js_sys::Object;
 use wasm_bindgen::{prelude::*, JsCast, JsValue};
 use worker_kv::KvStore;
-use worker_sys::console_log;
 
 #[wasm_bindgen]
 extern "C" {
