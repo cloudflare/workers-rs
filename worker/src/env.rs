@@ -70,7 +70,6 @@ pub trait EnvBinding: Sized + JsCast {
 
     fn get(val: JsValue) -> Result<Self> {
         let obj = Object::from(val);
-        console_log!("ENV binding name is: {}", obj.constructor().name());
         if obj.constructor().name() == Self::TYPE_NAME {
             Ok(obj.unchecked_into())
         } else {
