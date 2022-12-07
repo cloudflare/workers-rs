@@ -33,6 +33,12 @@ impl From<DateInit> for Date {
     }
 }
 
+impl From<JsDate> for Date {
+    fn from(js_date: JsDate) -> Self {
+        Self { js_date }
+    }
+}
+
 impl Date {
     /// Create a new Date, which requires being initialized from a known DateInit value.
     pub fn new(init: DateInit) -> Self {

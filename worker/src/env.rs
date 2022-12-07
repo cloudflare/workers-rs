@@ -1,9 +1,11 @@
 use crate::error::Error;
+use crate::Queue;
 use crate::{durable::ObjectNamespace, DynamicDispatcher, Fetcher, Result};
 
 use js_sys::Object;
 use wasm_bindgen::{prelude::*, JsCast, JsValue};
 use worker_kv::KvStore;
+use worker_sys::console_log;
 
 #[wasm_bindgen]
 extern "C" {
@@ -56,6 +58,11 @@ impl Env {
     pub fn service(&self, binding: &str) -> Result<Fetcher> {
         self.get_binding(binding)
     }
+
+    /// Access a Queue by the binding name configured in your wrangler.toml file.
+    pub fn queue(&self, binding: &str) -> Result<Queue> {
+        self.get_binding(binding)
+    }
 }
 
 pub trait EnvBinding: Sized + JsCast {
@@ -63,6 +70,7 @@ pub trait EnvBinding: Sized + JsCast {
 
     fn get(val: JsValue) -> Result<Self> {
         let obj = Object::from(val);
+        console_log!("ENV binding name is: {}", obj.constructor().name());
         if obj.constructor().name() == Self::TYPE_NAME {
             Ok(obj.unchecked_into())
         } else {

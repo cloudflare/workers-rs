@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     sync::atomic::{AtomicBool, Ordering},
     time::Duration,
 };

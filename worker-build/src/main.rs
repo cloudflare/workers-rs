@@ -130,7 +130,7 @@ fn bundle(esbuild_path: &Path) -> Result<()> {
         "--outfile=shim.mjs",
     ]);
 
-    if !no_minify {
+    if no_minify {
         command.arg("--minify");
     }
 
