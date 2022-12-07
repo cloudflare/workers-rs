@@ -10,6 +10,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
         Fetch,
         Scheduled,
         Start,
+        #[cfg(feature = "queue")]
         Queue,
     }
     use HandlerType::*;
@@ -22,6 +23,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             "fetch" => handler_type = Some(Fetch),
             "scheduled" => handler_type = Some(Scheduled),
             "start" => handler_type = Some(Start),
+            #[cfg(feature = "queue")]
             "queue" => handler_type = Some(Queue),
             "respond_with_errors" => {
                 respond_with_errors = true;
@@ -30,7 +32,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     }
     let handler_type = handler_type.expect(
-        "must have either 'fetch', 'scheduled', or 'start' attribute, e.g. #[event(fetch)]",
+        "must have either 'fetch', 'scheduled', 'queue' or 'start' attribute, e.g. #[event(fetch)]",
     );
 
     // create new var using syn item of the attributed fn
@@ -126,6 +128,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
 
             TokenStream::from(output)
         }
+        #[cfg(feature = "queue")]
         Queue => {
             // save original fn name for re-use in the wrapper fn
             let input_fn_ident = Ident::new(

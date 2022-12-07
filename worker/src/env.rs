@@ -1,4 +1,5 @@
 use crate::error::Error;
+#[cfg(feature = "queue")]
 use crate::Queue;
 use crate::{durable::ObjectNamespace, DynamicDispatcher, Fetcher, Result};
 
@@ -57,7 +58,7 @@ impl Env {
     pub fn service(&self, binding: &str) -> Result<Fetcher> {
         self.get_binding(binding)
     }
-
+    #[cfg(feature = "queue")]
     /// Access a Queue by the binding name configured in your wrangler.toml file.
     pub fn queue(&self, binding: &str) -> Result<Queue> {
         self.get_binding(binding)
