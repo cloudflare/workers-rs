@@ -243,8 +243,8 @@ new_classes = ["Chatroom"] # Array of new classes
 ## Queues
 
 ```rust
-use serde::{Deserialize, Serialize};
 use worker::*;
+use serde::{Deserialize, Serialize};
 #[derive(Serialize, Debug, Clone, Deserialize)]
 pub struct MyType {
     foo: String,
@@ -254,6 +254,9 @@ pub struct MyType {
 // Consume messages from a queue
 #[event(queue)]
 pub async fn main(message_batch: MessageBatch, env: Env, _ctx: Context) {
+    // Get a queue with the binding 'my_queue'
+    let my_queue = env.queue("my_queue").unwrap();
+
     // Deserialize the message batch
     let messages = message_batch.messages::<MyType>().unwrap();
 
@@ -267,13 +270,12 @@ pub async fn main(message_batch: MessageBatch, env: Env, _ctx: Context) {
             message.timestamp.to_string()
         );
 
-        // Get a queue with the binding 'MY_QUEUE' and send the message body to it
-        env.queue("MY_QUEUE")
-            .unwrap()
-            .send(&message.body)
-            .await
-            .unwrap();
+        // Send the message body to the other queue
+        my_queue.send(&message.body).await.unwrap();
     }
+
+    // Retry all messages
+    message_batch.retry_all();
 }
 ```
 

@@ -12,6 +12,9 @@ extern "C" {
 
     #[wasm_bindgen(method, getter, js_class=MessageBatch, js_name=messages)]
     pub fn messages(this: &MessageBatch) -> Array;
+
+    #[wasm_bindgen(structural, method, js_class=MessageBatch, js_name=retryAll)]
+    pub fn retry_all(this: &MessageBatch);
 }
 
 #[wasm_bindgen]
