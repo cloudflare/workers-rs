@@ -240,6 +240,43 @@ new_classes = ["Chatroom"] # Array of new classes
 - For more information about migrating your Durable Object as it changes, see the docs here:
   https://developers.cloudflare.com/workers/learning/using-durable-objects#durable-object-migrations-in-wranglertoml
 
+## Queues
+
+```rust
+use serde::{Deserialize, Serialize};
+use worker::*;
+#[derive(Serialize, Debug, Clone, Deserialize)]
+pub struct MyType {
+    foo: String,
+    bar: u32,
+}
+
+// Consume messages from a queue
+#[event(queue)]
+pub async fn main(message_batch: MessageBatch, env: Env, _ctx: Context) {
+    // Deserialize the message batch
+    let messages = message_batch.messages::<MyType>().unwrap();
+
+    // Loop through the messages
+    for message in messages {
+        // Log the message and meta data
+        console_log!(
+            "Got message {:?}, with id {} and timestamp: {}",
+            message.body,
+            message.id,
+            message.timestamp.to_string()
+        );
+
+        // Get a queue with the binding 'MY_QUEUE' and send the message body to it
+        env.queue("MY_QUEUE")
+            .unwrap()
+            .send(&message.body)
+            .await
+            .unwrap();
+    }
+}
+```
+
 # Notes and FAQ
 
 It is exciting to see how much is possible with a framework like this, by expanding the options
