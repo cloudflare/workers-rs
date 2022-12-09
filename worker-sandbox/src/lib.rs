@@ -730,11 +730,9 @@ pub struct QueueBody {
 }
 
 #[event(queue)]
-pub async fn queue(message_batch: MessageBatch, _env: Env, _ctx: Context) -> Result<()> {
-    let messages = message_batch.messages::<QueueBody>()?;
-
+pub async fn queue(message_batch: MessageBatch<QueueBody>, _env: Env, _ctx: Context) -> Result<()> {
     let mut guard = GLOBAL_QUEUE_STATE.lock().unwrap();
-    for message in messages {
+    for message in message_batch.messages()? {
         console_log!(
             "Received queue message {:?}, with id {} and timestamp: {}",
             message.body,

@@ -262,12 +262,12 @@ pub struct MyType {
 
 // Consume messages from a queue
 #[event(queue)]
-pub async fn main(message_batch: MessageBatch, env: Env, _ctx: Context) -> Result<()> {
+pub async fn main(message_batch: MessageBatch<MyType>, env: Env, _ctx: Context) -> Result<()> {
     // Get a queue with the binding 'my_queue'
     let my_queue = env.queue("my_queue")?;
-    
+
     // Deserialize the message batch
-    let messages = message_batch.messages::<MyType>()?;
+    let messages = message_batch.messages()?;
 
     // Loop through the messages
     for message in messages {
