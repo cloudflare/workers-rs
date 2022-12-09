@@ -4,9 +4,9 @@ use std::{
 };
 
 use futures_util::{Stream, TryStreamExt};
-use js_sys::{Uint8Array, BigInt};
+use js_sys::{BigInt, Uint8Array};
 use pin_project::pin_project;
-use wasm_bindgen::{JsValue, JsCast};
+use wasm_bindgen::{JsCast, JsValue};
 use wasm_streams::readable::IntoStream;
 use web_sys::ReadableStream;
 use worker_sys::FixedLengthStream as FixedLengthStreamSys;
@@ -95,7 +95,6 @@ impl Stream for FixedLengthStream {
 
 impl From<FixedLengthStream> for FixedLengthStreamSys {
     fn from(stream: FixedLengthStream) -> Self {
-
         let raw = if stream.length < u32::MAX as u64 {
             FixedLengthStreamSys::new(stream.length as u32)
         } else {
@@ -110,10 +109,12 @@ impl From<FixedLengthStream> for FixedLengthStreamSys {
 
                 array.into()
             })
-            .map_err(|err| -> crate::Error { err.into() })
-            .map_err(|e| JsValue::from(e.to_string()));
+            .map_err(JsValue::from);
 
-        let stream: ReadableStream = wasm_streams::ReadableStream::from_stream(js_stream).as_raw().clone().unchecked_into();
+        let stream: ReadableStream = wasm_streams::ReadableStream::from_stream(js_stream)
+            .as_raw()
+            .clone()
+            .unchecked_into();
         let _ = stream.pipe_to(&raw.writable());
 
         raw
