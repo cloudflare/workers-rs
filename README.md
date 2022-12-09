@@ -262,12 +262,12 @@ pub struct MyType {
 
 // Consume messages from a queue
 #[event(queue)]
-pub async fn main(message_batch: MessageBatch, env: Env, _ctx: Context) {
+pub async fn main(message_batch: MessageBatch, env: Env, _ctx: Context) -> Result<()> {
     // Get a queue with the binding 'my_queue'
-    let my_queue = env.queue("my_queue").unwrap();
-
+    let my_queue = env.queue("my_queue")?;
+    
     // Deserialize the message batch
-    let messages = message_batch.messages::<MyType>().unwrap();
+    let messages = message_batch.messages::<MyType>()?;
 
     // Loop through the messages
     for message in messages {
@@ -280,11 +280,12 @@ pub async fn main(message_batch: MessageBatch, env: Env, _ctx: Context) {
         );
 
         // Send the message body to the other queue
-        my_queue.send(&message.body).await.unwrap();
+        my_queue.send(&message.body).await?;
     }
 
     // Retry all messages
     message_batch.retry_all();
+    Ok(())
 }
 ```
 
