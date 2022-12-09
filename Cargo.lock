@@ -1005,6 +1005,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "retry"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9166d72162de3575f950507683fac47e30f6f2c3836b71b7fbc61aa517c9c5f4"
+dependencies = [
+ "rand",
+]
+
+[[package]]
 name = "ring"
 version = "0.16.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1477,6 +1486,16 @@ name = "utf-8"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "09cc8ee72d2a9becf2f2febe0205bbed8fc6615b7cb429ad062dc7b7ddd036a9"
+
+[[package]]
+name = "uuid"
+version = "1.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "422ee0de9031b5b948b97a8fc04e3aa35230001a722ddd27943e0be31564ce4c"
+dependencies = [
+ "getrandom",
+ "serde",
+]
 
 [[package]]
 name = "vcpkg"
@@ -1990,10 +2009,12 @@ dependencies = [
  "rand",
  "regex",
  "reqwest",
+ "retry",
  "serde",
  "serde_json",
  "tokio",
  "tungstenite",
+ "uuid",
  "wasm-bindgen-test",
  "worker",
 ]

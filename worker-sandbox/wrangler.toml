@@ -21,6 +21,13 @@ remote-service = "./remote-service"
 [durable_objects]
 bindings = [{ name = "COUNTER", class_name = "Counter" }, { name = "ALARM", class_name = "AlarmObject" }]
 
+[[queues.consumers]]
+ queue = "my_queue"
+
+[[queues.producers]]
+ queue = "my_queue"
+ binding = "my_queue"
+
 [build]
 command = "worker-build --release"
 
