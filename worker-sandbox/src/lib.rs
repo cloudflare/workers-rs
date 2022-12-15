@@ -54,7 +54,7 @@ struct SomeSharedData {
 }
 
 fn handle_a_request<D>(req: Request, _ctx: RouteContext<D>) -> Result<Response> {
-    Response::ok(&format!(
+    Response::ok(format!(
         "req at: {}, located at: {:?}, within: {}",
         req.path(),
         req.cf().coordinates().unwrap_or_default(),
@@ -63,7 +63,7 @@ fn handle_a_request<D>(req: Request, _ctx: RouteContext<D>) -> Result<Response> 
 }
 
 async fn handle_async_request<D>(req: Request, _ctx: RouteContext<D>) -> Result<Response> {
-    Response::ok(&format!(
+    Response::ok(format!(
         "[async] req at: {}, located at: {:?}, within: {}",
         req.path(),
         req.cf().coordinates().unwrap_or_default(),
@@ -285,7 +285,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         })
         .post_async("/post-file-size", |mut req, _| async move {
             let bytes = req.bytes().await?;
-            Response::ok(&format!("size = {}", bytes.len()))
+            Response::ok(format!("size = {}", bytes.len()))
         })
         .get("/user/:id/test", |_req, ctx| {
             if let Some(id) = ctx.param("id") {

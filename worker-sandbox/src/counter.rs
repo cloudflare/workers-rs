@@ -28,7 +28,7 @@ impl DurableObject for Counter {
         self.count += 10;
         self.state.storage().put("count", self.count).await?;
 
-        Response::ok(&format!(
+        Response::ok(format!(
             "[durable_object]: self.count: {}, secret value: {}",
             self.count,
             self.env.secret("SOME_SECRET")?.to_string()
