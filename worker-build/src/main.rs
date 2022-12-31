@@ -163,6 +163,7 @@ fn bundle(esbuild_path: &Path) -> Result<()> {
                     "./shim.mjs",
                     "--outfile=shim.mjs",
                     "--minify",
+                    "--allow-overwrite",
                 ]);
 
                 let exit_status = command.current_dir(path).spawn()?.wait()?;
