@@ -149,7 +149,7 @@ fn bundle(esbuild_path: &Path) -> Result<()> {
             let fetch_with_imports = format!("{}\n{}", imports, fetch);
             let init_without_imports = imports_regex.replace_all(init, "");
 
-            let result = fetch_with_imports.replace("init()", &init_without_imports);
+            let result = fetch_with_imports.replace("INSERT_INIT()", &init_without_imports);
 
             fs::write(path.join("./shim.mjs"), result)?;
 

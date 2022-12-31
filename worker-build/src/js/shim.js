@@ -1,6 +1,6 @@
 export default {
   fetch: async (...args) => {
-    init();
+    INSERT_INIT();
 
     const imports = require("./index_bg.js");
 
