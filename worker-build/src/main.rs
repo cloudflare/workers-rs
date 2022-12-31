@@ -11,6 +11,7 @@ use std::{
 };
 
 use anyhow::Result;
+use regex::Regex;
 
 const OUT_DIR: &str = "build";
 const OUT_NAME: &str = "index";
@@ -121,7 +122,7 @@ fn bundle(esbuild_path: &Path) -> Result<()> {
     let no_minify = !matches!(env::var("NO_MINIFY"), Err(VarError::NotPresent));
     let path = PathBuf::from(OUT_DIR).join(WORKER_SUBDIR).canonicalize()?;
     let esbuild_path = esbuild_path.canonicalize()?;
-    let mut command = Command::new(esbuild_path);
+    let mut command = Command::new(&esbuild_path);
     command.args([
         "--external:./index.wasm",
         "--format=esm",
@@ -130,14 +131,50 @@ fn bundle(esbuild_path: &Path) -> Result<()> {
         "--outfile=shim.mjs",
     ]);
 
-    if !no_minify {
-        command.arg("--minify");
-    }
-
-    let exit_status = command.current_dir(path).spawn()?.wait()?;
+    let exit_status = command.current_dir(&path).spawn()?.wait()?;
 
     match exit_status.success() {
-        true => Ok(()),
+        true => {
+            let bundle = fs::read_to_string(path.join("./shim.mjs"))?;
+
+            let (init, fetch) = bundle.split_once("\n// shim.js\n").unwrap();
+
+            let imports_regex = Regex::new(r#"import[^\n"]+from.+["'][^\n"']+["']"#).unwrap();
+            let imports = imports_regex
+                .find_iter(init)
+                .fold(String::new(), |result, import| {
+                    result + import.as_str() + ";\n"
+                });
+
+            let fetch_with_imports = format!("{}\n{}", imports, fetch);
+            let init_without_imports = imports_regex.replace_all(init, "");
+
+            let result = fetch_with_imports.replace("init()", &init_without_imports);
+
+            fs::write(path.join("./shim.mjs"), result)?;
+
+            // re-bundle the shim with minification flag
+            if !no_minify {
+                let mut command = Command::new(esbuild_path);
+                command.args([
+                    "--external:./index.wasm",
+                    "--format=esm",
+                    "--bundle",
+                    "./shim.mjs",
+                    "--outfile=shim.mjs",
+                    "--minify",
+                ]);
+
+                let exit_status = command.current_dir(path).spawn()?.wait()?;
+
+                match exit_status.success() {
+                    true => Ok(()),
+                    false => anyhow::bail!("esbuild exited with status {}", exit_status),
+                }
+            } else {
+                Ok(())
+            }
+        }
         false => anyhow::bail!("esbuild exited with status {}", exit_status),
     }
 }
