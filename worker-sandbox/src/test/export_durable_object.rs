@@ -50,17 +50,21 @@ impl DurableObject for MyClass {
                         .await
                         .map_err(|e| e.to_string() + " -- get_multiple")?;
                     ensure!(
-                        serde_wasm_bindgen::from_value::<Option<i32>>(vals.get(&"anything".into()))? == Some(45),
+                        serde_wasm_bindgen::from_value::<Option<i32>>(
+                            vals.get(&"anything".into())
+                        )? == Some(45),
                         "Didn't get the right Option<i32> using get_multiple"
                     );
                     ensure!(
-                        serde_wasm_bindgen::from_value::<[(String, i32); 2]>(vals.get(&"array".into()))?
-                            == [("one".to_string(), 1), ("two".to_string(), 2)],
+                        serde_wasm_bindgen::from_value::<[(String, i32); 2]>(
+                            vals.get(&"array".into())
+                        )? == [("one".to_string(), 1), ("two".to_string(), 2)],
                         "Didn't get the right array using get_multiple"
                     );
                     ensure!(
-                        serde_wasm_bindgen::from_value::<HashMap<String, i32>>(vals.get(&"map".into()))?
-                            == map,
+                        serde_wasm_bindgen::from_value::<HashMap<String, i32>>(
+                            vals.get(&"map".into())
+                        )? == map,
                         "Didn't get the right HashMap<String, i32> using get_multiple"
                     );
 

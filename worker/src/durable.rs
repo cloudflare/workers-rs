@@ -24,7 +24,7 @@ use crate::{
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use js_sys::{Map, Number, Object};
-use serde::{Serialize, de::DeserializeOwned};
+use serde::{de::DeserializeOwned, Serialize};
 use wasm_bindgen::{prelude::*, JsCast};
 use worker_sys::{
     durable_object::{
@@ -229,10 +229,13 @@ impl Storage {
 
     /// Stores the value and associates it with the given key.
     pub async fn put<T: Serialize>(&mut self, key: &str, value: T) -> Result<()> {
-        JsFuture::from(self.inner.put_internal(key, serde_wasm_bindgen::to_value(&value)?)?)
-            .await
-            .map_err(Error::from)
-            .map(|_| ())
+        JsFuture::from(
+            self.inner
+                .put_internal(key, serde_wasm_bindgen::to_value(&value)?)?,
+        )
+        .await
+        .map_err(Error::from)
+        .map(|_| ())
     }
 
     /// Takes a serializable struct and stores each of its keys and values to storage.
@@ -434,10 +437,13 @@ impl Transaction {
     }
 
     async fn put<T: Serialize>(&mut self, key: &str, value: T) -> Result<()> {
-        JsFuture::from(self.inner.put_internal(key, serde_wasm_bindgen::to_value(&value)?)?)
-            .await
-            .map_err(Error::from)
-            .map(|_| ())
+        JsFuture::from(
+            self.inner
+                .put_internal(key, serde_wasm_bindgen::to_value(&value)?)?,
+        )
+        .await
+        .map_err(Error::from)
+        .map(|_| ())
     }
 
     // Each key-value pair in the serialized object will be added to the storage
