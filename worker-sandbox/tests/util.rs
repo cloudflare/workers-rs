@@ -23,7 +23,7 @@ pub fn expect_wrangler() {
 pub fn get(endpoint: &str, builder_fn: impl FnOnce(RequestBuilder) -> RequestBuilder) -> Response {
     expect_wrangler();
 
-    let builder = Client::new().get(&format!("http://127.0.0.1:8787/{endpoint}"));
+    let builder = Client::new().get(format!("http://127.0.0.1:8787/{endpoint}"));
     let builder = builder_fn(builder);
 
     builder
@@ -36,7 +36,7 @@ pub fn get(endpoint: &str, builder_fn: impl FnOnce(RequestBuilder) -> RequestBui
 pub fn post(endpoint: &str, builder_fn: impl FnOnce(RequestBuilder) -> RequestBuilder) -> Response {
     expect_wrangler();
 
-    let builder = Client::new().post(&format!("http://127.0.0.1:8787/{endpoint}"));
+    let builder = Client::new().post(format!("http://127.0.0.1:8787/{endpoint}"));
     let builder = builder_fn(builder);
 
     builder
@@ -49,7 +49,7 @@ pub fn post(endpoint: &str, builder_fn: impl FnOnce(RequestBuilder) -> RequestBu
 pub fn put(endpoint: &str, builder_fn: impl FnOnce(RequestBuilder) -> RequestBuilder) -> Response {
     expect_wrangler();
 
-    let builder = Client::new().put(&format!("http://127.0.0.1:8787/{endpoint}"));
+    let builder = Client::new().put(format!("http://127.0.0.1:8787/{endpoint}"));
     let builder = builder_fn(builder);
 
     builder
@@ -64,10 +64,8 @@ pub fn options(
     builder_fn: impl FnOnce(RequestBuilder) -> RequestBuilder,
 ) -> Response {
     expect_wrangler();
-    let builder = Client::new().request(
-        Method::OPTIONS,
-        &format!("http://127.0.0.1:8787/{endpoint}"),
-    );
+    let builder =
+        Client::new().request(Method::OPTIONS, format!("http://127.0.0.1:8787/{endpoint}"));
     let builder = builder_fn(builder);
 
     builder

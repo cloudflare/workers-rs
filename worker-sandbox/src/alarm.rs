@@ -28,7 +28,7 @@ impl DurableObject for AlarmObject {
             Err(e) => return Err(e),
         };
 
-        Response::ok(&alarmed.to_string())
+        Response::ok(alarmed.to_string())
     }
 
     async fn alarm(&mut self) -> Result<Response> {
