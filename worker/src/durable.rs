@@ -24,7 +24,7 @@ use crate::{
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use js_sys::{Map, Number, Object};
-use serde::{Deserialize, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use wasm_bindgen::{prelude::*, JsCast};
 use worker_sys::{
     durable_object::{
@@ -203,14 +203,14 @@ pub struct Storage {
 impl Storage {
     /// Retrieves the value associated with the given key. The type of the returned value will be
     /// whatever was previously written for the key, or undefined if the key does not exist.
-    pub async fn get<T: for<'a> Deserialize<'a>>(&self, key: &str) -> Result<T> {
+    pub async fn get<T: serde::de::DeserializeOwned>(&self, key: &str) -> Result<T> {
         JsFuture::from(self.inner.get_internal(key)?)
             .await
             .and_then(|val| {
                 if val.is_undefined() {
                     Err(JsValue::from("No such value in storage."))
                 } else {
-                    val.into_serde().map_err(|e| JsValue::from(e.to_string()))
+                    serde_wasm_bindgen::from_value(val).map_err(|e| JsValue::from(e.to_string()))
                 }
             })
             .map_err(Error::from)
@@ -229,7 +229,7 @@ impl Storage {
 
     /// Stores the value and associates it with the given key.
     pub async fn put<T: Serialize>(&mut self, key: &str, value: T) -> Result<()> {
-        JsFuture::from(self.inner.put_internal(key, JsValue::from_serde(&value)?)?)
+        JsFuture::from(self.inner.put_internal(key, serde_wasm_bindgen::to_value(&value)?)?)
             .await
             .map_err(Error::from)
             .map(|_| ())
@@ -237,7 +237,7 @@ impl Storage {
 
     /// Takes a serializable struct and stores each of its keys and values to storage.
     pub async fn put_multiple<T: Serialize>(&mut self, values: T) -> Result<()> {
-        let values = JsValue::from_serde(&values)?;
+        let values = serde_wasm_bindgen::to_value(&values)?;
         if !values.is_object() {
             return Err("Must pass in a struct type".to_string().into());
         }
@@ -305,7 +305,7 @@ impl Storage {
     pub async fn list_with_options(&self, opts: ListOptions<'_>) -> Result<Map> {
         let fut: JsFuture = self
             .inner
-            .list_with_options_internal(JsValue::from_serde(&opts)?.into())?
+            .list_with_options_internal(serde_wasm_bindgen::to_value(&opts)?.into())?
             .into();
         fut.await
             .and_then(|jsv| jsv.dyn_into())
@@ -325,7 +325,7 @@ impl Storage {
     pub async fn get_alarm_with_options(&self, options: GetAlarmOptions) -> Result<Option<i64>> {
         let fut: JsFuture = self
             .inner
-            .get_alarm_internal(JsValue::from_serde(&options)?.into())?
+            .get_alarm_internal(serde_wasm_bindgen::to_value(&options)?.into())?
             .into();
         fut.await
             .map(|jsv| jsv.as_f64().map(|f| f as i64))
@@ -357,7 +357,7 @@ impl Storage {
             .inner
             .set_alarm_internal(
                 scheduled_time.into().schedule(),
-                JsValue::from_serde(&options)?.into(),
+                serde_wasm_bindgen::to_value(&options)?.into(),
             )?
             .into();
         fut.await.map(|_| ()).map_err(Error::from)
@@ -376,7 +376,7 @@ impl Storage {
     pub async fn delete_alarm_with_options(&self, options: SetAlarmOptions) -> Result<()> {
         let fut: JsFuture = self
             .inner
-            .delete_alarm_internal(JsValue::from_serde(&options)?.into())?
+            .delete_alarm_internal(serde_wasm_bindgen::to_value(&options)?.into())?
             .into();
         fut.await.map(|_| ()).map_err(Error::from)
     }
@@ -410,14 +410,14 @@ struct Transaction {
 
 #[allow(dead_code)]
 impl Transaction {
-    async fn get<T: for<'a> Deserialize<'a>>(&self, key: &str) -> Result<T> {
+    async fn get<T: DeserializeOwned>(&self, key: &str) -> Result<T> {
         JsFuture::from(self.inner.get_internal(key)?)
             .await
             .and_then(|val| {
                 if val.is_undefined() {
                     Err(JsValue::from("No such value in storage."))
                 } else {
-                    val.into_serde().map_err(|e| JsValue::from(e.to_string()))
+                    serde_wasm_bindgen::from_value(val).map_err(std::convert::Into::into)
                 }
             })
             .map_err(Error::from)
@@ -434,7 +434,7 @@ impl Transaction {
     }
 
     async fn put<T: Serialize>(&mut self, key: &str, value: T) -> Result<()> {
-        JsFuture::from(self.inner.put_internal(key, JsValue::from_serde(&value)?)?)
+        JsFuture::from(self.inner.put_internal(key, serde_wasm_bindgen::to_value(&value)?)?)
             .await
             .map_err(Error::from)
             .map(|_| ())
@@ -442,7 +442,7 @@ impl Transaction {
 
     // Each key-value pair in the serialized object will be added to the storage
     async fn put_multiple<T: Serialize>(&mut self, values: T) -> Result<()> {
-        let values = JsValue::from_serde(&values)?;
+        let values = serde_wasm_bindgen::to_value(&values)?;
         if !values.is_object() {
             return Err("Must pass in a struct type".to_string().into());
         }
@@ -495,7 +495,7 @@ impl Transaction {
     async fn list_with_options(&self, opts: ListOptions<'_>) -> Result<Map> {
         let fut: JsFuture = self
             .inner
-            .list_with_options_internal(JsValue::from_serde(&opts)?.into())?
+            .list_with_options_internal(serde_wasm_bindgen::to_value(&opts)?.into())?
             .into();
         fut.await
             .and_then(|jsv| jsv.dyn_into())

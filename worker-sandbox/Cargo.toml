@@ -30,6 +30,7 @@ worker = { path = "../worker", version = "0.0.12" }
 futures-channel = "0.3.21"
 futures-util = { version = "0.3.21", default-features = false }
 rand = "0.8.5"
+serde-wasm-bindgen = "0.4.3"
 
 [dev-dependencies]
 futures-channel = { version = "0.3.21", features = ["sink"] }

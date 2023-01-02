@@ -191,7 +191,7 @@ impl From<&CfProperties> for JsValue {
         set_prop(
             &obj,
             &JsValue::from("cacheTtlByStatus"),
-            &JsValue::from_serde(&ttl_status_map).unwrap_or_default(),
+            &serde_wasm_bindgen::to_value(&ttl_status_map).unwrap_or_default(),
         );
 
         set_prop(

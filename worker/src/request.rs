@@ -105,7 +105,7 @@ impl Request {
                             .unwrap_or_else(|| "failed to get JSON for body value".into()),
                     )
                 })
-                .and_then(|val| val.into_serde().map_err(Error::from));
+                .and_then(|val| serde_wasm_bindgen::from_value(val).map_err(Error::from));
         }
 
         Err(Error::BodyUsed)

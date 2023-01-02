@@ -1,7 +1,7 @@
 use std::convert::TryInto;
 
 use serde::Serialize;
-use wasm_bindgen::{JsCast, JsValue};
+use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 
 use worker_sys::cache::Cache as EdgeCache;
@@ -106,7 +106,7 @@ impl Cache {
         key: K,
         ignore_method: bool,
     ) -> Result<Option<Response>> {
-        let options = JsValue::from_serde(&MatchOptions { ignore_method })?;
+        let options = serde_wasm_bindgen::to_value(&MatchOptions { ignore_method })?;
         let promise = match key.into() {
             CacheKey::Url(url) => self.inner.match_url(url.as_str(), options),
             CacheKey::Request(request) => self.inner.match_request(&request.try_into()?, options),
@@ -133,7 +133,7 @@ impl Cache {
         key: K,
         ignore_method: bool,
     ) -> Result<CacheDeletionOutcome> {
-        let options = JsValue::from_serde(&MatchOptions { ignore_method })?;
+        let options = serde_wasm_bindgen::to_value(&MatchOptions { ignore_method })?;
 
         let promise = match key.into() {
             CacheKey::Url(url) => self.inner.delete_url(url.as_str(), options),
