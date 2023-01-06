@@ -1,0 +1,21 @@
+name = "alarm-example"
+workers_dev = true
+compatibility_date = "2022-09-12" # required
+compatibility_flags = ["streams_enable_constructors"]
+main = "./shim.mjs"
+
+vars = { SOME_VARIABLE = "some value" }
+
+[durable_objects]
+bindings = [{ name = "ALARM", class_name = "AlarmObject" }]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["AlarmObject"]
+
+[build]
+command = "worker-build --release"
+
+[[rules]]
+globs = ["**/*.wasm"]
+type = "CompiledWasm"
