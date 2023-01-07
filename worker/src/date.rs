@@ -71,6 +71,7 @@ impl ToString for Date {
     }
 }
 
+#[allow(deprecated)]
 impl<T: TimeZone> From<chrono::Date<T>> for Date {
     fn from(d: chrono::Date<T>) -> Self {
         Self {
