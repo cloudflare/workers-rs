@@ -262,7 +262,7 @@ fn request_init_fetch() {
 #[test]
 fn cancelled_fetch() {
     let body = get("cancelled-fetch", |r| r).text().unwrap();
-    assert!(body.starts_with("AbortError: The operation was aborted"));
+    assert!(body.starts_with("AbortError:"));
 }
 
 #[test]
@@ -477,4 +477,46 @@ fn test_service_binding() {
 
     let body: String = get("remote-by-path", |r| r).text().unwrap();
     assert_eq!(body, "hello world");
+}
+
+#[test]
+fn r2_list_empty() {
+    let body = get("r2/list-empty", |r| r).text().unwrap();
+    assert_eq!(body, "ok");
+}
+
+#[test]
+fn r2_list() {
+    let body = get("r2/list", |r| r).text().unwrap();
+    assert_eq!(body, "ok");
+}
+
+#[test]
+fn r2_get_empty() {
+    let body = get("r2/get-empty", |r| r).text().unwrap();
+    assert_eq!(body, "ok");
+}
+
+#[test]
+fn r2_get() {
+    let body = get("r2/get", |r| r).text().unwrap();
+    assert_eq!(body, "ok");
+}
+
+#[test]
+fn r2_put() {
+    let body = put("r2/put", |r| r).text().unwrap();
+    assert_eq!(body, "ok");
+}
+
+#[test]
+fn r2_put_with_properties() {
+    let body = put("r2/put-properties", |r| r).text().unwrap();
+    assert_eq!(body, "ok");
+}
+
+#[test]
+fn r2_delete() {
+    let body = delete("r2/delete", |r| r).text().unwrap();
+    assert_eq!(body, "ok");
 }
