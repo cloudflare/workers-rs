@@ -2076,12 +2076,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "worker-build"
-version = "0.0.8"
+name = "worker-build2"
+version = "0.0.10"
 dependencies = [
  "anyhow",
  "dirs-next",
  "flate2",
+ "regex",
  "tar",
  "ureq",
  "wasm-bindgen-cli-support",

@@ -1,8 +1,8 @@
 [package]
 authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
 edition = "2018"
-name = "worker-build"
-version = "0.0.8"
+name = "worker-build2"
+version = "0.0.10"
 license = "Apache-2.0"
 repository = "https://github.com/cloudflare/workers-rs/tree/main/worker-build"
 readme = "README.md"
@@ -15,6 +15,7 @@ anyhow = "1.0.57"
 dirs-next = "2.0.0"
 flate2 = "1.0.24"
 tar = "0.4.38"
+regex = "1.7.0"
 ureq = { version = "2.4.0", features = ["tls", "gzip"] }
 
 [dev-dependencies]
