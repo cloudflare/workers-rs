@@ -91,6 +91,11 @@ impl Bucket {
         }
     }
 
+    /// Creates a multipart upload.
+    ///
+    /// Returns a [MultipartUpload] value representing the newly created multipart upload.
+    /// Once the multipart upload has been created, the multipart upload can be immediately
+    /// interacted with globally, either through the Workers API, or through the S3 API.
     pub fn create_multipart_upload(
         &self,
         key: impl Into<String>,
@@ -103,6 +108,11 @@ impl Bucket {
         }
     }
 
+    /// Returns an object representing a multipart upload with the given `key` and `uploadId`.
+    ///
+    /// The operation does not perform any checks to ensure the validity of the `uploadId`,
+    /// nor does it verify the existence of a corresponding active multipart upload.
+    /// This is done to minimize latency before being able to call subsequent operations on the returned object.
     pub fn resume_multipart_upload(
         &self,
         key: impl Into<String>,
@@ -292,6 +302,9 @@ impl<'body> ObjectBody<'body> {
     }
 }
 
+/// [UploadedPart] represents a part that has been uploaded.
+/// [UploadedPart] objects are returned from [upload_part](MultipartUpload::upload_part) operations
+/// and must be passed to the [complete](MultipartUpload::complete) operation.
 pub struct UploadedPart {
     inner: EdgeR2UploadedPart,
 }
@@ -311,6 +324,18 @@ pub struct MultipartUpload {
 }
 
 impl MultipartUpload {
+    /// Uploads a single part with the specified part number to this multipart upload.
+    ///
+    /// Returns an [UploadedPart] object containing the etag and part number.
+    /// These [UploadedPart] objects are required when completing the multipart upload.
+    ///
+    /// Getting hold of a value of this type does not guarantee that there is an active
+    /// underlying multipart upload corresponding to that object.
+    ///
+    /// A multipart upload can be completed or aborted at any time, either through the S3 API,
+    /// or by a parallel invocation of your Worker.
+    /// Therefore it is important to add the necessary error handling code around each operation
+    /// on the [MultipartUpload] object in case the underlying multipart upload no longer exists.
     pub async fn upload_part(
         &self,
         part_number: u16,
@@ -323,11 +348,14 @@ impl MultipartUpload {
         })
     }
 
+    /// Aborts the multipart upload.
     pub async fn abort(&self) -> Result<()> {
         JsFuture::from(self.inner.abort()).await?;
         Ok(())
     }
 
+    /// Completes the multipart upload with the given parts.
+    /// When the future is ready, the object is immediately accessible globally by any subsequent read operation.
     pub async fn complete(
         self,
         uploaded_parts: impl Iterator<Item = UploadedPart>,
