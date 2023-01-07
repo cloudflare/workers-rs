@@ -4,11 +4,11 @@ use js_sys::{Array, Date as JsDate, JsString, Object as JsObject, Uint8Array};
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use worker_sys::r2::{
-    R2Bucket as EdgeR2Bucket, R2HttpMetadata as R2HttpMetadataSys, R2Object as EdgeR2Object,
-    R2Range as R2RangeSys,
+    R2Bucket as EdgeR2Bucket, R2HttpMetadata as R2HttpMetadataSys,
+    R2MultipartUpload as EdgeR2MutipartUpload, R2Object as EdgeR2Object, R2Range as R2RangeSys,
 };
 
-use crate::{Date, Error, ObjectInner, Objects, Result};
+use crate::{Date, Error, MultipartUpload, ObjectInner, Objects, Result};
 
 use super::{Data, Object};
 
@@ -211,6 +211,56 @@ impl<'bucket> PutOptionsBuilder<'bucket> {
         };
 
         Ok(Object { inner })
+    }
+}
+
+/// Options for configuring the [create_multipart_upload](crate::r2::Bucket::create_multipart_upload) operation.
+pub struct CreateMultipartUploadOptionsBuilder<'bucket> {
+    pub(crate) edge_bucket: &'bucket EdgeR2Bucket,
+    pub(crate) key: String,
+    pub(crate) http_metadata: Option<HttpMetadata>,
+    pub(crate) custom_metadata: Option<HashMap<String, String>>,
+}
+
+impl<'bucket> CreateMultipartUploadOptionsBuilder<'bucket> {
+    /// Various HTTP headers associated with the object. Refer to [HttpMetadata].
+    pub fn http_metadata(mut self, metadata: HttpMetadata) -> Self {
+        self.http_metadata = Some(metadata);
+        self
+    }
+
+    /// A map of custom, user-defined metadata that will be stored with the object.
+    pub fn custom_metdata(mut self, metadata: impl Into<HashMap<String, String>>) -> Self {
+        self.custom_metadata = Some(metadata.into());
+        self
+    }
+
+    /// Executes the multipart upload creation operation on the R2 bucket.
+    pub async fn execute(self) -> Result<MultipartUpload> {
+        let key: String = self.key;
+
+        let create_multipart_upload_promise = self.edge_bucket.create_multipart_upload(
+            key,
+            js_object! {
+                "httpMetadata" => self.http_metadata.map(JsObject::from),
+                "customMetadata" => match self.custom_metadata {
+                    Some(metadata) => {
+                        let obj = JsObject::new();
+                        for (k, v) in metadata.into_iter() {
+                            js_sys::Reflect::set(&obj, &JsString::from(k), &JsString::from(v))?;
+                        }
+                        obj.into()
+                    }
+                    None => JsValue::UNDEFINED,
+                },
+            }
+            .into(),
+        );
+        let inner: EdgeR2MutipartUpload = JsFuture::from(create_multipart_upload_promise)
+            .await?
+            .into();
+
+        Ok(MultipartUpload { inner })
     }
 }
 
