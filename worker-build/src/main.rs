@@ -135,7 +135,7 @@ fn bundle(esbuild_path: &Path) -> Result<()> {
 
     match exit_status.success() {
         true => {
-            let bundle = fs::read_to_string(path.join("./shim.mjs"))?;
+            let bundle = fs::read_to_string(path.join("./shim.mjs"))?.replace("init_glue()", "");
 
             let (init, fetch) = bundle.split_once("\n// shim.js\n").unwrap();
 
@@ -148,8 +148,9 @@ fn bundle(esbuild_path: &Path) -> Result<()> {
 
             let fetch_with_imports = format!("{}\n{}", imports, fetch);
             let init_without_imports = imports_regex.replace_all(init, "");
+            let init = format!("{}\n;init_glue();", init_without_imports);
 
-            let result = fetch_with_imports.replace("INSERT_INIT()", &init_without_imports);
+            let result = fetch_with_imports.replace("INSERT_INIT()", &init);
 
             fs::write(path.join("./shim.mjs"), result)?;
 
