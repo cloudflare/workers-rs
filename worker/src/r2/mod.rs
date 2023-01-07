@@ -8,8 +8,9 @@ use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use worker_sys::{
     r2::{
-        R2Bucket as EdgeR2Bucket, R2Object as EdgeR2Object, R2ObjectBody as EdgeR2ObjectBody,
-        R2Objects as EdgeR2Objects,
+        R2Bucket as EdgeR2Bucket, R2MultipartUpload as EdgeR2MultipartUpload,
+        R2Object as EdgeR2Object, R2ObjectBody as EdgeR2ObjectBody, R2Objects as EdgeR2Objects,
+        R2UploadedPart as EdgeR2UploadedPart,
     },
     FixedLengthStream as EdgeFixedLengthStream,
 };
@@ -88,6 +89,31 @@ impl Bucket {
             delimiter: None,
             include: None,
         }
+    }
+
+    pub fn create_multipart_upload(
+        &self,
+        key: impl Into<String>,
+    ) -> CreateMultipartUploadOptionsBuilder {
+        CreateMultipartUploadOptionsBuilder {
+            edge_bucket: &self.inner,
+            key: key.into(),
+            http_metadata: None,
+            custom_metadata: None,
+        }
+    }
+
+    pub fn resume_multipart_upload(
+        &self,
+        key: impl Into<String>,
+        upload_id: impl Into<String>,
+    ) -> Result<MultipartUpload> {
+        Ok(MultipartUpload {
+            inner: self
+                .inner
+                .resume_multipart_upload(key.into(), upload_id.into())
+                .into(),
+        })
     }
 }
 
@@ -263,6 +289,57 @@ impl<'body> ObjectBody<'body> {
 
     pub async fn text(self) -> Result<String> {
         String::from_utf8(self.bytes().await?).map_err(|e| Error::RustError(e.to_string()))
+    }
+}
+
+pub struct UploadedPart {
+    inner: EdgeR2UploadedPart,
+}
+
+impl UploadedPart {
+    pub fn part_number(&self) -> u16 {
+        self.inner.part_number()
+    }
+
+    pub fn etag(&self) -> String {
+        self.inner.etag()
+    }
+}
+
+pub struct MultipartUpload {
+    inner: EdgeR2MultipartUpload,
+}
+
+impl MultipartUpload {
+    pub async fn upload_part(
+        &self,
+        part_number: u16,
+        value: impl Into<Data>,
+    ) -> Result<UploadedPart> {
+        let uploaded_part =
+            JsFuture::from(self.inner.upload_part(part_number, value.into().into())).await?;
+        Ok(UploadedPart {
+            inner: uploaded_part.into(),
+        })
+    }
+
+    pub async fn abort(&self) -> Result<()> {
+        JsFuture::from(self.inner.abort()).await?;
+        Ok(())
+    }
+
+    pub async fn complete(
+        self,
+        uploaded_parts: impl Iterator<Item = UploadedPart>,
+    ) -> Result<Object> {
+        let object = JsFuture::from(
+            self.inner
+                .complete(uploaded_parts.map(|part| part.inner.into()).collect()),
+        )
+        .await?;
+        Ok(Object {
+            inner: ObjectInner::Body(object.into()),
+        })
     }
 }
 
