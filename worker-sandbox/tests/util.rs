@@ -60,6 +60,7 @@ pub fn put(endpoint: &str, builder_fn: impl FnOnce(RequestBuilder) -> RequestBui
         .unwrap_or_else(|_| panic!("received invalid status code for {}", endpoint))
 }
 
+#[allow(dead_code)]
 pub fn delete(
     endpoint: &str,
     builder_fn: impl FnOnce(RequestBuilder) -> RequestBuilder,
