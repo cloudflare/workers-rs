@@ -15,6 +15,7 @@ use worker::*;
 
 mod alarm;
 mod counter;
+mod r2;
 mod test;
 mod utils;
 
@@ -49,7 +50,7 @@ struct FileSize {
     size: u32,
 }
 
-struct SomeSharedData {
+pub struct SomeSharedData {
     regex: regex::Regex,
 }
 
@@ -692,6 +693,13 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             let messages: Vec<QueueBody> = guard.clone();
             Response::from_json(&messages)
         })
+        .get_async("/r2/list-empty", r2::list_empty)
+        .get_async("/r2/list", r2::list)
+        .get_async("/r2/get-empty", r2::get_empty)
+        .get_async("/r2/get", r2::get)
+        .put_async("/r2/put", r2::put)
+        .put_async("/r2/put-properties", r2::put_properties)
+        .delete_async("/r2/delete", r2::delete)
         .or_else_any_method_async("/*catchall", |_, ctx| async move {
             console_log!(
                 "[or_else_any_method_async] caught: {}",

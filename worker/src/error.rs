@@ -31,6 +31,13 @@ impl From<url::ParseError> for Error {
     }
 }
 
+impl From<serde_wasm_bindgen::Error> for Error {
+    fn from(e: serde_wasm_bindgen::Error) -> Self {
+        let val: JsValue = e.into();
+        val.into()
+    }
+}
+
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -92,12 +99,5 @@ impl From<matchit::InsertError> for Error {
 impl From<serde_json::Error> for Error {
     fn from(e: serde_json::Error) -> Self {
         Error::SerdeJsonError(e)
-    }
-}
-
-#[cfg(feature = "queue")]
-impl From<serde_wasm_bindgen::Error> for Error {
-    fn from(e: serde_wasm_bindgen::Error) -> Self {
-        Error::SerdeWasmBindgenError(e)
     }
 }

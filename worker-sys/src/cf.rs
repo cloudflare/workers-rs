@@ -56,6 +56,9 @@ extern "C" {
 
     #[wasm_bindgen(structural, method, getter, js_class=IncomingRequestCfProperties, js_name=timezone)]
     pub fn timezone(this: &Cf) -> String;
+
+    #[wasm_bindgen(structural, method, getter, js_class=IncomingRequestCfProperties, js_name=isEUCountry)]
+    pub fn is_eu_country(this: &Cf) -> Option<String>;
 }
 
 #[wasm_bindgen]

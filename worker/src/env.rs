@@ -1,7 +1,7 @@
 use crate::error::Error;
 #[cfg(feature = "queue")]
 use crate::Queue;
-use crate::{durable::ObjectNamespace, DynamicDispatcher, Fetcher, Result};
+use crate::{durable::ObjectNamespace, Bucket, DynamicDispatcher, Fetcher, Result};
 
 use js_sys::Object;
 use wasm_bindgen::{prelude::*, JsCast, JsValue};
@@ -58,9 +58,15 @@ impl Env {
     pub fn service(&self, binding: &str) -> Result<Fetcher> {
         self.get_binding(binding)
     }
+
     #[cfg(feature = "queue")]
     /// Access a Queue by the binding name configured in your wrangler.toml file.
     pub fn queue(&self, binding: &str) -> Result<Queue> {
+        self.get_binding(binding)
+    }
+
+    /// Access an R2 Bucket by the binding name configured in your wrangler.toml file.
+    pub fn bucket(&self, binding: &str) -> Result<Bucket> {
         self.get_binding(binding)
     }
 }
@@ -73,7 +79,12 @@ pub trait EnvBinding: Sized + JsCast {
         if obj.constructor().name() == Self::TYPE_NAME {
             Ok(obj.unchecked_into())
         } else {
-            Err(format!("Binding cannot be cast to the type {}", Self::TYPE_NAME).into())
+            Err(format!(
+                "Binding cannot be cast to the type {} from {}",
+                Self::TYPE_NAME,
+                obj.constructor().name()
+            )
+            .into())
         }
     }
 }
