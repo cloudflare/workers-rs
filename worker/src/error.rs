@@ -14,6 +14,8 @@ pub enum Error {
     RouteNoDataError,
     RustError(String),
     SerdeJsonError(serde_json::Error),
+    #[cfg(feature = "queue")]
+    SerdeWasmBindgenError(serde_wasm_bindgen::Error),
 }
 
 impl From<worker_kv::KvError> for Error {
@@ -50,6 +52,8 @@ impl std::fmt::Display for Error {
             Error::RouteInsertError(e) => write!(f, "failed to insert route: {}", e),
             Error::RouteNoDataError => write!(f, "route has no corresponding shared data"),
             Error::SerdeJsonError(e) => write!(f, "Serde Error: {}", e),
+            #[cfg(feature = "queue")]
+            Error::SerdeWasmBindgenError(e) => write!(f, "Serde Error: {}", e),
         }
     }
 }

@@ -46,11 +46,11 @@ jobs:
         with:
           command: test
           args: --manifest-path worker-build/Cargo.toml
-
+          
       - name: Setup node
         uses: actions/setup-node@v3
         with:
-          node-version: v17.4.0
+          node-version: v18.12.1
 
       - name: Install packages
         run: |
@@ -59,7 +59,17 @@ jobs:
           sudo apt install -y build-essential libssl-dev netcat
 
       - name: Install miniflare
-        run: npm install -g miniflare
+        shell: bash
+        run: |
+          git clone https://github.com/cloudflare/miniflare.git
+          cd miniflare
+          git checkout 9d96aaa66aa48eb1107c86fe24cbfd444249533c
+          cd packages/miniflare
+          npm i
+          npm link
+          cd ../..
+          npm i
+          npm run build
 
       - name: Install wasmpack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh

@@ -36,6 +36,8 @@ pub use crate::formdata::*;
 pub use crate::global::Fetch;
 pub use crate::headers::Headers;
 pub use crate::http::Method;
+#[cfg(feature = "queue")]
+pub use crate::queue::*;
 pub use crate::r2::*;
 pub use crate::request::Request;
 pub use crate::request_init::*;
@@ -61,6 +63,8 @@ mod formdata;
 mod global;
 mod headers;
 mod http;
+#[cfg(feature = "queue")]
+mod queue;
 mod r2;
 mod request;
 mod request_init;

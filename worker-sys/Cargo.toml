@@ -27,3 +27,6 @@ features = [
     "CloseEvent",
     "ProgressEvent",
 ]
+
+[features]
+queue = []

@@ -20,3 +20,6 @@ quote = "1.0.18"
 wasm-bindgen = "0.2.80"
 wasm-bindgen-futures = "0.4.30"
 wasm-bindgen-macro-support = "0.2.80"
+
+[features]
+queue = []

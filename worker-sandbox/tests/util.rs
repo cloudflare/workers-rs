@@ -46,6 +46,7 @@ pub fn post(endpoint: &str, builder_fn: impl FnOnce(RequestBuilder) -> RequestBu
         .unwrap_or_else(|_| panic!("received invalid status code for {}", endpoint))
 }
 
+#[allow(dead_code)]
 pub fn put(endpoint: &str, builder_fn: impl FnOnce(RequestBuilder) -> RequestBuilder) -> Response {
     expect_wrangler();
 
@@ -59,6 +60,7 @@ pub fn put(endpoint: &str, builder_fn: impl FnOnce(RequestBuilder) -> RequestBui
         .unwrap_or_else(|_| panic!("received invalid status code for {}", endpoint))
 }
 
+#[allow(dead_code)]
 pub fn delete(
     endpoint: &str,
     builder_fn: impl FnOnce(RequestBuilder) -> RequestBuilder,
@@ -75,6 +77,7 @@ pub fn delete(
         .unwrap_or_else(|_| panic!("received invalid status code for {}", endpoint))
 }
 
+#[allow(dead_code)]
 pub fn options(
     endpoint: &str,
     builder_fn: impl FnOnce(RequestBuilder) -> RequestBuilder,
