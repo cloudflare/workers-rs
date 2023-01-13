@@ -141,6 +141,11 @@ impl Cf {
         tz.parse::<chrono_tz::Tz>().unwrap()
     }
 
+    /// Timezone name of the incoming request
+    pub fn timezone_name(&self) -> String {
+        self.inner.timezone()
+    }
+
     /// Whether the country of the incoming request is in the EU
     pub fn is_eu_country(&self) -> bool {
         self.inner.is_eu_country() == Some("1".to_string())
