@@ -237,7 +237,11 @@ impl Request {
     pub fn clone(&self) -> Result<Self> {
         self.edge_request
             .clone()
-            .map(|req| req.into())
+            .map(|req| {
+                let mut req: Request = req.into();
+                req.immutable = false;
+                req
+            })
             .map_err(Error::from)
     }
 
