@@ -5,6 +5,8 @@ members = [
     "worker-macros",
     "worker-sandbox",
     "worker-sys",
+    # Examples
+    "examples/alarm",
 ]
 
 [profile.release]
