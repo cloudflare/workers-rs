@@ -8,7 +8,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
     let router = Router::with_data(()); // if no data is needed, pass `()` or any other valid data
 
     router
-        .get_async("/durable/alarm", |_req, ctx| async move {
+        .get_async("/", |_req, ctx| async move {
             let namespace = ctx.durable_object("ALARM")?;
             let stub = namespace.id_from_name("alarm")?.get_stub()?;
             // when calling fetch to a Durable Object, a full URL must be used. Alternatively, a
