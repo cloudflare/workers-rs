@@ -21,24 +21,7 @@ dependencies = [
 name = "alarm-example"
 version = "0.1.0"
 dependencies = [
- "blake2",
  "cfg-if",
- "chrono",
- "console_error_panic_hook",
- "futures-channel",
- "futures-util",
- "getrandom",
- "hex",
- "http",
- "rand",
- "regex",
- "reqwest",
- "serde",
- "serde-wasm-bindgen",
- "serde_json",
- "tokio",
- "tungstenite",
- "wasm-bindgen-test",
  "worker",
 ]
 
