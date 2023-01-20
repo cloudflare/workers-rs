@@ -1,4 +1,5 @@
 mod context;
+mod d1;
 mod durable_object;
 mod dynamic_dispatcher;
 mod fetcher;
@@ -13,6 +14,7 @@ mod tls_client_auth;
 mod websocket_pair;
 
 pub use context::*;
+pub use d1::*;
 pub use durable_object::*;
 pub use dynamic_dispatcher::*;
 pub use fetcher::*;
