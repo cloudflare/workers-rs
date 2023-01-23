@@ -250,7 +250,16 @@ impl<'body> ObjectBody<'body> {
     }
 
     pub async fn bytes(self) -> Result<Vec<u8>> {
-        let mut bytes = Vec::with_capacity(self.inner.size() as usize);
+        let size = self.inner.size();
+        let range = self.inner.range();
+
+        let capacity = range
+            .length
+            .or(range.suffix)
+            .or(range.offset.and_then(|offset| Some(size - offset)))
+            .unwrap_or(size) as usize;
+
+        let mut bytes = Vec::with_capacity(capacity);
         let mut stream = self.stream()?;
 
         while let Some(chunk) = stream.next().await {
