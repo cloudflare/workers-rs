@@ -256,7 +256,7 @@ impl<'body> ObjectBody<'body> {
         let capacity = range
             .length
             .or(range.suffix)
-            .or(range.offset.and_then(|offset| Some(size - offset)))
+            .or(range.offset.map(|offset| size - offset))
             .unwrap_or(size) as usize;
 
         let mut bytes = Vec::with_capacity(capacity);
