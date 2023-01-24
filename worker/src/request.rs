@@ -306,7 +306,7 @@ fn clone_mut_works() {
         crate::Method::Get,
     )
     .unwrap();
-    assert_eq!(req.immutable, false);
+    assert!(!req.immutable);
     let mut_req = req.clone_mut().unwrap();
-    assert_eq!(mut_req.immutable, true);
+    assert!(mut_req.immutable);
 }
