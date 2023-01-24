@@ -257,7 +257,8 @@ impl<'body> ObjectBody<'body> {
             .length
             .or(range.suffix)
             .or(range.offset.map(|offset| size - offset))
-            .unwrap_or(size) as usize;
+            .unwrap_or(size)
+            .min(size) as usize;
 
         let mut bytes = Vec::with_capacity(capacity);
         let mut stream = self.stream()?;
