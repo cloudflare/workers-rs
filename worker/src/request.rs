@@ -301,7 +301,11 @@ fn url_param_works() {
 
 #[test]
 fn clone_mut_works() {
-    let req = Request::new("https://example.com/foo.html?a=foo&b=bar&a=baz", crate::Method::Get).unwrap();
+    let req = Request::new(
+        "https://example.com/foo.html?a=foo&b=bar&a=baz",
+        crate::Method::Get,
+    )
+    .unwrap();
     assert_eq!(req.immutable, false);
     let mut_req = req.clone_mut().unwrap();
     assert_eq!(mut_req.immutable, true);
