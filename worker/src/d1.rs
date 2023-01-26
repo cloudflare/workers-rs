@@ -112,7 +112,7 @@ impl D1PreparedStatement {
     ///
     /// Supports Ordered (?NNNN) and Anonymous (?) parameters - named parameters are currently not supported.
     ///
-    pub fn bind<T>(&self, values: Vec<&T>) -> Result<&Self>
+    pub fn bind<T>(&self, values: &[&T]) -> Result<Self>
     where
         T: serde::ser::Serialize + ?Sized,
     {
@@ -122,10 +122,12 @@ impl D1PreparedStatement {
             params.push(res);
         }
 
-        let array: Array = params.into_iter().collect();
+        let array: Array = params.into_iter().collect::<Array>();
 
-        self.0.bind(array)?;
-        Ok(self)
+        match self.0.bind(array) {
+            Ok(stmt) => Ok(D1PreparedStatement(stmt)),
+            Err(err) => Err(err.into()),
+        }
     }
 
     /// Return the first row of results.
