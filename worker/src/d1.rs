@@ -10,6 +10,7 @@ use worker_sys::types::D1PreparedStatement as D1PreparedStatementSys;
 use worker_sys::types::D1Result as D1ResultSys;
 
 use crate::env::EnvBinding;
+use crate::Error;
 use crate::Result;
 
 // A D1 Database.
@@ -126,7 +127,7 @@ impl D1PreparedStatement {
 
         match self.0.bind(array) {
             Ok(stmt) => Ok(D1PreparedStatement(stmt)),
-            Err(err) => Err(err.into()),
+            Err(err) => Err(Error::from(err)),
         }
     }
 
