@@ -44,3 +44,4 @@ features = [
 
 [features]
 queue = ["worker-macros/queue", "worker-sys/queue"]
+d1 = ["worker-sys/d1"]
