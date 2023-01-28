@@ -29,4 +29,5 @@ features = [
 ]
 
 [features]
+d1 = []
 queue = []

@@ -25,6 +25,7 @@ pub use crate::abort::*;
 pub use crate::cache::{Cache, CacheDeletionOutcome};
 pub use crate::context::Context;
 pub use crate::cors::Cors;
+#[cfg(feature = "d1")]
 pub use crate::d1::*;
 pub use crate::date::{Date, DateInit};
 pub use crate::delay::Delay;
@@ -53,6 +54,7 @@ mod cache;
 mod cf;
 mod context;
 mod cors;
+#[cfg(feature = "d1")]
 mod d1;
 mod date;
 mod delay;

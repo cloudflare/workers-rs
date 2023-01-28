@@ -105,7 +105,7 @@ impl From<D1DatabaseSys> for D1Database {
 pub struct D1PreparedStatement(D1PreparedStatementSys);
 
 impl D1PreparedStatement {
-    /// Bind one or more parameters to the statement.
+    /// Bind one or more parameters to the statement. Returns a new statement object.
     ///
     /// D1 follows the SQLite convention for prepared statements parameter binding.
     ///

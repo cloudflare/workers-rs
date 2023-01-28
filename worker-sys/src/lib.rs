@@ -4,6 +4,7 @@ pub mod abort;
 pub mod cache;
 pub mod cf;
 pub mod context;
+#[cfg(feature = "d1")]
 pub mod d1;
 pub mod durable_object;
 pub mod dynamic_dispatch;
@@ -54,6 +55,8 @@ macro_rules! console_error {
 pub mod prelude {
     pub use crate::cf::Cf;
     pub use crate::context::Context;
+    #[cfg(feature = "d1")]
+    pub use crate::d1::*;
     pub use crate::durable_object;
     pub use crate::file::File;
     pub use crate::formdata::FormData;
@@ -71,6 +74,8 @@ pub mod prelude {
 pub use abort::*;
 pub use cf::Cf;
 pub use context::Context;
+#[cfg(feature = "d1")]
+pub use d1::*;
 pub use durable_object::*;
 pub use dynamic_dispatch::*;
 pub use fetcher::*;

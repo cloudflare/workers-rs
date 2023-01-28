@@ -35,3 +35,4 @@ worker-sys = { path = "../worker-sys", version = "0.0.6" }
 
 [features]
 queue = ["worker-macros/queue", "worker-sys/queue"]
+d1 = ["worker-sys/d1"]
