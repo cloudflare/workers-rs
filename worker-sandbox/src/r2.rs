@@ -185,6 +185,57 @@ pub async fn put_properties(_req: Request, ctx: RouteContext<SomeSharedData>) ->
     Response::ok("ok")
 }
 
+pub async fn put_multipart(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
+    const R2_MULTIPART_CHUNK_MIN_SIZE: usize = 5 * 1_024 * 1_024; // 5MiB.
+    const TEST_CHUNK_COUNT: usize = 3;
+
+    let bucket = ctx.bucket("PUT_BUCKET")?;
+
+    let upload = bucket
+        .create_multipart_upload("multipart_upload")
+        .execute()
+        .await?;
+
+    // R2 requires chunks – except for the last one – to be at least 5MiB long.
+    let chunk_sizes = [
+        R2_MULTIPART_CHUNK_MIN_SIZE + 100,
+        R2_MULTIPART_CHUNK_MIN_SIZE + 200,
+        500,
+    ];
+    let mut uploaded_parts = vec![];
+    for (chunk_index, chunk_size) in chunk_sizes.iter().copied().enumerate() {
+        let chunk = vec![chunk_index as u8; chunk_size];
+        uploaded_parts.push(upload.upload_part(chunk_index as u16, chunk).await?);
+    }
+    upload.complete(uploaded_parts).await?;
+
+    // Now let's get the object again and ensure it consists of all three parts that were uploaded.
+    let complete_object = bucket.get("multipart_upload").execute().await?.unwrap();
+    let complete_object_body = complete_object.body().unwrap();
+    let complete_object_bytes = complete_object_body.bytes().await?;
+
+    assert_eq!(
+        complete_object_bytes.len(),
+        R2_MULTIPART_CHUNK_MIN_SIZE + 100 + R2_MULTIPART_CHUNK_MIN_SIZE + 200 + 500
+    );
+    assert_eq!(
+        complete_object_bytes[0..R2_MULTIPART_CHUNK_MIN_SIZE + 100],
+        [0; R2_MULTIPART_CHUNK_MIN_SIZE + 100]
+    );
+    assert_eq!(
+        complete_object_bytes[R2_MULTIPART_CHUNK_MIN_SIZE + 100..]
+            [..R2_MULTIPART_CHUNK_MIN_SIZE + 200],
+        [1; R2_MULTIPART_CHUNK_MIN_SIZE + 200]
+    );
+    assert_eq!(
+        complete_object_bytes
+            [R2_MULTIPART_CHUNK_MIN_SIZE + 100 + R2_MULTIPART_CHUNK_MIN_SIZE + 200..],
+        [2; 500]
+    );
+
+    Response::ok("ok")
+}
+
 pub async fn delete(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
     let bucket = ctx.bucket("DELETE_BUCKET")?;
 
