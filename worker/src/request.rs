@@ -241,6 +241,12 @@ impl Request {
             .map_err(Error::from)
     }
 
+    pub fn clone_mut(&self) -> Result<Self> {
+        let mut req: Request = EdgeRequest::new_with_request(&self.edge_request)?.into();
+        req.immutable = false;
+        Ok(req)
+    }
+
     pub fn inner(&self) -> &EdgeRequest {
         &self.edge_request
     }
@@ -291,4 +297,16 @@ fn url_param_works() {
     assert_eq!(a_values.next().as_deref(), Some("foo"));
     assert_eq!(a_values.next().as_deref(), Some("baz"));
     assert_eq!(a_values.next(), None);
+}
+
+#[test]
+fn clone_mut_works() {
+    let req = Request::new(
+        "https://example.com/foo.html?a=foo&b=bar&a=baz",
+        crate::Method::Get,
+    )
+    .unwrap();
+    assert!(!req.immutable);
+    let mut_req = req.clone_mut().unwrap();
+    assert!(mut_req.immutable);
 }
