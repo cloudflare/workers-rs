@@ -358,11 +358,15 @@ impl MultipartUpload {
     /// When the future is ready, the object is immediately accessible globally by any subsequent read operation.
     pub async fn complete(
         self,
-        uploaded_parts: impl Iterator<Item = UploadedPart>,
+        uploaded_parts: impl IntoIterator<Item = UploadedPart>,
     ) -> Result<Object> {
         let object = JsFuture::from(
-            self.inner
-                .complete(uploaded_parts.map(|part| part.inner.into()).collect()),
+            self.inner.complete(
+                uploaded_parts
+                    .into_iter()
+                    .map(|part| part.inner.into())
+                    .collect(),
+            ),
         )
         .await?;
         Ok(Object {
