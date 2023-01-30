@@ -230,7 +230,7 @@ impl Request {
     pub fn url(&self) -> Result<Url> {
         let url = self.edge_request.url();
         url.parse()
-            .map_err(|e| Error::RustError(format!("failed to parse Url from {}: {}", e, url)))
+            .map_err(|e| Error::RustError(format!("failed to parse Url from {e}: {url}")))
     }
 
     #[allow(clippy::should_implement_trait)]
