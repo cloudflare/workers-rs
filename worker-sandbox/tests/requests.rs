@@ -517,6 +517,12 @@ fn r2_put_with_properties() {
 }
 
 #[test]
+fn r2_put_multipart() {
+    let body = put("r2/put-multipart", |r| r).text().unwrap();
+    assert_eq!(body, "ok");
+}
+
+#[test]
 fn r2_delete() {
     let body = delete("r2/delete", |r| r).text().unwrap();
     assert_eq!(body, "ok");
