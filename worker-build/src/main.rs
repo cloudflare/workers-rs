@@ -152,7 +152,7 @@ fn remove_unused_js() -> Result<()> {
     }
 
     for to_remove in [
-        format!("{}_bg.js", OUT_NAME),
+        format!("{OUT_NAME}_bg.js"),
         "shim.js".into(),
         "glue.js".into(),
     ] {

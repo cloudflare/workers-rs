@@ -441,9 +441,9 @@ fn cache_stream() {
 #[test]
 fn cache_api() {
     let key = "example.org";
-    let get_endpoint = format!("cache-api/get/{}", key);
-    let put_endpoint = format!("cache-api/put/{}", key);
-    let delete_endpoint = format!("cache-api/delete/{}", key);
+    let get_endpoint = format!("cache-api/get/{key}");
+    let put_endpoint = format!("cache-api/put/{key}");
+    let delete_endpoint = format!("cache-api/delete/{key}");
 
     // First time should result in cache miss
     let body = get(get_endpoint.as_str(), |r| r).text().unwrap();

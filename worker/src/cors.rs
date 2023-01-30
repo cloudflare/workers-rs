@@ -88,7 +88,7 @@ impl Cors {
             headers.set("Access-Control-Allow-Credentials", "true")?;
         }
         if let Some(ref max_age) = self.max_age {
-            headers.set("Access-Control-Max-Age", format!("{}", max_age).as_str())?;
+            headers.set("Access-Control-Max-Age", format!("{max_age}").as_str())?;
         }
         if !self.origins.is_empty() {
             headers.set(
