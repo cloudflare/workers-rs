@@ -2,7 +2,6 @@ use std::{collections::HashMap, convert::TryInto};
 
 pub use builder::*;
 
-use futures_util::StreamExt;
 use js_sys::{JsString, Reflect, Uint8Array};
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
@@ -286,13 +285,10 @@ impl<'body> ObjectBody<'body> {
     }
 
     pub async fn bytes(self) -> Result<Vec<u8>> {
-        let mut bytes = Vec::with_capacity(self.inner.size() as usize);
-        let mut stream = self.stream()?;
-
-        while let Some(chunk) = stream.next().await {
-            let mut chunk = chunk?;
-            bytes.append(&mut chunk);
-        }
+        let js_buffer = JsFuture::from(self.inner.array_buffer()).await?;
+        let js_buffer = Uint8Array::new(&js_buffer);
+        let mut bytes = vec![0; js_buffer.length() as usize];
+        js_buffer.copy_to(&mut bytes);
 
         Ok(bytes)
     }
