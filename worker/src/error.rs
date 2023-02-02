@@ -60,12 +60,21 @@ impl std::fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
+// Not sure if the changes I've made here are good or bad...
 impl From<JsValue> for Error {
     fn from(v: JsValue) -> Self {
-        match v
-            .as_string()
-            .or_else(|| v.dyn_ref::<js_sys::Error>().map(|e| e.to_string().into()))
-        {
+        match v.as_string().or_else(|| {
+            v.dyn_ref::<js_sys::Error>().map(|e| {
+                format!(
+                    "Error: {} - Cause: {}",
+                    e.to_string(),
+                    e.cause()
+                        .as_string()
+                        .or_else(|| { Some(e.to_string().into()) })
+                        .unwrap_or(String::from("N/A"))
+                )
+            })
+        }) {
             Some(s) => Self::JsError(s),
             None => Self::Internal(v),
         }
