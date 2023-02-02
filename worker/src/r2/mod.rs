@@ -8,8 +8,9 @@ use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use worker_sys::{
     r2::{
-        R2Bucket as EdgeR2Bucket, R2Object as EdgeR2Object, R2ObjectBody as EdgeR2ObjectBody,
-        R2Objects as EdgeR2Objects,
+        R2Bucket as EdgeR2Bucket, R2MultipartUpload as EdgeR2MultipartUpload,
+        R2Object as EdgeR2Object, R2ObjectBody as EdgeR2ObjectBody, R2Objects as EdgeR2Objects,
+        R2UploadedPart as EdgeR2UploadedPart,
     },
     FixedLengthStream as EdgeFixedLengthStream,
 };
@@ -88,6 +89,41 @@ impl Bucket {
             delimiter: None,
             include: None,
         }
+    }
+
+    /// Creates a multipart upload.
+    ///
+    /// Returns a [MultipartUpload] value representing the newly created multipart upload.
+    /// Once the multipart upload has been created, the multipart upload can be immediately
+    /// interacted with globally, either through the Workers API, or through the S3 API.
+    pub fn create_multipart_upload(
+        &self,
+        key: impl Into<String>,
+    ) -> CreateMultipartUploadOptionsBuilder {
+        CreateMultipartUploadOptionsBuilder {
+            edge_bucket: &self.inner,
+            key: key.into(),
+            http_metadata: None,
+            custom_metadata: None,
+        }
+    }
+
+    /// Returns an object representing a multipart upload with the given `key` and `uploadId`.
+    ///
+    /// The operation does not perform any checks to ensure the validity of the `uploadId`,
+    /// nor does it verify the existence of a corresponding active multipart upload.
+    /// This is done to minimize latency before being able to call subsequent operations on the returned object.
+    pub fn resume_multipart_upload(
+        &self,
+        key: impl Into<String>,
+        upload_id: impl Into<String>,
+    ) -> Result<MultipartUpload> {
+        Ok(MultipartUpload {
+            inner: self
+                .inner
+                .resume_multipart_upload(key.into(), upload_id.into())
+                .into(),
+        })
     }
 }
 
@@ -273,6 +309,79 @@ impl<'body> ObjectBody<'body> {
 
     pub async fn text(self) -> Result<String> {
         String::from_utf8(self.bytes().await?).map_err(|e| Error::RustError(e.to_string()))
+    }
+}
+
+/// [UploadedPart] represents a part that has been uploaded.
+/// [UploadedPart] objects are returned from [upload_part](MultipartUpload::upload_part) operations
+/// and must be passed to the [complete](MultipartUpload::complete) operation.
+pub struct UploadedPart {
+    inner: EdgeR2UploadedPart,
+}
+
+impl UploadedPart {
+    pub fn part_number(&self) -> u16 {
+        self.inner.part_number()
+    }
+
+    pub fn etag(&self) -> String {
+        self.inner.etag()
+    }
+}
+
+pub struct MultipartUpload {
+    inner: EdgeR2MultipartUpload,
+}
+
+impl MultipartUpload {
+    /// Uploads a single part with the specified part number to this multipart upload.
+    ///
+    /// Returns an [UploadedPart] object containing the etag and part number.
+    /// These [UploadedPart] objects are required when completing the multipart upload.
+    ///
+    /// Getting hold of a value of this type does not guarantee that there is an active
+    /// underlying multipart upload corresponding to that object.
+    ///
+    /// A multipart upload can be completed or aborted at any time, either through the S3 API,
+    /// or by a parallel invocation of your Worker.
+    /// Therefore it is important to add the necessary error handling code around each operation
+    /// on the [MultipartUpload] object in case the underlying multipart upload no longer exists.
+    pub async fn upload_part(
+        &self,
+        part_number: u16,
+        value: impl Into<Data>,
+    ) -> Result<UploadedPart> {
+        let uploaded_part =
+            JsFuture::from(self.inner.upload_part(part_number, value.into().into())).await?;
+        Ok(UploadedPart {
+            inner: uploaded_part.into(),
+        })
+    }
+
+    /// Aborts the multipart upload.
+    pub async fn abort(&self) -> Result<()> {
+        JsFuture::from(self.inner.abort()).await?;
+        Ok(())
+    }
+
+    /// Completes the multipart upload with the given parts.
+    /// When the future is ready, the object is immediately accessible globally by any subsequent read operation.
+    pub async fn complete(
+        self,
+        uploaded_parts: impl IntoIterator<Item = UploadedPart>,
+    ) -> Result<Object> {
+        let object = JsFuture::from(
+            self.inner.complete(
+                uploaded_parts
+                    .into_iter()
+                    .map(|part| part.inner.into())
+                    .collect(),
+            ),
+        )
+        .await?;
+        Ok(Object {
+            inner: ObjectInner::Body(object.into()),
+        })
     }
 }
 

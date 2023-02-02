@@ -19,7 +19,7 @@ impl std::fmt::Debug for Headers {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("Headers {\n")?;
         for (k, v) in self.entries() {
-            f.write_str(&format!("{} = {}\n", k, v))?;
+            f.write_str(&format!("{k} = {v}\n"))?;
         }
         f.write_str("}\n")
     }
