@@ -16,7 +16,7 @@ pub use wasm_bindgen_futures;
 pub use worker_kv as kv;
 
 pub use cf::Cf;
-pub use worker_macros::{durable_object, event};
+pub use worker_macros::{durable_object, event, test};
 #[doc(hidden)]
 pub use worker_sys;
 pub use worker_sys::{console_debug, console_error, console_log, console_warn};
