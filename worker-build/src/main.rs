@@ -16,6 +16,17 @@ const OUT_DIR: &str = "build";
 const OUT_NAME: &str = "index";
 const WORKER_SUBDIR: &str = "worker";
 
+const WASM_IMPORT: &str = r#"
+let wasm;
+export function __wbg_set_wasm(val) {
+    wasm = val;
+}
+"#;
+
+const WASM_IMPORT_REPLACEMENT: &str = r#"
+import wasm from './glue.js';
+"#;
+
 mod install;
 
 pub fn main() -> Result<()> {
@@ -110,8 +121,7 @@ fn copy_generated_code_to_worker_dir() -> Result<()> {
 fn use_glue_import() -> Result<()> {
     let bindgen_glue_path = worker_path(format!("{OUT_NAME}_bg.js"));
     let old_bindgen_glue = read_file_to_string(&bindgen_glue_path)?;
-    let old_import = format!("import * as wasm from './{OUT_NAME}_bg.wasm'");
-    let fixed_bindgen_glue = old_bindgen_glue.replace(&old_import, "import wasm from './glue.js'");
+    let fixed_bindgen_glue = old_bindgen_glue.replace(WASM_IMPORT, WASM_IMPORT_REPLACEMENT);
     write_string_to_file(bindgen_glue_path, fixed_bindgen_glue)?;
     Ok(())
 }
