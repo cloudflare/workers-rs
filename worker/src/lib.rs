@@ -55,8 +55,9 @@ mod cache;
 mod cf;
 mod context;
 mod cors;
+// Require pub module for macro export
 #[cfg(feature = "d1")]
-mod d1;
+pub mod d1;
 mod date;
 mod delay;
 pub mod durable;

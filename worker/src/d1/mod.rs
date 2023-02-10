@@ -1,7 +1,7 @@
 use js_sys::Array;
 use js_sys::ArrayBuffer;
 use js_sys::Uint8Array;
-use serde::de::Deserialize;
+use serde::Deserialize;
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use worker_sys::types::D1Database as D1DatabaseSys;
@@ -12,6 +12,10 @@ use worker_sys::types::D1Result as D1ResultSys;
 use crate::env::EnvBinding;
 use crate::Error;
 use crate::Result;
+
+pub use serde_wasm_bindgen;
+
+pub mod macros;
 
 // A D1 Database.
 pub struct D1Database(D1DatabaseSys);
@@ -105,7 +109,8 @@ impl From<D1DatabaseSys> for D1Database {
 pub struct D1PreparedStatement(D1PreparedStatementSys);
 
 impl D1PreparedStatement {
-    /// Bind one or more parameters to the statement. Returns a new statement object.
+    /// Bind one or more parameters to the statement.
+    /// Consumes the old statement and returns a new statement with the bound parameters.
     ///
     /// D1 follows the SQLite convention for prepared statements parameter binding.
     ///
@@ -113,17 +118,8 @@ impl D1PreparedStatement {
     ///
     /// Supports Ordered (?NNNN) and Anonymous (?) parameters - named parameters are currently not supported.
     ///
-    pub fn bind<T>(&self, values: &[&T]) -> Result<Self>
-    where
-        T: serde::ser::Serialize + ?Sized,
-    {
-        let mut params = Vec::new();
-        for value in values.iter() {
-            let res = serde_wasm_bindgen::to_value(value)?;
-            params.push(res);
-        }
-
-        let array: Array = params.into_iter().collect::<Array>();
+    pub fn bind(self, values: &[JsValue]) -> Result<Self> {
+        let array: Array = values.into_iter().collect::<Array>();
 
         match self.0.bind(array) {
             Ok(stmt) => Ok(D1PreparedStatement(stmt)),
