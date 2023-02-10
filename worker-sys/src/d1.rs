@@ -29,8 +29,8 @@ extern "C" {
     #[wasm_bindgen(structural, method, getter, js_name=count)]
     pub fn count(this: &D1ExecResult) -> Option<u32>;
 
-    #[wasm_bindgen(structural, method, getter, js_name=time)]
-    pub fn time(this: &D1ExecResult) -> Option<f64>;
+    #[wasm_bindgen(structural, method, getter, js_name=duration)]
+    pub fn duration(this: &D1ExecResult) -> Option<f64>;
 }
 
 #[wasm_bindgen]
