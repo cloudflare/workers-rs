@@ -43,17 +43,17 @@ impl std::fmt::Display for Error {
         match self {
             Error::BadEncoding => write!(f, "content-type mismatch"),
             Error::BodyUsed => write!(f, "body has already been read"),
-            Error::Json((msg, status)) => write!(f, "{} (status: {})", msg, status),
+            Error::Json((msg, status)) => write!(f, "{msg} (status: {status})"),
             Error::JsError(s) | Error::RustError(s) => {
-                write!(f, "{}", s)
+                write!(f, "{s}")
             }
             Error::Internal(_) => write!(f, "unrecognized JavaScript object"),
-            Error::BindingError(name) => write!(f, "no binding found for `{}`", name),
-            Error::RouteInsertError(e) => write!(f, "failed to insert route: {}", e),
+            Error::BindingError(name) => write!(f, "no binding found for `{name}`"),
+            Error::RouteInsertError(e) => write!(f, "failed to insert route: {e}"),
             Error::RouteNoDataError => write!(f, "route has no corresponding shared data"),
-            Error::SerdeJsonError(e) => write!(f, "Serde Error: {}", e),
+            Error::SerdeJsonError(e) => write!(f, "Serde Error: {e}"),
             #[cfg(feature = "queue")]
-            Error::SerdeWasmBindgenError(e) => write!(f, "Serde Error: {}", e),
+            Error::SerdeWasmBindgenError(e) => write!(f, "Serde Error: {e}"),
         }
     }
 }

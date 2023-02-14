@@ -21,6 +21,14 @@ extern "C" {
     pub fn delete(this: &R2Bucket, key: String) -> ::js_sys::Promise;
     #[wasm_bindgen(structural, method, js_class=R2Bucket, js_name = list)]
     pub fn list(this: &R2Bucket, options: JsValue) -> ::js_sys::Promise;
+    #[wasm_bindgen(structural, method, js_class=R2Bucket, js_name = createMultipartUpload)]
+    pub fn create_multipart_upload(
+        this: &R2Bucket,
+        key: String,
+        options: JsValue,
+    ) -> ::js_sys::Promise;
+    #[wasm_bindgen(structural, method, js_class=R2Bucket, js_name = resumeMultipartUpload)]
+    pub fn resume_multipart_upload(this: &R2Bucket, key: String, upload_id: String) -> JsValue;
 }
 
 #[wasm_bindgen]
@@ -61,6 +69,42 @@ extern "C" {
     pub fn body(this: &R2ObjectBody) -> ReadableStream;
     #[wasm_bindgen(structural, method, getter, js_class=R2ObjectBody, js_name = bodyUsed)]
     pub fn body_used(this: &R2ObjectBody) -> bool;
+    #[wasm_bindgen(structural, method, js_class=R2ObjectBody, js_name = arrayBuffer)]
+    pub fn array_buffer(this: &R2ObjectBody) -> js_sys::Promise;
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(extends=::js_sys::Object, js_name=R2UploadedPart)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type R2UploadedPart;
+
+    #[wasm_bindgen(structural, method, getter, js_class=R2UploadedPart, js_name = partNumber)]
+    pub fn part_number(this: &R2UploadedPart) -> u16;
+    #[wasm_bindgen(structural, method, getter, js_class=R2UploadedPart, js_name = etag)]
+    pub fn etag(this: &R2UploadedPart) -> String;
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(extends=::js_sys::Object, js_name=R2MultipartUpload)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type R2MultipartUpload;
+
+    #[wasm_bindgen(structural, method, getter, js_class=R2MultipartUpload, js_name = key)]
+    pub fn key(this: &R2MultipartUpload) -> String;
+    #[wasm_bindgen(structural, method, getter, js_class=R2MultipartUpload, js_name = uploadId)]
+    pub fn upload_id(this: &R2MultipartUpload) -> String;
+    #[wasm_bindgen(structural, method, js_class=R2MultipartUpload, js_name = uploadPart)]
+    pub fn upload_part(
+        this: &R2MultipartUpload,
+        part_number: u16,
+        value: JsValue,
+    ) -> ::js_sys::Promise;
+    #[wasm_bindgen(structural, method, js_class=R2MultipartUpload, js_name = abort)]
+    pub fn abort(this: &R2MultipartUpload) -> ::js_sys::Promise;
+    #[wasm_bindgen(structural, method, js_class=R2MultipartUpload, js_name = complete)]
+    pub fn complete(this: &R2MultipartUpload, uploaded_parts: Vec<JsValue>) -> ::js_sys::Promise;
 }
 
 #[wasm_bindgen]
