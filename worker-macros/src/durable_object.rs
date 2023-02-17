@@ -37,7 +37,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                         let arg_tokens = method.sig.inputs.first_mut().expect("DurableObject `new` method must have 2 arguments: state and env").into_token_stream();                        
                         match syn::parse2::<FnArg>(arg_tokens)? {
                             FnArg::Typed(pat) => {
-                                let path = syn::parse2::<TypePath>(quote!{worker_sys::durable_object::ObjectState})?;
+                                let path = syn::parse2::<TypePath>(quote!{worker_sys::DurableObjectState})?;
                                 let mut updated_pat = pat;
                                 updated_pat.ty = Box::new(Type::Path(path));
 
@@ -67,7 +67,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                         method.sig.ident = Ident::new("_fetch_raw", method.sig.ident.span());
                         quote! {
                             #pound[wasm_bindgen::prelude::wasm_bindgen(js_name = fetch)]
-                            pub fn _fetch(&mut self, req: worker_sys::Request) -> js_sys::Promise {
+                            pub fn _fetch(&mut self, req: worker_sys::web_sys::Request) -> js_sys::Promise {
                                 // SAFETY:
                                 // On the surface, this is unsound because the Durable Object could be dropped
                                 // while JavaScript still has possession of the future. However,
@@ -77,7 +77,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                                 let static_self: &'static mut Self = unsafe {&mut *(self as *mut _)};
 
                                 wasm_bindgen_futures::future_to_promise(async move {
-                                    static_self._fetch_raw(req.into()).await.map(worker_sys::Response::from).map(wasm_bindgen::JsValue::from)
+                                    static_self._fetch_raw(req.into()).await.map(worker_sys::web_sys::Response::from).map(wasm_bindgen::JsValue::from)
                                         .map_err(wasm_bindgen::JsValue::from)
                                 })
                             }
@@ -102,7 +102,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                                 let static_self: &'static mut Self = unsafe {&mut *(self as *mut _)};
 
                                 wasm_bindgen_futures::future_to_promise(async move {
-                                    static_self._alarm_raw().await.map(worker_sys::Response::from).map(wasm_bindgen::JsValue::from)
+                                    static_self._alarm_raw().await.map(worker_sys::web_sys::Response::from).map(wasm_bindgen::JsValue::from)
                                         .map_err(wasm_bindgen::JsValue::from)
                                 })
                             }

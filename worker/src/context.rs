@@ -1,6 +1,6 @@
 use std::future::Future;
 
-use crate::worker_sys::context::Context as JsContext;
+use crate::worker_sys::Context as JsContext;
 
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::future_to_promise;

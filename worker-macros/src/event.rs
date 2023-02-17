@@ -65,13 +65,13 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             // original attributed function, passing in a converted worker::Request
             let wrapper_fn = quote! {
                 pub async fn #wrapper_fn_ident(
-                    req: ::worker::worker_sys::Request,
+                    req: ::worker::worker_sys::web_sys::Request,
                     env: ::worker::Env,
                     ctx: ::worker::worker_sys::Context
-                ) -> ::worker::worker_sys::Response {
+                ) -> ::worker::worker_sys::web_sys::Response {
                     let ctx = worker::Context::new(ctx);
                     // get the worker::Result<worker::Response> by calling the original fn
-                    match #input_fn_ident(::worker::Request::from(req), env, ctx).await.map(::worker::worker_sys::Response::from) {
+                    match #input_fn_ident(::worker::Request::from(req), env, ctx).await.map(::worker::worker_sys::web_sys::Response::from) {
                         Ok(res) => res,
                         Err(e) => {
                             ::worker::console_log!("{}", &e);

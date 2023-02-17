@@ -2,7 +2,7 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(extends=::js_sys::Object, js_name=ScheduledEvent)]
+    #[wasm_bindgen(extends=js_sys::Object, js_name=ScheduledEvent)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type ScheduledEvent;
 
@@ -16,7 +16,7 @@ extern "C" {
 /// [Context](https://developers.cloudflare.com/workers/runtime-apis/scheduled-event#syntax-module-worker)
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(extends=::js_sys::Object, js_name=ScheduleContext)]
+    #[wasm_bindgen(extends=js_sys::Object, js_name=ScheduleContext)]
     #[derive(Debug, Clone)]
     pub type ScheduleContext;
 

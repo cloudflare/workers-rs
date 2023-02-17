@@ -54,9 +54,9 @@ impl RequestInit {
     }
 }
 
-impl From<&RequestInit> for worker_sys::RequestInit {
+impl From<&RequestInit> for web_sys::RequestInit {
     fn from(req: &RequestInit) -> Self {
-        let mut inner = worker_sys::RequestInit::new();
+        let mut inner = web_sys::RequestInit::new();
         inner.headers(req.headers.as_ref());
         inner.method(req.method.as_ref());
         inner.redirect(req.redirect.into());
@@ -329,12 +329,12 @@ impl From<RequestRedirect> for &str {
     }
 }
 
-impl From<RequestRedirect> for worker_sys::RequestRedirect {
+impl From<RequestRedirect> for web_sys::RequestRedirect {
     fn from(redir: RequestRedirect) -> Self {
         match redir {
-            RequestRedirect::Error => worker_sys::RequestRedirect::Error,
-            RequestRedirect::Follow => worker_sys::RequestRedirect::Follow,
-            RequestRedirect::Manual => worker_sys::RequestRedirect::Manual,
+            RequestRedirect::Error => web_sys::RequestRedirect::Error,
+            RequestRedirect::Follow => web_sys::RequestRedirect::Follow,
+            RequestRedirect::Manual => web_sys::RequestRedirect::Manual,
         }
     }
 }
