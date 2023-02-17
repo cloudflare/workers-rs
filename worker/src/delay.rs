@@ -7,10 +7,7 @@ use std::{
     time::Duration,
 };
 
-use wasm_bindgen::prelude::Closure;
-use worker_sys::global::clear_timeout;
-
-use crate::worker_sys::prelude::set_timeout;
+use wasm_bindgen::{prelude::Closure, JsCast};
 
 /// A [Future] for asynchronously waiting.
 ///
@@ -28,7 +25,7 @@ use crate::worker_sys::prelude::set_timeout;
 pub struct Delay {
     inner: Duration,
     closure: Option<Closure<dyn FnMut()>>,
-    timeout_id: Option<u32>,
+    timeout_id: Option<i32>,
     awoken: Rc<Cell<bool>>,
 }
 
@@ -52,7 +49,13 @@ impl Future for Delay {
                 });
 
                 // Then get that closure back and pass it to setTimeout so we can get woken up later.
-                let timeout_id = set_timeout(callback_ref, this.inner.as_millis() as u32);
+                let global: web_sys::WorkerGlobalScope = js_sys::global().unchecked_into();
+                let timeout_id = global
+                    .set_timeout_with_callback_and_timeout_and_arguments_0(
+                        callback_ref.as_ref().unchecked_ref::<js_sys::Function>(),
+                        this.inner.as_millis() as i32,
+                    )
+                    .unwrap();
                 *this.timeout_id = Some(timeout_id);
             }
 
@@ -89,7 +92,8 @@ impl PinnedDrop for Delay {
 
         if let Some(id) = this.timeout_id {
             crate::console_debug!("{:#?} has been dropped", &this.inner);
-            clear_timeout(*id);
+            let global: web_sys::WorkerGlobalScope = js_sys::global().unchecked_into();
+            global.clear_timeout_with_handle(*id);
         }
     }
 }

@@ -1,9 +1,8 @@
-use js_sys::{Array, Promise};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(extends=::js_sys::Object, js_name=MessageBatch)]
+    #[wasm_bindgen(extends=js_sys::Object, js_name=MessageBatch)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type MessageBatch;
 
@@ -11,7 +10,7 @@ extern "C" {
     pub fn queue(this: &MessageBatch) -> String;
 
     #[wasm_bindgen(method, getter, js_class=MessageBatch, js_name=messages)]
-    pub fn messages(this: &MessageBatch) -> Array;
+    pub fn messages(this: &MessageBatch) -> js_sys::Array;
 
     #[wasm_bindgen(structural, method, js_class=MessageBatch, js_name=retryAll)]
     pub fn retry_all(this: &MessageBatch);
@@ -19,10 +18,10 @@ extern "C" {
 
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen (extends = ::js_sys::Object, js_name = Queue)]
+    #[wasm_bindgen (extends=js_sys::Object, js_name=Queue)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type Queue;
 
     #[wasm_bindgen(structural, method, js_class=Queue, js_name=send)]
-    pub fn send(this: &Queue, mesage: JsValue) -> Promise;
+    pub fn send(this: &Queue, mesage: JsValue) -> js_sys::Promise;
 }

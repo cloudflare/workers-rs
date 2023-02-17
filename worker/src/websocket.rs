@@ -3,13 +3,14 @@ use futures_channel::mpsc::UnboundedReceiver;
 use futures_util::Stream;
 use serde::Serialize;
 use url::Url;
+use worker_sys::ext::WebSocketExt;
 
 use std::pin::Pin;
 use std::rc::Rc;
 use std::task::{Context, Poll};
 use wasm_bindgen::convert::FromWasmAbi;
 use wasm_bindgen::prelude::Closure;
-use wasm_bindgen::{JsCast, JsValue};
+use wasm_bindgen::JsCast;
 
 pub use crate::ws_events::*;
 
@@ -33,7 +34,7 @@ impl WebSocketPair {
 /// Wrapper struct for underlying worker-sys `WebSocket`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WebSocket {
-    socket: worker_sys::WebSocket,
+    socket: web_sys::WebSocket,
 }
 
 impl WebSocket {
@@ -105,9 +106,7 @@ impl WebSocket {
     /// Sends raw binary data through the `WebSocket`.
     pub fn send_with_bytes<D: AsRef<[u8]>>(&self, bytes: D) -> Result<()> {
         let slice = bytes.as_ref();
-        let array = js_sys::Uint8Array::new_with_length(slice.len() as u32);
-        array.copy_from(slice);
-        self.socket.send_with_u8_array(array).map_err(Error::from)
+        self.socket.send_with_u8_array(slice).map_err(Error::from)
     }
 
     /// Closes this channel.
@@ -146,10 +145,7 @@ impl WebSocket {
     ) -> Result<Closure<dyn FnMut(T)>> {
         let js_callback = Closure::wrap(Box::new(fun) as Box<dyn FnMut(T)>);
         self.socket
-            .add_event_listener(
-                JsValue::from_str(r#type),
-                Some(js_callback.as_ref().unchecked_ref()),
-            )
+            .add_event_listener_with_callback(r#type, js_callback.as_ref().unchecked_ref())
             .map_err(Error::from)?;
 
         Ok(js_callback)
@@ -164,10 +160,7 @@ impl WebSocket {
         js_callback: Closure<dyn FnMut(T)>,
     ) -> Result<()> {
         self.socket
-            .remove_event_listener(
-                JsValue::from_str(r#type),
-                Some(js_callback.as_ref().unchecked_ref()),
-            )
+            .remove_event_listener_with_callback(r#type, js_callback.as_ref().unchecked_ref())
             .map_err(Error::from)
     }
 
@@ -179,20 +172,20 @@ impl WebSocket {
 
         let close_closure = self.add_event_handler("close", {
             let tx = tx.clone();
-            move |event: worker_sys::CloseEvent| {
+            move |event: web_sys::CloseEvent| {
                 tx.unbounded_send(Ok(WebsocketEvent::Close(event.into())))
                     .unwrap();
             }
         })?;
         let message_closure = self.add_event_handler("message", {
             let tx = tx.clone();
-            move |event: worker_sys::MessageEvent| {
+            move |event: web_sys::MessageEvent| {
                 tx.unbounded_send(Ok(WebsocketEvent::Message(event.into())))
                     .unwrap();
             }
         })?;
         let error_closure =
-            self.add_event_handler("error", move |event: worker_sys::ErrorEvent| {
+            self.add_event_handler("error", move |event: web_sys::ErrorEvent| {
                 let error = event.error();
                 tx.unbounded_send(Err(error.into())).unwrap();
             })?;
@@ -242,9 +235,9 @@ pub struct EventStream<'ws> {
     /// Once we have decided we need to finish the stream, we need to remove any listeners we
     /// registered with the websocket.
     closures: Option<(
-        EvCallback<worker_sys::MessageEvent>,
-        EvCallback<worker_sys::ErrorEvent>,
-        EvCallback<worker_sys::CloseEvent>,
+        EvCallback<web_sys::MessageEvent>,
+        EvCallback<web_sys::ErrorEvent>,
+        EvCallback<web_sys::CloseEvent>,
     )>,
 }
 
@@ -296,14 +289,14 @@ impl PinnedDrop for EventStream<'_> {
     }
 }
 
-impl From<worker_sys::WebSocket> for WebSocket {
-    fn from(socket: worker_sys::WebSocket) -> Self {
+impl From<web_sys::WebSocket> for WebSocket {
+    fn from(socket: web_sys::WebSocket) -> Self {
         Self { socket }
     }
 }
 
-impl AsRef<worker_sys::WebSocket> for WebSocket {
-    fn as_ref(&self) -> &worker_sys::WebSocket {
+impl AsRef<web_sys::WebSocket> for WebSocket {
+    fn as_ref(&self) -> &web_sys::WebSocket {
         &self.socket
     }
 }
@@ -324,17 +317,17 @@ pub mod ws_events {
     /// Wrapper/Utility struct for the `web_sys::MessageEvent`
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub struct MessageEvent {
-        event: worker_sys::MessageEvent,
+        event: web_sys::MessageEvent,
     }
 
-    impl From<worker_sys::MessageEvent> for MessageEvent {
-        fn from(event: worker_sys::MessageEvent) -> Self {
+    impl From<web_sys::MessageEvent> for MessageEvent {
+        fn from(event: web_sys::MessageEvent) -> Self {
             Self { event }
         }
     }
 
-    impl AsRef<worker_sys::MessageEvent> for MessageEvent {
-        fn as_ref(&self) -> &worker_sys::MessageEvent {
+    impl AsRef<web_sys::MessageEvent> for MessageEvent {
+        fn as_ref(&self) -> &web_sys::MessageEvent {
             &self.event
         }
     }
@@ -372,7 +365,7 @@ pub mod ws_events {
     /// Wrapper/Utility struct for the `web_sys::CloseEvent`
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub struct CloseEvent {
-        event: worker_sys::CloseEvent,
+        event: web_sys::CloseEvent,
     }
 
     impl CloseEvent {
@@ -389,14 +382,14 @@ pub mod ws_events {
         }
     }
 
-    impl From<worker_sys::CloseEvent> for CloseEvent {
-        fn from(event: worker_sys::CloseEvent) -> Self {
+    impl From<web_sys::CloseEvent> for CloseEvent {
+        fn from(event: web_sys::CloseEvent) -> Self {
             Self { event }
         }
     }
 
-    impl AsRef<worker_sys::CloseEvent> for CloseEvent {
-        fn as_ref(&self) -> &worker_sys::CloseEvent {
+    impl AsRef<web_sys::CloseEvent> for CloseEvent {
+        fn as_ref(&self) -> &web_sys::CloseEvent {
             &self.event
         }
     }

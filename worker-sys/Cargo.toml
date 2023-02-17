@@ -26,6 +26,14 @@ features = [
     "MessageEvent",
     "CloseEvent",
     "ProgressEvent",
+    "WebSocket",
+    "TransformStream",
+    "AbortController",
+    "console",
+    "ResponseInit",
+    "Cache",
+    "CacheStorage",
+    "CacheQueryOptions",
 ]
 
 [features]
