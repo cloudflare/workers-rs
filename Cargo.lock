@@ -2071,7 +2071,7 @@ dependencies = [
 
 [[package]]
 name = "worker"
-version = "0.0.12"
+version = "0.0.13"
 dependencies = [
  "async-trait",
  "chrono",
@@ -2097,7 +2097,7 @@ dependencies = [
 
 [[package]]
 name = "worker-build"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "anyhow",
  "dirs-next",
@@ -2123,7 +2123,7 @@ dependencies = [
 
 [[package]]
 name = "worker-macros"
-version = "0.0.6"
+version = "0.0.7"
 dependencies = [
  "async-trait",
  "proc-macro2",
@@ -2165,7 +2165,7 @@ dependencies = [
 
 [[package]]
 name = "worker-sys"
-version = "0.0.6"
+version = "0.0.7"
 dependencies = [
  "cfg-if",
  "js-sys",
