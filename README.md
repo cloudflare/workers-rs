@@ -325,7 +325,7 @@ please [take a look](https://www.cloudflare.com/careers/).
 - Most likely, it should, we just haven't had the time to fully implement it or add a library to
   wrap the FFI. Please let us know you need a feature by [opening an issue](https://github.com/cloudflare/workers-rs/issues).
 
-3. My bundle size exceeds Workers 1MB limits, what do I do?
+3. My bundle size exceeds [Workers size limits](https://developers.cloudflare.com/workers/platform/limits/), what do I do?
 
 - We're working on solutions here, but in the meantime you'll need to minimize the number of crates
   your code depends on, or strip as much from the `.wasm` binary as possible. Here are some extra
