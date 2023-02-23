@@ -19,6 +19,7 @@ pub trait AbortControllerExt {
 
 impl AbortControllerExt for web_sys::AbortController {
     fn abort_with_reason(&self, reason: JsValue) {
-        self.unchecked_ref::<glue::AbortControllerExt>().abort_with_reason(reason)
+        self.unchecked_ref::<glue::AbortControllerExt>()
+            .abort_with_reason(reason)
     }
 }

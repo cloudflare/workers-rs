@@ -103,14 +103,16 @@ impl Cache {
         key: K,
         ignore_method: bool,
     ) -> Result<Option<Response>> {
-        let options = serde_wasm_bindgen::to_value(&MatchOptions { ignore_method })?;
+        let mut options = web_sys::CacheQueryOptions::new();
+        options.ignore_method(ignore_method);
+
         let promise = match key.into() {
             CacheKey::Url(url) => self
                 .inner
-                .match_with_str_and_options(url.as_str(), &options.dyn_into()?),
+                .match_with_str_and_options(url.as_str(), &options),
             CacheKey::Request(request) => self
                 .inner
-                .match_with_request_and_options(&request.try_into()?, &options.dyn_into()?),
+                .match_with_request_and_options(&request.try_into()?, &options),
         };
 
         // `match` returns either a response or undefined
@@ -134,15 +136,16 @@ impl Cache {
         key: K,
         ignore_method: bool,
     ) -> Result<CacheDeletionOutcome> {
-        let options = serde_wasm_bindgen::to_value(&MatchOptions { ignore_method })?;
+        let mut options = web_sys::CacheQueryOptions::new();
+        options.ignore_method(ignore_method);
 
         let promise = match key.into() {
             CacheKey::Url(url) => self
                 .inner
-                .delete_with_str_and_options(url.as_str(), &options.dyn_into()?),
+                .delete_with_str_and_options(url.as_str(), &options),
             CacheKey::Request(request) => self
                 .inner
-                .delete_with_request_and_options(&request.try_into()?, &options.dyn_into()?),
+                .delete_with_request_and_options(&request.try_into()?, &options),
         };
         let result = JsFuture::from(promise).await?;
 
@@ -154,14 +157,6 @@ impl Cache {
             Ok(CacheDeletionOutcome::ResponseNotFound)
         }
     }
-}
-
-/// Can contain one possible property: `ignoreMethod`
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct MatchOptions {
-    /// Consider the request method a `GET` regardless of its actual value.
-    ignore_method: bool,
 }
 
 /// The `String` or `Request` object used as the lookup key. `String`s are interpreted as the URL for a new `Request` object.
