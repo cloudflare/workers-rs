@@ -2,32 +2,32 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(extends=js_sys::Object, js_name=R2Bucket)]
+    #[wasm_bindgen(extends=js_sys::Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type R2Bucket;
 
-    #[wasm_bindgen(structural, method, js_class=R2Bucket, js_name=head)]
+    #[wasm_bindgen(method)]
     pub fn head(this: &R2Bucket, key: String) -> js_sys::Promise;
 
-    #[wasm_bindgen(structural, method, js_class=R2Bucket, js_name=get)]
+    #[wasm_bindgen(method)]
     pub fn get(this: &R2Bucket, key: String, options: JsValue) -> js_sys::Promise;
 
-    #[wasm_bindgen(structural, method, js_class=R2Bucket, js_name=put)]
+    #[wasm_bindgen(method)]
     pub fn put(this: &R2Bucket, key: String, value: JsValue, options: JsValue) -> js_sys::Promise;
 
-    #[wasm_bindgen(structural, method, js_class=R2Bucket, js_name=delete)]
+    #[wasm_bindgen(method)]
     pub fn delete(this: &R2Bucket, key: String) -> js_sys::Promise;
 
-    #[wasm_bindgen(structural, method, js_class=R2Bucket, js_name=list)]
+    #[wasm_bindgen(method)]
     pub fn list(this: &R2Bucket, options: JsValue) -> js_sys::Promise;
 
-    #[wasm_bindgen(structural, method, js_class=R2Bucket, js_name=createMultipartUpload)]
+    #[wasm_bindgen(method, js_name=createMultipartUpload)]
     pub fn create_multipart_upload(
         this: &R2Bucket,
         key: String,
         options: JsValue,
     ) -> js_sys::Promise;
 
-    #[wasm_bindgen(structural, method, js_class=R2Bucket, js_name=resumeMultipartUpload)]
+    #[wasm_bindgen(method, js_name=resumeMultipartUpload)]
     pub fn resume_multipart_upload(this: &R2Bucket, key: String, upload_id: String) -> JsValue;
 }

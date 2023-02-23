@@ -23,7 +23,7 @@ impl AbortController {
     /// Aborts any operation using a [AbortSignal] created from this controller with the provided
     /// reason.
     pub fn abort_with_reason(self, reason: impl Into<JsValue>) {
-        self.inner.abort_with_reason(reason.into())
+        self.inner.abort_with_reason(&reason.into())
     }
 }
 
@@ -55,13 +55,13 @@ impl AbortSignal {
 
     /// Creates a [AbortSignal] that is already aborted.
     pub fn abort() -> Self {
-        Self::from(web_sys::AbortSignal::abort(JsValue::undefined()))
+        Self::from(web_sys::AbortSignal::abort())
     }
 
     /// Creates a [AbortSignal] that is already aborted with the provided reason.
     pub fn abort_with_reason(reason: impl Into<JsValue>) -> Self {
         let reason = reason.into();
-        Self::from(web_sys::AbortSignal::abort(reason))
+        Self::from(web_sys::AbortSignal::abort_with_reason(&reason))
     }
 }
 

@@ -7,21 +7,21 @@ mod glue {
 
     #[wasm_bindgen]
     extern "C" {
-        #[wasm_bindgen(js_name=Request)]
-        pub type RequestExt;
+        #[wasm_bindgen]
+        pub type Request;
 
-        #[wasm_bindgen(structural, method, getter, js_class=Request, js_name=cf)]
-        pub fn cf(this: &RequestExt) -> IncomingRequestCfProperties;
+        #[wasm_bindgen(method, getter)]
+        pub fn cf(this: &Request) -> Option<IncomingRequestCfProperties>;
     }
 }
 
 pub trait RequestExt {
     /// Get the Cloudflare Properties from this request
-    fn cf(&self) -> IncomingRequestCfProperties;
+    fn cf(&self) -> Option<IncomingRequestCfProperties>;
 }
 
 impl RequestExt for web_sys::Request {
-    fn cf(&self) -> IncomingRequestCfProperties {
-        self.unchecked_ref::<glue::RequestExt>().cf()
+    fn cf(&self) -> Option<IncomingRequestCfProperties> {
+        self.unchecked_ref::<glue::Request>().cf()
     }
 }

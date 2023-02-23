@@ -4,11 +4,11 @@ use crate::types::Fetcher;
 
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(extends=js_sys::Object, js_name=DynamicDispatcher)]
+    #[wasm_bindgen(extends=js_sys::Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type DynamicDispatcher;
 
-    #[wasm_bindgen(structural, method, js_class=DynamicDispatcher, js_name=get, catch)]
+    #[wasm_bindgen(method, catch)]
     pub fn get(
         this: &DynamicDispatcher,
         name: String,
