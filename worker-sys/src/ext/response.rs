@@ -5,11 +5,11 @@ mod glue {
 
     #[wasm_bindgen]
     extern "C" {
-        #[wasm_bindgen(js_name=Response)]
-        pub type ResponseExt;
+        #[wasm_bindgen]
+        pub type Response;
 
-        #[wasm_bindgen(structural, method, getter, js_class=Response, js_name=webSocket)]
-        pub fn websocket(this: &ResponseExt) -> Option<web_sys::WebSocket>;
+        #[wasm_bindgen(method, getter)]
+        pub fn websocket(this: &Response) -> Option<web_sys::WebSocket>;
     }
 }
 
@@ -20,6 +20,6 @@ pub trait ResponseExt {
 
 impl ResponseExt for web_sys::Response {
     fn websocket(&self) -> Option<web_sys::WebSocket> {
-        self.unchecked_ref::<glue::ResponseExt>().websocket()
+        self.unchecked_ref::<glue::Response>().websocket()
     }
 }

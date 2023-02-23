@@ -18,7 +18,7 @@ pub struct Request {
     method: Method,
     path: String,
     headers: Headers,
-    cf: Cf,
+    cf: Option<Cf>,
     edge_request: web_sys::Request,
     body_used: bool,
     immutable: bool,
@@ -38,7 +38,7 @@ impl From<web_sys::Request> for Request {
                     u
                 }),
             headers: Headers(req.headers()),
-            cf: req.cf().into(),
+            cf: req.cf().map(Into::into),
             edge_request: req,
             body_used: false,
             immutable: true,
@@ -205,7 +205,7 @@ impl Request {
 
     /// Access this request's Cloudflare-specific properties.
     pub fn cf(&self) -> &Cf {
-        &self.cf
+        self.cf.as_ref().unwrap()
     }
 
     /// The HTTP Method associated with this `Request`.
