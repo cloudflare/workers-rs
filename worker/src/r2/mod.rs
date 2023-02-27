@@ -12,7 +12,7 @@ use worker_sys::{
     R2UploadedPart as EdgeR2UploadedPart,
 };
 
-use crate::{env::EnvBinding, ByteStream, Date, Error, FixedLengthStream, Headers, Result};
+use crate::{env::EnvBinding, ByteStream, Date, Error, FixedLengthStream, Result};
 
 mod builder;
 
@@ -253,10 +253,18 @@ impl Object {
         }
     }
 
-    pub fn write_http_metadata(&self, headers: Headers) -> Result<()> {
+    pub fn write_http_metadata(&self, headers: http::HeaderMap) -> Result<()> {
+        let h = web_sys::Headers::new().unwrap();
+        for (name, value) in headers
+            .iter()
+            .filter_map(|(name, value)| value.to_str().map(|value| (name.as_str(), value)).ok())
+        {
+            h.append(name, value)?;
+        }
+
         match &self.inner {
-            ObjectInner::NoBody(inner) => inner.write_http_metadata(headers.0)?,
-            ObjectInner::Body(inner) => inner.write_http_metadata(headers.0)?,
+            ObjectInner::NoBody(inner) => inner.write_http_metadata(h)?,
+            ObjectInner::Body(inner) => inner.write_http_metadata(h)?,
         };
 
         Ok(())

@@ -17,10 +17,13 @@ impl DurableObject for MyClass {
         Self { state, number: 0 }
     }
 
-    async fn fetch(&mut self, req: Request) -> Result<Response> {
+    async fn fetch(
+        &mut self,
+        req: http::Request<body::Body>,
+    ) -> Result<http::Response<body::Body>> {
         let handler = async move {
-            match req.path().as_str() {
-                "/hello" => Response::ok("Hello!"),
+            match req.uri().path() {
+                "/hello" => Ok::<_, Error>(http::Response::new("Hello!".into())),
                 "/storage" => {
                     let mut storage = self.state.storage();
                     let map = [("one".to_string(), 1), ("two".to_string(), 2)]
@@ -96,16 +99,23 @@ impl DurableObject for MyClass {
                     storage.delete_all().await?;
 
                     storage.put("count", self.number).await?;
-                    Response::ok(self.number.to_string())
+                    Ok(http::Response::new(self.number.to_string().into()))
                 }
-                "/transaction" => {
-                    Response::error("transactional storage API is still unstable", 501)
-                }
-                _ => Response::error("Not Found", 404),
+                "/transaction" => Ok(http::Response::builder()
+                    .status(http::StatusCode::NOT_IMPLEMENTED)
+                    .body("transactional storage API is still unstable".into())
+                    .unwrap()),
+                _ => Ok(http::Response::builder()
+                    .status(http::StatusCode::NOT_FOUND)
+                    .body("Not Found".into())
+                    .unwrap()),
             }
         };
-        handler
-            .await
-            .or_else(|err| Response::error(err.to_string(), 500))
+        handler.await.or_else(|err| {
+            Ok(http::Response::builder()
+                .status(http::StatusCode::INTERNAL_SERVER_ERROR)
+                .body(err.to_string().into())
+                .unwrap())
+        })
     }
 }

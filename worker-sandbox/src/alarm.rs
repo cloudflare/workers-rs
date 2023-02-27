@@ -13,7 +13,7 @@ impl DurableObject for AlarmObject {
         Self { state }
     }
 
-    async fn fetch(&mut self, _: Request) -> Result<Response> {
+    async fn fetch(&mut self, _: http::Request<body::Body>) -> Result<http::Response<body::Body>> {
         let alarmed: bool = match self.state.storage().get("alarmed").await {
             Ok(alarmed) => alarmed,
             Err(e) if e.to_string() == "No such value in storage." => {
@@ -28,14 +28,14 @@ impl DurableObject for AlarmObject {
             Err(e) => return Err(e),
         };
 
-        Response::ok(alarmed.to_string())
+        Ok(http::Response::new(alarmed.to_string().into()))
     }
 
-    async fn alarm(&mut self) -> Result<Response> {
+    async fn alarm(&mut self) -> Result<http::Response<body::Body>> {
         self.state.storage().put("alarmed", true).await?;
 
         console_log!("Alarm has been triggered!");
 
-        Response::ok("ALARMED")
+        Ok(http::Response::new("ALARMED".into()))
     }
 }

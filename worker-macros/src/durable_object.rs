@@ -77,7 +77,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                                 let static_self: &'static mut Self = unsafe {&mut *(self as *mut _)};
 
                                 wasm_bindgen_futures::future_to_promise(async move {
-                                    static_self._fetch_raw(req.into()).await.map(worker_sys::web_sys::Response::from).map(wasm_bindgen::JsValue::from)
+                                    static_self._fetch_raw(::worker::http::request::from_wasm(req)).await.map(::worker::http::response::into_wasm).map(wasm_bindgen::JsValue::from)
                                         .map_err(wasm_bindgen::JsValue::from)
                                 })
                             }
@@ -102,7 +102,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                                 let static_self: &'static mut Self = unsafe {&mut *(self as *mut _)};
 
                                 wasm_bindgen_futures::future_to_promise(async move {
-                                    static_self._alarm_raw().await.map(worker_sys::web_sys::Response::from).map(wasm_bindgen::JsValue::from)
+                                    static_self._alarm_raw().await.map(::worker::http::response::into_wasm).map(wasm_bindgen::JsValue::from)
                                         .map_err(wasm_bindgen::JsValue::from)
                                 })
                             }
@@ -116,7 +116,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
             }
 
             let alarm_tokens = has_alarm.then(|| quote! {
-                async fn alarm(&mut self) -> ::worker::Result<worker::Response> {
+                async fn alarm(&mut self) -> ::worker::Result<::worker::http::Response<::worker::body::Body>> {
                     self._alarm_raw().await
                 }
             });
@@ -132,7 +132,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                         Self::_new(state._inner(), env)
                     }
 
-                    async fn fetch(&mut self, req: ::worker::Request) -> ::worker::Result<worker::Response> {
+                    async fn fetch(&mut self, req: ::worker::http::Request<::worker::body::Body>) -> ::worker::Result<::worker::http::Response<::worker::body::Body>> {
                         self._fetch_raw(req).await
                     }
 

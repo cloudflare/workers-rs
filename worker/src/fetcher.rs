@@ -1,33 +1,24 @@
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 
-use crate::{env::EnvBinding, Request, RequestInit, Response, Result};
+use crate::{
+    body::Body,
+    env::EnvBinding,
+    http::{request, response},
+    Result,
+};
 
 /// A struct for invoking fetch events to other Workers.
 pub struct Fetcher(worker_sys::Fetcher);
 
 impl Fetcher {
     /// Invoke a fetch event in a worker with a url and optionally a [RequestInit].
-    pub async fn fetch(
-        &self,
-        url: impl Into<String>,
-        init: Option<RequestInit>,
-    ) -> Result<Response> {
-        let path = url.into();
-        let promise = match init {
-            Some(ref init) => self.0.fetch_with_str_and_init(&path, &init.into()),
-            None => self.0.fetch_with_str(&path),
-        };
+    pub async fn fetch(&self, req: http::Request<Body>) -> Result<http::Response<Body>> {
+        let req = request::into_wasm(req);
+        let promise = self.0.fetch(&req);
 
-        let resp_sys: web_sys::Response = JsFuture::from(promise).await?.dyn_into()?;
-        Ok(Response::from(resp_sys))
-    }
-
-    /// Invoke a fetch event with an existing [Request].
-    pub async fn fetch_request(&self, request: Request) -> Result<Response> {
-        let promise = self.0.fetch(request.inner());
-        let resp_sys: web_sys::Response = JsFuture::from(promise).await?.dyn_into()?;
-        Ok(Response::from(resp_sys))
+        let res = JsFuture::from(promise).await?.dyn_into()?;
+        Ok(response::from_wasm(res))
     }
 }
 

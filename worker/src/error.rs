@@ -18,6 +18,8 @@ pub enum Error {
     SerdeWasmBindgenError(serde_wasm_bindgen::Error),
 }
 
+unsafe impl Send for Error {}
+
 impl From<worker_kv::KvError> for Error {
     fn from(e: worker_kv::KvError) -> Self {
         let val: JsValue = e.into();

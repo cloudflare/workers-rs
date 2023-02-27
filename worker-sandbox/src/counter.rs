@@ -19,7 +19,10 @@ impl DurableObject for Counter {
         }
     }
 
-    async fn fetch(&mut self, _req: Request) -> Result<Response> {
+    async fn fetch(
+        &mut self,
+        _req: http::Request<body::Body>,
+    ) -> Result<http::Response<body::Body>> {
         if !self.initialized {
             self.initialized = true;
             self.count = self.state.storage().get("count").await.unwrap_or(0);
@@ -28,10 +31,13 @@ impl DurableObject for Counter {
         self.count += 10;
         self.state.storage().put("count", self.count).await?;
 
-        Response::ok(format!(
-            "[durable_object]: self.count: {}, secret value: {}",
-            self.count,
-            self.env.secret("SOME_SECRET")?.to_string()
+        Ok(http::Response::new(
+            format!(
+                "[durable_object]: self.count: {}, secret value: {}",
+                self.count,
+                self.env.secret("SOME_SECRET")?.to_string()
+            )
+            .into(),
         ))
     }
 }

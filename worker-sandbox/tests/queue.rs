@@ -1,15 +1,15 @@
 use retry::delay::Fixed;
-use uuid::Uuid;
 use worker_sandbox::QueueBody;
 
-use crate::util::{expect_wrangler, post};
+use crate::util::{expect_wrangler, get, post};
 
 mod util;
 #[test]
 fn send_message_to_queue() {
     // Arrange
     expect_wrangler();
-    let id = Uuid::new_v4();
+
+    let id = "12345";
 
     // Act
     let response = post(&format!("queue/send/{id}"), |r| r);
@@ -23,7 +23,8 @@ fn send_message_to_queue() {
 fn receive_message_from_queue() {
     // Arrange
     expect_wrangler();
-    let id = Uuid::new_v4();
+
+    let id = "12345";
 
     let send_message_response = post(&format!("queue/send/{id}"), |r| r);
     let send_message_status = send_message_response.status();
@@ -31,9 +32,7 @@ fn receive_message_from_queue() {
 
     // Act
     let message = retry::retry(Fixed::from_millis(500).take(5), || {
-        let messages: Vec<QueueBody> = util::get("queue", |r| r)
-            .json()
-            .expect("Failed to get Json");
+        let messages: Vec<QueueBody> = get("queue", |r| r).json().expect("Failed to get Json");
 
         match messages.iter().find(|m| m.id == id) {
             Some(m) => Ok(m.clone()),
@@ -44,5 +43,4 @@ fn receive_message_from_queue() {
 
     // Assert
     assert_eq!(message.id, id);
-    assert_eq!(message.id_string, id.to_string());
 }

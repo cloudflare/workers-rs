@@ -3,8 +3,8 @@ use std::{
     time::Duration,
 };
 
-use http::Method;
 use reqwest::blocking::{Client, RequestBuilder, Response};
+use worker::http::Method;
 
 /// How long we'll attempt to connect to wrangler before we assume it's not running.
 const WAIT_FOR_WRANGLER: Duration = Duration::from_secs(1);

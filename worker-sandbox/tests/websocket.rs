@@ -32,7 +32,7 @@ fn websocket() {
 
     println!("Dropped socket");
 
-    let got_close_event: bool = util::get("got-close-event", |r| r)
+    let got_close_event: bool = util::get("websocket/closed", |r| r)
         .text()
         .expect("could not deserialize as text")
         .parse()
