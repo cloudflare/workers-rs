@@ -53,7 +53,8 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             let error_handling = match respond_with_errors {
                 true => {
                     quote! {
-                        ::worker::Response::error(e.to_string(), 500).unwrap().into()
+                        let res = ::worker::http::Response::builder().status(500).body(e.to_string()).unwrap();
+                        ::worker::http::response::into_wasm(res)
                     }
                 }
                 false => {
@@ -62,7 +63,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             };
 
             // create a new "main" function that takes the worker_sys::Request, and calls the
-            // original attributed function, passing in a converted worker::Request
+            // original attributed function, passing in a http::Request
             let wrapper_fn = quote! {
                 pub async fn #wrapper_fn_ident(
                     req: ::worker::worker_sys::web_sys::Request,
@@ -71,7 +72,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                 ) -> ::worker::worker_sys::web_sys::Response {
                     let ctx = worker::Context::new(ctx);
                     // get the worker::Result<worker::Response> by calling the original fn
-                    match #input_fn_ident(::worker::Request::from(req), env, ctx).await.map(::worker::worker_sys::web_sys::Response::from) {
+                    match #input_fn_ident(::worker::http::request::from_wasm(req), env, ctx).await.map(::worker::http::response::into_wasm) {
                         Ok(res) => res,
                         Err(e) => {
                             ::worker::console_log!("{}", &e);

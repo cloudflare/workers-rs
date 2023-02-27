@@ -9,38 +9,76 @@ pub async fn basic_test(env: &Env) -> Result<()> {
     ensure!(bad.is_err(), "Invalid binding did not raise error");
 
     let stub = id.get_stub()?;
-    let res = stub.fetch_with_str("hello").await?.text().await?;
-    let res2 = stub
-        .fetch_with_request(Request::new_with_init(
-            "hello",
-            RequestInit::new()
-                .with_body(Some("lol".into()))
-                .with_method(Method::Post),
-        )?)
+    let res = stub
+        .fetch_with_str("hello")
         .await?
-        .text()
-        .await?;
+        .into_body()
+        .bytes()
+        .await
+        .map_err(|_| Error::BadEncoding)?;
+
+    let res2 = stub
+        .fetch_with_request(
+            http::Request::builder()
+                .method(http::Method::POST)
+                .uri("hello")
+                .body("lol".into())
+                .unwrap(),
+        )
+        .await?
+        .into_body()
+        .bytes()
+        .await
+        .map_err(|_| Error::BadEncoding)?;
 
     ensure!(res == res2, "Durable object responded wrong to 'hello'");
 
-    let res = stub.fetch_with_str("storage").await?.text().await?;
-    let num = res
-        .parse::<usize>()
-        .map_err(|_| "Durable Object responded wrong to 'storage': ".to_string() + &res)?;
-    let res = stub.fetch_with_str("storage").await?.text().await?;
-    let num2 = res
-        .parse::<usize>()
-        .map_err(|_| "Durable Object responded wrong to 'storage'".to_string())?;
+    let res = stub
+        .fetch_with_str("storage")
+        .await?
+        .into_body()
+        .bytes()
+        .await
+        .map_err(|_| Error::BadEncoding)?;
+
+    let num = std::str::from_utf8(&res)
+        .ok()
+        .and_then(|s| s.parse::<usize>().ok())
+        .ok_or_else(|| "Durable Object responded wrong to 'storage'".to_string())?;
+
+    let res = stub
+        .fetch_with_str("storage")
+        .await?
+        .into_body()
+        .bytes()
+        .await
+        .map_err(|_| Error::BadEncoding)?;
+
+    let num2 = std::str::from_utf8(&res)
+        .ok()
+        .and_then(|s| s.parse::<usize>().ok())
+        .ok_or_else(|| "Durable Object responded wrong to 'storage'".to_string())?;
 
     ensure!(
         num2 == num + 1,
         "Durable object responded wrong to 'storage'"
     );
 
-    let res = stub.fetch_with_str("transaction").await?.text().await?;
-    let num = res
-        .parse::<usize>()
-        .map_err(|_| "Durable Object responded wrong to 'transaction': ".to_string() + &res)?;
+    let res = stub
+        .fetch_with_str("transaction")
+        .await?
+        .into_body()
+        .bytes()
+        .await
+        .map_err(|_| Error::BadEncoding)?;
+
+    let num = std::str::from_utf8(&res)
+        .ok()
+        .and_then(|s| s.parse::<usize>().ok())
+        .ok_or_else(|| {
+            "Durable Object responded wrong to 'transaction': ".to_string()
+                + std::str::from_utf8(&res).unwrap_or("<malformed>")
+        })?;
 
     ensure!(
         num == num2 + 1,

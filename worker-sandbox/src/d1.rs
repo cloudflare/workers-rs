@@ -1,7 +1,5 @@
 use serde::Deserialize;
-use worker::*;
-
-use crate::SomeSharedData;
+use worker::{body::Body, *};
 
 #[derive(Deserialize)]
 struct Person {
@@ -11,10 +9,10 @@ struct Person {
 }
 
 pub async fn prepared_statement(
-    _req: Request,
-    ctx: RouteContext<SomeSharedData>,
-) -> Result<Response> {
-    let db = ctx.env.d1("DB")?;
+    _req: http::Request<Body>,
+    env: Env,
+) -> Result<http::Response<Body>> {
+    let db = env.d1("DB")?;
     let stmt = worker::query!(&db, "SELECT * FROM people WHERE name = ?", "Ryan Upton")?;
 
     // All rows
@@ -46,11 +44,11 @@ pub async fn prepared_statement(
     assert_eq!(columns[1].as_str(), Some("Ryan Upton"));
     assert_eq!(columns[2].as_u64(), Some(21));
 
-    Response::ok("ok")
+    Ok(http::Response::new("ok".into()))
 }
 
-pub async fn batch(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    let db = ctx.env.d1("DB")?;
+pub async fn batch(_req: http::Request<Body>, env: Env) -> Result<http::Response<Body>> {
+    let db = env.d1("DB")?;
     let mut results = db
         .batch(vec![
             worker::query!(&db, "SELECT * FROM people WHERE id < 4"),
@@ -70,27 +68,30 @@ pub async fn batch(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<R
     assert_eq!(second_results[0].id, 5);
     assert_eq!(second_results[1].id, 6);
 
-    Response::ok("ok")
+    Ok(http::Response::new("ok".into()))
 }
 
-pub async fn exec(mut req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    let db = ctx.env.d1("DB")?;
+pub async fn exec(req: http::Request<Body>, env: Env) -> Result<http::Response<Body>> {
+    let db = env.d1("DB")?;
+
     let result = db
-        .exec(req.text().await?.as_ref())
+        .exec(req.into_body().text().await?.as_ref())
         .await
         .expect("doesn't exist");
 
-    Response::ok(result.count().unwrap_or_default().to_string())
+    Ok(http::Response::new(
+        result.count().unwrap_or_default().to_string().into(),
+    ))
 }
 
-pub async fn dump(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    let db = ctx.env.d1("DB")?;
+pub async fn dump(_req: http::Request<Body>, env: Env) -> Result<http::Response<Body>> {
+    let db = env.d1("DB")?;
     let bytes = db.dump().await?;
-    Response::from_bytes(bytes)
+    Ok(http::Response::new(bytes.into()))
 }
 
-pub async fn error(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    let db = ctx.env.d1("DB")?;
+pub async fn error(_req: http::Request<Body>, env: Env) -> Result<http::Response<Body>> {
+    let db = env.d1("DB")?;
     let error = db
         .exec("THIS IS NOT VALID SQL")
         .await
@@ -102,5 +103,5 @@ pub async fn error(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<R
         panic!("expected D1 error");
     }
 
-    Response::ok("")
+    Ok(http::Response::new("".into()))
 }

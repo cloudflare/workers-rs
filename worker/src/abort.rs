@@ -42,6 +42,9 @@ pub struct AbortSignal {
     inner: web_sys::AbortSignal,
 }
 
+unsafe impl Send for AbortSignal {}
+unsafe impl Sync for AbortSignal {}
+
 impl AbortSignal {
     /// A [bool] indicating if the operation that the signal is used for has been aborted.
     pub fn aborted(&self) -> bool {

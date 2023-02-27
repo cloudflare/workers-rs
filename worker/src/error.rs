@@ -21,6 +21,8 @@ pub enum Error {
     D1(crate::d1::D1Error),
 }
 
+unsafe impl Send for Error {}
+
 impl From<worker_kv::KvError> for Error {
     fn from(e: worker_kv::KvError) -> Self {
         let val: JsValue = e.into();
@@ -65,6 +67,7 @@ impl std::fmt::Display for Error {
             Error::SerdeJsonError(e) => write!(f, "Serde Error: {e}"),
             #[cfg(feature = "queue")]
             Error::SerdeWasmBindgenError(e) => write!(f, "Serde Error: {e}"),
+            #[cfg(feature = "d1")]
             Error::D1(e) => write!(f, "D1: {e:#?}"),
         }
     }

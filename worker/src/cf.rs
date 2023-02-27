@@ -6,6 +6,9 @@ pub struct Cf {
     inner: worker_sys::IncomingRequestCfProperties,
 }
 
+unsafe impl Send for Cf {}
+unsafe impl Sync for Cf {}
+
 impl Cf {
     /// The three-letter airport code (e.g. `ATX`, `LUX`) representing
     /// the colocation which processed the request

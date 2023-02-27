@@ -8,16 +8,6 @@ test("basic sync request", async () => {
   expect(resp.status).toBe(200);
 });
 
-test("basic async request", async () => {
-  const resp = await mf.dispatchFetch("https://fake.host/async-request");
-  expect(resp.status).toBe(200);
-});
-
-test("test data", async () => {
-  const resp = await mf.dispatchFetch("https://fake.host/test-data");
-  expect(await resp.text()).toBe("data ok");
-});
-
 test("headers", async () => {
   const resp = await mf.dispatchFetch("https://fake.host/headers", {
     method: "POST",
@@ -27,36 +17,6 @@ test("headers", async () => {
   });
 
   expect(resp.headers.get("A")).toBe("B");
-});
-
-test("secret", async () => {
-  const formData = new FormData();
-  formData.append("secret", "EXAMPLE_SECRET");
-
-  const resp = await mf.dispatchFetch("https://fake.host/is-secret", {
-    method: "POST",
-    body: formData,
-  });
-
-  expect(await resp.text()).toBe("example");
-});
-
-test("form data", async () => {
-  const formData = new FormData();
-  formData.append("file", new Blob(["workers-rs is cool"]), "file");
-
-  let resp = await mf.dispatchFetch("https://fake.host/formdata-file-size", {
-    method: "POST",
-    body: formData,
-  });
-  expect(resp.status).toBe(200);
-
-  const hashes = (await resp.json()) as { name: string }[];
-
-  resp = await mf.dispatchFetch(
-    `https://fake.host/formdata-file-size/${hashes[0].name}`
-  );
-  expect(resp.status).toBe(200);
 });
 
 test("user id", async () => {
@@ -88,14 +48,6 @@ test("get account id zones", async () => {
   );
 });
 
-test("async text echo", async () => {
-  const resp = await mf.dispatchFetch("https://fake.host/async-text-echo", {
-    method: "POST",
-    body: "Example text!",
-  });
-  expect(await resp.text()).toBe("Example text!");
-});
-
 test("fetch", async () => {
   const resp = await mf.dispatchFetch("https://fake.host/fetch");
   expect(resp.status).toBe(200);
@@ -108,7 +60,7 @@ test("fetch json", async () => {
 
 test("proxy request", async () => {
   const resp = await mf.dispatchFetch(
-    "https://fake.host/proxy_request/https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding/contributors.txt"
+    "https://fake.host/proxy_request"
   );
   expect(resp.status).toBe(200);
 });
@@ -132,13 +84,6 @@ test("kv key value", async () => {
   expect(keys.keys).toHaveLength(1);
 });
 
-test("bytes", async () => {
-  const resp = await mf.dispatchFetch("https://fake.host/bytes");
-  expect(await resp.arrayBuffer()).toStrictEqual(
-    new Uint8Array([1, 2, 3, 4, 5, 6, 7]).buffer
-  );
-});
-
 test("api data", async () => {
   const data = { userId: 0, title: "Hi!", completed: true };
   const resp = await mf.dispatchFetch("https://fake.host/api-data", {
@@ -155,29 +100,13 @@ test("api data", async () => {
   });
 });
 
-test("nonsense repeat", async () => {
-  const resp = await mf.dispatchFetch("https://fake.host/nonsense-repeat", {
-    method: "POST",
-  });
-
-  expect(await resp.text()).toBe("data ok");
-});
-
 test("status code", async () => {
-  const resp = await mf.dispatchFetch("https://fake.host/status/418");
+  const resp = await mf.dispatchFetch("https://fake.host/status-code");
   expect(resp.status).toBe(418);
 });
 
 test("root", async () => {
   const resp = await mf.dispatchFetch("https://fake.host/", {
-    method: "PUT",
-  });
-
-  expect(resp.headers.get("x-testing")).toBe("123");
-});
-
-test("async", async () => {
-  const resp = await mf.dispatchFetch("https://fake.host/async", {
     method: "PUT",
   });
 

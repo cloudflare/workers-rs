@@ -2,11 +2,9 @@ use std::{collections::HashMap, sync::Mutex};
 
 use futures_util::StreamExt;
 use worker::{
-    Bucket, Conditional, Data, Date, FixedLengthStream, HttpMetadata, Include, Request, Response,
-    Result, RouteContext,
+    body::Body, http::Response, Bucket, Conditional, Data, Date, Env, FixedLengthStream,
+    HttpMetadata, Include, Result,
 };
-
-use crate::SomeSharedData;
 
 static SEEDED: Mutex<bool> = Mutex::new(false);
 
@@ -32,19 +30,19 @@ pub async fn seed_bucket(bucket: &Bucket) -> Result<()> {
     Ok(())
 }
 
-pub async fn list_empty(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    let bucket = ctx.bucket("EMPTY_BUCKET")?;
+pub async fn list_empty(env: &Env) -> Result<Response<Body>> {
+    let bucket = env.bucket("EMPTY_BUCKET")?;
 
     let objects = bucket.list().execute().await?;
     assert_eq!(objects.objects().len(), 0);
     assert!(!objects.truncated());
     assert_eq!(objects.cursor(), None);
 
-    Response::ok("ok")
+    Ok(Response::new("ok".into()))
 }
 
-pub async fn list(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    let bucket = ctx.bucket("SEEDED_BUCKET")?;
+pub async fn list(env: &Env) -> Result<Response<Body>> {
+    let bucket = env.bucket("SEEDED_BUCKET")?;
     seed_bucket(&bucket).await?;
 
     let objects = bucket.list().execute().await?;
@@ -93,11 +91,11 @@ pub async fn list(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Re
         .count();
     assert_eq!(count, 1);
 
-    Response::ok("ok")
+    Ok(Response::new("ok".into()))
 }
 
-pub async fn get_empty(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    let bucket = ctx.bucket("EMPTY_BUCKET")?;
+pub async fn get_empty(env: &Env) -> Result<Response<Body>> {
+    let bucket = env.bucket("EMPTY_BUCKET")?;
 
     let object = bucket.get("doesnt-exist").execute().await?;
     assert!(object.is_none());
@@ -115,11 +113,11 @@ pub async fn get_empty(_req: Request, ctx: RouteContext<SomeSharedData>) -> Resu
         .await?;
     assert!(object.is_none());
 
-    Response::ok("ok")
+    Ok(Response::new("ok".into()))
 }
 
-pub async fn get(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    let bucket = ctx.bucket("SEEDED_BUCKET")?;
+pub async fn get(env: &Env) -> Result<Response<Body>> {
+    let bucket = env.bucket("SEEDED_BUCKET")?;
     seed_bucket(&bucket).await?;
 
     let item = bucket.get("no-props").execute().await?.unwrap();
@@ -136,11 +134,11 @@ pub async fn get(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Res
     let uploaded_http_metadata = item.http_metadata();
     assert_eq!(uploaded_http_metadata, http_metadata);
 
-    Response::ok("ok")
+    Ok(Response::new("ok".into()))
 }
 
-pub async fn put(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    let bucket = ctx.bucket("PUT_BUCKET")?;
+pub async fn put(env: &Env) -> Result<Response<Body>> {
+    let bucket = env.bucket("PUT_BUCKET")?;
 
     // R2 requires that we use a fixed-length-stream for the body.
     let stream = futures_util::stream::repeat_with(|| Ok(vec![0u8; 16])).take(16);
@@ -169,11 +167,11 @@ pub async fn put(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Res
         assert_eq!(body.bytes().await?.len(), 0)
     }
 
-    Response::ok("ok")
+    Ok(Response::new("ok".into()))
 }
 
-pub async fn put_properties(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    let bucket = ctx.bucket("PUT_BUCKET")?;
+pub async fn put_properties(env: &Env) -> Result<Response<Body>> {
+    let bucket = env.bucket("PUT_BUCKET")?;
     let (http_metadata, custom_metadata, object_with_props) =
         put_full_properties("with_props", &bucket).await?;
 
@@ -182,14 +180,14 @@ pub async fn put_properties(_req: Request, ctx: RouteContext<SomeSharedData>) ->
     let uploaded_http_metadata = object_with_props.http_metadata();
     assert_eq!(uploaded_http_metadata, http_metadata);
 
-    Response::ok("ok")
+    Ok(Response::new("ok".into()))
 }
 
-pub async fn put_multipart(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
+pub async fn put_multipart(env: &Env) -> Result<Response<Body>> {
     const R2_MULTIPART_CHUNK_MIN_SIZE: usize = 5 * 1_024 * 1_024; // 5MiB.
                                                                   // const TEST_CHUNK_COUNT: usize = 3;
 
-    let bucket = ctx.bucket("PUT_BUCKET")?;
+    let bucket = env.bucket("PUT_BUCKET")?;
 
     let upload = bucket
         .create_multipart_upload("multipart_upload")
@@ -233,11 +231,11 @@ pub async fn put_multipart(_req: Request, ctx: RouteContext<SomeSharedData>) -> 
         [2; 500]
     );
 
-    Response::ok("ok")
+    Ok(Response::new("ok".into()))
 }
 
-pub async fn delete(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    let bucket = ctx.bucket("DELETE_BUCKET")?;
+pub async fn delete(env: &Env) -> Result<Response<Body>> {
+    let bucket = env.bucket("DELETE_BUCKET")?;
 
     bucket.put("key", Data::Empty).execute().await?;
 
@@ -249,7 +247,7 @@ pub async fn delete(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<
     let objects = bucket.list().execute().await?;
     assert_eq!(objects.objects().len(), 0);
 
-    Response::ok("ok")
+    Ok(Response::new("ok".into()))
 }
 
 async fn put_full_properties(

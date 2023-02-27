@@ -9,6 +9,7 @@ export const mf = new Miniflare({
   kvPersist: false,
   r2Persist: false,
   modules: true,
+  verbose: true,
   modulesRules: [
     { type: "CompiledWasm", include: ["**/*.wasm"], fallthrough: true },
   ],
