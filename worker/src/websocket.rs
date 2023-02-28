@@ -21,6 +21,9 @@ pub struct WebSocketPair {
     pub server: WebSocket,
 }
 
+unsafe impl Send for WebSocketPair {}
+unsafe impl Sync for WebSocketPair {}
+
 impl WebSocketPair {
     /// Creates a new `WebSocketPair`.
     pub fn new() -> Result<Self> {
@@ -246,6 +249,9 @@ pub struct EventStream<'ws> {
     )>,
 }
 
+unsafe impl Send for EventStream<'_> {}
+unsafe impl Sync for EventStream<'_> {}
+
 impl<'ws> Stream for EventStream<'ws> {
     type Item = Result<WebsocketEvent>;
 
@@ -325,6 +331,9 @@ pub mod ws_events {
         event: web_sys::MessageEvent,
     }
 
+    unsafe impl Send for MessageEvent {}
+    unsafe impl Sync for MessageEvent {}
+
     impl From<web_sys::MessageEvent> for MessageEvent {
         fn from(event: web_sys::MessageEvent) -> Self {
             Self { event }
@@ -372,6 +381,9 @@ pub mod ws_events {
     pub struct CloseEvent {
         event: web_sys::CloseEvent,
     }
+
+    unsafe impl Send for CloseEvent {}
+    unsafe impl Sync for CloseEvent {}
 
     impl CloseEvent {
         pub fn reason(&self) -> String {

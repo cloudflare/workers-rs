@@ -11,6 +11,9 @@ pub struct ScheduledEvent {
     ty: String,
 }
 
+unsafe impl Send for ScheduledEvent {}
+unsafe impl Sync for ScheduledEvent {}
+
 impl From<EdgeScheduledEvent> for ScheduledEvent {
     fn from(schedule: EdgeScheduledEvent) -> Self {
         Self {
@@ -42,6 +45,9 @@ impl ScheduledEvent {
 pub struct ScheduleContext {
     edge: EdgeScheduleContext,
 }
+
+unsafe impl Send for ScheduleContext {}
+unsafe impl Sync for ScheduleContext {}
 
 impl From<EdgeScheduleContext> for ScheduleContext {
     fn from(edge: EdgeScheduleContext) -> Self {

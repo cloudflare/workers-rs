@@ -10,6 +10,10 @@ unsafe impl Send for Cf {}
 unsafe impl Sync for Cf {}
 
 impl Cf {
+    pub(crate) fn new(inner: worker_sys::IncomingRequestCfProperties) -> Self {
+        Self { inner }
+    }
+
     /// The three-letter airport code (e.g. `ATX`, `LUX`) representing
     /// the colocation which processed the request
     pub fn colo(&self) -> String {
@@ -81,7 +85,9 @@ impl Cf {
     /// Information about the client's authorization.
     /// Only set when using Cloudflare Access or API Shield.
     pub fn tls_client_auth(&self) -> Option<TlsClientAuth> {
-        self.inner.tls_client_auth().map(Into::into)
+        self.inner
+            .tls_client_auth()
+            .map(|inner| TlsClientAuth { inner })
     }
 
     /// The TLS version of the connection to Cloudflare, e.g. TLSv1.3.
@@ -168,17 +174,14 @@ pub struct RequestPriority {
     pub group_weight: usize,
 }
 
-impl From<worker_sys::IncomingRequestCfProperties> for Cf {
-    fn from(inner: worker_sys::IncomingRequestCfProperties) -> Self {
-        Self { inner }
-    }
-}
-
 /// Only set when using Cloudflare Access or API Shield
 #[derive(Debug)]
 pub struct TlsClientAuth {
     inner: worker_sys::TlsClientAuth,
 }
+
+unsafe impl Send for TlsClientAuth {}
+unsafe impl Sync for TlsClientAuth {}
 
 impl TlsClientAuth {
     pub fn cert_issuer_dn_legacy(&self) -> String {
@@ -227,11 +230,5 @@ impl TlsClientAuth {
 
     pub fn cert_subject_dn_rfc2253(&self) -> String {
         self.inner.cert_subject_dn_rfc2253()
-    }
-}
-
-impl From<worker_sys::TlsClientAuth> for TlsClientAuth {
-    fn from(inner: worker_sys::TlsClientAuth) -> Self {
-        Self { inner }
     }
 }

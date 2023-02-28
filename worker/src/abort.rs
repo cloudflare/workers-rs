@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use wasm_bindgen::JsValue;
 use worker_sys::ext::{AbortControllerExt, AbortSignalExt};
 
@@ -9,10 +7,15 @@ pub struct AbortController {
     inner: web_sys::AbortController,
 }
 
+unsafe impl Send for AbortController {}
+unsafe impl Sync for AbortController {}
+
 impl AbortController {
     /// Gets a [AbortSignal] which can be passed to a cancellable operation.
     pub fn signal(&self) -> AbortSignal {
-        AbortSignal::from(self.inner.signal())
+        AbortSignal {
+            inner: self.inner.signal(),
+        }
     }
 
     /// Aborts any operation using a [AbortSignal] created from this controller.
@@ -58,26 +61,19 @@ impl AbortSignal {
 
     /// Creates a [AbortSignal] that is already aborted.
     pub fn abort() -> Self {
-        Self::from(web_sys::AbortSignal::abort())
+        Self {
+            inner: web_sys::AbortSignal::abort(),
+        }
     }
 
     /// Creates a [AbortSignal] that is already aborted with the provided reason.
     pub fn abort_with_reason(reason: impl Into<JsValue>) -> Self {
-        let reason = reason.into();
-        Self::from(web_sys::AbortSignal::abort_with_reason(&reason))
+        Self {
+            inner: web_sys::AbortSignal::abort_with_reason(&reason.into()),
+        }
     }
-}
 
-impl From<web_sys::AbortSignal> for AbortSignal {
-    fn from(inner: web_sys::AbortSignal) -> Self {
-        Self { inner }
-    }
-}
-
-impl Deref for AbortSignal {
-    type Target = web_sys::AbortSignal;
-
-    fn deref(&self) -> &Self::Target {
+    pub(crate) fn inner(&self) -> &web_sys::AbortSignal {
         &self.inner
     }
 }

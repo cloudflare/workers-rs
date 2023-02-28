@@ -32,6 +32,7 @@ pub use crate::env::{Env, Secret, Var};
 pub use crate::error::Error;
 pub use crate::fetch::fetch;
 pub use crate::fetcher::Fetcher;
+// pub use crate::futures::spawn_local;
 #[cfg(feature = "queue")]
 pub use crate::queue::*;
 pub use crate::r2::*;
@@ -52,6 +53,7 @@ mod env;
 mod error;
 mod fetch;
 mod fetcher;
+mod futures;
 pub mod http;
 #[cfg(feature = "queue")]
 mod queue;

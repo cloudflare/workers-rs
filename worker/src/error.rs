@@ -19,6 +19,7 @@ pub enum Error {
 }
 
 unsafe impl Send for Error {}
+unsafe impl Sync for Error {}
 
 impl From<worker_kv::KvError> for Error {
     fn from(e: worker_kv::KvError) -> Self {

@@ -1,6 +1,5 @@
 use chrono::offset::TimeZone;
 use chrono::Datelike;
-use js_sys::Date as JsDate;
 use wasm_bindgen::JsValue;
 
 /// The equivalent to a JavaScript `Date` Object.
@@ -13,12 +12,15 @@ use wasm_bindgen::JsValue;
 /// ```
 #[derive(Debug, Clone, Eq)]
 pub struct Date {
-    js_date: JsDate,
+    inner: js_sys::Date,
 }
+
+unsafe impl Send for Date {}
+unsafe impl Sync for Date {}
 
 impl PartialEq for Date {
     fn eq(&self, other: &Self) -> bool {
-        self.js_date.as_f64() == other.js_date.as_f64()
+        self.inner.as_f64() == other.inner.as_f64()
     }
 }
 
@@ -48,26 +50,26 @@ impl Date {
         };
 
         Self {
-            js_date: JsDate::new(&val),
+            inner: js_sys::Date::new(&val),
         }
     }
 
     /// Get the current time, represented by a Date.
     pub fn now() -> Self {
         Self {
-            js_date: JsDate::new_0(),
+            inner: js_sys::Date::new_0(),
         }
     }
 
     /// Convert a Date into its number of milliseconds since the Unix epoch.
     pub fn as_millis(&self) -> u64 {
-        self.js_date.get_time() as u64
+        self.inner.get_time() as u64
     }
 }
 
 impl ToString for Date {
     fn to_string(&self) -> String {
-        self.js_date.to_string().into()
+        self.inner.to_string().into()
     }
 }
 
@@ -75,7 +77,7 @@ impl ToString for Date {
 impl<T: TimeZone> From<chrono::Date<T>> for Date {
     fn from(d: chrono::Date<T>) -> Self {
         Self {
-            js_date: JsDate::new_with_year_month_day(
+            inner: js_sys::Date::new_with_year_month_day(
                 d.year() as u32,
                 d.month() as i32 - 1,
                 d.day() as i32,
@@ -90,14 +92,14 @@ impl<T: TimeZone> From<chrono::DateTime<T>> for Date {
     }
 }
 
-impl From<Date> for JsDate {
+impl From<Date> for js_sys::Date {
     fn from(val: Date) -> Self {
-        val.js_date
+        val.inner
     }
 }
 
-impl From<JsDate> for Date {
-    fn from(js_date: JsDate) -> Self {
-        Self { js_date }
+impl From<js_sys::Date> for Date {
+    fn from(js_date: js_sys::Date) -> Self {
+        Self { inner: js_date }
     }
 }

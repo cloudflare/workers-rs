@@ -1,19 +1,20 @@
 use std::future::Future;
 
-use crate::worker_sys::Context as JsContext;
-
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::future_to_promise;
 
 /// A context bound to a `fetch` event.
 #[derive(Debug)]
 pub struct Context {
-    inner: JsContext,
+    inner: worker_sys::Context,
 }
+
+unsafe impl Send for Context {}
+unsafe impl Sync for Context {}
 
 impl Context {
     /// Constructs a context from an underlying JavaScript context object.
-    pub fn new(inner: JsContext) -> Self {
+    pub fn new(inner: worker_sys::Context) -> Self {
         Self { inner }
     }
 

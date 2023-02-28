@@ -13,6 +13,9 @@ extern "C" {
     pub type Env;
 }
 
+unsafe impl Send for Env {}
+unsafe impl Sync for Env {}
+
 impl Env {
     fn get_binding<T: EnvBinding>(&self, name: &str) -> Result<T> {
         let binding = js_sys::Reflect::get(self, &JsValue::from(name))
@@ -90,6 +93,9 @@ pub trait EnvBinding: Sized + JsCast {
 }
 
 pub struct StringBinding(JsValue);
+
+unsafe impl Send for StringBinding {}
+unsafe impl Sync for StringBinding {}
 
 impl EnvBinding for StringBinding {
     const TYPE_NAME: &'static str = "String";

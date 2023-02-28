@@ -20,6 +20,9 @@ pub struct ByteStream {
     pub(crate) inner: IntoStream<'static>,
 }
 
+unsafe impl Send for ByteStream {}
+unsafe impl Sync for ByteStream {}
+
 impl Stream for ByteStream {
     type Item = Result<Vec<u8>>;
 
@@ -46,6 +49,9 @@ pub struct FixedLengthStream {
     #[pin]
     inner: Pin<Box<dyn Stream<Item = Result<Vec<u8>>> + 'static>>,
 }
+
+unsafe impl Send for FixedLengthStream {}
+unsafe impl Sync for FixedLengthStream {}
 
 impl FixedLengthStream {
     pub fn wrap(stream: impl Stream<Item = Result<Vec<u8>>> + 'static, length: u64) -> Self {
