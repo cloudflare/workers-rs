@@ -2,13 +2,12 @@ use std::{collections::HashMap, convert::TryFrom};
 
 use js_sys::{Array, Date as JsDate, JsString, Object as JsObject, Uint8Array};
 use wasm_bindgen::{JsCast, JsValue};
-use wasm_bindgen_futures::JsFuture;
 use worker_sys::{
     R2Bucket as EdgeR2Bucket, R2HttpMetadata as R2HttpMetadataSys,
     R2MultipartUpload as EdgeR2MutipartUpload, R2Object as EdgeR2Object, R2Range as R2RangeSys,
 };
 
-use crate::{Date, Error, MultipartUpload, ObjectInner, Objects, Result};
+use crate::{futures::SendJsFuture, Date, Error, MultipartUpload, ObjectInner, Objects, Result};
 
 use super::{Data, Object};
 
@@ -19,6 +18,9 @@ pub struct GetOptionsBuilder<'bucket> {
     pub(crate) only_if: Option<Conditional>,
     pub(crate) range: Option<Range>,
 }
+
+unsafe impl Send for GetOptionsBuilder<'_> {}
+unsafe impl Sync for GetOptionsBuilder<'_> {}
 
 impl<'bucket> GetOptionsBuilder<'bucket> {
     /// Specifies that the object should only be returned given satisfaction of certain conditions
@@ -37,17 +39,20 @@ impl<'bucket> GetOptionsBuilder<'bucket> {
 
     /// Executes the GET operation on the R2 bucket.
     pub async fn execute(self) -> Result<Option<Object>> {
-        let name: String = self.key;
-        let get_promise = self.edge_bucket.get(
-            name,
-            js_object! {
-                "onlyIf" => self.only_if.map(JsObject::from),
-                "range" => self.range.map(JsObject::from),
-            }
-            .into(),
-        );
+        let fut = {
+            let name: String = self.key;
+            let get_promise = self.edge_bucket.get(
+                name,
+                js_object! {
+                    "onlyIf" => self.only_if.map(JsObject::from),
+                    "range" => self.range.map(JsObject::from),
+                }
+                .into(),
+            );
 
-        let value = JsFuture::from(get_promise).await?;
+            SendJsFuture::from(get_promise)
+        };
+        let value = fut.await?;
 
         if value.is_null() {
             return Ok(None);
@@ -156,6 +161,9 @@ pub struct PutOptionsBuilder<'bucket> {
     pub(crate) md5: Option<Vec<u8>>,
 }
 
+unsafe impl Send for PutOptionsBuilder<'_> {}
+unsafe impl Sync for PutOptionsBuilder<'_> {}
+
 impl<'bucket> PutOptionsBuilder<'bucket> {
     /// Various HTTP headers associated with the object. Refer to [HttpMetadata].
     pub fn http_metadata(mut self, metadata: HttpMetadata) -> Self {
@@ -177,33 +185,37 @@ impl<'bucket> PutOptionsBuilder<'bucket> {
 
     /// Executes the PUT operation on the R2 bucket.
     pub async fn execute(self) -> Result<Object> {
-        let value: JsValue = self.value.into();
-        let name: String = self.key;
+        let fut = {
+            let value: JsValue = self.value.into();
+            let name: String = self.key;
 
-        let put_promise = self.edge_bucket.put(
-            name,
-            value,
-            js_object! {
-                "httpMetadata" => self.http_metadata.map(JsObject::from),
-                "customMetadata" => match self.custom_metadata {
-                    Some(metadata) => {
-                        let obj = JsObject::new();
-                        for (k, v) in metadata.into_iter() {
-                            js_sys::Reflect::set(&obj, &JsString::from(k), &JsString::from(v))?;
+            let put_promise = self.edge_bucket.put(
+                name,
+                value,
+                js_object! {
+                    "httpMetadata" => self.http_metadata.map(JsObject::from),
+                    "customMetadata" => match self.custom_metadata {
+                        Some(metadata) => {
+                            let obj = JsObject::new();
+                            for (k, v) in metadata.into_iter() {
+                                js_sys::Reflect::set(&obj, &JsString::from(k), &JsString::from(v))?;
+                            }
+                            obj.into()
                         }
-                        obj.into()
-                    }
-                    None => JsValue::UNDEFINED,
-                },
-                "md5" => self.md5.map(|bytes| {
-                    let arr = Uint8Array::new_with_length(bytes.len() as _);
-                    arr.copy_from(&bytes);
-                    arr.buffer()
-                })
-            }
-            .into(),
-        );
-        let res: EdgeR2Object = JsFuture::from(put_promise).await?.into();
+                        None => JsValue::UNDEFINED,
+                    },
+                    "md5" => self.md5.map(|bytes| {
+                        let arr = Uint8Array::new_with_length(bytes.len() as _);
+                        arr.copy_from(&bytes);
+                        arr.buffer()
+                    })
+                }
+                .into(),
+            );
+            SendJsFuture::from(put_promise)
+        };
+
+        let res: EdgeR2Object = fut.await?.into();
         let inner = if JsString::from("bodyUsed").js_in(&res) {
             ObjectInner::Body(res.unchecked_into())
         } else {
@@ -222,6 +234,9 @@ pub struct CreateMultipartUploadOptionsBuilder<'bucket> {
     pub(crate) custom_metadata: Option<HashMap<String, String>>,
 }
 
+unsafe impl Send for CreateMultipartUploadOptionsBuilder<'_> {}
+unsafe impl Sync for CreateMultipartUploadOptionsBuilder<'_> {}
+
 impl<'bucket> CreateMultipartUploadOptionsBuilder<'bucket> {
     /// Various HTTP headers associated with the object. Refer to [HttpMetadata].
     pub fn http_metadata(mut self, metadata: HttpMetadata) -> Self {
@@ -237,28 +252,31 @@ impl<'bucket> CreateMultipartUploadOptionsBuilder<'bucket> {
 
     /// Executes the multipart upload creation operation on the R2 bucket.
     pub async fn execute(self) -> Result<MultipartUpload> {
-        let key: String = self.key;
+        let fut = {
+            let key: String = self.key;
 
-        let create_multipart_upload_promise = self.edge_bucket.create_multipart_upload(
-            key,
-            js_object! {
-                "httpMetadata" => self.http_metadata.map(JsObject::from),
-                "customMetadata" => match self.custom_metadata {
-                    Some(metadata) => {
-                        let obj = JsObject::new();
-                        for (k, v) in metadata.into_iter() {
-                            js_sys::Reflect::set(&obj, &JsString::from(k), &JsString::from(v))?;
+            let create_multipart_upload_promise = self.edge_bucket.create_multipart_upload(
+                key,
+                js_object! {
+                    "httpMetadata" => self.http_metadata.map(JsObject::from),
+                    "customMetadata" => match self.custom_metadata {
+                        Some(metadata) => {
+                            let obj = JsObject::new();
+                            for (k, v) in metadata.into_iter() {
+                                js_sys::Reflect::set(&obj, &JsString::from(k), &JsString::from(v))?;
+                            }
+                            obj.into()
                         }
-                        obj.into()
-                    }
-                    None => JsValue::UNDEFINED,
-                },
-            }
-            .into(),
-        );
-        let inner: EdgeR2MutipartUpload = JsFuture::from(create_multipart_upload_promise)
-            .await?
-            .into();
+                        None => JsValue::UNDEFINED,
+                    },
+                }
+                .into(),
+            );
+
+            SendJsFuture::from(create_multipart_upload_promise)
+        };
+
+        let inner: EdgeR2MutipartUpload = fut.await?.into();
 
         Ok(MultipartUpload { inner })
     }
@@ -319,6 +337,9 @@ pub struct ListOptionsBuilder<'bucket> {
     pub(crate) include: Option<Vec<Include>>,
 }
 
+unsafe impl Send for ListOptionsBuilder<'_> {}
+unsafe impl Sync for ListOptionsBuilder<'_> {}
+
 impl<'bucket> ListOptionsBuilder<'bucket> {
     /// The number of results to return. Defaults to 1000, with a maximum of 1000.
     pub fn limit(mut self, limit: u32) -> Self {
@@ -368,29 +389,34 @@ impl<'bucket> ListOptionsBuilder<'bucket> {
 
     /// Executes the LIST operation on the R2 bucket.
     pub async fn execute(self) -> Result<Objects> {
-        let list_promise = self.edge_bucket.list(
-            js_object! {
-                "limit" => self.limit,
-                "prefix" => self.prefix,
-                "cursor" => self.cursor,
-                "delimiter" => self.delimiter,
-                "include" => self
-                    .include
-                    .map(|include| {
-                        let arr = Array::new();
-                        for include in include {
-                            arr.push(&JsString::from(match include {
-                                Include::HttpMetadata => "httpMetadata",
-                                Include::CustomMetadata => "customMetadata",
-                            }));
-                        }
-                        arr.into()
-                    })
-                    .unwrap_or(JsValue::UNDEFINED),
-            }
-            .into(),
-        );
-        let inner = JsFuture::from(list_promise).await?.into();
+        let fut = {
+            let list_promise = self.edge_bucket.list(
+                js_object! {
+                    "limit" => self.limit,
+                    "prefix" => self.prefix,
+                    "cursor" => self.cursor,
+                    "delimiter" => self.delimiter,
+                    "include" => self
+                        .include
+                        .map(|include| {
+                            let arr = Array::new();
+                            for include in include {
+                                arr.push(&JsString::from(match include {
+                                    Include::HttpMetadata => "httpMetadata",
+                                    Include::CustomMetadata => "customMetadata",
+                                }));
+                            }
+                            arr.into()
+                        })
+                        .unwrap_or(JsValue::UNDEFINED),
+                }
+                .into(),
+            );
+
+            SendJsFuture::from(list_promise)
+        };
+
+        let inner = fut.await?.into();
         Ok(Objects { inner })
     }
 }

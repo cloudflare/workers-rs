@@ -15,6 +15,9 @@ extern "C" {
     pub type Env;
 }
 
+unsafe impl Send for Env {}
+unsafe impl Sync for Env {}
+
 impl Env {
     /// Access a binding that does not have a wrapper in workers-rs. Useful for internal-only or
     /// unstable bindings.
@@ -100,6 +103,9 @@ pub trait EnvBinding: Sized + JsCast {
 }
 
 pub struct StringBinding(JsValue);
+
+unsafe impl Send for StringBinding {}
+unsafe impl Sync for StringBinding {}
 
 impl EnvBinding for StringBinding {
     const TYPE_NAME: &'static str = "String";

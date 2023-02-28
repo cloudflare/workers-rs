@@ -4,7 +4,6 @@ pub use builder::*;
 
 use js_sys::{JsString, Reflect, Uint8Array};
 use wasm_bindgen::{JsCast, JsValue};
-use wasm_bindgen_futures::JsFuture;
 use worker_sys::{
     FixedLengthStream as EdgeFixedLengthStream, R2Bucket as EdgeR2Bucket,
     R2MultipartUpload as EdgeR2MultipartUpload, R2Object as EdgeR2Object,
@@ -12,7 +11,9 @@ use worker_sys::{
     R2UploadedPart as EdgeR2UploadedPart,
 };
 
-use crate::{env::EnvBinding, ByteStream, Date, Error, FixedLengthStream, Result};
+use crate::{
+    env::EnvBinding, futures::SendJsFuture, ByteStream, Date, Error, FixedLengthStream, Result,
+};
 
 mod builder;
 
@@ -21,11 +22,17 @@ pub struct Bucket {
     inner: EdgeR2Bucket,
 }
 
+unsafe impl Send for Bucket {}
+unsafe impl Sync for Bucket {}
+
 impl Bucket {
     /// Retrieves the [Object] for the given key containing only object metadata, if the key exists.
     pub async fn head(&self, key: impl Into<String>) -> Result<Option<Object>> {
-        let head_promise = self.inner.head(key.into());
-        let value = JsFuture::from(head_promise).await?;
+        let fut = {
+            let head_promise = self.inner.head(key.into());
+            SendJsFuture::from(head_promise)
+        };
+        let value = fut.await?;
 
         if value.is_null() {
             return Ok(None);
@@ -70,8 +77,12 @@ impl Bucket {
     /// R2 deletes are strongly consistent. Once the Promise resolves, all subsequent read
     /// operations will no longer see this key value pair globally.
     pub async fn delete(&self, key: impl Into<String>) -> Result<()> {
-        let delete_promise = self.inner.delete(key.into());
-        JsFuture::from(delete_promise).await?;
+        let fut = {
+            let delete_promise = self.inner.delete(key.into());
+            SendJsFuture::from(delete_promise)
+        };
+
+        fut.await?;
         Ok(())
     }
 
@@ -160,6 +171,9 @@ impl AsRef<JsValue> for Bucket {
 pub struct Object {
     inner: ObjectInner,
 }
+
+unsafe impl Send for Object {}
+unsafe impl Sync for Object {}
 
 impl Object {
     pub fn key(&self) -> String {
@@ -276,6 +290,9 @@ pub struct ObjectBody<'body> {
     inner: &'body EdgeR2ObjectBody,
 }
 
+unsafe impl Send for ObjectBody<'_> {}
+unsafe impl Sync for ObjectBody<'_> {}
+
 impl<'body> ObjectBody<'body> {
     /// Reads the data in the [Object] via a [ByteStream].
     pub fn stream(self) -> Result<ByteStream> {
@@ -291,7 +308,9 @@ impl<'body> ObjectBody<'body> {
     }
 
     pub async fn bytes(self) -> Result<Vec<u8>> {
-        let js_buffer = JsFuture::from(self.inner.array_buffer()).await?;
+        let fut = SendJsFuture::from(self.inner.array_buffer());
+        let js_buffer = fut.await?;
+
         let js_buffer = Uint8Array::new(&js_buffer);
         let mut bytes = vec![0; js_buffer.length() as usize];
         js_buffer.copy_to(&mut bytes);
@@ -311,6 +330,9 @@ pub struct UploadedPart {
     inner: EdgeR2UploadedPart,
 }
 
+unsafe impl Send for UploadedPart {}
+unsafe impl Sync for UploadedPart {}
+
 impl UploadedPart {
     pub fn part_number(&self) -> u16 {
         self.inner.part_number()
@@ -324,6 +346,9 @@ impl UploadedPart {
 pub struct MultipartUpload {
     inner: EdgeR2MultipartUpload,
 }
+
+unsafe impl Send for MultipartUpload {}
+unsafe impl Sync for MultipartUpload {}
 
 impl MultipartUpload {
     /// Uploads a single part with the specified part number to this multipart upload.
@@ -343,8 +368,9 @@ impl MultipartUpload {
         part_number: u16,
         value: impl Into<Data>,
     ) -> Result<UploadedPart> {
-        let uploaded_part =
-            JsFuture::from(self.inner.upload_part(part_number, value.into().into())).await?;
+        let fut = SendJsFuture::from(self.inner.upload_part(part_number, value.into().into()));
+        let uploaded_part = fut.await?;
+
         Ok(UploadedPart {
             inner: uploaded_part.into(),
         })
@@ -352,7 +378,8 @@ impl MultipartUpload {
 
     /// Aborts the multipart upload.
     pub async fn abort(&self) -> Result<()> {
-        JsFuture::from(self.inner.abort()).await?;
+        let fut = SendJsFuture::from(self.inner.abort());
+        fut.await?;
         Ok(())
     }
 
@@ -362,15 +389,16 @@ impl MultipartUpload {
         self,
         uploaded_parts: impl IntoIterator<Item = UploadedPart>,
     ) -> Result<Object> {
-        let object = JsFuture::from(
+        let fut = SendJsFuture::from(
             self.inner.complete(
                 uploaded_parts
                     .into_iter()
                     .map(|part| part.inner.into())
                     .collect(),
             ),
-        )
-        .await?;
+        );
+        let object = fut.await?;
+
         Ok(Object {
             inner: ObjectInner::Body(object.into()),
         })
@@ -381,6 +409,9 @@ impl MultipartUpload {
 pub struct Objects {
     inner: EdgeR2Objects,
 }
+
+unsafe impl Send for Objects {}
+unsafe impl Sync for Objects {}
 
 impl Objects {
     /// An [Vec] of [Object] matching the [list](Bucket::list) request.
@@ -426,6 +457,9 @@ pub(crate) enum ObjectInner {
     NoBody(EdgeR2Object),
     Body(EdgeR2ObjectBody),
 }
+
+unsafe impl Send for ObjectInner {}
+unsafe impl Sync for ObjectInner {}
 
 pub enum Data {
     Stream(FixedLengthStream),

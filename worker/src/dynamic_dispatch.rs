@@ -17,6 +17,9 @@ use crate::{env::EnvBinding, Fetcher, Result};
 #[derive(Debug, Clone)]
 pub struct DynamicDispatcher(DynamicDispatcherSys);
 
+unsafe impl Send for DynamicDispatcher {}
+unsafe impl Sync for DynamicDispatcher {}
+
 impl DynamicDispatcher {
     /// Gets a [Fetcher] for a Worker inside of the dispatch namespace based of the name specified.
     pub fn get(&self, name: impl Into<String>) -> Result<Fetcher> {

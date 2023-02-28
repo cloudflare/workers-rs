@@ -1,10 +1,10 @@
 use serde::Serialize;
 use wasm_bindgen::JsCast;
-use wasm_bindgen_futures::JsFuture;
 use worker_sys::ext::CacheStorageExt;
 
 use crate::{
     body::Body,
+    futures::SendJsFuture,
     http::{request, response},
     Result,
 };
@@ -37,6 +37,9 @@ pub struct Cache {
     inner: web_sys::Cache,
 }
 
+unsafe impl Send for Cache {}
+unsafe impl Sync for Cache {}
+
 impl Default for Cache {
     fn default() -> Self {
         let global: web_sys::WorkerGlobalScope = js_sys::global().unchecked_into();
@@ -50,13 +53,16 @@ impl Default for Cache {
 impl Cache {
     /// Opens a [`Cache`] by name. To access the default global cache, use [`Cache::default()`](`Default::default`).
     pub async fn open(name: String) -> Self {
-        let global: web_sys::WorkerGlobalScope = js_sys::global().unchecked_into();
-        let cache = global.caches().unwrap().open(&name);
+        let fut = {
+            let global: web_sys::WorkerGlobalScope = js_sys::global().unchecked_into();
+            let cache = global.caches().unwrap().open(&name);
+
+            SendJsFuture::from(cache)
+        };
 
         // unwrap is safe because this promise never rejects
         // https://developer.mozilla.org/en-US/docs/Web/API/CacheStorage/open
-        let inner = JsFuture::from(cache).await.unwrap().into();
-
+        let inner = fut.await.unwrap().into();
         Self { inner }
     }
 
@@ -74,15 +80,20 @@ impl Cache {
     /// - the response passed has a status of 206 Partial Content.
     /// - the response passed contains the header `Vary: *` (required by the Cache API specification).
     pub async fn put<K: Into<CacheKey>>(&self, key: K, res: http::Response<Body>) -> Result<()> {
-        let promise = match key.into() {
-            CacheKey::Url(url) => self
-                .inner
-                .put_with_str(url.as_str(), &response::into_wasm(res)),
-            CacheKey::Request(req) => self
-                .inner
-                .put_with_request(&request::into_wasm(req), &response::into_wasm(res)),
+        let fut = {
+            let promise = match key.into() {
+                CacheKey::Url(url) => self
+                    .inner
+                    .put_with_str(url.as_str(), &response::into_wasm(res)),
+                CacheKey::Request(req) => self
+                    .inner
+                    .put_with_request(&request::into_wasm(req), &response::into_wasm(res)),
+            };
+
+            SendJsFuture::from(promise)
         };
-        let _ = JsFuture::from(promise).await?;
+
+        fut.await?;
         Ok(())
     }
 
@@ -105,20 +116,24 @@ impl Cache {
         key: K,
         ignore_method: bool,
     ) -> Result<Option<http::Response<Body>>> {
-        let mut options = web_sys::CacheQueryOptions::new();
-        options.ignore_method(ignore_method);
+        let fut = {
+            let mut options = web_sys::CacheQueryOptions::new();
+            options.ignore_method(ignore_method);
 
-        let promise = match key.into() {
-            CacheKey::Url(url) => self
-                .inner
-                .match_with_str_and_options(url.as_str(), &options),
-            CacheKey::Request(req) => self
-                .inner
-                .match_with_request_and_options(&request::into_wasm(req), &options),
+            let promise = match key.into() {
+                CacheKey::Url(url) => self
+                    .inner
+                    .match_with_str_and_options(url.as_str(), &options),
+                CacheKey::Request(req) => self
+                    .inner
+                    .match_with_request_and_options(&request::into_wasm(req), &options),
+            };
+
+            SendJsFuture::from(promise)
         };
 
         // `match` returns either a response or undefined
-        let result = JsFuture::from(promise).await?;
+        let result = fut.await?;
         if result.is_undefined() {
             Ok(None)
         } else {
@@ -138,19 +153,23 @@ impl Cache {
         key: K,
         ignore_method: bool,
     ) -> Result<CacheDeletionOutcome> {
-        let mut options = web_sys::CacheQueryOptions::new();
-        options.ignore_method(ignore_method);
+        let fut = {
+            let mut options = web_sys::CacheQueryOptions::new();
+            options.ignore_method(ignore_method);
 
-        let promise = match key.into() {
-            CacheKey::Url(url) => self
-                .inner
-                .delete_with_str_and_options(url.as_str(), &options),
-            CacheKey::Request(req) => self
-                .inner
-                .delete_with_request_and_options(&request::into_wasm(req), &options),
+            let promise = match key.into() {
+                CacheKey::Url(url) => self
+                    .inner
+                    .delete_with_str_and_options(url.as_str(), &options),
+                CacheKey::Request(req) => self
+                    .inner
+                    .delete_with_request_and_options(&request::into_wasm(req), &options),
+            };
+
+            SendJsFuture::from(promise)
         };
-        let result = JsFuture::from(promise).await?;
 
+        let result = fut.await?;
         // Unwrap is safe because we know this is a boolean
         // https://developers.cloudflare.com/workers/runtime-apis/cache#delete
         if result.as_bool().unwrap() {

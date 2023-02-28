@@ -1,9 +1,9 @@
 use wasm_bindgen::{JsCast, JsValue};
-use wasm_bindgen_futures::JsFuture;
 
 use crate::{
     body::Body,
     env::EnvBinding,
+    futures::SendJsFuture,
     http::{request, response},
     Result,
 };
@@ -11,13 +11,20 @@ use crate::{
 /// A struct for invoking fetch events to other Workers.
 pub struct Fetcher(worker_sys::Fetcher);
 
+unsafe impl Send for Fetcher {}
+unsafe impl Sync for Fetcher {}
+
 impl Fetcher {
     /// Invoke a fetch event in a worker with a url and optionally a [RequestInit].
     pub async fn fetch(&self, req: http::Request<Body>) -> Result<http::Response<Body>> {
-        let req = request::into_wasm(req);
-        let promise = self.0.fetch(&req);
+        let fut = {
+            let req = request::into_wasm(req);
+            let promise = self.0.fetch(&req);
 
-        let res = JsFuture::from(promise).await?.dyn_into()?;
+            SendJsFuture::from(promise)
+        };
+
+        let res = fut.await?.dyn_into()?;
         Ok(response::from_wasm(res))
     }
 }

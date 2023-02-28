@@ -1,10 +1,9 @@
 use std::marker::PhantomData;
 
-use crate::{env::EnvBinding, Date, Error, Result};
+use crate::{env::EnvBinding, futures::SendJsFuture, Date, Error, Result};
 use js_sys::Array;
 use serde::{de::DeserializeOwned, Serialize};
 use wasm_bindgen::{prelude::*, JsCast};
-use wasm_bindgen_futures::JsFuture;
 use worker_sys::{MessageBatch as MessageBatchSys, Queue as EdgeQueue};
 
 static BODY_KEY_STR: &str = "body";
@@ -19,6 +18,9 @@ pub struct MessageBatch<T> {
     body_key: JsValue,
     id_key: JsValue,
 }
+
+unsafe impl<T> Send for MessageBatch<T> {}
+unsafe impl<T> Sync for MessageBatch<T> {}
 
 impl<T> MessageBatch<T> {
     pub fn new(message_batch_sys: MessageBatchSys) -> Self {
@@ -41,6 +43,9 @@ pub struct Message<T> {
     pub timestamp: Date,
     pub id: String,
 }
+
+unsafe impl<T> Send for Message<T> {}
+unsafe impl<T> Sync for Message<T> {}
 
 impl<T> MessageBatch<T> {
     /// The name of the Queue that belongs to this batch.
@@ -86,12 +91,15 @@ pub struct MessageIter<'a, T> {
     data: PhantomData<T>,
 }
 
+unsafe impl<T> Send for MessageIter<'_, T> {}
+unsafe impl<T> Sync for MessageIter<'_, T> {}
+
 impl<T> MessageIter<'_, T>
 where
     T: DeserializeOwned,
 {
     fn parse_message(&self, message: &JsValue) -> Result<Message<T>> {
-        let js_date = js_sys::Date::from(js_sys::Reflect::get(message, self.timestamp_key)?);
+        let date = js_sys::Date::from(js_sys::Reflect::get(message, self.timestamp_key)?);
         let id = js_sys::Reflect::get(message, self.id_key)?
             .as_string()
             .ok_or(Error::JsError(
@@ -102,7 +110,7 @@ where
         Ok(Message {
             id,
             body,
-            timestamp: Date::from(js_date),
+            timestamp: Date::from(date),
         })
     }
 }
@@ -145,6 +153,9 @@ impl<'a, T> std::iter::ExactSizeIterator for MessageIter<'a, T> where T: Deseria
 
 pub struct Queue(EdgeQueue);
 
+unsafe impl Send for Queue {}
+unsafe impl Sync for Queue {}
+
 impl EnvBinding for Queue {
     const TYPE_NAME: &'static str = "WorkerQueue";
 }
@@ -181,8 +192,10 @@ impl Queue {
     where
         T: Serialize,
     {
-        let js_value = serde_wasm_bindgen::to_value(message)?;
-        let fut: JsFuture = self.0.send(js_value).into();
+        let fut = {
+            let js_value = serde_wasm_bindgen::to_value(message)?;
+            SendJsFuture::from(self.0.send(js_value))
+        };
 
         fut.await.map_err(Error::from)?;
         Ok(())
