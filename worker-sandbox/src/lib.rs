@@ -693,6 +693,19 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             let messages: Vec<QueueBody> = guard.clone();
             Response::from_json(&messages)
         })
+        .post_async("/d1/exec", |mut req, ctx| async move {
+            let d1 = ctx.env.d1("DB")?;
+            let query = req.text().await?;
+            let exec_result = d1.exec(&query).await;
+            match exec_result {
+                Ok(result) => {
+                    let count = result.count().unwrap_or(u32::MAX);
+                    Response::ok(format!("{}", count))
+                },
+                Err(err) => Response::error(format!("Exec failed - {}", err), 500)
+            }
+            
+        })
         .get_async("/r2/list-empty", r2::list_empty)
         .get_async("/r2/list", r2::list)
         .get_async("/r2/get-empty", r2::get_empty)

@@ -71,6 +71,22 @@ impl D1Database {
 
 impl EnvBinding for D1Database {
     const TYPE_NAME: &'static str = "D1Database";
+
+    // Workaround for Miniflare D1 Beta
+    fn get(val: JsValue) -> Result<Self> {
+        let obj = js_sys::Object::from(val);
+        if obj.constructor().name() == Self::TYPE_NAME || obj.constructor().name() == "BetaDatabase"
+        {
+            Ok(obj.unchecked_into())
+        } else {
+            Err(format!(
+                "Binding cannot be cast to the type {} from {}",
+                Self::TYPE_NAME,
+                obj.constructor().name()
+            )
+            .into())
+        }
+    }
 }
 
 impl JsCast for D1Database {

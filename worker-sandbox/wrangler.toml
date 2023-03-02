@@ -21,6 +21,12 @@ remote-service = "./remote-service"
 [durable_objects]
 bindings = [{ name = "COUNTER", class_name = "Counter" }, { name = "ALARM", class_name = "AlarmObject" }]
 
+[[d1_databases]]
+binding = 'DB'
+database_name = 'my_db'
+database_id = '.'
+preview_database_id = '.'
+
 [[queues.consumers]]
  queue = "my_queue"
 

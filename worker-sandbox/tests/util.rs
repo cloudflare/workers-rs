@@ -46,6 +46,18 @@ pub fn post(endpoint: &str, builder_fn: impl FnOnce(RequestBuilder) -> RequestBu
         .unwrap_or_else(|_| panic!("received invalid status code for {}", endpoint))
 }
 
+pub fn post_return_err(
+    endpoint: &str,
+    builder_fn: impl FnOnce(RequestBuilder) -> RequestBuilder,
+) -> reqwest::Result<Response> {
+    expect_wrangler();
+
+    let builder = Client::new().post(format!("http://127.0.0.1:8787/{endpoint}"));
+    let builder = builder_fn(builder);
+
+    builder.send()
+}
+
 #[allow(dead_code)]
 pub fn put(endpoint: &str, builder_fn: impl FnOnce(RequestBuilder) -> RequestBuilder) -> Response {
     expect_wrangler();
