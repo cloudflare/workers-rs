@@ -43,7 +43,7 @@ impl DurableObject for MyClass {
 
                     ensure!(
                         keys == vec!["anything", "array", "map"],
-                        format!("Didn't list all of the keys: {:?}", keys)
+                        format!("Didn't list all of the keys: {keys:?}")
                     );
                     let vals = storage
                         .get_multiple(keys)

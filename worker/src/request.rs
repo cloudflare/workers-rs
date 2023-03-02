@@ -230,7 +230,7 @@ impl Request {
     pub fn url(&self) -> Result<Url> {
         let url = self.edge_request.url();
         url.parse()
-            .map_err(|e| Error::RustError(format!("failed to parse Url from {}: {}", e, url)))
+            .map_err(|e| Error::RustError(format!("failed to parse Url from {e}: {url}")))
     }
 
     #[allow(clippy::should_implement_trait)]
@@ -239,6 +239,12 @@ impl Request {
             .clone()
             .map(|req| req.into())
             .map_err(Error::from)
+    }
+
+    pub fn clone_mut(&self) -> Result<Self> {
+        let mut req: Request = EdgeRequest::new_with_request(&self.edge_request)?.into();
+        req.immutable = false;
+        Ok(req)
     }
 
     pub fn inner(&self) -> &EdgeRequest {
@@ -291,4 +297,16 @@ fn url_param_works() {
     assert_eq!(a_values.next().as_deref(), Some("foo"));
     assert_eq!(a_values.next().as_deref(), Some("baz"));
     assert_eq!(a_values.next(), None);
+}
+
+#[test]
+fn clone_mut_works() {
+    let req = Request::new(
+        "https://example.com/foo.html?a=foo&b=bar&a=baz",
+        crate::Method::Get,
+    )
+    .unwrap();
+    assert!(!req.immutable);
+    let mut_req = req.clone_mut().unwrap();
+    assert!(mut_req.immutable);
 }

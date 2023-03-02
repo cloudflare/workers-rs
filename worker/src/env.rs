@@ -18,9 +18,9 @@ extern "C" {
 impl Env {
     fn get_binding<T: EnvBinding>(&self, name: &str) -> Result<T> {
         let binding = js_sys::Reflect::get(self, &JsValue::from(name))
-            .map_err(|_| Error::JsError(format!("Env does not contain binding `{}`", name)))?;
+            .map_err(|_| Error::JsError(format!("Env does not contain binding `{name}`")))?;
         if binding.is_undefined() {
-            Err(format!("Binding `{}` is undefined.", name).into())
+            Err(format!("Binding `{name}` is undefined.").into())
         } else {
             // Can't just use JsCast::dyn_into here because the type name might not be in scope
             // resulting in a terribly annoying javascript error which can't be caught

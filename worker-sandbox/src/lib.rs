@@ -290,7 +290,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         })
         .get("/user/:id/test", |_req, ctx| {
             if let Some(id) = ctx.param("id") {
-                return Response::ok(format!("TEST user id: {}", id));
+                return Response::ok(format!("TEST user id: {id}"));
             }
 
             Response::error("Error", 500)
@@ -594,7 +594,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         .get_async("/cache-api/get/:key", |_req, ctx| async move {
             if let Some(key) = ctx.param("key") {
                 let cache = Cache::default();
-                if let Some(resp) = cache.get(format!("https://{}", key), true).await? {
+                if let Some(resp) = cache.get(format!("https://{key}"), true).await? {
                     return Ok(resp);
                 } else {
                     return Response::ok("cache miss");
@@ -611,7 +611,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                 // Cache API respects Cache-Control headers. Setting s-max-age to 10
                 // will limit the response to be in cache for 10 seconds max
                 resp.headers_mut().set("cache-control", "s-maxage=10")?;
-                cache.put(format!("https://{}", key), resp.cloned()?).await?;
+                cache.put(format!("https://{key}"), resp.cloned()?).await?;
                 return Ok(resp);
             }
             Response::error("key missing", 400)
@@ -620,7 +620,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             if let Some(key) = ctx.param("key") {
                 let cache = Cache::default();
 
-                let res = cache.delete(format!("https://{}", key), true).await?;
+                let res = cache.delete(format!("https://{key}"), true).await?;
                 return Response::ok(serde_json::to_string(&res)?);
             }
             Response::error("key missing", 400)
@@ -712,6 +712,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         .get_async("/r2/get", r2::get)
         .put_async("/r2/put", r2::put)
         .put_async("/r2/put-properties", r2::put_properties)
+        .put_async("/r2/put-multipart", r2::put_multipart)
         .delete_async("/r2/delete", r2::delete)
         .or_else_any_method_async("/*catchall", |_, ctx| async move {
             console_log!(
