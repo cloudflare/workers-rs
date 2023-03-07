@@ -34,6 +34,10 @@ features = [
     "Cache",
     "CacheStorage",
     "CacheQueryOptions",
+    "AbortSignal",
+    "Headers",
+    "Request",
+    "Response",
 ]
 
 [features]
