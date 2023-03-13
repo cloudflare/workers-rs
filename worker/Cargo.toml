@@ -1,6 +1,6 @@
 [package]
 name = "worker"
-version = "0.0.13"
+version = "0.0.14"
 authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
 repository = "https://github.com/cloudflare/workers-rs"
 edition = "2018"
