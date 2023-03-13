@@ -2164,7 +2164,7 @@ dependencies = [
 
 [[package]]
 name = "worker-sys"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "cfg-if",
  "js-sys",
