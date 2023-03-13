@@ -4,10 +4,10 @@ use js_sys::Uint8Array;
 use serde::Deserialize;
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
-use worker_sys::d1::D1Database as D1DatabaseSys;
-use worker_sys::d1::D1ExecResult;
-use worker_sys::d1::D1PreparedStatement as D1PreparedStatementSys;
-use worker_sys::d1::D1Result as D1ResultSys;
+use worker_sys::{
+    D1Database as D1DatabaseSys, D1ExecResult, D1PreparedStatement as D1PreparedStatementSys,
+    D1Result as D1ResultSys,
+};
 
 use crate::env::EnvBinding;
 use crate::Error;
@@ -18,11 +18,11 @@ pub use serde_wasm_bindgen;
 pub mod macros;
 
 // A D1 Database.
-pub struct D1Database(D1DatabaseSys);
+pub struct Database(D1DatabaseSys);
 
-impl D1Database {
+impl Database {
     /// Prepare a query statement from a query string.
-    pub fn prepare<T: Into<String>>(&self, query: T) -> D1PreparedStatement {
+    pub fn prepare<T: Into<String>>(&self, query: T) -> PreparedStatement {
         self.0.prepare(&query.into()).into()
     }
 
@@ -39,7 +39,7 @@ impl D1Database {
     /// Batch execute one or more statements against the database.
     ///
     /// Returns the results in the same order as the provided statements.
-    pub async fn batch(&self, statements: Vec<D1PreparedStatement>) -> Result<Vec<D1Result>> {
+    pub async fn batch(&self, statements: Vec<PreparedStatement>) -> Result<Vec<D1Result>> {
         let statements = statements.into_iter().map(|s| s.0).collect::<Array>();
         let results = JsFuture::from(self.0.batch(statements)).await?;
         let results = results.dyn_into::<Array>()?;
@@ -69,7 +69,7 @@ impl D1Database {
     }
 }
 
-impl EnvBinding for D1Database {
+impl EnvBinding for Database {
     const TYPE_NAME: &'static str = "D1Database";
 
     // Workaround for Miniflare D1 Beta
@@ -89,7 +89,7 @@ impl EnvBinding for D1Database {
     }
 }
 
-impl JsCast for D1Database {
+impl JsCast for Database {
     fn instanceof(val: &JsValue) -> bool {
         val.is_instance_of::<D1DatabaseSys>()
     }
@@ -103,28 +103,28 @@ impl JsCast for D1Database {
     }
 }
 
-impl From<D1Database> for JsValue {
-    fn from(database: D1Database) -> Self {
+impl From<Database> for JsValue {
+    fn from(database: Database) -> Self {
         JsValue::from(database.0)
     }
 }
 
-impl AsRef<JsValue> for D1Database {
+impl AsRef<JsValue> for Database {
     fn as_ref(&self) -> &JsValue {
         &self.0
     }
 }
 
-impl From<D1DatabaseSys> for D1Database {
+impl From<D1DatabaseSys> for Database {
     fn from(inner: D1DatabaseSys) -> Self {
         Self(inner)
     }
 }
 
 // A D1 prepared query statement.
-pub struct D1PreparedStatement(D1PreparedStatementSys);
+pub struct PreparedStatement(D1PreparedStatementSys);
 
-impl D1PreparedStatement {
+impl PreparedStatement {
     /// Bind one or more parameters to the statement.
     /// Consumes the old statement and returns a new statement with the bound parameters.
     ///
@@ -135,10 +135,10 @@ impl D1PreparedStatement {
     /// Supports Ordered (?NNNN) and Anonymous (?) parameters - named parameters are currently not supported.
     ///
     pub fn bind(self, values: &[JsValue]) -> Result<Self> {
-        let array: Array = values.into_iter().collect::<Array>();
+        let array: Array = values.iter().collect::<Array>();
 
         match self.0.bind(array) {
-            Ok(stmt) => Ok(D1PreparedStatement(stmt)),
+            Ok(stmt) => Ok(PreparedStatement(stmt)),
             Err(err) => Err(Error::from(err)),
         }
     }
@@ -187,7 +187,7 @@ impl D1PreparedStatement {
     }
 }
 
-impl From<D1PreparedStatementSys> for D1PreparedStatement {
+impl From<D1PreparedStatementSys> for PreparedStatement {
     fn from(inner: D1PreparedStatementSys) -> Self {
         Self(inner)
     }
