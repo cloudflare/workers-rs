@@ -306,17 +306,12 @@ impl From<PolishConfig> for &str {
 }
 
 #[wasm_bindgen]
-#[derive(Clone, Copy)]
+#[derive(Default, Clone, Copy)]
 pub enum RequestRedirect {
     Error,
+    #[default]
     Follow,
     Manual,
-}
-
-impl Default for RequestRedirect {
-    fn default() -> Self {
-        RequestRedirect::Follow
-    }
 }
 
 impl From<RequestRedirect> for &str {
