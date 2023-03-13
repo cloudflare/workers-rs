@@ -29,7 +29,7 @@ wasm-bindgen-futures = "0.4.30"
 serde-wasm-bindgen = "0.5.0"
 wasm-streams = "0.2.3"
 worker-kv = "0.6.0"
-worker-macros = { path = "../worker-macros", version = "0.0.7" }
+worker-macros = { path = "../worker-macros", version = "0.0.8" }
 worker-sys = { path = "../worker-sys", version = "0.0.8" }
 
 [dependencies.web-sys]
