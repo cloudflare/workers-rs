@@ -12,6 +12,12 @@ fn request() {
 }
 
 #[test]
+fn empty() {
+    let body = get("empty", |r| r).text().unwrap();
+    assert_eq!(body, "");
+}
+
+#[test]
 fn body() {
     let body = get("body", |r| r).text().unwrap();
     assert_eq!(body, "body");

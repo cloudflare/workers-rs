@@ -84,6 +84,16 @@ pub async fn main(
 ) -> Result<worker::http::Response<worker::body::Body>> {
     let res = match (req.method().clone(), req.uri().path()) {
         (Method::GET, "/request") => handle_a_request(req),
+        (Method::GET, "/empty") => {
+            let res = worker::http::response::into_wasm(http::Response::new("".into()));
+            assert!(res.body().is_none());
+
+            let res = worker::http::response::from_wasm(res);
+            let res = worker::http::response::into_wasm(res);
+            assert!(res.body().is_none());
+
+            worker::http::response::from_wasm(res)
+        }
         (Method::GET, "/body") => http::Response::new("body".into()),
         (Method::GET, "/status-code") => http::Response::builder()
             .status(http::StatusCode::IM_A_TEAPOT)

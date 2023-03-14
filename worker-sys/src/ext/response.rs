@@ -8,7 +8,7 @@ mod glue {
         #[wasm_bindgen]
         pub type Response;
 
-        #[wasm_bindgen(method, getter)]
+        #[wasm_bindgen(method, getter, js_name = "webSocket")]
         pub fn websocket(this: &Response) -> Option<web_sys::WebSocket>;
     }
 }

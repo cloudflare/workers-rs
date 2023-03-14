@@ -44,15 +44,18 @@ pub fn into_wasm(mut res: http::Response<Body>) -> web_sys::Response {
         init.websocket(ws.as_ref());
     }
 
-    let body = wasm_streams::ReadableStream::from_stream(res.into_body().map(|chunk| {
-        chunk
-            .map(|buf| js_sys::Uint8Array::from(buf.chunk()).into())
-            .map_err(|_| wasm_bindgen::JsValue::NULL)
-    }));
+    let body = res.into_body();
+    let body = if body.is_none() {
+        None
+    } else {
+        let stream = wasm_streams::ReadableStream::from_stream(body.map(|chunk| {
+            chunk
+                .map(|buf| js_sys::Uint8Array::from(buf.chunk()).into())
+                .map_err(|_| wasm_bindgen::JsValue::NULL)
+        }));
 
-    web_sys::Response::new_with_opt_readable_stream_and_init(
-        Some(&body.into_raw().unchecked_into()),
-        &init,
-    )
-    .unwrap()
+        Some(stream.into_raw().unchecked_into())
+    };
+
+    web_sys::Response::new_with_opt_readable_stream_and_init(body.as_ref(), &init).unwrap()
 }
