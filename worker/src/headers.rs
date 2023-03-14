@@ -9,11 +9,11 @@ use std::{
 use http::{header::HeaderName, HeaderMap, HeaderValue};
 use js_sys::Array;
 use wasm_bindgen::JsValue;
-use worker_sys::Headers as EdgeHeaders;
+use worker_sys::ext::HeadersExt;
 
 /// A [Headers](https://developer.mozilla.org/en-US/docs/Web/API/Headers) representation used in
 /// Request and Response objects.
-pub struct Headers(pub EdgeHeaders);
+pub struct Headers(pub web_sys::Headers);
 
 impl std::fmt::Debug for Headers {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -102,7 +102,7 @@ impl Headers {
 impl Default for Headers {
     fn default() -> Self {
         // This cannot throw an error: https://developer.mozilla.org/en-US/docs/Web/API/Headers/Headers
-        Headers(EdgeHeaders::new().unwrap())
+        Headers(web_sys::Headers::new().unwrap())
     }
 }
 
@@ -186,6 +186,6 @@ impl From<Headers> for HeaderMap {
 impl Clone for Headers {
     fn clone(&self) -> Self {
         // Headers constructor doesn't throw an error
-        Headers(EdgeHeaders::new_with_headers(&self.0).unwrap())
+        Headers(web_sys::Headers::new_with_headers(&self.0).unwrap())
     }
 }

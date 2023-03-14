@@ -3,10 +3,7 @@ use std::convert::TryInto;
 use serde::Serialize;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
-
-use worker_sys::cache::Cache as EdgeCache;
-use worker_sys::Response as EdgeResponse;
-use worker_sys::WorkerGlobalScope;
+use worker_sys::ext::CacheStorageExt;
 
 use crate::request::Request;
 use crate::response::Response;
@@ -37,15 +34,15 @@ use crate::Result;
 /// Use the `Cache-Control` method to store the response without the `Set-Cookie` header.
 #[derive(Debug)]
 pub struct Cache {
-    inner: EdgeCache,
+    inner: web_sys::Cache,
 }
 
 impl Default for Cache {
     fn default() -> Self {
-        let global: WorkerGlobalScope = js_sys::global().unchecked_into();
+        let global: web_sys::WorkerGlobalScope = js_sys::global().unchecked_into();
 
         Self {
-            inner: global.caches().default(),
+            inner: global.caches().unwrap().default(),
         }
     }
 }
@@ -53,8 +50,8 @@ impl Default for Cache {
 impl Cache {
     /// Opens a [`Cache`] by name. To access the default global cache, use [`Cache::default()`](`Default::default`).
     pub async fn open(name: String) -> Self {
-        let global: WorkerGlobalScope = js_sys::global().unchecked_into();
-        let cache = global.caches().open(name);
+        let global: web_sys::WorkerGlobalScope = js_sys::global().unchecked_into();
+        let cache = global.caches().unwrap().open(&name);
 
         // unwrap is safe because this promise never rejects
         // https://developer.mozilla.org/en-US/docs/Web/API/CacheStorage/open
@@ -78,10 +75,10 @@ impl Cache {
     /// - the response passed contains the header `Vary: *` (required by the Cache API specification).
     pub async fn put<'a, K: Into<CacheKey<'a>>>(&self, key: K, response: Response) -> Result<()> {
         let promise = match key.into() {
-            CacheKey::Url(url) => self.inner.put_url(url.as_str(), &response.into()),
+            CacheKey::Url(url) => self.inner.put_with_str(url.as_str(), &response.into()),
             CacheKey::Request(request) => self
                 .inner
-                .put_request(&request.try_into()?, &response.into()),
+                .put_with_request(&request.try_into()?, &response.into()),
         };
         let _ = JsFuture::from(promise).await?;
         Ok(())
@@ -106,10 +103,16 @@ impl Cache {
         key: K,
         ignore_method: bool,
     ) -> Result<Option<Response>> {
-        let options = serde_wasm_bindgen::to_value(&MatchOptions { ignore_method })?;
+        let mut options = web_sys::CacheQueryOptions::new();
+        options.ignore_method(ignore_method);
+
         let promise = match key.into() {
-            CacheKey::Url(url) => self.inner.match_url(url.as_str(), options),
-            CacheKey::Request(request) => self.inner.match_request(&request.try_into()?, options),
+            CacheKey::Url(url) => self
+                .inner
+                .match_with_str_and_options(url.as_str(), &options),
+            CacheKey::Request(request) => self
+                .inner
+                .match_with_request_and_options(&request.try_into()?, &options),
         };
 
         // `match` returns either a response or undefined
@@ -117,7 +120,7 @@ impl Cache {
         if result.is_undefined() {
             Ok(None)
         } else {
-            let edge_response: EdgeResponse = result.into();
+            let edge_response: web_sys::Response = result.into();
             let response = Response::from(edge_response);
             Ok(Some(response))
         }
@@ -133,11 +136,16 @@ impl Cache {
         key: K,
         ignore_method: bool,
     ) -> Result<CacheDeletionOutcome> {
-        let options = serde_wasm_bindgen::to_value(&MatchOptions { ignore_method })?;
+        let mut options = web_sys::CacheQueryOptions::new();
+        options.ignore_method(ignore_method);
 
         let promise = match key.into() {
-            CacheKey::Url(url) => self.inner.delete_url(url.as_str(), options),
-            CacheKey::Request(request) => self.inner.delete_request(&request.try_into()?, options),
+            CacheKey::Url(url) => self
+                .inner
+                .delete_with_str_and_options(url.as_str(), &options),
+            CacheKey::Request(request) => self
+                .inner
+                .delete_with_request_and_options(&request.try_into()?, &options),
         };
         let result = JsFuture::from(promise).await?;
 
@@ -149,14 +157,6 @@ impl Cache {
             Ok(CacheDeletionOutcome::ResponseNotFound)
         }
     }
-}
-
-/// Can contain one possible property: `ignoreMethod`
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct MatchOptions {
-    /// Consider the request method a `GET` regardless of its actual value.
-    ignore_method: bool,
 }
 
 /// The `String` or `Request` object used as the lookup key. `String`s are interpreted as the URL for a new `Request` object.

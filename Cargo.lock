@@ -1196,9 +1196,9 @@ dependencies = [
 
 [[package]]
 name = "serde-wasm-bindgen"
-version = "0.4.5"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3b4c031cd0d9014307d82b8abf653c0290fbdaeb4c02d00c63cf52f728628bf"
+checksum = "f3b143e2833c57ab9ad3ea280d21fd34e285a42837aeb0ee301f4f41890fa00e"
 dependencies = [
  "js-sys",
  "serde",
@@ -1639,8 +1639,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "31f8dcbc21f30d9b8f2ea926ecb58f6b91192c17e9d33594b3df58b2007ca53b"
 dependencies = [
  "cfg-if",
- "serde",
- "serde_json",
  "wasm-bindgen-macro",
 ]
 
@@ -2071,7 +2069,7 @@ dependencies = [
 
 [[package]]
 name = "worker"
-version = "0.0.12"
+version = "0.0.14"
 dependencies = [
  "async-trait",
  "chrono",
@@ -2097,7 +2095,7 @@ dependencies = [
 
 [[package]]
 name = "worker-build"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "anyhow",
  "dirs-next",
@@ -2109,12 +2107,13 @@ dependencies = [
 
 [[package]]
 name = "worker-kv"
-version = "0.5.1"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "682cbd728f179cc810b2ab77a2534da817b973e190ab184ab8efe1058b0dba84"
+checksum = "3d4b9fe1a87b7aef252fceb4f30bf6303036a5de329c81ccad9be9c35d1fdbc7"
 dependencies = [
  "js-sys",
  "serde",
+ "serde-wasm-bindgen",
  "serde_json",
  "thiserror",
  "wasm-bindgen",
@@ -2123,7 +2122,7 @@ dependencies = [
 
 [[package]]
 name = "worker-macros"
-version = "0.0.6"
+version = "0.0.8"
 dependencies = [
  "async-trait",
  "proc-macro2",
@@ -2165,7 +2164,7 @@ dependencies = [
 
 [[package]]
 name = "worker-sys"
-version = "0.0.6"
+version = "0.0.8"
 dependencies = [
  "cfg-if",
  "js-sys",

@@ -1,8 +1,9 @@
 /// A [`Method`](https://developer.mozilla.org/en-US/docs/Web/API/Request/method) representation
 /// used on Request objects.
-#[derive(Debug, Clone, PartialEq, Hash, Eq)]
+#[derive(Default, Debug, Clone, PartialEq, Hash, Eq)]
 pub enum Method {
     Head = 0,
+    #[default]
     Get,
     Post,
     Put,
@@ -70,11 +71,5 @@ impl AsRef<str> for Method {
 impl ToString for Method {
     fn to_string(&self) -> String {
         (*self).clone().into()
-    }
-}
-
-impl Default for Method {
-    fn default() -> Self {
-        Method::Get
     }
 }

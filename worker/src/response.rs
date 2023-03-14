@@ -11,7 +11,7 @@ use serde::{de::DeserializeOwned, Serialize};
 use wasm_bindgen::JsCast;
 use wasm_bindgen::JsValue;
 use web_sys::ReadableStream;
-use worker_sys::{response_init::ResponseInit as EdgeResponseInit, Response as EdgeResponse};
+use worker_sys::ext::{ResponseExt, ResponseInitExt};
 
 #[derive(Debug, Clone)]
 pub enum ResponseBody {
@@ -125,7 +125,7 @@ impl Response {
         let stream = wasm_streams::ReadableStream::from_stream(js_stream);
         let stream: ReadableStream = stream.into_raw().dyn_into().unwrap();
 
-        let edge_res = EdgeResponse::new_with_opt_stream(Some(&stream))?;
+        let edge_res = web_sys::Response::new_with_opt_readable_stream(Some(&stream))?;
         Ok(Self::from(edge_res))
     }
 
@@ -172,7 +172,7 @@ impl Response {
 
     /// Create a `Response` which redirects to the specified URL with default status_code of 302
     pub fn redirect(url: url::Url) -> Result<Self> {
-        match EdgeResponse::redirect(url.as_str()) {
+        match web_sys::Response::redirect(url.as_str()) {
             Ok(edge_response) => Ok(Response::from(edge_response)),
             Err(err) => Err(Error::from(err)),
         }
@@ -185,7 +185,7 @@ impl Response {
                 "redirect status codes must be in the 300-399 range! Please checkout https://developer.mozilla.org/en-US/docs/Web/HTTP/Status#redirection_messages for more".into(),
             ));
         }
-        match EdgeResponse::redirect_with_status(url.as_str(), status_code) {
+        match web_sys::Response::redirect_with_status(url.as_str(), status_code) {
             Ok(edge_response) => Ok(Response::from(edge_response)),
             Err(err) => Err(Error::from(err)),
         }
@@ -312,7 +312,7 @@ impl Response {
             return Err(Error::RustError("WebSockets cannot be cloned".into()));
         }
 
-        let edge = EdgeResponse::from(&*self);
+        let edge = web_sys::Response::from(&*self);
         let cloned = edge.clone()?;
 
         // Cloning a response might modify it's body as it might need to tee the stream, so we'll
@@ -339,9 +339,9 @@ pub struct ResponseInit {
     pub websocket: Option<WebSocket>,
 }
 
-impl From<ResponseInit> for EdgeResponseInit {
+impl From<ResponseInit> for web_sys::ResponseInit {
     fn from(init: ResponseInit) -> Self {
-        let mut edge_init = EdgeResponseInit::new();
+        let mut edge_init = web_sys::ResponseInit::new();
         edge_init.status(init.status);
         edge_init.headers(&init.headers.0);
         if let Some(websocket) = &init.websocket {
@@ -351,15 +351,22 @@ impl From<ResponseInit> for EdgeResponseInit {
     }
 }
 
-impl From<Response> for EdgeResponse {
+impl From<Response> for web_sys::Response {
     fn from(res: Response) -> Self {
         match res.body {
-            ResponseBody::Body(bytes) => {
-                let array = Uint8Array::new_with_length(bytes.len() as u32);
-                array.copy_from(&bytes);
-
-                EdgeResponse::new_with_opt_u8_array_and_init(
-                    Some(array),
+            ResponseBody::Body(mut bytes) => web_sys::Response::new_with_opt_u8_array_and_init(
+                Some(&mut bytes),
+                &ResponseInit {
+                    status: res.status_code,
+                    headers: res.headers,
+                    websocket: res.websocket,
+                }
+                .into(),
+            )
+            .unwrap(),
+            ResponseBody::Stream(stream) => {
+                web_sys::Response::new_with_opt_readable_stream_and_init(
+                    Some(&stream),
                     &ResponseInit {
                         status: res.status_code,
                         headers: res.headers,
@@ -369,17 +376,7 @@ impl From<Response> for EdgeResponse {
                 )
                 .unwrap()
             }
-            ResponseBody::Stream(stream) => EdgeResponse::new_with_opt_stream_and_init(
-                Some(stream),
-                &ResponseInit {
-                    status: res.status_code,
-                    headers: res.headers,
-                    websocket: res.websocket,
-                }
-                .into(),
-            )
-            .unwrap(),
-            ResponseBody::Empty => EdgeResponse::new_with_opt_str_and_init(
+            ResponseBody::Empty => web_sys::Response::new_with_opt_str_and_init(
                 None,
                 &ResponseInit {
                     status: res.status_code,
@@ -393,15 +390,22 @@ impl From<Response> for EdgeResponse {
     }
 }
 
-impl From<&Response> for EdgeResponse {
+impl From<&Response> for web_sys::Response {
     fn from(res: &Response) -> Self {
         match &res.body {
-            ResponseBody::Body(bytes) => {
-                let array = Uint8Array::new_with_length(bytes.len() as u32);
-                array.copy_from(bytes);
-
-                EdgeResponse::new_with_opt_u8_array_and_init(
-                    Some(array),
+            ResponseBody::Body(bytes) => web_sys::Response::new_with_opt_u8_array_and_init(
+                Some(&mut bytes.clone()),
+                &ResponseInit {
+                    status: res.status_code,
+                    headers: res.headers.clone(),
+                    websocket: res.websocket.clone(),
+                }
+                .into(),
+            )
+            .unwrap(),
+            ResponseBody::Stream(stream) => {
+                web_sys::Response::new_with_opt_readable_stream_and_init(
+                    Some(stream),
                     &ResponseInit {
                         status: res.status_code,
                         headers: res.headers.clone(),
@@ -411,17 +415,7 @@ impl From<&Response> for EdgeResponse {
                 )
                 .unwrap()
             }
-            ResponseBody::Stream(stream) => EdgeResponse::new_with_opt_stream_and_init(
-                Some(stream.clone()),
-                &ResponseInit {
-                    status: res.status_code,
-                    headers: res.headers.clone(),
-                    websocket: res.websocket.clone(),
-                }
-                .into(),
-            )
-            .unwrap(),
-            ResponseBody::Empty => EdgeResponse::new_with_opt_str_and_init(
+            ResponseBody::Empty => web_sys::Response::new_with_opt_str_and_init(
                 None,
                 &ResponseInit {
                     status: res.status_code,
@@ -435,8 +429,8 @@ impl From<&Response> for EdgeResponse {
     }
 }
 
-impl From<EdgeResponse> for Response {
-    fn from(res: EdgeResponse) -> Self {
+impl From<web_sys::Response> for Response {
+    fn from(res: web_sys::Response) -> Self {
         Self {
             headers: Headers(res.headers()),
             status_code: res.status(),

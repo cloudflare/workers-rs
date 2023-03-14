@@ -474,7 +474,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             let signal = controller.signal();
 
             let fetch_fut = async {
-                let fetch = Fetch::Url("http://localhost:8787/wait/2000".parse().unwrap());
+                let fetch = Fetch::Url("http://localhost:8787/wait/10000".parse().unwrap());
                 let mut res = fetch.send_with_signal(&signal).await?;
                 let text = res.text().await?;
                 Ok::<String, worker::Error>(text)

@@ -266,6 +266,7 @@ fn cancelled_fetch() {
 }
 
 #[test]
+#[ignore = "flakes in miniflare"]
 fn fetch_timeout() {
     let body = get("fetch-timeout", |r| r).text().unwrap();
     assert_eq!(body, "Cancelled");

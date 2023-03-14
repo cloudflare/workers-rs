@@ -5,8 +5,6 @@ use crate::Date;
 use crate::DateInit;
 use crate::Result;
 
-use worker_sys::{File as EdgeFile, FormData as EdgeFormData};
-
 use js_sys::Array;
 use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
@@ -22,11 +20,11 @@ pub enum FormEntry {
 /// A [FormData](https://developer.mozilla.org/en-US/docs/Web/API/FormData) representation of the
 /// request body, providing access to form encoded fields and files.
 #[derive(Debug)]
-pub struct FormData(EdgeFormData);
+pub struct FormData(web_sys::FormData);
 
 impl FormData {
     pub fn new() -> Self {
-        Self(EdgeFormData::new().unwrap())
+        Self(web_sys::FormData::new().unwrap())
     }
 
     /// Returns the first value associated with a given key from within a `FormData` object.
@@ -36,7 +34,7 @@ impl FormData {
             return None;
         }
 
-        if val.is_instance_of::<EdgeFile>() {
+        if val.is_instance_of::<web_sys::File>() {
             return Some(FormEntry::File(File(val.into())));
         }
 
@@ -59,7 +57,7 @@ impl FormData {
                 val.to_vec()
                     .into_iter()
                     .map(|val| {
-                        if val.is_instance_of::<EdgeFile>() {
+                        if val.is_instance_of::<web_sys::File>() {
                             return FormEntry::File(File(val.into()));
                         }
 
@@ -114,7 +112,7 @@ impl From<HashMap<&dyn AsRef<&str>, &dyn AsRef<&str>>> for FormData {
 
 /// A [File](https://developer.mozilla.org/en-US/docs/Web/API/File) representation used with
 /// `FormData`.
-pub struct File(EdgeFile);
+pub struct File(web_sys::File);
 
 impl File {
     /// Construct a new named file from a buffer.
@@ -126,7 +124,7 @@ impl File {
         // The first parameter of File's contructor must be an ArrayBuffer or similar types
         // https://developer.mozilla.org/en-US/docs/Web/API/File/File
         let buffer = arr.buffer();
-        let file = EdgeFile::new_with_u8_array_sequence(&Array::of1(&buffer), name).unwrap();
+        let file = web_sys::File::new_with_u8_array_sequence(&Array::of1(&buffer), name).unwrap();
 
         Self(file)
     }
@@ -165,8 +163,8 @@ impl File {
     }
 }
 
-impl From<EdgeFile> for File {
-    fn from(file: EdgeFile) -> Self {
+impl From<web_sys::File> for File {
+    fn from(file: web_sys::File) -> Self {
         Self(file)
     }
 }

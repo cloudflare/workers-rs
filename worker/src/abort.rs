@@ -1,13 +1,12 @@
 use std::ops::Deref;
 
 use wasm_bindgen::JsValue;
-
-use crate::worker_sys::{AbortController as AbortControllerSys, AbortSignal as AbortSignalSys};
+use worker_sys::ext::{AbortControllerExt, AbortSignalExt};
 
 /// An interface that allows you to abort in-flight [Fetch](crate::Fetch) requests.
 #[derive(Debug)]
 pub struct AbortController {
-    inner: AbortControllerSys,
+    inner: web_sys::AbortController,
 }
 
 impl AbortController {
@@ -18,20 +17,20 @@ impl AbortController {
 
     /// Aborts any operation using a [AbortSignal] created from this controller.
     pub fn abort(self) {
-        self.inner.abort(JsValue::undefined())
+        self.inner.abort()
     }
 
     /// Aborts any operation using a [AbortSignal] created from this controller with the provided
     /// reason.
     pub fn abort_with_reason(self, reason: impl Into<JsValue>) {
-        self.inner.abort(reason.into())
+        self.inner.abort_with_reason(&reason.into())
     }
 }
 
 impl Default for AbortController {
     fn default() -> Self {
         Self {
-            inner: AbortControllerSys::new(),
+            inner: web_sys::AbortController::new().unwrap(),
         }
     }
 }
@@ -40,7 +39,7 @@ impl Default for AbortController {
 /// [Fetch](crate::Fetch) request.
 #[derive(Debug)]
 pub struct AbortSignal {
-    inner: AbortSignalSys,
+    inner: web_sys::AbortSignal,
 }
 
 impl AbortSignal {
@@ -56,24 +55,24 @@ impl AbortSignal {
 
     /// Creates a [AbortSignal] that is already aborted.
     pub fn abort() -> Self {
-        Self::from(AbortSignalSys::abort(JsValue::undefined()))
+        Self::from(web_sys::AbortSignal::abort())
     }
 
     /// Creates a [AbortSignal] that is already aborted with the provided reason.
     pub fn abort_with_reason(reason: impl Into<JsValue>) -> Self {
         let reason = reason.into();
-        Self::from(AbortSignalSys::abort(reason))
+        Self::from(web_sys::AbortSignal::abort_with_reason(&reason))
     }
 }
 
-impl From<AbortSignalSys> for AbortSignal {
-    fn from(inner: AbortSignalSys) -> Self {
+impl From<web_sys::AbortSignal> for AbortSignal {
+    fn from(inner: web_sys::AbortSignal) -> Self {
         Self { inner }
     }
 }
 
 impl Deref for AbortSignal {
-    type Target = AbortSignalSys;
+    type Target = web_sys::AbortSignal;
 
     fn deref(&self) -> &Self::Target {
         &self.inner

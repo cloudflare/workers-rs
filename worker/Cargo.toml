@@ -1,6 +1,6 @@
 [package]
 name = "worker"
-version = "0.0.12"
+version = "0.0.14"
 authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
 repository = "https://github.com/cloudflare/workers-rs"
 edition = "2018"
@@ -26,12 +26,18 @@ serde_json = "1.0.81"
 url = "2.2.2"
 wasm-bindgen = "=0.2.84"
 wasm-bindgen-futures = "0.4.30"
-serde-wasm-bindgen = "0.4.3"
+serde-wasm-bindgen = "0.5.0"
 wasm-streams = "0.2.3"
-web-sys = "0.3.57"
-worker-kv = "0.5.1"
-worker-macros = { path = "../worker-macros", version = "0.0.6" }
-worker-sys = { path = "../worker-sys", version = "0.0.6" }
+worker-kv = "0.6.0"
+worker-macros = { path = "../worker-macros", version = "0.0.8" }
+worker-sys = { path = "../worker-sys", version = "0.0.8" }
+
+[dependencies.web-sys]
+version = "0.3.57"
+features = [
+    "File",
+    "WorkerGlobalScope"
+]
 
 [features]
 queue = ["worker-macros/queue", "worker-sys/queue"]

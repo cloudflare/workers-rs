@@ -6,12 +6,10 @@ use js_sys::{JsString, Reflect, Uint8Array};
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use worker_sys::{
-    r2::{
-        R2Bucket as EdgeR2Bucket, R2MultipartUpload as EdgeR2MultipartUpload,
-        R2Object as EdgeR2Object, R2ObjectBody as EdgeR2ObjectBody, R2Objects as EdgeR2Objects,
-        R2UploadedPart as EdgeR2UploadedPart,
-    },
-    FixedLengthStream as EdgeFixedLengthStream,
+    FixedLengthStream as EdgeFixedLengthStream, R2Bucket as EdgeR2Bucket,
+    R2MultipartUpload as EdgeR2MultipartUpload, R2Object as EdgeR2Object,
+    R2ObjectBody as EdgeR2ObjectBody, R2Objects as EdgeR2Objects,
+    R2UploadedPart as EdgeR2UploadedPart,
 };
 
 use crate::{env::EnvBinding, ByteStream, Date, Error, FixedLengthStream, Headers, Result};

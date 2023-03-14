@@ -3,7 +3,7 @@ use std::{collections::HashMap, convert::TryFrom};
 use js_sys::{Array, Date as JsDate, JsString, Object as JsObject, Uint8Array};
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
-use worker_sys::r2::{
+use worker_sys::{
     R2Bucket as EdgeR2Bucket, R2HttpMetadata as R2HttpMetadataSys,
     R2MultipartUpload as EdgeR2MutipartUpload, R2Object as EdgeR2Object, R2Range as R2RangeSys,
 };

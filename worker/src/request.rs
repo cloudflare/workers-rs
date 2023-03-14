@@ -9,7 +9,7 @@ use std::borrow::Cow;
 use url::{form_urlencoded::Parse, Url};
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
-use worker_sys::{Request as EdgeRequest, RequestInit as EdgeRequestInit};
+use worker_sys::ext::RequestExt;
 
 /// A [Request](https://developer.mozilla.org/en-US/docs/Web/API/Request) representation for
 /// handling incoming and creating outbound HTTP requests.
@@ -18,14 +18,14 @@ pub struct Request {
     method: Method,
     path: String,
     headers: Headers,
-    cf: Cf,
-    edge_request: EdgeRequest,
+    cf: Option<Cf>,
+    edge_request: web_sys::Request,
     body_used: bool,
     immutable: bool,
 }
 
-impl From<EdgeRequest> for Request {
-    fn from(req: EdgeRequest) -> Self {
+impl From<web_sys::Request> for Request {
+    fn from(req: web_sys::Request) -> Self {
         Self {
             method: req.method().into(),
             path: Url::parse(&req.url())
@@ -38,7 +38,7 @@ impl From<EdgeRequest> for Request {
                     u
                 }),
             headers: Headers(req.headers()),
-            cf: req.cf().into(),
+            cf: req.cf().map(Into::into),
             edge_request: req,
             body_used: false,
             immutable: true,
@@ -46,14 +46,14 @@ impl From<EdgeRequest> for Request {
     }
 }
 
-impl TryFrom<Request> for EdgeRequest {
+impl TryFrom<Request> for web_sys::Request {
     type Error = Error;
     fn try_from(req: Request) -> Result<Self> {
         req.inner().clone().map_err(Error::from)
     }
 }
 
-impl TryFrom<&Request> for EdgeRequest {
+impl TryFrom<&Request> for web_sys::Request {
     type Error = Error;
     fn try_from(req: &Request) -> Result<Self> {
         req.inner().clone().map_err(Error::from)
@@ -63,23 +63,26 @@ impl TryFrom<&Request> for EdgeRequest {
 impl Request {
     /// Construct a new `Request` with an HTTP Method.
     pub fn new(uri: &str, method: Method) -> Result<Self> {
-        EdgeRequest::new_with_str_and_init(uri, EdgeRequestInit::new().method(method.as_ref()))
-            .map(|req| {
-                let mut req: Request = req.into();
-                req.immutable = false;
-                req
-            })
-            .map_err(|e| {
-                Error::JsError(
-                    e.as_string()
-                        .unwrap_or_else(|| "invalid URL or method for Request".to_string()),
-                )
-            })
+        web_sys::Request::new_with_str_and_init(
+            uri,
+            web_sys::RequestInit::new().method(method.as_ref()),
+        )
+        .map(|req| {
+            let mut req: Request = req.into();
+            req.immutable = false;
+            req
+        })
+        .map_err(|e| {
+            Error::JsError(
+                e.as_string()
+                    .unwrap_or_else(|| "invalid URL or method for Request".to_string()),
+            )
+        })
     }
 
     /// Construct a new `Request` with a `RequestInit` configuration.
     pub fn new_with_init(uri: &str, init: &RequestInit) -> Result<Self> {
-        EdgeRequest::new_with_str_and_init(uri, &init.into())
+        web_sys::Request::new_with_str_and_init(uri, &init.into())
             .map(|req| {
                 let mut req: Request = req.into();
                 req.immutable = false;
@@ -202,7 +205,7 @@ impl Request {
 
     /// Access this request's Cloudflare-specific properties.
     pub fn cf(&self) -> &Cf {
-        &self.cf
+        self.cf.as_ref().unwrap()
     }
 
     /// The HTTP Method associated with this `Request`.
@@ -242,12 +245,12 @@ impl Request {
     }
 
     pub fn clone_mut(&self) -> Result<Self> {
-        let mut req: Request = EdgeRequest::new_with_request(&self.edge_request)?.into();
+        let mut req: Request = web_sys::Request::new_with_request(&self.edge_request)?.into();
         req.immutable = false;
         Ok(req)
     }
 
-    pub fn inner(&self) -> &EdgeRequest {
+    pub fn inner(&self) -> &web_sys::Request {
         &self.edge_request
     }
 }
