@@ -8,7 +8,7 @@ use futures_util::Stream;
 use http::HeaderMap;
 use http_body::Body as _;
 
-use crate::Error;
+use crate::{body::wasm::WasmStreamBody, futures::SendJsFuture, Error};
 
 type BoxBody = http_body::combinators::UnsyncBoxBody<Bytes, Error>;
 
@@ -26,15 +26,45 @@ where
 }
 
 #[derive(Debug)]
-pub struct Body(Option<BoxBody>);
+enum BodyInner {
+    Regular(BoxBody),
+    Request(web_sys::Request),
+    Response(web_sys::Response),
+}
+
+unsafe impl Send for BodyInner {}
+
+impl BodyInner {
+    async fn bytes(self) -> Result<Bytes, Error> {
+        async fn array_buffer_to_bytes(
+            buf: Result<js_sys::Promise, wasm_bindgen::JsValue>,
+        ) -> Result<Bytes, Error> {
+            let fut = SendJsFuture::from(buf.map_err(Error::Internal)?);
+            let buf = js_sys::Uint8Array::from(fut.await.unwrap());
+            Ok(buf.to_vec().into())
+        }
+
+        match self {
+            BodyInner::Regular(body) => super::to_bytes(body).await,
+            BodyInner::Request(req) => array_buffer_to_bytes(req.array_buffer()).await,
+            BodyInner::Response(res) => array_buffer_to_bytes(res.array_buffer()).await,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Body(Option<BodyInner>);
 
 impl Body {
     pub fn new<B>(body: B) -> Self
     where
         B: http_body::Body<Data = Bytes> + Send + 'static,
     {
-        try_downcast(body)
-            .unwrap_or_else(|body| Self(Some(body.map_err(|_| Error::BadEncoding).boxed_unsync())))
+        try_downcast(body).unwrap_or_else(|body| {
+            Self(Some(BodyInner::Regular(
+                body.map_err(|_| Error::BadEncoding).boxed_unsync(),
+            )))
+        })
     }
 
     pub fn none() -> Self {
@@ -42,7 +72,10 @@ impl Body {
     }
 
     pub async fn bytes(self) -> Result<Bytes, Error> {
-        super::to_bytes(self).await
+        match self.0 {
+            Some(inner) => inner.bytes().await,
+            None => Ok(Bytes::new()),
+        }
     }
 
     pub async fn text(self) -> Result<String, Error> {
@@ -52,6 +85,20 @@ impl Body {
 
     pub(crate) fn is_none(&self) -> bool {
         self.0.is_none()
+    }
+
+    /// Turns the body into a regular streaming body, if it's not already, and returns the underlying body.
+    fn as_inner_box_body(&mut self) -> Option<&mut BoxBody> {
+        match &self.0 {
+            Some(BodyInner::Request(req)) => *self = req.body().map(WasmStreamBody::new).into(),
+            Some(BodyInner::Response(res)) => *self = res.body().map(WasmStreamBody::new).into(),
+            _ => {}
+        }
+
+        match self.0.as_mut()? {
+            BodyInner::Regular(body) => Some(body),
+            _ => unreachable!(),
+        }
     }
 }
 
@@ -73,6 +120,18 @@ where
 {
     fn from(body: Option<B>) -> Self {
         body.map(Body::new).unwrap_or_else(Self::none)
+    }
+}
+
+impl From<web_sys::Request> for Body {
+    fn from(req: web_sys::Request) -> Self {
+        Self(req.body().map(|_| BodyInner::Request(req)))
+    }
+}
+
+impl From<web_sys::Response> for Body {
+    fn from(res: web_sys::Response) -> Self {
+        Self(res.body().map(|_| BodyInner::Response(res)))
     }
 }
 
@@ -105,7 +164,7 @@ impl http_body::Body for Body {
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
     ) -> Poll<Option<Result<Self::Data, Self::Error>>> {
-        match &mut self.0 {
+        match self.as_inner_box_body() {
             Some(body) => Pin::new(body).poll_data(cx),
             None => Poll::Ready(None),
         }
@@ -116,7 +175,7 @@ impl http_body::Body for Body {
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
     ) -> Poll<Result<Option<HeaderMap>, Self::Error>> {
-        match &mut self.0 {
+        match self.as_inner_box_body() {
             Some(body) => Pin::new(body).poll_trailers(cx),
             None => Poll::Ready(Ok(None)),
         }
@@ -125,7 +184,9 @@ impl http_body::Body for Body {
     #[inline]
     fn size_hint(&self) -> http_body::SizeHint {
         match &self.0 {
-            Some(body) => body.size_hint(),
+            Some(BodyInner::Regular(body)) => body.size_hint(),
+            Some(BodyInner::Request(_)) => http_body::SizeHint::new(),
+            Some(BodyInner::Response(_)) => http_body::SizeHint::new(),
             None => http_body::SizeHint::with_exact(0),
         }
     }
@@ -133,7 +194,9 @@ impl http_body::Body for Body {
     #[inline]
     fn is_end_stream(&self) -> bool {
         match &self.0 {
-            Some(body) => body.is_end_stream(),
+            Some(BodyInner::Regular(body)) => body.is_end_stream(),
+            Some(BodyInner::Request(_)) => false,
+            Some(BodyInner::Response(_)) => false,
             None => true,
         }
     }

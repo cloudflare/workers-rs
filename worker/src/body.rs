@@ -5,7 +5,6 @@ mod wasm;
 
 pub use body::Body;
 pub use to_bytes::to_bytes;
-pub(crate) use wasm::WasmStreamBody;
 
 pub use bytes::{Buf, BufMut, Bytes};
 
