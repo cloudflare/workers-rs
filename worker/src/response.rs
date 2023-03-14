@@ -354,16 +354,20 @@ impl From<ResponseInit> for web_sys::ResponseInit {
 impl From<Response> for web_sys::Response {
     fn from(res: Response) -> Self {
         match res.body {
-            ResponseBody::Body(mut bytes) => web_sys::Response::new_with_opt_u8_array_and_init(
-                Some(&mut bytes),
-                &ResponseInit {
-                    status: res.status_code,
-                    headers: res.headers,
-                    websocket: res.websocket,
-                }
-                .into(),
-            )
-            .unwrap(),
+            ResponseBody::Body(bytes) => {
+                let array = Uint8Array::new_with_length(bytes.len() as u32);
+                array.copy_from(&bytes);
+                web_sys::Response::new_with_opt_buffer_source_and_init(
+                    Some(&array),
+                    &ResponseInit {
+                        status: res.status_code,
+                        headers: res.headers,
+                        websocket: res.websocket,
+                    }
+                    .into(),
+                )
+                .unwrap()
+            }
             ResponseBody::Stream(stream) => {
                 web_sys::Response::new_with_opt_readable_stream_and_init(
                     Some(&stream),
