@@ -5,8 +5,8 @@ compatibility_date = "2022-09-12" # required
 compatibility_flags = ["streams_enable_constructors"]
 
 kv_namespaces = [
-    { binding = "SOME_NAMESPACE", id = "", preview_id = "" },
-    { binding = "FILE_SIZES", id = "", preview_id = "" },
+    { binding = "SOME_NAMESPACE", id = ".", preview_id = "." },
+    { binding = "FILE_SIZES", id = ".", preview_id = "." },
 ]
 
 vars = { SOME_VARIABLE = "some value" }
@@ -35,22 +35,22 @@ preview_database_id = '.'
  binding = "my_queue"
 [[r2_buckets]]
 binding = 'EMPTY_BUCKET'
-bucket_name = ''
+bucket_name = '.'
 preview_bucket_name = 'empty_bucket'
 
 [[r2_buckets]]
 binding = 'PUT_BUCKET'
-bucket_name = ''
+bucket_name = '.'
 preview_bucket_name = 'put_bucket'
 
 [[r2_buckets]]
 binding = 'SEEDED_BUCKET'
-bucket_name = ''
+bucket_name = '.'
 preview_bucket_name = 'seeded_bucket'
 
 [[r2_buckets]]
 binding = 'DELETE_BUCKET'
-bucket_name = ''
+bucket_name = '.'
 preview_bucket_name = 'delete_bucket'
 
 [build]

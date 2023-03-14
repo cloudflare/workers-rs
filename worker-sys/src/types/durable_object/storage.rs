@@ -1,6 +1,6 @@
 use wasm_bindgen::prelude::*;
 
-use crate::types::DurableObjectTransaction;
+use crate::types::durable_object::DurableObjectTransaction;
 
 #[wasm_bindgen]
 extern "C" {

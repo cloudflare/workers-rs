@@ -1,6 +1,6 @@
 use wasm_bindgen::prelude::*;
 
-use crate::types::{DurableObjectId, DurableObjectStorage};
+use crate::types::durable_object::{DurableObjectId, DurableObjectStorage};
 
 #[wasm_bindgen]
 extern "C" {
