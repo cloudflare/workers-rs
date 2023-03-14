@@ -6,15 +6,16 @@ use std::{
 use bytes::Bytes;
 use futures_util::{Stream, StreamExt};
 use http::HeaderMap;
+use wasm_bindgen::JsCast;
 use wasm_streams::readable::IntoStream;
 
-pub(crate) struct WasmStreamBody(IntoStream<'static>);
+pub(super) struct WasmStreamBody(IntoStream<'static>);
 
 unsafe impl Send for WasmStreamBody {}
 
 impl WasmStreamBody {
-    pub(crate) fn new(stream: IntoStream<'static>) -> Self {
-        Self(stream)
+    pub fn new(stream: web_sys::ReadableStream) -> Self {
+        Self(wasm_streams::ReadableStream::from_raw(stream.unchecked_into()).into_stream())
     }
 }
 

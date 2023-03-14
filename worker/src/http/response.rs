@@ -5,7 +5,7 @@ use worker_sys::ext::{HeadersExt, ResponseExt, ResponseInitExt};
 
 use crate::WebSocket;
 
-use crate::body::{Body, WasmStreamBody};
+use crate::body::Body;
 
 pub fn from_wasm(res: web_sys::Response) -> http::Response<Body> {
     let mut builder = http::Response::builder().status(res.status());
@@ -22,16 +22,7 @@ pub fn from_wasm(res: web_sys::Response) -> http::Response<Body> {
         builder = builder.extension(WebSocket::from(ws));
     }
 
-    let body = res
-        .body()
-        .map(|body| {
-            WasmStreamBody::new(
-                wasm_streams::ReadableStream::from_raw(body.dyn_into().unwrap()).into_stream(),
-            )
-        })
-        .into();
-
-    builder.body(body).unwrap()
+    builder.body(Body::from(res)).unwrap()
 }
 
 pub fn into_wasm(mut res: http::Response<Body>) -> web_sys::Response {

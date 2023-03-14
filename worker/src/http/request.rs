@@ -5,7 +5,7 @@ use worker_sys::ext::{HeadersExt, RequestExt};
 
 use crate::{AbortSignal, Cf};
 
-use crate::body::{Body, WasmStreamBody};
+use crate::body::Body;
 
 fn version_from_string(version: &str) -> http::Version {
     match version {
@@ -37,16 +37,7 @@ pub fn from_wasm(req: web_sys::Request) -> http::Request<Body> {
         );
     }
 
-    let body = req
-        .body()
-        .map(|body| {
-            WasmStreamBody::new(
-                wasm_streams::ReadableStream::from_raw(body.dyn_into().unwrap()).into_stream(),
-            )
-        })
-        .into();
-
-    builder.body(body).unwrap()
+    builder.body(Body::from(req)).unwrap()
 }
 
 pub fn into_wasm(mut req: http::Request<Body>) -> web_sys::Request {
