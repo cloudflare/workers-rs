@@ -32,6 +32,27 @@ fn status_code() {
 }
 
 #[test]
+fn bytes() {
+    let body = &[0u8, 1, 2];
+    let res = post("bytes", |r| r.body(&body[..])).bytes().unwrap();
+    assert_eq!(res, &body[..]);
+}
+
+#[test]
+fn clone() {
+    let body = &[0u8, 1, 2];
+    let res = post("clone", |r| r.body(&body[..])).bytes().unwrap();
+    assert_eq!(res, &body[..]);
+}
+
+#[test]
+fn clone_inner() {
+    let body = &[0, 1, 2];
+    let res = post("clone-inner", |r| r.body(&body[..])).bytes().unwrap();
+    assert_eq!(res, &body[..]);
+}
+
+#[test]
 fn headers() {
     expect_wrangler();
 

@@ -4,7 +4,7 @@ use std::{
 };
 
 use bytes::Bytes;
-use futures_util::{Stream, StreamExt};
+use futures_util::{stream::FusedStream, Stream, StreamExt};
 use http::HeaderMap;
 use wasm_bindgen::JsCast;
 use wasm_streams::readable::IntoStream;
@@ -53,5 +53,9 @@ impl http_body::Body for WasmStreamBody {
         }
 
         hint
+    }
+
+    fn is_end_stream(&self) -> bool {
+        self.0.is_terminated()
     }
 }

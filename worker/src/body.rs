@@ -4,6 +4,7 @@ mod to_bytes;
 mod wasm;
 
 pub use body::Body;
+pub(crate) use body::BodyInner;
 pub use to_bytes::to_bytes;
 
 pub use bytes::{Buf, BufMut, Bytes};

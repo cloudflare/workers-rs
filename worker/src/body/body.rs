@@ -26,7 +26,7 @@ where
 }
 
 #[derive(Debug)]
-enum BodyInner {
+pub(crate) enum BodyInner {
     None,
     Regular(BoxBody),
     Request(web_sys::Request),
@@ -59,7 +59,7 @@ impl Body {
         })
     }
 
-    pub fn none() -> Self {
+    pub const fn none() -> Self {
         Self(BodyInner::None)
     }
 
@@ -68,7 +68,7 @@ impl Body {
             buf: Result<js_sys::Promise, wasm_bindgen::JsValue>,
         ) -> Result<Bytes, Error> {
             let fut = SendJsFuture::from(buf.map_err(Error::Internal)?);
-            let buf = js_sys::Uint8Array::from(fut.await.unwrap());
+            let buf = js_sys::Uint8Array::new(&fut.await.unwrap());
             Ok(buf.to_vec().into())
         }
 
@@ -82,6 +82,10 @@ impl Body {
 
     pub(crate) fn is_none(&self) -> bool {
         matches!(self.0, BodyInner::None)
+    }
+
+    pub(crate) fn inner(&self) -> &BodyInner {
+        &self.0
     }
 
     /// Turns the body into a regular streaming body, if it's not already, and returns the underlying body.
