@@ -10,7 +10,7 @@ use std::{
 use router_service::unsync::Router;
 use serde::{Deserialize, Serialize};
 use tower::Service;
-use worker::{body::Body, http::Response, *};
+use worker::{body::Body, http::{Response, HttpClone}, *};
 
 mod alarm;
 mod counter;
@@ -62,6 +62,92 @@ fn handle_a_request(req: http::Request<body::Body>) -> Response<body::Body> {
         )
         .into(),
     )
+}
+
+async fn test_clone_req(mut req: http::Request<body::Body>) -> body::Bytes {
+    // Change version to something non-default
+    *req.version_mut() = http::Version::HTTP_3;
+
+    // Store an extension
+    struct Ext;
+    req.extensions_mut().insert(Ext);
+    req.extensions_mut().insert(AbortSignal::abort());
+
+    // Store original values
+    let original_method = req.method().clone();
+    let original_verion = req.version();
+    let original_uri = req.uri().clone();
+    let original_headers = req.headers().clone();
+
+    let clone = req.clone();
+
+    // Make sure original values are kept
+    assert_eq!(req.method(), original_method);
+    assert_eq!(req.version(), original_verion);
+    assert_eq!(req.uri(), &original_uri);
+    assert_eq!(req.headers(), &original_headers);
+    assert_eq!(req.extensions().len(), 3);
+    assert!(req.extensions().get::<Cf>().is_some());
+    assert!(req.extensions().get::<Ext>().is_some());
+    assert!(req.extensions().get::<AbortSignal>().is_some());
+
+    // Make sure clone is correct
+    assert_eq!(clone.method(), req.method());
+    assert_eq!(clone.version(), req.version());
+    assert_eq!(clone.uri(), req.uri());
+    assert_eq!(clone.headers(), req.headers());
+    assert_eq!(clone.extensions().len(), 1);
+    assert!(clone.extensions().get::<AbortSignal>().is_some());
+
+    // Make sure body is correct
+    let body = req.into_body().bytes().await.unwrap();
+    let clone_body = clone.into_body().bytes().await.unwrap();
+    assert_eq!(body, clone_body);
+
+    body
+}
+
+async fn test_clone_res(body: body::Bytes) -> body::Bytes {
+    struct Ext;
+
+    let websocket = WebSocketPair::new().unwrap().client;
+
+    let mut res = http::Response::builder()
+        .status(http::StatusCode::CREATED)
+        .version(http::Version::HTTP_3)
+        .header("foo", "bar")
+        .extension(Ext)
+        .extension(websocket)
+        .body(body::Body::from(body))
+        .unwrap();
+
+    // Store original values
+    let original_status = res.status();
+    let original_verion = res.version();
+    let original_headers = res.headers().clone();
+
+    let clone = res.clone();
+
+    // Make sure original values are kept
+    assert_eq!(res.status(), original_status);
+    assert_eq!(res.version(), original_verion);
+    assert_eq!(res.headers(), &original_headers);
+    assert_eq!(res.extensions().len(), 2);
+    assert!(res.extensions().get::<Ext>().is_some());
+    assert!(res.extensions().get::<WebSocket>().is_some());
+
+    // Make sure clone is correct
+    assert_eq!(clone.status(), res.status());
+    assert_eq!(clone.version(), res.version());
+    assert_eq!(clone.headers(), res.headers());
+    assert!(clone.extensions().is_empty()); // WebSocket is also not present
+
+    // Make sure body is correct
+    let body = res.into_body().bytes().await.unwrap();
+    let clone_body = clone.into_body().bytes().await.unwrap();
+    assert_eq!(body, clone_body);
+
+    body
 }
 
 static GLOBAL_STATE: AtomicBool = AtomicBool::new(false);
@@ -221,7 +307,7 @@ pub async fn main(
                 .into(),
             ))
         })
-        .get("/proxy_request", |_req, ctx| async move {
+        .get("/proxy_request", |_req, _| async move {
             let url = "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding/contributors.txt";
             let req = http::Request::get(url).body(()).unwrap();
             fetch(req).await
@@ -278,8 +364,32 @@ pub async fn main(
                 .body(().into())
                 .unwrap())
         })
+        .post("/clone", |req, _| async move {
+            let body = test_clone_req(req).await;
+            let res_body = test_clone_res(body.clone()).await;
+            assert_eq!(body, res_body);
+
+            Ok(http::Response::new(body.into()))
+        })
+        .post("/clone-inner", |req, _| async move {
+            let clone = req.clone_inner().unwrap();
+
+            let body = req.into_body().bytes().await.unwrap();
+            let clone_body = clone.into_body().bytes().await.unwrap();
+            assert_eq!(body, clone_body);
+
+            // Make sure that cloning a non-JS request returns none
+            assert!(http::Request::get("https://example.com")
+                .body(body::Body::none())
+                .unwrap()
+                .clone_inner()
+                .is_none());
+
+            Ok(http::Response::new(body.into()))
+        })
         .any("/*catchall", |_, ctx| async move {
             Ok(Response::builder()
+                .status(404)
                 .body(ctx.param("catchall").unwrap().to_string().into())
                 .unwrap())
         });

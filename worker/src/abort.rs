@@ -40,7 +40,7 @@ impl Default for AbortController {
 
 /// An interface representing a signal that can be passed to cancellable operations, primarily a
 /// [Fetch](crate::Fetch) request.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AbortSignal {
     inner: web_sys::AbortSignal,
 }
@@ -75,5 +75,11 @@ impl AbortSignal {
 
     pub(crate) fn inner(&self) -> &web_sys::AbortSignal {
         &self.inner
+    }
+}
+
+impl From<web_sys::AbortSignal> for AbortSignal {
+    fn from(signal: web_sys::AbortSignal) -> Self {
+        Self { inner: signal }
     }
 }

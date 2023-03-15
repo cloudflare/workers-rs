@@ -21,7 +21,8 @@ fn version_from_string(version: &str) -> http::Version {
 pub fn from_wasm(req: web_sys::Request) -> http::Request<Body> {
     let mut builder = http::Request::builder()
         .method(&*req.method())
-        .uri(req.url());
+        .uri(req.url())
+        .extension(AbortSignal::from(req.signal()));
 
     if let Some(cf) = req.cf() {
         builder = builder
