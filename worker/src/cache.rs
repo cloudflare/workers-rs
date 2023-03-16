@@ -79,15 +79,11 @@ impl Cache {
     /// - the request passed is a method other than GET.
     /// - the response passed has a status of 206 Partial Content.
     /// - the response passed contains the header `Vary: *` (required by the Cache API specification).
-    pub async fn put<K: Into<CacheKey>>(&self, key: K, res: http::Response<Body>) -> Result<()> {
+    pub async fn put<K: Into<CacheKey>>(&self, key: K, res: impl Into<CacheValue>) -> Result<()> {
         let fut = {
             let promise = match key.into() {
-                CacheKey::Url(url) => self
-                    .inner
-                    .put_with_str(url.as_str(), &response::into_wasm(res)),
-                CacheKey::Request(req) => self
-                    .inner
-                    .put_with_request(&request::into_wasm(req), &response::into_wasm(res)),
+                CacheKey::Url(url) => self.inner.put_with_str(url.as_str(), &res.into().0),
+                CacheKey::Request(req) => self.inner.put_with_request(&req, &res.into().0),
             };
 
             SendJsFuture::from(promise)
@@ -124,9 +120,7 @@ impl Cache {
                 CacheKey::Url(url) => self
                     .inner
                     .match_with_str_and_options(url.as_str(), &options),
-                CacheKey::Request(req) => self
-                    .inner
-                    .match_with_request_and_options(&request::into_wasm(req), &options),
+                CacheKey::Request(req) => self.inner.match_with_request_and_options(&req, &options),
             };
 
             SendJsFuture::from(promise)
@@ -161,9 +155,9 @@ impl Cache {
                 CacheKey::Url(url) => self
                     .inner
                     .delete_with_str_and_options(url.as_str(), &options),
-                CacheKey::Request(req) => self
-                    .inner
-                    .delete_with_request_and_options(&request::into_wasm(req), &options),
+                CacheKey::Request(req) => {
+                    self.inner.delete_with_request_and_options(&req, &options)
+                }
             };
 
             SendJsFuture::from(promise)
@@ -183,7 +177,7 @@ impl Cache {
 /// The `String` or `Request` object used as the lookup key. `String`s are interpreted as the URL for a new `Request` object.
 pub enum CacheKey {
     Url(String),
-    Request(http::Request<Body>),
+    Request(web_sys::Request),
 }
 
 impl From<&str> for CacheKey {
@@ -204,9 +198,29 @@ impl From<&String> for CacheKey {
     }
 }
 
+impl From<web_sys::Request> for CacheKey {
+    fn from(req: web_sys::Request) -> Self {
+        Self::Request(req)
+    }
+}
+
 impl From<http::Request<Body>> for CacheKey {
-    fn from(request: http::Request<Body>) -> Self {
-        Self::Request(request)
+    fn from(req: http::Request<Body>) -> Self {
+        Self::Request(request::into_wasm(req))
+    }
+}
+
+pub struct CacheValue(web_sys::Response);
+
+impl From<web_sys::Response> for CacheValue {
+    fn from(res: web_sys::Response) -> Self {
+        Self(res)
+    }
+}
+
+impl From<http::Response<Body>> for CacheValue {
+    fn from(res: http::Response<Body>) -> Self {
+        Self(response::into_wasm(res))
     }
 }
 
