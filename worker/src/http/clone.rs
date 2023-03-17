@@ -3,7 +3,7 @@ use crate::{
     AbortSignal, WebSocket,
 };
 
-use super::{request, response};
+use super::{request, response, RequestRedirect};
 
 pub trait HttpClone
 where
@@ -35,9 +35,15 @@ impl HttpClone for http::Request<Body> {
         let extensions = std::mem::take(req.extensions_mut());
 
         // Insert clones of extensions used by into_wasm
-        req.extensions_mut()
-            .insert(extensions.get::<AbortSignal>().cloned());
+        if let Some(signal) = extensions.get::<AbortSignal>() {
+            req.extensions_mut().insert(signal.clone());
+        }
 
+        if let Some(redirect) = extensions.get::<RequestRedirect>() {
+            req.extensions_mut().insert(*redirect);
+        }
+
+        // Do the conversion
         let req = request::into_wasm(req);
 
         // Should never panic as the request body has not been accessed yet
@@ -82,9 +88,11 @@ impl HttpClone for http::Response<Body> {
         let extensions = std::mem::take(res.extensions_mut());
 
         // Insert clones of extensions used by into_wasm
-        res.extensions_mut()
-            .insert(extensions.get::<WebSocket>().cloned());
+        if let Some(websocket) = extensions.get::<WebSocket>() {
+            res.extensions_mut().insert(websocket.clone());
+        }
 
+        // Do the conversion
         let res = response::into_wasm(res);
 
         // Should never panic as the response body has not been accessed yet
