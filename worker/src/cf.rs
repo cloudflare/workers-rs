@@ -1,3 +1,7 @@
+mod properties;
+
+pub use properties::{CfProperties, MinifyConfig, PolishConfig};
+
 /// In addition to the methods on the `Request` struct, the `Cf` struct on an inbound Request contains information about the request provided by Cloudflare’s edge.
 ///
 /// [Details](https://developers.cloudflare.com/workers/runtime-apis/request#incomingrequestcfproperties)
@@ -10,7 +14,7 @@ unsafe impl Send for Cf {}
 unsafe impl Sync for Cf {}
 
 impl Cf {
-    pub(crate) fn new(inner: worker_sys::IncomingRequestCfProperties) -> Self {
+    pub fn new(inner: worker_sys::IncomingRequestCfProperties) -> Self {
         Self { inner }
     }
 

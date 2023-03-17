@@ -3,9 +3,11 @@ use futures_util::StreamExt;
 use wasm_bindgen::JsCast;
 use worker_sys::ext::{HeadersExt, RequestExt};
 
-use crate::{AbortSignal, Cf};
+use crate::{AbortSignal, Cf, CfProperties};
 
 use crate::body::Body;
+
+use super::RequestRedirect;
 
 fn version_from_string(version: &str) -> http::Version {
     match version {
@@ -22,7 +24,8 @@ pub fn from_wasm(req: web_sys::Request) -> http::Request<Body> {
     let mut builder = http::Request::builder()
         .method(&*req.method())
         .uri(req.url())
-        .extension(AbortSignal::from(req.signal()));
+        .extension(AbortSignal::from(req.signal()))
+        .extension(RequestRedirect::from(req.redirect()));
 
     if let Some(cf) = req.cf() {
         builder = builder
@@ -54,7 +57,29 @@ pub fn into_wasm(mut req: http::Request<Body>) -> web_sys::Request {
         headers.append(name, value).unwrap();
     }
 
+    let mut init = web_sys::RequestInit::new();
+    init.method(&method).headers(&headers);
+
     let signal = req.extensions_mut().remove::<AbortSignal>();
+    init.signal(signal.as_ref().map(|s| s.inner()));
+
+    if let Some(redirect) = req.extensions_mut().remove::<RequestRedirect>() {
+        init.redirect(redirect.into());
+    }
+
+    if let Some(cf) = req.extensions_mut().remove::<CfProperties>() {
+        // TODO: this should be handled in worker-sys
+        let r = ::js_sys::Reflect::set(
+            init.as_ref(),
+            &wasm_bindgen::JsValue::from("cf"),
+            &wasm_bindgen::JsValue::from(&cf),
+        );
+        debug_assert!(
+            r.is_ok(),
+            "setting properties should never fail on our dictionary objects"
+        );
+        let _ = r;
+    }
 
     let body = req.into_body();
     let body = if body.is_none() {
@@ -68,12 +93,7 @@ pub fn into_wasm(mut req: http::Request<Body>) -> web_sys::Request {
 
         Some(stream.into_raw().unchecked_into())
     };
-
-    let mut init = web_sys::RequestInit::new();
-    init.method(&method)
-        .headers(&headers)
-        .signal(signal.as_ref().map(|s| s.inner()))
-        .body(body.as_ref());
+    init.body(body.as_ref());
 
     web_sys::Request::new_with_str_and_init(&uri, &init).unwrap()
 }

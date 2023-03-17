@@ -15,14 +15,14 @@ pub use wasm_bindgen;
 pub use wasm_bindgen_futures;
 pub use worker_kv as kv;
 
-pub use cf::{Cf, TlsClientAuth};
 pub use worker_macros::{durable_object, event};
 #[doc(hidden)]
 pub use worker_sys;
 pub use worker_sys::{console_debug, console_error, console_log, console_warn};
 
 pub use crate::abort::*;
-pub use crate::cache::{Cache, CacheDeletionOutcome, CacheKey};
+pub use crate::cache::{Cache, CacheDeletionOutcome};
+pub use crate::cf::*;
 pub use crate::context::Context;
 #[cfg(feature = "d1")]
 pub use crate::d1::*;
