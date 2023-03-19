@@ -68,10 +68,7 @@ impl From<JsValue> for Error {
                 format!(
                     "Error: {} - Cause: {}",
                     e.to_string(),
-                    e.cause()
-                        .as_string()
-                        .or_else(|| { Some(e.to_string().into()) })
-                        .unwrap_or(String::from("N/A"))
+                    e.cause().as_string().unwrap_or(String::from("N/A"))
                 )
             })
         }) {

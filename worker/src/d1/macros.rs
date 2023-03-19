@@ -18,12 +18,12 @@
 macro_rules! query {
     // rule for simple queries
     ($db:expr, $query:expr) => {
-        $crate::d1::D1Database::prepare($db, $query)
+        $crate::d1::Database::prepare($db, $query)
     };
     // rule for parameterized queries
     ($db:expr, $query:expr, $($args:expr),* $(,)?) => {{
-        || -> $crate::Result<$crate::d1::D1PreparedStatement> {
-            let prepared = $crate::d1::D1Database::prepare($db, $query);
+        || -> $crate::Result<$crate::d1::PreparedStatement> {
+            let prepared = $crate::d1::Database::prepare($db, $query);
 
             // D1 doesn't support taking in undefined values, so we translate these missing values to NULL.
             let serializer = $crate::d1::serde_wasm_bindgen::Serializer::new().serialize_missing_as_null(true);
@@ -32,7 +32,7 @@ macro_rules! query {
                     .map_err(|e| $crate::Error::Internal(e.into()))?
             ),*];
 
-            $crate::d1::D1PreparedStatement::bind(prepared, bindings)
+            $crate::d1::PreparedStatement::bind(prepared, bindings)
         }()
     }};
 }
