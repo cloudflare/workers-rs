@@ -7,6 +7,7 @@ use bytes::Bytes;
 use futures_util::Stream;
 use http::HeaderMap;
 use http_body::Body as _;
+use serde::de::DeserializeOwned;
 
 use crate::{body::wasm::WasmStreamBody, futures::SendJsFuture, Error};
 
@@ -66,23 +67,31 @@ impl Body {
     pub async fn bytes(self) -> Result<Bytes, Error> {
         async fn array_buffer_to_bytes(
             buf: Result<js_sys::Promise, wasm_bindgen::JsValue>,
-        ) -> Result<Bytes, Error> {
-            let fut = SendJsFuture::from(buf.map_err(Error::Internal)?);
+        ) -> Bytes {
+            // Unwrapping only panics when the body has already been accessed before
+            let fut = SendJsFuture::from(buf.unwrap());
             let buf = js_sys::Uint8Array::new(&fut.await.unwrap());
-            Ok(buf.to_vec().into())
+            buf.to_vec().into()
         }
 
         match self.0 {
             BodyInner::None => Ok(Bytes::new()),
             BodyInner::Regular(body) => super::to_bytes(body).await,
-            BodyInner::Request(req) => array_buffer_to_bytes(req.array_buffer()).await,
-            BodyInner::Response(res) => array_buffer_to_bytes(res.array_buffer()).await,
+            BodyInner::Request(req) => Ok(array_buffer_to_bytes(req.array_buffer()).await),
+            BodyInner::Response(res) => Ok(array_buffer_to_bytes(res.array_buffer()).await),
         }
     }
 
     pub async fn text(self) -> Result<String, Error> {
-        let bytes = self.bytes().await?;
-        String::from_utf8(bytes.to_vec()).map_err(|_| Error::BadEncoding)
+        self.bytes()
+            .await
+            .and_then(|buf| String::from_utf8(buf.to_vec()).map_err(|_| Error::BadEncoding))
+    }
+
+    pub async fn json<B: DeserializeOwned>(self) -> Result<B, Error> {
+        self.bytes()
+            .await
+            .and_then(|buf| serde_json::from_slice(&buf).map_err(Error::SerdeJsonError))
     }
 
     pub(crate) fn is_none(&self) -> bool {

@@ -9,6 +9,8 @@ use http::HeaderMap;
 use wasm_bindgen::JsCast;
 use wasm_streams::readable::IntoStream;
 
+use crate::Error;
+
 pub(super) struct WasmStreamBody(IntoStream<'static>);
 
 unsafe impl Send for WasmStreamBody {}
@@ -21,7 +23,7 @@ impl WasmStreamBody {
 
 impl http_body::Body for WasmStreamBody {
     type Data = Bytes;
-    type Error = ();
+    type Error = Error;
 
     #[inline]
     fn poll_data(
@@ -31,7 +33,7 @@ impl http_body::Body for WasmStreamBody {
         self.0
             .poll_next_unpin(cx)
             .map_ok(|buf| js_sys::Uint8Array::from(buf).to_vec().into())
-            .map_err(|_| ())
+            .map_err(Error::Internal)
     }
 
     #[inline]
