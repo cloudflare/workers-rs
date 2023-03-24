@@ -53,7 +53,11 @@ impl Bucket {
     ///
     /// R2 writes are strongly consistent. Once the future resolves, all subsequent read operations
     /// will see this key value pair globally.
-    pub fn put(&self, key: impl Into<String>, value: impl Into<Data>) -> PutOptionsBuilder {
+    pub fn put<'a, 'data>(
+        &'a self,
+        key: impl Into<String>,
+        value: impl Into<Data<'data>>,
+    ) -> PutOptionsBuilder<'a, 'data> {
         PutOptionsBuilder {
             edge_bucket: &self.inner,
             key: key.into(),
@@ -61,6 +65,7 @@ impl Bucket {
             http_metadata: None,
             custom_metadata: None,
             md5: None,
+            sha1: None,
         }
     }
 
@@ -333,7 +338,7 @@ impl MultipartUpload {
     pub async fn upload_part(
         &self,
         part_number: u16,
-        value: impl Into<Data>,
+        value: impl Into<Data<'_>>,
     ) -> Result<UploadedPart> {
         let uploaded_part =
             JsFuture::from(self.inner.upload_part(part_number, value.into().into())).await?;
@@ -419,32 +424,32 @@ pub(crate) enum ObjectInner {
     Body(EdgeR2ObjectBody),
 }
 
-pub enum Data {
+pub enum Data<'a> {
     Stream(FixedLengthStream),
-    Text(String),
-    Bytes(Vec<u8>),
+    Text(&'a str),
+    Bytes(&'a [u8]),
     Empty,
 }
 
-impl From<FixedLengthStream> for Data {
+impl From<FixedLengthStream> for Data<'static> {
     fn from(stream: FixedLengthStream) -> Self {
         Data::Stream(stream)
     }
 }
 
-impl From<String> for Data {
-    fn from(value: String) -> Self {
+impl<'a> From<&'a str> for Data<'a> {
+    fn from(value: &'a str) -> Self {
         Data::Text(value)
     }
 }
 
-impl From<Vec<u8>> for Data {
-    fn from(value: Vec<u8>) -> Self {
+impl<'a> From<&'a [u8]> for Data<'a> {
+    fn from(value: &'a [u8]) -> Self {
         Data::Bytes(value)
     }
 }
 
-impl From<Data> for JsValue {
+impl<'a> From<Data<'a>> for JsValue {
     fn from(data: Data) -> Self {
         match data {
             Data::Stream(stream) => {
@@ -454,7 +459,7 @@ impl From<Data> for JsValue {
             Data::Text(text) => JsString::from(text).into(),
             Data::Bytes(bytes) => {
                 let arr = Uint8Array::new_with_length(bytes.len() as u32);
-                arr.copy_from(&bytes);
+                arr.copy_from(bytes);
                 arr.into()
             }
             Data::Empty => JsValue::NULL,

@@ -147,16 +147,17 @@ impl TryFrom<R2RangeSys> for Range {
 }
 
 /// Options for configuring the [put](crate::r2::Bucket::put) operation.
-pub struct PutOptionsBuilder<'bucket> {
+pub struct PutOptionsBuilder<'bucket, 'data> {
     pub(crate) edge_bucket: &'bucket EdgeR2Bucket,
     pub(crate) key: String,
-    pub(crate) value: Data,
+    pub(crate) value: Data<'data>,
     pub(crate) http_metadata: Option<HttpMetadata>,
     pub(crate) custom_metadata: Option<HashMap<String, String>>,
-    pub(crate) md5: Option<Vec<u8>>,
+    pub(crate) md5: Option<[u8; 16]>,
+    pub(crate) sha1: Option<[u8; 20]>,
 }
 
-impl<'bucket> PutOptionsBuilder<'bucket> {
+impl<'bucket, 'data> PutOptionsBuilder<'bucket, 'data> {
     /// Various HTTP headers associated with the object. Refer to [HttpMetadata].
     pub fn http_metadata(mut self, metadata: HttpMetadata) -> Self {
         self.http_metadata = Some(metadata);
@@ -169,9 +170,15 @@ impl<'bucket> PutOptionsBuilder<'bucket> {
         self
     }
 
-    /// A md5 hash to use to check the recieved object’s integrity.
-    pub fn md5(mut self, bytes: impl Into<Vec<u8>>) -> Self {
-        self.md5 = Some(bytes.into());
+    /// A MD-5 hash to use to check the recieved object’s integrity.
+    pub fn md5(mut self, bytes: [u8; 16]) -> Self {
+        self.md5 = Some(bytes);
+        self
+    }
+
+    /// A SHA-1 hash to use to check the recieved object’s integrity.
+    pub fn sha1(mut self, bytes: [u8; 20]) -> Self {
+        self.sha1 = Some(bytes);
         self
     }
 
@@ -196,6 +203,11 @@ impl<'bucket> PutOptionsBuilder<'bucket> {
                     None => JsValue::UNDEFINED,
                 },
                 "md5" => self.md5.map(|bytes| {
+                    let arr = Uint8Array::new_with_length(bytes.len() as _);
+                    arr.copy_from(&bytes);
+                    arr.buffer()
+                }),
+                "sha1" => self.sha1.map(|bytes| {
                     let arr = Uint8Array::new_with_length(bytes.len() as _);
                     arr.copy_from(&bytes);
                     arr.buffer()

@@ -21,7 +21,7 @@ pub async fn seed_bucket(bucket: &Bucket) -> Result<()> {
         *seeded = true;
     }
 
-    bucket.put("no-props", "text".to_string()).execute().await?;
+    bucket.put("no-props", "text").execute().await?;
     bucket
         .put("no-props-no-body", Data::Empty)
         .execute()
@@ -146,8 +146,8 @@ pub async fn put(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Res
     let stream = futures_util::stream::repeat_with(|| Ok(vec![0u8; 16])).take(16);
     let fixed_stream = FixedLengthStream::wrap(stream, 16 * 16);
 
-    bucket.put("text", "text".to_string()).execute().await?;
-    bucket.put("bytes", vec![0u8; 32]).execute().await?;
+    bucket.put("text", "text").execute().await?;
+    bucket.put("bytes", [0u8; 32].as_ref()).execute().await?;
     bucket.put("empty", Data::Empty).execute().await?;
     bucket.put("stream", fixed_stream).execute().await?;
 
@@ -205,7 +205,7 @@ pub async fn put_multipart(_req: Request, ctx: RouteContext<SomeSharedData>) -> 
     let mut uploaded_parts = vec![];
     for (chunk_index, chunk_size) in chunk_sizes.iter().copied().enumerate() {
         let chunk = vec![chunk_index as u8; chunk_size];
-        uploaded_parts.push(upload.upload_part(chunk_index as u16, chunk).await?);
+        uploaded_parts.push(upload.upload_part(chunk_index as u16, &*chunk).await?);
     }
     upload.complete(uploaded_parts).await?;
 
@@ -259,7 +259,7 @@ async fn put_full_properties(
     let (http_metadata, custom_metadata) = dummy_properties();
     let md5_hash: [u8; 16] = md5::compute("example").into();
     let object_with_props = bucket
-        .put(name, "example".to_string())
+        .put(name, "example")
         .http_metadata(http_metadata.clone())
         .custom_metdata(custom_metadata.clone())
         .md5(md5_hash)
