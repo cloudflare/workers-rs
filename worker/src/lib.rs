@@ -15,7 +15,7 @@ pub use wasm_bindgen;
 pub use wasm_bindgen_futures;
 pub use worker_kv as kv;
 
-pub use cf::Cf;
+pub use cf::{Cf, TlsClientAuth};
 pub use worker_macros::{durable_object, event};
 #[doc(hidden)]
 pub use worker_sys;

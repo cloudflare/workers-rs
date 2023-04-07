@@ -109,7 +109,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
 
 The project uses [wrangler](https://github.com/cloudflare/wrangler2) version 2.x for running and publishing your Worker.
 
-Get the Rust worker project [template](https://github.com/cloudflare/workers-sdk/tree/main/templates/worker-rust) manually, or run the following command:
+Get the Rust worker project [template](https://github.com/cloudflare/workers-sdk/tree/main/templates/experimental/worker-rust) manually, or run the following command:
 ```bash
 npm init cloudflare project_name worker-rust
 cd project_name
