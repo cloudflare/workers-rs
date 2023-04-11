@@ -210,7 +210,7 @@ pub async fn main(
 
             // Make sure that cloning a non-JS request returns none
             assert!(http::Request::get("https://example.com")
-                .body(body::Body::none())
+                .body(body::Body::empty())
                 .unwrap()
                 .clone_inner()
                 .is_none());

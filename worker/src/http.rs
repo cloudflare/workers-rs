@@ -1,3 +1,5 @@
+//! HTTP types and functions
+
 mod clone;
 mod redirect;
 pub mod request;

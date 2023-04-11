@@ -8,6 +8,28 @@ use crate::{
     Error, Result,
 };
 
+/// Fetch a resource from the network.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// # async fn run() -> worker::Result<()> {
+/// use worker::fetch;
+///
+/// let req = http::Request::get("https://www.rust-lang.org/")
+///     .body(())
+///     .unwrap();
+///
+/// let res = fetch(req)
+///     .await?
+///     .into_body()
+///     .text()
+///     .await?;
+///
+/// println!("{res}");
+/// # Ok(())
+/// # }
+/// ```
 pub async fn fetch(req: http::Request<impl Into<Body>>) -> Result<http::Response<Body>> {
     let fut = {
         let req = req.map(Into::into);

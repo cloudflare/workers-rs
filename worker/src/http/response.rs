@@ -1,3 +1,5 @@
+//! Functions for translating responses to and from JS
+
 use bytes::Buf;
 use futures_util::StreamExt;
 use wasm_bindgen::JsCast;
@@ -7,6 +9,26 @@ use crate::WebSocket;
 
 use crate::body::Body;
 
+/// Create a [`http::Response`] from a [`web_sys::Response`].
+///
+/// # Extensions
+///
+/// The following types may be added in the [`Extensions`] of the `Response`.
+///
+/// - [`WebSocket`]
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use worker::http::response;
+///
+/// let res = web_sys::Response::new_with_opt_str(Some("hello world")).unwrap();
+/// let res = response::from_wasm(res);
+///
+/// println!("{}", res.status());
+/// ```
+///
+/// [`Extensions`]: http::Extensions
 pub fn from_wasm(res: web_sys::Response) -> http::Response<Body> {
     let mut builder = http::Response::builder().status(res.status());
 
@@ -25,6 +47,27 @@ pub fn from_wasm(res: web_sys::Response) -> http::Response<Body> {
     builder.body(Body::from(res)).unwrap()
 }
 
+/// Create a [`web_sys::Response`] from a [`http::Response`].
+///
+/// # Extensions
+///
+/// The following types may be added in the [`Extensions`] of the `Response`.
+///
+/// - [`WebSocket`]
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use worker::body::Body;
+/// use worker::http::response;
+///
+/// let res = http::Response::new(Body::from("hello world"));
+/// let res = response::into_wasm(res);
+///
+/// println!("{}", res.status());
+/// ```
+///
+/// [`Extensions`]: http::Extensions
 pub fn into_wasm(mut res: http::Response<Body>) -> web_sys::Response {
     let status = res.status().as_u16();
 
