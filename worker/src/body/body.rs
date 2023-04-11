@@ -6,10 +6,13 @@ use std::{
 use bytes::Bytes;
 use futures_util::Stream;
 use http::HeaderMap;
-use http_body::Body as _;
 use serde::de::DeserializeOwned;
 
-use crate::{body::wasm::WasmStreamBody, futures::SendJsFuture, Error};
+use crate::{
+    body::{wasm::WasmStreamBody, HttpBody},
+    futures::SendJsFuture,
+    Error,
+};
 
 type BoxBody = http_body::combinators::UnsyncBoxBody<Bytes, Error>;
 
@@ -36,13 +39,23 @@ pub(crate) enum BodyInner {
 
 unsafe impl Send for BodyInner {}
 
+/// The body type used in requests and responses.
 #[derive(Debug)]
 pub struct Body(BodyInner);
 
 impl Body {
+    /// Create a new `Body` from a [`http_body::Body`].
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use worker::body::Body;
+    /// let body = http_body::Full::from("hello world");
+    /// let body = Body::new(body);
+    /// ```
     pub fn new<B>(body: B) -> Self
     where
-        B: http_body::Body<Data = Bytes> + Send + 'static,
+        B: HttpBody<Data = Bytes> + Send + 'static,
     {
         if body
             .size_hint()
@@ -50,7 +63,7 @@ impl Body {
             .map(|size| size == 0)
             .unwrap_or_default()
         {
-            return Self::none();
+            return Self::empty();
         }
 
         try_downcast(body).unwrap_or_else(|body| {
@@ -60,10 +73,23 @@ impl Body {
         })
     }
 
-    pub const fn none() -> Self {
+    /// Create an empty body.
+    pub const fn empty() -> Self {
         Self(BodyInner::None)
     }
 
+    /// Get the full body as `Bytes`.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// # async fn run() -> Result<(), worker::Error> {
+    /// # use worker::body::Body;
+    /// let body = Body::from("hello world");
+    /// let bytes = body.bytes().await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn bytes(self) -> Result<Bytes, Error> {
         async fn array_buffer_to_bytes(
             buf: Result<js_sys::Promise, wasm_bindgen::JsValue>,
@@ -74,6 +100,8 @@ impl Body {
             buf.to_vec().into()
         }
 
+        // Check the type of the body we have. Using the `array_buffer` function on the JS types might improve
+        // performance as there's no polling overhead.
         match self.0 {
             BodyInner::None => Ok(Bytes::new()),
             BodyInner::Regular(body) => super::to_bytes(body).await,
@@ -82,12 +110,43 @@ impl Body {
         }
     }
 
+    /// Get the full body as UTF-8.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// # async fn run() -> Result<(), worker::Error> {
+    /// # use worker::body::Body;
+    /// let body = Body::from("hello world");
+    /// let text = body.text().await?;
+    /// # Ok(())
+    /// # }
     pub async fn text(self) -> Result<String, Error> {
+        // JS strings are UTF-16 so using the JS function for `text` would introduce unnecessary overhead
         self.bytes()
             .await
             .and_then(|buf| String::from_utf8(buf.to_vec()).map_err(|_| Error::BadEncoding))
     }
 
+    /// Get the full body as JSON.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// # async fn run() -> Result<(), worker::Error> {
+    /// # use bytes::Bytes;
+    /// # use serde::Deserialize;
+    /// # use worker::body::Body;
+    /// #[derive(Deserialize)]
+    /// struct Ip {
+    ///     origin: String,
+    /// }
+    ///
+    /// let body = Body::from(r#"{"origin":"127.0.0.1"}"#);
+    /// let ip = body.json::<Ip>().await?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub async fn json<B: DeserializeOwned>(self) -> Result<B, Error> {
         self.bytes()
             .await
@@ -95,7 +154,12 @@ impl Body {
     }
 
     pub(crate) fn is_none(&self) -> bool {
-        matches!(self.0, BodyInner::None)
+        match &self.0 {
+            BodyInner::None => true,
+            BodyInner::Regular(_) => false,
+            BodyInner::Request(req) => req.body().is_none(),
+            BodyInner::Response(res) => res.body().is_none(),
+        }
     }
 
     pub(crate) fn inner(&self) -> &BodyInner {
@@ -120,42 +184,34 @@ impl Body {
 
 impl Default for Body {
     fn default() -> Self {
-        Self::none()
+        Self::empty()
     }
 }
 
 impl From<()> for Body {
     fn from(_: ()) -> Self {
-        Self::none()
+        Self::empty()
     }
 }
 
 impl<B> From<Option<B>> for Body
 where
-    B: http_body::Body<Data = Bytes> + Send + 'static,
+    B: HttpBody<Data = Bytes> + Send + 'static,
 {
     fn from(body: Option<B>) -> Self {
-        body.map(Body::new).unwrap_or_else(Self::none)
+        body.map(Body::new).unwrap_or_else(Self::empty)
     }
 }
 
 impl From<web_sys::Request> for Body {
     fn from(req: web_sys::Request) -> Self {
-        if req.body().is_some() {
-            Self(BodyInner::Request(req))
-        } else {
-            Self::none()
-        }
+        Self(BodyInner::Request(req))
     }
 }
 
 impl From<web_sys::Response> for Body {
     fn from(res: web_sys::Response) -> Self {
-        if res.body().is_some() {
-            Self(BodyInner::Response(res))
-        } else {
-            Self::none()
-        }
+        Self(BodyInner::Response(res))
     }
 }
 
@@ -179,7 +235,7 @@ body_from_impl!(String);
 
 body_from_impl!(Bytes);
 
-impl http_body::Body for Body {
+impl HttpBody for Body {
     type Data = Bytes;
     type Error = Error;
 

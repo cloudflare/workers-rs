@@ -1,3 +1,5 @@
+//! Functions for translating requests to and from JS
+
 use bytes::Buf;
 use futures_util::StreamExt;
 use wasm_bindgen::JsCast;
@@ -20,6 +22,27 @@ fn version_from_string(version: &str) -> http::Version {
     }
 }
 
+/// Create a [`http::Request`] from a [`web_sys::Request`].
+///
+/// # Extensions
+///
+/// The following types may be added in the [`Extensions`] of the `Request`.
+///
+/// - [`AbortSignal`]
+/// - [`RequestRedirect`]
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use worker::http::request;
+///
+/// let req = web_sys::Request::new_with_str("flowers.jpg").unwrap();
+/// let req = request::from_wasm(req);
+///
+/// println!("{} {}", req.method(), req.uri());
+/// ```
+///
+/// [`Extensions`]: http::Extensions
 pub fn from_wasm(req: web_sys::Request) -> http::Request<Body> {
     let mut builder = http::Request::builder()
         .method(&*req.method())
@@ -44,6 +67,31 @@ pub fn from_wasm(req: web_sys::Request) -> http::Request<Body> {
     builder.body(Body::from(req)).unwrap()
 }
 
+/// Create a [`web_sys::Request`] from a [`http::Request`].
+///
+/// # Extensions
+///
+/// The following types may be added in the [`Extensions`] of the `Request`.
+///
+/// - [`AbortSignal`]
+/// - [`CfProperties`]
+/// - [`RequestRedirect`]
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use worker::body::Body;
+/// use worker::http::request;
+///
+/// let req = http::Request::get("https://www.rust-lang.org/")
+///     .body(Body::empty())
+///     .unwrap();
+/// let req = request::into_wasm(req);
+///
+/// println!("{} {}", req.method(), req.url());
+/// ```
+///
+/// [`Extensions`]: http::Extensions
 pub fn into_wasm(mut req: http::Request<Body>) -> web_sys::Request {
     let method = req.method().to_string();
     let uri = req.uri().to_string();

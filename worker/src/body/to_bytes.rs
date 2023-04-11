@@ -1,7 +1,8 @@
 use bytes::{Buf, BufMut, Bytes};
-use http_body::Body as _;
 
-// copied from hyper under the following license:
+use crate::body::HttpBody;
+
+// Copied from hyper under the following license:
 // Copyright (c) 2014-2021 Sean McArthur
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -21,9 +22,18 @@ use http_body::Body as _;
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
+/// Concatenate the buffers from a body into a single `Bytes` asynchronously.
+///
+/// This may require copying the data into a single buffer.
+///
+/// # Note
+///
+/// Care needs to be taken if the remote is untrusted. The function doesn't implement any length
+/// checks and an malicious peer might make it consume arbitrary amounts of memory. Checking the
+/// `Content-Length` is a possibility, but it is not strictly mandated to be present.
 pub async fn to_bytes<T>(body: T) -> Result<Bytes, T::Error>
 where
-    T: http_body::Body,
+    T: HttpBody,
 {
     futures_util::pin_mut!(body);
 
@@ -40,8 +50,13 @@ where
         return Ok(first.copy_to_bytes(first.remaining()));
     };
 
+    // Don't pre-emptively reserve *too* much.
+    let rest = (body.size_hint().lower() as usize).min(1024 * 16);
+    let cap = first
+        .remaining()
+        .saturating_add(second.remaining())
+        .saturating_add(rest);
     // With more than 1 buf, we gotta flatten into a Vec first.
-    let cap = first.remaining() + second.remaining() + body.size_hint().lower() as usize;
     let mut vec = Vec::with_capacity(cap);
     vec.put(first);
     vec.put(second);

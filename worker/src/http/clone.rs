@@ -5,15 +5,72 @@ use crate::{
 
 use super::{request, response, RequestRedirect};
 
-pub trait HttpClone
+mod sealed {
+    use crate::body::Body;
+
+    pub trait Sealed {}
+
+    impl Sealed for http::Request<Body> {}
+    impl Sealed for http::Response<Body> {}
+}
+
+/// Extension trait for cloning [`Request`] and [`Response`] types.
+///
+/// [`Request`]: http::Request
+/// [`Response`]: http::Response
+pub trait HttpClone: sealed::Sealed
 where
     Self: Sized,
 {
+    /// The JS equivalent of this type.
     type JsValue;
 
+    /// Returns a copy of the value.
+    ///
+    /// Cloning does not copy over all [`Extensions`] of the value.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use worker::body::Body;
+    /// use worker::http::HttpClone;
+    ///
+    /// let mut req = http::Request::get("https://www.rust-lang.org/")
+    ///     .body(Body::empty())
+    ///     .unwrap();
+    ///
+    /// let clone = req.clone();
+    /// ```
+    ///
+    /// [`Extensions`]: http::Extensions
     fn clone(&mut self) -> Self;
+
+    /// Returns a copy of the value as its JS equivalent.
     fn clone_raw(&mut self) -> Self::JsValue;
+
+    /// Returns a copy of the inner value.
+    ///
+    /// This function is faster than [`clone()`] as it does not have to translate the `http` value into its JS equivalent first.
+    /// However, any changes made to the `http` value will not be reflected in the copy.
+    ///
+    /// This function returns `None` if the value did not originate from JS or if the body has already been accessed.
+    ///
+    /// # Example
+    ///
+    /// ```rust,no_run
+    /// use worker::body::Body;
+    /// use worker::http::{request, HttpClone};
+    ///
+    /// let req = web_sys::Request::new_with_str("flowers.jpg").unwrap();
+    /// let req = request::from_wasm(req);
+    ///
+    /// let clone = req.clone_inner().unwrap();
+    /// ```
+    ///
+    /// [`clone()`]: Self::clone()
     fn clone_inner(&self) -> Option<Self>;
+
+    /// Returns a copy of the inner value as its JS equivalent.
     fn clone_inner_raw(&self) -> Option<Self::JsValue>;
 }
 

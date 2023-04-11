@@ -11,6 +11,7 @@ use wasm_streams::readable::IntoStream;
 
 use crate::Error;
 
+/// Body wrapping a JS `ReadableStream`.
 pub(super) struct WasmStreamBody(IntoStream<'static>);
 
 unsafe impl Send for WasmStreamBody {}
