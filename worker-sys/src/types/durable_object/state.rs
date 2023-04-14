@@ -12,4 +12,7 @@ extern "C" {
 
     #[wasm_bindgen(method, getter)]
     pub fn storage(this: &DurableObjectState) -> DurableObjectStorage;
+
+    #[wasm_bindgen(method, js_name=waitUntil)]
+    pub fn wait_until(this: &DurableObjectState, promise: &js_sys::Promise);
 }
