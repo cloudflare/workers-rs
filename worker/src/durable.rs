@@ -23,6 +23,7 @@ use crate::{
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use futures_util::Future;
 use js_sys::{Map, Number, Object};
 use serde::{de::DeserializeOwned, Serialize};
 use wasm_bindgen::{prelude::*, JsCast};
@@ -32,7 +33,7 @@ use worker_sys::{
     DurableObjectTransaction,
 };
 // use wasm_bindgen_futures::future_to_promise;
-use wasm_bindgen_futures::JsFuture;
+use wasm_bindgen_futures::{future_to_promise, JsFuture};
 
 /// A Durable Object stub is a client object used to send requests to a remote Durable Object.
 pub struct Stub {
@@ -179,6 +180,16 @@ impl State {
         }
     }
 
+    pub fn wait_until<F>(&self, future: F)
+    where
+        F: Future<Output = ()> + 'static,
+    {
+        self.inner.wait_until(&future_to_promise(async {
+            future.await;
+            Ok(JsValue::UNDEFINED)
+        }))
+    }
+
     // needs to be accessed by the `durable_object` macro in a conversion step
     pub fn _inner(self) -> DurableObjectState {
         self.inner
@@ -200,7 +211,9 @@ pub struct Storage {
 
 impl Storage {
     /// Retrieves the value associated with the given key. The type of the returned value will be
-    /// whatever was previously written for the key, or undefined if the key does not exist.
+    /// whatever was previously written for the key.
+    ///
+    /// Returns [Err] if the key does not exist.
     pub async fn get<T: serde::de::DeserializeOwned>(&self, key: &str) -> Result<T> {
         JsFuture::from(self.inner.get(key)?)
             .await
