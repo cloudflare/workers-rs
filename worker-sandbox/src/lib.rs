@@ -54,6 +54,21 @@ pub struct SomeSharedData {
     regex: regex::Regex,
 }
 
+
+#[derive(Deserialize, Serialize, Eq, PartialEq, Debug)]
+pub struct Person {
+    pub id: i64,
+    pub name: String,
+    pub age: i32,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct CreatePerson {
+    pub name: String,
+    pub age: i32,
+}
+
+
 fn handle_a_request<D>(req: Request, _ctx: RouteContext<D>) -> Result<Response> {
     Response::ok(format!(
         "req at: {}, located at: {:?}, within: {}",
@@ -701,10 +716,65 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                 Ok(result) => {
                     let count = result.count().unwrap_or(u32::MAX);
                     Response::ok(format!("{}", count))
-                },
+                }
                 Err(err) => Response::error(format!("Exec failed - {}", err), 500)
             }
-            
+        })
+        .get_async("/d1/people", |_req, ctx| async move {
+            let d1: Database = ctx.env.d1("DB")?;
+            let people: Vec<Person> = d1.prepare("select * from people;").all().await?.results()?;
+            Response::ok(serde_json::to_string(&people).unwrap())
+        })
+        .get_async("/d1/people/:id", |_req, ctx| async move {
+            let id = ctx.param("id").unwrap().parse::<i64>().unwrap();
+            let d1: Database = ctx.env.d1("DB")?;
+
+            match d1.prepare("select * from people where id = ?;")
+                .bind(&[id.to_string().into()])
+                .unwrap()
+                .first::<Person>(None)
+                .await
+                .unwrap() {
+                Some(person) => Response::ok(serde_json::to_string(&person).unwrap()),
+                None => Response::error("Not found", 404),
+            }
+        })
+        .post_async("/d1/people", |mut req, ctx| async move {
+            let create_person: CreatePerson = serde_json::from_str(req.text().await?.as_str()).unwrap();
+            let d1: Database = ctx.env.d1("DB")?;
+            let new_person = d1.prepare("insert into people (name, age) values(?, ?) returning *;")
+                .bind(&[create_person.name.to_string().into(), create_person.age.into()])
+                .unwrap()
+                .first::<Person>(None)
+                .await?
+                .unwrap();
+
+            Response::ok(serde_json::to_string(&new_person).unwrap())
+        })
+        .delete_async("/d1/people/:id", |_req, ctx| async move {
+            let id = ctx.param("id").unwrap().parse::<i64>().unwrap();
+            let d1: Database = ctx.env.d1("DB")?;
+
+            d1.prepare("delete from people where id = ?;")
+                .bind(&[id.to_string().into()])
+                .unwrap()
+                .run()
+                .await
+                .unwrap();
+
+            Response::ok("")
+        })
+        .post_async("/d1/people/:id", |mut req, ctx| async move {
+            let d1: Database = ctx.env.d1("DB")?;
+            let update_person: Person = serde_json::from_str(req.text().await?.as_str()).unwrap();
+            let id = ctx.param("id").unwrap().parse::<i64>().unwrap();
+            d1.prepare("update people set name = ?, age = ? where id = ?")
+                .bind(&[update_person.name.to_string().into(), update_person.age.into(), id.to_string().into()])
+                .unwrap()
+                .run()
+                .await?;
+
+            Response::ok("")
         })
         .get_async("/r2/list-empty", r2::list_empty)
         .get_async("/r2/list", r2::list)
