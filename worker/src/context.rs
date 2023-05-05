@@ -43,3 +43,9 @@ impl Context {
         self.inner.pass_through_on_exception()
     }
 }
+
+impl AsRef<JsContext> for Context {
+    fn as_ref(&self) -> &JsContext {
+        &self.inner
+    }
+}
