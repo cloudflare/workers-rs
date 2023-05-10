@@ -187,7 +187,7 @@ pub async fn put_properties(_req: Request, ctx: RouteContext<SomeSharedData>) ->
 
 pub async fn put_multipart(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
     const R2_MULTIPART_CHUNK_MIN_SIZE: usize = 5 * 1_024 * 1_024; // 5MiB.
-    const TEST_CHUNK_COUNT: usize = 3;
+                                                                  // const TEST_CHUNK_COUNT: usize = 3;
 
     let bucket = ctx.bucket("PUT_BUCKET")?;
 
