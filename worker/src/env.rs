@@ -14,7 +14,9 @@ extern "C" {
 }
 
 impl Env {
-    fn get_binding<T: EnvBinding>(&self, name: &str) -> Result<T> {
+    /// Access a binding that does not have a wrapper in workers-rs. Useful for internal-only or
+    /// unstable bindings.
+    pub fn get_binding<T: EnvBinding>(&self, name: &str) -> Result<T> {
         let binding = js_sys::Reflect::get(self, &JsValue::from(name))
             .map_err(|_| Error::JsError(format!("Env does not contain binding `{name}`")))?;
         if binding.is_undefined() {
