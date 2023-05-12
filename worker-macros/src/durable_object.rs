@@ -24,7 +24,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
 
             for item in items {
                 let impl_method = match item {
-                    ImplItem::Method(m) => m,
+                    ImplItem::Fn(m) => m,
                     _ => return Err(Error::new_spanned(item, "Impl block must only contain methods"))
                 };
 
