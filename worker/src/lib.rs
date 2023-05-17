@@ -22,14 +22,14 @@ pub use worker_sys;
 pub use worker_sys::{console_debug, console_error, console_log, console_warn};
 
 pub use crate::abort::*;
-pub use crate::cache::{Cache, CacheDeletionOutcome};
+pub use crate::cache::{Cache, CacheDeletionOutcome, CacheKey};
 pub use crate::context::Context;
 pub use crate::cors::Cors;
 pub use crate::date::{Date, DateInit};
 pub use crate::delay::Delay;
 pub use crate::durable::*;
 pub use crate::dynamic_dispatch::*;
-pub use crate::env::{Env, Secret, Var};
+pub use crate::env::{Env, EnvBinding, Secret, Var};
 pub use crate::error::Error;
 pub use crate::fetcher::Fetcher;
 pub use crate::formdata::*;
