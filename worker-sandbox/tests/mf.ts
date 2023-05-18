@@ -19,6 +19,7 @@ export const mf = new Miniflare({
   durableObjects: {
     COUNTER: "Counter",
   },
+  sitePath: "./public",
   kvNamespaces: ["SOME_NAMESPACE", "FILE_SIZES"],
   serviceBindings: {
     async remote() {

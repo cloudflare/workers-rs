@@ -1,3 +1,4 @@
+mod assets;
 mod context;
 #[cfg(feature = "d1")]
 mod d1;
@@ -14,6 +15,7 @@ mod socket;
 mod tls_client_auth;
 mod websocket_pair;
 
+pub use assets::*;
 pub use context::*;
 #[cfg(feature = "d1")]
 pub use d1::*;

@@ -712,6 +712,22 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         .put_async("/r2/put-properties", r2::put_properties)
         .put_async("/r2/put-multipart", r2::put_multipart)
         .delete_async("/r2/delete", r2::delete)
+        .get_async("/:sites", |_, ctx| async move {
+            let kv_assets = match ctx.kv("__STATIC_CONTENT"){
+                Ok(x)=>x,
+                Err(e)=>return Response::error(format!("No site was configured: `{e}`"), 400),
+            };
+            let path: &str = ctx.param("sites").unwrap();
+            match ctx.env.asset_key(path){
+                Ok(key) =>
+                if let Ok(Some(bytes)) = kv_assets.get(&key).bytes().await{
+                    Response::from_bytes(bytes)
+                } else{
+                    Response::error(format!("Not found: `{key}`"), 404)
+                },
+                Err(e) => Response::error(e.to_string(), 500),
+            }
+        })
         .or_else_any_method_async("/*catchall", |_, ctx| async move {
             console_log!(
                 "[or_else_any_method_async] caught: {}",

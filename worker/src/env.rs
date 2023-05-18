@@ -8,6 +8,7 @@ use crate::{durable::ObjectNamespace, Bucket, DynamicDispatcher, Fetcher, Result
 use js_sys::Object;
 use wasm_bindgen::{prelude::*, JsCast, JsValue};
 use worker_kv::KvStore;
+use worker_sys::STATIC_CONTENT_MANIFEST_STR;
 
 #[wasm_bindgen]
 extern "C" {
@@ -78,6 +79,18 @@ impl Env {
     #[cfg(feature = "d1")]
     pub fn d1(&self, binding: &str) -> Result<D1Database> {
         self.get_binding(binding)
+    }
+
+    /// Returns the key name of an asset uploaded in the public folder only if a site was
+    /// configured in your wrangler.toml file.
+    pub fn asset_key(&self, name: &str) -> Result<String> {
+        let manifest_str = &STATIC_CONTENT_MANIFEST_STR.to_string();
+        let manifest: std::collections::HashMap<&str, &str> =
+            serde_json::from_str(manifest_str).unwrap_or_default();
+        match manifest.get(name) {
+            Some(&value) => Ok(value.to_string()),
+            None => Err(format!("File `{name}` not found.").into()),
+        }
     }
 }
 
