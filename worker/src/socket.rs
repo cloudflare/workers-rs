@@ -6,19 +6,53 @@ use futures_util::FutureExt;
 use js_sys::{Boolean as JsBoolean, JsString, Number as JsNumber, Object as JsObject, Uint8Array};
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
+use worker_sys::console_log;
+
+enum Reading {
+    None,
+    Pending(JsFuture),
+    Ready(Vec<u8>),
+}
+
+impl Default for Reading {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+enum Writing {
+    Pending(JsFuture, usize),
+    None,
+}
+
+impl Default for Writing {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+enum Closing {
+    Pending(JsFuture),
+    None,
+}
+
+impl Default for Closing {
+    fn default() -> Self {
+        Self::None
+    }
+}
 
 /// Represents an outbound TCP connection from your Worker.
 pub struct Socket {
     inner: worker_sys::Socket,
+    // TODO: Box this stuff so it can be sync / send?
     _writable: worker_sys::WritableStream,
     writer: worker_sys::WritableStreamDefaultWriter,
     _readable: worker_sys::ReadableStream,
     reader: worker_sys::ReadableStreamDefaultReader,
-    // This seems weird, but we don't want to keep writing on each poll,
-    // Not sure how this would handle two writes without awaiting first.
-    write_fut: Option<JsFuture>,
-    read_fut: Option<JsFuture>,
-    close_fut: Option<JsFuture>,
+    write: Option<Writing>,
+    read: Option<Reading>,
+    close: Option<Closing>,
 }
 
 impl Socket {
@@ -33,9 +67,9 @@ impl Socket {
             writer,
             _readable,
             reader,
-            write_fut: None,
-            read_fut: None,
-            close_fut: None,
+            read: None,
+            write: None,
+            close: None,
         }
     }
 
@@ -83,24 +117,53 @@ impl tokio::io::AsyncRead for Socket {
         cx: &mut std::task::Context<'_>,
         buf: &mut tokio::io::ReadBuf<'_>,
     ) -> std::task::Poll<std::io::Result<()>> {
-        let mut fut = match self.read_fut.take() {
-            Some(fut) => fut,
-            None => JsFuture::from(self.reader.read()),
-        };
-
-        match fut.poll_unpin(cx) {
-            Poll::Pending => {
-                self.read_fut = Some(fut);
-                Poll::Pending
+        // Writes as much as possible to buf, and stores the rest in internal buffer
+        fn handle_data(
+            buf: &mut tokio::io::ReadBuf<'_>,
+            data: Vec<u8>,
+        ) -> (Reading, Poll<std::io::Result<()>>) {
+            let idx = buf.remaining().min(data.len());
+            console_log!("Ready {}/{} bytes", data.len(), idx);
+            buf.put_slice(&data[..idx]);
+            if idx == data.len() {
+                console_log!("Read to end");
+                (Reading::None, Poll::Ready(Ok(())))
+            } else {
+                console_log!("Storing {} in internal buffer", data.len() - idx);
+                let text = std::str::from_utf8(&data[idx..]).unwrap();
+                console_log!("Text: {}", &text);
+                (Reading::Ready(data[idx..].to_vec()), Poll::Ready(Ok(())))
             }
-            Poll::Ready(res) => Poll::Ready(
-                res.map(|value| {
-                    let data = Uint8Array::from(value);
-                    buf.put_slice(&data.to_vec());
-                })
-                .map_err(js_value_to_std_io_error),
-            ),
         }
+
+        fn handle_future(
+            cx: &mut std::task::Context<'_>,
+            buf: &mut tokio::io::ReadBuf<'_>,
+            mut fut: JsFuture,
+        ) -> (Reading, Poll<std::io::Result<()>>) {
+            match fut.poll_unpin(cx) {
+                Poll::Pending => (Reading::Pending(fut), Poll::Pending),
+                Poll::Ready(res) => match res {
+                    Ok(value) => {
+                        let arr: js_sys::Uint8Array =
+                            js_sys::Reflect::get(&value, &JsValue::from("value"))
+                                .unwrap()
+                                .into();
+                        let data = arr.to_vec();
+                        handle_data(buf, data)
+                    }
+                    Err(e) => (Reading::None, Poll::Ready(Err(js_value_to_std_io_error(e)))),
+                },
+            }
+        }
+
+        let (new_reading, poll) = match self.read.take().unwrap_or_default() {
+            Reading::None => handle_future(cx, buf, JsFuture::from(self.reader.read())),
+            Reading::Pending(fut) => handle_future(cx, buf, fut),
+            Reading::Ready(data) => handle_data(buf, data),
+        };
+        self.read = Some(new_reading);
+        poll
     }
 }
 
@@ -110,23 +173,29 @@ impl tokio::io::AsyncWrite for Socket {
         cx: &mut std::task::Context<'_>,
         buf: &[u8],
     ) -> std::task::Poll<std::result::Result<usize, std::io::Error>> {
-        let mut fut = match self.write_fut.take() {
-            Some(fut) => fut,
-            None => {
-                let obj = JsValue::from(Uint8Array::from(buf));
-                JsFuture::from(self.writer.write(obj))
-            }
-        };
-
-        match fut.poll_unpin(cx) {
-            Poll::Pending => {
-                self.write_fut = Some(fut);
-                Poll::Pending
-            }
-            Poll::Ready(res) => {
-                Poll::Ready(res.map(|_| buf.len()).map_err(js_value_to_std_io_error))
+        fn handle_future(
+            cx: &mut std::task::Context<'_>,
+            mut fut: JsFuture,
+            len: usize,
+        ) -> (Writing, Poll<std::io::Result<usize>>) {
+            match fut.poll_unpin(cx) {
+                Poll::Pending => (Writing::Pending(fut, len), Poll::Pending),
+                Poll::Ready(res) => match res {
+                    Ok(_) => (Writing::None, Poll::Ready(Ok(len))),
+                    Err(e) => (Writing::None, Poll::Ready(Err(js_value_to_std_io_error(e)))),
+                },
             }
         }
+
+        let (new_writing, poll) = match self.write.take().unwrap_or_default() {
+            Writing::None => {
+                let obj = JsValue::from(Uint8Array::from(buf));
+                handle_future(cx, JsFuture::from(self.writer.write(obj)), buf.len())
+            }
+            Writing::Pending(fut, len) => handle_future(cx, fut, len),
+        };
+        self.write = Some(new_writing);
+        poll
     }
 
     fn poll_flush(
@@ -141,17 +210,24 @@ impl tokio::io::AsyncWrite for Socket {
         mut self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<std::result::Result<(), std::io::Error>> {
-        let mut fut = match self.close_fut.take() {
-            Some(fut) => fut,
-            None => JsFuture::from(self.writer.close()),
-        };
-        match fut.poll_unpin(cx) {
-            Poll::Pending => {
-                self.close_fut = Some(fut);
-                Poll::Pending
+        fn handle_future(
+            cx: &mut std::task::Context<'_>,
+            mut fut: JsFuture,
+        ) -> (Closing, Poll<std::io::Result<()>>) {
+            match fut.poll_unpin(cx) {
+                Poll::Pending => (Closing::Pending(fut), Poll::Pending),
+                Poll::Ready(res) => match res {
+                    Ok(_) => (Closing::None, Poll::Ready(Ok(()))),
+                    Err(e) => (Closing::None, Poll::Ready(Err(js_value_to_std_io_error(e)))),
+                },
             }
-            Poll::Ready(res) => Poll::Ready(res.map(|_| ()).map_err(js_value_to_std_io_error)),
         }
+        let (new_closing, poll) = match self.close.take().unwrap_or_default() {
+            Closing::None => handle_future(cx, JsFuture::from(self.writer.close())),
+            Closing::Pending(fut) => handle_future(cx, fut),
+        };
+        self.close = Some(new_closing);
+        poll
     }
 }
 
