@@ -8,9 +8,9 @@ mod incoming_request_cf_properties;
 mod queue;
 mod r2;
 mod schedule;
+mod socket;
 mod tls_client_auth;
 mod websocket_pair;
-mod socket;
 
 pub use context::*;
 pub use durable_object::*;
@@ -22,6 +22,6 @@ pub use incoming_request_cf_properties::*;
 pub use queue::*;
 pub use r2::*;
 pub use schedule::*;
+pub use socket::*;
 pub use tls_client_auth::*;
 pub use websocket_pair::*;
-pub use socket::*;
