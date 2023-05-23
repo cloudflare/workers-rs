@@ -4,4 +4,4 @@ export * from "./index_bg.js";
 // Run the worker's initialization function.
 imports.start?.();
 
-export default { fetch: imports.fetch, scheduled: imports.scheduled, queue: imports.queue };
+export default { connect: imports.connect, fetch: imports.fetch, scheduled: imports.scheduled, queue: imports.queue };
