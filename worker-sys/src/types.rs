@@ -10,6 +10,7 @@ mod r2;
 mod schedule;
 mod tls_client_auth;
 mod websocket_pair;
+mod socket;
 
 pub use context::*;
 pub use durable_object::*;
@@ -23,3 +24,4 @@ pub use r2::*;
 pub use schedule::*;
 pub use tls_client_auth::*;
 pub use websocket_pair::*;
+pub use socket::*;
