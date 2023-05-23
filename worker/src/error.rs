@@ -9,6 +9,7 @@ pub enum Error {
     Json((String, u16)),
     JsError(String),
     Internal(JsValue),
+    Io(std::io::Error),
     BindingError(String),
     RouteInsertError(matchit::InsertError),
     RouteNoDataError,
@@ -48,6 +49,7 @@ impl std::fmt::Display for Error {
                 write!(f, "{s}")
             }
             Error::Internal(_) => write!(f, "unrecognized JavaScript object"),
+            Error::Io(e) => write!(f, "IO Error: {e}"),
             Error::BindingError(name) => write!(f, "no binding found for `{name}`"),
             Error::RouteInsertError(e) => write!(f, "failed to insert route: {e}"),
             Error::RouteNoDataError => write!(f, "route has no corresponding shared data"),
@@ -69,6 +71,12 @@ impl From<JsValue> for Error {
             Some(s) => Self::JsError(s),
             None => Self::Internal(v),
         }
+    }
+}
+
+impl From<std::io::Error> for Error {
+    fn from(error: std::io::Error) -> Self {
+        Self::Io(error)
     }
 }
 

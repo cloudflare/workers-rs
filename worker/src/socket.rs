@@ -1,22 +1,44 @@
+use std::task::Poll;
+
 use crate::r2::js_object;
 use crate::Result;
-use js_sys::{Boolean as JsBoolean, JsString, Number as JsNumber, Object as JsObject};
-use wasm_bindgen::JsValue;
+use futures_util::FutureExt;
+use js_sys::{Boolean as JsBoolean, JsString, Number as JsNumber, Object as JsObject, Uint8Array};
+use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
-pub struct SocketReader {}
-
-pub struct SocketWriter {}
 
 /// Represents an outbound TCP connection from your Worker.
 pub struct Socket {
-    /// Returns the readable side of the TCP socket.
-    // pub readable: SocketReader,
-    /// Returns the writable side of the TCP socket.
-    // pub writable: SocketWriter,
     inner: worker_sys::Socket,
+    _writable: worker_sys::WritableStream,
+    writer: worker_sys::WritableStreamDefaultWriter,
+    _readable: worker_sys::ReadableStream,
+    reader: worker_sys::ReadableStreamDefaultReader,
+    // This seems weird, but we don't want to keep writing on each poll,
+    // Not sure how this would handle two writes without awaiting first.
+    write_fut: Option<JsFuture>,
+    read_fut: Option<JsFuture>,
+    close_fut: Option<JsFuture>,
 }
 
 impl Socket {
+    fn new(inner: worker_sys::Socket) -> Self {
+        let _writable = inner.writable();
+        let writer = _writable.get_writer();
+        let _readable = inner.readable();
+        let reader = _readable.get_reader();
+        Socket {
+            inner,
+            _writable,
+            writer,
+            _readable,
+            reader,
+            write_fut: None,
+            read_fut: None,
+            close_fut: None,
+        }
+    }
+
     /// Closes the TCP socket. Both the readable and writable streams are forcibly closed.
     pub async fn close(&mut self) -> Result<()> {
         JsFuture::from(self.inner.close()).await?;
@@ -37,11 +59,99 @@ impl Socket {
     /// calling [`connect`](connect) to create the socket.
     pub async fn start_tls(self) -> Socket {
         let inner = self.inner.start_tls();
-        Socket { inner }
+        Socket::new(inner)
     }
 
     pub fn builder() -> ConnectionBuilder {
         ConnectionBuilder::default()
+    }
+}
+
+fn js_value_to_std_io_error(value: JsValue) -> std::io::Error {
+    let s = if value.is_string() {
+        value.as_string().unwrap()
+    } else if let Some(value) = value.dyn_ref::<js_sys::Error>() {
+        value.to_string().into()
+    } else {
+        format!("Error interpreting JsError: {:?}", value)
+    };
+    std::io::Error::new(std::io::ErrorKind::Other, s)
+}
+impl tokio::io::AsyncRead for Socket {
+    fn poll_read(
+        mut self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+        buf: &mut tokio::io::ReadBuf<'_>,
+    ) -> std::task::Poll<std::io::Result<()>> {
+        let mut fut = match self.read_fut.take() {
+            Some(fut) => fut,
+            None => JsFuture::from(self.reader.read()),
+        };
+
+        match fut.poll_unpin(cx) {
+            Poll::Pending => {
+                self.read_fut = Some(fut);
+                Poll::Pending
+            }
+            Poll::Ready(res) => Poll::Ready(
+                res.map(|value| {
+                    let data = Uint8Array::from(value);
+                    buf.put_slice(&data.to_vec());
+                })
+                .map_err(js_value_to_std_io_error),
+            ),
+        }
+    }
+}
+
+impl tokio::io::AsyncWrite for Socket {
+    fn poll_write(
+        mut self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+        buf: &[u8],
+    ) -> std::task::Poll<std::result::Result<usize, std::io::Error>> {
+        let mut fut = match self.write_fut.take() {
+            Some(fut) => fut,
+            None => {
+                let obj = JsValue::from(Uint8Array::from(buf));
+                JsFuture::from(self.writer.write(obj))
+            }
+        };
+
+        match fut.poll_unpin(cx) {
+            Poll::Pending => {
+                self.write_fut = Some(fut);
+                Poll::Pending
+            }
+            Poll::Ready(res) => {
+                Poll::Ready(res.map(|_| buf.len()).map_err(js_value_to_std_io_error))
+            }
+        }
+    }
+
+    fn poll_flush(
+        self: std::pin::Pin<&mut Self>,
+        _cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<std::result::Result<(), std::io::Error>> {
+        // TODO: I don't think we have a flush operation available?
+        Poll::Ready(Ok(()))
+    }
+
+    fn poll_shutdown(
+        mut self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<std::result::Result<(), std::io::Error>> {
+        let mut fut = match self.close_fut.take() {
+            Some(fut) => fut,
+            None => JsFuture::from(self.writer.close()),
+        };
+        match fut.poll_unpin(cx) {
+            Poll::Pending => {
+                self.close_fut = Some(fut);
+                Poll::Pending
+            }
+            Poll::Ready(res) => Poll::Ready(res.map(|_| ()).map_err(js_value_to_std_io_error)),
+        }
     }
 }
 
@@ -149,7 +259,6 @@ impl ConnectionBuilder {
         .into();
 
         let inner = worker_sys::connect(address, options);
-
-        Ok(Socket { inner })
+        Ok(Socket::new(inner))
     }
 }

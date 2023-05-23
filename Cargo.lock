@@ -2083,6 +2083,7 @@ dependencies = [
  "serde",
  "serde-wasm-bindgen",
  "serde_json",
+ "tokio",
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
