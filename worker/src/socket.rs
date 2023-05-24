@@ -6,7 +6,6 @@ use futures_util::FutureExt;
 use js_sys::{Boolean as JsBoolean, JsString, Number as JsNumber, Object as JsObject, Uint8Array};
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
-use worker_sys::console_log;
 
 enum Reading {
     None,
@@ -117,25 +116,6 @@ impl tokio::io::AsyncRead for Socket {
         cx: &mut std::task::Context<'_>,
         buf: &mut tokio::io::ReadBuf<'_>,
     ) -> std::task::Poll<std::io::Result<()>> {
-        // Writes as much as possible to buf, and stores the rest in internal buffer
-        fn handle_data(
-            buf: &mut tokio::io::ReadBuf<'_>,
-            data: Vec<u8>,
-        ) -> (Reading, Poll<std::io::Result<()>>) {
-            let idx = buf.remaining().min(data.len());
-            console_log!("Ready {}/{} bytes", data.len(), idx);
-            buf.put_slice(&data[..idx]);
-            if idx == data.len() {
-                console_log!("Read to end");
-                (Reading::None, Poll::Ready(Ok(())))
-            } else {
-                console_log!("Storing {} in internal buffer", data.len() - idx);
-                let text = std::str::from_utf8(&data[idx..]).unwrap();
-                console_log!("Text: {}", &text);
-                (Reading::Ready(data[idx..].to_vec()), Poll::Ready(Ok(())))
-            }
-        }
-
         fn handle_future(
             cx: &mut std::task::Context<'_>,
             buf: &mut tokio::io::ReadBuf<'_>,
@@ -309,18 +289,11 @@ impl ConnectionBuilder {
         self
     }
 
-    /// Open the connection, returning a [`Socket`](Socket).
-    /// You must set both `hostname` and `port` before invoking this method.
-    pub fn connect(self) -> Result<Socket> {
+    /// Open the connection to `hostname` on port `port`, returning a [`Socket`](Socket).
+    pub fn connect(self, hostname: &str, port: u16) -> Result<Socket> {
         let address: JsValue = js_object!(
-            "hostname" => match self.hostname {
-                Some(hostname) => JsObject::from(JsString::from(hostname)),
-                None => return Err("No hostname configured!".into()),
-            },
-            "port" => match self.port {
-                Some(port) => JsObject::from(JsNumber::from(port)),
-                None => return Err("No port configured!".into()),
-            }
+            "hostname" => JsObject::from(JsString::from(hostname)),
+            "port" => JsNumber::from(port)
         )
         .into();
 
@@ -336,5 +309,60 @@ impl ConnectionBuilder {
 
         let inner = worker_sys::connect(address, options);
         Ok(Socket::new(inner))
+    }
+}
+
+// Writes as much as possible to buf, and stores the rest in internal buffer
+fn handle_data(
+    buf: &mut tokio::io::ReadBuf<'_>,
+    mut data: Vec<u8>,
+) -> (Reading, Poll<std::io::Result<()>>) {
+    let idx = buf.remaining().min(data.len());
+    let store = data.split_off(idx);
+    buf.put_slice(&data);
+    if store.is_empty() {
+        (Reading::None, Poll::Ready(Ok(())))
+    } else {
+        (Reading::Ready(store), Poll::Ready(Ok(())))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_handle_data() {
+        let mut arr = vec![0u8; 32];
+        let mut buf = tokio::io::ReadBuf::new(&mut arr);
+        let data = vec![1u8; 32];
+        let (reading, _) = handle_data(&mut buf, data);
+
+        assert!(matches!(reading, Reading::None));
+        assert_eq!(buf.remaining(), 0);
+        assert_eq!(buf.filled().len(), 32);
+    }
+
+    #[test]
+    fn test_handle_large_data() {
+        let mut arr = vec![0u8; 32];
+        let mut buf = tokio::io::ReadBuf::new(&mut arr);
+        let data = vec![1u8; 64];
+        let (reading, _) = handle_data(&mut buf, data);
+
+        assert!(matches!(reading, Reading::Ready(store) if store.len() == 32));
+        assert_eq!(buf.remaining(), 0);
+        assert_eq!(buf.filled().len(), 32);
+    }
+
+    #[test]
+    fn test_handle_small_data() {
+        let mut arr = vec![0u8; 32];
+        let mut buf = tokio::io::ReadBuf::new(&mut arr);
+        let data = vec![1u8; 16];
+        let (reading, _) = handle_data(&mut buf, data);
+
+        assert!(matches!(reading, Reading::None));
+        assert_eq!(buf.remaining(), 16);
+        assert_eq!(buf.filled().len(), 16);
     }
 }
