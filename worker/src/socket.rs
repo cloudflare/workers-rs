@@ -9,7 +9,7 @@ use wasm_bindgen_futures::JsFuture;
 
 enum Reading {
     None,
-    Pending(JsFuture),
+    Pending(Box<JsFuture>, Box<web_sys::ReadableStreamDefaultReader>),
     Ready(Vec<u8>),
 }
 
@@ -20,7 +20,11 @@ impl Default for Reading {
 }
 
 enum Writing {
-    Pending(JsFuture, usize),
+    Pending(
+        Box<JsFuture>,
+        Box<web_sys::WritableStreamDefaultWriter>,
+        usize,
+    ),
     None,
 }
 
@@ -42,13 +46,11 @@ impl Default for Closing {
 }
 
 /// Represents an outbound TCP connection from your Worker.
+// Everything is Boxed to allow Socket to be Sync + Send;
 pub struct Socket {
-    inner: worker_sys::Socket,
-    // TODO: Box this stuff so it can be sync / send?
-    _writable: worker_sys::WritableStream,
-    writer: worker_sys::WritableStreamDefaultWriter,
-    _readable: worker_sys::ReadableStream,
-    reader: worker_sys::ReadableStreamDefaultReader,
+    inner: Box<worker_sys::Socket>,
+    writable: Box<web_sys::WritableStream>,
+    readable: Box<web_sys::ReadableStream>,
     write: Option<Writing>,
     read: Option<Reading>,
     close: Option<Closing>,
@@ -56,16 +58,12 @@ pub struct Socket {
 
 impl Socket {
     fn new(inner: worker_sys::Socket) -> Self {
-        let _writable = inner.writable();
-        let writer = _writable.get_writer();
-        let _readable = inner.readable();
-        let reader = _readable.get_reader();
+        let writable = Box::new(inner.writable());
+        let readable = Box::new(inner.readable());
         Socket {
-            inner,
-            _writable,
-            writer,
-            _readable,
-            reader,
+            inner: Box::new(inner),
+            writable,
+            readable,
             read: None,
             write: None,
             close: None,
@@ -90,13 +88,31 @@ impl Socket {
     /// you must set [`secure_transport`](SocketOptions::secure_transport)
     /// to [`StartTls`](SecureTransport::StartTls) when initially
     /// calling [`connect`](connect) to create the socket.
-    pub async fn start_tls(self) -> Socket {
+    pub fn start_tls(self) -> Socket {
         let inner = self.inner.start_tls();
         Socket::new(inner)
     }
 
     pub fn builder() -> ConnectionBuilder {
         ConnectionBuilder::default()
+    }
+
+    fn handle_write_future(
+        cx: &mut std::task::Context<'_>,
+        mut fut: Box<JsFuture>,
+        writer: Box<web_sys::WritableStreamDefaultWriter>,
+        len: usize,
+    ) -> (Writing, Poll<std::io::Result<usize>>) {
+        match fut.poll_unpin(cx) {
+            Poll::Pending => (Writing::Pending(fut, writer, len), Poll::Pending),
+            Poll::Ready(res) => {
+                writer.release_lock();
+                match res {
+                    Ok(_) => (Writing::None, Poll::Ready(Ok(len))),
+                    Err(e) => (Writing::None, Poll::Ready(Err(js_value_to_std_io_error(e)))),
+                }
+            }
+        }
     }
 }
 
@@ -119,10 +135,11 @@ impl tokio::io::AsyncRead for Socket {
         fn handle_future(
             cx: &mut std::task::Context<'_>,
             buf: &mut tokio::io::ReadBuf<'_>,
-            mut fut: JsFuture,
+            mut fut: Box<JsFuture>,
+            reader: Box<web_sys::ReadableStreamDefaultReader>,
         ) -> (Reading, Poll<std::io::Result<()>>) {
             match fut.poll_unpin(cx) {
-                Poll::Pending => (Reading::Pending(fut), Poll::Pending),
+                Poll::Pending => (Reading::Pending(fut, reader), Poll::Pending),
                 Poll::Ready(res) => match res {
                     Ok(value) => {
                         let arr: js_sys::Uint8Array =
@@ -130,6 +147,7 @@ impl tokio::io::AsyncRead for Socket {
                                 .unwrap()
                                 .into();
                         let data = arr.to_vec();
+                        reader.release_lock();
                         handle_data(buf, data)
                     }
                     Err(e) => (Reading::None, Poll::Ready(Err(js_value_to_std_io_error(e)))),
@@ -138,8 +156,20 @@ impl tokio::io::AsyncRead for Socket {
         }
 
         let (new_reading, poll) = match self.read.take().unwrap_or_default() {
-            Reading::None => handle_future(cx, buf, JsFuture::from(self.reader.read())),
-            Reading::Pending(fut) => handle_future(cx, buf, fut),
+            Reading::None => {
+                let reader: web_sys::ReadableStreamDefaultReader = self
+                    .readable
+                    .get_reader()
+                    .dyn_into()
+                    .expect("Unable to cast to ReadableStreamDefaultReader");
+                handle_future(
+                    cx,
+                    buf,
+                    Box::new(JsFuture::from(reader.read())),
+                    Box::new(reader),
+                )
+            }
+            Reading::Pending(fut, reader) => handle_future(cx, buf, fut, reader),
             Reading::Ready(data) => handle_data(buf, data),
         };
         self.read = Some(new_reading);
@@ -153,37 +183,41 @@ impl tokio::io::AsyncWrite for Socket {
         cx: &mut std::task::Context<'_>,
         buf: &[u8],
     ) -> std::task::Poll<std::result::Result<usize, std::io::Error>> {
-        fn handle_future(
-            cx: &mut std::task::Context<'_>,
-            mut fut: JsFuture,
-            len: usize,
-        ) -> (Writing, Poll<std::io::Result<usize>>) {
-            match fut.poll_unpin(cx) {
-                Poll::Pending => (Writing::Pending(fut, len), Poll::Pending),
-                Poll::Ready(res) => match res {
-                    Ok(_) => (Writing::None, Poll::Ready(Ok(len))),
-                    Err(e) => (Writing::None, Poll::Ready(Err(js_value_to_std_io_error(e)))),
-                },
-            }
-        }
-
         let (new_writing, poll) = match self.write.take().unwrap_or_default() {
             Writing::None => {
                 let obj = JsValue::from(Uint8Array::from(buf));
-                handle_future(cx, JsFuture::from(self.writer.write(obj)), buf.len())
+                let writer: web_sys::WritableStreamDefaultWriter = self
+                    .writable
+                    .get_writer()
+                    .expect("Could not retrieve writer.");
+                Self::handle_write_future(
+                    cx,
+                    Box::new(JsFuture::from(writer.write_with_chunk(&obj))),
+                    Box::new(writer),
+                    buf.len(),
+                )
             }
-            Writing::Pending(fut, len) => handle_future(cx, fut, len),
+            Writing::Pending(fut, writer, len) => Self::handle_write_future(cx, fut, writer, len),
         };
         self.write = Some(new_writing);
         poll
     }
 
     fn poll_flush(
-        self: std::pin::Pin<&mut Self>,
-        _cx: &mut std::task::Context<'_>,
+        mut self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<std::result::Result<(), std::io::Error>> {
-        // TODO: I don't think we have a flush operation available?
-        Poll::Ready(Ok(()))
+        // Poll existing write future if it exists.
+        let (new_writing, poll) = match self.write.take().unwrap_or_default() {
+            Writing::Pending(fut, writer, len) => {
+                let (writing, poll) = Self::handle_write_future(cx, fut, writer, len);
+                // Map poll output to ()
+                (writing, poll.map(|res| res.map(|_| ())))
+            }
+            writing => (writing, Poll::Ready(Ok(()))),
+        };
+        self.write = Some(new_writing);
+        poll
     }
 
     fn poll_shutdown(
@@ -203,7 +237,7 @@ impl tokio::io::AsyncWrite for Socket {
             }
         }
         let (new_closing, poll) = match self.close.take().unwrap_or_default() {
-            Closing::None => handle_future(cx, JsFuture::from(self.writer.close())),
+            Closing::None => handle_future(cx, JsFuture::from(self.writable.close())),
             Closing::Pending(fut) => handle_future(cx, fut),
         };
         self.close = Some(new_closing);
@@ -250,8 +284,6 @@ pub struct SocketAddress {
 
 #[derive(Default)]
 pub struct ConnectionBuilder {
-    hostname: Option<String>,
-    port: Option<u16>,
     options: SocketOptions,
 }
 
@@ -259,22 +291,8 @@ impl ConnectionBuilder {
     /// Create a new `ConnectionBuilder` with default settings.
     pub fn new() -> Self {
         ConnectionBuilder {
-            hostname: None,
-            port: None,
             options: SocketOptions::default(),
         }
-    }
-
-    /// Set the hostname to connect to. Example: `cloudflare.com`.
-    pub fn host(mut self, host: &str) -> Self {
-        self.hostname = Some(host.to_string());
-        self
-    }
-
-    /// Set the port to connect to. Example: `5432`.
-    pub fn port(mut self, port: u16) -> Self {
-        self.port = Some(port);
-        self
     }
 
     /// Set whether the writable side of the TCP socket will automatically
@@ -290,9 +308,9 @@ impl ConnectionBuilder {
     }
 
     /// Open the connection to `hostname` on port `port`, returning a [`Socket`](Socket).
-    pub fn connect(self, hostname: &str, port: u16) -> Result<Socket> {
+    pub fn connect(self, hostname: impl Into<String>, port: u16) -> Result<Socket> {
         let address: JsValue = js_object!(
-            "hostname" => JsObject::from(JsString::from(hostname)),
+            "hostname" => JsObject::from(JsString::from(hostname.into())),
             "port" => JsNumber::from(port)
         )
         .into();
