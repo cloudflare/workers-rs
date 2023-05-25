@@ -37,7 +37,9 @@ worker-sys = { path = "../worker-sys", version = "0.0.9" }
 version = "0.3.57"
 features = [
     "File",
-    "WorkerGlobalScope"
+    "WorkerGlobalScope",
+    "ReadableStreamDefaultReader",
+    "WritableStreamDefaultWriter"
 ]
 
 [features]
