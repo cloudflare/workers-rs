@@ -21,9 +21,9 @@ extern "C" {
     #[wasm_bindgen(method, js_name=startTls)]
     pub fn start_tls(this: &Socket) -> Socket;
 
-    #[wasm_bindgen(method, getter = readable)]
+    #[wasm_bindgen(method, getter)]
     pub fn readable(this: &Socket) -> web_sys::ReadableStream;
 
-    #[wasm_bindgen(method, getter = writable)]
+    #[wasm_bindgen(method, getter)]
     pub fn writable(this: &Socket) -> web_sys::WritableStream;
 }
