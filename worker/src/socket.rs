@@ -9,7 +9,7 @@ use wasm_bindgen_futures::JsFuture;
 
 enum Reading {
     None,
-    Pending(Box<JsFuture>, Box<web_sys::ReadableStreamDefaultReader>),
+    Pending(JsFuture, web_sys::ReadableStreamDefaultReader),
     Ready(Vec<u8>),
 }
 
@@ -20,11 +20,7 @@ impl Default for Reading {
 }
 
 enum Writing {
-    Pending(
-        Box<JsFuture>,
-        Box<web_sys::WritableStreamDefaultWriter>,
-        usize,
-    ),
+    Pending(JsFuture, web_sys::WritableStreamDefaultWriter, usize),
     None,
 }
 
@@ -46,22 +42,25 @@ impl Default for Closing {
 }
 
 /// Represents an outbound TCP connection from your Worker.
-// Everything is Boxed to allow Socket to be Sync + Send;
 pub struct Socket {
-    inner: Box<worker_sys::Socket>,
-    writable: Box<web_sys::WritableStream>,
-    readable: Box<web_sys::ReadableStream>,
+    inner: worker_sys::Socket,
+    writable: web_sys::WritableStream,
+    readable: web_sys::ReadableStream,
     write: Option<Writing>,
     read: Option<Reading>,
     close: Option<Closing>,
 }
 
+// This can only be done because workers are single threaded.
+unsafe impl Send for Socket {}
+unsafe impl Sync for Socket {}
+
 impl Socket {
     fn new(inner: worker_sys::Socket) -> Self {
-        let writable = Box::new(inner.writable());
-        let readable = Box::new(inner.readable());
+        let writable = inner.writable();
+        let readable = inner.readable();
         Socket {
-            inner: Box::new(inner),
+            inner,
             writable,
             readable,
             read: None,
@@ -99,8 +98,8 @@ impl Socket {
 
     fn handle_write_future(
         cx: &mut std::task::Context<'_>,
-        mut fut: Box<JsFuture>,
-        writer: Box<web_sys::WritableStreamDefaultWriter>,
+        mut fut: JsFuture,
+        writer: web_sys::WritableStreamDefaultWriter,
         len: usize,
     ) -> (Writing, Poll<std::io::Result<usize>>) {
         match fut.poll_unpin(cx) {
@@ -135,8 +134,8 @@ impl tokio::io::AsyncRead for Socket {
         fn handle_future(
             cx: &mut std::task::Context<'_>,
             buf: &mut tokio::io::ReadBuf<'_>,
-            mut fut: Box<JsFuture>,
-            reader: Box<web_sys::ReadableStreamDefaultReader>,
+            mut fut: JsFuture,
+            reader: web_sys::ReadableStreamDefaultReader,
         ) -> (Reading, Poll<std::io::Result<()>>) {
             match fut.poll_unpin(cx) {
                 Poll::Pending => (Reading::Pending(fut, reader), Poll::Pending),
@@ -162,12 +161,7 @@ impl tokio::io::AsyncRead for Socket {
                     .get_reader()
                     .dyn_into()
                     .expect("Unable to cast to ReadableStreamDefaultReader");
-                handle_future(
-                    cx,
-                    buf,
-                    Box::new(JsFuture::from(reader.read())),
-                    Box::new(reader),
-                )
+                handle_future(cx, buf, JsFuture::from(reader.read()), reader)
             }
             Reading::Pending(fut, reader) => handle_future(cx, buf, fut, reader),
             Reading::Ready(data) => handle_data(buf, data),
@@ -192,8 +186,8 @@ impl tokio::io::AsyncWrite for Socket {
                     .expect("Could not retrieve writer.");
                 Self::handle_write_future(
                     cx,
-                    Box::new(JsFuture::from(writer.write_with_chunk(&obj))),
-                    Box::new(writer),
+                    JsFuture::from(writer.write_with_chunk(&obj)),
+                    writer,
                     buf.len(),
                 )
             }
@@ -245,6 +239,7 @@ impl tokio::io::AsyncWrite for Socket {
     }
 }
 
+/// Secure transport options for outbound TCP connections.
 pub enum SecureTransport {
     /// Do not use TLS.
     Off,
@@ -255,6 +250,7 @@ pub enum SecureTransport {
     StartTls,
 }
 
+/// Used to configure outbound TCP connections.
 pub struct SocketOptions {
     /// Specifies whether or not to use TLS when creating the TCP socket.
     pub secure_transport: SecureTransport,
@@ -302,6 +298,7 @@ impl ConnectionBuilder {
         self
     }
 
+    // Specify whether or not to use TLS when creating the TCP socket.
     pub fn secure_transport(mut self, secure_transport: SecureTransport) -> Self {
         self.options.secure_transport = secure_transport;
         self
