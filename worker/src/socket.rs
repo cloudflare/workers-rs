@@ -141,13 +141,45 @@ impl tokio::io::AsyncRead for Socket {
                 Poll::Pending => (Reading::Pending(fut, reader), Poll::Pending),
                 Poll::Ready(res) => match res {
                     Ok(value) => {
-                        let arr: js_sys::Uint8Array =
-                            js_sys::Reflect::get(&value, &JsValue::from("value"))
-                                .unwrap()
-                                .into();
-                        let data = arr.to_vec();
                         reader.release_lock();
-                        handle_data(buf, data)
+                        let done: js_sys::Boolean = match js_sys::Reflect::get(
+                            &value,
+                            &JsValue::from("done"),
+                        ) {
+                            Ok(value) => value.into(),
+                            Err(error) => {
+                                let msg = format!("Unable to interpret field 'done' in ReadableStreamDefaultReader.read(): {:?}", error);
+                                return (
+                                    Reading::None,
+                                    Poll::Ready(Err(std::io::Error::new(
+                                        std::io::ErrorKind::Other,
+                                        msg,
+                                    ))),
+                                );
+                            }
+                        };
+                        if done.is_truthy() {
+                            (Reading::None, Poll::Ready(Ok(())))
+                        } else {
+                            let arr: js_sys::Uint8Array = match js_sys::Reflect::get(
+                                &value,
+                                &JsValue::from("value"),
+                            ) {
+                                Ok(value) => value.into(),
+                                Err(error) => {
+                                    let msg = format!("Unable to interpret field 'value' in ReadableStreamDefaultReader.read(): {:?}", error);
+                                    return (
+                                        Reading::None,
+                                        Poll::Ready(Err(std::io::Error::new(
+                                            std::io::ErrorKind::Other,
+                                            msg,
+                                        ))),
+                                    );
+                                }
+                            };
+                            let data = arr.to_vec();
+                            handle_data(buf, data)
+                        }
                     }
                     Err(e) => (Reading::None, Poll::Ready(Err(js_value_to_std_io_error(e)))),
                 },
@@ -156,11 +188,21 @@ impl tokio::io::AsyncRead for Socket {
 
         let (new_reading, poll) = match self.read.take().unwrap_or_default() {
             Reading::None => {
-                let reader: web_sys::ReadableStreamDefaultReader = self
-                    .readable
-                    .get_reader()
-                    .dyn_into()
-                    .expect("Unable to cast to ReadableStreamDefaultReader");
+                let reader: web_sys::ReadableStreamDefaultReader =
+                    match self.readable.get_reader().dyn_into() {
+                        Ok(reader) => reader,
+                        Err(error) => {
+                            let msg = format!(
+                                "Unable to cast JsObject to ReadableStreamDefaultReader: {:?}",
+                                error
+                            );
+                            return Poll::Ready(Err(std::io::Error::new(
+                                std::io::ErrorKind::Other,
+                                msg,
+                            )));
+                        }
+                    };
+
                 handle_future(cx, buf, JsFuture::from(reader.read()), reader)
             }
             Reading::Pending(fut, reader) => handle_future(cx, buf, fut, reader),
@@ -180,10 +222,17 @@ impl tokio::io::AsyncWrite for Socket {
         let (new_writing, poll) = match self.write.take().unwrap_or_default() {
             Writing::None => {
                 let obj = JsValue::from(Uint8Array::from(buf));
-                let writer: web_sys::WritableStreamDefaultWriter = self
-                    .writable
-                    .get_writer()
-                    .expect("Could not retrieve writer.");
+                let writer: web_sys::WritableStreamDefaultWriter = match self.writable.get_writer()
+                {
+                    Ok(writer) => writer,
+                    Err(error) => {
+                        let msg = format!("Could not retrieve Writer: {:?}", error);
+                        return Poll::Ready(Err(std::io::Error::new(
+                            std::io::ErrorKind::Other,
+                            msg,
+                        )));
+                    }
+                };
                 Self::handle_write_future(
                     cx,
                     JsFuture::from(writer.write_with_chunk(&obj)),
@@ -313,12 +362,12 @@ impl ConnectionBuilder {
         .into();
 
         let options: JsValue = js_object!(
-            "allowHalfOpen" => JsObject::from(JsBoolean::from(self.options.allow_half_open)),
-            "secureTransport" => JsObject::from(JsString::from(match self.options.secure_transport {
+            "allowHalfOpen" => JsBoolean::from(self.options.allow_half_open),
+            "secureTransport" => JsString::from(match self.options.secure_transport {
                 SecureTransport::On => "on",
                 SecureTransport::Off => "off",
                 SecureTransport::StartTls => "starttls",
-            }))
+            })
         )
         .into();
 
