@@ -1,6 +1,6 @@
 [package]
 name = "worker-macros"
-version = "0.0.8"
+version = "0.0.9"
 authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
 repository = "https://github.com/cloudflare/workers-rs/tree/main/worker-macros"
 edition = "2018"
@@ -13,7 +13,7 @@ path = "src/lib.rs"
 
 [dependencies]
 async-trait = "0.1.56"
-worker-sys = { path = "../worker-sys", version = "0.0.8" }
+worker-sys = { path = "../worker-sys", version = "0.0.9" }
 syn = "1.0.96"
 proc-macro2 = "1.0.39"
 quote = "1.0.18"
