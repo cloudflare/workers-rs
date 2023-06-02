@@ -1,15 +1,28 @@
-use std::task::Poll;
+use std::{
+    io::ErrorKind,
+    pin::Pin,
+    task::{Context, Poll},
+};
 
 use crate::r2::js_object;
 use crate::Result;
 use futures_util::FutureExt;
-use js_sys::{Boolean as JsBoolean, JsString, Number as JsNumber, Object as JsObject, Uint8Array};
+use js_sys::{
+    Boolean as JsBoolean, Error as JsError, JsString, Number as JsNumber, Object as JsObject,
+    Reflect, Uint8Array,
+};
+use std::io::Error as IoError;
+use std::io::Result as IoResult;
+use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
+use web_sys::{
+    ReadableStream, ReadableStreamDefaultReader, WritableStream, WritableStreamDefaultWriter,
+};
 
 enum Reading {
     None,
-    Pending(JsFuture, web_sys::ReadableStreamDefaultReader),
+    Pending(JsFuture, ReadableStreamDefaultReader),
     Ready(Vec<u8>),
 }
 
@@ -20,7 +33,7 @@ impl Default for Reading {
 }
 
 enum Writing {
-    Pending(JsFuture, web_sys::WritableStreamDefaultWriter, usize),
+    Pending(JsFuture, WritableStreamDefaultWriter, usize),
     None,
 }
 
@@ -44,8 +57,8 @@ impl Default for Closing {
 /// Represents an outbound TCP connection from your Worker.
 pub struct Socket {
     inner: worker_sys::Socket,
-    writable: web_sys::WritableStream,
-    readable: web_sys::ReadableStream,
+    writable: WritableStream,
+    readable: ReadableStream,
     write: Option<Writing>,
     read: Option<Reading>,
     close: Option<Closing>,
@@ -97,11 +110,11 @@ impl Socket {
     }
 
     fn handle_write_future(
-        cx: &mut std::task::Context<'_>,
+        cx: &mut Context<'_>,
         mut fut: JsFuture,
-        writer: web_sys::WritableStreamDefaultWriter,
+        writer: WritableStreamDefaultWriter,
         len: usize,
-    ) -> (Writing, Poll<std::io::Result<usize>>) {
+    ) -> (Writing, Poll<IoResult<usize>>) {
         match fut.poll_unpin(cx) {
             Poll::Pending => (Writing::Pending(fut, writer, len), Poll::Pending),
             Poll::Ready(res) => {
@@ -115,53 +128,47 @@ impl Socket {
     }
 }
 
-fn js_value_to_std_io_error(value: JsValue) -> std::io::Error {
+fn js_value_to_std_io_error(value: JsValue) -> IoError {
     let s = if value.is_string() {
         value.as_string().unwrap()
-    } else if let Some(value) = value.dyn_ref::<js_sys::Error>() {
+    } else if let Some(value) = value.dyn_ref::<JsError>() {
         value.to_string().into()
     } else {
         format!("Error interpreting JsError: {:?}", value)
     };
-    std::io::Error::new(std::io::ErrorKind::Other, s)
+    IoError::new(ErrorKind::Other, s)
 }
-impl tokio::io::AsyncRead for Socket {
+impl AsyncRead for Socket {
     fn poll_read(
-        mut self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-        buf: &mut tokio::io::ReadBuf<'_>,
-    ) -> std::task::Poll<std::io::Result<()>> {
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &mut ReadBuf<'_>,
+    ) -> Poll<IoResult<()>> {
         fn handle_future(
-            cx: &mut std::task::Context<'_>,
-            buf: &mut tokio::io::ReadBuf<'_>,
+            cx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
             mut fut: JsFuture,
-            reader: web_sys::ReadableStreamDefaultReader,
-        ) -> (Reading, Poll<std::io::Result<()>>) {
+            reader: ReadableStreamDefaultReader,
+        ) -> (Reading, Poll<IoResult<()>>) {
             match fut.poll_unpin(cx) {
                 Poll::Pending => (Reading::Pending(fut, reader), Poll::Pending),
                 Poll::Ready(res) => match res {
                     Ok(value) => {
                         reader.release_lock();
-                        let done: js_sys::Boolean = match js_sys::Reflect::get(
-                            &value,
-                            &JsValue::from("done"),
-                        ) {
+                        let done: JsBoolean = match Reflect::get(&value, &JsValue::from("done")) {
                             Ok(value) => value.into(),
                             Err(error) => {
                                 let msg = format!("Unable to interpret field 'done' in ReadableStreamDefaultReader.read(): {:?}", error);
                                 return (
                                     Reading::None,
-                                    Poll::Ready(Err(std::io::Error::new(
-                                        std::io::ErrorKind::Other,
-                                        msg,
-                                    ))),
+                                    Poll::Ready(Err(IoError::new(ErrorKind::Other, msg))),
                                 );
                             }
                         };
                         if done.is_truthy() {
                             (Reading::None, Poll::Ready(Ok(())))
                         } else {
-                            let arr: js_sys::Uint8Array = match js_sys::Reflect::get(
+                            let arr: Uint8Array = match Reflect::get(
                                 &value,
                                 &JsValue::from("value"),
                             ) {
@@ -170,10 +177,7 @@ impl tokio::io::AsyncRead for Socket {
                                     let msg = format!("Unable to interpret field 'value' in ReadableStreamDefaultReader.read(): {:?}", error);
                                     return (
                                         Reading::None,
-                                        Poll::Ready(Err(std::io::Error::new(
-                                            std::io::ErrorKind::Other,
-                                            msg,
-                                        ))),
+                                        Poll::Ready(Err(IoError::new(ErrorKind::Other, msg))),
                                     );
                                 }
                             };
@@ -188,7 +192,7 @@ impl tokio::io::AsyncRead for Socket {
 
         let (new_reading, poll) = match self.read.take().unwrap_or_default() {
             Reading::None => {
-                let reader: web_sys::ReadableStreamDefaultReader =
+                let reader: ReadableStreamDefaultReader =
                     match self.readable.get_reader().dyn_into() {
                         Ok(reader) => reader,
                         Err(error) => {
@@ -196,10 +200,7 @@ impl tokio::io::AsyncRead for Socket {
                                 "Unable to cast JsObject to ReadableStreamDefaultReader: {:?}",
                                 error
                             );
-                            return Poll::Ready(Err(std::io::Error::new(
-                                std::io::ErrorKind::Other,
-                                msg,
-                            )));
+                            return Poll::Ready(Err(IoError::new(ErrorKind::Other, msg)));
                         }
                     };
 
@@ -213,24 +214,20 @@ impl tokio::io::AsyncRead for Socket {
     }
 }
 
-impl tokio::io::AsyncWrite for Socket {
+impl AsyncWrite for Socket {
     fn poll_write(
-        mut self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
         buf: &[u8],
-    ) -> std::task::Poll<std::result::Result<usize, std::io::Error>> {
+    ) -> Poll<IoResult<usize>> {
         let (new_writing, poll) = match self.write.take().unwrap_or_default() {
             Writing::None => {
                 let obj = JsValue::from(Uint8Array::from(buf));
-                let writer: web_sys::WritableStreamDefaultWriter = match self.writable.get_writer()
-                {
+                let writer: WritableStreamDefaultWriter = match self.writable.get_writer() {
                     Ok(writer) => writer,
                     Err(error) => {
                         let msg = format!("Could not retrieve Writer: {:?}", error);
-                        return Poll::Ready(Err(std::io::Error::new(
-                            std::io::ErrorKind::Other,
-                            msg,
-                        )));
+                        return Poll::Ready(Err(IoError::new(ErrorKind::Other, msg)));
                     }
                 };
                 Self::handle_write_future(
@@ -246,10 +243,7 @@ impl tokio::io::AsyncWrite for Socket {
         poll
     }
 
-    fn poll_flush(
-        mut self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<std::result::Result<(), std::io::Error>> {
+    fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<IoResult<()>> {
         // Poll existing write future if it exists.
         let (new_writing, poll) = match self.write.take().unwrap_or_default() {
             Writing::Pending(fut, writer, len) => {
@@ -263,14 +257,8 @@ impl tokio::io::AsyncWrite for Socket {
         poll
     }
 
-    fn poll_shutdown(
-        mut self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<std::result::Result<(), std::io::Error>> {
-        fn handle_future(
-            cx: &mut std::task::Context<'_>,
-            mut fut: JsFuture,
-        ) -> (Closing, Poll<std::io::Result<()>>) {
+    fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<IoResult<()>> {
+        fn handle_future(cx: &mut Context<'_>, mut fut: JsFuture) -> (Closing, Poll<IoResult<()>>) {
             match fut.poll_unpin(cx) {
                 Poll::Pending => (Closing::Pending(fut), Poll::Pending),
                 Poll::Ready(res) => match res {
@@ -377,10 +365,7 @@ impl ConnectionBuilder {
 }
 
 // Writes as much as possible to buf, and stores the rest in internal buffer
-fn handle_data(
-    buf: &mut tokio::io::ReadBuf<'_>,
-    mut data: Vec<u8>,
-) -> (Reading, Poll<std::io::Result<()>>) {
+fn handle_data(buf: &mut ReadBuf<'_>, mut data: Vec<u8>) -> (Reading, Poll<IoResult<()>>) {
     let idx = buf.remaining().min(data.len());
     let store = data.split_off(idx);
     buf.put_slice(&data);
@@ -397,7 +382,7 @@ mod tests {
     #[test]
     fn test_handle_data() {
         let mut arr = vec![0u8; 32];
-        let mut buf = tokio::io::ReadBuf::new(&mut arr);
+        let mut buf = ReadBuf::new(&mut arr);
         let data = vec![1u8; 32];
         let (reading, _) = handle_data(&mut buf, data);
 
@@ -409,7 +394,7 @@ mod tests {
     #[test]
     fn test_handle_large_data() {
         let mut arr = vec![0u8; 32];
-        let mut buf = tokio::io::ReadBuf::new(&mut arr);
+        let mut buf = ReadBuf::new(&mut arr);
         let data = vec![1u8; 64];
         let (reading, _) = handle_data(&mut buf, data);
 
@@ -421,7 +406,7 @@ mod tests {
     #[test]
     fn test_handle_small_data() {
         let mut arr = vec![0u8; 32];
-        let mut buf = tokio::io::ReadBuf::new(&mut arr);
+        let mut buf = ReadBuf::new(&mut arr);
         let data = vec![1u8; 16];
         let (reading, _) = handle_data(&mut buf, data);
 
