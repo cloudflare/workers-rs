@@ -289,6 +289,59 @@ pub async fn main(message_batch: MessageBatch<MyType>, env: Env, _ctx: Context) 
 }
 ```
 
+## Testing with Miniflare
+
+In order to test your Rust worker locally, the best approach is to use
+[Miniflare](https://github.com/cloudflare/miniflare). However, because Miniflare
+is a Node package, you will need to write your end-to-end tests in JavaScript or
+TypeScript in your project. The official documentation for writing tests using
+Miniflare is [available here](https://miniflare.dev/testing). This documentation
+being focused on JavaScript / TypeScript codebase, you will need to configure
+as follows to make it work with your Rust-based, WASM-generated worker:
+
+### Step 1: Add Wrangler and Miniflare to your `devDependencies`
+
+```sh
+npm install --save-dev wrangler miniflare
+```
+
+### Step 2: Build your worker before running the tests
+
+Make sure that your worker is built before running your tests by calling the
+following in your build chain:
+
+```sh
+wrangler deploy --dry-run
+```
+
+By default, this should build your worker under the `./build/` directory at the
+root of your project.
+
+### Step 3: Configure your Miniflare instance in your JavaScript / TypeScript tests
+
+To instantiate the `Miniflare` testing instance in your tests, make sure to
+configure its `scriptPath` option to the relative path of where your JavaScript
+worker entrypoint was generated, and its `moduleRules` so that it is able to
+resolve the `*.wasm` file imported from that JavaScript worker:
+
+```js
+// test.mjs
+import assert from "node:assert";
+import { Miniflare } from "miniflare";
+
+const mf = new Miniflare({
+  scriptPath: "./build/worker/shim.mjs",
+  modules: true,
+  modulesRules: [
+    { type: "CompiledWasm", include: ["**/*.wasm"], fallthrough: true }
+  ]
+});
+
+const res = await mf.dispatchFetch("http://localhost");
+assert(res.ok);
+assert.strictEqual(await res.text(), "Hello, World!");
+```
+
 # Notes and FAQ
 
 It is exciting to see how much is possible with a framework like this, by expanding the options
