@@ -63,7 +63,7 @@ jobs:
         run: |
           git clone https://github.com/cloudflare/miniflare.git
           cd miniflare
-          git checkout 9d96aaa66aa48eb1107c86fe24cbfd444249533c
+          git checkout v2.12.1
           cd packages/miniflare
           npm i
           npm link
