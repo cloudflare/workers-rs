@@ -11,11 +11,11 @@ description = "This is a tool to be used as a custom build command for a Cloudfl
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.57"
+anyhow = "1.0.71"
 dirs-next = "2.0.0"
-flate2 = "1.0.24"
+flate2 = "1.0.26"
 tar = "0.4.38"
-ureq = { version = "2.4.0", features = ["tls", "gzip"] }
+ureq = { version = "2.6.2", features = ["tls", "gzip"] }
 
 [dev-dependencies]
-wasm-bindgen-cli-support = "0.2.80"
+wasm-bindgen-cli-support = "0.2.86"
