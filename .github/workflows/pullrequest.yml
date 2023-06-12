@@ -56,21 +56,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt clean
-          sudo apt install -y build-essential libssl-dev netcat
-
-      - name: Install miniflare
-        shell: bash
-        run: |
-          git clone https://github.com/cloudflare/miniflare.git
-          cd miniflare
-          git checkout 9d96aaa66aa48eb1107c86fe24cbfd444249533c
-          cd packages/miniflare
-          npm i
-          npm link
-          cd ../..
-          npm i
-          npm run build
-
+          sudo apt install -y build-essential libssl-dev netcat libc++-dev
       - name: Install wasmpack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
@@ -80,28 +66,16 @@ jobs:
           command: install
           args: --path ./worker-build --force --debug
 
+      - name: Install npm dependencies
+        shell: bash
+        run: npm ci
+
+      - name: Build worker
+        shell: bash
+        working-directory: ./worker-sandbox
+        run: NO_MINIFY=1 worker-build --dev
+        
       - name: Run tests
         shell: bash
         working-directory: ./worker-sandbox
-        run: |
-          set -e
-
-          echo "
-          EXAMPLE_SECRET=\"example\"
-          SOME_SECRET=\"secret!\"
-          SOME_VARIABLE=\"some value\"
-          " > .env
-
-          # Start miniflare and register a trap to kill it once we're done
-          miniflare --no-cf-fetch --no-update-check -c ./wrangler.toml -B "worker-build --release" &
-          MINIFLARE_PID=$!
-          trap "kill $MINIFLARE_PID" EXIT
-
-
-          # Wait for port 8787 to open on miniflare by looping with netcat.
-          echo "Waiting miniflare to launch on 8787..."
-          while ! nc -z 127.0.0.1 8787; do   
-            sleep 0.1
-          done
-
-          cargo test
+        run: NODE_OPTIONS=--experimental-vm-modules npx vitest run
