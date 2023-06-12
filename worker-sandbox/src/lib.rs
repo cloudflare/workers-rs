@@ -322,7 +322,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                 ctx.param("id").unwrap_or(&"not found".into())
             ))
         })
-        .get_async("/async-text-echo", |mut req, _ctx| async move {
+        .post_async("/async-text-echo", |mut req, _ctx| async move {
             Response::ok(req.text().await?)
         })
         .get_async("/fetch", |_req, _ctx| async move {
@@ -364,7 +364,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             stub.fetch_with_str("https://fake-host/alarm").await
         })
         .get_async("/durable/:id", |_req, ctx| async move {
-            let namespace = ctx.durable_object("COUNTER")?;
+            let namespace = ctx.durable_object("COUNTER").expect("DAWJKHDAD");
             let stub = namespace.id_from_name("A")?.get_stub()?;
             // when calling fetch to a Durable Object, a full URL must be used. Alternatively, a
             // compatibility flag can be provided in wrangler.toml to opt-in to older behavior:
@@ -392,7 +392,12 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         })
         .post_async("/api-data", |mut req, _ctx| async move {
             let data = req.bytes().await?;
-            let mut todo: ApiData = serde_json::from_slice(&data)?;
+            let mut todo: ApiData = match serde_json::from_slice(&data) {
+                Ok(todo) => todo,
+                Err(e) => {
+                    return Response::ok(e.to_string());
+                }
+            };
 
             unsafe { todo.title.as_mut_vec().reverse() };
 
@@ -474,7 +479,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             let signal = controller.signal();
 
             let fetch_fut = async {
-                let fetch = Fetch::Url("http://localhost:8787/wait/10000".parse().unwrap());
+                let fetch = Fetch::Url("https://delay.zeb.workers.dev/".parse().unwrap());
                 let mut res = fetch.send_with_signal(&signal).await?;
                 let text = res.text().await?;
                 Ok::<String, worker::Error>(text)
