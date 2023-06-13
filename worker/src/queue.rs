@@ -5,33 +5,20 @@ use js_sys::Array;
 use serde::{de::DeserializeOwned, Serialize};
 use wasm_bindgen::{prelude::*, JsCast};
 use wasm_bindgen_futures::JsFuture;
-use worker_sys::{MessageBatch as MessageBatchSys, Queue as EdgeQueue};
-
-static BODY_KEY_STR: &str = "body";
-static ID_KEY_STR: &str = "id";
-static TIMESTAMP_KEY_STR: &str = "timestamp";
+use worker_sys::{Message as MessageSys, MessageBatch as MessageBatchSys, Queue as EdgeQueue};
 
 pub struct MessageBatch<T> {
     inner: MessageBatchSys,
     messages: Array,
     data: PhantomData<T>,
-    timestamp_key: JsValue,
-    body_key: JsValue,
-    id_key: JsValue,
 }
 
 impl<T> MessageBatch<T> {
     pub fn new(message_batch_sys: MessageBatchSys) -> Self {
-        let timestamp_key = JsValue::from_str(TIMESTAMP_KEY_STR);
-        let body_key = JsValue::from_str(BODY_KEY_STR);
-        let id_key = JsValue::from_str(ID_KEY_STR);
         Self {
             messages: message_batch_sys.messages(),
             inner: message_batch_sys,
             data: PhantomData,
-            timestamp_key,
-            body_key,
-            id_key,
         }
     }
 }
@@ -45,7 +32,7 @@ pub struct Message<T> {
 impl<T> MessageBatch<T> {
     /// The name of the Queue that belongs to this batch.
     pub fn queue(&self) -> String {
-        self.inner.queue()
+        self.inner.queue().into()
     }
 
     /// Marks every message to be retried in the next batch.
@@ -61,9 +48,6 @@ impl<T> MessageBatch<T> {
         MessageIter {
             range: 0..self.messages.length(),
             array: &self.messages,
-            timestamp_key: &self.timestamp_key,
-            body_key: &self.body_key,
-            id_key: &self.id_key,
             data: PhantomData,
         }
     }
@@ -80,31 +64,19 @@ impl<T> MessageBatch<T> {
 pub struct MessageIter<'a, T> {
     range: std::ops::Range<u32>,
     array: &'a Array,
-    timestamp_key: &'a JsValue,
-    body_key: &'a JsValue,
-    id_key: &'a JsValue,
     data: PhantomData<T>,
 }
 
-impl<T> MessageIter<'_, T>
+fn parse_message<T>(message: JsValue) -> Result<Message<T>>
 where
     T: DeserializeOwned,
 {
-    fn parse_message(&self, message: &JsValue) -> Result<Message<T>> {
-        let js_date = js_sys::Date::from(js_sys::Reflect::get(message, self.timestamp_key)?);
-        let id = js_sys::Reflect::get(message, self.id_key)?
-            .as_string()
-            .ok_or(Error::JsError(
-                "Invalid message batch. Failed to get id from message.".to_string(),
-            ))?;
-        let body = serde_wasm_bindgen::from_value(js_sys::Reflect::get(message, self.body_key)?)?;
-
-        Ok(Message {
-            id,
-            body,
-            timestamp: Date::from(js_date),
-        })
-    }
+    let message = MessageSys::from(message);
+    Ok(Message {
+        id: message.id().into(),
+        body: serde_wasm_bindgen::from_value(message.body())?,
+        timestamp: Date::from(message.timestamp()),
+    })
 }
 
 impl<T> std::iter::Iterator for MessageIter<'_, T>
@@ -118,7 +90,7 @@ where
 
         let value = self.array.get(index);
 
-        Some(self.parse_message(&value))
+        Some(parse_message(value))
     }
 
     #[inline]
@@ -135,7 +107,7 @@ where
         let index = self.range.next_back()?;
         let value = self.array.get(index);
 
-        Some(self.parse_message(&value))
+        Some(parse_message(value))
     }
 }
 
