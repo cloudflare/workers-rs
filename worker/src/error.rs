@@ -17,6 +17,8 @@ pub enum Error {
     SerdeJsonError(serde_json::Error),
     #[cfg(feature = "queue")]
     SerdeWasmBindgenError(serde_wasm_bindgen::Error),
+    #[cfg(feature = "d1")]
+    D1(crate::d1::D1Error),
 }
 
 impl From<worker_kv::KvError> for Error {
@@ -39,6 +41,13 @@ impl From<serde_wasm_bindgen::Error> for Error {
     }
 }
 
+#[cfg(feature = "d1")]
+impl From<crate::d1::D1Error> for Error {
+    fn from(e: crate::d1::D1Error) -> Self {
+        Self::D1(e)
+    }
+}
+
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -56,6 +65,7 @@ impl std::fmt::Display for Error {
             Error::SerdeJsonError(e) => write!(f, "Serde Error: {e}"),
             #[cfg(feature = "queue")]
             Error::SerdeWasmBindgenError(e) => write!(f, "Serde Error: {e}"),
+            Error::D1(e) => write!(f, "D1: {e:#?}"),
         }
     }
 }

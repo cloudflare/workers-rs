@@ -1,5 +1,10 @@
+use std::fmt::Display;
+use std::fmt::Formatter;
+use std::result::Result as StdResult;
+
 use js_sys::Array;
 use js_sys::ArrayBuffer;
+use js_sys::JsString;
 use js_sys::Uint8Array;
 use serde::Deserialize;
 use wasm_bindgen::{JsCast, JsValue};
@@ -28,12 +33,11 @@ impl D1Database {
 
     /// Dump the data in the database to a `Vec`.
     pub async fn dump(&self) -> Result<Vec<u8>> {
-        let array_buffer = JsFuture::from(self.0.dump()).await?;
+        let result = JsFuture::from(self.0.dump()).await;
+        let array_buffer = cast_to_d1_error(result)?;
         let array_buffer = array_buffer.dyn_into::<ArrayBuffer>()?;
         let array = Uint8Array::new(&array_buffer);
-        let mut vec = Vec::with_capacity(array.length() as usize);
-        array.copy_to(&mut vec);
-        Ok(vec)
+        Ok(array.to_vec())
     }
 
     /// Batch execute one or more statements against the database.
@@ -41,11 +45,12 @@ impl D1Database {
     /// Returns the results in the same order as the provided statements.
     pub async fn batch(&self, statements: Vec<D1PreparedStatement>) -> Result<Vec<D1Result>> {
         let statements = statements.into_iter().map(|s| s.0).collect::<Array>();
-        let results = JsFuture::from(self.0.batch(statements)).await?;
+        let results = JsFuture::from(self.0.batch(statements)).await;
+        let results = cast_to_d1_error(results)?;
         let results = results.dyn_into::<Array>()?;
         let mut vec = Vec::with_capacity(results.length() as usize);
         for result in results.iter() {
-            let result = result.dyn_into::<D1ResultSys>()?;
+            let result = result.unchecked_into::<D1ResultSys>();
             vec.push(D1Result(result));
         }
         Ok(vec)
@@ -64,7 +69,8 @@ impl D1Database {
     /// If an error occurs, an exception is thrown with the query and error
     /// messages, execution stops and further statements are not executed.
     pub async fn exec(&self, query: &str) -> Result<D1ExecResult> {
-        let result = JsFuture::from(self.0.exec(query)).await?;
+        let result = JsFuture::from(self.0.exec(query)).await;
+        let result = cast_to_d1_error(result)?;
         Ok(result.into())
     }
 }
@@ -135,7 +141,7 @@ impl D1PreparedStatement {
     /// Supports Ordered (?NNNN) and Anonymous (?) parameters - named parameters are currently not supported.
     ///
     pub fn bind(self, values: &[JsValue]) -> Result<Self> {
-        let array: Array = values.into_iter().collect::<Array>();
+        let array: Array = values.iter().collect::<Array>();
 
         match self.0.bind(array) {
             Ok(stmt) => Ok(D1PreparedStatement(stmt)),
@@ -154,14 +160,16 @@ impl D1PreparedStatement {
     where
         T: for<'a> Deserialize<'a>,
     {
-        let js_value = JsFuture::from(self.0.first(col_name)).await?;
+        let result = JsFuture::from(self.0.first(col_name)).await;
+        let js_value = cast_to_d1_error(result)?;
         let value = serde_wasm_bindgen::from_value(js_value)?;
         Ok(value)
     }
 
     /// Executes a query against the database but only return metadata.
     pub async fn run(&self) -> Result<D1Result> {
-        let result = JsFuture::from(self.0.run()).await?;
+        let result = JsFuture::from(self.0.run()).await;
+        let result = cast_to_d1_error(result)?;
         Ok(D1Result(result.into()))
     }
 
@@ -176,7 +184,8 @@ impl D1PreparedStatement {
     where
         T: for<'a> Deserialize<'a>,
     {
-        let result = JsFuture::from(self.0.raw()).await?;
+        let result = JsFuture::from(self.0.raw()).await;
+        let result = cast_to_d1_error(result)?;
         let result = result.dyn_into::<Array>()?;
         let mut vec = Vec::with_capacity(result.length() as usize);
         for value in result.iter() {
@@ -217,7 +226,7 @@ impl D1Result {
         if let Some(results) = self.0.results() {
             let mut vec = Vec::with_capacity(results.length() as usize);
             for result in results.iter() {
-                let result = serde_wasm_bindgen::from_value(result)?;
+                let result = serde_wasm_bindgen::from_value(result).unwrap();
                 vec.push(result);
             }
             Ok(vec)
@@ -225,4 +234,69 @@ impl D1Result {
             Ok(Vec::new())
         }
     }
+}
+
+#[derive(Clone)]
+pub struct D1Error {
+    inner: js_sys::Error,
+}
+
+impl D1Error {
+    /// Gets the cause of the error specific to D1.
+    pub fn cause(&self) -> String {
+        if let Ok(cause) = self.inner.cause().dyn_into::<js_sys::Error>() {
+            cause.message().into()
+        } else {
+            "unknown error".into()
+        }
+    }
+}
+
+impl std::fmt::Debug for D1Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let cause = self.inner.cause();
+
+        f.debug_struct("D1Error").field("cause", &cause).finish()
+    }
+}
+
+impl Display for D1Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let cause = self.inner.cause();
+        let cause = JsString::from(cause);
+        write!(f, "{}", cause)
+    }
+}
+
+impl AsRef<js_sys::Error> for D1Error {
+    fn as_ref(&self) -> &js_sys::Error {
+        &self.inner
+    }
+}
+
+impl AsRef<JsValue> for D1Error {
+    fn as_ref(&self) -> &JsValue {
+        &self.inner
+    }
+}
+
+fn cast_to_d1_error<T>(result: StdResult<T, JsValue>) -> StdResult<T, crate::Error> {
+    let err = match result {
+        Ok(value) => return Ok(value),
+        Err(err) => err,
+    };
+
+    let err: JsValue = match err.dyn_into::<js_sys::Error>() {
+        Ok(err) => {
+            let message: String = err.message().into();
+
+            if message.starts_with("D1") {
+                return Err(D1Error { inner: err }.into());
+            };
+            err.into()
+        }
+        Err(err) => err,
+    };
+
+    Err(err.into())
 }
