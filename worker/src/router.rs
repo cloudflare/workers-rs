@@ -105,6 +105,12 @@ impl<D> RouteContext<D> {
     pub fn bucket(&self, binding: &str) -> Result<Bucket> {
         self.env.bucket(binding)
     }
+
+    /// Access a D1 Database by the binding name configured in your wrangler.toml file.
+    #[cfg(feature = "d1")]
+    pub fn d1(&self, binding: &str) -> Result<crate::D1Database> {
+        self.env.d1(binding)
+    }
 }
 
 impl<'a> Router<'a, ()> {
