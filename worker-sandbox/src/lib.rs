@@ -533,7 +533,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                 .enumerate()
                 .then(|(index, _)| async move {
                     Delay::from(Duration::from_millis(100)).await;
-                    Result::Ok(index.to_string().into_bytes())
+                    Result::<_, Error>::Ok(index.to_string().into_bytes())
                 });
 
             let mut resp = Response::from_stream(stream)?;
@@ -645,7 +645,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                     .take(count)
                     .then(|text| async move {
                         Delay::from(Duration::from_millis(50)).await;
-                        Result::Ok(text.as_bytes().to_vec())
+                        Result::<_, Error>::Ok(text.as_bytes().to_vec())
                     });
 
                 let mut resp = Response::from_stream(stream)?;

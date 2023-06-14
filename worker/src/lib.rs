@@ -76,4 +76,4 @@ mod socket;
 mod streams;
 mod websocket;
 
-pub type Result<T> = StdResult<T, error::Error>;
+pub type Result<T, E = error::Error> = StdResult<T, E>;
