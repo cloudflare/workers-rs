@@ -543,6 +543,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "hyper-on-workers"
+version = "0.1.0"
+dependencies = [
+ "console_error_panic_hook",
+ "hyper",
+ "tokio",
+ "wasm-bindgen-futures",
+ "worker",
+]
+
+[[package]]
 name = "hyper-tls"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
