@@ -47,8 +47,6 @@ binding = 'DELETE_BUCKET'
 bucket_name = 'delete_bucket'
 preview_bucket_name = 'delete_bucket'
 
-tail_consumers = [{service = "testing-rust-worker"}]
-
 [build]
 command = "worker-build --release"
 
