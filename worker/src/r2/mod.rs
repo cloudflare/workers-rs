@@ -399,7 +399,7 @@ impl Objects {
     }
 
     /// If a delimiter has been specified, contains all prefixes between the specified prefix and
-    /// the next occurence of the delimiter.
+    /// the next occurrence of the delimiter.
     ///
     /// For example, if no prefix is provided and the delimiter is '/', `foo/bar/baz` would return
     /// `foo` as a delimited prefix. If `foo/` was passed as a prefix with the same structure and

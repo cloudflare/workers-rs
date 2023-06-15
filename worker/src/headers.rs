@@ -56,7 +56,7 @@ impl Headers {
 
     /// Deletes a header from a `Headers` object.
     /// Returns an error if the name is invalid (e.g. contains spaces)
-    /// or if the JS Headers objects's guard is immutable (e.g. for an incoming request)
+    /// or if the JS Headers object's guard is immutable (e.g. for an incoming request)
     pub fn delete(&mut self, name: &str) -> Result<()> {
         self.0.delete(name).map_err(Error::from)
     }

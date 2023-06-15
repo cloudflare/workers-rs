@@ -109,7 +109,7 @@ pub struct CfProperties {
     pub cache_ttl: Option<u32>,
     /// This option is a version of the cacheTtl feature which chooses a TTL based on the response’s
     /// status code. If the response to this request has a status code that matches, Cloudflare will
-    /// cache for the instructed time, and override cache instructives sent by the origin. For
+    /// cache for the instructed time, and override cache directives sent by the origin. For
     /// example: { "200-299": 86400, 404: 1, "500-599": 0 }. The value can be any integer, including
     /// zero and negative integers. A value of 0 indicates that the cache asset expires immediately.
     /// Any negative value instructs Cloudflare not to cache at all.
