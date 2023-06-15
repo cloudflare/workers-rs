@@ -6,6 +6,8 @@ mod fixed_length_stream;
 mod incoming_request_cf_properties;
 #[cfg(feature = "queue")]
 mod queue;
+#[cfg(feature = "tail")]
+mod tail;
 mod r2;
 mod schedule;
 mod socket;
@@ -20,6 +22,8 @@ pub use fixed_length_stream::*;
 pub use incoming_request_cf_properties::*;
 #[cfg(feature = "queue")]
 pub use queue::*;
+#[cfg(feature = "tail")]
+pub use tail::*;
 pub use r2::*;
 pub use schedule::*;
 pub use socket::*;

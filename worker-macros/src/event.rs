@@ -12,6 +12,8 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
         Start,
         #[cfg(feature = "queue")]
         Queue,
+        #[cfg(feature = "tail")]
+        Tail,
     }
     use HandlerType::*;
 
@@ -25,6 +27,8 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             "start" => handler_type = Some(Start),
             #[cfg(feature = "queue")]
             "queue" => handler_type = Some(Queue),
+            #[cfg(feature = "tail")]
+            "tail" => handler_type = Some(Tail),
             "respond_with_errors" => {
                 respond_with_errors = true;
             }
@@ -32,7 +36,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     }
     let handler_type = handler_type.expect(
-        "must have either 'fetch', 'scheduled', 'queue' or 'start' attribute, e.g. #[event(fetch)]",
+        "must have either 'fetch', 'scheduled', 'queue', 'tail' or 'start' attribute, e.g. #[event(fetch)]",
     );
 
     // create new var using syn item of the attributed fn
@@ -160,6 +164,46 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                 #input_fn
 
                 mod _worker_queue {
+                    use ::worker::{wasm_bindgen, wasm_bindgen_futures};
+                    use super::#input_fn_ident;
+                    #wasm_bindgen_code
+                }
+            };
+
+            TokenStream::from(output)
+        }
+        #[cfg(feature = "tail")]
+        Tail => {
+            // save original fn name for re-use in the wrapper fn
+            let input_fn_ident = Ident::new(
+                &(input_fn.sig.ident.to_string() + "_tail_glue"),
+                input_fn.sig.ident.span(),
+            );
+            let wrapper_fn_ident = Ident::new("tail", input_fn.sig.ident.span());
+            // rename the original attributed fn
+            input_fn.sig.ident = input_fn_ident.clone();
+
+            let wrapper_fn = quote! {
+                pub async fn #wrapper_fn_ident(event: Vec<::worker::worker::TailItem>, env: ::worker::Env, ctx: ::worker::worker_sys::Context) {
+                    // call the original fn
+                    let ctx = worker::Context::new(ctx);
+                    match #input_fn_ident(event, env, ctx).await {
+                        Ok(()) => {},
+                        Err(e) => {
+                            ::worker::console_log!("{}", &e);
+                            panic!("{}", e);
+                        }
+                    }
+                }
+            };
+            let wasm_bindgen_code =
+              wasm_bindgen_macro_support::expand(TokenStream::new().into(), wrapper_fn)
+                .expect("wasm_bindgen macro failed to expand");
+
+            let output = quote! {
+                #input_fn
+
+                mod _worker_tail {
                     use ::worker::{wasm_bindgen, wasm_bindgen_futures};
                     use super::#input_fn_ident;
                     #wasm_bindgen_code

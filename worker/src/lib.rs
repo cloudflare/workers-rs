@@ -38,6 +38,8 @@ pub use crate::headers::Headers;
 pub use crate::http::Method;
 #[cfg(feature = "queue")]
 pub use crate::queue::*;
+#[cfg(feature = "tail")]
+pub use crate::tail::*;
 pub use crate::r2::*;
 pub use crate::request::Request;
 pub use crate::request_init::*;
@@ -66,6 +68,8 @@ mod headers;
 mod http;
 #[cfg(feature = "queue")]
 mod queue;
+#[cfg(feature = "tail")]
+mod tail;
 mod r2;
 mod request;
 mod request_init;
