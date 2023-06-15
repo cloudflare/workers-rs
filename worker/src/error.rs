@@ -65,6 +65,7 @@ impl std::fmt::Display for Error {
             Error::SerdeJsonError(e) => write!(f, "Serde Error: {e}"),
             #[cfg(feature = "queue")]
             Error::SerdeWasmBindgenError(e) => write!(f, "Serde Error: {e}"),
+            #[cfg(feature = "d1")]
             Error::D1(e) => write!(f, "D1: {e:#?}"),
         }
     }

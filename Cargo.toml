@@ -5,8 +5,12 @@ members = [
     "worker-macros",
     "worker-sandbox",
     "worker-sys",
+    "examples/*",
 ]
 resolver = "2"
+
+[workspace.dependencies]
+worker = { path="./worker" }
 
 [profile.release]
 # rustc supports two "optimize for size" levels:  opt-level = "s" and "z". 
@@ -30,3 +34,4 @@ lto = true
 [profile.release.package."*"]
 codegen-units = 1
 opt-level = "z"
+
