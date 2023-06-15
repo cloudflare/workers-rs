@@ -274,19 +274,40 @@ pub async fn main(message_batch: MessageBatch<MyType>, env: Env, _ctx: Context) 
         // Log the message and meta data
         console_log!(
             "Got message {:?}, with id {} and timestamp: {}",
-            message.body,
-            message.id,
-            message.timestamp.to_string()
+            message.body(),
+            message.id(),
+            message.timestamp().to_string()
         );
 
         // Send the message body to the other queue
-        my_queue.send(&message.body).await?;
+        my_queue.send(message.body()).await?;
+
+        // Ack individual message
+        message.ack();
+
+        // Retry individual message
+        message.retry();
     }
 
     // Retry all messages
     message_batch.retry_all();
+    // Ack all messages
+    message_batch.ack_all();
     Ok(())
 }
+```
+You'll need to ensure you have the correct bindings in your `wrangler.toml`:
+```toml
+# ...
+[[queues.consumers]]
+queue = "myqueueotherqueue"
+max_batch_size = 10
+max_batch_timeout = 30
+
+
+[[queues.producers]]
+queue = "myqueue"
+binding = "my_queue"
 ```
 
 ## Testing with Miniflare
