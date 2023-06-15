@@ -3,7 +3,7 @@ use js_sys::{JsString, Object as JsObject};
 
 #[wasm_bindgen]
 extern "C" {
-	#[wasm_bindgen(extends=js_sys::Object)]
+	#[wasm_bindgen(extends=JsObject)]
 	#[derive(Debug, Clone, PartialEq, Eq)]
 	pub type TailItem;
 
@@ -34,7 +34,7 @@ extern "C" {
 
 #[wasm_bindgen]
 extern "C" {
-	#[wasm_bindgen(extends=js_sys::Object)]
+	#[wasm_bindgen(extends=JsObject)]
 	#[derive(Debug, Clone, PartialEq, Eq)]
 	pub type TailException;
 
@@ -50,7 +50,7 @@ extern "C" {
 
 #[wasm_bindgen]
 extern "C" {
-	#[wasm_bindgen(extends=js_sys::Object)]
+	#[wasm_bindgen(extends=JsObject)]
 	#[derive(Debug, Clone, PartialEq, Eq)]
 	pub type TailLog;
 
