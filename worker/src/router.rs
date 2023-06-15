@@ -90,7 +90,7 @@ impl<D> RouteContext<D> {
         self.env.durable_object(binding)
     }
 
-    /// Get a URL parameter parsed by the router, by the name of its match or wildecard placeholder.
+    /// Get a URL parameter parsed by the router, by the name of its match or wildcard placeholder.
     pub fn param(&self, key: &str) -> Option<&String> {
         self.params.get(key)
     }

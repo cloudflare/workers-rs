@@ -202,7 +202,7 @@ impl WebSocket {
 type EvCallback<T> = Closure<dyn FnMut(T)>;
 
 /// A [`Stream`](futures::Stream) that yields [`WebsocketEvent`](crate::ws_events::WebsocketEvent)s
-/// emitted by the inner [`WebSocket`](crate::WebSocket). The stream is guranteed to always yield a
+/// emitted by the inner [`WebSocket`](crate::WebSocket). The stream is guaranteed to always yield a
 /// `WebsocketEvent::Close` as the final non-none item.
 ///
 /// # Example

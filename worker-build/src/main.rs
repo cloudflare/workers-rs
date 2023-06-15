@@ -1,4 +1,4 @@
-//! Arguments are fowarded directly to wasm-pack
+//! Arguments are forwarded directly to wasm-pack
 
 use std::{
     convert::TryInto,

@@ -121,7 +121,7 @@ impl File {
         let arr = Uint8Array::new_with_length(data.len() as u32);
         arr.copy_from(data);
 
-        // The first parameter of File's contructor must be an ArrayBuffer or similar types
+        // The first parameter of File's constructor must be an ArrayBuffer or similar types
         // https://developer.mozilla.org/en-US/docs/Web/API/File/File
         let buffer = arr.buffer();
         let file = web_sys::File::new_with_u8_array_sequence(&Array::of1(&buffer), name).unwrap();
