@@ -1,7 +1,7 @@
 use std::{collections::HashMap, future::Future, rc::Rc};
 
 use futures_util::future::LocalBoxFuture;
-use matchit::{Match, Node};
+use matchit::{Match, Router as Node};
 use worker_kv::KvStore;
 
 use crate::{
