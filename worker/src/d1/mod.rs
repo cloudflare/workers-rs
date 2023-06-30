@@ -204,6 +204,7 @@ impl From<D1PreparedStatementSys> for D1PreparedStatement {
 }
 
 // The result of a D1 query execution.
+#[derive(Debug)]
 pub struct D1Result(D1ResultSys);
 
 impl D1Result {
