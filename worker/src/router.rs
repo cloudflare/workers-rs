@@ -1,7 +1,7 @@
 use std::{collections::HashMap, future::Future, rc::Rc};
 
 use futures_util::future::LocalBoxFuture;
-use matchit::{Match, Node};
+use matchit::{Match};
 use worker_kv::KvStore;
 
 use crate::{
@@ -43,8 +43,8 @@ impl<D> Clone for Handler<'_, D> {
 
 /// A path-based HTTP router supporting exact-match or wildcard placeholders and shared data.
 pub struct Router<'a, D> {
-    handlers: HashMap<Method, Node<Handler<'a, D>>>,
-    or_else_any_method: Node<Handler<'a, D>>,
+    handlers: HashMap<Method, matchit::Router<Handler<'a, D>>>,
+    or_else_any_method: matchit::Router<Handler<'a, D>>,
     data: D,
 }
 
@@ -90,7 +90,7 @@ impl<D> RouteContext<D> {
         self.env.durable_object(binding)
     }
 
-    /// Get a URL parameter parsed by the router, by the name of its match or wildcard placeholder.
+    /// Get a URL parameter parsed by the router, by the name of its match or wildecard placeholder.
     pub fn param(&self, key: &str) -> Option<&String> {
         self.params.get(key)
     }
@@ -104,12 +104,6 @@ impl<D> RouteContext<D> {
     /// Get a R2 Bucket associated with this Worker, should one exist.
     pub fn bucket(&self, binding: &str) -> Result<Bucket> {
         self.env.bucket(binding)
-    }
-
-    /// Access a D1 Database by the binding name configured in your wrangler.toml file.
-    #[cfg(feature = "d1")]
-    pub fn d1(&self, binding: &str) -> Result<crate::D1Database> {
-        self.env.d1(binding)
     }
 }
 
@@ -126,7 +120,7 @@ impl<'a, D: 'a> Router<'a, D> {
     pub fn with_data(data: D) -> Self {
         Self {
             handlers: HashMap::new(),
-            or_else_any_method: Node::new(),
+            or_else_any_method: matchit::Router::new(),
             data,
         }
     }
@@ -327,7 +321,7 @@ impl<'a, D: 'a> Router<'a, D> {
         for method in methods {
             self.handlers
                 .entry(method.clone())
-                .or_insert_with(Node::new)
+                .or_insert_with(matchit::Router::new)
                 .insert(pattern, func.clone())
                 .unwrap_or_else(|e| {
                     panic!(
@@ -383,7 +377,7 @@ impl<'a, D: 'a> Router<'a, D> {
     }
 }
 
-type NodeWithHandlers<'a, D> = Node<Handler<'a, D>>;
+type NodeWithHandlers<'a, D> = matchit::Router<Handler<'a, D>>;
 
 impl<'a, D: 'a> Router<'a, D> {
     fn split(

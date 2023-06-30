@@ -128,6 +128,7 @@ impl From<D1DatabaseSys> for D1Database {
 }
 
 // A D1 prepared query statement.
+#[derive(Debug)]
 pub struct D1PreparedStatement(D1PreparedStatementSys);
 
 impl D1PreparedStatement {

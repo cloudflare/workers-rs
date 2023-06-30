@@ -12,7 +12,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 worker = { workspace=true }
-hyper = { version="0.14", default-features=false, features=['http1', 'client'] }
-tokio = { version = "1.0", default-features=false, features=['io-util', 'macros']}
-console_error_panic_hook = { version = "0.1.1" }
-wasm-bindgen-futures = "0.4"
+hyper = { version = "0.14.27", default-features = false, features = ['http1', 'client'] }
+tokio = { version = "1.29.1", default-features = false, features = ['io-util', 'macros'] }
+console_error_panic_hook = "0.1.7"
+wasm-bindgen-futures = "0.4.37"
