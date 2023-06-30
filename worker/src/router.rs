@@ -90,7 +90,7 @@ impl<D> RouteContext<D> {
         self.env.durable_object(binding)
     }
 
-    /// Get a URL parameter parsed by the router, by the name of its match or wildecard placeholder.
+    /// Get a URL parameter parsed by the router, by the name of its match or wildcard placeholder.
     pub fn param(&self, key: &str) -> Option<&String> {
         self.params.get(key)
     }
@@ -105,7 +105,14 @@ impl<D> RouteContext<D> {
     pub fn bucket(&self, binding: &str) -> Result<Bucket> {
         self.env.bucket(binding)
     }
+
+    /// Access a D1 Database by the binding name configured in your wrangler.toml file.
+    #[cfg(feature = "d1")]
+    pub fn d1(&self, binding: &str) -> Result<crate::D1Database> {
+        self.env.d1(binding)
+    }
 }
+
 
 impl<'a> Router<'a, ()> {
     /// Construct a new `Router`. Or, call `Router::with_data(D)` to add arbitrary data that will be
