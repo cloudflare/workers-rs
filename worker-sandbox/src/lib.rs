@@ -59,8 +59,10 @@ fn handle_a_request<D>(req: Request, _ctx: RouteContext<D>) -> Result<Response> 
     Response::ok(format!(
         "req at: {}, located at: {:?}, within: {}",
         req.path(),
-        req.cf().coordinates().unwrap_or_default(),
-        req.cf().region().unwrap_or_else(|| "unknown region".into())
+        req.cf().map(|cf| cf.coordinates().unwrap_or_default()),
+        req.cf()
+            .map(|cf| cf.region().unwrap_or_else(|| "unknown region".into()))
+            .unwrap_or(String::from("No CF properties"))
     ))
 }
 
@@ -68,8 +70,10 @@ async fn handle_async_request<D>(req: Request, _ctx: RouteContext<D>) -> Result<
     Response::ok(format!(
         "[async] req at: {}, located at: {:?}, within: {}",
         req.path(),
-        req.cf().coordinates().unwrap_or_default(),
-        req.cf().region().unwrap_or_else(|| "unknown region".into())
+        req.cf().map(|cf| cf.coordinates().unwrap_or_default()),
+        req.cf()
+            .map(|cf| cf.region().unwrap_or_else(|| "unknown region".into()))
+            .unwrap_or(String::from("No CF properties"))
     ))
 }
 

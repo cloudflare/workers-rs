@@ -17,8 +17,8 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         "{} {}, located at: {:?}, within: {}",
         req.method().to_string(),
         req.path(),
-        req.cf().coordinates().unwrap_or_default(),
-        req.cf().region().unwrap_or("unknown region".into())
+        req.cf().unwrap().coordinates().unwrap_or_default(),
+        req.cf().unwrap().region().unwrap_or("unknown region".into())
     );
 
     if !matches!(req.method(), Method::Post) {
@@ -245,7 +245,7 @@ new_classes = ["Chatroom"] # Array of new classes
 ### Enabling queues
 As queues are in beta you need to enable the `queue` feature flag.
 
-Enable it by adding it to the worker dependency in your `Cargo.toml`: 
+Enable it by adding it to the worker dependency in your `Cargo.toml`:
 ```toml
 worker = {version = "...", features = ["queue"]}
 ```

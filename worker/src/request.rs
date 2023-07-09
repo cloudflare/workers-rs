@@ -204,8 +204,9 @@ impl Request {
     }
 
     /// Access this request's Cloudflare-specific properties.
-    pub fn cf(&self) -> &Cf {
-        self.cf.as_ref().unwrap()
+    /// **Note:** returns an Option because the assumption that the struct `Cf` will always exists can not be relied upon
+    pub fn cf(&self) -> Option<&Cf> {
+        self.cf.as_ref()
     }
 
     /// The HTTP Method associated with this `Request`.
