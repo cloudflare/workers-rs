@@ -252,7 +252,24 @@ impl Storage {
         if !values.is_object() {
             return Err("Must pass in a struct type".to_string().into());
         }
-        JsFuture::from(self.inner.put_multiple(values)?)
+        self.put_multiple_raw(values.dyn_into().unwrap()).await
+    }
+
+    /// Takes an object and stores each of its keys and values to storage.
+    ///
+    /// ```no_run
+    /// # use worker::Storage;
+    /// use worker::JsValue;
+    ///
+    /// # let storage: Storage = todo!();
+    ///
+    /// let obj = js_sys::Object::new();
+    /// js_sys::Reflect::set(&obj, &JsValue::from_str("foo"), JsValue::from_u64(1));
+    ///
+    /// storage.put_multiple_raw(obj);
+    /// ```
+    pub async fn put_multiple_raw(&mut self, values: Object) -> Result<()> {
+        JsFuture::from(self.inner.put_multiple(values.into())?)
             .await
             .map_err(Error::from)
             .map(|_| ())
