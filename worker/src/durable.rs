@@ -240,7 +240,12 @@ impl Storage {
 
     /// Stores the value and associates it with the given key.
     pub async fn put<T: Serialize>(&mut self, key: &str, value: T) -> Result<()> {
-        JsFuture::from(self.inner.put(key, serde_wasm_bindgen::to_value(&value)?)?)
+        self.put_raw(key, serde_wasm_bindgen::to_value(&value)?)
+            .await
+    }
+
+    pub async fn put_raw(&mut self, key: &str, value: impl Into<JsValue>) -> Result<()> {
+        JsFuture::from(self.inner.put(key, value.into())?)
             .await
             .map_err(Error::from)
             .map(|_| ())
