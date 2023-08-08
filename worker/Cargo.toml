@@ -1,6 +1,6 @@
 [package]
 name = "worker"
-version = "0.0.17"
+version = "0.0.18"
 authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
 repository = "https://github.com/cloudflare/workers-rs"
 edition = "2018"
@@ -30,8 +30,8 @@ wasm-bindgen-futures = "0.4.36"
 serde-wasm-bindgen = "0.5.0"
 wasm-streams = "0.3.0"
 worker-kv = "0.6.0"
-worker-macros = { path = "../worker-macros", version = "0.0.9" }
-worker-sys = { path = "../worker-sys", version = "0.0.9" }
+worker-macros = { path = "../worker-macros", version = "0.0.10" }
+worker-sys = { path = "../worker-sys", version = "0.0.10" }
 
 [dependencies.web-sys]
 version = "0.3.63"
