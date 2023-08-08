@@ -68,6 +68,18 @@ impl DurableObject for MyClass {
                         "Didn't get the right HashMap<String, i32> using get_multiple"
                     );
 
+                    {
+                        let bytes = Uint8Array::new_with_length(3);
+                        bytes.copy_from(b"123");
+                        storage.put_raw("bytes", bytes).await?;
+                        let bytes = storage.get::<Vec<u8>>("bytes").await?;
+                        storage.delete("bytes").await?;
+                        ensure!(
+                            bytes == b"123",
+                            "eficient serialization of bytes is not preserved"
+                        );
+                    }
+
                     #[derive(Serialize)]
                     struct Stuff {
                         thing: String,
