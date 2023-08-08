@@ -372,6 +372,12 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             // https://developers.cloudflare.com/workers/platform/compatibility-dates#durable-object-stubfetch-requires-a-full-url
             stub.fetch_with_str("https://fake-host/").await
         })
+        .get_async("/durable/put-raw", |req, ctx| async move {
+            let namespace = ctx.durable_object("PUT_RAW_TEST_OBJECT")?;
+            let id = namespace.unique_id()?;
+            let stub = id.get_stub()?;
+            stub.fetch_with_request(req).await
+        })
         .get("/secret", |_req, ctx| {
             Response::ok(ctx.secret("SOME_SECRET")?.to_string())
         })
