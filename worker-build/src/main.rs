@@ -65,7 +65,15 @@ pub fn main() -> Result<()> {
 const INSTALL_HELP: &str = "In case you are missing the binary, you can install it using: `cargo install wasm-coredump-rewriter`";
 
 fn wasm_coredump() -> Result<()> {
+    let coredump_flags = env::var("COREDUMP_FLAGS");
+    let coredump_flags: Vec<&str> = if let Ok(flags) = &coredump_flags {
+        flags.split(' ').collect()
+    } else {
+        vec![]
+    };
+
     let mut child = Command::new("wasm-coredump-rewriter")
+        .args(coredump_flags)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()
