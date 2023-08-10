@@ -173,7 +173,7 @@ impl WebSocket {
 
 impl AsRef<WebSocket> for WebSocket {
     fn as_ref(&self) -> &WebSocket {
-        &self
+        self
     }
 }
 
@@ -219,9 +219,7 @@ pub struct EventStream<T: AsRef<WebSocket>> {
     )>,
 }
 
-
 impl<T: AsRef<WebSocket>> EventStream<T> {
-
     /// Create EventStream from Websocket. The input can be [`WebSocket`](self::WebSocket),
     /// [`&WebSocket`](self::WebSocket), [`Arc<WebSocket>`](self::WebSocket), etc.
     pub fn new(ws: T) -> Result<EventStream<T>> {
@@ -244,7 +242,7 @@ impl<T: AsRef<WebSocket>> EventStream<T> {
             }
         })?;
         let error_closure =
-        ws_ref.add_event_handler("error", move |event: web_sys::ErrorEvent| {
+            ws_ref.add_event_handler("error", move |event: web_sys::ErrorEvent| {
                 let error = event.error();
                 tx.unbounded_send(Err(error.into())).unwrap();
             })?;
@@ -261,7 +259,6 @@ impl<T: AsRef<WebSocket>> EventStream<T> {
         self.ws.as_ref()
     }
 }
-
 
 impl<T: AsRef<WebSocket>> Stream for EventStream<T> {
     type Item = Result<WebsocketEvent>;
