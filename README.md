@@ -363,7 +363,7 @@ struct Thing {
 }
 
 #[event(fetch, respond_with_errors)]
-pub async fn main(request: Request,	env: Env, _ctx: Context) -> Result<Response> {
+pub async fn main(request: Request, env: Env, _ctx: Context) -> Result<Response> {
 	Router::new()
 		.get_async("/:id", |_, ctx| async move {
 			let id = ctx.param("id").unwrap()?;
