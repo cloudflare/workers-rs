@@ -185,7 +185,7 @@ pub async fn main(
         .get("/status-code", |_, _| async move {
             Response::builder()
                 .status(http::StatusCode::IM_A_TEAPOT)
-                .body(Body::none())
+                .body(Body::empty())
                 .map_err(|e| Error::RustError(e.to_string()))
         })
         .post("/headers", |req, _| async move {
@@ -381,7 +381,7 @@ pub async fn main(
 
             // Make sure that cloning a non-JS request returns none
             assert!(http::Request::get("https://example.com")
-                .body(body::Body::none())
+                .body(body::Body::empty())
                 .unwrap()
                 .clone_inner()
                 .is_none());

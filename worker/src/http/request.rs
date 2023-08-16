@@ -2,7 +2,9 @@
 
 use bytes::Buf;
 use futures_util::StreamExt;
+use js_sys::Uint8Array;
 use wasm_bindgen::JsCast;
+use worker_sys::console_log;
 use worker_sys::ext::{HeadersExt, RequestExt};
 
 use crate::{AbortSignal, Cf, CfProperties};

@@ -1,7 +1,7 @@
 import { describe, test, expect } from "vitest";
 import { mf } from "./mf";
 
-describe("cache", () => {
+describe("clone", () => {
   test("clone", async () => {
     const resp = await mf.dispatchFetch("https://fake.host/clone", {
       method: "POST",

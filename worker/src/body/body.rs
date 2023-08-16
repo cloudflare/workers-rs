@@ -6,13 +6,25 @@ use std::{
 use bytes::Bytes;
 use futures_util::Stream;
 use http::HeaderMap;
+use js_sys::{ArrayBuffer, Promise, Uint8Array};
 use serde::de::DeserializeOwned;
+use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
 
 use crate::{
     body::{wasm::WasmStreamBody, HttpBody},
     futures::SendJsFuture,
     Error,
 };
+
+// FIXME(zeb): this is a really disgusting hack that has to clone the bytes inside of the stream
+// because the array buffer backing them gets detached.
+#[wasm_bindgen(module = "/js/hacks.js")]
+extern "C" {
+    #[wasm_bindgen(js_name = "collectBytes", catch)]
+    fn collect_bytes(
+        stream: &JsValue,
+    ) -> Result<Promise, JsValue>;
+}
 
 type BoxBody = http_body::combinators::UnsyncBoxBody<Bytes, Error>;
 
@@ -103,10 +115,29 @@ impl Body {
         // Check the type of the body we have. Using the `array_buffer` function on the JS types might improve
         // performance as there's no polling overhead.
         match self.0 {
-            BodyInner::None => Ok(Bytes::new()),
             BodyInner::Regular(body) => super::to_bytes(body).await,
+            /*
+            Working but clones all body
+            BodyInner::Request(req) if req.body().is_some() => {
+                // let body = req.body().unwrap();
+                let promise = collect_bytes(&req.unchecked_into())?;
+                let bytes: ArrayBuffer = SendJsFuture::from(promise).await?.into();
+                let bytes = Uint8Array::new(&bytes);
+                
+                Ok(bytes.to_vec().into())
+            }
+            BodyInner::Response(res) if res.body().is_some() => {
+                let promise = collect_bytes(&res.unchecked_into())?;
+                let bytes: ArrayBuffer = SendJsFuture::from(promise).await?.into();
+                let bytes = Uint8Array::new(&bytes);
+                
+                Ok(bytes.to_vec().into())
+            }
+            */
+            // Failing
             BodyInner::Request(req) => Ok(array_buffer_to_bytes(req.array_buffer()).await),
             BodyInner::Response(res) => Ok(array_buffer_to_bytes(res.array_buffer()).await),
+            _ => Ok(Bytes::new()),
         }
     }
 
