@@ -6,7 +6,7 @@
 
 Read the [Notes and FAQ](#notes-and-faq)
 
-### Example Usage
+## Example Usage
 
 ```rust
 use worker::*;
