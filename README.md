@@ -10,31 +10,32 @@ Read the [Notes and FAQ](#notes-and-faq)
 
 ```rust
 use worker::*;
+use serde::{Serialize, Deserialize};
 
-#[event(fetch)]
-pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
-    console_log!(
-        "{} {}, located at: {:?}, within: {}",
-        req.method().to_string(),
-        req.path(),
-        req.cf().coordinates().unwrap_or_default(),
-        req.cf().region().unwrap_or("unknown region".into())
-    );
 
-    if !matches!(req.method(), Method::Post) {
-        return Response::error("Method Not Allowed", 405);
-    }
+#[derive(Serialize, Deserialize)]
+struct Thing {
+	thing_id: String,
+	desc: String,
+	num: u32,
+}
 
-    if let Some(file) = req.form_data().await?.get("file") {
-        return match file {
-            FormEntry::File(buf) => {
-                Response::ok(&format!("size = {}", buf.bytes().await?.len()))
-            }
-            _ => Response::error("`file` part of POST form must be a file", 400),
-        };
-    }
-
-    Response::error("Bad Request", 400)
+#[event(fetch, respond_with_errors)]
+pub async fn main(request: Request, env: Env, _ctx: Context) -> Result<Response> {
+	Router::new()
+		.get_async("/:id", |_, ctx| async move {
+			let id = ctx.param("id").unwrap();
+			let d1 = ctx.env.d1("things-db")?;
+			let statement = d1.prepare("SELECT * FROM things WHERE thing_id = ? LIMIT 1");
+			let query = statement.bind(&[id.into()])?;
+			let result: Option<Thing> = query.first(None).await?;
+			match result {
+				Some(thing) => Response::from_json(&thing),
+				None => Response::error("Not found", 404),
+			}
+		})
+		.run(request, env)
+		.await
 }
 ```
 
