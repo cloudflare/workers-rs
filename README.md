@@ -26,9 +26,9 @@ pub async fn main(request: Request, env: Env, _ctx: Context) -> Result<Response>
 		.get_async("/:id", |_, ctx| async move {
 			let id = ctx.param("id").unwrap();
 			let d1 = ctx.env.d1("things-db")?;
-			let statement = d1.prepare("SELECT * FROM things WHERE thing_id = ?1");
+			let statement = d1.prepare("SELECT * FROM things WHERE thing_id = ? LIMIT 1");
 			let query = statement.bind(&[id.into()])?;
-			let result = query.first::<Thing>(None).await?;
+			let result: Option<Thing> = query.first(None).await?;
 			match result {
 				Some(thing) => Response::from_json(&thing),
 				None => Response::error("Not found", 404),
