@@ -12,7 +12,9 @@ use worker_sys::{
     R2UploadedPart as EdgeR2UploadedPart,
 };
 
-use crate::{env::EnvBinding, ByteStream, Date, Error, FixedLengthStream, Headers, Result};
+use crate::{
+    env::EnvBinding, ByteStream, Date, Error, FixedLengthStream, Headers, ResponseBody, Result,
+};
 
 mod builder;
 
@@ -280,6 +282,19 @@ impl<'body> ObjectBody<'body> {
         Ok(ByteStream {
             inner: stream.into_stream(),
         })
+    }
+
+    /// Returns a [ResponseBody] containing the data in the [Object].
+    ///
+    /// This function can be used to hand off the [Object] data to the workers runtime for streaming
+    /// to the client in a [crate::Response]. This ensures that the worker does not consume CPU time
+    /// while the streaming occurs, which can be significant if instead [ObjectBody::stream] is used.
+    pub fn response_body(self) -> Result<ResponseBody> {
+        if self.inner.body_used() {
+            return Err(Error::BodyUsed);
+        }
+
+        Ok(ResponseBody::Stream(self.inner.body()))
     }
 
     pub async fn bytes(self) -> Result<Vec<u8>> {
