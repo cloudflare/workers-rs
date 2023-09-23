@@ -6,6 +6,7 @@ use wasm_bindgen::{JsCast, JsValue};
 pub enum Error {
     BadEncoding,
     BodyUsed,
+    Custom(String),
     Json((String, u16)),
     JsError(String),
     Internal(JsValue),
@@ -53,7 +54,8 @@ impl std::fmt::Display for Error {
         match self {
             Error::BadEncoding => write!(f, "content-type mismatch"),
             Error::BodyUsed => write!(f, "body has already been read"),
-            Error::Json((msg, status)) => write!(f, "{msg} (status: {status})"),
+            Error::Custom(e) => write!(f, "{}", e),
+            Error::Json((msg, _)) => write!(f, "{msg}"),
             Error::JsError(s) | Error::RustError(s) => {
                 write!(f, "{s}")
             }
