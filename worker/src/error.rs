@@ -54,7 +54,7 @@ impl std::fmt::Display for Error {
         match self {
             Error::BadEncoding => write!(f, "content-type mismatch"),
             Error::BodyUsed => write!(f, "body has already been read"),
-            Error::Custom(e) => write!(f, "{}", e),
+            Error::Custom(e) => write!(f, "{e}"),
             Error::Json((msg, _)) => write!(f, "{msg}"),
             Error::JsError(s) | Error::RustError(s) => {
                 write!(f, "{s}")
