@@ -13,7 +13,9 @@ readme = "../README.md"
 
 [dependencies]
 async-trait = "0.1.68"
-chrono = { version = "0.4.26", default-features = false, features = ["wasmbind"] }
+chrono = { version = "0.4.26", default-features = false, features = [
+    "wasmbind",
+] }
 chrono-tz = { version = "0.8.2", default-features = false }
 futures-channel = "0.3.28"
 futures-util = { version = "0.3.28", default-features = false }
@@ -27,7 +29,7 @@ tokio = { version = "1.28", default-features = false }
 url = "2.4.0"
 wasm-bindgen = "=0.2.86"
 wasm-bindgen-futures = "0.4.36"
-serde-wasm-bindgen = "0.5.0"
+serde-wasm-bindgen = "0.6.0"
 wasm-streams = "0.3.0"
 worker-kv = "0.6.0"
 worker-macros = { path = "../worker-macros", version = "0.0.10" }
@@ -39,7 +41,7 @@ features = [
     "File",
     "WorkerGlobalScope",
     "ReadableStreamDefaultReader",
-    "WritableStreamDefaultWriter"
+    "WritableStreamDefaultWriter",
 ]
 
 [features]
