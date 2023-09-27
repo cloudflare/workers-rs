@@ -45,6 +45,25 @@ impl FormData {
         None
     }
 
+    /// Returns the first Field value associated with a given key from within a `FormData` object.
+    pub fn get_field(&self, name: &str) -> Option<String> {
+        let val = self.0.get(name);
+        if val.is_undefined() {
+            return None;
+        }
+
+        if val.is_instance_of::<web_sys::File>() {
+            return None;
+        }
+
+        if let Some(field) = val.as_string() {
+            return Some(field);
+        }
+
+        None
+
+    }
+
     /// Returns a vec of all the values associated with a given key from within a `FormData` object.
     pub fn get_all(&self, name: &str) -> Option<Vec<FormEntry>> {
         let val = self.0.get_all(name);
