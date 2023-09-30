@@ -12,14 +12,14 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 
 /// Representing the options any FormData value can be, a field or a file.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FormEntry {
     Field(String),
     File(File),
 }
 /// A [FormData](https://developer.mozilla.org/en-US/docs/Web/API/FormData) representation of the
 /// request body, providing access to form encoded fields and files.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FormData(web_sys::FormData);
 
 impl FormData {
@@ -112,7 +112,7 @@ impl From<HashMap<&dyn AsRef<&str>, &dyn AsRef<&str>>> for FormData {
 
 /// A [File](https://developer.mozilla.org/en-US/docs/Web/API/File) representation used with
 /// `FormData`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct File(web_sys::File);
 
 impl File {
