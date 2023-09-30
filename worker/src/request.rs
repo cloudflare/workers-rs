@@ -204,7 +204,12 @@ impl Request {
     }
 
     /// Access this request's Cloudflare-specific properties.
-    /// **Note:** returns an Option because the assumption that the struct `Cf` will always exists can not be relied upon
+    ///
+    /// # Note
+    ///
+    /// Request objects constructed by the user and not the runtime will not have a [Cf] associated.
+    ///
+    /// See [workerd#825](https://github.com/cloudflare/workerd/issues/825)
     pub fn cf(&self) -> Option<&Cf> {
         self.cf.as_ref()
     }
