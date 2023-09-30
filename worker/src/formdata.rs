@@ -61,7 +61,6 @@ impl FormData {
         }
 
         None
-
     }
 
     /// Returns a vec of all the values associated with a given key from within a `FormData` object.
