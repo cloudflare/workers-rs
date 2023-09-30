@@ -13,6 +13,7 @@ use worker_sys::ext::HeadersExt;
 
 /// A [Headers](https://developer.mozilla.org/en-US/docs/Web/API/Headers) representation used in
 /// Request and Response objects.
+#[derive(Clone, PartialEq, Eq)]
 pub struct Headers(pub web_sys::Headers);
 
 impl std::fmt::Debug for Headers {
@@ -180,12 +181,5 @@ impl From<&Headers> for HeaderMap {
 impl From<Headers> for HeaderMap {
     fn from(headers: Headers) -> Self {
         (&headers).into()
-    }
-}
-
-impl Clone for Headers {
-    fn clone(&self) -> Self {
-        // Headers constructor doesn't throw an error
-        Headers(web_sys::Headers::new_with_headers(&self.0).unwrap())
     }
 }
