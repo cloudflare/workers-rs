@@ -150,7 +150,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             Response::ok(got_close_event)
         })
         .get_async("/ws-client", |_, _| async move {
-            let ws = WebSocket::connect("wss://echo.zeb.workers.dev/".parse()?).await?;
+            let ws = WebSocket::connect("wss://echo.miniflare.mocks/".parse()?).await?;
 
             // It's important that we call this before we send our first message, otherwise we will
             // not have any event listeners on the socket to receive the echoed message.
@@ -490,7 +490,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             let signal = controller.signal();
 
             let fetch_fut = async {
-                let fetch = Fetch::Url("https://delay.zeb.workers.dev/".parse().unwrap());
+                let fetch = Fetch::Url("https://miniflare.mocks/".parse().unwrap());
                 let mut res = fetch.send_with_signal(&signal).await?;
                 let text = res.text().await?;
                 Ok::<String, worker::Error>(text)
