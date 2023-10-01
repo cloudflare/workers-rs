@@ -327,7 +327,7 @@ impl<'a, D: 'a> Router<'a, D> {
         for method in methods {
             self.handlers
                 .entry(method.clone())
-                .or_insert_with(Node::new)
+                .or_default()
                 .insert(pattern, func.clone())
                 .unwrap_or_else(|e| {
                     panic!(
