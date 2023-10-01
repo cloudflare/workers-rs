@@ -97,7 +97,10 @@ pub async fn error(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<R
         .expect_err("did not get error");
 
     if let Error::D1(error) = error {
-        assert_eq!(error.cause(), "Error in line 1: THIS IS NOT VALID SQL: ERROR 9009: SQL prepare error: near \"THIS\": syntax error in THIS IS NOT VALID SQL at offset 0")
+        assert_eq!(
+            error.cause(),
+            "Error in line 1: THIS IS NOT VALID SQL: SqliteError: near \"THIS\": syntax error"
+        )
     } else {
         panic!("expected D1 error");
     }

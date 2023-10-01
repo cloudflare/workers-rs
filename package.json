@@ -16,12 +16,13 @@
   "devDependencies": {
     "@types/node": "^20.4.8",
     "@types/uuid": "^9.0.2",
-    "miniflare": "^3.20230801.1",
+    "miniflare": "^3.20230922.0",
     "typescript": "^5.1.6",
+    "undici": "^5.25.3",
     "uuid": "^9.0.0",
     "vitest": "^0.32.4"
   },
   "scripts": {
-    "test": ""
+    "test": "cd worker-sandbox && vitest"
   }
 }
