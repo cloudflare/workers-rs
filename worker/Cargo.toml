@@ -42,6 +42,12 @@ features = [
     "WritableStreamDefaultWriter"
 ]
 
+[dependencies.tokio-postgres]
+#version = "0.7"
+default-features=false
+features = ["js"]
+path="../../rust-postgres/tokio-postgres"
+
 [features]
 queue = ["worker-macros/queue", "worker-sys/queue"]
 d1 = ["worker-sys/d1"]

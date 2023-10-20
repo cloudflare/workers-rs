@@ -376,6 +376,13 @@ fn handle_data(buf: &mut ReadBuf<'_>, mut data: Vec<u8>) -> (Reading, Poll<IoRes
     }
 }
 
+impl tokio_postgres::tls::TlsStream for Socket {
+    /// Returns channel binding information for the session.
+    fn channel_binding(&self) -> tokio_postgres::tls::ChannelBinding {
+        tokio_postgres::tls::ChannelBinding::none()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

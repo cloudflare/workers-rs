@@ -1010,13 +1010,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "postgres-protocol"
+version = "0.6.6"
+dependencies = [
+ "base64 0.21.2",
+ "byteorder",
+ "bytes",
+ "fallible-iterator",
+ "getrandom",
+ "hmac",
+ "md-5",
+ "memchr",
+ "rand",
+ "sha2",
+ "stringprep",
+]
+
+[[package]]
 name = "postgres-types"
 version = "0.2.5"
 source = "git+https://github.com/sfackler/rust-postgres?branch=master#790af54a0fdd5c487e77dc9a25d82921ee31ffe6"
 dependencies = [
  "bytes",
  "fallible-iterator",
- "postgres-protocol",
+ "postgres-protocol 0.6.5",
+]
+
+[[package]]
+name = "postgres-types"
+version = "0.2.6"
+dependencies = [
+ "bytes",
+ "fallible-iterator",
+ "postgres-protocol 0.6.6",
 ]
 
 [[package]]
@@ -1603,18 +1629,42 @@ dependencies = [
  "percent-encoding",
  "phf",
  "pin-project-lite",
- "postgres-protocol",
- "postgres-types",
+ "postgres-protocol 0.6.5",
+ "postgres-types 0.2.5",
  "socket2 0.5.3",
  "tokio",
  "tokio-util",
 ]
 
 [[package]]
+name = "tokio-postgres"
+version = "0.7.10"
+dependencies = [
+ "async-trait",
+ "byteorder",
+ "bytes",
+ "fallible-iterator",
+ "futures-channel",
+ "futures-util",
+ "log",
+ "parking_lot",
+ "percent-encoding",
+ "phf",
+ "pin-project-lite",
+ "postgres-protocol 0.6.6",
+ "postgres-types 0.2.6",
+ "rand",
+ "socket2 0.5.3",
+ "tokio",
+ "tokio-util",
+ "whoami",
+]
+
+[[package]]
 name = "tokio-postgres-on-workers"
 version = "0.1.0"
 dependencies = [
- "tokio-postgres",
+ "tokio-postgres 0.7.8",
  "worker",
 ]
 
@@ -2137,6 +2187,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "whoami"
+version = "1.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "22fc3756b8a9133049b26c7f61ab35416c130e8c09b660f5b3958b446f52cc50"
+dependencies = [
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
 name = "winapi"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2316,6 +2376,7 @@ dependencies = [
  "serde-wasm-bindgen",
  "serde_json",
  "tokio",
+ "tokio-postgres 0.7.10",
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
