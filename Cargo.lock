@@ -1012,6 +1012,7 @@ dependencies = [
 [[package]]
 name = "postgres-protocol"
 version = "0.6.6"
+source = "git+https://github.com/kflansburg/rust-postgres.git?branch=kflansburg/passthrough-tls#683846838b0aa2d45cb1fc96ca18fd92d0003d91"
 dependencies = [
  "base64 0.21.2",
  "byteorder",
@@ -1039,6 +1040,7 @@ dependencies = [
 [[package]]
 name = "postgres-types"
 version = "0.2.6"
+source = "git+https://github.com/kflansburg/rust-postgres.git?branch=kflansburg/passthrough-tls#683846838b0aa2d45cb1fc96ca18fd92d0003d91"
 dependencies = [
  "bytes",
  "fallible-iterator",
@@ -1639,6 +1641,7 @@ dependencies = [
 [[package]]
 name = "tokio-postgres"
 version = "0.7.10"
+source = "git+https://github.com/kflansburg/rust-postgres.git?branch=kflansburg/passthrough-tls#683846838b0aa2d45cb1fc96ca18fd92d0003d91"
 dependencies = [
  "async-trait",
  "byteorder",

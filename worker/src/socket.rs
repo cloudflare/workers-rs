@@ -383,6 +383,12 @@ impl tokio_postgres::tls::TlsStream for Socket {
     }
 }
 
+impl tokio_postgres::tls::StartTlsStream for Socket {
+    fn start_tls(self) -> Self {
+        self.start_tls()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

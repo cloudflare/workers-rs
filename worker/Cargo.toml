@@ -43,10 +43,11 @@ features = [
 ]
 
 [dependencies.tokio-postgres]
-#version = "0.7"
+version = "0.7"
 default-features=false
 features = ["js"]
-path="../../rust-postgres/tokio-postgres"
+git = "https://github.com/kflansburg/rust-postgres.git"
+branch = "kflansburg/passthrough-tls"
 
 [features]
 queue = ["worker-macros/queue", "worker-sys/queue"]
