@@ -377,6 +377,9 @@ fn handle_data(buf: &mut ReadBuf<'_>, mut data: Vec<u8>) -> (Reading, Poll<IoRes
 }
 
 #[cfg(feature = "tokio-postgres")]
+/// Implements [`TlsConnect`](tokio_postgres::TlsConnect) for
+/// [`Socket`](crate::Socket) to enable `tokio_postgres` connections
+/// to databases using TLS.
 pub mod postgres_tls {
     use super::Socket;
     use futures_util::future::{ready, Ready};
@@ -384,13 +387,16 @@ pub mod postgres_tls {
     use std::fmt::{self, Display, Formatter};
     use tokio_postgres::tls::{ChannelBinding, TlsConnect, TlsStream};
 
-    /// Represents a stream which can start tls itself.
-    pub trait StartTlsStream: TlsStream {
-        /// Switch from plaintext to TLS
-        fn start_tls(self) -> Self;
-    }
-
-    /// Use TLS when socket already originates TLS connection
+    /// Supply this to `connect_raw` in place of `NoTls` to specify TLS
+    /// when using Workers.
+    ///
+    /// ```rust
+    /// let config = tokio_postgres::config::Config::new();
+    /// let socket = Socket::builder()
+    ///     .secure_transport(SecureTransport::StartTls)
+    ///     .connect("database_url", 5432)?;
+    /// let _ = config.connect_raw(socket, PassthroughTls).await?;
+    /// ```
     pub struct PassthroughTls;
 
     #[derive(Debug)]
@@ -402,29 +408,24 @@ pub mod postgres_tls {
 
     impl Display for PassthroughTlsError {
         fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-            fmt.write_str("PassthroughTlsError: future already polled")
+            fmt.write_str("PassthroughTlsError")
         }
     }
 
-    impl<S: StartTlsStream + Unpin> TlsConnect<S> for PassthroughTls {
-        type Stream = S;
+    impl TlsConnect<Socket> for PassthroughTls {
+        type Stream = Socket;
         type Error = PassthroughTlsError;
-        type Future = Ready<Result<S, PassthroughTlsError>>;
+        type Future = Ready<Result<Socket, PassthroughTlsError>>;
 
         fn connect(self, s: Self::Stream) -> Self::Future {
             let tls = s.start_tls();
             ready(Ok(tls))
         }
     }
+
     impl TlsStream for Socket {
         fn channel_binding(&self) -> ChannelBinding {
             ChannelBinding::none()
-        }
-    }
-
-    impl StartTlsStream for Socket {
-        fn start_tls(self) -> Self {
-            self.start_tls()
         }
     }
 }
