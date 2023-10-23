@@ -11,5 +11,5 @@ wasm-opt = false
 crate-type = ["cdylib"]
 
 [dependencies]
-worker = { workspace=true }
+worker = { workspace=true, features=["tokio-postgres"] }
 tokio-postgres = { git="https://github.com/sfackler/rust-postgres", branch="master", features=['js'], default-features=false }
