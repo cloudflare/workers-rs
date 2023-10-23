@@ -376,16 +376,56 @@ fn handle_data(buf: &mut ReadBuf<'_>, mut data: Vec<u8>) -> (Reading, Poll<IoRes
     }
 }
 
-impl tokio_postgres::tls::TlsStream for Socket {
-    /// Returns channel binding information for the session.
-    fn channel_binding(&self) -> tokio_postgres::tls::ChannelBinding {
-        tokio_postgres::tls::ChannelBinding::none()
-    }
-}
+#[cfg(feature = "tokio-postgres")]
+pub mod postgres_tls {
+    use super::Socket;
+    use futures_util::future::{ready, Ready};
+    use std::error::Error;
+    use std::fmt::{self, Display, Formatter};
+    use tokio_postgres::tls::{ChannelBinding, TlsConnect, TlsStream};
 
-impl tokio_postgres::tls::StartTlsStream for Socket {
-    fn start_tls(self) -> Self {
-        self.start_tls()
+    /// Represents a stream which can start tls itself.
+    pub trait StartTlsStream: TlsStream {
+        /// Switch from plaintext to TLS
+        fn start_tls(self) -> Self;
+    }
+
+    /// Use TLS when socket already originates TLS connection
+    pub struct PassthroughTls;
+
+    #[derive(Debug)]
+    /// Error type for PassthroughTls.
+    /// Should never be returned.
+    pub struct PassthroughTlsError;
+
+    impl Error for PassthroughTlsError {}
+
+    impl Display for PassthroughTlsError {
+        fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+            fmt.write_str("PassthroughTlsError: future already polled")
+        }
+    }
+
+    impl<S: StartTlsStream + Unpin> TlsConnect<S> for PassthroughTls {
+        type Stream = S;
+        type Error = PassthroughTlsError;
+        type Future = Ready<Result<S, PassthroughTlsError>>;
+
+        fn connect(self, s: Self::Stream) -> Self::Future {
+            let tls = s.start_tls();
+            ready(Ok(tls))
+        }
+    }
+    impl TlsStream for Socket {
+        fn channel_binding(&self) -> ChannelBinding {
+            ChannelBinding::none()
+        }
+    }
+
+    impl StartTlsStream for Socket {
+        fn start_tls(self) -> Self {
+            self.start_tls()
+        }
     }
 }
 

@@ -1012,7 +1012,8 @@ dependencies = [
 [[package]]
 name = "postgres-protocol"
 version = "0.6.6"
-source = "git+https://github.com/kflansburg/rust-postgres.git?branch=kflansburg/passthrough-tls#683846838b0aa2d45cb1fc96ca18fd92d0003d91"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "49b6c5ef183cd3ab4ba005f1ca64c21e8bd97ce4699cfea9e8d9a2c4958ca520"
 dependencies = [
  "base64 0.21.2",
  "byteorder",
@@ -1040,7 +1041,8 @@ dependencies = [
 [[package]]
 name = "postgres-types"
 version = "0.2.6"
-source = "git+https://github.com/kflansburg/rust-postgres.git?branch=kflansburg/passthrough-tls#683846838b0aa2d45cb1fc96ca18fd92d0003d91"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8d2234cdee9408b523530a9b6d2d6b373d1db34f6a8e51dc03ded1828d7fb67c"
 dependencies = [
  "bytes",
  "fallible-iterator",
@@ -1641,7 +1643,8 @@ dependencies = [
 [[package]]
 name = "tokio-postgres"
 version = "0.7.10"
-source = "git+https://github.com/kflansburg/rust-postgres.git?branch=kflansburg/passthrough-tls#683846838b0aa2d45cb1fc96ca18fd92d0003d91"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d340244b32d920260ae7448cb72b6e238bddc3d4f7603394e7dd46ed8e48f5b8"
 dependencies = [
  "async-trait",
  "byteorder",
