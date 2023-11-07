@@ -1,0 +1,15 @@
+[package]
+name = "js_snippets"
+version = "0.1.0"
+edition = "2021"
+
+# https://github.com/rustwasm/wasm-pack/issues/1247
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+worker = { workspace = true }
+console_error_panic_hook = { version = "0.1.1" }

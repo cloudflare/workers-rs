@@ -4,6 +4,7 @@ use std::{
     convert::TryInto,
     env::{self, VarError},
     ffi::OsStr,
+    fmt::Write as _,
     fs::{self, File},
     io::{Read, Write},
     path::{Path, PathBuf},
@@ -52,7 +53,7 @@ pub fn main() -> Result<()> {
     copy_generated_code_to_worker_dir()?;
     use_glue_import()?;
 
-    write_string_to_file(worker_path("glue.js"), include_str!("./js/glue.js"))?;
+    write_glue_file()?;
     write_string_to_file(worker_path("shim.js"), include_str!("./js/shim.js"))?;
 
     bundle(&esbuild_path)?;
@@ -198,6 +199,64 @@ fn use_glue_import() -> Result<()> {
     let old_bindgen_glue = read_file_to_string(&bindgen_glue_path)?;
     let fixed_bindgen_glue = old_bindgen_glue.replace(WASM_IMPORT, WASM_IMPORT_REPLACEMENT);
     write_string_to_file(bindgen_glue_path, fixed_bindgen_glue)?;
+    Ok(())
+}
+
+// Write the glue file with js snippets.
+fn write_glue_file() -> Result<()> {
+    let glue_file = include_str!("./js/glue.js");
+    let snippets_dir = worker_path("snippets");
+    let mut snippets = Vec::new();
+    let mut counter = 0;
+
+    fn get_snippets(
+        path: &Path,
+        path_string: String,
+        counter: &mut usize,
+        snippets: &mut Vec<(String, String)>,
+    ) -> Result<()> {
+        if path.is_dir() {
+            for entry in fs::read_dir(path)? {
+                let entry = entry?;
+                get_snippets(
+                    &entry.path(),
+                    format!("{}/{}", path_string, &entry.file_name().to_string_lossy()),
+                    counter,
+                    snippets,
+                )?;
+            }
+        } else if path.is_file() {
+            snippets.push((format!("snippets_{}", counter), path_string));
+            *counter += 1;
+        }
+        Ok(())
+    }
+
+    get_snippets(
+        &snippets_dir,
+        "./snippets".to_string(),
+        &mut counter,
+        &mut snippets,
+    )?;
+
+    let js_imports = snippets
+        .iter()
+        .fold(String::new(), |mut output, (name, path)| {
+            let _ = writeln!(output, "import * as {} from \"{}\";", name, path);
+            output
+        });
+
+    let wasm_imports = snippets
+        .into_iter()
+        .fold(String::new(), |mut output, (name, path)| {
+            let _ = write!(output, ", \"{}\": {}", path, name);
+            output
+        });
+
+    let glue_file = glue_file.replace("/* #IMPORTS_JS_SNIPPETS# */\n", &js_imports);
+    let glue_file = glue_file.replace("/* #WASM_JS_SNIPPETS# */", &wasm_imports);
+
+    write_string_to_file(worker_path("glue.js"), glue_file)?;
     Ok(())
 }
 
