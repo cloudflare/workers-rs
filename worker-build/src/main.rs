@@ -2,6 +2,8 @@
 
 use std::{
     env::{self, VarError},
+    ffi::OsStr,
+    fmt::Write as _,
     fs::{self, read_to_string, File},
     io::{Read, Write},
     path::{Path, PathBuf},
@@ -48,11 +50,64 @@ pub fn main() -> Result<()> {
         Err(_) => SHIM_TEMPLATE.to_owned(),
     };
 
-    let shim = if env::var("RUN_TO_COMPLETION").is_ok() {
-        shim_template.replace("$WAIT_UNTIL_RESPONSE", "this.ctx.waitUntil(response);")
+    let wait_until_response = if env::var("RUN_TO_COMPLETION").is_ok() {
+        "this.ctx.waitUntil(response);"
     } else {
-        shim_template.replace("$WAIT_UNTIL_RESPONSE", "")
+        ""
     };
+
+    let snippets_dir = worker_path("snippets");
+    let mut snippets = Vec::new();
+    let mut counter = 0;
+
+    fn get_snippets(
+        path: &Path,
+        path_string: String,
+        counter: &mut usize,
+        snippets: &mut Vec<(String, String)>,
+    ) -> Result<()> {
+        if path.is_dir() {
+            for entry in fs::read_dir(path)? {
+                let entry = entry?;
+                get_snippets(
+                    &entry.path(),
+                    format!("{}/{}", path_string, &entry.file_name().to_string_lossy()),
+                    counter,
+                    snippets,
+                )?;
+            }
+        } else if path.is_file() {
+            snippets.push((format!("snippets_{}", counter), path_string));
+            *counter += 1;
+        }
+        Ok(())
+    }
+
+    get_snippets(
+        &snippets_dir,
+        "./snippets".to_string(),
+        &mut counter,
+        &mut snippets,
+    )?;
+
+    let js_imports = snippets
+        .iter()
+        .fold(String::new(), |mut output, (name, path)| {
+            let _ = writeln!(output, "import * as {} from \"{}\";", name, path);
+            output
+        });
+
+    let wasm_imports = snippets
+        .into_iter()
+        .fold(String::new(), |mut output, (name, path)| {
+            let _ = write!(output, ", \"{}\": {}", path, name);
+            output
+        });
+
+    let shim = shim_template
+        .replace("$WAIT_UNTIL_RESPONSE", wait_until_response)
+        .replace("$SNIPPET_JS_IMPORTS", &js_imports)
+        .replace("$SNIPPET_WASM_IMPORTS", &wasm_imports);
 
     write_string_to_file(worker_path("shim.js"), shim)?;
 

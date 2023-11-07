@@ -1,0 +1,6 @@
+name = "js_snippets"
+main = "build/worker/shim.mjs"
+compatibility_date = "2023-03-22"
+
+[build]
+command = "cargo install --path ../../worker-build && worker-build --release"
