@@ -2,6 +2,7 @@
 name = "tokio-postgres-on-workers"
 version = "0.1.0"
 edition = "2021"
+resolver = "2"
 
 # https://github.com/rustwasm/wasm-pack/issues/1247
 [package.metadata.wasm-pack.profile.release]
@@ -11,5 +12,5 @@ wasm-opt = false
 crate-type = ["cdylib"]
 
 [dependencies]
-worker = { workspace=true }
-tokio-postgres = { git="https://github.com/sfackler/rust-postgres", branch="master", features=['js'], default-features=false }
+worker = { workspace=true, features=["tokio-postgres"] }
+tokio-postgres = { version="0.7", features=['js'], default-features=false }

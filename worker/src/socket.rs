@@ -376,6 +376,60 @@ fn handle_data(buf: &mut ReadBuf<'_>, mut data: Vec<u8>) -> (Reading, Poll<IoRes
     }
 }
 
+#[cfg(feature = "tokio-postgres")]
+/// Implements [`TlsConnect`](tokio_postgres::TlsConnect) for
+/// [`Socket`](crate::Socket) to enable `tokio_postgres` connections
+/// to databases using TLS.
+pub mod postgres_tls {
+    use super::Socket;
+    use futures_util::future::{ready, Ready};
+    use std::error::Error;
+    use std::fmt::{self, Display, Formatter};
+    use tokio_postgres::tls::{ChannelBinding, TlsConnect, TlsStream};
+
+    /// Supply this to `connect_raw` in place of `NoTls` to specify TLS
+    /// when using Workers.
+    ///
+    /// ```rust
+    /// let config = tokio_postgres::config::Config::new();
+    /// let socket = Socket::builder()
+    ///     .secure_transport(SecureTransport::StartTls)
+    ///     .connect("database_url", 5432)?;
+    /// let _ = config.connect_raw(socket, PassthroughTls).await?;
+    /// ```
+    pub struct PassthroughTls;
+
+    #[derive(Debug)]
+    /// Error type for PassthroughTls.
+    /// Should never be returned.
+    pub struct PassthroughTlsError;
+
+    impl Error for PassthroughTlsError {}
+
+    impl Display for PassthroughTlsError {
+        fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+            fmt.write_str("PassthroughTlsError")
+        }
+    }
+
+    impl TlsConnect<Socket> for PassthroughTls {
+        type Stream = Socket;
+        type Error = PassthroughTlsError;
+        type Future = Ready<Result<Socket, PassthroughTlsError>>;
+
+        fn connect(self, s: Self::Stream) -> Self::Future {
+            let tls = s.start_tls();
+            ready(Ok(tls))
+        }
+    }
+
+    impl TlsStream for Socket {
+        fn channel_binding(&self) -> ChannelBinding {
+            ChannelBinding::none()
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

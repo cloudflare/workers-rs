@@ -1,3 +1,4 @@
+use worker::postgres_tls::PassthroughTls;
 use worker::*;
 
 #[event(fetch)]
@@ -7,9 +8,11 @@ async fn main(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
     config.user("postgres");
 
     // Connect using Worker Socket
-    let socket = Socket::builder().connect("database_url", 5432)?;
+    let socket = Socket::builder()
+        .secure_transport(SecureTransport::StartTls)
+        .connect("database_url", 5432)?;
     let (_client, connection) = config
-        .connect_raw(socket, tokio_postgres::tls::NoTls)
+        .connect_raw(socket, PassthroughTls)
         .await
         .map_err(|e| worker::Error::RustError(format!("tokio-postgres: {:?}", e)))?;
 
