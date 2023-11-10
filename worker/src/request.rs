@@ -37,7 +37,7 @@ impl From<web_sys::Request> for Request {
                     }
                     u
                 }),
-            headers: Headers(req.headers()),
+            headers: req.headers().into(),
             cf: req.cf().map(Into::into),
             edge_request: req,
             body_used: false,

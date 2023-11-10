@@ -13,7 +13,22 @@ use worker_sys::ext::HeadersExt;
 
 /// A [Headers](https://developer.mozilla.org/en-US/docs/Web/API/Headers) representation used in
 /// Request and Response objects.
-pub struct Headers(pub web_sys::Headers);
+pub struct Headers(
+    pub web_sys::Headers,
+    /// number of elements in the headers
+    usize,
+);
+
+macro_rules! set_or_append {
+    ($self:ident, $op:ident, $name:ident, $value:ident) => {
+        let exists = $self.has($name).unwrap_or_default();
+        ($self.0).$op($name, $value)?;
+        if !exists {
+            // only increase header's length if it didn't exist
+            $self.1 += 1;
+        }
+    };
+}
 
 impl std::fmt::Debug for Headers {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -43,22 +58,38 @@ impl Headers {
         self.0.has(name).map_err(Error::from)
     }
 
+    /// Returns the number of elements in the headers.
+    pub fn len(&self) -> usize {
+        self.1
+    }
+
+    /// Returns `true` if the headers contain no elements.
+    pub fn is_empty(&self) -> bool {
+        self.1 == 0
+    }
+
     /// Returns an error if the name is invalid (e.g. contains spaces)
     pub fn append(&mut self, name: &str, value: &str) -> Result<()> {
-        self.0.append(name, value).map_err(Error::from)
+        set_or_append!(self, append, name, value);
+        Ok(())
     }
 
     /// Sets a new value for an existing header inside a `Headers` object, or adds the header if it does not already exist.
     /// Returns an error if the name is invalid (e.g. contains spaces)
     pub fn set(&mut self, name: &str, value: &str) -> Result<()> {
-        self.0.set(name, value).map_err(Error::from)
+        set_or_append!(self, set, name, value);
+        Ok(())
     }
 
     /// Deletes a header from a `Headers` object.
     /// Returns an error if the name is invalid (e.g. contains spaces)
     /// or if the JS Headers object's guard is immutable (e.g. for an incoming request)
     pub fn delete(&mut self, name: &str) -> Result<()> {
-        self.0.delete(name).map_err(Error::from)
+        self.0.delete(name).map_err(Error::from)?;
+        if let true = self.1 > 0 {
+            self.1 -= 1;
+        }
+        Ok(())
     }
 
     /// Returns an iterator allowing to go through all key/value pairs contained in this object.
@@ -102,7 +133,7 @@ impl Headers {
 impl Default for Headers {
     fn default() -> Self {
         // This cannot throw an error: https://developer.mozilla.org/en-US/docs/Web/API/Headers/Headers
-        Headers(web_sys::Headers::new().unwrap())
+        Headers(web_sys::Headers::new().unwrap(), 0)
     }
 }
 
@@ -183,9 +214,18 @@ impl From<Headers> for HeaderMap {
     }
 }
 
+impl From<web_sys::Headers> for Headers {
+    fn from(headers: web_sys::Headers) -> Self {
+        let mut self_ = Self(headers, 0);
+        self_.1 = self_.keys().count();
+
+        self_
+    }
+}
+
 impl Clone for Headers {
     fn clone(&self) -> Self {
         // Headers constructor doesn't throw an error
-        Headers(web_sys::Headers::new_with_headers(&self.0).unwrap())
+        Headers(web_sys::Headers::new_with_headers(&self.0).unwrap(), self.1)
     }
 }

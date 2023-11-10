@@ -440,7 +440,7 @@ impl From<&Response> for web_sys::Response {
 impl From<web_sys::Response> for Response {
     fn from(res: web_sys::Response) -> Self {
         Self {
-            headers: Headers(res.headers()),
+            headers: res.headers().into(),
             status_code: res.status(),
             websocket: res.websocket().map(|ws| ws.into()),
             body: match res.body() {
