@@ -1,0 +1,17 @@
+[package]
+name = "websocket-on-workers"
+version = "0.0.1"
+edition = "2021"
+
+# https://github.com/rustwasm/wasm-pack/issues/1247
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+worker = { workspace = true }
+serde = { version = "1.0.164", features = ["derive"] }
+serde_json = "1.0.96"
+futures-util = { version = "0.3.28", default-features = false }

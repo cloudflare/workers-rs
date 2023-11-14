@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>WS Chat</title>
+    <link rel="shortcut icon" href="#">
+</head>
+
+<body>
+    <h1>WS Chat</h1>
+    <div>
+        <div id="chat">
+            <p><em>Connecting...</em></p>
+        </div>
+        <div style="display: flex; margin-top: 5px;" id="parent">
+            <input style="margin-right: 5px;" type="text" id="text" value="" />
+            <button type="button" id="submit">Connect</button>
+        </div>
+    </div>
+
+    <script>
+        const chat = document.getElementById('chat');
+        const msg = document.getElementById('msg');
+        const submit = document.getElementById('submit');
+
+        let currentView;
+        let ws;
+
+        function connect(input) {
+            ws = new WebSocket(`${location.protocol === "http:" ? "ws" : "wss"}://${location.host}/chat/${input.value}`);
+
+            ws.onopen = () => {
+                chat.innerHTML = `<p><em>Connected! Your name is ${input.value}!</em></p>`;
+                document.getElementById("submit").innerHTML = "Send";
+                input.value = "";
+            };
+
+            ws.onmessage = (msg) => {
+                console.log(msg)
+                const message = new Message(msg.data);
+                chat.appendChild(message.newElement());
+            };
+        }
+
+        submit.onclick = () => {
+            const input = document.getElementById("text");
+            if (input.value.length > 0) {
+                if (!ws) {
+                    connect(input);
+                } else {
+                    ws.send(input.value);
+                    input.value = "";
+                }
+            }
+        };
+
+        class Message {
+            /**
+             * @constructor
+             * @param {string} message
+             */
+            constructor(message) {
+                const msg = JSON.parse(message);
+
+                /**
+                 * @type {string?}
+                 */
+                this.color = msg.color;
+                /**
+                 * @type {number?}
+                 */
+                this.count = msg.count;
+                /**
+                 * @type {string?}
+                 */
+                this.message = msg.message;
+                /**
+                 * @type {string}
+                 */
+                this.name = msg.name;
+            }
+
+            newElement() {
+                const container = document.createElement("div");
+                container.style.display = "flex";
+
+                if (this.count) {
+                    console.log(currentView)
+                    const nameElement = `<em style="color: ${this.color};">${this.name} </em>`;
+                    const content = `<em>has ${(!currentView || currentView < this.count) ? "joined" : "left"} the chat! There are ${this.count} users online now.</em>`;
+                    currentView = this.count;
+                    container.innerHTML = `<div style="color: #a5a5a5;">${nameElement}${content}</div>`;
+
+                } else {
+                    const nameElement = this.#nameElement();
+                    const separator = this.#sepElement();
+                    const content = this.#msgElement();
+
+                    container.innerHTML = `<div style="display: flex;">${nameElement}${separator}${content}</div>`;
+                }
+
+                return container;
+            }
+
+            #nameElement() {
+                return `<div style="color: ${this.color};">${this.name}</div>`;
+            }
+
+            #sepElement() {
+                return `<div style="margin-left: 3px; margin-right: 10px;">:</div>`;
+            }
+
+            #msgElement() {
+                return `<div style="color: #406bb3">${this.message}</div>`;
+            }
+        }
+    </script>
+</body>
+
+</html>
