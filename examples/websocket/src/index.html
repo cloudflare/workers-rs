@@ -36,7 +36,6 @@
             };
 
             ws.onmessage = (msg) => {
-                console.log(msg)
                 const message = new Message(msg.data);
                 chat.appendChild(message.newElement());
             };
@@ -85,7 +84,6 @@
                 container.style.display = "flex";
 
                 if (this.count) {
-                    console.log(currentView)
                     const nameElement = `<em style="color: ${this.color};">${this.name} </em>`;
                     const content = `<em>has ${(!currentView || currentView < this.count) ? "joined" : "left"} the chat! There are ${this.count} users online now.</em>`;
                     currentView = this.count;
