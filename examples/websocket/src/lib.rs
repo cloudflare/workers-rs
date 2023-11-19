@@ -11,12 +11,13 @@
 
 mod counter;
 mod error;
+mod helpers;
 mod message;
 mod route;
 mod storage;
 mod user;
 
-use worker::{event, Context, Env, Request, Response, Result, RouteContext, Router};
+use worker::{event, Context, Env, Request, Response, Result, RouteContext, Router, Stub};
 
 const INDEX_HTML: &str = include_str!("./index.html");
 
@@ -25,22 +26,36 @@ fn index(_: Request, _: RouteContext<()>) -> Result<Response> {
 }
 
 async fn websocket(req: Request, ctx: RouteContext<()>) -> Result<Response> {
-    // durable object's binding name
-    let namespace = ctx.durable_object("LIVE_CHAT")?;
-    // room's name, it can be anything but the below will be used for the demo
-    let id = namespace.id_from_name("/chat")?;
-    // durable object's stub
-    let stub = id.get_stub()?;
-    // perform a request to the durable object.
-    // calling fetch_with_request will call counter::LiveCounter::fetch method
-    stub.fetch_with_request(req).await
+    DurableObject::new(&ctx, "LIVE_CHAT", "/chat")?
+        .fetch(req)
+        .await
+}
+
+pub struct DurableObject(Stub);
+
+impl DurableObject {
+    pub fn new<D>(ctx: &RouteContext<D>, binding: &str, name: &str) -> Result<Self> {
+        // durable object's binding name
+        let namespace = ctx.durable_object(binding)?;
+        // room's name, it can be anything but the below will be used for the demo
+        let id = namespace.id_from_name(name)?;
+        // durable object's stub
+        let stub = id.get_stub()?;
+
+        Ok(Self(stub))
+    }
+
+    pub async fn fetch(&self, req: Request) -> Result<Response> {
+        // calling fetch_with_request will call counter::LiveCounter::fetch method
+        self.0.fetch_with_request(req).await
+    }
 }
 
 #[event(fetch)]
-async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
+async fn main(req: Request, env: Env, _ctx: Context) -> worker::Result<Response> {
     Router::new()
         .get("/", index)
-        .get_async("/chat/:name", websocket)
+        .on_async("/chat/:name", websocket)
         .run(req, env)
         .await
 }

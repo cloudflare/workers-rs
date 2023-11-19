@@ -3,6 +3,7 @@ use futures_channel::mpsc::UnboundedReceiver;
 use futures_util::Stream;
 use serde::Serialize;
 use url::Url;
+use worker_sys::console_debug;
 use worker_sys::ext::WebSocketExt;
 
 use std::pin::Pin;
@@ -189,7 +190,7 @@ impl WebSocket {
                 let error = event.error();
                 tx.unbounded_send(Err(error.into())).unwrap();
             })?;
-
+            console_debug!("Close: {:?}, Message: {:?}, Err: {:?}", close_closure, message_closure, error_closure);
         Ok(EventStream {
             ws: self,
             rx,

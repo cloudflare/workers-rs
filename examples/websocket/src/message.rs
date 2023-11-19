@@ -1,11 +1,55 @@
-use std::fmt::Display;
-
 use crate::user::UserInfo;
 
-use serde_json::json;
+use worker::WebsocketEvent;
+
+pub enum Data {
+    Binary(Box<[u8]>),
+    None,
+    Text(String),
+}
+
+pub enum MessageEvent {
+    Close,
+    Message(Data),
+    Ping,
+    Pong,
+}
+
+impl MessageEvent {
+    pub fn new(event: WebsocketEvent) -> Self {
+        match event {
+            WebsocketEvent::Message(msg) => {
+                if let Some(msg) = msg.text() {
+                    return Self::message(msg);
+                }
+                if let Some(binary) = msg.bytes() {
+                    return Self::Message(Data::Binary(binary.into()));
+                }
+
+                Self::Message(Data::None)
+            }
+            WebsocketEvent::Close(_) => Self::Close,
+        }
+    }
+
+    fn message(msg: String) -> Self {
+        if msg.len() == 4 {
+            let ping_or_pong = msg.to_lowercase();
+            if ping_or_pong == "ping" {
+                return Self::Ping;
+            }
+            if ping_or_pong == "pong" {
+                return Self::Pong;
+            }
+        }
+
+        Self::Message(Data::Text(msg))
+    }
+}
 
 /// Generic response for all messages.
-pub struct Message<'a> {
+#[derive(Debug)]
+pub struct MsgResponse<'a> {
     /// Unique color of the user's name.
     color: Option<&'a str>,
     /// Number of connected clients, None if the type of message is not [WsMessage::Send].
@@ -23,37 +67,37 @@ pub enum WsMessage<'a> {
     Send(Option<&'a str>),
 }
 
-impl<'a> Message<'a> {
+impl<'a> MsgResponse<'a> {
     pub fn new(info: &'a UserInfo, msg: &'a WsMessage) -> Self {
+        let UserInfo { color, name, .. } = info;
         match *msg {
             WsMessage::Conn(count) => Self {
-                color: Some(&info.color),
+                color: Some(color),
                 count,
                 message: None,
-                name: &info.name,
+                name,
             },
             WsMessage::Send(message) => Self {
-                color: Some(&info.color),
+                color: Some(color),
                 count: None,
                 message,
-                name: &info.name,
+                name,
             },
         }
     }
+
+    pub fn as_str(&self) -> Box<str> {
+        let mut str_ = String::new();
+        str_.insert(0, '{');
+        str_.insert_str(str_.len(), &v("color", self.color));
+        str_.insert_str(str_.len(), &v("count", self.count));
+        str_.insert_str(str_.len(), &v("message", self.message));
+        str_.insert_str(str_.len(), &format!("{:?}:{:?}", "name", self.name));
+        str_.insert(str_.len(), '}');
+        str_.into()
+    }
 }
 
-// This trait allows calling to_string and used with worker::WebSocket::send_with_str.
-// We can add Serialize to its derive method and call worker::WebSocket::send too.
-impl<'a> Display for Message<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(
-            &json!({
-                "color": self.color,
-                "count": self.count,
-                "message": self.message,
-                "name": self.name
-            })
-            .to_string(),
-        )
-    }
+fn v<T: std::fmt::Debug + Sized>(k: &str, v: Option<T>) -> Box<str> {
+    format!("{:?}:{},", k, v.map_or("null".into(), |s| format!("{s:?}"))).into()
 }

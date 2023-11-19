@@ -1,10 +1,15 @@
-use crate::{counter::Update, error::Error};
+use crate::error::Error;
 
 use std::rc::Rc;
 use worker::State;
 
 /// Storage's key.
 const ONLINE_USERS: &str = "ONLINE_USERS";
+
+pub enum Update {
+    Decrease,
+    Increase,
+}
 
 #[derive(Clone)]
 // Rc implements Clone and makes life easier
@@ -32,8 +37,8 @@ impl Storage {
             Update::Decrease => count -= 1,
             Update::Increase => count += 1,
         };
-
-        self.0.storage().put(ONLINE_USERS, count).await?;
+        let mut storage = self.0.storage();
+        storage.put(ONLINE_USERS, count).await?;
 
         Ok(count)
     }
