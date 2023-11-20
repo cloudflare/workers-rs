@@ -2177,8 +2177,6 @@ name = "websocket-on-workers"
 version = "0.0.1"
 dependencies = [
  "futures-util",
- "serde",
- "serde_json",
  "worker",
 ]
 

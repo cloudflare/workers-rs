@@ -15,6 +15,7 @@ mod helpers;
 mod message;
 mod route;
 mod storage;
+mod timeout;
 mod user;
 
 use worker::{event, Context, Env, Request, Response, Result, RouteContext, Router, Stub};
@@ -47,7 +48,8 @@ impl DurableObject {
 
     pub async fn fetch(&self, req: Request) -> Result<Response> {
         // calling fetch_with_request will call counter::LiveCounter::fetch method
-        self.0.fetch_with_request(req).await
+        let stub_fetch = self.0.fetch_with_request(req);
+        stub_fetch.await
     }
 }
 

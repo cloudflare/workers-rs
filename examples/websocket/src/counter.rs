@@ -1,7 +1,7 @@
 use crate::{
     error::Error,
     helpers::IntoResponse,
-    message::MsgResponse,
+    message::SendData,
     route::Route,
     storage::{Storage, Update},
     user::{User, Users},
@@ -16,9 +16,9 @@ use worker::{
 #[derive(Clone)]
 pub struct LiveCounter {
     /// Struct wrapper for [worker::State].
-    pub(crate) storage: Storage,
+    storage: Storage,
     /// Holds multiple clients' connections used to broadcast messages.
-    pub(crate) users: Users,
+    users: Users,
 }
 
 #[durable_object]
@@ -46,23 +46,31 @@ impl DurableObject for LiveCounter {
 
 impl LiveCounter {
     /// Add a new user to the session.
-    pub(crate) fn add(&self, user: User) -> Result<(), Error> {
+    pub fn add(&self, user: User) -> Result<(), Error> {
         self.users.add(user)?;
         Ok(())
     }
 
     /// Broadcasts a message to all connected clients.
-    pub(crate) fn broadcast(&self, msg: &MsgResponse) {
-        self.users.broadcast(msg);
+    pub fn broadcast(&self, data: &SendData) {
+        self.users.broadcast(data);
     }
 
     /// Removes a user corresponding to the id.
-    pub(crate) fn remove(&self, id: &str) {
+    pub fn remove(&self, id: &str) {
         self.users.remove(id);
     }
 
+    pub const fn storage(&self) -> &Storage {
+        &self.storage
+    }
+
+    pub const fn users(&self) -> &Users {
+        &self.users
+    }
+
     /// Update online users' count.
-    pub(crate) async fn update(&self, ops: Update) -> Result<u64, Error> {
+    pub async fn update(&self, ops: Update) -> Result<u64, Error> {
         // view increment
         let count = self.storage.update(ops);
         count.await

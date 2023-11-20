@@ -1,6 +1,5 @@
 use crate::user::UsersMap;
 
-use serde_json::json;
 use std::sync::{PoisonError, RwLockReadGuard, RwLockWriteGuard};
 
 /// A wrapper for [`worker::Error`].
@@ -15,13 +14,14 @@ impl Error {
             worker::Error::Json(err) => (err.0, err.1),
             _ => (self.0.to_string(), 500),
         };
+        let mut json_string = String::from('{');
+        json_string.push_str(&format!(
+            "{:?}:{:?},{:?}:{:?}",
+            "error", msg, "status", status
+        ));
+        json_string.push('}');
 
-        let json_string = json!({
-            "error": msg,
-            "status": status
-        });
-
-        (json_string.to_string(), status)
+        (json_string, status)
     }
 }
 
@@ -52,8 +52,8 @@ impl From<Error> for worker::Error {
     }
 }
 
-impl From<(String, u16)> for Error {
-    fn from(err: (String, u16)) -> Self {
-        Self(worker::Error::Json((err.0, err.1)))
+impl From<(&str, u16)> for Error {
+    fn from(err: (&str, u16)) -> Self {
+        Self(worker::Error::Json((err.0.into(), err.1)))
     }
 }

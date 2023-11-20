@@ -1,33 +1,30 @@
-use crate::{error::Error, helpers::random_color, message::MsgResponse};
+use crate::{error::Error, helpers::random_color, message::SendData};
 
 use std::{collections::HashMap, rc::Rc, sync::RwLock};
-use wasm_bindgen::prelude::wasm_bindgen;
-use worker::{wasm_bindgen, WebSocket};
+use worker::WebSocket;
 
 pub type UsersMap = HashMap<Box<str>, User>;
 
-#[wasm_bindgen]
-#[derive(Default, Clone)]
-pub struct Users(pub(crate) Rc<RwLock<UsersMap>>);
+#[derive(Debug, Default, Clone)]
+pub struct Users(Rc<RwLock<UsersMap>>);
 
-#[wasm_bindgen]
 impl Users {
+    /// Add a new user to the session.
+    pub fn add(&self, user: User) -> Result<(), Error> {
+        self.0.write()?.insert((&*user.info.id).into(), user);
+        Ok(())
+    }
+
     /// Broadcasts a message to all connected clients.
-    pub(crate) fn broadcast(&self, msg: &MsgResponse) {
+    pub fn broadcast(&self, data: &SendData) {
         // iterates connected clients to send the message
         if let Ok(users) = self.0.read() {
-            for (id, session) in &*users {
-                if session.session.send_with_str(msg.as_str()).is_err() {
+            for (id, user) in &*users {
+                if user.send_message(data).is_err() {
                     self.remove(id);
                 }
             }
         }
-    }
-
-    /// Add a new user to the session.
-    pub(crate) fn add(&self, user: User) -> Result<(), Error> {
-        self.0.write()?.insert((&*user.info.id).into(), user);
-        Ok(())
     }
 
     /// Close the connection from the server.
@@ -44,7 +41,7 @@ impl Users {
     }
 
     /// Removes a user corresponding to the id.
-    pub(crate) fn remove(&self, id: &str) {
+    pub fn remove(&self, id: &str) {
         if let Ok(users) = self.0.write().as_mut() {
             users.remove(id);
         }
@@ -70,7 +67,7 @@ impl Users {
         None
     }
 
-    pub(crate) fn pong(&self, id: &str) {
+    pub fn pong(&self, id: &str) {
         if let Some(user) = self.0.write().unwrap().get_mut(id) {
             user.hb = 0;
         }
@@ -90,6 +87,13 @@ impl User {
             hb: 0,
             info: UserInfo::new(id, name),
             session,
+        }
+    }
+
+    fn send_message(&self, data: &SendData) -> Result<(), Error> {
+        match data {
+            SendData::Binary(binary) => Ok(self.session.send_with_bytes(binary)?),
+            SendData::Text(text) => Ok(self.session.send_with_str(text)?),
         }
     }
 }

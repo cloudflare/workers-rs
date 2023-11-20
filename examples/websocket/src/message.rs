@@ -8,11 +8,23 @@ pub enum Data {
     Text(String),
 }
 
+pub enum SendData {
+    Text(Box<str>),
+    Binary(Box<[u8]>),
+}
+
 pub enum MessageEvent {
-    Close,
+    Close(u16, String),
     Message(Data),
     Ping,
     Pong,
+}
+
+pub enum WsMessage<'a> {
+    /// Connected or disconnected client with the number of connected clients
+    Conn(Option<u64>),
+    /// Value of the message.
+    Send(Option<&'a str>),
 }
 
 impl MessageEvent {
@@ -28,7 +40,7 @@ impl MessageEvent {
 
                 Self::Message(Data::None)
             }
-            WebsocketEvent::Close(_) => Self::Close,
+            WebsocketEvent::Close(close) => Self::Close(close.code(), close.reason()),
         }
     }
 
@@ -57,14 +69,21 @@ pub struct MsgResponse<'a> {
     /// Value of the message, None if the type of message is not [WsMessage::Conn]
     message: Option<&'a str>,
     /// User's name
-    name: &'a str,
+    name: Option<&'a str>,
 }
 
-pub enum WsMessage<'a> {
-    /// Connected or disconnected client with the number of connected clients
-    Conn(Option<u64>),
-    /// Value of the message.
-    Send(Option<&'a str>),
+trait ToValue {
+    fn to_value(self, k: &str, sep: Option<char>) -> String;
+}
+
+impl<T: std::fmt::Debug> ToValue for Option<T> {
+    fn to_value(self, k: &str, sep: Option<char>) -> String {
+        if self.is_none() {
+            format!("{:?}:{}{}", k, "null", sep.unwrap_or('}'))
+        } else {
+            format!("{:?}:{:?}{}", k, self.unwrap(), sep.unwrap_or('}'))
+        }
+    }
 }
 
 impl<'a> MsgResponse<'a> {
@@ -75,29 +94,24 @@ impl<'a> MsgResponse<'a> {
                 color: Some(color),
                 count,
                 message: None,
-                name,
+                name: Some(name),
             },
             WsMessage::Send(message) => Self {
                 color: Some(color),
                 count: None,
                 message,
-                name,
+                name: Some(name),
             },
         }
     }
 
-    pub fn as_str(&self) -> Box<str> {
-        let mut str_ = String::new();
-        str_.insert(0, '{');
-        str_.insert_str(str_.len(), &v("color", self.color));
-        str_.insert_str(str_.len(), &v("count", self.count));
-        str_.insert_str(str_.len(), &v("message", self.message));
-        str_.insert_str(str_.len(), &format!("{:?}:{:?}", "name", self.name));
-        str_.insert(str_.len(), '}');
-        str_.into()
-    }
-}
+    pub fn as_string(&self) -> String {
+        let mut str_ = String::from('{');
+        str_.push_str(&self.color.to_value("color", Some(',')));
+        str_.push_str(&self.count.to_value("count", Some(',')));
+        str_.push_str(&self.message.to_value("message", Some(',')));
+        str_.push_str(&self.name.to_value("name", None));
 
-fn v<T: std::fmt::Debug + Sized>(k: &str, v: Option<T>) -> Box<str> {
-    format!("{:?}:{},", k, v.map_or("null".into(), |s| format!("{s:?}"))).into()
+        str_
+    }
 }

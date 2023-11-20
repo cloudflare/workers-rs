@@ -28,6 +28,11 @@
       let currentView;
       let ws;
 
+      function connected(e) {
+        const message = new Message(e.data);
+        chat.innerHTML = `<p><em>Connected! Your name is <em style="color:${message.color};">${message.name}!</em></em></p>`;
+      }
+
       function connect(input) {
         ws = new WebSocket(
           `${location.protocol === "http:" ? "ws" : "wss"}://${
@@ -36,22 +41,16 @@
         );
 
         ws.onopen = () => {
-          chat.innerHTML = `<p><em>Connected! Your name is ${input.value}!</em></p>`;
+          ws.addEventListener("message", connected, { once: true });
           document.getElementById("submit").innerHTML = "Send";
           input.value = "";
         };
 
-        ws.onclose = (e) => {
-          console.log("b");
-          console.log(e);
-        };
-
         function heartBeat() {
-          const timeout = setTimeout(pong, 1500);
+          setTimeout(pong, 2500);
           function pong() {
             ws.send("pong");
           }
-          return () => clearTimeout(timeout);
         }
 
         ws.onmessage = (msg) => {
@@ -84,7 +83,6 @@
          */
         constructor(message) {
           const msg = JSON.parse(message);
-
           /**
            * @type {string?}
            */

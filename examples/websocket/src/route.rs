@@ -1,10 +1,9 @@
-
 use crate::{
     counter::LiveCounter,
     error::Error,
-    helpers::TimeoutHandle,
-    message::{Data, MessageEvent, MsgResponse, WsMessage},
+    message::{Data, MessageEvent, MsgResponse, SendData, WsMessage},
     storage::Update,
+    timeout::{HeartBeat, TimeoutHandle},
     user::{User, Users},
 };
 
@@ -17,9 +16,9 @@ pub struct RouteInfo(String, String);
 
 impl RouteInfo {
     fn new(name: &str, headers: &Headers) -> Result<Self, Error> {
-        let id = headers.get(SEC_WEBSOCKET_KEY)?.ok_or_else(|| {
-            Error::from((format!("{SEC_WEBSOCKET_KEY} not found in headers."), 500))
-        })?;
+        let id = headers
+            .get(SEC_WEBSOCKET_KEY)?
+            .ok_or_else(|| Error::from(("sec-websocket-key not found in headers.", 500)))?;
 
         Ok(Self(name.to_owned(), id))
     }
@@ -31,13 +30,22 @@ pub enum Route {
 }
 
 impl Route {
+    /// Returns a Route based on the request's [`worker::Url`].
+    ///
+    /// # Errors
+    ///
+    /// Error if url is cannot-be-a-base URLs or
+    /// `sec-websocket-key` is missing from request headers.
+    ///
     pub fn new(req: &Request) -> Result<Self, Error> {
         let url = req.url()?;
-        let paths = url.path_segments().unwrap();
+        let paths = url
+            .path_segments()
+            .ok_or_else(|| Error::from(("Paths are empty.", 500)))?;
 
         // url should look like /chat/:/name thus the array will be ["chat", "{name}"].
         let paths = paths.collect::<Box<[_]>>();
-        if paths[0] != "chat" {
+        if paths.first() != Some(&"chat") {
             return Ok(Self::InvalidRoute);
         }
 
@@ -58,33 +66,21 @@ impl Route {
 }
 
 fn keep_alive(users: Users, id: Box<str>) {
-    TimeoutHandle::run((users, id));
-    // let intervals = Timeout::run((users, id));
-    // intervals.run();
-    // let z = Interval::z(users, id);
-    // clearInterval(z.token);
-    // let dog = Interval::new(users, id);
-    // console_debug!("{:?}", dog);
-    // set_hb(&dog.into_js_value());
-    // let cb = set_interval(&z.closure.into_js_value(), 5000);
-    // clearInterval(z.token);
-
-    // clearInterval(cb);
-
-    // wasm_bindgen_futures::spawn_local(heart_beat(users, id));
-    // wasm_bindgen_futures::spawn_local((|| async { intervals.run() })());
+    TimeoutHandle::new((users, id), 5_000, 5_000)
+        .max_heart_beat(5)
+        .run();
 }
 
 async fn handle_connection(user: User, counter: LiveCounter) {
-    keep_alive(counter.users.clone(), (&*user.info.id).into());
+    keep_alive(counter.users().clone(), (&*user.info.id).into());
     let events = user.session.events();
     if let Ok(mut stream) = events {
         while let Some(Ok(event)) = stream.next().await {
             match MessageEvent::new(event) {
-                MessageEvent::Close => return handle_disconnect(&counter, &user).await,
+                MessageEvent::Close(..) => return handle_disconnect(&counter, &user).await,
                 MessageEvent::Message(msg) => handle_message(msg, &counter, &user),
                 MessageEvent::Ping => {}
-                MessageEvent::Pong => counter.users.pong(&user.info.id),
+                MessageEvent::Pong => counter.users().pong(&user.info.id),
             }
         }
     };
@@ -97,17 +93,20 @@ async fn handle_disconnect(counter: &LiveCounter, user: &User) {
     let count = counter.update(Update::Decrease);
     let message = &WsMessage::Conn(count.await.ok());
 
-    counter.broadcast(&MsgResponse::new(&user.info, message));
+    counter.broadcast(&SendData::Text(
+        (&*MsgResponse::new(&user.info, message).as_string()).into(),
+    ));
 }
 
 fn handle_message(msg: Data, counter: &LiveCounter, user: &User) {
     match msg {
-        Data::Binary(_) => {}
         Data::Text(text) => {
             let message = WsMessage::Send(Some(&text));
-            counter.broadcast(&MsgResponse::new(&user.info, &message));
+            counter.broadcast(&SendData::Text(
+                (&*MsgResponse::new(&user.info, &message).as_string()).into(),
+            ));
         }
-        Data::None => {}
+        Data::None | Data::Binary(_) => {}
     }
 }
 
@@ -121,7 +120,9 @@ async fn accept_connection(
     // increase the number of connected clients and broadcast to existing connections
     let count = counter.update(Update::Increase);
     let message = &WsMessage::Conn(Some(count.await?));
-    counter.broadcast(&MsgResponse::new(&user.info, message));
+    counter.broadcast(&SendData::Text(
+        (&*MsgResponse::new(&user.info, message).as_string()).into(),
+    ));
     // handle messages
     Ok(handle_connection(user, counter))
 }
