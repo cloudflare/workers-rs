@@ -242,6 +242,15 @@ impl Request {
             .map_err(|e| Error::RustError(format!("failed to parse Url from {e}: {url}")))
     }
 
+    /// Deserialize the url query
+    pub fn query<Q: DeserializeOwned>(&self) -> Result<Q> {
+        let url = self.url()?;
+        let pairs = url.query_pairs();
+        let deserializer = serde_urlencoded::Deserializer::new(pairs);
+
+        Q::deserialize(deserializer).map_err(Error::from)
+    }
+
     #[allow(clippy::should_implement_trait)]
     pub fn clone(&self) -> Result<Self> {
         self.edge_request

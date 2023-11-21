@@ -34,6 +34,12 @@ impl From<url::ParseError> for Error {
     }
 }
 
+impl From<serde_urlencoded::de::Error> for Error {
+    fn from(e: serde_urlencoded::de::Error) -> Self {
+        Self::RustError(e.to_string())
+    }
+}
+
 impl From<serde_wasm_bindgen::Error> for Error {
     fn from(e: serde_wasm_bindgen::Error) -> Self {
         let val: JsValue = e.into();
