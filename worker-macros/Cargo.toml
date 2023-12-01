@@ -12,7 +12,7 @@ proc-macro = true
 path = "src/lib.rs"
 
 [dependencies]
-async-trait = "0.1.68"
+async-trait.workspace = true
 worker-sys = { path = "../worker-sys", version = "0.0.10" }
 syn = "2.0.17"
 proc-macro2 = "1.0.60"
