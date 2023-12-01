@@ -18,6 +18,7 @@ chrono = { version = "0.4.31", default-features = false, features = [
 chrono-tz = { version = "0.8.4", default-features = false }
 futures-channel = "0.3.28"
 futures-util = { version = "0.3.28", default-features = false }
+http = "1.0.0"
 js-sys = "0.3.66"
 wasm-bindgen = "=0.2.89"
 wasm-bindgen-cli-support = "0.2.89"
