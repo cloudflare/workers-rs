@@ -29,7 +29,7 @@ wasm-bindgen.workspace = true
 wasm-bindgen-futures.workspace = true
 serde-wasm-bindgen = "0.6.1"
 serde_urlencoded = "0.7"
-wasm-streams = "0.3.0"
+wasm-streams.workspace = true
 worker-kv = "0.6.0"
 worker-macros = { path = "../worker-macros", version = "0.0.10" }
 worker-sys = { path = "../worker-sys", version = "0.0.10" }
