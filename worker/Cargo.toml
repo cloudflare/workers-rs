@@ -18,7 +18,7 @@ chrono-tz.workspace = true
 futures-channel.workspace = true
 futures-util.workspace = true
 http = "0.2.9"
-js-sys = "0.3.63"
+js-sys.workspace = true
 matchit = "0.4.6"
 pin-project = "1.1.0"
 serde = { version = "1.0.164", features = ["derive"] }
