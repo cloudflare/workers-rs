@@ -11,7 +11,12 @@ exclude = ["examples/coredump"]
 resolver = "2"
 
 [workspace.dependencies]
-worker = { path="./worker" }
+wasm-bindgen = "=0.2.89"
+wasm-bindgen-cli-support = "0.2.89"
+wasm-bindgen-futures = "0.4.39"
+wasm-bindgen-macro-support = "0.2.89"
+wasm-bindgen-test = "0.3.39"
+worker = { path = "worker" }
 
 [profile.release]
 # rustc supports two "optimize for size" levels:  opt-level = "s" and "z". 
@@ -35,4 +40,3 @@ lto = true
 [profile.release.package."*"]
 codegen-units = 1
 opt-level = "z"
-
