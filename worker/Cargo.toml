@@ -13,10 +13,8 @@ readme = "../README.md"
 
 [dependencies]
 async-trait.workspace = true
-chrono = { version = "0.4.26", default-features = false, features = [
-    "wasmbind",
-] }
-chrono-tz = { version = "0.8.2", default-features = false }
+chrono.workspace = true
+chrono-tz.workspace = true
 futures-channel.workspace = true
 futures-util.workspace = true
 http = "0.2.9"

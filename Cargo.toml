@@ -12,6 +12,10 @@ resolver = "2"
 
 [workspace.dependencies]
 async-trait = "0.1.74"
+chrono = { version = "0.4.31", default-features = false, features = [
+    "wasmbind",
+] }
+chrono-tz = { version = "0.8.4", default-features = false }
 futures-channel = "0.3.28"
 futures-util = { version = "0.3.28", default-features = false }
 wasm-bindgen = "=0.2.89"
