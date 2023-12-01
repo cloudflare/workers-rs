@@ -17,8 +17,8 @@ chrono = { version = "0.4.26", default-features = false, features = [
     "wasmbind",
 ] }
 chrono-tz = { version = "0.8.2", default-features = false }
-futures-channel = "0.3.28"
-futures-util = { version = "0.3.28", default-features = false }
+futures-channel.workspace = true
+futures-util.workspace = true
 http = "0.2.9"
 js-sys = "0.3.63"
 matchit = "0.4.6"

@@ -11,6 +11,8 @@ exclude = ["examples/coredump"]
 resolver = "2"
 
 [workspace.dependencies]
+futures-channel = "0.3.28"
+futures-util = { version = "0.3.28", default-features = false }
 wasm-bindgen = "=0.2.89"
 wasm-bindgen-cli-support = "0.2.89"
 wasm-bindgen-futures = "0.4.39"
