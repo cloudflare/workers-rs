@@ -17,6 +17,7 @@ use crate::{env::EnvBinding, ByteStream, Date, Error, FixedLengthStream, Headers
 mod builder;
 
 /// An instance of the R2 bucket binding.
+#[derive(Clone)]
 pub struct Bucket {
     inner: EdgeR2Bucket,
 }
