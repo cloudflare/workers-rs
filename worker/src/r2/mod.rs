@@ -60,7 +60,8 @@ impl Bucket {
             value: value.into(),
             http_metadata: None,
             custom_metadata: None,
-            md5: None,
+            checksum: None,
+            checksum_algorithm: "md5".into(),
         }
     }
 
