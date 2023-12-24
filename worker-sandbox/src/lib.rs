@@ -8,6 +8,7 @@ use std::{
 
 use blake2::{Blake2b512, Digest};
 use futures_util::{future::Either, StreamExt, TryStreamExt};
+use http::Method;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -331,7 +332,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             Response::ok(req.text().await?)
         })
         .get_async("/fetch", |_req, _ctx| async move {
-            let req = Request::new("https://example.com", Method::Post)?;
+            let req = Request::new("https://example.com", Method::POST)?;
             let resp = Fetch::Request(req).send().await?;
             let resp2 = Fetch::Url("https://example.com".parse()?).send().await?;
             Response::ok(format!(
@@ -453,7 +454,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         })
         .get_async("/request-init-fetch-post", |_, _| async move {
             let mut init = RequestInit::new();
-            init.method = Method::Post;
+            init.method = Method::POST;
             Fetch::Request(Request::new_with_init("https://httpbin.org/post", &init)?)
                 .send()
                 .await
@@ -676,7 +677,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         .get_async("/remote-by-path", |req, ctx| async move {
             let fetcher = ctx.service("remote")?;
             let mut init = RequestInit::new();
-            init.with_method(Method::Post);
+            init.with_method(Method::POST);
 
             fetcher.fetch(req.url()?.to_string(), Some(init)).await
         })
@@ -738,7 +739,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
 }
 
 fn respond<D>(req: Request, _ctx: RouteContext<D>) -> Result<Response> {
-    Response::ok(format!("Ok: {}", String::from(req.method()))).map(|resp| {
+    Response::ok(format!("Ok: {}", req.method())).map(|resp| {
         let mut headers = Headers::new();
         headers.set("x-testing", "123").unwrap();
         resp.with_headers(headers)
@@ -746,7 +747,7 @@ fn respond<D>(req: Request, _ctx: RouteContext<D>) -> Result<Response> {
 }
 
 async fn respond_async<D>(req: Request, _ctx: RouteContext<D>) -> Result<Response> {
-    Response::ok(format!("Ok (async): {}", String::from(req.method()))).map(|resp| {
+    Response::ok(format!("Ok (async): {}", req.method())).map(|resp| {
         let mut headers = Headers::new();
         headers.set("x-testing", "123").unwrap();
         resp.with_headers(headers)

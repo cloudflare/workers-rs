@@ -1,8 +1,8 @@
 use std::convert::TryFrom;
 
-use crate::{
-    cf::Cf, error::Error, headers::Headers, http::Method, ByteStream, FormData, RequestInit, Result,
-};
+use crate::{cf::Cf, error::Error, headers::Headers, ByteStream, FormData, RequestInit, Result};
+
+use http::Method;
 
 use serde::de::DeserializeOwned;
 use std::borrow::Cow;
@@ -27,7 +27,7 @@ pub struct Request {
 impl From<web_sys::Request> for Request {
     fn from(req: web_sys::Request) -> Self {
         Self {
-            method: req.method().into(),
+            method: Method::try_from(req.method().as_str()).unwrap_or(Method::GET),
             path: Url::parse(&req.url())
                 .map(|u| u.path().into())
                 .unwrap_or_else(|_| {
@@ -321,7 +321,7 @@ fn url_param_works() {
 fn clone_mut_works() {
     let req = Request::new(
         "https://example.com/foo.html?a=foo&b=bar&a=baz",
-        crate::Method::Get,
+        Method::GET,
     )
     .unwrap();
     assert!(!req.immutable);

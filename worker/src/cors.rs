@@ -1,4 +1,5 @@
-use crate::{Error, Headers, Method, Result};
+use crate::{Error, Headers, Result};
+use http::Method;
 
 /// Cors struct, holding cors configuration
 #[derive(Debug, Clone)]

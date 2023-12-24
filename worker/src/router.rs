@@ -1,13 +1,13 @@
 use std::{collections::HashMap, future::Future, rc::Rc};
 
 use futures_util::future::LocalBoxFuture;
+use http::Method;
 use matchit::{Match, Node};
 use worker_kv::KvStore;
 
 use crate::{
     durable::ObjectNamespace,
     env::{Env, Secret, Var},
-    http::Method,
     request::Request,
     response::Response,
     Bucket, Fetcher, Result,
@@ -122,6 +122,17 @@ impl<'a> Router<'a, ()> {
 }
 
 impl<'a, D: 'a> Router<'a, D> {
+    const HTTP_METHODS: &'static [Method; 8] = &[
+        Method::GET,
+        Method::HEAD,
+        Method::POST,
+        Method::PUT,
+        Method::DELETE,
+        Method::CONNECT,
+        Method::OPTIONS,
+        Method::PATCH,
+    ];
+
     /// Construct a new `Router` with arbitrary data that will be available to your various routes.
     pub fn with_data(data: D) -> Self {
         Self {
@@ -133,49 +144,49 @@ impl<'a, D: 'a> Router<'a, D> {
 
     /// Register an HTTP handler that will exclusively respond to HEAD requests.
     pub fn head(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
-        self.add_handler(pattern, Handler::Sync(func), vec![Method::Head]);
+        self.add_handler(pattern, Handler::Sync(func), vec![Method::HEAD]);
         self
     }
 
     /// Register an HTTP handler that will exclusively respond to GET requests.
     pub fn get(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
-        self.add_handler(pattern, Handler::Sync(func), vec![Method::Get]);
+        self.add_handler(pattern, Handler::Sync(func), vec![Method::GET]);
         self
     }
 
     /// Register an HTTP handler that will exclusively respond to POST requests.
     pub fn post(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
-        self.add_handler(pattern, Handler::Sync(func), vec![Method::Post]);
+        self.add_handler(pattern, Handler::Sync(func), vec![Method::POST]);
         self
     }
 
     /// Register an HTTP handler that will exclusively respond to PUT requests.
     pub fn put(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
-        self.add_handler(pattern, Handler::Sync(func), vec![Method::Put]);
+        self.add_handler(pattern, Handler::Sync(func), vec![Method::PUT]);
         self
     }
 
     /// Register an HTTP handler that will exclusively respond to PATCH requests.
     pub fn patch(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
-        self.add_handler(pattern, Handler::Sync(func), vec![Method::Patch]);
+        self.add_handler(pattern, Handler::Sync(func), vec![Method::PATCH]);
         self
     }
 
     /// Register an HTTP handler that will exclusively respond to DELETE requests.
     pub fn delete(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
-        self.add_handler(pattern, Handler::Sync(func), vec![Method::Delete]);
+        self.add_handler(pattern, Handler::Sync(func), vec![Method::DELETE]);
         self
     }
 
     /// Register an HTTP handler that will exclusively respond to OPTIONS requests.
     pub fn options(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
-        self.add_handler(pattern, Handler::Sync(func), vec![Method::Options]);
+        self.add_handler(pattern, Handler::Sync(func), vec![Method::OPTIONS]);
         self
     }
 
     /// Register an HTTP handler that will respond to any requests.
     pub fn on(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
-        self.add_handler(pattern, Handler::Sync(func), Method::all());
+        self.add_handler(pattern, Handler::Sync(func), Self::HTTP_METHODS.to_vec());
         self
     }
 
@@ -197,7 +208,7 @@ impl<'a, D: 'a> Router<'a, D> {
         self.add_handler(
             pattern,
             Handler::Async(Rc::new(move |req, info| Box::pin(func(req, info)))),
-            vec![Method::Head],
+            vec![Method::HEAD],
         );
         self
     }
@@ -211,7 +222,7 @@ impl<'a, D: 'a> Router<'a, D> {
         self.add_handler(
             pattern,
             Handler::Async(Rc::new(move |req, info| Box::pin(func(req, info)))),
-            vec![Method::Get],
+            vec![Method::GET],
         );
         self
     }
@@ -225,7 +236,7 @@ impl<'a, D: 'a> Router<'a, D> {
         self.add_handler(
             pattern,
             Handler::Async(Rc::new(move |req, info| Box::pin(func(req, info)))),
-            vec![Method::Post],
+            vec![Method::POST],
         );
         self
     }
@@ -239,7 +250,7 @@ impl<'a, D: 'a> Router<'a, D> {
         self.add_handler(
             pattern,
             Handler::Async(Rc::new(move |req, info| Box::pin(func(req, info)))),
-            vec![Method::Put],
+            vec![Method::PUT],
         );
         self
     }
@@ -253,7 +264,7 @@ impl<'a, D: 'a> Router<'a, D> {
         self.add_handler(
             pattern,
             Handler::Async(Rc::new(move |req, info| Box::pin(func(req, info)))),
-            vec![Method::Patch],
+            vec![Method::PATCH],
         );
         self
     }
@@ -267,7 +278,7 @@ impl<'a, D: 'a> Router<'a, D> {
         self.add_handler(
             pattern,
             Handler::Async(Rc::new(move |req, info| Box::pin(func(req, info)))),
-            vec![Method::Delete],
+            vec![Method::DELETE],
         );
         self
     }
@@ -285,7 +296,7 @@ impl<'a, D: 'a> Router<'a, D> {
         self.add_handler(
             pattern,
             Handler::Async(Rc::new(move |req, info| Box::pin(func(req, info)))),
-            vec![Method::Options],
+            vec![Method::OPTIONS],
         );
         self
     }
@@ -299,7 +310,7 @@ impl<'a, D: 'a> Router<'a, D> {
         self.add_handler(
             pattern,
             Handler::Async(Rc::new(move |req, route| Box::pin(func(req, route)))),
-            Method::all(),
+            Self::HTTP_METHODS.to_vec(),
         );
         self
     }
@@ -356,11 +367,11 @@ impl<'a, D: 'a> Router<'a, D> {
             }
         }
 
-        for method in Method::all() {
-            if method == Method::Head || method == Method::Options || method == Method::Trace {
+        for method in Self::HTTP_METHODS {
+            if method == Method::HEAD || method == Method::OPTIONS || method == Method::TRACE {
                 continue;
             }
-            if let Some(handlers) = handlers.get(&method) {
+            if let Some(handlers) = handlers.get(method) {
                 if let Ok(Match { .. }) = handlers.at(&req.path()) {
                     return Response::error("Method Not Allowed", 405);
                 }
@@ -407,3 +418,6 @@ impl From<matchit::Params<'_, '_>> for RouteParams {
         route_params
     }
 }
+
+#[test]
+fn test_method() {}

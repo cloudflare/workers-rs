@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::headers::Headers;
-use crate::http::Method;
+use http::Method;
 
 use js_sys::{self, Object};
 use wasm_bindgen::{prelude::*, JsValue};
@@ -84,7 +84,7 @@ impl Default for RequestInit {
             body: None,
             headers: Headers::new(),
             cf: CfProperties::default(),
-            method: Method::Get,
+            method: Method::GET,
             redirect: RequestRedirect::default(),
         }
     }

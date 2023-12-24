@@ -1,4 +1,5 @@
 use crate::ensure;
+use http::Method;
 use worker::*;
 
 #[allow(dead_code)]
@@ -15,7 +16,7 @@ pub async fn basic_test(env: &Env) -> Result<()> {
             "hello",
             RequestInit::new()
                 .with_body(Some("lol".into()))
-                .with_method(Method::Post),
+                .with_method(Method::POST),
         )?)
         .await?
         .text()
