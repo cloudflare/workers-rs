@@ -122,7 +122,7 @@ impl<'a> Router<'a, ()> {
 }
 
 impl<'a, D: 'a> Router<'a, D> {
-    const HTTP_METHODS: &'static [Method; 8] = &[
+    const HTTP_METHODS: &'static [Method; 9] = &[
         Method::GET,
         Method::HEAD,
         Method::POST,
@@ -131,6 +131,7 @@ impl<'a, D: 'a> Router<'a, D> {
         Method::CONNECT,
         Method::OPTIONS,
         Method::PATCH,
+        Method::TRACE,
     ];
 
     /// Construct a new `Router` with arbitrary data that will be available to your various routes.
