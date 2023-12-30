@@ -22,7 +22,7 @@ cfg-if = "1.0.0"
 console_error_panic_hook = { version = "0.1.7", optional = true }
 getrandom = { version = "0.2.10", features = ["js"] }
 hex = "0.4.3"
-http = "0.2.9"
+http = "1.0.0"
 regex = "1.8.4"
 serde = { version = "1.0.164", features = ["derive"] }
 serde_json = "1.0.96"
