@@ -1,4 +1,5 @@
 mod bucket;
+mod checksums;
 mod http_metadata;
 mod multipart_upload;
 mod object;
@@ -8,6 +9,7 @@ mod range;
 mod uploaded_part;
 
 pub use bucket::*;
+pub use checksums::*;
 pub use http_metadata::*;
 pub use multipart_upload::*;
 pub use object::*;
