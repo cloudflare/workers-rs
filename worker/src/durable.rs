@@ -724,7 +724,7 @@ impl DurableObject for Chatroom {
         Self {
             users: vec![],
             messages: vec![],
-            state: state,
+            state,
             env,
         }
     }
