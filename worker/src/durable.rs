@@ -713,10 +713,9 @@ use worker::*;
 #[durable_object]
 pub struct Chatroom {
     users: Vec<User>,
-    messages: Vec<Message>
+    messages: Vec<Message>,
     state: State,
     env: Env, // access `Env` across requests, use inside `fetch`
-
 }
 
 #[durable_object]
