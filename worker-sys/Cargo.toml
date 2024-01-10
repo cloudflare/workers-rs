@@ -10,7 +10,7 @@ description = "Low-level extern definitions / FFI bindings to the Cloudflare Wor
 [dependencies]
 cfg-if = "1.0.0"
 js-sys = "0.3.63"
-wasm-bindgen = "=0.2.87"
+wasm-bindgen = "=0.2.89"
 
 [dependencies.web-sys]
 version = "0.3.63"
