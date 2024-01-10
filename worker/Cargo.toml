@@ -19,7 +19,7 @@ chrono = { version = "0.4.26", default-features = false, features = [
 chrono-tz = { version = "0.8.2", default-features = false }
 futures-channel = "0.3.28"
 futures-util = { version = "0.3.28", default-features = false }
-http = "0.2.9"
+http = "1.0.0"
 js-sys = "0.3.63"
 matchit = "0.4.6"
 pin-project = "1.1.0"
@@ -47,7 +47,7 @@ features = [
 
 [dependencies.tokio-postgres]
 version = "0.7"
-default-features=false
+default-features = false
 features = ["js"]
 optional = true
 
