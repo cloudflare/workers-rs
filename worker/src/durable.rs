@@ -18,7 +18,7 @@ use crate::{
     error::Error,
     request::Request,
     response::Response,
-    Result,
+    Result, WebSocket,
 };
 
 use async_trait::async_trait;
@@ -193,6 +193,31 @@ impl State {
     // needs to be accessed by the `durable_object` macro in a conversion step
     pub fn _inner(self) -> DurableObjectState {
         self.inner
+    }
+
+    pub fn accept_web_socket(&self, ws: WebSocket) {
+        self.inner.accept_web_socket(ws.as_ref().clone())
+    }
+
+    pub fn accept_web_socket_with_tags(&self, ws: WebSocket, tags: Vec<String>) {
+        self.inner
+            .accept_web_socket_with_tags(ws.as_ref().clone(), tags);
+    }
+
+    pub fn get_web_sockets(&self) -> Vec<WebSocket> {
+        self.inner
+            .get_web_sockets()
+            .into_iter()
+            .map(Into::into)
+            .collect()
+    }
+
+    pub fn get_web_sockets_with_tag(&self, tag: String) -> Vec<WebSocket> {
+        self.inner
+            .get_web_sockets_with_tag(tag)
+            .into_iter()
+            .map(Into::into)
+            .collect()
     }
 }
 
