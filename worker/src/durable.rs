@@ -782,7 +782,7 @@ pub trait DurableObject {
     }
 
     #[allow(unused_variables)]
-    fn websocket_message(
+    async fn websocket_message(
         &mut self,
         ws: WebSocket,
         message: WebSocketIncomingMessage,
@@ -791,7 +791,7 @@ pub trait DurableObject {
     }
 
     #[allow(unused_variables)]
-    fn websocket_close(
+    async fn websocket_close(
         &mut self,
         ws: WebSocket,
         code: usize,
@@ -802,7 +802,7 @@ pub trait DurableObject {
     }
 
     #[allow(unused_variables)]
-    fn websocket_error(&mut self, ws: WebSocket, error: Error) -> Result<()> {
+    async fn websocket_error(&mut self, ws: WebSocket, error: Error) -> Result<()> {
         unimplemented!("websocket_error() handler not implemented")
     }
 }
