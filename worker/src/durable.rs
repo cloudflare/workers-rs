@@ -774,11 +774,11 @@ impl DurableObject for Chatroom {
 pub trait DurableObject {
     fn new(state: State, env: Env) -> Self;
 
-    fn fetch(&mut self, req: Request) -> impl std::future::Future<Output = Result<Response>>;
+    async fn fetch(&mut self, req: Request) -> Result<Response>;
 
     #[allow(clippy::diverging_sub_expression)]
-    fn alarm(&mut self) -> impl std::future::Future<Output = Result<Response>> {
-        async { unimplemented!("alarm() handler not implemented") }
+    async fn alarm(&mut self) -> Result<Response> {
+        unimplemented!("alarm() handler not implemented")
     }
 
     #[allow(unused_variables)]
@@ -786,8 +786,8 @@ pub trait DurableObject {
         &mut self,
         ws: WebSocket,
         message: WebSocketIncomingMessage,
-    ) -> impl std::future::Future<Output = Result<()>> {
-        async { unimplemented!("websocket_message() handler not implemented") }
+    ) -> Result<()> {
+        unimplemented!("websocket_message() handler not implemented")
     }
 
     #[allow(unused_variables)]
@@ -797,16 +797,12 @@ pub trait DurableObject {
         code: usize,
         reason: String,
         was_clean: bool,
-    ) -> impl std::future::Future<Output = Result<()>> {
-        async { unimplemented!("websocket_close() handler not implemented") }
+    ) -> Result<()> {
+        unimplemented!("websocket_close() handler not implemented")
     }
 
     #[allow(unused_variables)]
-    fn websocket_error(
-        &mut self,
-        ws: WebSocket,
-        error: Error,
-    ) -> impl std::future::Future<Output = Result<()>> {
-        async { unimplemented!("websocket_error() handler not implemented") }
+    fn websocket_error(&mut self, ws: WebSocket, error: Error) -> Result<()> {
+        unimplemented!("websocket_error() handler not implemented")
     }
 }
