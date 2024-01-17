@@ -18,7 +18,7 @@ use crate::{
     error::Error,
     request::Request,
     response::Response,
-    Result,
+    Result, WebSocket,
 };
 
 use async_trait::async_trait;
@@ -193,6 +193,31 @@ impl State {
     // needs to be accessed by the `durable_object` macro in a conversion step
     pub fn _inner(self) -> DurableObjectState {
         self.inner
+    }
+
+    pub fn accept_web_socket(&self, ws: WebSocket) {
+        self.inner.accept_web_socket(ws.as_ref().clone())
+    }
+
+    pub fn accept_web_socket_with_tags(&self, ws: WebSocket, tags: Vec<String>) {
+        self.inner
+            .accept_web_socket_with_tags(ws.as_ref().clone(), tags);
+    }
+
+    pub fn get_web_sockets(&self) -> Vec<WebSocket> {
+        self.inner
+            .get_web_sockets()
+            .into_iter()
+            .map(Into::into)
+            .collect()
+    }
+
+    pub fn get_web_sockets_with_tag(&self, tag: String) -> Vec<WebSocket> {
+        self.inner
+            .get_web_sockets_with_tag(tag)
+            .into_iter()
+            .map(Into::into)
+            .collect()
     }
 }
 
@@ -737,12 +762,42 @@ impl DurableObject for Chatroom {
 }
 ```
 */
-#[async_trait(?Send)]
 pub trait DurableObject {
     fn new(state: State, env: Env) -> Self;
-    async fn fetch(&mut self, req: Request) -> Result<Response>;
+
+    fn fetch(&mut self, req: Request) -> impl std::future::Future<Output = Result<Response>>;
+
     #[allow(clippy::diverging_sub_expression)]
-    async fn alarm(&mut self) -> Result<Response> {
-        unimplemented!("alarm() handler not implemented")
+    fn alarm(&mut self) -> impl std::future::Future<Output = Result<Response>> {
+        async { unimplemented!("alarm() handler not implemented") }
+    }
+
+    #[allow(unused_variables)]
+    fn on_message(
+        &mut self,
+        ws: WebSocket,
+        message: String,
+    ) -> impl std::future::Future<Output = Result<()>> {
+        async { unimplemented!("on_message() handler not implemented") }
+    }
+
+    #[allow(unused_variables)]
+    fn on_close(
+        &mut self,
+        ws: WebSocket,
+        code: usize,
+        reason: String,
+        was_clean: bool,
+    ) -> impl std::future::Future<Output = Result<()>> {
+        async { unimplemented!("on_close() handler not implemented") }
+    }
+
+    #[allow(unused_variables)]
+    fn on_error(
+        &mut self,
+        ws: WebSocket,
+        error: Error,
+    ) -> impl std::future::Future<Output = Result<()>> {
+        async { unimplemented!("on_error() handler not implemented") }
     }
 }
