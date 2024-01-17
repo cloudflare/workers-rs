@@ -36,6 +36,8 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                     ImplItem::Fn(func) => func,
                     _ => return Err(Error::new_spanned(item, "Impl block must only contain methods"))
                 };
+                
+                let span = impl_method.sig.ident.span();
 
                 let tokens = match impl_method.sig.ident.to_string().as_str() {
                     "new" => {
@@ -68,17 +70,17 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                         prepended.extend(method.block.stmts);
                         method.block.stmts = prepended;
 
-                        quote! {
+                        Ok(quote! {
                             #pound[wasm_bindgen::prelude::wasm_bindgen(constructor)]
                             pub #method
-                        }
+                        })
                     },
                     "fetch" => {
                         let mut method = impl_method.clone();
                         method.sig.ident = Ident::new("_fetch_raw", method.sig.ident.span());
                         method.vis = Visibility::Inherited;
 
-                        quote! {
+                        Ok(quote! {
                             #pound[wasm_bindgen::prelude::wasm_bindgen(js_name = fetch)]
                             pub fn _fetch(&mut self, req: worker_sys::web_sys::Request) -> js_sys::Promise {
                                 // SAFETY:
@@ -96,7 +98,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                             }
 
                             #method
-                        }
+                        })
                     },
                     "alarm" => {
                         optional_methods.has_alarm = true;
@@ -105,7 +107,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                         method.sig.ident = Ident::new("_alarm_raw", method.sig.ident.span());
                         method.vis = Visibility::Inherited;
 
-                        quote! {
+                        Ok(quote! {
                             #pound[wasm_bindgen::prelude::wasm_bindgen(js_name = alarm)]
                             pub fn _alarm(&mut self) -> js_sys::Promise {
                                 // SAFETY:
@@ -123,7 +125,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                             }
 
                             #method
-                        }
+                        })
                     },
                     "websocket_message" => {
                         optional_methods.has_websocket_message = true;
@@ -132,7 +134,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                         method.sig.ident = Ident::new("_websocket_message_raw", method.sig.ident.span());
                         method.vis = Visibility::Inherited;
 
-                        quote! {
+                        Ok(quote! {
                             #pound[wasm_bindgen::prelude::wasm_bindgen(js_name = webSocketMessage)]
                             pub fn _websocket_message(&mut self, ws: worker_sys::web_sys::WebSocket, message: JsValue) -> js_sys::Promise {
                                 let ws_message = if let Some(string_message) = message.as_string() {
@@ -157,7 +159,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                             }
 
                             #method
-                        }
+                        })
                     },
                     "websocket_close" => {
                         optional_methods.has_websocket_close = true;
@@ -166,7 +168,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                         method.sig.ident = Ident::new("_websocket_close_raw", method.sig.ident.span());
                         method.vis = Visibility::Inherited;
 
-                        quote! {
+                        Ok(quote! {
                             #pound[wasm_bindgen::prelude::wasm_bindgen(js_name = webSocketClose)]
                             pub fn _websocket_close(&mut self, ws: worker_sys::web_sys::WebSocket, code: usize, reason: String, was_clean: bool) -> js_sys::Promise {
                                 // SAFETY:
@@ -184,7 +186,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                             }
 
                             #method
-                        }
+                        })
                     },
                     "websocket_error" => {
                         optional_methods.has_websocket_error = true;
@@ -193,7 +195,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                         method.sig.ident = Ident::new("_websocket_error_raw", method.sig.ident.span());
                         method.vis = Visibility::Inherited;
 
-                        quote! {
+                        Ok(quote! {
                             #pound[wasm_bindgen::prelude::wasm_bindgen(js_name = webSocketError)]
                             pub fn _websocket_error(&mut self, ws: worker_sys::web_sys::WebSocket, error: JsValue) -> js_sys::Promise {
                                 // SAFETY:
@@ -211,11 +213,11 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                             }
 
                             #method
-                        }
+                        })
                     },
-                    ident => panic!("Unsupported method {}, please move extra impl methods to a separate impl definition", ident)
+                    ident => Err(Error::new(span, format!("Unsupported method `{}`, please move extra impl methods to a separate impl definition", ident)))
                 };
-                tokenized.push(tokens);
+                tokenized.push(tokens?);
             }
 
             let alarm_tokens = optional_methods.has_alarm.then(|| quote! {
