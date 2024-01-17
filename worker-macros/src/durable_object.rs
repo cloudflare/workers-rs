@@ -213,7 +213,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                             #method
                         }
                     },
-                    _ => panic!()
+                    ident => panic!("Unsupported method {}, please move extra impl methods to a separate impl definition", ident)
                 };
                 tokenized.push(tokens);
             }
