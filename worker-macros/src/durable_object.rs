@@ -24,9 +24,9 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
             #[derive(Default)]
             struct OptionalMethods {
                 has_alarm: bool,
-                has_on_message: bool,
-                has_on_close: bool,
-                has_on_error: bool,
+                has_websocket_message: bool,
+                has_websocket_close: bool,
+                has_websocket_error: bool,
             }
 
             let mut optional_methods = OptionalMethods::default();
@@ -125,16 +125,23 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                             #method
                         }
                     },
-                    "on_message" => {
-                        optional_methods.has_on_message = true;
+                    "websocket_message" => {
+                        optional_methods.has_websocket_message = true;
 
                         let mut method = impl_method.clone();
-                        method.sig.ident = Ident::new("_on_message_raw", method.sig.ident.span());
+                        method.sig.ident = Ident::new("_websocket_message_raw", method.sig.ident.span());
                         method.vis = Visibility::Inherited;
 
                         quote! {
                             #pound[wasm_bindgen::prelude::wasm_bindgen(js_name = webSocketMessage)]
-                            pub fn _on_message(&mut self, ws: worker_sys::web_sys::WebSocket, message: String) -> js_sys::Promise {
+                            pub fn _websocket_message(&mut self, ws: worker_sys::web_sys::WebSocket, message: JsValue) -> js_sys::Promise {
+                                let ws_message = if let Some(string_message) = message.as_string() {
+                                    worker::WebSocketIncomingMessage::String(string_message)
+                                } else {
+                                    let v = js_sys::Uint8Array::new(&message).to_vec();
+                                    worker::WebSocketIncomingMessage::Binary(v)
+                                }
+                                
                                 // SAFETY:
                                 // On the surface, this is unsound because the Durable Object could be dropped
                                 // while JavaScript still has possession of the future. However,
@@ -144,7 +151,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                                 let static_self: &'static mut Self = unsafe {&mut *(self as *mut _)};
 
                                 wasm_bindgen_futures::future_to_promise(async move {
-                                    static_self._on_message_raw(ws.into(), message).await.map(|_| wasm_bindgen::JsValue::NULL)
+                                    static_self._websocket_message_raw(ws.into(), ws_message).await.map(|_| wasm_bindgen::JsValue::NULL)
                                         .map_err(wasm_bindgen::JsValue::from)
                                 })
                             }
@@ -152,16 +159,16 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                             #method
                         }
                     },
-                    "on_close" => {
-                        optional_methods.has_on_close = true;
+                    "websocket_close" => {
+                        optional_methods.has_websocket_close = true;
 
                         let mut method = impl_method.clone();
-                        method.sig.ident = Ident::new("_on_close_raw", method.sig.ident.span());
+                        method.sig.ident = Ident::new("_websocket_close_raw", method.sig.ident.span());
                         method.vis = Visibility::Inherited;
 
                         quote! {
                             #pound[wasm_bindgen::prelude::wasm_bindgen(js_name = webSocketClose)]
-                            pub fn _on_close(&mut self, ws: worker_sys::web_sys::WebSocket, code: usize, reason: String, was_clean: bool) -> js_sys::Promise {
+                            pub fn _websocket_close(&mut self, ws: worker_sys::web_sys::WebSocket, code: usize, reason: String, was_clean: bool) -> js_sys::Promise {
                                 // SAFETY:
                                 // On the surface, this is unsound because the Durable Object could be dropped
                                 // while JavaScript still has possession of the future. However,
@@ -171,7 +178,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                                 let static_self: &'static mut Self = unsafe {&mut *(self as *mut _)};
 
                                 wasm_bindgen_futures::future_to_promise(async move {
-                                    static_self._on_close_raw(ws.into(), code, reason, was_clean).await.map(|_| wasm_bindgen::JsValue::NULL)
+                                    static_self._websocket_close_raw(ws.into(), code, reason, was_clean).await.map(|_| wasm_bindgen::JsValue::NULL)
                                         .map_err(wasm_bindgen::JsValue::from)
                                 })
                             }
@@ -179,16 +186,16 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                             #method
                         }
                     },
-                    "on_error" => {
-                        optional_methods.has_on_error = true;
+                    "websocket_error" => {
+                        optional_methods.has_websocket_error = true;
 
                         let mut method = impl_method.clone();
-                        method.sig.ident = Ident::new("_on_error_raw", method.sig.ident.span());
+                        method.sig.ident = Ident::new("_websocket_error_raw", method.sig.ident.span());
                         method.vis = Visibility::Inherited;
 
                         quote! {
                             #pound[wasm_bindgen::prelude::wasm_bindgen(js_name = webSocketError)]
-                            pub fn _on_error(&mut self, ws: worker_sys::web_sys::WebSocket, error: JsValue) -> js_sys::Promise {
+                            pub fn _websocket_error(&mut self, ws: worker_sys::web_sys::WebSocket, error: JsValue) -> js_sys::Promise {
                                 // SAFETY:
                                 // On the surface, this is unsound because the Durable Object could be dropped
                                 // while JavaScript still has possession of the future. However,
@@ -198,7 +205,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                                 let static_self: &'static mut Self = unsafe {&mut *(self as *mut _)};
 
                                 wasm_bindgen_futures::future_to_promise(async move {
-                                    static_self._on_error_raw(ws.into(), error.into()).await.map(|_| wasm_bindgen::JsValue::NULL)
+                                    static_self._websocket_error_raw(ws.into(), error.into()).await.map(|_| wasm_bindgen::JsValue::NULL)
                                         .map_err(wasm_bindgen::JsValue::from)
                                 })
                             }
@@ -217,21 +224,21 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                 }
             });
             
-            let on_message_tokens = optional_methods.has_on_message.then(|| quote! {
-                async fn on_message(&mut self, ws: ::worker::WebSocket, message: String) -> ::worker::Result<()> {
-                    self._on_message_raw(ws, message).await
+            let websocket_message_tokens = optional_methods.has_websocket_message.then(|| quote! {
+                async fn websocket_message(&mut self, ws: ::worker::WebSocket, message: String) -> ::worker::Result<()> {
+                    self._websocket_message_raw(ws, message).await
                 }
             });
 
-            let on_close_tokens = optional_methods.has_on_close.then(|| quote! {
-                async fn on_close(&mut self, ws: ::worker::WebSocket, code: usize, reason: String, was_clean: bool) -> ::worker::Result<()> {
-                    self._on_close_raw(ws, code, reason, was_clean).await
+            let websocket_close_tokens = optional_methods.has_websocket_close.then(|| quote! {
+                async fn websocket_close(&mut self, ws: ::worker::WebSocket, code: usize, reason: String, was_clean: bool) -> ::worker::Result<()> {
+                    self._websocket_close_raw(ws, code, reason, was_clean).await
                 }
             });
 
-            let on_error_tokens = optional_methods.has_on_error.then(|| quote! {
-                async fn on_error(&mut self, ws: ::worker::WebSocket, error: ::worker::Error) -> ::worker::Result<()> {
-                    self._on_error_raw(ws, error).await
+            let websocket_error_tokens = optional_methods.has_websocket_error.then(|| quote! {
+                async fn websocket_error(&mut self, ws: ::worker::WebSocket, error: ::worker::Error) -> ::worker::Result<()> {
+                    self._websocket_error_raw(ws, error).await
                 }
             });
 
@@ -241,6 +248,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                     #(#tokenized)*
                 }
 
+                #pound[async_trait::async_trait(?Send)]
                 impl ::worker::durable::DurableObject for #struct_name {
                     fn new(state: ::worker::durable::State, env: ::worker::Env) -> Self {
                         Self::_new(state._inner(), env)
@@ -252,11 +260,11 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
 
                     #alarm_tokens
 
-                    #on_message_tokens
+                    #websocket_message_tokens
 
-                    #on_close_tokens
+                    #websocket_close_tokens
 
-                    #on_error_tokens
+                    #websocket_error_tokens
                 }
 
                 trait __Need_Durable_Object_Trait_Impl_With_durable_object_Attribute { const MACROED: bool = true; }

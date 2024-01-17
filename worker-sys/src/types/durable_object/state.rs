@@ -17,21 +17,19 @@ extern "C" {
     pub fn wait_until(this: &DurableObjectState, promise: &js_sys::Promise);
 
     #[wasm_bindgen(method, js_name=acceptWebSocket)]
-    pub fn accept_web_socket(this: &DurableObjectState, ws: web_sys::WebSocket);
+    pub fn accept_websocket(this: &DurableObjectState, ws: web_sys::WebSocket);
 
     #[wasm_bindgen(method, js_name=acceptWebSocket)]
-    pub fn accept_web_socket_with_tags(
+    pub fn accept_websocket_with_tags(
         this: &DurableObjectState,
         ws: web_sys::WebSocket,
-        tags: Vec<String>,
+        tags: Vec<JsValue>,
     );
 
     #[wasm_bindgen(method, js_name=getWebSockets)]
-    pub fn get_web_sockets(this: &DurableObjectState) -> Vec<web_sys::WebSocket>;
+    pub fn get_websockets(this: &DurableObjectState) -> Vec<web_sys::WebSocket>;
 
     #[wasm_bindgen(method, js_name=getWebSockets)]
-    pub fn get_web_sockets_with_tag(
-        this: &DurableObjectState,
-        tag: String,
-    ) -> Vec<web_sys::WebSocket>;
+    pub fn get_websockets_with_tag(this: &DurableObjectState, tag: &str)
+        -> Vec<web_sys::WebSocket>;
 }

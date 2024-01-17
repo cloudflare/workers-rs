@@ -196,25 +196,27 @@ impl State {
     }
 
     pub fn accept_web_socket(&self, ws: WebSocket) {
-        self.inner.accept_web_socket(ws.as_ref().clone())
+        self.inner.accept_websocket(ws.as_ref().clone())
     }
 
-    pub fn accept_web_socket_with_tags(&self, ws: WebSocket, tags: Vec<String>) {
+    pub fn accept_websocket_with_tags(&self, ws: WebSocket, tags: &[&str]) {
+        let tags = tags.iter().map(|it| (*it).into()).collect();
+
         self.inner
-            .accept_web_socket_with_tags(ws.as_ref().clone(), tags);
+            .accept_websocket_with_tags(ws.as_ref().clone(), tags);
     }
 
-    pub fn get_web_sockets(&self) -> Vec<WebSocket> {
+    pub fn get_websockets(&self) -> Vec<WebSocket> {
         self.inner
-            .get_web_sockets()
+            .get_websockets()
             .into_iter()
             .map(Into::into)
             .collect()
     }
 
-    pub fn get_web_sockets_with_tag(&self, tag: String) -> Vec<WebSocket> {
+    pub fn get_websockets_with_tag(&self, tag: &str) -> Vec<WebSocket> {
         self.inner
-            .get_web_sockets_with_tag(tag)
+            .get_websockets_with_tag(tag)
             .into_iter()
             .map(Into::into)
             .collect()
@@ -726,6 +728,11 @@ impl AsRef<JsValue> for ObjectNamespace {
     }
 }
 
+pub enum WebSocketIncomingMessage {
+    String(String),
+    Binary(Vec<u8>),
+}
+
 /**
 **Note:** Implement this trait with a standard `impl DurableObject for YourType` block, but in order to
 integrate them with the Workers Runtime, you must also add the **`#[durable_object]`** attribute
@@ -762,6 +769,8 @@ impl DurableObject for Chatroom {
 }
 ```
 */
+
+#[async_trait(?Send)]
 pub trait DurableObject {
     fn new(state: State, env: Env) -> Self;
 
@@ -773,31 +782,31 @@ pub trait DurableObject {
     }
 
     #[allow(unused_variables)]
-    fn on_message(
+    fn websocket_message(
         &mut self,
         ws: WebSocket,
-        message: String,
+        message: WebSocketIncomingMessage,
     ) -> impl std::future::Future<Output = Result<()>> {
-        async { unimplemented!("on_message() handler not implemented") }
+        async { unimplemented!("websocket_message() handler not implemented") }
     }
 
     #[allow(unused_variables)]
-    fn on_close(
+    fn websocket_close(
         &mut self,
         ws: WebSocket,
         code: usize,
         reason: String,
         was_clean: bool,
     ) -> impl std::future::Future<Output = Result<()>> {
-        async { unimplemented!("on_close() handler not implemented") }
+        async { unimplemented!("websocket_close() handler not implemented") }
     }
 
     #[allow(unused_variables)]
-    fn on_error(
+    fn websocket_error(
         &mut self,
         ws: WebSocket,
         error: Error,
     ) -> impl std::future::Future<Output = Result<()>> {
-        async { unimplemented!("on_error() handler not implemented") }
+        async { unimplemented!("websocket_error() handler not implemented") }
     }
 }
