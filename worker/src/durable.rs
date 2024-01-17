@@ -781,7 +781,7 @@ pub trait DurableObject {
         unimplemented!("alarm() handler not implemented")
     }
 
-    #[allow(unused_variables)]
+    #[allow(unused_variables, clippy::diverging_sub_expression)]
     async fn websocket_message(
         &mut self,
         ws: WebSocket,
@@ -790,7 +790,7 @@ pub trait DurableObject {
         unimplemented!("websocket_message() handler not implemented")
     }
 
-    #[allow(unused_variables)]
+    #[allow(unused_variables, clippy::diverging_sub_expression)]
     async fn websocket_close(
         &mut self,
         ws: WebSocket,
@@ -801,7 +801,7 @@ pub trait DurableObject {
         unimplemented!("websocket_close() handler not implemented")
     }
 
-    #[allow(unused_variables)]
+    #[allow(unused_variables, clippy::diverging_sub_expression)]
     async fn websocket_error(&mut self, ws: WebSocket, error: Error) -> Result<()> {
         unimplemented!("websocket_error() handler not implemented")
     }
