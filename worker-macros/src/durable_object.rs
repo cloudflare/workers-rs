@@ -142,7 +142,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                                 } else {
                                     let v = js_sys::Uint8Array::new(&message).to_vec();
                                     worker::WebSocketIncomingMessage::Binary(v)
-                                }
+                                };
                                 
                                 // SAFETY:
                                 // On the surface, this is unsound because the Durable Object could be dropped
