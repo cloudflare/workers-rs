@@ -227,7 +227,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
             });
             
             let websocket_message_tokens = optional_methods.has_websocket_message.then(|| quote! {
-                async fn websocket_message(&mut self, ws: ::worker::WebSocket, message: String) -> ::worker::Result<()> {
+                async fn websocket_message(&mut self, ws: ::worker::WebSocket, message: ::worker::WebSocketIncomingMessage) -> ::worker::Result<()> {
                     self._websocket_message_raw(ws, message).await
                 }
             });
