@@ -1,11 +1,11 @@
 [package]
-name = "worker-sys"
 authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
-edition = "2018"
-version = "0.0.10"
-license = "Apache-2.0"
-repository = "https://github.com/cloudflare/workers-rs/tree/main/worker-sys"
 description = "Low-level extern definitions / FFI bindings to the Cloudflare Workers JS Runtime."
+edition = "2018"
+license = "Apache-2.0"
+name = "worker-sys"
+repository = "https://github.com/cloudflare/workers-rs/tree/main/worker-sys"
+version = "0.0.10"
 
 [dependencies]
 cfg-if = "1.0.0"
@@ -13,32 +13,32 @@ js-sys = "0.3.63"
 wasm-bindgen = "=0.2.87"
 
 [dependencies.web-sys]
-version = "0.3.63"
 features = [
-    "ReadableStream",
-    "WritableStream",
-    "RequestRedirect",
-    "RequestInit",
-    "FormData",
-    "Blob",
-    "BinaryType",
-    "ErrorEvent",
-    "MessageEvent",
-    "CloseEvent",
-    "ProgressEvent",
-    "WebSocket",
-    "TransformStream",
-    "AbortController",
-    "console",
-    "ResponseInit",
-    "Cache",
-    "CacheStorage",
-    "CacheQueryOptions",
-    "AbortSignal",
-    "Headers",
-    "Request",
-    "Response",
+  "ReadableStream",
+  "WritableStream",
+  "RequestRedirect",
+  "RequestInit",
+  "FormData",
+  "Blob",
+  "BinaryType",
+  "ErrorEvent",
+  "MessageEvent",
+  "CloseEvent",
+  "ProgressEvent",
+  "WebSocket",
+  "TransformStream",
+  "AbortController",
+  "console",
+  "ResponseInit",
+  "Cache",
+  "CacheStorage",
+  "CacheQueryOptions",
+  "AbortSignal",
+  "Headers",
+  "Request",
+  "Response",
 ]
+version = "0.3.63"
 
 [features]
 d1 = []

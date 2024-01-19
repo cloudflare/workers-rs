@@ -1,9 +1,12 @@
+use std::convert::TryInto;
+
 #[cfg(feature = "d1")]
 use crate::d1::D1Database;
-use crate::error::Error;
 #[cfg(feature = "queue")]
 use crate::Queue;
+use crate::Request;
 use crate::{durable::ObjectNamespace, Bucket, DynamicDispatcher, Fetcher, Result};
+use crate::{error::Error, Response};
 
 use js_sys::Object;
 use wasm_bindgen::{prelude::*, JsCast, JsValue};
@@ -78,6 +81,21 @@ impl Env {
     #[cfg(feature = "d1")]
     pub fn d1(&self, binding: &str) -> Result<D1Database> {
         self.get_binding(binding)
+    }
+
+    pub fn fetch_assets(&self, req: Request) -> crate::Result<Response> {
+        let assets = js_sys::Reflect::get(self, &JsValue::from("ASSETS"))?;
+        if assets.is_undefined() {
+            return Err("ASSETS is not defined on Env".into());
+        }
+
+        let fetch = js_sys::Reflect::get(&assets, &JsValue::from("fetch"))?
+            .dyn_into::<js_sys::Function>()?;
+
+        Ok(fetch
+            .call1(&assets, req.inner())?
+            .dyn_into::<web_sys::Response>()?
+            .into())
     }
 }
 
