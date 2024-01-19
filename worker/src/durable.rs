@@ -195,15 +195,14 @@ impl State {
         self.inner
     }
 
-    pub fn accept_web_socket(&self, ws: WebSocket) {
-        self.inner.accept_websocket(ws.as_ref().clone())
+    pub fn accept_web_socket(&self, ws: &WebSocket) {
+        self.inner.accept_websocket(ws.as_ref())
     }
 
-    pub fn accept_websocket_with_tags(&self, ws: WebSocket, tags: &[&str]) {
+    pub fn accept_websocket_with_tags(&self, ws: &WebSocket, tags: &[&str]) {
         let tags = tags.iter().map(|it| (*it).into()).collect();
 
-        self.inner
-            .accept_websocket_with_tags(ws.as_ref().clone(), tags);
+        self.inner.accept_websocket_with_tags(ws.as_ref(), tags);
     }
 
     pub fn get_websockets(&self) -> Vec<WebSocket> {

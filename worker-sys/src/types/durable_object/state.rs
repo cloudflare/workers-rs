@@ -17,12 +17,12 @@ extern "C" {
     pub fn wait_until(this: &DurableObjectState, promise: &js_sys::Promise);
 
     #[wasm_bindgen(method, js_name=acceptWebSocket)]
-    pub fn accept_websocket(this: &DurableObjectState, ws: web_sys::WebSocket);
+    pub fn accept_websocket(this: &DurableObjectState, ws: &web_sys::WebSocket);
 
     #[wasm_bindgen(method, js_name=acceptWebSocket)]
     pub fn accept_websocket_with_tags(
         this: &DurableObjectState,
-        ws: web_sys::WebSocket,
+        ws: &web_sys::WebSocket,
         tags: Vec<JsValue>,
     );
 
