@@ -3,16 +3,16 @@ use std::{
     task::{Context, Poll},
 };
 
-use bytes::Bytes;
-use futures_util::{AsyncRead, Stream};
-use http::HeaderMap;
-use serde::de::DeserializeOwned;
 use crate::console_log;
 use crate::{
     body::{wasm::WasmStreamBody, HttpBody},
     futures::SendJsFuture,
     Error,
 };
+use bytes::Bytes;
+use futures_util::{AsyncRead, Stream};
+use http::HeaderMap;
+use serde::de::DeserializeOwned;
 
 type BoxBody = http_body::combinators::UnsyncBoxBody<Bytes, Error>;
 
@@ -189,11 +189,13 @@ impl Body {
         match self.into_inner() {
             crate::body::BodyInner::Request(req) => req.body(),
             crate::body::BodyInner::Response(res) => res.body(),
-            crate::body::BodyInner::Regular(s) => {
-                Some(
-                    wasm_streams::ReadableStream::from_async_read(crate::body::BoxBodyReader::new(s), 1024).into_raw()
+            crate::body::BodyInner::Regular(s) => Some(
+                wasm_streams::ReadableStream::from_async_read(
+                    crate::body::BoxBodyReader::new(s),
+                    1024,
                 )
-            }
+                .into_raw(),
+            ),
             crate::body::BodyInner::None => None,
             _ => panic!("unexpected body inner"),
         }
@@ -302,14 +304,14 @@ impl HttpBody for Body {
 
 pub struct BoxBodyReader {
     inner: BoxBody,
-    store: Vec<u8>
+    store: Vec<u8>,
 }
 
 impl BoxBodyReader {
     pub fn new(inner: BoxBody) -> Self {
         BoxBodyReader {
             inner,
-            store: Vec::new()
+            store: Vec::new(),
         }
     }
 }
@@ -319,7 +321,7 @@ impl AsyncRead for BoxBodyReader {
     fn poll_read(
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
-        buf: &mut [u8]
+        buf: &mut [u8],
     ) -> Poll<Result<usize, std::io::Error>> {
         if self.store.len() > 0 {
             let size = self.store.len().min(buf.len());
@@ -338,13 +340,13 @@ impl AsyncRead for BoxBodyReader {
                             buf[..size].clone_from_slice(&self.store[..size]);
                             self.store = self.store.split_off(size);
                             Poll::Ready(Ok(size))
-                        },
+                        }
                         Err(e) => {
                             Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::Other, e)))
                         }
                     },
-                    None => Poll::Ready(Ok(0)) // Not sure about this
-                }
+                    None => Poll::Ready(Ok(0)), // Not sure about this
+                },
             }
         }
     }

@@ -28,12 +28,12 @@ use futures_util::Future;
 use js_sys::{Map, Number, Object};
 use serde::{de::DeserializeOwned, Serialize};
 use wasm_bindgen::{prelude::*, JsCast};
+use wasm_bindgen_futures::future_to_promise;
 use worker_sys::{
     DurableObject as EdgeDurableObject, DurableObjectId,
     DurableObjectNamespace as EdgeObjectNamespace, DurableObjectState, DurableObjectStorage,
     DurableObjectTransaction,
 };
-use wasm_bindgen_futures::future_to_promise;
 
 /// A Durable Object stub is a client object used to send requests to a remote Durable Object.
 pub struct Stub {

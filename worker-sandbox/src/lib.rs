@@ -10,7 +10,11 @@ use std::{
 use router_service::unsync::Router;
 use serde::{Deserialize, Serialize};
 use tower::Service;
-use worker::{body::Body, http::{Response, HttpClone, RequestRedirect}, *};
+use worker::{
+    body::Body,
+    http::{HttpClone, RequestRedirect, Response},
+    *,
+};
 
 mod alarm;
 mod counter;
