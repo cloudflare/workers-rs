@@ -4,27 +4,15 @@ use std::{
 };
 
 use bytes::Bytes;
-use futures_util::Stream;
+use futures_util::{AsyncRead, Stream};
 use http::HeaderMap;
-use js_sys::{ArrayBuffer, Promise, Uint8Array};
 use serde::de::DeserializeOwned;
-use wasm_bindgen::{prelude::wasm_bindgen, JsCast, JsValue};
-
+use crate::console_log;
 use crate::{
     body::{wasm::WasmStreamBody, HttpBody},
     futures::SendJsFuture,
     Error,
 };
-
-// FIXME(zeb): this is a really disgusting hack that has to clone the bytes inside of the stream
-// because the array buffer backing them gets detached.
-#[wasm_bindgen(module = "/js/hacks.js")]
-extern "C" {
-    #[wasm_bindgen(js_name = "collectBytes", catch)]
-    fn collect_bytes(
-        stream: &JsValue,
-    ) -> Result<Promise, JsValue>;
-}
 
 type BoxBody = http_body::combinators::UnsyncBoxBody<Bytes, Error>;
 
@@ -116,25 +104,6 @@ impl Body {
         // performance as there's no polling overhead.
         match self.0 {
             BodyInner::Regular(body) => super::to_bytes(body).await,
-            /*
-            Working but clones all body
-            BodyInner::Request(req) if req.body().is_some() => {
-                // let body = req.body().unwrap();
-                let promise = collect_bytes(&req.unchecked_into())?;
-                let bytes: ArrayBuffer = SendJsFuture::from(promise).await?.into();
-                let bytes = Uint8Array::new(&bytes);
-                
-                Ok(bytes.to_vec().into())
-            }
-            BodyInner::Response(res) if res.body().is_some() => {
-                let promise = collect_bytes(&res.unchecked_into())?;
-                let bytes: ArrayBuffer = SendJsFuture::from(promise).await?.into();
-                let bytes = Uint8Array::new(&bytes);
-                
-                Ok(bytes.to_vec().into())
-            }
-            */
-            // Failing
             BodyInner::Request(req) => Ok(array_buffer_to_bytes(req.array_buffer()).await),
             BodyInner::Response(res) => Ok(array_buffer_to_bytes(res.array_buffer()).await),
             _ => Ok(Bytes::new()),
@@ -197,6 +166,10 @@ impl Body {
         &self.0
     }
 
+    pub(crate) fn into_inner(self) -> BodyInner {
+        self.0
+    }
+
     /// Turns the body into a regular streaming body, if it's not already, and returns the underlying body.
     fn as_inner_box_body(&mut self) -> Option<&mut BoxBody> {
         match &self.0 {
@@ -209,6 +182,20 @@ impl Body {
             BodyInner::None => None,
             BodyInner::Regular(body) => Some(body),
             _ => unreachable!(),
+        }
+    }
+
+    pub(crate) fn into_readable_stream(self) -> Option<web_sys::ReadableStream> {
+        match self.into_inner() {
+            crate::body::BodyInner::Request(req) => req.body(),
+            crate::body::BodyInner::Response(res) => res.body(),
+            crate::body::BodyInner::Regular(s) => {
+                Some(
+                    wasm_streams::ReadableStream::from_async_read(crate::body::BoxBodyReader::new(s), 1024).into_raw()
+                )
+            }
+            crate::body::BodyInner::None => None,
+            _ => panic!("unexpected body inner"),
         }
     }
 }
@@ -309,6 +296,56 @@ impl HttpBody for Body {
             BodyInner::Regular(body) => body.is_end_stream(),
             BodyInner::Request(_) => false,
             BodyInner::Response(_) => false,
+        }
+    }
+}
+
+pub struct BoxBodyReader {
+    inner: BoxBody,
+    store: Vec<u8>
+}
+
+impl BoxBodyReader {
+    pub fn new(inner: BoxBody) -> Self {
+        BoxBodyReader {
+            inner,
+            store: Vec::new()
+        }
+    }
+}
+
+impl AsyncRead for BoxBodyReader {
+    // Required method
+    fn poll_read(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &mut [u8]
+    ) -> Poll<Result<usize, std::io::Error>> {
+        if self.store.len() > 0 {
+            let size = self.store.len().min(buf.len());
+            buf[..size].clone_from_slice(&self.store[..size]);
+            self.store = self.store.split_off(size);
+            Poll::Ready(Ok(size))
+        } else {
+            match Pin::new(&mut self.inner).poll_data(cx) {
+                Poll::Pending => Poll::Pending,
+                Poll::Ready(opt) => match opt {
+                    Some(result) => match result {
+                        Ok(data) => {
+                            use bytes::Buf;
+                            self.store.extend_from_slice(data.chunk());
+                            let size = self.store.len().min(buf.len());
+                            buf[..size].clone_from_slice(&self.store[..size]);
+                            self.store = self.store.split_off(size);
+                            Poll::Ready(Ok(size))
+                        },
+                        Err(e) => {
+                            Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::Other, e)))
+                        }
+                    },
+                    None => Poll::Ready(Ok(0)) // Not sure about this
+                }
+            }
         }
     }
 }

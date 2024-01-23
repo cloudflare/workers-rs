@@ -7,6 +7,7 @@ mod wasm;
 
 pub use body::Body;
 pub(crate) use body::BodyInner;
+pub(crate) use body::BoxBodyReader;
 pub use http_body::Body as HttpBody;
 pub use to_bytes::to_bytes;
 
