@@ -759,6 +759,7 @@ impl DurableObject for Chatroom {
 pub trait DurableObject {
     fn new(state: State, env: Env) -> Self;
     async fn fetch(&mut self, req: http::Request<Body>) -> Result<http::Response<Body>>;
+    #[allow(clippy::diverging_sub_expression)]
     async fn alarm(&mut self) -> Result<http::Response<Body>> {
         unimplemented!("alarm() handler not implemented")
     }
