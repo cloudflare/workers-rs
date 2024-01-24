@@ -3,7 +3,6 @@ use std::{
     task::{Context, Poll},
 };
 
-use crate::console_log;
 use crate::{
     body::{wasm::WasmStreamBody, HttpBody},
     futures::SendJsFuture,
@@ -153,15 +152,6 @@ impl Body {
             .and_then(|buf| serde_json::from_slice(&buf).map_err(Error::SerdeJsonError))
     }
 
-    pub(crate) fn is_none(&self) -> bool {
-        match &self.0 {
-            BodyInner::None => true,
-            BodyInner::Regular(_) => false,
-            BodyInner::Request(req) => req.body().is_none(),
-            BodyInner::Response(res) => res.body().is_none(),
-        }
-    }
-
     pub(crate) fn inner(&self) -> &BodyInner {
         &self.0
     }
@@ -197,7 +187,6 @@ impl Body {
                 .into_raw(),
             ),
             crate::body::BodyInner::None => None,
-            _ => panic!("unexpected body inner"),
         }
     }
 }
@@ -323,7 +312,7 @@ impl AsyncRead for BoxBodyReader {
         cx: &mut Context<'_>,
         buf: &mut [u8],
     ) -> Poll<Result<usize, std::io::Error>> {
-        if self.store.len() > 0 {
+        if !self.store.is_empty() {
             let size = self.store.len().min(buf.len());
             buf[..size].clone_from_slice(&self.store[..size]);
             self.store = self.store.split_off(size);

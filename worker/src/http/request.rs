@@ -1,7 +1,6 @@
 //! Functions for translating requests to and from JS
 
 use wasm_bindgen::JsCast;
-use worker_sys::console_log;
 use worker_sys::ext::{HeadersExt, RequestExt};
 
 use crate::{AbortSignal, Cf, CfProperties};
