@@ -220,6 +220,11 @@ impl State {
             .map(Into::into)
             .collect()
     }
+
+    /// Retrieve tags from a hibernatable websocket
+    pub fn get_tags(&self, websocket: &WebSocket) -> Vec<String> {
+        self.inner.get_tags(websocket.as_ref())
+    }
 }
 
 impl From<DurableObjectState> for State {

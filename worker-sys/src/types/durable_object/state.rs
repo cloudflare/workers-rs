@@ -32,4 +32,7 @@ extern "C" {
     #[wasm_bindgen(method, js_name=getWebSockets)]
     pub fn get_websockets_with_tag(this: &DurableObjectState, tag: &str)
         -> Vec<web_sys::WebSocket>;
+
+    #[wasm_bindgen(method, js_name=getTags)]
+    pub fn get_tags(this: &DurableObjectState, ws: &web_sys::WebSocket) -> Vec<String>;
 }
