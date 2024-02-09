@@ -20,10 +20,10 @@ futures-channel = "0.3.28"
 futures-util = { version = "0.3.28", default-features = false }
 http = "1.0.0"
 js-sys = "0.3.66"
-wasm-bindgen = "=0.2.89"
-wasm-bindgen-cli-support = "0.2.89"
+wasm-bindgen = "0.2.91"
+wasm-bindgen-cli-support = "0.2.91"
 wasm-bindgen-futures = "0.4.39"
-wasm-bindgen-macro-support = "0.2.89"
+wasm-bindgen-macro-support = "0.2.91"
 wasm-bindgen-test = "0.3.39"
 wasm-streams = "0.4.0"
 worker = { path = "worker" }
