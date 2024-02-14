@@ -5,7 +5,7 @@
 **Work-in-progress** ergonomic Rust bindings to Cloudflare Workers environment. Write your entire worker in Rust!
 
 Read the [Notes and FAQ](#notes-and-faq)
-
+foo
 ## Example Usage
 
 ```rust
