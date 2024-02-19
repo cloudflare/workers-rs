@@ -52,10 +52,10 @@ impl Response {
     }
 
     /// Create a `Response` using the body encoded as HTML. Sets the associated `Content-Type`
-    /// header for the `Response` as `text/html`.
+    /// header for the `Response` as `text/html; charset=utf-8`.
     pub fn from_html(html: impl AsRef<str>) -> Result<Self> {
         let mut headers = Headers::new();
-        headers.set(CONTENT_TYPE, "text/html")?;
+        headers.set(CONTENT_TYPE, "text/html; charset=utf-8")?;
 
         let data = html.as_ref().as_bytes().to_vec();
         Ok(Self {
