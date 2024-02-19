@@ -130,10 +130,10 @@ impl Response {
     }
 
     /// Create a `Response` using unprocessed text provided. Sets the associated `Content-Type`
-    /// header for the `Response` as `text/plain`.
+    /// header for the `Response` as `text/plain; charset=utf-8`.
     pub fn ok(body: impl Into<String>) -> Result<Self> {
         let mut headers = Headers::new();
-        headers.set(CONTENT_TYPE, "text/plain")?;
+        headers.set(CONTENT_TYPE, "text/plain; charset=utf-8")?;
 
         Ok(Self {
             body: ResponseBody::Body(body.into().into_bytes()),
