@@ -9,6 +9,12 @@ mockAgent
   .reply(200, "cloudflare!");
 
 mockAgent
+  .get("https://miniflare.mocks")
+  .intercept({ path: "/delay" })
+  .reply(200, "cloudflare!")
+  .delay(10000);
+
+mockAgent
   .get("https://jsonplaceholder.typicode.com")
   .intercept({ path: "/todos/1" })
   .reply(
