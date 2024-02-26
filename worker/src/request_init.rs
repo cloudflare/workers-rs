@@ -4,6 +4,7 @@ use crate::headers::Headers;
 use crate::http::Method;
 
 use js_sys::{self, Object};
+use serde::Serialize;
 use wasm_bindgen::{prelude::*, JsValue};
 
 /// Optional options struct that contains settings to apply to the `Request`.
@@ -146,6 +147,7 @@ impl From<&CfProperties> for JsValue {
     fn from(props: &CfProperties) -> Self {
         let obj = js_sys::Object::new();
         let defaults = CfProperties::default();
+        let serializer = serde_wasm_bindgen::Serializer::new().serialize_maps_as_objects(true);
 
         set_prop(
             &obj,
@@ -191,7 +193,7 @@ impl From<&CfProperties> for JsValue {
         set_prop(
             &obj,
             &JsValue::from("cacheTtlByStatus"),
-            &serde_wasm_bindgen::to_value(&ttl_status_map).unwrap_or_default(),
+            &ttl_status_map.serialize(&serializer).unwrap_or_default(),
         );
 
         set_prop(

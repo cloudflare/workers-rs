@@ -1,7 +1,7 @@
 use std::{collections::HashMap, future::Future, rc::Rc};
 
 use futures_util::future::LocalBoxFuture;
-use matchit::{Match, Node};
+use matchit::{Match, Router as MatchItRouter};
 use worker_kv::KvStore;
 
 use crate::{
@@ -43,8 +43,8 @@ impl<D> Clone for Handler<'_, D> {
 
 /// A path-based HTTP router supporting exact-match or wildcard placeholders and shared data.
 pub struct Router<'a, D> {
-    handlers: HashMap<Method, Node<Handler<'a, D>>>,
-    or_else_any_method: Node<Handler<'a, D>>,
+    handlers: HashMap<Method, MatchItRouter<Handler<'a, D>>>,
+    or_else_any_method: MatchItRouter<Handler<'a, D>>,
     data: D,
 }
 
@@ -126,7 +126,7 @@ impl<'a, D: 'a> Router<'a, D> {
     pub fn with_data(data: D) -> Self {
         Self {
             handlers: HashMap::new(),
-            or_else_any_method: Node::new(),
+            or_else_any_method: MatchItRouter::new(),
             data,
         }
     }
@@ -383,7 +383,7 @@ impl<'a, D: 'a> Router<'a, D> {
     }
 }
 
-type NodeWithHandlers<'a, D> = Node<Handler<'a, D>>;
+type NodeWithHandlers<'a, D> = MatchItRouter<Handler<'a, D>>;
 
 impl<'a, D: 'a> Router<'a, D> {
     fn split(
