@@ -356,8 +356,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
             ))
         })
         .get_async("/proxy_request/*url", |_req, ctx| async move {
-            let url = ctx.param("url").unwrap().strip_prefix('/').unwrap();
-
+            let url = ctx.param("url").unwrap();
             Fetch::Url(url.parse()?).send().await
         })
         .get_async("/durable/alarm", |_req, ctx| async move {
