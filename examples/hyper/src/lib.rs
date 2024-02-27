@@ -20,7 +20,9 @@ async fn make_request(
         .map_err(map_hyper_error)?;
     let text = std::str::from_utf8(&buf).map_err(map_utf8_error)?;
     let mut response = Response::ok(text)?;
-    response.headers_mut().append("Content-Type", "text/html; charset=utf-8")?;
+    response
+        .headers_mut()
+        .append("Content-Type", "text/html; charset=utf-8")?;
     Ok(response)
 }
 #[event(fetch)]
