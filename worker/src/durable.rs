@@ -626,11 +626,11 @@ enum ScheduledTimeInit {
     Offset(f64),
 }
 
-/// Determines when a Durable Object alarm should be ran, based on a timestamp or offset.
+/// Determines when a Durable Object alarm should be ran, based on a timestamp or offset in milliseconds.
 ///
 /// Implements [`From`] for:
-/// - [`Duration`], interpreted as an offset.
-/// - [`i64`], interpreted as an offset.
+/// - [`Duration`], interpreted as an offset (in milliseconds).
+/// - [`i64`], interpreted as an offset (in milliseconds).
 /// - [`DateTime`], interpreted as a timestamp.
 ///
 /// When an offset is used, the time at which `set_alarm()` or `set_alarm_with_options()` is called
