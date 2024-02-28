@@ -1,12 +1,9 @@
-use std::convert::TryInto;
-
 #[cfg(feature = "d1")]
 use crate::d1::D1Database;
+use crate::error::Error;
 #[cfg(feature = "queue")]
 use crate::Queue;
-use crate::Request;
 use crate::{durable::ObjectNamespace, Bucket, DynamicDispatcher, Fetcher, Result};
-use crate::{error::Error, Response};
 
 use js_sys::Object;
 use wasm_bindgen::{prelude::*, JsCast, JsValue};
