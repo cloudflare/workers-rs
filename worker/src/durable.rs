@@ -18,7 +18,7 @@ use crate::{
     error::Error,
     request::Request,
     response::Response,
-    Result,
+    Result, WebSocket,
 };
 
 use async_trait::async_trait;
@@ -193,6 +193,32 @@ impl State {
     // needs to be accessed by the `durable_object` macro in a conversion step
     pub fn _inner(self) -> DurableObjectState {
         self.inner
+    }
+
+    pub fn accept_web_socket(&self, ws: &WebSocket) {
+        self.inner.accept_websocket(ws.as_ref())
+    }
+
+    pub fn accept_websocket_with_tags(&self, ws: &WebSocket, tags: &[&str]) {
+        let tags = tags.iter().map(|it| (*it).into()).collect();
+
+        self.inner.accept_websocket_with_tags(ws.as_ref(), tags);
+    }
+
+    pub fn get_websockets(&self) -> Vec<WebSocket> {
+        self.inner
+            .get_websockets()
+            .into_iter()
+            .map(Into::into)
+            .collect()
+    }
+
+    pub fn get_websockets_with_tag(&self, tag: &str) -> Vec<WebSocket> {
+        self.inner
+            .get_websockets_with_tag(tag)
+            .into_iter()
+            .map(Into::into)
+            .collect()
     }
 }
 
@@ -701,6 +727,11 @@ impl AsRef<JsValue> for ObjectNamespace {
     }
 }
 
+pub enum WebSocketIncomingMessage {
+    String(String),
+    Binary(Vec<u8>),
+}
+
 /**
 **Note:** Implement this trait with a standard `impl DurableObject for YourType` block, but in order to
 integrate them with the Workers Runtime, you must also add the **`#[durable_object]`** attribute
@@ -736,12 +767,40 @@ impl DurableObject for Chatroom {
 }
 ```
 */
+
 #[async_trait(?Send)]
 pub trait DurableObject {
     fn new(state: State, env: Env) -> Self;
+
     async fn fetch(&mut self, req: Request) -> Result<Response>;
+
     #[allow(clippy::diverging_sub_expression)]
     async fn alarm(&mut self) -> Result<Response> {
         unimplemented!("alarm() handler not implemented")
+    }
+
+    #[allow(unused_variables, clippy::diverging_sub_expression)]
+    async fn websocket_message(
+        &mut self,
+        ws: WebSocket,
+        message: WebSocketIncomingMessage,
+    ) -> Result<()> {
+        unimplemented!("websocket_message() handler not implemented")
+    }
+
+    #[allow(unused_variables, clippy::diverging_sub_expression)]
+    async fn websocket_close(
+        &mut self,
+        ws: WebSocket,
+        code: usize,
+        reason: String,
+        was_clean: bool,
+    ) -> Result<()> {
+        unimplemented!("websocket_close() handler not implemented")
+    }
+
+    #[allow(unused_variables, clippy::diverging_sub_expression)]
+    async fn websocket_error(&mut self, ws: WebSocket, error: Error) -> Result<()> {
+        unimplemented!("websocket_error() handler not implemented")
     }
 }
