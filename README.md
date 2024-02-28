@@ -158,7 +158,8 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         .on_async("/durable", |_req, ctx| async move {
             let namespace = ctx.durable_object("CHATROOM")?;
             let stub = namespace.id_from_name("A")?.get_stub()?;
-            stub.fetch_with_str("/messages").await
+            // `fetch_with_str` requires a valid Url to make request to DO. But we can make one up!
+            stub.fetch_with_str("http://fake_url.com/messages").await
         })
         .get("/secret", |_req, ctx| {
             Response::ok(ctx.secret("CF_API_TOKEN")?.to_string())
