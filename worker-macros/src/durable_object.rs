@@ -36,7 +36,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                     ImplItem::Fn(func) => func,
                     _ => return Err(Error::new_spanned(item, "Impl block must only contain methods"))
                 };
-                
+
                 let span = impl_method.sig.ident.span();
 
                 let tokens = match impl_method.sig.ident.to_string().as_str() {
@@ -143,7 +143,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                                     let v = worker::js_sys::Uint8Array::new(&message).to_vec();
                                     worker::WebSocketIncomingMessage::Binary(v)
                                 };
-                                
+
                                 // SAFETY:
                                 // On the surface, this is unsound because the Durable Object could be dropped
                                 // while JavaScript still has possession of the future. However,
@@ -225,7 +225,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                     self._alarm_raw().await
                 }
             });
-            
+
             let websocket_message_tokens = optional_methods.has_websocket_message.then(|| quote! {
                 async fn websocket_message(&mut self, ws: ::worker::WebSocket, message: ::worker::WebSocketIncomingMessage) -> ::worker::Result<()> {
                     self._websocket_message_raw(ws, message).await
