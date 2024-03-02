@@ -12,15 +12,13 @@ readme = "../README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-async-trait = "0.1.68"
-chrono = { version = "0.4.26", default-features = false, features = [
-    "wasmbind",
-] }
-chrono-tz = { version = "0.8.2", default-features = false }
-futures-channel = "0.3.28"
-futures-util = { version = "0.3.28", default-features = false }
+async-trait.workspace = true
+chrono.workspace = true
+chrono-tz.workspace = true
+futures-channel.workspace = true
+futures-util.workspace = true
 http = "1"
-js-sys = "0.3.63"
+js-sys.workspace = true
 matchit = "0.7"
 pin-project = "1.1.0"
 serde = { version = "1.0.164", features = ["derive"] }
@@ -47,7 +45,7 @@ features = [
 
 [dependencies.tokio-postgres]
 version = "0.7"
-default-features=false
+default-features = false
 features = ["js"]
 optional = true
 

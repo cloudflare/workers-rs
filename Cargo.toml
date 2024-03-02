@@ -11,7 +11,22 @@ exclude = ["examples/coredump"]
 resolver = "2"
 
 [workspace.dependencies]
-worker = { path="./worker" }
+async-trait = "0.1.74"
+chrono = { version = "0.4.31", default-features = false, features = [
+    "wasmbind",
+] }
+chrono-tz = { version = "0.8.4", default-features = false }
+futures-channel = "0.3.28"
+futures-util = { version = "0.3.28", default-features = false }
+http = "1.0.0"
+js-sys = "0.3.66"
+wasm-bindgen = "0.2.91"
+wasm-bindgen-cli-support = "0.2.91"
+wasm-bindgen-futures = "0.4.39"
+wasm-bindgen-macro-support = "0.2.91"
+wasm-bindgen-test = "0.3.39"
+wasm-streams = "0.4.0"
+worker = { path = "worker" }
 
 [profile.release]
 # rustc supports two "optimize for size" levels:  opt-level = "s" and "z". 
@@ -35,4 +50,3 @@ lto = true
 [profile.release.package."*"]
 codegen-units = 1
 opt-level = "z"
-
