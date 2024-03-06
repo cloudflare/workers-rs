@@ -6,7 +6,7 @@ use js_sys::{JsString, Reflect, Uint8Array};
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use worker_sys::{
-    FixedLengthStream as EdgeFixedLengthStream, R2Bucket as EdgeR2Bucket,
+    FixedLengthStream as EdgeFixedLengthStream, R2Bucket as EdgeR2Bucket, R2Checksums,
     R2MultipartUpload as EdgeR2MultipartUpload, R2Object as EdgeR2Object,
     R2ObjectBody as EdgeR2ObjectBody, R2Objects as EdgeR2Objects,
     R2UploadedPart as EdgeR2UploadedPart,
@@ -17,6 +17,7 @@ use crate::{env::EnvBinding, ByteStream, Date, Error, FixedLengthStream, Headers
 mod builder;
 
 /// An instance of the R2 bucket binding.
+#[derive(Clone)]
 pub struct Bucket {
     inner: EdgeR2Bucket,
 }
@@ -60,7 +61,8 @@ impl Bucket {
             value: value.into(),
             http_metadata: None,
             custom_metadata: None,
-            md5: None,
+            checksum: None,
+            checksum_algorithm: "md5".into(),
         }
     }
 
@@ -209,6 +211,14 @@ impl Object {
         match &self.inner {
             ObjectInner::NoBody(inner) => inner.http_metadata(),
             ObjectInner::Body(inner) => inner.http_metadata(),
+        }
+        .into()
+    }
+
+    pub fn checksum(&self) -> R2Checksums {
+        match &self.inner {
+            ObjectInner::NoBody(inner) => inner.checksums(),
+            ObjectInner::Body(inner) => inner.checksums(),
         }
         .into()
     }

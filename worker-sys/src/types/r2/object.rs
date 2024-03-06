@@ -29,6 +29,9 @@ extern "C" {
     #[wasm_bindgen(method, getter, js_name=httpMetadata)]
     pub fn http_metadata(this: &R2Object) -> R2HttpMetadata;
 
+    #[wasm_bindgen(method, getter)]
+    pub fn checksums(this: &R2Object) -> js_sys::Object;
+
     #[wasm_bindgen(method, getter, js_name=customMetadata)]
     pub fn custom_metadata(this: &R2Object) -> js_sys::Object;
 
