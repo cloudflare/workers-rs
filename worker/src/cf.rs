@@ -18,6 +18,11 @@ impl Cf {
         self.inner.asn()
     }
 
+    /// The Autonomous System organization name of the request, e.g. `Cloudflare, Inc.`
+    pub fn as_organization(&self) -> String {
+        self.inner.as_organization()
+    }
+
     /// The two-letter country code of origin for the request.
     /// This is the same value as that provided in the CF-IPCountry header, e.g.  `"US"`
     pub fn country(&self) -> Option<String> {
