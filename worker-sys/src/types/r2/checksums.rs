@@ -23,7 +23,7 @@ impl R2Checksums {
 }
 
 fn get(obj: &Object, key: &str) -> Option<Vec<u8>> {
-    let value = Reflect::get(&obj, &key.into());
+    let value = Reflect::get(obj, &key.into());
     if value.is_err() {
         return None;
     }
@@ -50,5 +50,11 @@ impl From<Object> for R2Checksums {
             sha384: get(&obj, "sha384"),
             sha512: get(&obj, "sha512"),
         }
+    }
+}
+
+impl Default for R2Checksums {
+    fn default() -> Self {
+        Self::new()
     }
 }
