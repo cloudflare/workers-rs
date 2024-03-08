@@ -436,12 +436,9 @@ edition = "2021"
 # Releasing
 
 1. [Trigger](https://github.com/cloudflare/workers-rs/actions/workflows/create-release-pr.yml) a workflow to create a release PR.
-1. Review version changes and release notes.
-1. Merge PR.
-
-A GitHub release will be created and crates (`worker-sys`, `worker-macros`, `worker`)
-will be published automatically. 
-
+1. Review version changes and merge PR.
+1. A draft GitHub release will be created. Author release notes and publish when ready.
+1. Crates (`worker-sys`, `worker-macros`, `worker`) will be published automatically. 
 
 # Contributing
 
