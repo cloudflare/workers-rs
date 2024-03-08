@@ -10,6 +10,7 @@ use std::{
 use router_service::unsync::Router;
 use serde::{Deserialize, Serialize};
 use tower::Service;
+use uuid::Uuid;
 use worker::{
     body::Body,
     http::{HttpClone, RequestRedirect, Response},
@@ -391,6 +392,45 @@ pub async fn main(
                 .is_none());
 
             Ok(http::Response::new(body.into()))
+        })
+        .post("/queue/send/:id", |_req, ctx| async move {
+            let id = match ctx.param("id").map(|id| Uuid::try_parse(id).ok()).and_then(|u|u) {
+                Some(id) => id,
+                None =>  {
+                    return Response::builder()
+                    .status(400)
+                    .body("error".into())
+                    .map_err(|e| Error::RustError("Failed to parse id, expected a UUID".into()));
+                }
+            };
+            let my_queue = match ctx.data.queue("my_queue") {
+                Ok(queue) => queue,
+                Err(err) => {
+                    return Response::builder()
+                    .status(500)
+                    .body("error".into())
+                    .map_err(|e| Error::RustError(format!("Failed to get queue: {:?}", e)));
+                }
+            };
+            match my_queue.send(&QueueBody {
+                id: id.to_string(),
+            }).await {
+                Ok(_) => {
+                    Ok(Response::new("Message sent".into()))
+                }
+                Err(err) => {
+                    Response::builder()
+                    .status(500)
+                    .body("error".into())
+                    .map_err(|e| Error::RustError(format!("Failed to send message to queue: {:?}", e)))
+                }
+            }
+        })
+        .get("/queue", |_req, _ctx| async move {
+            let guard = GLOBAL_QUEUE_STATE.lock().unwrap();
+            let messages: Vec<QueueBody> = guard.clone();
+            let json = serde_json::to_string(&messages).unwrap();
+            Ok(Response::new(Body::from(json)))
         })
         .get("/r2/list-empty", |_, ctx| async move {
             r2::list_empty(ctx.data.as_ref()).await
