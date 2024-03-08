@@ -22,8 +22,19 @@ jobs:
         uses: taiki-e/install-action@v1
         with:
           tool: cargo-release
-      - uses: cargo-bins/release-pr@v2
+      - name: Update versions
+        id: update_versions
+        run: |
+          cargo release version patch --execute
+          cargo update
+          NEW_VERSION=$(cargo metadata --no-deps --format-version 1 | jq -rc '.packages[] | select(.name=="worker") | .version')
+          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          version: ${{ inputs.level }}
-          crate-release-all: true
+          commit-message: chore: bump versions
+          branch: releases/v${{ steps.update_versions.outputs.version }}
+          base: main
+          title: Release v${{ steps.update_versions.outputs.version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
