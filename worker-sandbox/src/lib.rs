@@ -7,6 +7,7 @@ use std::{
     time::Duration,
 };
 
+use ::http::Method;
 use router_service::unsync::Router;
 use serde::{Deserialize, Serialize};
 use tower::Service;
@@ -393,6 +394,17 @@ pub async fn main(
 
             Ok(http::Response::new(body.into()))
         })
+        .get("/remote-by-request", |req, ctx| async move {
+            let fetcher = ctx.data.service("remote")?;
+            fetcher.fetch_request(req).await
+        })
+        .get("/remote-by-path", |req, ctx| async move {
+            let fetcher = ctx.data.service("remote")?;
+            let mut init = RequestInit::new();
+            init.with_method(Method::POST);
+
+            fetcher.fetch(req.uri().to_string(), Some(init)).await
+        })
         .post("/queue/send/:id", |_req, ctx| async move {
             let id = match ctx.param("id").map(|id| Uuid::try_parse(id).ok()).and_then(|u|u) {
                 Some(id) => id,
@@ -400,7 +412,7 @@ pub async fn main(
                     return Response::builder()
                     .status(400)
                     .body("error".into())
-                    .map_err(|e| Error::RustError("Failed to parse id, expected a UUID".into()));
+                    .map_err(|_| Error::RustError("Failed to parse id, expected a UUID".into()));
                 }
             };
             let my_queue = match ctx.data.queue("my_queue") {
@@ -409,7 +421,7 @@ pub async fn main(
                     return Response::builder()
                     .status(500)
                     .body("error".into())
-                    .map_err(|e| Error::RustError(format!("Failed to get queue: {:?}", e)));
+                    .map_err(|_| Error::RustError(format!("Failed to get queue: {err:?}")));
                 }
             };
             match my_queue.send(&QueueBody {
