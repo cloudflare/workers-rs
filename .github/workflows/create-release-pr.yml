@@ -25,7 +25,7 @@ jobs:
       - name: Update versions
         id: update_versions
         run: |
-          cargo release version patch --execute
+          cargo release version ${{ inputs.level }} --execute --no-confirm
           cargo update
           NEW_VERSION=$(cargo metadata --no-deps --format-version 1 | jq -rc '.packages[] | select(.name=="worker") | .version')
           echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
