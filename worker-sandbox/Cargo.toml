@@ -26,7 +26,7 @@ http = "1"
 regex = "1.8.4"
 serde = { version = "1.0.164", features = ["derive"] }
 serde_json = "1.0.96"
-worker = { path = "../worker", version = "0.0.19", features = ["queue", "d1"] }
+worker = { path = "../worker", version = "0.0.20", features = ["queue", "d1"] }
 futures-channel = "0.3.28"
 futures-util = { version = "0.3.28", default-features = false }
 rand = "0.8.5"
