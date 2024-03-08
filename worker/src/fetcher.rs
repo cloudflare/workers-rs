@@ -5,8 +5,7 @@ use crate::{
     env::EnvBinding,
     futures::SendJsFuture,
     http::{request, response},
-    RequestInit,
-    Result,
+    RequestInit, Result,
 };
 
 /// A struct for invoking fetch events to other Workers.
@@ -35,7 +34,6 @@ impl Fetcher {
         let res = fut.await?.dyn_into()?;
         Ok(response::from_wasm(res))
     }
-
 
     /// Invoke a fetch event with an existing [Request].
     pub async fn fetch_request(&self, req: http::Request<Body>) -> Result<http::Response<Body>> {
