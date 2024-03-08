@@ -26,4 +26,4 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           version: ${{ inputs.level }}
-          crate_release_all: true
+          crate-release-all: true
