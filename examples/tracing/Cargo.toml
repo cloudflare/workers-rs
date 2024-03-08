@@ -3,6 +3,9 @@ name = "tracing-on-workers"
 version = "0.1.0"
 edition = "2021"
 
+[package.metadata.release]
+release = false
+
 # https://github.com/rustwasm/wasm-pack/issues/1247
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = false

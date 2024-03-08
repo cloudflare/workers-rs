@@ -5,6 +5,9 @@ name = "worker-sandbox"
 version = "0.1.0"
 license = "Apache-2.0"
 
+[package.metadata.release]
+release = false
+
 [lib]
 crate-type = ["cdylib", "rlib"]
 path = "src/lib.rs"
