@@ -392,6 +392,31 @@ pub async fn main(
 
             Ok(http::Response::new(body.into()))
         })
+        //.get("/r2/list-empty", |_, _| async move { r2::list_empty(env) })
+        .get("/r2/list-empty", |_, ctx| async move {
+            r2::list_empty(ctx.data.as_ref()).await
+        })
+        .get("/r2/list", |_, ctx| async move {
+            r2::list(ctx.data.as_ref()).await
+        })
+        .get("/r2/get-empty", |_, ctx| async move {
+            r2::get_empty(ctx.data.as_ref()).await
+        })
+        .get("/r2/get", |_, ctx| async move {
+            r2::get(ctx.data.as_ref()).await
+        })
+        .put("/r2/put", |_, ctx| async move {
+            r2::put(ctx.data.as_ref()).await
+        })
+        .put("/r2/put-properties", |_, ctx| async move {
+            r2::put_properties(ctx.data.as_ref()).await
+        })
+        .put("/r2/put-multipart", |_, ctx| async move {
+            r2::put_multipart(ctx.data.as_ref()).await
+        })
+        .delete("/r2/delete", |_, ctx| async move {
+            r2::delete(ctx.data.as_ref()).await
+        })
         .any("/*catchall", |_, ctx| async move {
             Ok(Response::builder()
                 .status(404)
