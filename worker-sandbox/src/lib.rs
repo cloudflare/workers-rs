@@ -392,7 +392,6 @@ pub async fn main(
 
             Ok(http::Response::new(body.into()))
         })
-        //.get("/r2/list-empty", |_, _| async move { r2::list_empty(env) })
         .get("/r2/list-empty", |_, ctx| async move {
             r2::list_empty(ctx.data.as_ref()).await
         })
