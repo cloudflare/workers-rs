@@ -7,6 +7,7 @@ use std::{
     time::Duration,
 };
 
+use bytes::Bytes;
 use ::http::Method;
 use rand::Rng;
 use router_service::unsync::Router;
@@ -25,7 +26,7 @@ mod d1;
 mod r2;
 mod test;
 mod utils;
-use futures_util::{future::Either, StreamExt};
+use futures_util::{future::Either, StreamExt, TryStreamExt};
 
 #[derive(Deserialize, Serialize)]
 struct MyData {
@@ -395,6 +396,27 @@ pub async fn main(
                 .is_none());
 
             Ok(http::Response::new(body.into()))
+        })
+        .post("/xor/:num", |req, ctx| async move {
+            let num: u8 = match ctx.param("num").unwrap().parse() {
+                Ok(num) => num,
+                Err(_) => return Response::builder()
+                    .status(400)
+                    .body("invalid byte".into())
+                    .map_err(|e| Error::RustError(e.to_string()))
+            };
+
+            let xor_stream = req.into_body().into_stream().map_ok(move |buf| {
+                let mut vec = buf.to_vec();
+                vec.iter_mut().for_each(|x| *x ^= num);
+                Bytes::from(vec)
+            });
+
+            let body = worker::body::Body::from_stream(xor_stream)?;
+            let resp = Response::builder()
+                .body(body)
+                .unwrap();
+            Ok(resp)
         })
         .get("/request-init-fetch", |_, _| async move {
             let init = RequestInit::new();
