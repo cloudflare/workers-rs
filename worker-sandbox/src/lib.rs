@@ -396,6 +396,11 @@ pub async fn main(
 
             Ok(http::Response::new(body.into()))
         })
+        .get("/now", |_, _| async move {
+            let now = chrono::Utc::now();
+            let js_date: Date = now.into();
+            Ok(Response::new(js_date.to_string().into()))
+        })
         .get("/custom-response-body", |_, _| async move {
             Ok(Response::new(vec![b'h', b'e', b'l', b'l', b'o'].into()))
         })
