@@ -396,6 +396,12 @@ pub async fn main(
 
             Ok(http::Response::new(body.into()))
         })
+        .get("/redirect-307", |_, _| async move {
+            Ok(Response::builder()
+                .status(307)
+                .header("Location", "https://example.com/")
+                .body(Body::empty()).unwrap())
+        })
         .get("/now", |_, _| async move {
             let now = chrono::Utc::now();
             let js_date: Date = now.into();
