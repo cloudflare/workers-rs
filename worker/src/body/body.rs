@@ -5,7 +5,6 @@ use std::{
 
 use crate::{
     body::{wasm::WasmStreamBody, HttpBody},
-    cache::CacheValue,
     futures::SendJsFuture,
     Error,
 };

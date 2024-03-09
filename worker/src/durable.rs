@@ -27,7 +27,7 @@ use chrono::{DateTime, Utc};
 use futures_util::Future;
 use js_sys::{Map, Number, Object};
 use serde::{de::DeserializeOwned, Serialize};
-use wasm_bindgen::{prelude::*, JsCast};
+use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::future_to_promise;
 use worker_sys::{
     DurableObject as EdgeDurableObject, DurableObjectId,
