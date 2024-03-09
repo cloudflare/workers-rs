@@ -396,6 +396,12 @@ pub async fn main(
 
             Ok(http::Response::new(body.into()))
         })
+        .get("/redirect-default", |_, _| async move {
+            Ok(Response::builder()
+                .status(302)
+                .header("Location", "https://example.com/")
+                .body(Body::empty()).unwrap())
+        })
         .get("/redirect-307", |_, _| async move {
             Ok(Response::builder()
                 .status(307)
