@@ -396,6 +396,10 @@ pub async fn main(
 
             Ok(http::Response::new(body.into()))
         })
+        .get("/init-called", |_, _| async move {
+            let init_called = GLOBAL_STATE.load(Ordering::SeqCst);
+            Ok(Response::new(init_called.to_string().into()))
+        })
         .get("/cache-example", |req, _| async move {
             //console_log!("url: {}", req.uri().to_string());
             let cache = Cache::default();
