@@ -396,6 +396,79 @@ pub async fn main(
 
             Ok(http::Response::new(body.into()))
         })
+        .get("/cache-example", |req, _| async move {
+            //console_log!("url: {}", req.uri().to_string());
+            let cache = Cache::default();
+            let key = req.uri().to_string();
+            if let Some(resp) = cache.get(&key, true).await? {
+                //console_log!("Cache HIT!");
+                Ok(resp)
+            } else {
+                //console_log!("Cache MISS!");
+
+                let mut resp = Response::builder()
+                    .header("content-type", "application/json")
+                    // Cache API respects Cache-Control headers. Setting s-max-age to 10
+                    // will limit the response to be in cache for 10 seconds max
+                    .header("cache-control", "s-maxage=10")
+                    .body(serde_json::json!({ "timestamp": Date::now().as_millis() }).to_string().into())
+                    .map_err(|e| Error::RustError(e.to_string()))
+                    .unwrap();
+
+                cache.put(key, resp.clone()).await?;
+                Ok(resp)
+            }
+        })
+        .get("/cache-api/get/:key", |_req, ctx| async move {
+            if let Some(key) = ctx.param("key") {
+                let cache = Cache::default();
+                if let Some(resp) = cache.get(format!("https://{key}"), true).await? {
+                    return Ok(resp);
+                } else {
+                    return Ok(Response::new("cache miss".into()));
+                }
+            }
+
+            Response::builder()
+                .status(400)
+                .body("key missing".into())
+                .map_err(|e| Error::RustError(e.to_string()))
+        })
+        .put("/cache-api/put/:key", |_req, ctx| async move {
+            if let Some(key) = ctx.param("key") {
+                let cache = Cache::default();
+
+                let mut resp = Response::builder()
+                    .header("content-type", "application/json")
+                    // Cache API respects Cache-Control headers. Setting s-max-age to 10
+                    // will limit the response to be in cache for 10 seconds max
+                    .header("cache-control", "s-maxage=10")
+                    .body(serde_json::json!({ "timestamp": Date::now().as_millis() }).to_string().into())
+                    .map_err(|e| Error::RustError(e.to_string()))
+                    .unwrap();
+
+                cache.put(format!("https://{key}"), resp.clone()).await?;
+                return Ok(resp);
+            }
+
+            Response::builder()
+                .status(400)
+                .body("key missing".into())
+                .map_err(|e| Error::RustError(e.to_string()))
+        })
+        .post("/cache-api/delete/:key", |_req, ctx| async move {
+            if let Some(key) = ctx.param("key") {
+                let cache = Cache::default();
+
+                let res = cache.delete(format!("https://{key}"), true).await?;
+                return Ok(Response::new(serde_json::to_string(&res)?.into()));
+            }
+
+            Response::builder()
+                .status(400)
+                .body("key missing".into())
+                .map_err(|e| Error::RustError(e.to_string()))
+        })
         .get("/cache-stream", |req, _| async move {
             //console_log!("url: {}", req.uri().to_string());
             let cache = Cache::default();
