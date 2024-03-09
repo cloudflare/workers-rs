@@ -446,7 +446,7 @@ pub async fn main(
                 Ok::<String, worker::Error>(text)
             };
             let delay_fut = async {
-                Delay::from(Duration::from_millis(10)).await;
+                Delay::from(Duration::from_millis(1)).await;
                 controller.abort();
                 Ok(Response::new("Cancelled".into()))
             };
