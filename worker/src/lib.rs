@@ -33,6 +33,8 @@ pub use crate::dynamic_dispatch::*;
 pub use crate::env::{Env, EnvBinding, Secret, Var};
 pub use crate::error::Error;
 pub use crate::fetch::fetch;
+pub use crate::fetch::fetch_with_init;
+pub use crate::fetch::fetch_with_signal;
 pub use crate::fetcher::Fetcher;
 // pub use crate::futures::spawn_local;
 #[cfg(feature = "queue")]

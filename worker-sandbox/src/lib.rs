@@ -25,7 +25,7 @@ mod d1;
 mod r2;
 mod test;
 mod utils;
-use futures_util::StreamExt;
+use futures_util::{future::Either, StreamExt};
 
 #[derive(Deserialize, Serialize)]
 struct MyData {
@@ -395,6 +395,78 @@ pub async fn main(
                 .is_none());
 
             Ok(http::Response::new(body.into()))
+        })
+        .get("/request-init-fetch", |_, _| async move {
+            let init = RequestInit::new();
+            let req = http::Request::post("https://cloudflare.com").body(()).unwrap();
+            fetch_with_init(req, &init).await
+        })
+        .get("/request-init-fetch-post", |_, _| async move {
+            let mut init = RequestInit::new();
+            init.method = Method::POST;
+
+            let req = http::Request::post("https://httpbin.org/post").body(()).unwrap();
+            fetch_with_init(req, &init).await
+        })
+        .get("/cancelled-fetch", |_, _| async move {
+            let controller = AbortController::default();
+            let signal = controller.signal();
+
+            let (tx, rx) = futures_channel::oneshot::channel();
+
+            // Spawns a future that'll make our fetch request and not block this function.
+            wasm_bindgen_futures::spawn_local({
+                async move {
+                    let req = http::Request::post("https://cloudflare.com").body(()).unwrap();
+                    let resp = fetch_with_signal(req, &signal).await;
+                    tx.send(resp).unwrap();
+                }
+            });
+
+            // And then we try to abort that fetch as soon as we start it, hopefully before
+            // cloudflare.com responds.
+            controller.abort();
+
+            let res = rx.await.unwrap();
+            let res = res.unwrap_or_else(|err| {
+                let text = err.to_string();
+                Response::new(text.into())
+            });
+
+            Ok(res)
+        })
+        .get("/fetch-timeout", |_, _| async move {
+            let controller = AbortController::default();
+            let signal = controller.signal();
+
+            let fetch_fut = async {
+                let req = http::Request::post("https://miniflare.mocks/delay").body(()).unwrap();
+                let resp = fetch_with_signal(req, &signal).await?;
+                let text = resp.into_body().text().await?;
+                Ok::<String, worker::Error>(text)
+            };
+            let delay_fut = async {
+                Delay::from(Duration::from_millis(10)).await;
+                controller.abort();
+                Ok(Response::new("Cancelled".into()))
+            };
+
+            futures_util::pin_mut!(fetch_fut);
+            futures_util::pin_mut!(delay_fut);
+
+            match futures_util::future::select(delay_fut, fetch_fut).await {
+                Either::Left((res, cancelled_fut)) => {
+                    // Ensure that the cancelled future returns an AbortError.
+                    match cancelled_fut.await {
+                        Err(e) if e.to_string().contains("AbortError") => { /* Yay! It worked, let's do nothing to celebrate */},
+                        Err(e) => panic!("Fetch errored with a different error than expected: {:#?}", e),
+                        Ok(text) => panic!("Fetch unexpectedly succeeded: {}", text)
+                    }
+
+                    res
+                },
+                Either::Right(_) => panic!("Delay future should have resolved first"),
+            }
         })
         .get("/redirect-default", |_, _| async move {
             Ok(Response::builder()
