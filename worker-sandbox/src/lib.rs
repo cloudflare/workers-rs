@@ -7,8 +7,8 @@ use std::{
     time::Duration,
 };
 
-use bytes::Bytes;
 use ::http::Method;
+use bytes::Bytes;
 use rand::Rng;
 use router_service::unsync::Router;
 use serde::{Deserialize, Serialize};
@@ -396,6 +396,48 @@ pub async fn main(
                 .is_none());
 
             Ok(http::Response::new(body.into()))
+        })
+        .get("/websocket", |_, ctx| async move {
+            // Accept / handle a websocket connection
+            let pair = WebSocketPair::new()?;
+            let server = pair.server;
+            server.accept()?;
+
+            let some_namespace_kv = ctx.data.kv("SOME_NAMESPACE")?;
+
+            wasm_bindgen_futures::spawn_local(async move {
+                let mut event_stream = server.events().expect("could not open stream");
+
+                while let Some(event) = event_stream.next().await {
+                    match event.expect("received error in websocket") {
+                        WebsocketEvent::Message(msg) => {
+                            if let Some(text) = msg.text() {
+                                server.send_with_str(text).expect("could not relay text");
+                            }
+                        }
+                        WebsocketEvent::Close(_) => {
+                            // Sets a key in a test KV so the integration tests can query if we
+                            // actually got the close event. We can't use the shared dat a for this
+                            // because miniflare resets that every request.
+                            some_namespace_kv
+                                .put("got-close-event", "true")
+                                .unwrap()
+                                .execute()
+                                .await
+                                .unwrap();
+                        }
+                    }
+                }
+            });
+
+            let mut response = Response::builder()
+                .status(101)
+                .body(Body::empty())
+                .unwrap();
+
+            response.extensions_mut().insert(pair.client);
+
+            Ok(response)
         })
         .post("/xor/:num", |req, ctx| async move {
             let num: u8 = match ctx.param("num").unwrap().parse() {
