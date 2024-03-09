@@ -433,6 +433,15 @@ please [take a look](https://www.cloudflare.com/careers/).
 edition = "2021"
 ```
 
+# Releasing
+
+1. [Trigger](https://github.com/cloudflare/workers-rs/actions/workflows/create-release-pr.yml) a workflow to create a release PR.
+1. Review version changes and release notes.
+1. Merge PR.
+
+A GitHub release will be created and crates (`worker-sys`, `worker-macros`, `worker`)
+will be published automatically. 
+
 
 # Contributing
 
