@@ -688,8 +688,8 @@ pub async fn main(
                 Err(err) => {
                     return Response::builder()
                     .status(500)
-                    .body("error".into())
-                    .map_err(|_| Error::RustError(format!("Failed to get queue: {err:?}")));
+                    .body(format!("Failed to get queue: {err:?}").into())
+                    .map_err(|e| Error::RustError(e.to_string().into()));
                 }
             };
             match my_queue.send(&QueueBody {
@@ -701,8 +701,8 @@ pub async fn main(
                 Err(err) => {
                     Response::builder()
                     .status(500)
-                    .body("error".into())
-                    .map_err(|e| Error::RustError(format!("Failed to send message to queue: {:?}", e)))
+                    .body(format!("Failed to send message to queue: {err:?}").into())
+                    .map_err(|e| Error::RustError(e.to_string().into()))
                 }
             }
         })
@@ -755,12 +755,12 @@ pub struct QueueBody {
 pub async fn queue(message_batch: MessageBatch<QueueBody>, _env: Env, _ctx: Context) -> Result<()> {
     let mut guard = GLOBAL_QUEUE_STATE.lock().unwrap();
     for message in message_batch.messages()? {
-        console_log!(
+        /*console_log!(
             "Received queue message {:?}, with id {} and timestamp: {}",
             message.body,
             message.id,
             message.timestamp.to_string()
-        );
+        );*/
         guard.push(message.body);
     }
     Ok(())
