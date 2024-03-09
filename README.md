@@ -286,6 +286,45 @@ pub async fn main(message_batch: MessageBatch<MyType>, env: Env, _ctx: Context) 
 }
 ```
 
+## Sites
+
+### Enabling sites
+
+Enable static assets by adding it to the wrangler configuration file `wrangler.toml`:
+```toml
+[site]
+bucket = './public'
+```
+
+### Example worker serving an asset:
+```rust
+use worker::*;
+
+// Serve static assets by name.
+#[event(fetch)]
+pub async fn main(_req: Request, _env: Env, ctx: worker::Context) -> Result<Response> {
+    // Get KV storage of assets.
+    let kv_assets = match ctx.kv("__STATIC_CONTENT") {
+        Ok(x) => x,
+        Err(e) => return Response::error(format!("No site was configured: {e}"), 500),
+    };
+    // Query the key given the filename of the asset.
+    let key = match ctx.env.asset_key("favicon.ico") {
+        Ok(key) => key,
+        Err(e) => return Response::error(format!("Asset key not found: {e}"), 500),
+    };
+    // Get the file content.
+    let bytes = match kv_assets.get(&key).bytes().await {
+        Ok(bytes) => bytes.unwrap_or_default(),
+        Err(e) => return Response::error(format!("Asset not found in KV: {e}"), 404),
+    };
+    // Produce a response based on the asset.
+    let mut res = Response::from_bytes(bytes).unwrap();
+    res.headers_mut().set("content-type", "image/x-icon")?;
+    Ok(res)
+}
+```
+
 ## Testing with Miniflare
 
 In order to test your Rust worker locally, the best approach is to use
