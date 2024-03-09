@@ -8,6 +8,7 @@ use std::{
 };
 
 use ::http::Method;
+use rand::Rng;
 use router_service::unsync::Router;
 use serde::{Deserialize, Serialize};
 use tower::Service;
@@ -24,6 +25,7 @@ mod d1;
 mod r2;
 mod test;
 mod utils;
+use futures_util::StreamExt;
 
 #[derive(Deserialize, Serialize)]
 struct MyData {
@@ -393,6 +395,39 @@ pub async fn main(
                 .is_none());
 
             Ok(http::Response::new(body.into()))
+        })
+        .get("/cache-stream", |req, _| async move {
+            //console_log!("url: {}", req.uri().to_string());
+            let cache = Cache::default();
+            let key = req.uri().to_string();
+            if let Some(resp) = cache.get(&key, true).await? {
+                //console_log!("Cache HIT!");
+                Ok(resp)
+            } else {
+                //console_log!("Cache MISS!");
+                let mut rng = rand::thread_rng();
+                let count = rng.gen_range(0..10);
+                let stream = futures_util::stream::repeat("Hello, world!\n")
+                    .take(count)
+                    .then(|text| async move {
+                        Delay::from(Duration::from_millis(50)).await;
+                        Result::Ok(text.as_bytes().to_vec())
+                    });
+
+                let body = worker::body::Body::from_stream(stream)?;
+
+                //console_log!("resp = {:?}", resp);
+
+                let mut resp = Response::builder()
+                    // Cache API respects Cache-Control headers. Setting s-max-age to 10
+                    // will limit the response to be in cache for 10 seconds max
+                    .header("cache-control", "s-maxage=10")
+                    .body(body)
+                    .unwrap();
+
+                cache.put(key, resp.clone()).await?;
+                Ok(resp)
+            }
         })
         .get("/remote-by-request", |req, ctx| async move {
             let fetcher = ctx.data.service("remote")?;
