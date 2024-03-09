@@ -396,6 +396,9 @@ pub async fn main(
 
             Ok(http::Response::new(body.into()))
         })
+        .get("/custom-response-body", |_, _| async move {
+            Ok(Response::new(vec![b'h', b'e', b'l', b'l', b'o'].into()))
+        })
         .get("/init-called", |_, _| async move {
             let init_called = GLOBAL_STATE.load(Ordering::SeqCst);
             Ok(Response::new(init_called.to_string().into()))
