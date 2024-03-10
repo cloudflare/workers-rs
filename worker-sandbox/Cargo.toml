@@ -19,7 +19,7 @@ default = ["console_error_panic_hook"]
 futures-channel.workspace = true
 futures-util.workspace = true
 blake2 = "0.10.6"
-chrono = { version = "0.4.31", default-features = false, features = [
+chrono = { version = "0.4.35", default-features = false, features = [
     "wasmbind",
     "clock",
 ] }
