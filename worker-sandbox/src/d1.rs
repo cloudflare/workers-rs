@@ -95,7 +95,10 @@ pub async fn error(env: &Env) -> Result<http::Response<Body>> {
         .expect_err("did not get error");
 
     if let Error::D1(error) = error {
-        assert_eq!(error.cause(), "Error in line 1: THIS IS NOT VALID SQL: SqliteError: near \"THIS\": syntax error")
+        assert_eq!(
+            error.cause(),
+            "Error in line 1: THIS IS NOT VALID SQL: SqliteError: near \"THIS\": syntax error"
+        )
     } else {
         panic!("expected D1 error");
     }
