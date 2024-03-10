@@ -8,10 +8,7 @@ struct Person {
     age: u32,
 }
 
-pub async fn prepared_statement(
-    _req: http::Request<Body>,
-    env: Env,
-) -> Result<http::Response<Body>> {
+pub async fn prepared_statement(env: &Env) -> Result<http::Response<Body>> {
     let db = env.d1("DB")?;
     let stmt = worker::query!(&db, "SELECT * FROM people WHERE name = ?", "Ryan Upton")?;
 
@@ -47,7 +44,7 @@ pub async fn prepared_statement(
     Ok(http::Response::new("ok".into()))
 }
 
-pub async fn batch(_req: http::Request<Body>, env: Env) -> Result<http::Response<Body>> {
+pub async fn batch(env: &Env) -> Result<http::Response<Body>> {
     let db = env.d1("DB")?;
     let mut results = db
         .batch(vec![
@@ -71,7 +68,7 @@ pub async fn batch(_req: http::Request<Body>, env: Env) -> Result<http::Response
     Ok(http::Response::new("ok".into()))
 }
 
-pub async fn exec(req: http::Request<Body>, env: Env) -> Result<http::Response<Body>> {
+pub async fn exec(req: http::Request<Body>, env: &Env) -> Result<http::Response<Body>> {
     let db = env.d1("DB")?;
 
     let result = db
@@ -84,13 +81,13 @@ pub async fn exec(req: http::Request<Body>, env: Env) -> Result<http::Response<B
     ))
 }
 
-pub async fn dump(_req: http::Request<Body>, env: Env) -> Result<http::Response<Body>> {
+pub async fn dump(env: &Env) -> Result<http::Response<Body>> {
     let db = env.d1("DB")?;
     let bytes = db.dump().await?;
     Ok(http::Response::new(bytes.into()))
 }
 
-pub async fn error(_req: http::Request<Body>, env: Env) -> Result<http::Response<Body>> {
+pub async fn error(env: &Env) -> Result<http::Response<Body>> {
     let db = env.d1("DB")?;
     let error = db
         .exec("THIS IS NOT VALID SQL")
@@ -98,7 +95,7 @@ pub async fn error(_req: http::Request<Body>, env: Env) -> Result<http::Response
         .expect_err("did not get error");
 
     if let Error::D1(error) = error {
-        assert_eq!(error.cause(), "Error in line 1: THIS IS NOT VALID SQL: ERROR 9009: SQL prepare error: near \"THIS\": syntax error in THIS IS NOT VALID SQL at offset 0")
+        assert_eq!(error.cause(), "Error in line 1: THIS IS NOT VALID SQL: SqliteError: near \"THIS\": syntax error")
     } else {
         panic!("expected D1 error");
     }

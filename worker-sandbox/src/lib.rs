@@ -712,6 +712,21 @@ pub async fn main(
             let json = serde_json::to_string(&messages).unwrap();
             Ok(Response::new(Body::from(json)))
         })
+        .get("/d1/prepared", |_, ctx| async move {
+            d1::prepared_statement(ctx.data.as_ref()).await
+        })
+        .get("/d1/batch", |_, ctx| async move {
+            d1::batch(ctx.data.as_ref()).await
+        })
+        .get("/d1/dump", |_, ctx| async move {
+            d1::dump(ctx.data.as_ref()).await
+        })
+        .post("/d1/exec", |req, ctx| async move {
+            d1::exec(req, ctx.data.as_ref()).await
+        })
+        .get("/d1/error", |_, ctx| async move {
+            d1::error(ctx.data.as_ref()).await
+        })
         .get("/r2/list-empty", |_, ctx| async move {
             r2::list_empty(ctx.data.as_ref()).await
         })

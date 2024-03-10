@@ -6,6 +6,7 @@ export const mf = new Miniflare({
   cache: true,
   cachePersist: false,
   d1Persist: false,
+  d1Databases: ["DB"],
   kvPersist: false,
   r2Persist: false,
   modules: true,
