@@ -26,7 +26,6 @@ wasm-bindgen-cli-support = "0.2.91"
 wasm-bindgen-futures = "0.4.39"
 wasm-bindgen-macro-support = "0.2.91"
 wasm-bindgen-test = "0.3.39"
-wasm-streams = "0.4.0"
 
 [profile.release]
 # rustc supports two "optimize for size" levels:  opt-level = "s" and "z". 
