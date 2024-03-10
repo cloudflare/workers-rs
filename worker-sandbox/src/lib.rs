@@ -286,7 +286,7 @@ pub async fn main(
             Ok(Response::new(
                 format!(
                     "Create new zone for Account: {}",
-                    ctx.param("id").unwrap_or(&"not found")
+                    ctx.param("id").unwrap_or("not found")
                 )
                 .into(),
             ))
@@ -295,7 +295,7 @@ pub async fn main(
             Ok(Response::new(
                 format!(
                     "Account id: {}..... You get a zone, you get a zone!",
-                    ctx.param("id").unwrap_or(&"not found")
+                    ctx.param("id").unwrap_or("not found")
                 )
                 .into(),
             ))
@@ -689,7 +689,7 @@ pub async fn main(
                     return Response::builder()
                     .status(500)
                     .body(format!("Failed to get queue: {err:?}").into())
-                    .map_err(|e| Error::RustError(e.to_string().into()));
+                    .map_err(|e| Error::RustError(e.to_string()));
                 }
             };
             match my_queue.send(&QueueBody {
@@ -702,7 +702,7 @@ pub async fn main(
                     Response::builder()
                     .status(500)
                     .body(format!("Failed to send message to queue: {err:?}").into())
-                    .map_err(|e| Error::RustError(e.to_string().into()))
+                    .map_err(|e| Error::RustError(e.to_string()))
                 }
             }
         })
