@@ -83,7 +83,9 @@ pub async fn exec(req: http::Request<Body>, env: &Env) -> Result<http::Response<
 
 pub async fn dump(env: &Env) -> Result<http::Response<Body>> {
     let db = env.d1("DB")?;
+    console_log!("HERE");
     let bytes = db.dump().await?;
+    console_log!("TERE");
     Ok(http::Response::new(bytes.into()))
 }
 
@@ -97,7 +99,7 @@ pub async fn error(env: &Env) -> Result<http::Response<Body>> {
     if let Error::D1(error) = error {
         assert_eq!(
             error.cause(),
-            "Error in line 1: THIS IS NOT VALID SQL: SqliteError: near \"THIS\": syntax error"
+            "Error in line 1: THIS IS NOT VALID SQL: near \"THIS\": syntax error at offset 0"
         )
     } else {
         panic!("expected D1 error");

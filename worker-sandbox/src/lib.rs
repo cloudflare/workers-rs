@@ -330,6 +330,12 @@ pub async fn main(
             // https://developers.cloudflare.com/workers/platform/compatibility-dates#durable-object-stubfetch-requires-a-full-url
             stub.fetch_with_str("https://fake-host/alarm").await
         })
+        .get("/durable/put-raw", |req, ctx| async move {
+            let namespace = ctx.data.durable_object("PUT_RAW_TEST_OBJECT")?;
+            let id = namespace.unique_id()?;
+            let stub = id.get_stub()?;
+            stub.fetch_with_request(req).await
+        })
         .get("/durable/:id", |_req, ctx| async move {
             let namespace = ctx.data.durable_object("COUNTER")?;
             let stub = namespace.id_from_name("A")?.get_stub()?;
@@ -469,7 +475,7 @@ pub async fn main(
             let mut init = RequestInit::new();
             init.method = Method::POST;
 
-            let req = http::Request::post("https://httpbin.org/post").body(()).unwrap();
+            let req = http::Request::post("http://httpbin.org/post").body(()).unwrap();
             fetch_with_init(req, &init).await
         })
         .get("/cancelled-fetch", |_, _| async move {

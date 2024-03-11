@@ -28,8 +28,8 @@ bindings = [
 [[d1_databases]]
 binding = 'DB'
 database_name = 'my_db'
-database_id = 'test'
-preview_database_id = 'preview-test'
+database_id = '8b1e9b5a-788c-4aed-adcf-409b61dd5da8'
+preview_database_id = '8b1e9b5a-788c-4aed-adcf-409b61dd5da8'
 
 [[queues.consumers]]
 queue = "my_queue"
