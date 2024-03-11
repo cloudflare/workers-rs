@@ -638,9 +638,9 @@ checksum = "453ad9f582a441959e5f0d088b02ce04cfe8d51a8eaf077f12ac6d3e94164ca6"
 
 [[package]]
 name = "js-sys"
-version = "0.3.63"
+version = "0.3.64"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f37a4a5928311ac501dee68b3c7613a1037d0edb30c8e5427bd832d55d1b790"
+checksum = "c5f195fe497f702db0f318b07fdd68edb16955aed830df8363d837542f8f935a"
 dependencies = [
  "wasm-bindgen",
 ]
@@ -1641,9 +1641,9 @@ checksum = "9c8d87e72b64a3b4db28d11ce29237c246188f4f51057d65a7eab63b7987e423"
 
 [[package]]
 name = "wasm-bindgen"
-version = "0.2.86"
+version = "0.2.87"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5bba0e8cb82ba49ff4e229459ff22a191bbe9a1cb3a341610c9c33efc27ddf73"
+checksum = "7706a72ab36d8cb1f80ffbf0e071533974a60d0a308d01a5d0375bf60499a342"
 dependencies = [
  "cfg-if",
  "wasm-bindgen-macro",
@@ -1651,9 +1651,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-backend"
-version = "0.2.86"
+version = "0.2.87"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19b04bc93f9d6bdee709f6bd2118f57dd6679cf1176a1af464fca3ab0d66d8fb"
+checksum = "5ef2b6d3c510e9625e5fe6f509ab07d66a760f0885d858736483c32ed7809abd"
 dependencies = [
  "bumpalo",
  "log",
@@ -1666,9 +1666,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-cli-support"
-version = "0.2.86"
+version = "0.2.87"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8315d6503415e5d44ff64f1ba34aefd8264c561df17e0f1c8eb8c96bde79c45e"
+checksum = "d21c60239a09bf9bab8dfa752be4e6c637db22296b9ded493800090448692da9"
 dependencies = [
  "anyhow",
  "base64 0.9.3",
@@ -1688,9 +1688,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-externref-xform"
-version = "0.2.86"
+version = "0.2.87"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4522bf3be16c6274c87a5a2c5d2a62efa80253b025f8e813f9682d0d6a8a8fca"
+checksum = "bafbe1984f67cc12645f12ab65e6145e8ddce1ab265d0be58435f25bb0ce2608"
 dependencies = [
  "anyhow",
  "walrus",
@@ -1698,9 +1698,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-futures"
-version = "0.4.36"
+version = "0.4.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d1985d03709c53167ce907ff394f5316aa22cb4e12761295c5dc57dacb6297e"
+checksum = "c02dbc21516f9f1f04f187958890d7e6026df8d16540b7ad9492bc34a67cea03"
 dependencies = [
  "cfg-if",
  "js-sys",
@@ -1710,9 +1710,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-macro"
-version = "0.2.86"
+version = "0.2.87"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "14d6b024f1a526bb0234f52840389927257beb670610081360e5a03c5df9c258"
+checksum = "dee495e55982a3bd48105a7b947fd2a9b4a8ae3010041b9e0faab3f9cd028f1d"
 dependencies = [
  "quote",
  "wasm-bindgen-macro-support",
@@ -1720,9 +1720,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-macro-support"
-version = "0.2.86"
+version = "0.2.87"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e128beba882dd1eb6200e1dc92ae6c5dbaa4311aa7bb211ca035779e5efc39f8"
+checksum = "54681b18a46765f095758388f2d0cf16eb8d4169b639ab575a8f5693af210c7b"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1733,9 +1733,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-multi-value-xform"
-version = "0.2.86"
+version = "0.2.87"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "113256596776ebb4b243512d3711e73d5475eaeff373e1ae65427c66e5aa2073"
+checksum = "581419e3995571a1d2d066e360ca1c0c09da097f5a53c98e6f00d96eddaf0ffe"
 dependencies = [
  "anyhow",
  "walrus",
@@ -1743,9 +1743,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-shared"
-version = "0.2.86"
+version = "0.2.87"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed9d5b4305409d1fc9482fee2d7f9bcbf24b3972bf59817ef757e23982242a93"
+checksum = "ca6ad05a4870b2bf5fe995117d3728437bd27d7cd5f06f13c17443ef369775a1"
 
 [[package]]
 name = "wasm-bindgen-test"
@@ -1773,9 +1773,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-threads-xform"
-version = "0.2.86"
+version = "0.2.87"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "89106aaf83a2b80464fc8f60a074a4575135b73a491e174f35bbeae6ff0d7ec6"
+checksum = "e05d272073981137e8426cf2a6830d43d1f84f988a050b2f8b210f0e266b8983"
 dependencies = [
  "anyhow",
  "walrus",
@@ -1784,9 +1784,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-wasm-conventions"
-version = "0.2.86"
+version = "0.2.87"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84e5ad27a7930400994cb40823d3d4a7ef235fac52d0c75ebd61fa40eba994a8"
+checksum = "0e9c65b1ff5041ea824ca24c519948aec16fb6611c617d601623c0657dfcd47b"
 dependencies = [
  "anyhow",
  "walrus",
@@ -1794,9 +1794,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-wasm-interpreter"
-version = "0.2.86"
+version = "0.2.87"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e69500063b7b20f3e9422d78c2b381dd192c7c4ebaef34d205332877cd78e0d3"
+checksum = "7c5c796220738ab5d44666f37205728a74141c0039d1166bcf8110b26bafaa1e"
 dependencies = [
  "anyhow",
  "log",
@@ -1819,9 +1819,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-streams"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4609d447824375f43e1ffbc051b50ad8f4b3ae8219680c94452ea05eb240ac7"
+checksum = "b65dc4c90b63b118468cf747d8bf3566c1913ef60be765b5730ead9e0a3ba129"
 dependencies = [
  "futures-util",
  "js-sys",
@@ -1838,9 +1838,9 @@ checksum = "5fe3d5405e9ea6c1317a656d6e0820912d8b7b3607823a7596117c8f666daf6f"
 
 [[package]]
 name = "web-sys"
-version = "0.3.63"
+version = "0.3.64"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3bdd9ef4e984da1187bf8110c5cf5b845fbc87a23602cdf912386a76fcd3a7c2"
+checksum = "9b85cbef8c220a6abc02aefd892dfc0fc23afb1c6a426316ec33253a3877249b"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
@@ -2040,7 +2040,7 @@ dependencies = [
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
- "wasm-streams 0.3.0",
+ "wasm-streams 0.4.0",
  "web-sys",
  "worker-kv",
  "worker-macros",
@@ -2093,6 +2093,7 @@ name = "worker-sandbox"
 version = "0.1.0"
 dependencies = [
  "blake2",
+ "bytes",
  "cfg-if",
  "chrono",
  "console_error_panic_hook",

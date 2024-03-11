@@ -33,11 +33,14 @@ pub use crate::dynamic_dispatch::*;
 pub use crate::env::{Env, EnvBinding, Secret, Var};
 pub use crate::error::Error;
 pub use crate::fetch::fetch;
+pub use crate::fetch::fetch_with_init;
+pub use crate::fetch::fetch_with_signal;
 pub use crate::fetcher::Fetcher;
 // pub use crate::futures::spawn_local;
 #[cfg(feature = "queue")]
 pub use crate::queue::*;
 pub use crate::r2::*;
+pub use crate::request_init::RequestInit;
 pub use crate::schedule::*;
 pub use crate::socket::*;
 pub use crate::streams::*;
@@ -59,10 +62,12 @@ mod error;
 mod fetch;
 mod fetcher;
 mod futures;
+mod headers;
 pub mod http;
 #[cfg(feature = "queue")]
 mod queue;
 mod r2;
+mod request_init;
 mod schedule;
 mod socket;
 mod streams;

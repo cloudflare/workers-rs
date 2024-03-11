@@ -27,13 +27,13 @@ use chrono::{DateTime, Utc};
 use futures_util::Future;
 use js_sys::{Map, Number, Object};
 use serde::{de::DeserializeOwned, Serialize};
-use wasm_bindgen::{prelude::*, JsCast};
+use wasm_bindgen::prelude::*;
+use wasm_bindgen_futures::future_to_promise;
 use worker_sys::{
     DurableObject as EdgeDurableObject, DurableObjectId,
     DurableObjectNamespace as EdgeObjectNamespace, DurableObjectState, DurableObjectStorage,
     DurableObjectTransaction,
 };
-use wasm_bindgen_futures::future_to_promise;
 
 /// A Durable Object stub is a client object used to send requests to a remote Durable Object.
 pub struct Stub {
@@ -759,6 +759,7 @@ impl DurableObject for Chatroom {
 pub trait DurableObject {
     fn new(state: State, env: Env) -> Self;
     async fn fetch(&mut self, req: http::Request<Body>) -> Result<http::Response<Body>>;
+    #[allow(clippy::diverging_sub_expression)]
     async fn alarm(&mut self) -> Result<http::Response<Body>> {
         unimplemented!("alarm() handler not implemented")
     }

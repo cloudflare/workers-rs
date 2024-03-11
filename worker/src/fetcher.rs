@@ -5,7 +5,7 @@ use crate::{
     env::EnvBinding,
     futures::SendJsFuture,
     http::{request, response},
-    Result,
+    RequestInit, Result,
 };
 
 /// A struct for invoking fetch events to other Workers.
@@ -16,7 +16,27 @@ unsafe impl Sync for Fetcher {}
 
 impl Fetcher {
     /// Invoke a fetch event in a worker with a url and optionally a [RequestInit].
-    pub async fn fetch(&self, req: http::Request<Body>) -> Result<http::Response<Body>> {
+    pub async fn fetch(
+        &self,
+        url: impl Into<String>,
+        init: Option<RequestInit>,
+    ) -> Result<http::Response<Body>> {
+        let path = url.into();
+        let fut = {
+            let promise = match init {
+                Some(ref init) => self.0.fetch_with_str_and_init(&path, &init.into()),
+                None => self.0.fetch_with_str(&path),
+            };
+
+            SendJsFuture::from(promise)
+        };
+
+        let res = fut.await?.dyn_into()?;
+        Ok(response::from_wasm(res))
+    }
+
+    /// Invoke a fetch event with an existing [Request].
+    pub async fn fetch_request(&self, req: http::Request<Body>) -> Result<http::Response<Body>> {
         let fut = {
             let req = request::into_wasm(req);
             let promise = self.0.fetch(&req);

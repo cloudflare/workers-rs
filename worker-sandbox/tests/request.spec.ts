@@ -118,7 +118,7 @@ test("catchall", async () => {
     method: "OPTIONS",
   });
 
-  expect(await resp.text()).toBe("/hello-world");
+  expect(await resp.text()).toBe("hello-world");
 });
 
 test("redirect default", async () => {

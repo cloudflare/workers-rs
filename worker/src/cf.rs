@@ -1,7 +1,3 @@
-mod properties;
-
-pub use properties::{CfProperties, MinifyConfig, PolishConfig};
-
 /// In addition to the methods on the `Request` struct, the `Cf` struct on an inbound Request contains information about the request provided by Cloudflare’s edge.
 ///
 /// [Details](https://developers.cloudflare.com/workers/runtime-apis/request#incomingrequestcfproperties)
@@ -18,6 +14,10 @@ impl Cf {
         Self { inner }
     }
 
+    pub fn inner(&self) -> &worker_sys::IncomingRequestCfProperties {
+        &self.inner
+    }
+
     /// The three-letter airport code (e.g. `ATX`, `LUX`) representing
     /// the colocation which processed the request
     pub fn colo(&self) -> String {
@@ -27,6 +27,11 @@ impl Cf {
     /// The Autonomous System Number (ASN) of the request, e.g. `395747`
     pub fn asn(&self) -> u32 {
         self.inner.asn()
+    }
+
+    /// The Autonomous System organization name of the request, e.g. `Cloudflare, Inc.`
+    pub fn as_organization(&self) -> String {
+        self.inner.as_organization()
     }
 
     /// The two-letter country code of origin for the request.
@@ -89,9 +94,7 @@ impl Cf {
     /// Information about the client's authorization.
     /// Only set when using Cloudflare Access or API Shield.
     pub fn tls_client_auth(&self) -> Option<TlsClientAuth> {
-        self.inner
-            .tls_client_auth()
-            .map(|inner| TlsClientAuth { inner })
+        self.inner.tls_client_auth().map(Into::into)
     }
 
     /// The TLS version of the connection to Cloudflare, e.g. TLSv1.3.
@@ -178,6 +181,12 @@ pub struct RequestPriority {
     pub group_weight: usize,
 }
 
+impl From<worker_sys::IncomingRequestCfProperties> for Cf {
+    fn from(inner: worker_sys::IncomingRequestCfProperties) -> Self {
+        Self { inner }
+    }
+}
+
 /// Only set when using Cloudflare Access or API Shield
 #[derive(Debug)]
 pub struct TlsClientAuth {
@@ -234,5 +243,11 @@ impl TlsClientAuth {
 
     pub fn cert_subject_dn_rfc2253(&self) -> String {
         self.inner.cert_subject_dn_rfc2253()
+    }
+}
+
+impl From<worker_sys::TlsClientAuth> for TlsClientAuth {
+    fn from(inner: worker_sys::TlsClientAuth) -> Self {
+        Self { inner }
     }
 }

@@ -1,13 +1,9 @@
 //! Functions for translating requests to and from JS
 
-use bytes::Buf;
-use futures_util::StreamExt;
-use js_sys::Uint8Array;
 use wasm_bindgen::JsCast;
-use worker_sys::console_log;
 use worker_sys::ext::{HeadersExt, RequestExt};
 
-use crate::{AbortSignal, Cf, CfProperties};
+use crate::{AbortSignal, Cf};
 
 use crate::body::Body;
 
@@ -117,12 +113,12 @@ pub fn into_wasm(mut req: http::Request<Body>) -> web_sys::Request {
         init.redirect(redirect.into());
     }
 
-    if let Some(cf) = req.extensions_mut().remove::<CfProperties>() {
+    if let Some(cf) = req.extensions_mut().remove::<Cf>() {
         // TODO: this should be handled in worker-sys
         let r = ::js_sys::Reflect::set(
             init.as_ref(),
             &wasm_bindgen::JsValue::from("cf"),
-            &wasm_bindgen::JsValue::from(&cf),
+            &wasm_bindgen::JsValue::from(cf.inner()),
         );
         debug_assert!(
             r.is_ok(),
@@ -131,19 +127,8 @@ pub fn into_wasm(mut req: http::Request<Body>) -> web_sys::Request {
         let _ = r;
     }
 
-    let body = req.into_body();
-    let body = if body.is_none() {
-        None
-    } else {
-        let stream = wasm_streams::ReadableStream::from_stream(body.map(|chunk| {
-            chunk
-                .map(|buf| js_sys::Uint8Array::from(buf.chunk()).into())
-                .map_err(|_| wasm_bindgen::JsValue::NULL)
-        }));
-
-        Some(stream.into_raw().unchecked_into())
-    };
-    init.body(body.as_ref());
+    let s = req.into_body().into_readable_stream();
+    init.body(s.map(|s| s.into()).as_ref());
 
     web_sys::Request::new_with_str_and_init(&uri, &init).unwrap()
 }
