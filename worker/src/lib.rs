@@ -36,6 +36,7 @@ pub use crate::fetch::fetch;
 pub use crate::fetch::fetch_with_init;
 pub use crate::fetch::fetch_with_signal;
 pub use crate::fetcher::Fetcher;
+pub use body::Body;
 // pub use crate::futures::spawn_local;
 #[cfg(feature = "queue")]
 pub use crate::queue::*;
@@ -74,3 +75,5 @@ mod streams;
 mod websocket;
 
 pub type Result<T> = StdResult<T, error::Error>;
+pub type Request = http::Request<body::Body>;
+pub type Response = http::Response<body::Body>;

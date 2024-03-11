@@ -2,13 +2,14 @@
 authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
 edition = "2018"
 name = "worker-build"
-version = "0.0.9"
+version = "0.0.10"
 license = "Apache-2.0"
 repository = "https://github.com/cloudflare/workers-rs/tree/main/worker-build"
 readme = "README.md"
 description = "This is a tool to be used as a custom build command for a Cloudflare Workers `workers-rs` project."
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[package.metadata.release]
+release = false
 
 [dependencies]
 anyhow = "1.0.71"
@@ -18,4 +19,4 @@ tar = "0.4.38"
 ureq = { version = "2.6.2", features = ["tls", "gzip"] }
 
 [dev-dependencies]
-wasm-bindgen-cli-support = "0.2.86"
+wasm-bindgen-cli-support.workspace = true

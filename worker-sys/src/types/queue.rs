@@ -23,5 +23,5 @@ extern "C" {
     pub type Queue;
 
     #[wasm_bindgen(method)]
-    pub fn send(this: &Queue, mesage: JsValue) -> js_sys::Promise;
+    pub fn send(this: &Queue, message: JsValue) -> js_sys::Promise;
 }

@@ -1,7 +1,7 @@
 /// In addition to the methods on the `Request` struct, the `Cf` struct on an inbound Request contains information about the request provided by Cloudflare’s edge.
 ///
 /// [Details](https://developers.cloudflare.com/workers/runtime-apis/request#incomingrequestcfproperties)
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Cf {
     inner: worker_sys::IncomingRequestCfProperties,
 }

@@ -259,7 +259,7 @@ async fn put_full_properties(
     let object_with_props = bucket
         .put(name, "example".to_string())
         .http_metadata(http_metadata.clone())
-        .custom_metdata(custom_metadata.clone())
+        .custom_metadata(custom_metadata.clone())
         .md5(md5_hash)
         .execute()
         .await?;

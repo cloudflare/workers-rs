@@ -1,4 +1,4 @@
-//! Arguments are fowarded directly to wasm-pack
+//! Arguments are forwarded directly to wasm-pack
 
 use std::{
     convert::TryInto,
@@ -7,7 +7,7 @@ use std::{
     fs::{self, File},
     io::{Read, Write},
     path::{Path, PathBuf},
-    process::Command,
+    process::{Command, Stdio},
 };
 
 use anyhow::Result;
@@ -25,6 +25,10 @@ export function __wbg_set_wasm(val) {
 
 const WASM_IMPORT_REPLACEMENT: &str = r#"
 import wasm from './glue.js';
+
+export function getMemory() {
+    return wasm.memory;
+}
 "#;
 
 mod install;
@@ -34,6 +38,12 @@ pub fn main() -> Result<()> {
     if !cfg!(test) {
         install::ensure_wasm_pack()?;
         wasm_pack_build(env::args_os().skip(1))?;
+    }
+
+    let with_coredump = env::var("COREDUMP").is_ok();
+    if with_coredump {
+        println!("Adding wasm coredump");
+        wasm_coredump()?;
     }
 
     let esbuild_path = install::ensure_esbuild()?;
@@ -50,6 +60,71 @@ pub fn main() -> Result<()> {
     remove_unused_js()?;
 
     Ok(())
+}
+
+const INSTALL_HELP: &str = "In case you are missing the binary, you can install it using: `cargo install wasm-coredump-rewriter`";
+
+fn wasm_coredump() -> Result<()> {
+    let coredump_flags = env::var("COREDUMP_FLAGS");
+    let coredump_flags: Vec<&str> = if let Ok(flags) = &coredump_flags {
+        flags.split(' ').collect()
+    } else {
+        vec![]
+    };
+
+    let mut child = Command::new("wasm-coredump-rewriter")
+        .args(coredump_flags)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .map_err(|err| {
+            anyhow::anyhow!("failed to spawn wasm-coredump-rewriter: {err}\n\n{INSTALL_HELP}.")
+        })?;
+
+    let input_filename = output_path("index_bg.wasm");
+
+    let input_bytes = {
+        let mut input = File::open(input_filename.clone())
+            .map_err(|err| anyhow::anyhow!("failed to open input file: {err}"))?;
+
+        let mut input_bytes = Vec::new();
+        input
+            .read_to_end(&mut input_bytes)
+            .map_err(|err| anyhow::anyhow!("failed to open input file: {err}"))?;
+
+        input_bytes
+    };
+
+    {
+        let child_stdin = child.stdin.as_mut().unwrap();
+        child_stdin
+            .write_all(&input_bytes)
+            .map_err(|err| anyhow::anyhow!("failed to write input file to rewriter: {err}"))?;
+        // Close stdin to finish and avoid indefinite blocking
+    }
+
+    let output = child
+        .wait_with_output()
+        .map_err(|err| anyhow::anyhow!("failed to get rewriter's status: {err}"))?;
+
+    if output.status.success() {
+        // Open the input file again with truncate to write the output
+        let mut f = fs::OpenOptions::new()
+            .truncate(true)
+            .write(true)
+            .open(input_filename)
+            .map_err(|err| anyhow::anyhow!("failed to open output file: {err}"))?;
+        f.write_all(&output.stdout)
+            .map_err(|err| anyhow::anyhow!("failed to write output file: {err}"))?;
+
+        Ok(())
+    } else {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(anyhow::anyhow!(format!(
+            "failed to run Wasm coredump rewriter: {stdout}\n{stderr}"
+        )))
+    }
 }
 
 fn wasm_pack_build<I, S>(args: I) -> Result<()>

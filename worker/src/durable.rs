@@ -19,7 +19,7 @@ use crate::{
     error::Error,
     futures::SendJsFuture,
     http::{request, response},
-    Result,
+    Result, WebSocket,
 };
 
 use async_trait::async_trait;
@@ -219,6 +219,32 @@ impl State {
     pub fn _inner(self) -> DurableObjectState {
         self.inner
     }
+
+    pub fn accept_web_socket(&self, ws: &WebSocket) {
+        self.inner.accept_websocket(ws.as_ref())
+    }
+
+    pub fn accept_websocket_with_tags(&self, ws: &WebSocket, tags: &[&str]) {
+        let tags = tags.iter().map(|it| (*it).into()).collect();
+
+        self.inner.accept_websocket_with_tags(ws.as_ref(), tags);
+    }
+
+    pub fn get_websockets(&self) -> Vec<WebSocket> {
+        self.inner
+            .get_websockets()
+            .into_iter()
+            .map(Into::into)
+            .collect()
+    }
+
+    pub fn get_websockets_with_tag(&self, tag: &str) -> Vec<WebSocket> {
+        self.inner
+            .get_websockets_with_tag(tag)
+            .into_iter()
+            .map(Into::into)
+            .collect()
+    }
 }
 
 impl From<DurableObjectState> for State {
@@ -272,19 +298,39 @@ impl Storage {
 
     /// Stores the value and associates it with the given key.
     pub async fn put<T: Serialize>(&mut self, key: &str, value: T) -> Result<()> {
-        let fut = SendJsFuture::from(self.inner.put(key, serde_wasm_bindgen::to_value(&value)?)?);
+        self.put_raw(key, serde_wasm_bindgen::to_value(&value)?)
+            .await
+    }
+
+    pub async fn put_raw(&mut self, key: &str, value: impl Into<JsValue>) -> Result<()> {
+        let fut = SendJsFuture::from(self.inner.put(key, value.into())?);
         fut.await.map_err(Error::from).map(|_| ())
     }
 
     /// Takes a serializable struct and stores each of its keys and values to storage.
     pub async fn put_multiple<T: Serialize>(&mut self, values: T) -> Result<()> {
-        let fut = {
-            let values = serde_wasm_bindgen::to_value(&values)?;
-            if !values.is_object() {
-                return Err("Must pass in a struct type".to_string().into());
-            }
-            SendJsFuture::from(self.inner.put_multiple(values)?)
-        };
+        let values = serde_wasm_bindgen::to_value(&values)?;
+        if !values.is_object() {
+            return Err("Must pass in a struct type".to_string().into());
+        }
+        self.put_multiple_raw(values.dyn_into().unwrap()).await
+    }
+
+    /// Takes an object and stores each of its keys and values to storage.
+    ///
+    /// ```no_run
+    /// # use worker::Storage;
+    /// use worker::JsValue;
+    ///
+    /// # let storage: Storage = todo!();
+    ///
+    /// let obj = js_sys::Object::new();
+    /// js_sys::Reflect::set(&obj, &JsValue::from_str("foo"), JsValue::from_u64(1));
+    ///
+    /// storage.put_multiple_raw(obj);
+    /// ```
+    pub async fn put_multiple_raw(&mut self, values: Object) -> Result<()> {
+        let fut = SendJsFuture::from(self.inner.put_multiple(values.into())?);
         fut.await.map_err(Error::from).map(|_| ())
     }
 
@@ -615,11 +661,11 @@ enum ScheduledTimeInit {
     Offset(f64),
 }
 
-/// Determines when a Durable Object alarm should be ran, based on a timestamp or offset.
+/// Determines when a Durable Object alarm should be ran, based on a timestamp or offset in milliseconds.
 ///
 /// Implements [`From`] for:
-/// - [`Duration`], interpreted as an offset.
-/// - [`i64`], interpreted as an offset.
+/// - [`Duration`], interpreted as an offset (in milliseconds).
+/// - [`i64`], interpreted as an offset (in milliseconds).
 /// - [`DateTime`], interpreted as a timestamp.
 ///
 /// When an offset is used, the time at which `set_alarm()` or `set_alarm_with_options()` is called
@@ -719,6 +765,11 @@ impl AsRef<JsValue> for ObjectNamespace {
     }
 }
 
+pub enum WebSocketIncomingMessage {
+    String(String),
+    Binary(Vec<u8>),
+}
+
 /**
 **Note:** Implement this trait with a standard `impl DurableObject for YourType` block, but in order to
 integrate them with the Workers Runtime, you must also add the **`#[durable_object]`** attribute
@@ -731,10 +782,9 @@ use worker::*;
 #[durable_object]
 pub struct Chatroom {
     users: Vec<User>,
-    messages: Vec<Message>
+    messages: Vec<Message>,
     state: State,
     env: Env, // access `Env` across requests, use inside `fetch`
-
 }
 
 #[durable_object]
@@ -743,7 +793,7 @@ impl DurableObject for Chatroom {
         Self {
             users: vec![],
             messages: vec![],
-            state: state,
+            state,
             env,
         }
     }
@@ -755,12 +805,40 @@ impl DurableObject for Chatroom {
 }
 ```
 */
+
 #[async_trait(?Send)]
 pub trait DurableObject {
     fn new(state: State, env: Env) -> Self;
+
     async fn fetch(&mut self, req: http::Request<Body>) -> Result<http::Response<Body>>;
+
     #[allow(clippy::diverging_sub_expression)]
     async fn alarm(&mut self) -> Result<http::Response<Body>> {
         unimplemented!("alarm() handler not implemented")
+    }
+
+    #[allow(unused_variables, clippy::diverging_sub_expression)]
+    async fn websocket_message(
+        &mut self,
+        ws: WebSocket,
+        message: WebSocketIncomingMessage,
+    ) -> Result<()> {
+        unimplemented!("websocket_message() handler not implemented")
+    }
+
+    #[allow(unused_variables, clippy::diverging_sub_expression)]
+    async fn websocket_close(
+        &mut self,
+        ws: WebSocket,
+        code: usize,
+        reason: String,
+        was_clean: bool,
+    ) -> Result<()> {
+        unimplemented!("websocket_close() handler not implemented")
+    }
+
+    #[allow(unused_variables, clippy::diverging_sub_expression)]
+    async fn websocket_error(&mut self, ws: WebSocket, error: Error) -> Result<()> {
+        unimplemented!("websocket_error() handler not implemented")
     }
 }

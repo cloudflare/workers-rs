@@ -75,7 +75,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                     match #input_fn_ident(::worker::http::request::from_wasm(req), env, ctx).await.map(::worker::http::response::into_wasm) {
                         Ok(res) => res,
                         Err(e) => {
-                            ::worker::console_log!("{}", &e);
+                            ::worker::console_error!("{}", &e);
                             #error_handling
                         }
                     }

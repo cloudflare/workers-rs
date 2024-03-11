@@ -1,6 +1,7 @@
 use crate::{fetch, Error, Result};
 use futures_channel::mpsc::UnboundedReceiver;
 use futures_util::Stream;
+use http::HeaderValue;
 use serde::Serialize;
 use url::Url;
 use worker_sys::ext::WebSocketExt;
@@ -69,7 +70,21 @@ impl WebSocket {
     ///
     /// Response::error("never got a message echoed back :(", 500)
     /// ```
-    pub async fn connect(mut url: Url) -> Result<WebSocket> {
+    pub async fn connect(url: Url) -> Result<WebSocket> {
+        WebSocket::connect_with_protocols(url, None).await
+    }
+
+    /// Attempts to establish a [`WebSocket`] connection to the provided [`Url`] and protocol.
+    ///
+    /// # Example:
+    /// ```rust,ignore
+    /// let ws = WebSocket::connect_with_protocols("wss://echo.zeb.workers.dev/".parse()?, Some(vec!["GiggleBytes"])).await?;
+    ///
+    /// ```
+    pub async fn connect_with_protocols(
+        mut url: Url,
+        protocols: Option<Vec<&str>>,
+    ) -> Result<WebSocket> {
         let scheme: String = match url.scheme() {
             "ws" => "http".into(),
             "wss" => "https".into(),
@@ -80,10 +95,21 @@ impl WebSocket {
         // those connections into websockets if we use the `Upgrade` header.
         url.set_scheme(&scheme).unwrap();
 
-        let req = http::Request::get(url.as_str())
+        let mut req = http::Request::get(url.as_str())
             .header(http::header::UPGRADE, "websocket")
             .body(())
             .unwrap();
+
+        match protocols {
+            None => {}
+            Some(v) => {
+                req.headers_mut().insert(
+                    "Sec-WebSocket-Protocol",
+                    HeaderValue::from_str(&v.join(","))
+                        .map_err(|e| Error::RustError(format!("{:?}", e)))?,
+                );
+            }
+        }
 
         let mut res = fetch(req).await?;
 
@@ -205,12 +231,30 @@ impl WebSocket {
             closures: Some((message_closure, error_closure, close_closure)),
         })
     }
+
+    pub fn serialize_attachment<T: Serialize>(&self, value: T) -> Result<()> {
+        self.socket
+            .serialize_attachment(serde_wasm_bindgen::to_value(&value)?)
+            .map_err(Error::from)
+    }
+
+    pub fn deserialize_attachment<T: serde::de::DeserializeOwned>(&self) -> Result<Option<T>> {
+        let value = self.socket.deserialize_attachment().map_err(Error::from)?;
+
+        if value.is_null() || value.is_undefined() {
+            return Ok(None);
+        }
+
+        serde_wasm_bindgen::from_value::<T>(value)
+            .map(Some)
+            .map_err(Error::from)
+    }
 }
 
 type EvCallback<T> = Closure<dyn FnMut(T)>;
 
 /// A [`Stream`](futures::Stream) that yields [`WebsocketEvent`](crate::ws_events::WebsocketEvent)s
-/// emitted by the inner [`WebSocket`](crate::WebSocket). The stream is guranteed to always yield a
+/// emitted by the inner [`WebSocket`](crate::WebSocket). The stream is guaranteed to always yield a
 /// `WebsocketEvent::Close` as the final non-none item.
 ///
 /// # Example

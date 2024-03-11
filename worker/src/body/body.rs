@@ -12,7 +12,7 @@ use bytes::Bytes;
 use futures_util::{AsyncRead, Stream, TryStream, TryStreamExt};
 use http::HeaderMap;
 use js_sys::Uint8Array;
-use serde::de::DeserializeOwned;
+use serde::{de::DeserializeOwned, Serialize};
 use wasm_bindgen::{JsCast, JsValue};
 use web_sys::ReadableStream;
 
@@ -78,6 +78,10 @@ impl Body {
     /// Create an empty body.
     pub const fn empty() -> Self {
         Self(BodyInner::None)
+    }
+
+    pub fn from_json<T: Serialize>(value: &T) -> Result<Self, Error> {
+        Ok(Body::new(serde_json::to_string(value)?))
     }
 
     /// Get the full body as `Bytes`.

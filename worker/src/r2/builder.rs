@@ -4,7 +4,7 @@ use js_sys::{Array, Date as JsDate, JsString, Object as JsObject, Uint8Array};
 use wasm_bindgen::{JsCast, JsValue};
 use worker_sys::{
     R2Bucket as EdgeR2Bucket, R2HttpMetadata as R2HttpMetadataSys,
-    R2MultipartUpload as EdgeR2MutipartUpload, R2Object as EdgeR2Object, R2Range as R2RangeSys,
+    R2MultipartUpload as EdgeR2MultipartUpload, R2Object as EdgeR2Object, R2Range as R2RangeSys,
 };
 
 use crate::{futures::SendJsFuture, Date, Error, MultipartUpload, ObjectInner, Objects, Result};
@@ -158,7 +158,8 @@ pub struct PutOptionsBuilder<'bucket> {
     pub(crate) value: Data,
     pub(crate) http_metadata: Option<HttpMetadata>,
     pub(crate) custom_metadata: Option<HashMap<String, String>>,
-    pub(crate) md5: Option<Vec<u8>>,
+    pub(crate) checksum: Option<Vec<u8>>,
+    pub(crate) checksum_algorithm: String,
 }
 
 unsafe impl Send for PutOptionsBuilder<'_> {}
@@ -172,15 +173,40 @@ impl<'bucket> PutOptionsBuilder<'bucket> {
     }
 
     /// A map of custom, user-defined metadata that will be stored with the object.
-    pub fn custom_metdata(mut self, metadata: impl Into<HashMap<String, String>>) -> Self {
+    pub fn custom_metadata(mut self, metadata: impl Into<HashMap<String, String>>) -> Self {
         self.custom_metadata = Some(metadata.into());
         self
     }
 
-    /// A md5 hash to use to check the recieved object’s integrity.
-    pub fn md5(mut self, bytes: impl Into<Vec<u8>>) -> Self {
-        self.md5 = Some(bytes.into());
+    fn checksum_set(mut self, algorithm: &str, checksum: impl Into<Vec<u8>>) -> Self {
+        self.checksum_algorithm = algorithm.into();
+        self.checksum = Some(checksum.into());
         self
+    }
+
+    /// A md5 hash to use to check the received object’s integrity.
+    pub fn md5(self, bytes: impl Into<Vec<u8>>) -> Self {
+        self.checksum_set("md5", bytes)
+    }
+
+    /// A sha1 hash to use to check the received object’s integrity.
+    pub fn sha1(self, bytes: impl Into<Vec<u8>>) -> Self {
+        self.checksum_set("sha1", bytes)
+    }
+
+    /// A sha256 hash to use to check the received object’s integrity.
+    pub fn sha256(self, bytes: impl Into<Vec<u8>>) -> Self {
+        self.checksum_set("sha256", bytes)
+    }
+
+    /// A sha384 hash to use to check the received object’s integrity.
+    pub fn sha384(self, bytes: impl Into<Vec<u8>>) -> Self {
+        self.checksum_set("sha384", bytes)
+    }
+
+    /// A sha512 hash to use to check the received object’s integrity.
+    pub fn sha512(self, bytes: impl Into<Vec<u8>>) -> Self {
+        self.checksum_set("sha512", bytes)
     }
 
     /// Executes the PUT operation on the R2 bucket.
@@ -204,11 +230,11 @@ impl<'bucket> PutOptionsBuilder<'bucket> {
                         }
                         None => JsValue::UNDEFINED,
                     },
-                    "md5" => self.md5.map(|bytes| {
+                    self.checksum_algorithm => self.checksum.map(|bytes| {
                         let arr = Uint8Array::new_with_length(bytes.len() as _);
                         arr.copy_from(&bytes);
                         arr.buffer()
-                    })
+                    }),
                 }
                 .into(),
             );
@@ -245,7 +271,7 @@ impl<'bucket> CreateMultipartUploadOptionsBuilder<'bucket> {
     }
 
     /// A map of custom, user-defined metadata that will be stored with the object.
-    pub fn custom_metdata(mut self, metadata: impl Into<HashMap<String, String>>) -> Self {
+    pub fn custom_metadata(mut self, metadata: impl Into<HashMap<String, String>>) -> Self {
         self.custom_metadata = Some(metadata.into());
         self
     }
@@ -276,7 +302,7 @@ impl<'bucket> CreateMultipartUploadOptionsBuilder<'bucket> {
             SendJsFuture::from(create_multipart_upload_promise)
         };
 
-        let inner: EdgeR2MutipartUpload = fut.await?.into();
+        let inner: EdgeR2MultipartUpload = fut.await?.into();
 
         Ok(MultipartUpload { inner })
     }

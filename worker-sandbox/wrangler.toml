@@ -1,7 +1,7 @@
 name = "testing-rust-worker"
 type = "javascript"
 workers_dev = true
-compatibility_date = "2022-09-12" # required
+compatibility_date = "2022-09-12"                     # required
 compatibility_flags = ["streams_enable_constructors"]
 
 # kv_namespaces = [
@@ -18,25 +18,29 @@ compatibility_flags = ["streams_enable_constructors"]
 # [miniflare.mounts]
 # remote-service = "./remote-service"
 
-# [durable_objects]
-# bindings = [{ name = "COUNTER", class_name = "Counter" }, { name = "ALARM", class_name = "AlarmObject" }]
+[durable_objects]
+bindings = [
+    { name = "COUNTER", class_name = "Counter" },
+    { name = "ALARM", class_name = "AlarmObject" },
+    { name = "PUT_RAW_TEST_OBJECT", class_name = "PutRawTestObject" },
+]
 
-# [[d1_databases]]
-# binding = 'DB'
-# database_name = 'my_db'
-# database_id = '.'
-# preview_database_id = '.'
+[[d1_databases]]
+binding = 'DB'
+database_name = 'my_db'
+database_id = 'test'
+preview_database_id = 'preview-test'
 
-# [[queues.consumers]]
-#  queue = "my_queue"
+[[queues.consumers]]
+queue = "my_queue"
 
-# [[queues.producers]]
-#  queue = "my_queue"
-#  binding = "my_queue"
-# [[r2_buckets]]
-# binding = 'EMPTY_BUCKET'
-# bucket_name = 'empty_bucket'
-# preview_bucket_name = 'empty_bucket'
+[[queues.producers]]
+queue = "my_queue"
+binding = "my_queue"
+[[r2_buckets]]
+binding = 'EMPTY_BUCKET'
+bucket_name = 'empty_bucket'
+preview_bucket_name = 'empty_bucket'
 
 # [[r2_buckets]]
 # binding = 'PUT_BUCKET'

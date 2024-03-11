@@ -17,8 +17,8 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         "{} {}, located at: {:?}, within: {}",
         req.method().to_string(),
         req.path(),
-        req.cf().coordinates().unwrap_or_default(),
-        req.cf().region().unwrap_or("unknown region".into())
+        req.cf().unwrap().coordinates().unwrap_or_default(),
+        req.cf().unwrap().region().unwrap_or("unknown region".into())
     );
 
     if !matches!(req.method(), Method::Post) {
@@ -109,11 +109,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
 
 The project uses [wrangler](https://github.com/cloudflare/wrangler2) version 2.x for running and publishing your Worker.
 
-Get the Rust worker project [template](https://github.com/cloudflare/workers-sdk/tree/main/templates/experimental/worker-rust) manually, or run the following command:
-```bash
-npm init cloudflare project_name worker-rust
-cd project_name
-```
+Git clone the Rust Worker project [template](https://github.com/cloudflare/workers-sdk/tree/main/templates/experimental/worker-rust) and install its dependencies.
 
 You should see a new project layout with a `src/lib.rs`. Start there! Use any local or remote crates
 and modules (as long as they compile to the `wasm32-unknown-unknown` target).
@@ -158,7 +154,8 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         .on_async("/durable", |_req, ctx| async move {
             let namespace = ctx.durable_object("CHATROOM")?;
             let stub = namespace.id_from_name("A")?.get_stub()?;
-            stub.fetch_with_str("/messages").await
+            // `fetch_with_str` requires a valid Url to make request to DO. But we can make one up!
+            stub.fetch_with_str("http://fake_url.com/messages").await
         })
         .get("/secret", |_req, ctx| {
             Response::ok(ctx.secret("CF_API_TOKEN")?.to_string())
@@ -245,7 +242,7 @@ new_classes = ["Chatroom"] # Array of new classes
 ### Enabling queues
 As queues are in beta you need to enable the `queue` feature flag.
 
-Enable it by adding it to the worker dependency in your `Cargo.toml`: 
+Enable it by adding it to the worker dependency in your `Cargo.toml`:
 ```toml
 worker = {version = "...", features = ["queue"]}
 ```
@@ -363,7 +360,7 @@ struct Thing {
 }
 
 #[event(fetch, respond_with_errors)]
-pub async fn main(request: Request,	env: Env, _ctx: Context) -> Result<Response> {
+pub async fn main(request: Request, env: Env, _ctx: Context) -> Result<Response> {
 	Router::new()
 		.get_async("/:id", |_, ctx| async move {
 			let id = ctx.param("id").unwrap()?;
@@ -423,6 +420,28 @@ please [take a look](https://www.cloudflare.com/careers/).
 - We're working on solutions here, but in the meantime you'll need to minimize the number of crates
   your code depends on, or strip as much from the `.wasm` binary as possible. Here are some extra
   steps you can try: https://rustwasm.github.io/book/reference/code-size.html#optimizing-builds-for-code-size
+
+### ⚠️ Caveats
+
+1. Upgrading worker package to version `0.0.18` and higher
+
+- While upgrading your worker to version `0.0.18` an error `error[E0432]: unresolved import `crate::sys::IoSourceState` can appear.
+  In this case, upgrade `package.edition` to `edition = "2021"` in `wrangler.toml`
+
+```toml
+[package]
+edition = "2021"
+```
+
+# Releasing
+
+1. [Trigger](https://github.com/cloudflare/workers-rs/actions/workflows/create-release-pr.yml) a workflow to create a release PR.
+1. Review version changes and release notes.
+1. Merge PR.
+
+A GitHub release will be created and crates (`worker-sys`, `worker-macros`, `worker`)
+will be published automatically. 
+
 
 # Contributing
 
