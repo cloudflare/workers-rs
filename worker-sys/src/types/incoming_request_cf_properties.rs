@@ -14,6 +14,9 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn asn(this: &IncomingRequestCfProperties) -> u32;
 
+    #[wasm_bindgen(method, getter, js_name=asOrganization)]
+    pub fn as_organization(this: &IncomingRequestCfProperties) -> String;
+
     #[wasm_bindgen(method, getter)]
     pub fn country(this: &IncomingRequestCfProperties) -> Option<String>;
 

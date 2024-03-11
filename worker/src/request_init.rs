@@ -1,12 +1,97 @@
-// TODO: the worker-sys crate should contain the JS bindings rather than doing it in here
-
 use std::collections::HashMap;
 
+use crate::headers::Headers;
+use crate::http::Method;
+
 use js_sys::Object;
-use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
+use serde::Serialize;
+use wasm_bindgen::prelude::*;
+
+/// Optional options struct that contains settings to apply to the `Request`.
+pub struct RequestInit {
+    /// Currently requires a manual conversion from your data into a [`wasm_bindgen::JsValue`].
+    pub body: Option<JsValue>,
+    /// Headers associated with the outbound `Request`.
+    pub headers: Headers,
+    /// Cloudflare-specific properties that can be set on the `Request` that control how Cloudflare’s
+    /// edge handles the request.
+    pub cf: CfProperties,
+    /// The HTTP Method used for this `Request`.
+    pub method: Method,
+    /// The redirect mode to use: follow, error, or manual. The default for a new Request object is
+    /// follow. Note, however, that the incoming Request property of a FetchEvent will have redirect
+    /// mode manual.
+    pub redirect: RequestRedirect,
+}
+
+impl RequestInit {
+    pub fn new() -> Self {
+        Default::default()
+    }
+
+    pub fn with_headers(&mut self, headers: Headers) -> &mut Self {
+        self.headers = headers;
+        self
+    }
+
+    pub fn with_method(&mut self, method: Method) -> &mut Self {
+        self.method = method;
+        self
+    }
+
+    pub fn with_redirect(&mut self, redirect: RequestRedirect) -> &mut Self {
+        self.redirect = redirect;
+        self
+    }
+
+    pub fn with_body(&mut self, body: Option<JsValue>) -> &mut Self {
+        self.body = body;
+        self
+    }
+
+    pub fn with_cf_properties(&mut self, props: CfProperties) -> &mut Self {
+        self.cf = props;
+        self
+    }
+}
+
+impl From<&RequestInit> for web_sys::RequestInit {
+    fn from(req: &RequestInit) -> Self {
+        let mut inner = web_sys::RequestInit::new();
+        inner.headers(req.headers.as_ref());
+        inner.method(req.method.as_ref());
+        inner.redirect(req.redirect.into());
+        inner.body(req.body.as_ref());
+
+        // set the Cloudflare-specific `cf` property on FFI RequestInit
+        let r = ::js_sys::Reflect::set(
+            inner.as_ref(),
+            &JsValue::from("cf"),
+            &JsValue::from(&req.cf),
+        );
+        debug_assert!(
+            r.is_ok(),
+            "setting properties should never fail on our dictionary objects"
+        );
+        let _ = r;
+
+        inner
+    }
+}
+
+impl Default for RequestInit {
+    fn default() -> Self {
+        Self {
+            body: None,
+            headers: Headers::new(),
+            cf: CfProperties::default(),
+            method: Method::GET,
+            redirect: RequestRedirect::default(),
+        }
+    }
+}
 
 /// <https://developers.cloudflare.com/workers/runtime-apis/request#requestinitcfproperties>
-#[derive(Clone)]
 pub struct CfProperties {
     /// Whether Cloudflare Apps should be enabled for this request. Defaults to `true`.
     pub apps: Option<bool>,
@@ -25,7 +110,7 @@ pub struct CfProperties {
     pub cache_ttl: Option<u32>,
     /// This option is a version of the cacheTtl feature which chooses a TTL based on the response’s
     /// status code. If the response to this request has a status code that matches, Cloudflare will
-    /// cache for the instructed time, and override cache instructives sent by the origin. For
+    /// cache for the instructed time, and override cache directives sent by the origin. For
     /// example: { "200-299": 86400, 404: 1, "500-599": 0 }. The value can be any integer, including
     /// zero and negative integers. A value of 0 indicates that the cache asset expires immediately.
     /// Any negative value instructs Cloudflare not to cache at all.
@@ -58,13 +143,11 @@ pub struct CfProperties {
     pub scrape_shield: Option<bool>,
 }
 
-unsafe impl Send for CfProperties {}
-unsafe impl Sync for CfProperties {}
-
 impl From<&CfProperties> for JsValue {
     fn from(props: &CfProperties) -> Self {
         let obj = js_sys::Object::new();
         let defaults = CfProperties::default();
+        let serializer = serde_wasm_bindgen::Serializer::new().serialize_maps_as_objects(true);
 
         set_prop(
             &obj,
@@ -110,7 +193,7 @@ impl From<&CfProperties> for JsValue {
         set_prop(
             &obj,
             &JsValue::from("cacheTtlByStatus"),
-            &serde_wasm_bindgen::to_value(&ttl_status_map).unwrap_or_default(),
+            &ttl_status_map.serialize(&serializer).unwrap_or_default(),
         );
 
         set_prop(
@@ -198,9 +281,6 @@ pub struct MinifyConfig {
     pub css: bool,
 }
 
-unsafe impl Send for MinifyConfig {}
-unsafe impl Sync for MinifyConfig {}
-
 /// Configuration options for Cloudflare's image optimization feature:
 /// <https://blog.cloudflare.com/introducing-polish-automatic-image-optimizati/>
 #[wasm_bindgen]
@@ -210,9 +290,6 @@ pub enum PolishConfig {
     Lossy,
     Lossless,
 }
-
-unsafe impl Send for PolishConfig {}
-unsafe impl Sync for PolishConfig {}
 
 impl Default for PolishConfig {
     fn default() -> Self {
@@ -226,6 +303,35 @@ impl From<PolishConfig> for &str {
             PolishConfig::Off => "off",
             PolishConfig::Lossy => "lossy",
             PolishConfig::Lossless => "lossless",
+        }
+    }
+}
+
+#[wasm_bindgen]
+#[derive(Default, Clone, Copy)]
+pub enum RequestRedirect {
+    Error,
+    #[default]
+    Follow,
+    Manual,
+}
+
+impl From<RequestRedirect> for &str {
+    fn from(redirect: RequestRedirect) -> Self {
+        match redirect {
+            RequestRedirect::Error => "error",
+            RequestRedirect::Follow => "follow",
+            RequestRedirect::Manual => "manual",
+        }
+    }
+}
+
+impl From<RequestRedirect> for web_sys::RequestRedirect {
+    fn from(redir: RequestRedirect) -> Self {
+        match redir {
+            RequestRedirect::Error => web_sys::RequestRedirect::Error,
+            RequestRedirect::Follow => web_sys::RequestRedirect::Follow,
+            RequestRedirect::Manual => web_sys::RequestRedirect::Manual,
         }
     }
 }

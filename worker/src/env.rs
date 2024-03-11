@@ -6,7 +6,7 @@ use crate::Queue;
 use crate::{durable::ObjectNamespace, Bucket, DynamicDispatcher, Fetcher, Result};
 
 use js_sys::Object;
-use wasm_bindgen::{prelude::*, JsCast, JsValue};
+use wasm_bindgen::prelude::*;
 use worker_kv::KvStore;
 
 #[wasm_bindgen]

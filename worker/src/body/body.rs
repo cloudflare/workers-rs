@@ -9,9 +9,12 @@ use crate::{
     Error,
 };
 use bytes::Bytes;
-use futures_util::{AsyncRead, Stream};
+use futures_util::{AsyncRead, Stream, TryStream, TryStreamExt};
 use http::HeaderMap;
+use js_sys::Uint8Array;
 use serde::de::DeserializeOwned;
+use wasm_bindgen::{JsCast, JsValue};
+use web_sys::ReadableStream;
 
 type BoxBody = http_body::combinators::UnsyncBoxBody<Bytes, Error>;
 
@@ -188,6 +191,31 @@ impl Body {
             ),
             crate::body::BodyInner::None => None,
         }
+    }
+
+    /// Create a `Body` using a [`Stream`](futures::stream::Stream)
+    pub fn from_stream<S>(stream: S) -> Result<Self, crate::Error>
+    where
+        S: TryStream + 'static,
+        S::Ok: Into<Vec<u8>>,
+        S::Error: Into<Error>,
+    {
+        let js_stream = stream
+            .map_ok(|item| -> Vec<u8> { item.into() })
+            .map_ok(|chunk| {
+                let array = Uint8Array::new_with_length(chunk.len() as _);
+                array.copy_from(&chunk);
+
+                array.into()
+            })
+            .map_err(|err| -> crate::Error { err.into() })
+            .map_err(|e| JsValue::from(e.to_string()));
+
+        let stream = wasm_streams::ReadableStream::from_stream(js_stream);
+        let stream: ReadableStream = stream.into_raw().dyn_into().unwrap();
+
+        let edge_res = web_sys::Response::new_with_opt_readable_stream(Some(&stream))?;
+        Ok(Self::from(edge_res))
     }
 }
 

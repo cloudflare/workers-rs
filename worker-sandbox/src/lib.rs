@@ -7,9 +7,13 @@ use std::{
     time::Duration,
 };
 
+use ::http::Method;
+use bytes::Bytes;
+use rand::Rng;
 use router_service::unsync::Router;
 use serde::{Deserialize, Serialize};
 use tower::Service;
+use uuid::Uuid;
 use worker::{
     body::Body,
     http::{HttpClone, RequestRedirect, Response},
@@ -22,6 +26,7 @@ mod d1;
 mod r2;
 mod test;
 mod utils;
+use futures_util::{future::Either, StreamExt, TryStreamExt};
 
 #[derive(Deserialize, Serialize)]
 struct MyData {
@@ -281,7 +286,7 @@ pub async fn main(
             Ok(Response::new(
                 format!(
                     "Create new zone for Account: {}",
-                    ctx.param("id").unwrap_or(&"not found")
+                    ctx.param("id").unwrap_or("not found")
                 )
                 .into(),
             ))
@@ -290,7 +295,7 @@ pub async fn main(
             Ok(Response::new(
                 format!(
                     "Account id: {}..... You get a zone, you get a zone!",
-                    ctx.param("id").unwrap_or(&"not found")
+                    ctx.param("id").unwrap_or("not found")
                 )
                 .into(),
             ))
@@ -392,6 +397,360 @@ pub async fn main(
 
             Ok(http::Response::new(body.into()))
         })
+        .get("/websocket", |_, ctx| async move {
+            // Accept / handle a websocket connection
+            let pair = WebSocketPair::new()?;
+            let server = pair.server;
+            server.accept()?;
+
+            let some_namespace_kv = ctx.data.kv("SOME_NAMESPACE")?;
+
+            wasm_bindgen_futures::spawn_local(async move {
+                let mut event_stream = server.events().expect("could not open stream");
+
+                while let Some(event) = event_stream.next().await {
+                    match event.expect("received error in websocket") {
+                        WebsocketEvent::Message(msg) => {
+                            if let Some(text) = msg.text() {
+                                server.send_with_str(text).expect("could not relay text");
+                            }
+                        }
+                        WebsocketEvent::Close(_) => {
+                            // Sets a key in a test KV so the integration tests can query if we
+                            // actually got the close event. We can't use the shared dat a for this
+                            // because miniflare resets that every request.
+                            some_namespace_kv
+                                .put("got-close-event", "true")
+                                .unwrap()
+                                .execute()
+                                .await
+                                .unwrap();
+                        }
+                    }
+                }
+            });
+
+            let mut response = Response::builder()
+                .status(101)
+                .body(Body::empty())
+                .unwrap();
+
+            response.extensions_mut().insert(pair.client);
+
+            Ok(response)
+        })
+        .post("/xor/:num", |req, ctx| async move {
+            let num: u8 = match ctx.param("num").unwrap().parse() {
+                Ok(num) => num,
+                Err(_) => return Response::builder()
+                    .status(400)
+                    .body("invalid byte".into())
+                    .map_err(|e| Error::RustError(e.to_string()))
+            };
+
+            let xor_stream = req.into_body().into_stream().map_ok(move |buf| {
+                let mut vec = buf.to_vec();
+                vec.iter_mut().for_each(|x| *x ^= num);
+                Bytes::from(vec)
+            });
+
+            let body = worker::body::Body::from_stream(xor_stream)?;
+            let resp = Response::builder()
+                .body(body)
+                .unwrap();
+            Ok(resp)
+        })
+        .get("/request-init-fetch", |_, _| async move {
+            let init = RequestInit::new();
+            let req = http::Request::post("https://cloudflare.com").body(()).unwrap();
+            fetch_with_init(req, &init).await
+        })
+        .get("/request-init-fetch-post", |_, _| async move {
+            let mut init = RequestInit::new();
+            init.method = Method::POST;
+
+            let req = http::Request::post("https://httpbin.org/post").body(()).unwrap();
+            fetch_with_init(req, &init).await
+        })
+        .get("/cancelled-fetch", |_, _| async move {
+            let controller = AbortController::default();
+            let signal = controller.signal();
+
+            let (tx, rx) = futures_channel::oneshot::channel();
+
+            // Spawns a future that'll make our fetch request and not block this function.
+            wasm_bindgen_futures::spawn_local({
+                async move {
+                    let req = http::Request::post("https://cloudflare.com").body(()).unwrap();
+                    let resp = fetch_with_signal(req, &signal).await;
+                    tx.send(resp).unwrap();
+                }
+            });
+
+            // And then we try to abort that fetch as soon as we start it, hopefully before
+            // cloudflare.com responds.
+            controller.abort();
+
+            let res = rx.await.unwrap();
+            let res = res.unwrap_or_else(|err| {
+                let text = err.to_string();
+                Response::new(text.into())
+            });
+
+            Ok(res)
+        })
+        .get("/fetch-timeout", |_, _| async move {
+            let controller = AbortController::default();
+            let signal = controller.signal();
+
+            let fetch_fut = async {
+                let req = http::Request::post("https://miniflare.mocks/delay").body(()).unwrap();
+                let resp = fetch_with_signal(req, &signal).await?;
+                let text = resp.into_body().text().await?;
+                Ok::<String, worker::Error>(text)
+            };
+            let delay_fut = async {
+                Delay::from(Duration::from_millis(1)).await;
+                controller.abort();
+                Ok(Response::new("Cancelled".into()))
+            };
+
+            futures_util::pin_mut!(fetch_fut);
+            futures_util::pin_mut!(delay_fut);
+
+            match futures_util::future::select(delay_fut, fetch_fut).await {
+                Either::Left((res, cancelled_fut)) => {
+                    // Ensure that the cancelled future returns an AbortError.
+                    match cancelled_fut.await {
+                        Err(e) if e.to_string().contains("AbortError") => { /* Yay! It worked, let's do nothing to celebrate */},
+                        Err(e) => panic!("Fetch errored with a different error than expected: {:#?}", e),
+                        Ok(text) => panic!("Fetch unexpectedly succeeded: {}", text)
+                    }
+
+                    res
+                },
+                Either::Right(_) => panic!("Delay future should have resolved first"),
+            }
+        })
+        .get("/redirect-default", |_, _| async move {
+            Ok(Response::builder()
+                .status(302)
+                .header("Location", "https://example.com/")
+                .body(Body::empty()).unwrap())
+        })
+        .get("/redirect-307", |_, _| async move {
+            Ok(Response::builder()
+                .status(307)
+                .header("Location", "https://example.com/")
+                .body(Body::empty()).unwrap())
+        })
+        .get("/now", |_, _| async move {
+            let now = chrono::Utc::now();
+            let js_date: Date = now.into();
+            Ok(Response::new(js_date.to_string().into()))
+        })
+        .get("/custom-response-body", |_, _| async move {
+            Ok(Response::new(vec![b'h', b'e', b'l', b'l', b'o'].into()))
+        })
+        .get("/init-called", |_, _| async move {
+            let init_called = GLOBAL_STATE.load(Ordering::SeqCst);
+            Ok(Response::new(init_called.to_string().into()))
+        })
+        .get("/cache-example", |req, _| async move {
+            //console_log!("url: {}", req.uri().to_string());
+            let cache = Cache::default();
+            let key = req.uri().to_string();
+            if let Some(resp) = cache.get(&key, true).await? {
+                //console_log!("Cache HIT!");
+                Ok(resp)
+            } else {
+                //console_log!("Cache MISS!");
+
+                let mut resp = Response::builder()
+                    .header("content-type", "application/json")
+                    // Cache API respects Cache-Control headers. Setting s-max-age to 10
+                    // will limit the response to be in cache for 10 seconds max
+                    .header("cache-control", "s-maxage=10")
+                    .body(serde_json::json!({ "timestamp": Date::now().as_millis() }).to_string().into())
+                    .map_err(|e| Error::RustError(e.to_string()))
+                    .unwrap();
+
+                cache.put(key, resp.clone()).await?;
+                Ok(resp)
+            }
+        })
+        .get("/cache-api/get/:key", |_req, ctx| async move {
+            if let Some(key) = ctx.param("key") {
+                let cache = Cache::default();
+                if let Some(resp) = cache.get(format!("https://{key}"), true).await? {
+                    return Ok(resp);
+                } else {
+                    return Ok(Response::new("cache miss".into()));
+                }
+            }
+
+            Response::builder()
+                .status(400)
+                .body("key missing".into())
+                .map_err(|e| Error::RustError(e.to_string()))
+        })
+        .put("/cache-api/put/:key", |_req, ctx| async move {
+            if let Some(key) = ctx.param("key") {
+                let cache = Cache::default();
+
+                let mut resp = Response::builder()
+                    .header("content-type", "application/json")
+                    // Cache API respects Cache-Control headers. Setting s-max-age to 10
+                    // will limit the response to be in cache for 10 seconds max
+                    .header("cache-control", "s-maxage=10")
+                    .body(serde_json::json!({ "timestamp": Date::now().as_millis() }).to_string().into())
+                    .map_err(|e| Error::RustError(e.to_string()))
+                    .unwrap();
+
+                cache.put(format!("https://{key}"), resp.clone()).await?;
+                return Ok(resp);
+            }
+
+            Response::builder()
+                .status(400)
+                .body("key missing".into())
+                .map_err(|e| Error::RustError(e.to_string()))
+        })
+        .post("/cache-api/delete/:key", |_req, ctx| async move {
+            if let Some(key) = ctx.param("key") {
+                let cache = Cache::default();
+
+                let res = cache.delete(format!("https://{key}"), true).await?;
+                return Ok(Response::new(serde_json::to_string(&res)?.into()));
+            }
+
+            Response::builder()
+                .status(400)
+                .body("key missing".into())
+                .map_err(|e| Error::RustError(e.to_string()))
+        })
+        .get("/cache-stream", |req, _| async move {
+            //console_log!("url: {}", req.uri().to_string());
+            let cache = Cache::default();
+            let key = req.uri().to_string();
+            if let Some(resp) = cache.get(&key, true).await? {
+                //console_log!("Cache HIT!");
+                Ok(resp)
+            } else {
+                //console_log!("Cache MISS!");
+                let mut rng = rand::thread_rng();
+                let count = rng.gen_range(0..10);
+                let stream = futures_util::stream::repeat("Hello, world!\n")
+                    .take(count)
+                    .then(|text| async move {
+                        Delay::from(Duration::from_millis(50)).await;
+                        Result::Ok(text.as_bytes().to_vec())
+                    });
+
+                let body = worker::body::Body::from_stream(stream)?;
+
+                //console_log!("resp = {:?}", resp);
+
+                let mut resp = Response::builder()
+                    // Cache API respects Cache-Control headers. Setting s-max-age to 10
+                    // will limit the response to be in cache for 10 seconds max
+                    .header("cache-control", "s-maxage=10")
+                    .body(body)
+                    .unwrap();
+
+                cache.put(key, resp.clone()).await?;
+                Ok(resp)
+            }
+        })
+        .get("/remote-by-request", |req, ctx| async move {
+            let fetcher = ctx.data.service("remote")?;
+            fetcher.fetch_request(req).await
+        })
+        .get("/remote-by-path", |req, ctx| async move {
+            let fetcher = ctx.data.service("remote")?;
+            let mut init = RequestInit::new();
+            init.with_method(Method::POST);
+
+            fetcher.fetch(req.uri().to_string(), Some(init)).await
+        })
+        .post("/queue/send/:id", |_req, ctx| async move {
+            let id = match ctx.param("id").map(|id| Uuid::try_parse(id).ok()).and_then(|u|u) {
+                Some(id) => id,
+                None =>  {
+                    return Response::builder()
+                    .status(400)
+                    .body("error".into())
+                    .map_err(|_| Error::RustError("Failed to parse id, expected a UUID".into()));
+                }
+            };
+            let my_queue = match ctx.data.queue("my_queue") {
+                Ok(queue) => queue,
+                Err(err) => {
+                    return Response::builder()
+                    .status(500)
+                    .body(format!("Failed to get queue: {err:?}").into())
+                    .map_err(|e| Error::RustError(e.to_string()));
+                }
+            };
+            match my_queue.send(&QueueBody {
+                id: id.to_string(),
+            }).await {
+                Ok(_) => {
+                    Ok(Response::new("Message sent".into()))
+                }
+                Err(err) => {
+                    Response::builder()
+                    .status(500)
+                    .body(format!("Failed to send message to queue: {err:?}").into())
+                    .map_err(|e| Error::RustError(e.to_string()))
+                }
+            }
+        })
+        .get("/queue", |_req, _ctx| async move {
+            let guard = GLOBAL_QUEUE_STATE.lock().unwrap();
+            let messages: Vec<QueueBody> = guard.clone();
+            let json = serde_json::to_string(&messages).unwrap();
+            Ok(Response::new(Body::from(json)))
+        })
+        .get("/d1/prepared", |_, ctx| async move {
+            d1::prepared_statement(ctx.data.as_ref()).await
+        })
+        .get("/d1/batch", |_, ctx| async move {
+            d1::batch(ctx.data.as_ref()).await
+        })
+        .get("/d1/dump", |_, ctx| async move {
+            d1::dump(ctx.data.as_ref()).await
+        })
+        .post("/d1/exec", |req, ctx| async move {
+            d1::exec(req, ctx.data.as_ref()).await
+        })
+        .get("/d1/error", |_, ctx| async move {
+            d1::error(ctx.data.as_ref()).await
+        })
+        .get("/r2/list-empty", |_, ctx| async move {
+            r2::list_empty(ctx.data.as_ref()).await
+        })
+        .get("/r2/list", |_, ctx| async move {
+            r2::list(ctx.data.as_ref()).await
+        })
+        .get("/r2/get-empty", |_, ctx| async move {
+            r2::get_empty(ctx.data.as_ref()).await
+        })
+        .get("/r2/get", |_, ctx| async move {
+            r2::get(ctx.data.as_ref()).await
+        })
+        .put("/r2/put", |_, ctx| async move {
+            r2::put(ctx.data.as_ref()).await
+        })
+        .put("/r2/put-properties", |_, ctx| async move {
+            r2::put_properties(ctx.data.as_ref()).await
+        })
+        .put("/r2/put-multipart", |_, ctx| async move {
+            r2::put_multipart(ctx.data.as_ref()).await
+        })
+        .delete("/r2/delete", |_, ctx| async move {
+            r2::delete(ctx.data.as_ref()).await
+        })
         .any("/*catchall", |_, ctx| async move {
             Ok(Response::builder()
                 .status(404)
@@ -411,12 +770,12 @@ pub struct QueueBody {
 pub async fn queue(message_batch: MessageBatch<QueueBody>, _env: Env, _ctx: Context) -> Result<()> {
     let mut guard = GLOBAL_QUEUE_STATE.lock().unwrap();
     for message in message_batch.messages()? {
-        console_log!(
+        /*console_log!(
             "Received queue message {:?}, with id {} and timestamp: {}",
             message.body,
             message.id,
             message.timestamp.to_string()
-        );
+        );*/
         guard.push(message.body);
     }
     Ok(())

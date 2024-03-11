@@ -22,6 +22,6 @@
     "vitest": "^0.32.0"
   },
   "scripts": {
-    "test": ""
+    "test": "cd worker-sandbox && worker-build --dev && vitest"
   }
 }

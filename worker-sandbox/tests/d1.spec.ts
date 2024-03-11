@@ -1,11 +1,8 @@
 import { describe, test, expect, beforeAll } from "vitest";
-
-const hasLocalDevServer = await fetch("http://localhost:8787/request")
-  .then((resp) => resp.ok)
-  .catch(() => false);
+import { mf } from "./mf";
 
 async function exec(query: string): Promise<number> {
-  const resp = await fetch("http://localhost:8787/d1/exec", {
+  const resp = await mf.dispatchFetch("https://fake.host/d1/exec", {
     method: "POST",
     body: query.split("\n").join(""),
   });
@@ -15,7 +12,7 @@ async function exec(query: string): Promise<number> {
   return Number(body);
 }
 
-describe.skipIf(!hasLocalDevServer)("d1", () => {
+describe("d1", () => {
   test("create table", async () => {
     const query = `CREATE TABLE IF NOT EXISTS uniqueTable (
       id INTEGER PRIMARY KEY,
@@ -49,22 +46,22 @@ describe.skipIf(!hasLocalDevServer)("d1", () => {
   });
 
   test("prepared statement", async () => {
-    const resp = await fetch("http://localhost:8787/d1/prepared");
+    const resp = await mf.dispatchFetch("https://fake.host/d1/prepared");
     expect(resp.status).toBe(200);
   });
 
   test("batch", async () => {
-    const resp = await fetch("http://localhost:8787/d1/batch");
+    const resp = await mf.dispatchFetch("https://fake.host/d1/batch");
     expect(resp.status).toBe(200);
   });
 
   test("dump", async () => {
-    const resp = await fetch("http://localhost:8787/d1/dump");
+    const resp = await mf.dispatchFetch("https://fake.host/d1/dump");
     expect(resp.status).toBe(200);
   });
 
-  test("dump", async () => {
-    const resp = await fetch("http://localhost:8787/d1/error");
+  test("error", async () => {
+    const resp = await mf.dispatchFetch("https://fake.host/d1/error");
     expect(resp.status).toBe(200);
   });
 });

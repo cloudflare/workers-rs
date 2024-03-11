@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use crate::{env::EnvBinding, futures::SendJsFuture, Date, Error, Result};
 use js_sys::Array;
 use serde::{de::DeserializeOwned, Serialize};
-use wasm_bindgen::{prelude::*, JsCast};
+use wasm_bindgen::prelude::*;
 use worker_sys::{MessageBatch as MessageBatchSys, Queue as EdgeQueue};
 
 static BODY_KEY_STR: &str = "body";

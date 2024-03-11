@@ -17,7 +17,7 @@ describe("subrequest", () => {
     expect(await resp.text()).toBe("Cancelled");
   });
 
-  test.skip("request init fetch post", async () => {
+  test("request init fetch post", async () => {
     const resp = await mf.dispatchFetch(
       "https://fake.host/request-init-fetch-post"
     );
