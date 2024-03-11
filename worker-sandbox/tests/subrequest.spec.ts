@@ -22,7 +22,7 @@ describe("subrequest", () => {
       "https://fake.host/request-init-fetch-post"
     );
     expect(await resp.json()).toMatchObject({
-      url: "https://httpbin.org/post",
+      url: "http://httpbin.org/post",
     });
   });
 });

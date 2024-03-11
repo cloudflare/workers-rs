@@ -1,5 +1,5 @@
 import { Miniflare, Response } from "miniflare";
-import { MockAgent } from "undici";
+import { MockAgent, MockClient } from "undici";
 
 const mockAgent = new MockAgent();
 
@@ -7,6 +7,12 @@ mockAgent
   .get("https://cloudflare.com")
   .intercept({ path: "/" })
   .reply(200, "cloudflare!");
+
+let httpbinClient = new MockClient("https://httpbin.org", { agent: mockAgent });
+httpbinClient.intercept({ path: "/post", method: 'POST' })
+  .reply(200, {
+    url: "http://httpbin.org/post"
+  });
 
 mockAgent
   .get("https://miniflare.mocks")
