@@ -19,4 +19,4 @@ tar = "0.4.38"
 ureq = { version = "2.6.2", features = ["tls", "gzip"] }
 
 [dev-dependencies]
-wasm-bindgen-cli-support = "0.2.87"
+wasm-bindgen-cli-support.workspace = true
