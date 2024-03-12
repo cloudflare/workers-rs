@@ -84,6 +84,9 @@ mod websocket;
 pub type Result<T> = StdResult<T, error::Error>;
 
 pub use http::body::Body;
-pub use http::{request::from_wasm as request_from_wasm, response::to_wasm as response_to_wasm};
+pub use http::{
+    request::from_wasm as request_from_wasm, request::to_wasm as request_to_wasm,
+    response::from_wasm as response_from_wasm, response::to_wasm as response_to_wasm,
+};
 pub type HttpRequest = ::http::Request<http::body::Body>;
 pub type HttpResponse = ::http::Response<http::body::Body>;

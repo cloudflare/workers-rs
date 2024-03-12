@@ -31,6 +31,13 @@ impl From<crate::HttpRequest> for Request {
     }
 }
 
+#[cfg(feature = "http")]
+impl From<Request> for crate::HttpRequest {
+    fn from(_req: Request) -> Self {
+        todo!()
+    }
+}
+
 impl From<web_sys::Request> for Request {
     fn from(req: web_sys::Request) -> Self {
         Self {
