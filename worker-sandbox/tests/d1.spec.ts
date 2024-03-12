@@ -55,11 +55,6 @@ describe("d1", () => {
     expect(resp.status).toBe(200);
   });
 
-  test("dump", async () => {
-    const resp = await mf.dispatchFetch("https://fake.host/d1/dump");
-    expect(resp.status).toBe(200);
-  });
-
   test("error", async () => {
     const resp = await mf.dispatchFetch("https://fake.host/d1/error");
     expect(resp.status).toBe(200);

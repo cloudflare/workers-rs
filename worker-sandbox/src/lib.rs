@@ -724,9 +724,6 @@ pub async fn main(
         .get("/d1/batch", |_, ctx| async move {
             d1::batch(ctx.data.as_ref()).await
         })
-        .get("/d1/dump", |_, ctx| async move {
-            d1::dump(ctx.data.as_ref()).await
-        })
         .post("/d1/exec", |req, ctx| async move {
             d1::exec(req, ctx.data.as_ref()).await
         })

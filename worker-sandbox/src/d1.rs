@@ -81,12 +81,6 @@ pub async fn exec(req: http::Request<Body>, env: &Env) -> Result<http::Response<
     ))
 }
 
-pub async fn dump(env: &Env) -> Result<http::Response<Body>> {
-    let db = env.d1("DB")?;
-    let bytes = db.dump().await?;
-    Ok(http::Response::new(bytes.into()))
-}
-
 pub async fn error(env: &Env) -> Result<http::Response<Body>> {
     let db = env.d1("DB")?;
     let error = db
