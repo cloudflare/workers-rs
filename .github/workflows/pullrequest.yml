@@ -20,7 +20,10 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Check for idiomatic code
-        run: cargo clippy --all-features --all-targets --all -- -D warnings
+        run: cargo clippy --features d1,queue --all-targets --workspace -- -D warnings
+
+      - name: Check for idiomatic code (http)
+        run: cargo clippy --all-features --package worker-sandbox --all-targets -- -D warnings
   test:
     name: Test
     runs-on: ubuntu-latest
