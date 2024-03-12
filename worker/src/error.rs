@@ -8,6 +8,7 @@ pub enum Error {
     BodyUsed,
     Json((String, u16)),
     JsError(String),
+    Infallible,
     Internal(JsValue),
     Io(std::io::Error),
     BindingError(String),
@@ -19,6 +20,15 @@ pub enum Error {
     SerdeWasmBindgenError(serde_wasm_bindgen::Error),
     #[cfg(feature = "d1")]
     D1(crate::d1::D1Error),
+}
+
+unsafe impl Sync for Error {}
+unsafe impl Send for Error {}
+
+impl From<core::convert::Infallible> for Error {
+    fn from(_value: core::convert::Infallible) -> Self {
+        Error::Infallible
+    }
 }
 
 impl From<worker_kv::KvError> for Error {
@@ -63,6 +73,7 @@ impl std::fmt::Display for Error {
             Error::JsError(s) | Error::RustError(s) => {
                 write!(f, "{s}")
             }
+            Error::Infallible => write!(f, "infallible"),
             Error::Internal(_) => write!(f, "unrecognized JavaScript object"),
             Error::Io(e) => write!(f, "IO Error: {e}"),
             Error::BindingError(name) => write!(f, "no binding found for `{name}`"),

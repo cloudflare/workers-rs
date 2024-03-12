@@ -688,13 +688,14 @@ pub async fn main(
         })
         .get_async("/remote-by-request", |req, ctx| async move {
             let fetcher = ctx.service("remote")?;
+            #[allow(clippy::useless_conversion)]
             fetcher.fetch_request(req.into()).await.map(|r| r.into())
         })
         .get_async("/remote-by-path", |req, ctx| async move {
             let fetcher = ctx.service("remote")?;
             let mut init = RequestInit::new();
             init.with_method(Method::Post);
-
+            #[allow(clippy::useless_conversion)]
             fetcher.fetch(req.url()?.to_string(), Some(init)).await.map(|r| r.into())
         })
         .post_async("/queue/send/:id", |_req, ctx| async move {

@@ -2,7 +2,7 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, punctuated::Punctuated, token::Comma, Ident, ItemFn};
 
-pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn expand_macro(attr: TokenStream, item: TokenStream, http: bool) -> TokenStream {
     let attrs: Punctuated<Ident, Comma> =
         parse_macro_input!(attr with Punctuated::parse_terminated);
 
@@ -61,6 +61,12 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             };
 
+            let fetch_invoke = if http {
+                quote! (#input_fn_ident(::worker::request_from_wasm(req), env, ctx).await.map(::worker::response_to_wasm))
+            } else {
+                quote!(#input_fn_ident(::worker::Request::from(req), env, ctx).await.map(::worker::worker_sys::web_sys::Response::from))
+            };
+
             // create a new "main" function that takes the worker_sys::Request, and calls the
             // original attributed function, passing in a converted worker::Request
             let wrapper_fn = quote! {
@@ -70,19 +76,10 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                     ctx: ::worker::worker_sys::Context
                 ) -> ::worker::worker_sys::web_sys::Response {
                     let ctx = worker::Context::new(ctx);
-                    #[cfg(feature="http")]
-                    let request = ::worker::request_from_wasm(req);
-                    #[cfg(not(feature="http"))]
-                    let request = ::worker::Request::from(req);
+                    let result = #fetch_invoke;
                     // get the worker::Result<worker::Response> by calling the original fn
-                    match #input_fn_ident(request, env, ctx).await {
-                        Ok(res) => {
-                            #[cfg(feature="http")]
-                            let response = ::worker::response_to_wasm(res);
-                            #[cfg(not(feature="http"))]
-                            let response = ::worker::worker_sys::web_sys::Response::from(res);
-                            response
-                        },
+                    match result {
+                        Ok(res) => res,
                         Err(e) => {
                             ::worker::console_error!("{}", &e);
                             #error_handling

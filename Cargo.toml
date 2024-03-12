@@ -7,7 +7,7 @@ members = [
     "worker-sys",
     "examples/*",
 ]
-exclude = ["examples/coredump"]
+exclude = ["examples/coredump", "examples/axum"]
 resolver = "2"
 
 [workspace.dependencies]

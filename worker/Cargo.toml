@@ -51,7 +51,12 @@ default-features = false
 features = ["js"]
 optional = true
 
+[dependencies.axum]
+version = "0.7"
+optional = true
+default-features = false
+
 [features]
 queue = ["worker-macros/queue", "worker-sys/queue"]
 d1 = ["worker-sys/d1"]
-http = ["worker-macros/http"]
+http = ["worker-macros/http", "dep:axum"]

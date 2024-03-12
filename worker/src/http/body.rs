@@ -7,11 +7,17 @@ use wasm_streams::readable::IntoStream;
 
 use crate::Error;
 use bytes::Bytes;
+use futures_util::TryStream;
+use futures_util::TryStreamExt;
 use futures_util::{stream::FusedStream, Stream, StreamExt};
 use http_body::{Body as HttpBody, Frame};
+use js_sys::Uint8Array;
 
 #[derive(Debug)]
 pub struct Body(Option<IntoStream<'static>>);
+
+unsafe impl Sync for Body {}
+unsafe impl Send for Body {}
 
 impl Body {
     pub fn new(stream: web_sys::ReadableStream) -> Self {
@@ -27,6 +33,29 @@ impl Body {
 
     pub fn empty() -> Self {
         Self(None)
+    }
+
+    /// Create a `Body` using a [`Stream`](futures::stream::Stream)
+    pub fn from_stream<S>(stream: S) -> Result<Self, crate::Error>
+    where
+        S: TryStream + 'static,
+        S::Ok: Into<Vec<u8>>,
+        S::Error: std::fmt::Debug,
+    {
+        let js_stream = stream
+            .map_ok(|item| -> Vec<u8> { item.into() })
+            .map_ok(|chunk| {
+                let array = Uint8Array::new_with_length(chunk.len() as _);
+                array.copy_from(&chunk);
+                array.into()
+            })
+            .map_err(|err| crate::Error::RustError(format!("{:?}", err)))
+            .map_err(|e| wasm_bindgen::JsValue::from(e.to_string()));
+
+        let stream = wasm_streams::ReadableStream::from_stream(js_stream);
+        let stream: web_sys::ReadableStream = stream.into_raw().dyn_into().unwrap();
+
+        Ok(Self::new(stream))
     }
 }
 
@@ -92,5 +121,12 @@ impl Stream for Body {
                 Err(_) => Err(Error::RustError("Error polling body".to_owned())),
             })
         })
+    }
+}
+
+#[cfg(feature = "http")]
+impl From<axum::body::Body> for Body {
+    fn from(value: axum::body::Body) -> Self {
+        Body::from_stream(value.into_data_stream()).unwrap()
     }
 }

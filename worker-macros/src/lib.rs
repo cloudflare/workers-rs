@@ -10,7 +10,14 @@ pub fn durable_object(_attr: TokenStream, item: TokenStream) -> TokenStream {
         .into()
 }
 
+#[cfg(feature = "http")]
 #[proc_macro_attribute]
 pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
-    event::expand_macro(attr, item)
+    event::expand_macro(attr, item, true)
+}
+
+#[cfg(not(feature = "http"))]
+#[proc_macro_attribute]
+pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
+    event::expand_macro(attr, item, false)
 }
