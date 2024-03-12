@@ -43,12 +43,6 @@ futures-channel = { version = "0.3.29", features = ["sink"] }
 futures-util = { version = "0.3.29", default-features = false, features = [
     "sink",
 ] }
-reqwest = { version = "0.11.18", features = [
-    "blocking",
-    "json",
-    "multipart",
-    "stream",
-] }
 tokio = { version = "1.28.2", features = ["macros", "rt", "test-util"] }
 tungstenite = "0.21"
 retry = "2.0.0"
