@@ -70,9 +70,19 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                     ctx: ::worker::worker_sys::Context
                 ) -> ::worker::worker_sys::web_sys::Response {
                     let ctx = worker::Context::new(ctx);
+                    #[cfg(feature="http")]
+                    let request = ::worker::request_from_wasm(req);
+                    #[cfg(not(feature="http"))]
+                    let request = ::worker::Request::from(req);
                     // get the worker::Result<worker::Response> by calling the original fn
-                    match #input_fn_ident(::worker::Request::from(req), env, ctx).await.map(::worker::worker_sys::web_sys::Response::from) {
-                        Ok(res) => res,
+                    match #input_fn_ident(request, env, ctx).await {
+                        Ok(res) => {
+                            #[cfg(feature="http")]
+                            let response = ::worker::response_to_wasm(res);
+                            #[cfg(not(feature="http"))]
+                            let response = ::worker::worker_sys::web_sys::Response::from(res);
+                            response
+                        },
                         Err(e) => {
                             ::worker::console_error!("{}", &e);
                             #error_handling

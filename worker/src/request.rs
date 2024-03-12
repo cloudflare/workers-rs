@@ -24,6 +24,13 @@ pub struct Request {
     immutable: bool,
 }
 
+#[cfg(feature = "http")]
+impl From<crate::HttpRequest> for Request {
+    fn from(_req: crate::HttpRequest) -> Self {
+        todo!()
+    }
+}
+
 impl From<web_sys::Request> for Request {
     fn from(req: web_sys::Request) -> Self {
         Self {

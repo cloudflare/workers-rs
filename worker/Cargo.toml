@@ -20,7 +20,7 @@ futures-util.workspace = true
 wasm-bindgen.workspace = true
 wasm-bindgen-futures.workspace = true
 js-sys.workspace = true
-http = "1"
+http.workspace = true
 matchit = "0.7"
 pin-project = "1.1.0"
 serde = { version = "1.0.164", features = ["derive"] }
@@ -52,3 +52,4 @@ optional = true
 [features]
 queue = ["worker-macros/queue", "worker-sys/queue"]
 d1 = ["worker-sys/d1"]
+http = ["worker-macros/http"]

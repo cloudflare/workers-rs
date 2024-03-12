@@ -32,6 +32,20 @@ pub struct Response {
     websocket: Option<WebSocket>,
 }
 
+#[cfg(feature = "http")]
+impl From<crate::HttpResponse> for Response {
+    fn from(_res: crate::HttpResponse) -> Self {
+        todo!()
+    }
+}
+
+#[cfg(feature = "http")]
+impl From<Response> for crate::HttpResponse {
+    fn from(_res: Response) -> crate::HttpResponse {
+        todo!()
+    }
+}
+
 impl Response {
     /// Create a `Response` using `B` as the body encoded as JSON. Sets the associated
     /// `Content-Type` header for the `Response` as `application/json`.

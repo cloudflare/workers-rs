@@ -1,3 +1,7 @@
+pub mod body;
+pub mod request;
+pub mod response;
+
 /// A [`Method`](https://developer.mozilla.org/en-US/docs/Web/API/Request/method) representation
 /// used on Request objects.
 #[derive(Default, Debug, Clone, PartialEq, Hash, Eq)]

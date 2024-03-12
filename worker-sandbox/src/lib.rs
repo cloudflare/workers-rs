@@ -92,15 +92,33 @@ pub fn start() {
     GLOBAL_STATE.store(true, Ordering::SeqCst);
 }
 
+#[cfg(feature = "http")]
+type HandlerRequest = HttpRequest;
+#[cfg(not(feature = "http"))]
+type HandlerRequest = Request;
+#[cfg(feature = "http")]
+type HandlerResponse = HttpResponse;
+#[cfg(not(feature = "http"))]
+type HandlerResponse = Response;
+
 #[event(fetch)]
-pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
+pub async fn main(
+    request: HandlerRequest,
+    env: Env,
+    _ctx: worker::Context,
+) -> Result<HandlerResponse> {
     let data = SomeSharedData {
         regex: regex::Regex::new(r"^\d{4}-\d{2}-\d{2}$").unwrap(),
     };
 
     let router = Router::with_data(data); // if no data is needed, pass `()` or any other valid data
 
-    router
+    #[cfg(feature = "http")]
+    let req: Request = request.into();
+    #[cfg(not(feature = "http"))]
+    let req = request;
+
+    let worker_response = router
         .get("/request", handle_a_request) // can pass a fn pointer to keep routes tidy
         .get_async("/async-request", handle_async_request)
         .get("/websocket", |_, ctx| {
@@ -733,7 +751,12 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
                 .map(|resp| resp.with_status(404))
         })
         .run(req, env)
-        .await
+        .await;
+    #[cfg(feature = "http")]
+    let res = worker_response.map(|r| r.into());
+    #[cfg(not(feature = "http"))]
+    let res = worker_response;
+    res
 }
 
 fn respond<D>(req: Request, _ctx: RouteContext<D>) -> Result<Response> {
