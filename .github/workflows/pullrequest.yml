@@ -72,10 +72,8 @@ jobs:
 
       - name: Run tests
         shell: bash
-        working-directory: ./worker-sandbox
         run: npm run test
 
       - name: Run tests (http)
         shell: bash
-        working-directory: ./worker-sandbox
         run: npm run test-http
