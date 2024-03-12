@@ -5,7 +5,6 @@ use crate::{env::EnvBinding, RequestInit, Result};
 
 #[cfg(feature = "http")]
 use crate::{HttpRequest, HttpResponse};
-#[cfg(not(feature = "http"))]
 use crate::{Request, Response};
 /// A struct for invoking fetch events to other Workers.
 pub struct Fetcher(worker_sys::Fetcher);
@@ -36,17 +35,23 @@ impl Fetcher {
         result
     }
 
-    /// Invoke a fetch event with an existing [Request].
-    #[cfg(not(feature = "http"))]
-    pub async fn fetch_request(&self, request: Request) -> Result<Response> {
+    async fn fetch_request_internal(&self, request: Request) -> Result<Response> {
         let promise = self.0.fetch(request.inner());
         let resp_sys: web_sys::Response = JsFuture::from(promise).await?.dyn_into()?;
         Ok(Response::from(resp_sys))
     }
 
+    /// Invoke a fetch event with an existing [Request].
+    #[cfg(not(feature = "http"))]
+    pub async fn fetch_request(&self, request: Request) -> Result<Response> {
+        self.fetch_request_internal(request).await
+    }
+
     #[cfg(feature = "http")]
-    pub async fn fetch_request(&self, _request: HttpRequest) -> Result<HttpResponse> {
-        todo!()
+    pub async fn fetch_request(&self, request: HttpRequest) -> Result<HttpResponse> {
+        self.fetch_request_internal(request.into())
+            .await
+            .map(|r| r.into())
     }
 }
 

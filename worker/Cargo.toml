@@ -13,6 +13,7 @@ readme = "../README.md"
 
 [dependencies]
 async-trait.workspace = true
+bytes = "1.5"
 chrono.workspace = true
 chrono-tz.workspace = true
 futures-channel.workspace = true
@@ -21,6 +22,7 @@ wasm-bindgen.workspace = true
 wasm-bindgen-futures.workspace = true
 js-sys.workspace = true
 http.workspace = true
+http-body = "1"
 matchit = "0.7"
 pin-project = "1.1.0"
 serde = { version = "1.0.164", features = ["derive"] }

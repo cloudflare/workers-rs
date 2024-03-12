@@ -34,15 +34,17 @@ pub struct Response {
 
 #[cfg(feature = "http")]
 impl From<crate::HttpResponse> for Response {
-    fn from(_res: crate::HttpResponse) -> Self {
-        todo!()
+    fn from(res: crate::HttpResponse) -> Self {
+        let resp = crate::http::response::to_wasm(res);
+        resp.into()
     }
 }
 
 #[cfg(feature = "http")]
 impl From<Response> for crate::HttpResponse {
-    fn from(_res: Response) -> crate::HttpResponse {
-        todo!()
+    fn from(res: Response) -> crate::HttpResponse {
+        let sys_resp: web_sys::Response = res.into();
+        crate::http::response::from_wasm(sys_resp)
     }
 }
 
