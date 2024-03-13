@@ -16,6 +16,8 @@ fn version_from_string(version: &str) -> http::Version {
     }
 }
 
+/// **Requires** `http` feature. Convert [`web_sys::Request`](web_sys::Request)
+/// to [`worker::HttpRequest`](worker::HttpRequest)
 pub fn from_wasm(req: web_sys::Request) -> http::Request<Body> {
     let mut builder = http::request::Builder::new()
         .uri(req.url())
@@ -38,6 +40,8 @@ pub fn from_wasm(req: web_sys::Request) -> http::Request<Body> {
     }
 }
 
+/// **Requires** `http` feature. Convert [`worker::HttpRequest`](worker::HttpRequest)
+/// to [`web_sys::Request`](web_sys::Request)
 pub fn to_wasm(mut req: http::Request<Body>) -> web_sys::Request {
     let mut init = web_sys::RequestInit::new();
     init.method(req.method().as_str());

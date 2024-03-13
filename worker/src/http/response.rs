@@ -58,6 +58,8 @@ impl<B: http_body::Body<Data = Bytes>> Stream for BodyStream<B> {
     }
 }
 
+/// **Requires** `http` feature. Convert generic [`http::Response<B>`](worker::HttpResponse)
+/// to [`web_sys::Resopnse`](web_sys::Response) where `B` can be any [`http_body::Body`](http_body::Body)
 pub fn to_wasm<B>(mut res: http::Response<B>) -> web_sys::Response
 where
     B: http_body::Body<Data = Bytes> + 'static,
@@ -85,6 +87,8 @@ where
         .unwrap()
 }
 
+/// **Requires** `http` feature. Convert [`web_sys::Resopnse`](web_sys::Response)
+/// to [`worker::HttpResponse`](worker::HttpResponse)
 pub fn from_wasm(res: web_sys::Response) -> HttpResponse {
     let mut builder =
         http::response::Builder::new().status(http::StatusCode::from_u16(res.status()).unwrap());

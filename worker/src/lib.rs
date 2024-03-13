@@ -84,6 +84,8 @@ mod websocket;
 pub type Result<T> = StdResult<T, error::Error>;
 
 #[cfg(feature = "http")]
+/// **Requires** `http` feature. A convenience Body type which wraps [`web_sys::ReadableStream`](web_sys::ReadableStream)
+/// and implements [`http_body::Body`](http_body::Body)
 pub use http::body::Body;
 #[cfg(feature = "http")]
 pub use http::{
@@ -91,6 +93,8 @@ pub use http::{
     response::from_wasm as response_from_wasm, response::to_wasm as response_to_wasm,
 };
 #[cfg(feature = "http")]
+/// **Requires** `http` feature. Type alias for `http::Request<worker::Body>`.
 pub type HttpRequest = ::http::Request<http::body::Body>;
 #[cfg(feature = "http")]
+/// **Requires** `http` feature. Type alias for `http::Response<worker::Body>`.
 pub type HttpResponse = ::http::Response<http::body::Body>;

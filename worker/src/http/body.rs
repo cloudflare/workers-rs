@@ -35,7 +35,7 @@ impl Body {
         Self(None)
     }
 
-    /// Create a `Body` using a [`Stream`](futures::stream::Stream)
+    /// Create a `Body` using a [`Stream`](futures_util::stream::Stream)
     pub fn from_stream<S>(stream: S) -> Result<Self, crate::Error>
     where
         S: TryStream + 'static,
