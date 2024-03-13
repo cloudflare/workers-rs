@@ -1,7 +1,8 @@
+use crate::{env::EnvBinding, RequestInit, Result};
+#[cfg(feature = "http")]
+use std::convert::TryInto;
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
-
-use crate::{env::EnvBinding, RequestInit, Result};
 
 #[cfg(feature = "http")]
 use crate::{HttpRequest, HttpResponse};
@@ -31,7 +32,7 @@ impl Fetcher {
         #[cfg(not(feature = "http"))]
         let result = Ok(Response::from(resp_sys));
         #[cfg(feature = "http")]
-        let result = Ok(crate::response_from_wasm(resp_sys));
+        let result = crate::response_from_wasm(resp_sys);
         result
     }
 
@@ -49,9 +50,9 @@ impl Fetcher {
 
     #[cfg(feature = "http")]
     pub async fn fetch_request(&self, request: HttpRequest) -> Result<HttpResponse> {
-        self.fetch_request_internal(request.into())
+        self.fetch_request_internal(request.try_into()?)
             .await
-            .map(|r| r.into())
+            .map(|r| r.try_into())?
     }
 }
 

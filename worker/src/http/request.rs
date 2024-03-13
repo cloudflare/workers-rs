@@ -1,5 +1,6 @@
 use crate::http::body::Body;
 use crate::Cf;
+use crate::Result;
 use crate::{http::redirect::RequestRedirect, AbortSignal};
 use worker_sys::ext::RequestExt;
 
@@ -18,14 +19,16 @@ fn version_from_string(version: &str) -> http::Version {
 
 /// **Requires** `http` feature. Convert [`web_sys::Request`](web_sys::Request)
 /// to [`worker::HttpRequest`](worker::HttpRequest)
-pub fn from_wasm(req: web_sys::Request) -> http::Request<Body> {
+pub fn from_wasm(req: web_sys::Request) -> Result<http::Request<Body>> {
     let mut builder = http::request::Builder::new()
         .uri(req.url())
         .extension(AbortSignal::from(req.signal()))
         .extension(RequestRedirect::from(req.redirect()))
         .method(&*req.method());
 
-    header_map_from_web_sys_headers(req.headers(), builder.headers_mut().unwrap());
+    if let Some(headers) = builder.headers_mut() {
+        header_map_from_web_sys_headers(req.headers(), headers)?;
+    }
 
     if let Some(cf) = req.cf() {
         builder = builder
@@ -33,19 +36,20 @@ pub fn from_wasm(req: web_sys::Request) -> http::Request<Body> {
             .extension(Cf::new(cf));
     }
 
-    if let Some(body) = req.body() {
-        builder.body(Body::new(body)).unwrap()
+    Ok(if let Some(body) = req.body() {
+        builder.body(Body::new(body))?
     } else {
-        builder.body(Body::empty()).unwrap()
-    }
+        builder.body(Body::empty())?
+    })
 }
 
 /// **Requires** `http` feature. Convert [`worker::HttpRequest`](worker::HttpRequest)
 /// to [`web_sys::Request`](web_sys::Request)
-pub fn to_wasm(mut req: http::Request<Body>) -> web_sys::Request {
+pub fn to_wasm(mut req: http::Request<Body>) -> Result<web_sys::Request> {
     let mut init = web_sys::RequestInit::new();
     init.method(req.method().as_str());
-    init.headers(&web_sys_headers_from_header_map(req.headers()));
+    let headers = web_sys_headers_from_header_map(req.headers())?;
+    init.headers(headers.as_ref());
     let uri = req.uri().to_string();
 
     let signal = req.extensions_mut().remove::<AbortSignal>();
@@ -73,5 +77,5 @@ pub fn to_wasm(mut req: http::Request<Body>) -> web_sys::Request {
         init.body(Some(readable_stream.as_ref()));
     }
 
-    web_sys::Request::new_with_str_and_init(&uri, &init).unwrap()
+    Ok(web_sys::Request::new_with_str_and_init(&uri, &init)?)
 }

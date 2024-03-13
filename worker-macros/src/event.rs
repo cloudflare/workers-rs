@@ -62,7 +62,16 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream, http: bool) -> TokenSt
             };
 
             let fetch_invoke = if http {
-                quote! (#input_fn_ident(::worker::request_from_wasm(req), env, ctx).await.map(::worker::response_to_wasm))
+                quote! (
+                    match ::worker::request_from_wasm(req) {
+                        Ok(request) => match #input_fn_ident(request, env, ctx).await.map(::worker::response_to_wasm) {
+                            Ok(Ok(response)) => Ok(response),
+                            Ok(Err(e)) => Err(e),
+                            Err(e) => Err(e)
+                        },
+                        Err(e) => Err(e)
+                    }
+                )
             } else {
                 quote!(#input_fn_ident(::worker::Request::from(req), env, ctx).await.map(::worker::worker_sys::web_sys::Response::from))
             };

@@ -1,6 +1,7 @@
 use super::header::{header_map_from_web_sys_headers, web_sys_headers_from_header_map};
 use crate::http::body::Body;
 use crate::HttpResponse;
+use crate::Result;
 use crate::WebSocket;
 use bytes::Bytes;
 use futures_util::Stream;
@@ -26,7 +27,7 @@ impl<B> BodyStream<B> {
 }
 
 impl<B: http_body::Body<Data = Bytes>> Stream for BodyStream<B> {
-    type Item = Result<JsValue, JsValue>;
+    type Item = std::result::Result<JsValue, JsValue>;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let this = self.project();
@@ -36,6 +37,7 @@ impl<B: http_body::Body<Data = Bytes>> Stream for BodyStream<B> {
                 match r {
                     Ok(f) => {
                         if f.is_data() {
+                            // Should not be Err after checking on previous line
                             let b = f.into_data().unwrap();
                             let array = Uint8Array::new_with_length(b.len() as _);
                             array.copy_from(&b);
@@ -60,13 +62,14 @@ impl<B: http_body::Body<Data = Bytes>> Stream for BodyStream<B> {
 
 /// **Requires** `http` feature. Convert generic [`http::Response<B>`](worker::HttpResponse)
 /// to [`web_sys::Resopnse`](web_sys::Response) where `B` can be any [`http_body::Body`](http_body::Body)
-pub fn to_wasm<B>(mut res: http::Response<B>) -> web_sys::Response
+pub fn to_wasm<B>(mut res: http::Response<B>) -> Result<web_sys::Response>
 where
     B: http_body::Body<Data = Bytes> + 'static,
 {
     let mut init = web_sys::ResponseInit::new();
     init.status(res.status().as_u16());
-    init.headers(&web_sys_headers_from_header_map(res.headers()));
+    let headers = web_sys_headers_from_header_map(res.headers())?;
+    init.headers(headers.as_ref());
     if let Some(ws) = res.extensions_mut().remove::<WebSocket>() {
         init.websocket(ws.as_ref());
     }
@@ -83,22 +86,26 @@ where
         Some(wasm_streams::ReadableStream::from_stream(stream).into_raw())
     };
 
-    web_sys::Response::new_with_opt_readable_stream_and_init(readable_stream.as_ref(), &init)
-        .unwrap()
+    Ok(web_sys::Response::new_with_opt_readable_stream_and_init(
+        readable_stream.as_ref(),
+        &init,
+    )?)
 }
 
 /// **Requires** `http` feature. Convert [`web_sys::Resopnse`](web_sys::Response)
 /// to [`worker::HttpResponse`](worker::HttpResponse)
-pub fn from_wasm(res: web_sys::Response) -> HttpResponse {
+pub fn from_wasm(res: web_sys::Response) -> Result<HttpResponse> {
     let mut builder =
-        http::response::Builder::new().status(http::StatusCode::from_u16(res.status()).unwrap());
-    header_map_from_web_sys_headers(res.headers(), builder.headers_mut().unwrap());
+        http::response::Builder::new().status(http::StatusCode::from_u16(res.status())?);
+    if let Some(headers) = builder.headers_mut() {
+        header_map_from_web_sys_headers(res.headers(), headers)?;
+    }
     if let Some(ws) = res.websocket() {
         builder = builder.extension(WebSocket::from(ws));
     }
-    if let Some(body) = res.body() {
-        builder.body(Body::new(body)).unwrap()
+    Ok(if let Some(body) = res.body() {
+        builder.body(Body::new(body))?
     } else {
-        builder.body(Body::empty()).unwrap()
-    }
+        builder.body(Body::empty())?
+    })
 }

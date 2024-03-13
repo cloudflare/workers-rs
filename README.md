@@ -40,7 +40,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
 
 ### `http` Feature
 
-`worker` `0.1` introduced an `http` feature which starts to replace custom types with widely used types from the [`http`](https://docs.rs/http/latest/http/) crate.
+`worker` `0.1` introduced an `http` feature flag which starts to replace custom types with widely used types from the [`http`](https://docs.rs/http/latest/http/) crate.
 
 This makes it much easier to use crates which use these standard types such as `axum` and `hyper`. 
 
@@ -48,9 +48,9 @@ This currently does a few things:
 
 1. Introduce `Body`, which implements `http_body::Body` and is a simple wrapper around `web_sys::ReadableStream`. 
 1. The `req` argument when using the `[event(fetch)]` macro becomes `http::Request<worker::Body>`.
-1. The expected return type for the fetch handler is `http::Response<B>` where `B` can be any `http_body::Body`.
+1. The expected return type for the fetch handler is `http::Response<B>` where `B` can be any `http_body::Body<Data=Bytes>`.
 1. The argument for `Fetcher::fetch_request` is `http::Request<worker::Body>`. 
-1. The return type of `Fetcher::fetch_request` is `http::Response<worker::Body>`.
+1. The return type of `Fetcher::fetch_request` is `Result<http::Response<worker::Body>>`.
 
 The end result is being able to use frameworks like `axum` directly (see [example](./examples/axum)): 
 
@@ -68,12 +68,12 @@ async fn fetch(
     req: HttpRequest,
     _env: Env,
     _ctx: Context,
-) -> Result<axum::http::Response<axum::body::Body>> {
+) -> Result<http::Response<axum::body::Body>> {
     Ok(router().call(req).await?)
 }
 ```
 
-We also implement `From::from` between `worker::Request` and `http::Request<worker::Body>`, and between `worker::Response` and `http::Response<worker::Body>`. This allows you to convert your code incrementally if it is tightly coupled to the original types.
+We also implement `try_from` between `worker::Request` and `http::Request<worker::Body>`, and between `worker::Response` and `http::Response<worker::Body>`. This allows you to convert your code incrementally if it is tightly coupled to the original types.
 
 ### Or use the `Router`:
 

@@ -25,16 +25,18 @@ pub struct Request {
 }
 
 #[cfg(feature = "http")]
-impl From<crate::HttpRequest> for Request {
-    fn from(req: crate::HttpRequest) -> Self {
-        let web_request: web_sys::Request = crate::http::request::to_wasm(req);
-        Request::from(web_request)
+impl TryFrom<crate::HttpRequest> for Request {
+    type Error = crate::Error;
+    fn try_from(req: crate::HttpRequest) -> Result<Self> {
+        let web_request: web_sys::Request = crate::http::request::to_wasm(req)?;
+        Ok(Request::from(web_request))
     }
 }
 
 #[cfg(feature = "http")]
-impl From<Request> for crate::HttpRequest {
-    fn from(req: Request) -> Self {
+impl TryFrom<Request> for crate::HttpRequest {
+    type Error = crate::Error;
+    fn try_from(req: Request) -> Result<Self> {
         crate::http::request::from_wasm(req.edge_request)
     }
 }

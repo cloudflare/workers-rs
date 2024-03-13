@@ -1,3 +1,9 @@
+use blake2::{Blake2b512, Digest};
+use futures_util::{future::Either, StreamExt, TryStreamExt};
+use rand::Rng;
+use serde::{Deserialize, Serialize};
+#[cfg(feature = "http")]
+use std::convert::TryInto;
 use std::{
     sync::{
         atomic::{AtomicBool, Ordering},
@@ -5,11 +11,6 @@ use std::{
     },
     time::Duration,
 };
-
-use blake2::{Blake2b512, Digest};
-use futures_util::{future::Either, StreamExt, TryStreamExt};
-use rand::Rng;
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use worker::*;
 
@@ -114,7 +115,7 @@ pub async fn main(
     let router = Router::with_data(data); // if no data is needed, pass `()` or any other valid data
 
     #[cfg(feature = "http")]
-    let req: Request = request.into();
+    let req: Request = request.try_into()?;
     #[cfg(not(feature = "http"))]
     let req = request;
 
@@ -688,15 +689,33 @@ pub async fn main(
         })
         .get_async("/remote-by-request", |req, ctx| async move {
             let fetcher = ctx.service("remote")?;
-            #[allow(clippy::useless_conversion)]
-            fetcher.fetch_request(req.into()).await.map(|r| r.into())
+
+            #[cfg(feature="http")]
+            let http_request = req.try_into()?;
+            #[cfg(not(feature="http"))]
+            let http_request = req;
+
+            let response = fetcher.fetch_request(http_request).await?;
+
+            #[cfg(feature="http")]
+            let result = Ok(TryInto::<worker::Response>::try_into(response)?);
+            #[cfg(not(feature="http"))]
+            let result = Ok(response);
+
+            result
         })
         .get_async("/remote-by-path", |req, ctx| async move {
             let fetcher = ctx.service("remote")?;
             let mut init = RequestInit::new();
             init.with_method(Method::Post);
-            #[allow(clippy::useless_conversion)]
-            fetcher.fetch(req.url()?.to_string(), Some(init)).await.map(|r| r.into())
+            let response = fetcher.fetch(req.url()?.to_string(), Some(init)).await?;
+
+            #[cfg(feature="http")]
+            let result = Ok(TryInto::<worker::Response>::try_into(response)?);
+            #[cfg(not(feature="http"))]
+            let result = Ok(response);
+
+            result
         })
         .post_async("/queue/send/:id", |_req, ctx| async move {
             let id = match ctx.param("id").map(|id|Uuid::try_parse(id).ok()).and_then(|u|u) {
@@ -754,7 +773,7 @@ pub async fn main(
         .run(req, env)
         .await;
     #[cfg(feature = "http")]
-    let res = worker_response.map(|r| r.into());
+    let res = worker_response.map(|r| r.try_into())?;
     #[cfg(not(feature = "http"))]
     let res = worker_response;
     res

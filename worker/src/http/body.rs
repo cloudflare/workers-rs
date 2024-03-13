@@ -132,10 +132,3 @@ impl Stream for Body {
         })
     }
 }
-
-#[cfg(feature = "http")]
-impl From<axum::body::Body> for Body {
-    fn from(value: axum::body::Body) -> Self {
-        Body::from_stream(value.into_data_stream()).unwrap()
-    }
-}
