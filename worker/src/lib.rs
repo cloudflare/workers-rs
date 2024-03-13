@@ -3,7 +3,7 @@
 //! # Features
 //! ## `d1`
 //!
-//! Allows the use of D1 bindings and `query!` macro.
+//! Allows the use of [D1 bindings](crate::d1) and [`query!`](crate::query) macro.
 //!
 //!
 //! ## `queue`

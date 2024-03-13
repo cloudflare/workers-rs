@@ -15,6 +15,9 @@ extern "C" {
     pub type Env;
 }
 
+unsafe impl Send for Env {}
+unsafe impl Sync for Env {}
+
 impl Env {
     /// Access a binding that does not have a wrapper in workers-rs. Useful for internal-only or
     /// unstable bindings.

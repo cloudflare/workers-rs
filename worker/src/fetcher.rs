@@ -15,8 +15,16 @@ type FetchResponseType = Response;
 #[cfg(feature = "http")]
 type FetchResponseType = HttpResponse;
 
+#[cfg(not(feature = "http"))]
+type FetchRequestType = Request;
+#[cfg(feature = "http")]
+type FetchRequestType = HttpRequest;
+
 impl Fetcher {
     /// Invoke a fetch event in a worker with a url and optionally a [RequestInit].
+    ///
+    /// Return type is [`Response`](crate::Response) unless `http` feature is enabled
+    /// and then it is [`http::Response<worker::Body>`].
     pub async fn fetch(
         &self,
         url: impl Into<String>,
@@ -36,23 +44,26 @@ impl Fetcher {
         result
     }
 
-    async fn fetch_request_internal(&self, request: Request) -> Result<Response> {
-        let promise = self.0.fetch(request.inner());
-        let resp_sys: web_sys::Response = JsFuture::from(promise).await?.dyn_into()?;
-        Ok(Response::from(resp_sys))
-    }
-
     /// Invoke a fetch event with an existing [Request].
-    #[cfg(not(feature = "http"))]
-    pub async fn fetch_request(&self, request: Request) -> Result<Response> {
-        self.fetch_request_internal(request).await
-    }
-
-    #[cfg(feature = "http")]
-    pub async fn fetch_request(&self, request: HttpRequest) -> Result<HttpResponse> {
-        self.fetch_request_internal(request.try_into()?)
-            .await
-            .map(|r| r.try_into())?
+    ///
+    /// Argument type is [`Request`](crate::Request) unless `http` feature is enabled
+    /// and then it is [`http::Request<worker::Body>`].
+    ///
+    /// Return type is [`Response`](crate::Response) unless `http` feature is enabled
+    /// and then it is [`http::Response<worker::Body>`].
+    pub async fn fetch_request(&self, request: FetchRequestType) -> Result<FetchResponseType> {
+        #[cfg(feature = "http")]
+        let req = TryInto::<Request>::try_into(request)?;
+        #[cfg(not(feature = "http"))]
+        let req = request;
+        let promise = self.0.fetch(req.inner());
+        let resp_sys: web_sys::Response = JsFuture::from(promise).await?.dyn_into()?;
+        let response = Response::from(resp_sys);
+        #[cfg(feature = "http")]
+        let result = response.try_into();
+        #[cfg(not(feature = "http"))]
+        let result = Ok(response);
+        result
     }
 }
 
