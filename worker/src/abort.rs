@@ -67,6 +67,7 @@ impl AbortSignal {
         Self::from(web_sys::AbortSignal::abort_with_reason(&reason))
     }
 
+    #[cfg(feature = "http")]
     pub(crate) fn inner(&self) -> &web_sys::AbortSignal {
         &self.inner
     }

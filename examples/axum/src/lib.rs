@@ -7,14 +7,14 @@ fn router() -> Router {
 }
 
 #[event(fetch)]
-async fn fetch(req: HttpRequest, _env: Env, _ctx: Context) -> Result<HttpResponse> {
+async fn fetch(
+    req: HttpRequest,
+    _env: Env,
+    _ctx: Context,
+) -> Result<axum::http::Response<axum::body::Body>> {
     console_error_panic_hook::set_once();
 
-    router()
-        .call(req)
-        .await
-        .map(|r| r.map(|b| b.into()))
-        .map_err(|e| e.into())
+    Ok(router().call(req).await?)
 }
 
 pub async fn root() -> &'static str {

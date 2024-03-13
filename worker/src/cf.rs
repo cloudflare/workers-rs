@@ -10,10 +10,12 @@ unsafe impl Send for Cf {}
 unsafe impl Sync for Cf {}
 
 impl Cf {
+    #[cfg(feature = "http")]
     pub(crate) fn new(inner: worker_sys::IncomingRequestCfProperties) -> Self {
         Self { inner }
     }
 
+    #[cfg(feature = "http")]
     pub(crate) fn inner(&self) -> &worker_sys::IncomingRequestCfProperties {
         &self.inner
     }

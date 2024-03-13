@@ -113,13 +113,22 @@ impl Stream for Body {
     #[inline]
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         self.poll_frame(cx).map(|o| {
-            o.map(|r| match r {
-                Ok(f) => match f.into_data() {
-                    Ok(b) => Ok(b),
-                    Err(_) => Err(Error::RustError("Error polling body".to_owned())),
-                },
-                Err(_) => Err(Error::RustError("Error polling body".to_owned())),
-            })
+            if let Some(r) = o {
+                match r {
+                    Ok(f) => {
+                        if f.is_data() {
+                            let b = f.into_data().unwrap();
+                            Some(Ok(b))
+                        } else {
+                            // Not sure how to handle trailers in Stream
+                            None
+                        }
+                    }
+                    Err(_) => Some(Err(Error::RustError("Error polling body".to_owned()))),
+                }
+            } else {
+                None
+            }
         })
     }
 }

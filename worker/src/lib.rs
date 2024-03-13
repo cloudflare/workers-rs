@@ -83,10 +83,14 @@ mod websocket;
 
 pub type Result<T> = StdResult<T, error::Error>;
 
+#[cfg(feature = "http")]
 pub use http::body::Body;
+#[cfg(feature = "http")]
 pub use http::{
     request::from_wasm as request_from_wasm, request::to_wasm as request_to_wasm,
     response::from_wasm as response_from_wasm, response::to_wasm as response_to_wasm,
 };
+#[cfg(feature = "http")]
 pub type HttpRequest = ::http::Request<http::body::Body>;
+#[cfg(feature = "http")]
 pub type HttpResponse = ::http::Response<http::body::Body>;
