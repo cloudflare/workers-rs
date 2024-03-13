@@ -143,6 +143,7 @@ impl<'a, T> std::iter::FusedIterator for MessageIter<'a, T> where T: Deserialize
 
 impl<'a, T> std::iter::ExactSizeIterator for MessageIter<'a, T> where T: DeserializeOwned {}
 
+#[derive(Clone)]
 pub struct Queue(EdgeQueue);
 
 impl EnvBinding for Queue {
