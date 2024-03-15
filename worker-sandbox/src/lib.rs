@@ -3,6 +3,8 @@ use futures_util::{future::Either, StreamExt, TryStreamExt};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "http")]
+use std::convert::TryFrom;
+#[cfg(feature = "http")]
 use std::convert::TryInto;
 use std::{
     sync::{
@@ -20,6 +22,34 @@ mod d1;
 mod r2;
 mod test;
 mod utils;
+
+#[cfg(feature = "http")]
+macro_rules! request {
+    ($exp:expr) => {
+        TryFrom::<worker::Request>::try_from($exp).unwrap()
+    };
+}
+
+#[cfg(not(feature = "http"))]
+macro_rules! request {
+    ($exp:expr) => {
+        $exp
+    };
+}
+
+#[cfg(feature = "http")]
+macro_rules! response {
+    ($exp:expr) => {
+        TryInto::<worker::Response>::try_into($exp).unwrap()
+    };
+}
+
+#[cfg(not(feature = "http"))]
+macro_rules! response {
+    ($exp:expr) => {
+        $exp
+    };
+}
 
 #[derive(Deserialize, Serialize)]
 struct MyData {
@@ -350,9 +380,9 @@ pub async fn main(
             Response::ok(req.text().await?)
         })
         .get_async("/fetch", |_req, _ctx| async move {
-            let req = Request::new("https://example.com", Method::Post)?;
-            let resp = Fetch::Request(req).send().await?;
-            let resp2 = Fetch::Url("https://example.com".parse()?).send().await?;
+            let req = request!(Request::new("https://example.com", Method::Post)?);
+            let resp = response!(Fetch::Request(req).send().await?);
+            let resp2 = response!(Fetch::Url("https://example.com".parse()?).send().await?);
             Response::ok(format!(
                 "received responses with codes {} and {}",
                 resp.status_code(),
@@ -360,13 +390,13 @@ pub async fn main(
             ))
         })
         .get_async("/fetch_json", |_req, _ctx| async move {
-            let data: ApiData = Fetch::Url(
+            let data: ApiData = response!(Fetch::Url(
                 "https://jsonplaceholder.typicode.com/todos/1"
                     .parse()
                     .unwrap(),
             )
             .send()
-            .await?
+            .await?)
             .json()
             .await?;
             Response::ok(format!(
@@ -376,7 +406,7 @@ pub async fn main(
         })
         .get_async("/proxy_request/*url", |_req, ctx| async move {
             let url = ctx.param("url").unwrap();
-            Fetch::Url(url.parse()?).send().await
+            Ok(response!(Fetch::Url(url.parse()?).send().await?))
         })
         .get_async("/durable/alarm", |_req, ctx| async move {
             let namespace = ctx.durable_object("ALARM")?;
@@ -465,16 +495,16 @@ pub async fn main(
         })
         .get_async("/request-init-fetch", |_, _| async move {
             let init = RequestInit::new();
-            Fetch::Request(Request::new_with_init("https://cloudflare.com", &init)?)
+            Ok(response!(Fetch::Request(request!(Request::new_with_init("https://cloudflare.com", &init)?))
                 .send()
-                .await
+                .await?))
         })
         .get_async("/request-init-fetch-post", |_, _| async move {
             let mut init = RequestInit::new();
             init.method = Method::Post;
-            Fetch::Request(Request::new_with_init("https://httpbin.org/post", &init)?)
+            Ok(response!(Fetch::Request(request!(Request::new_with_init("https://httpbin.org/post", &init)?))
                 .send()
-                .await
+                .await?))
         })
         .get_async("/cancelled-fetch", |_, _| async move {
             let controller = AbortController::default();
@@ -486,7 +516,7 @@ pub async fn main(
             wasm_bindgen_futures::spawn_local({
                 async move {
                     let fetch = Fetch::Url("https://cloudflare.com".parse().unwrap());
-                    let res = fetch.send_with_signal(&signal).await;
+                    let res = fetch.send_with_signal(&signal).await.map(|r| response!(r));
                     tx.send(res).unwrap();
                 }
             });
@@ -509,7 +539,7 @@ pub async fn main(
 
             let fetch_fut = async {
                 let fetch = Fetch::Url("https://miniflare.mocks/delay".parse().unwrap());
-                let mut res = fetch.send_with_signal(&signal).await?;
+                let mut res = response!(fetch.send_with_signal(&signal).await?);
                 let text = res.text().await?;
                 Ok::<String, worker::Error>(text)
             };
@@ -574,13 +604,13 @@ pub async fn main(
             Response::ok((left == right).to_string())
         })
         .get_async("/cloned-fetch", |_, _| async {
-            let mut resp = Fetch::Url(
+            let mut resp = response!(Fetch::Url(
                 "https://jsonplaceholder.typicode.com/todos/1"
                     .parse()
                     .unwrap(),
             )
             .send()
-            .await?;
+            .await?);
             let mut resp1 = resp.cloned()?;
 
             let left = resp.text().await?;
@@ -768,7 +798,7 @@ pub async fn main(
             Fetch::Url("https://github.com/404".parse().unwrap())
                 .send()
                 .await
-                .map(|resp| resp.with_status(404))
+                .map(|resp| response!(resp).with_status(404))
         })
         .run(req, env)
         .await;

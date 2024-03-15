@@ -5,6 +5,7 @@ use serde::Serialize;
 use url::Url;
 use worker_sys::ext::WebSocketExt;
 
+use std::convert::TryInto;
 use std::pin::Pin;
 use std::rc::Rc;
 use std::task::{Context, Poll};
@@ -105,9 +106,18 @@ impl WebSocket {
             }
         }
 
-        let res = Fetch::Request(req).send().await?;
+        #[cfg(feature = "http")]
+        let ws_opt = {
+            let mut res = Fetch::Request(req.try_into()?).send().await?;
+            res.extensions_mut().remove::<WebSocket>()
+        };
+        #[cfg(not(feature = "http"))]
+        let ws_opt = {
+            let res = Fetch::Request(req).send().await?;
+            res.websocket()
+        };
 
-        match res.websocket() {
+        match ws_opt {
             Some(ws) => Ok(ws),
             None => Err(Error::RustError("server did not accept".into())),
         }

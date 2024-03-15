@@ -198,6 +198,12 @@ impl From<&CfProperties> for JsValue {
 
         set_prop(
             &obj,
+            &JsValue::from("httpProtocol"),
+            &JsValue::from("HTTP/1.1"),
+        );
+
+        set_prop(
+            &obj,
             &JsValue::from("minify"),
             &JsValue::from(props.minify.unwrap_or(defaults.minify.unwrap_or_default())),
         );
