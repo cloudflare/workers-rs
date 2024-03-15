@@ -1,5 +1,5 @@
 {
-	"name": "hyper-on-workers",
+	"name": "axum-on-workers",
 	"version": "0.0.0",
 	"private": true,
 	"scripts": {

@@ -21,6 +21,9 @@ pub struct WebSocketPair {
     pub server: WebSocket,
 }
 
+unsafe impl Send for WebSocketPair {}
+unsafe impl Sync for WebSocketPair {}
+
 impl WebSocketPair {
     /// Creates a new `WebSocketPair`.
     pub fn new() -> Result<Self> {
@@ -36,6 +39,9 @@ impl WebSocketPair {
 pub struct WebSocket {
     socket: web_sys::WebSocket,
 }
+
+unsafe impl Send for WebSocket {}
+unsafe impl Sync for WebSocket {}
 
 impl WebSocket {
     /// Attempts to establish a [`WebSocket`] connection to the provided [`Url`].

@@ -1,3 +1,14 @@
+#[cfg(feature = "http")]
+pub mod body;
+#[cfg(feature = "http")]
+mod header;
+#[cfg(feature = "http")]
+mod redirect;
+#[cfg(feature = "http")]
+pub mod request;
+#[cfg(feature = "http")]
+pub mod response;
+
 /// A [`Method`](https://developer.mozilla.org/en-US/docs/Web/API/Request/method) representation
 /// used on Request objects.
 #[derive(Default, Debug, Clone, PartialEq, Hash, Eq)]

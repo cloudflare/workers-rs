@@ -11,8 +11,12 @@ readme = "../README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[package.metadata.docs.rs]
+all-features = true
+
 [dependencies]
 async-trait.workspace = true
+bytes = "1.5"
 chrono.workspace = true
 chrono-tz.workspace = true
 futures-channel.workspace = true
@@ -20,7 +24,8 @@ futures-util.workspace = true
 wasm-bindgen.workspace = true
 wasm-bindgen-futures.workspace = true
 js-sys.workspace = true
-http = "1"
+http.workspace = true
+http-body = "1"
 matchit = "0.7"
 pin-project = "1.1.0"
 serde = { version = "1.0.164", features = ["derive"] }
@@ -49,6 +54,12 @@ default-features = false
 features = ["js"]
 optional = true
 
+[dependencies.axum]
+version = "0.7"
+optional = true
+default-features = false
+
 [features]
 queue = ["worker-macros/queue", "worker-sys/queue"]
 d1 = ["worker-sys/d1"]
+http = ["worker-macros/http", "dep:axum"]

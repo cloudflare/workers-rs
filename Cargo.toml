@@ -7,7 +7,7 @@ members = [
     "worker-sys",
     "examples/*",
 ]
-exclude = ["examples/coredump"]
+exclude = ["examples/coredump", "examples/axum"]
 resolver = "2"
 
 [workspace.dependencies]
@@ -19,7 +19,7 @@ chrono = { version = "0.4.35", default-features = false, features = [
 chrono-tz = { version = "0.8.4", default-features = false }
 futures-channel = "0.3.29"
 futures-util = { version = "0.3.29", default-features = false }
-http = "1.0.0"
+http = "1.1.0"
 js-sys = "0.3.66"
 wasm-bindgen = "0.2.91"
 wasm-bindgen-cli-support = "0.2.91"
