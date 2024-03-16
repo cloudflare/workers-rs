@@ -5,9 +5,11 @@ use serde::Serialize;
 use url::Url;
 use worker_sys::ext::WebSocketExt;
 
+#[cfg(feature = "http")]
 use crate::AbortSignal;
 #[cfg(not(feature = "http"))]
 use crate::Fetch;
+#[cfg(feature = "http")]
 use std::ops::Deref;
 use std::pin::Pin;
 use std::rc::Rc;
@@ -15,6 +17,7 @@ use std::task::{Context, Poll};
 use wasm_bindgen::convert::FromWasmAbi;
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
+#[cfg(feature = "http")]
 use wasm_bindgen_futures::JsFuture;
 
 pub use crate::ws_events::*;
@@ -450,6 +453,7 @@ pub mod ws_events {
 }
 
 /// TODO: Convert WebSocket to use `http` types and `reqwest`.
+#[cfg(feature = "http")]
 async fn fetch_with_request_raw(
     request: crate::Request,
     signal: Option<&AbortSignal>,
