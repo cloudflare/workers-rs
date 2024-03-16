@@ -1,16 +1,21 @@
-use crate::{Error, Fetch, Method, Request, Result};
+use crate::{Error, Method, Request, Result};
 use futures_channel::mpsc::UnboundedReceiver;
 use futures_util::Stream;
 use serde::Serialize;
 use url::Url;
 use worker_sys::ext::WebSocketExt;
 
+use crate::AbortSignal;
+#[cfg(not(feature = "http"))]
+use crate::Fetch;
+use std::ops::Deref;
 use std::pin::Pin;
 use std::rc::Rc;
 use std::task::{Context, Poll};
 use wasm_bindgen::convert::FromWasmAbi;
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
+use wasm_bindgen_futures::JsFuture;
 
 pub use crate::ws_events::*;
 
@@ -105,7 +110,10 @@ impl WebSocket {
             }
         }
 
+        #[cfg(not(feature = "http"))]
         let res = Fetch::Request(req).send().await?;
+        #[cfg(feature = "http")]
+        let res: crate::Response = fetch_with_request_raw(req, None).await?.into();
 
         match res.websocket() {
             Some(ws) => Ok(ws),
@@ -439,4 +447,19 @@ pub mod ws_events {
             &self.event
         }
     }
+}
+
+/// TODO: Convert WebSocket to use `http` types and `reqwest`.
+async fn fetch_with_request_raw(
+    request: crate::Request,
+    signal: Option<&AbortSignal>,
+) -> Result<web_sys::Response> {
+    let mut init = web_sys::RequestInit::new();
+    init.signal(signal.map(|x| x.deref()));
+
+    let worker: web_sys::WorkerGlobalScope = js_sys::global().unchecked_into();
+    let req = request.inner();
+    let promise = worker.fetch_with_request_and_init(req, &init);
+    let resp = JsFuture::from(promise).await?;
+    Ok(resp.dyn_into()?)
 }

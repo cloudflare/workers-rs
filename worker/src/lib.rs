@@ -88,6 +88,7 @@ pub use crate::env::{Env, EnvBinding, Secret, Var};
 pub use crate::error::Error;
 pub use crate::fetcher::Fetcher;
 pub use crate::formdata::*;
+// #[cfg(not(feature="http"))]
 pub use crate::global::Fetch;
 pub use crate::headers::Headers;
 pub use crate::http::Method;
@@ -118,8 +119,11 @@ pub mod durable;
 mod dynamic_dispatch;
 mod env;
 mod error;
+// #[cfg(feature = "http")]
+// mod fetch;
 mod fetcher;
 mod formdata;
+// #[cfg(not(feature="http"))]
 mod global;
 mod headers;
 mod http;
