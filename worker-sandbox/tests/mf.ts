@@ -1,5 +1,5 @@
 import { Miniflare, Response } from "miniflare";
-import { MockAgent } from "undici";
+import { MockAgent, MockClient } from "undici";
 
 const mockAgent = new MockAgent();
 

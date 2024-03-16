@@ -30,6 +30,7 @@ getrandom = { version = "0.2.10", features = ["js"] }
 hex = "0.4.3"
 http.workspace=true
 regex = "1.8.4"
+reqwest = { version="0.11" }
 serde = { version = "1.0.164", features = ["derive"] }
 serde_json = "1.0.96"
 worker = { path = "../worker", version = "0.0.21", features = ["queue", "d1"] }
