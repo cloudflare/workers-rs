@@ -2,14 +2,66 @@ use crate::{
     alarm, cache, d1, fetch, form, kv, queue, r2, request, service, user, ws, SomeSharedData,
     GLOBAL_STATE,
 };
+#[cfg(feature = "http")]
+use std::convert::TryInto;
 use std::sync::atomic::Ordering;
-use worker::{console_log, Fetch, Headers, Request, Response, Result, RouteContext, Router};
+use worker::{console_log, Fetch, Headers, Request, Response, Result, RouteContext};
 
+#[cfg(not(feature = "http"))]
+use worker::Router;
+
+#[cfg(feature = "http")]
+use worker::{Context, Env};
+
+#[cfg(feature = "http")]
+use axum::{routing::get, Extension};
+#[cfg(feature = "http")]
+use std::sync::Arc;
+
+#[cfg(feature = "http")]
+use axum_macros::debug_handler;
+
+/// Rewrites a handler with legacy http types to use axum extractors / response type.
+#[cfg(feature = "http")]
+macro_rules! handler (
+    ($name:path) => {
+        |Extension(env): Extension<Arc<Env>>, Extension(data): Extension<SomeSharedData>, req: axum::extract::Request| async {
+            let resp = $name(req.try_into().unwrap(), Arc::into_inner(env).unwrap(), data).await.unwrap();
+            Into::<http::Response<axum::body::Body>>::into(resp)
+        }
+    }
+);
+
+#[cfg(not(feature = "http"))]
+macro_rules! handler (
+    ($name:path) => {
+        |req: Request, ctx: RouteContext<SomeSharedData>| async {
+            $name(req, ctx.env, ctx.data).await
+        }
+    }
+);
+
+#[cfg(feature = "http")]
+pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
+    axum::Router::new()
+        .route("/request", get(handler!(request::handle_a_request)))
+        .route(
+            "/async-request",
+            get(handler!(request::handle_async_request)),
+        )
+        .route("/var", get(handler!(request::handle_var)))
+        .route("/secret", get(handler!(request::handle_secret)))
+        .route("/websocket", get(handler!(ws::handle_websocket)))
+        .layer(Extension(Arc::new(env)))
+        .layer(Extension(data))
+}
+
+#[cfg(not(feature = "http"))]
 pub fn make_router<'a>(data: SomeSharedData) -> Router<'a, SomeSharedData> {
     Router::with_data(data)
-        .get_async("/request", request::handle_a_request) // can pass a fn pointer to keep routes tidy
-        .get_async("/async-request", request::handle_async_request)
-        .get_async("/websocket", ws::handle_websocket)
+        .get_async("/request", handler!(request::handle_a_request)) // can pass a fn pointer to keep routes tidy
+        .get_async("/async-request", handler!(request::handle_async_request))
+        .get_async("/websocket", handler!(ws::handle_websocket))
         .get_async("/got-close-event", handle_close_event)
         .get_async("/ws-client", ws::handle_websocket_client)
         .get_async("/test-data", request::handle_test_data)
@@ -34,8 +86,8 @@ pub fn make_router<'a>(data: SomeSharedData) -> Router<'a, SomeSharedData> {
         .get_async("/durable/alarm", alarm::handle_alarm)
         .get_async("/durable/:id", alarm::handle_id)
         .get_async("/durable/put-raw", alarm::handle_put_raw)
-        .get_async("/secret", request::handle_secret)
-        .get_async("/var", request::handle_var)
+        .get_async("/secret", handler!(request::handle_secret))
+        .get_async("/var", handler!(request::handle_var))
         .post_async("/kv/:key/:value", kv::handle_post_key_value)
         .get_async("/bytes", request::handle_bytes)
         .post_async("/api-data", request::handle_api_data)

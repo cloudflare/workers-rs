@@ -1,20 +1,17 @@
 use super::SomeSharedData;
 use futures_util::StreamExt;
 use worker::{
-    wasm_bindgen_futures, Request, Response, Result, RouteContext, WebSocket, WebSocketPair,
+    wasm_bindgen_futures, Env, Request, Response, Result, RouteContext, WebSocket, WebSocketPair,
     WebsocketEvent,
 };
 
-pub async fn handle_websocket(
-    _req: Request,
-    ctx: RouteContext<SomeSharedData>,
-) -> Result<Response> {
+pub async fn handle_websocket(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     // Accept / handle a websocket connection
     let pair = WebSocketPair::new()?;
     let server = pair.server;
     server.accept()?;
 
-    let some_namespace_kv = ctx.kv("SOME_NAMESPACE")?;
+    let some_namespace_kv = env.kv("SOME_NAMESPACE")?;
 
     wasm_bindgen_futures::spawn_local(async move {
         let mut event_stream = server.events().expect("could not open stream");

@@ -8,11 +8,8 @@ use worker::{
 
 pub async fn handle_fetch(_req: Request, _ctx: RouteContext<SomeSharedData>) -> Result<Response> {
     let req = Request::new("https://example.com", Method::Post)?;
-    worker::console_log!("foo");
     let resp = Fetch::Request(req).send().await?;
-    worker::console_log!("bar");
     let resp2 = Fetch::Url("https://example.com".parse()?).send().await?;
-    worker::console_log!("baz");
     Response::ok(format!(
         "received responses with codes {} and {}",
         resp.status_code(),

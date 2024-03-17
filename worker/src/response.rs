@@ -36,6 +36,9 @@ pub struct Response {
     websocket: Option<WebSocket>,
 }
 
+unsafe impl Send for Response {}
+unsafe impl Sync for Response {}
+
 #[cfg(feature = "http")]
 impl<B: http_body::Body<Data = Bytes> + 'static> TryFrom<http::Response<B>> for Response {
     type Error = crate::Error;
@@ -51,6 +54,16 @@ impl TryFrom<Response> for crate::HttpResponse {
     fn try_from(res: Response) -> Result<crate::HttpResponse> {
         let sys_resp: web_sys::Response = res.into();
         crate::http::response::from_wasm(sys_resp)
+    }
+}
+
+#[cfg(feature = "http")]
+impl From<Response> for http::Response<axum::body::Body> {
+    fn from(res: Response) -> http::Response<axum::body::Body> {
+        let sys_resp: web_sys::Response = res.into();
+        // let res: Result<crate::HttpResponse> = crate::http::response::from_wasm(sys_resp);
+        // res.unwrap().into()
+        todo!()
     }
 }
 

@@ -1,12 +1,11 @@
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "http")]
-use std::convert::TryInto;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Mutex,
 };
+#[cfg(feature = "http")]
+use tower_service::Service;
 use worker::*;
-
 mod alarm;
 mod cache;
 mod counter;
@@ -41,6 +40,7 @@ struct ApiData {
     completed: bool,
 }
 
+#[derive(Clone)]
 pub struct SomeSharedData {
     regex: regex::Regex,
 }
@@ -65,9 +65,14 @@ type HandlerRequest = HttpRequest;
 #[cfg(not(feature = "http"))]
 type HandlerRequest = Request;
 #[cfg(feature = "http")]
-type HandlerResponse = HttpResponse;
+type HandlerResponse = http::Response<axum::body::Body>;
 #[cfg(not(feature = "http"))]
 type HandlerResponse = Response;
+
+#[cfg(feature = "http")]
+type HandlerContext = Context;
+#[cfg(not(feature = "http"))]
+type HandlerContext = RouteContext<SomeSharedData>;
 
 #[event(fetch)]
 pub async fn main(
@@ -79,16 +84,17 @@ pub async fn main(
         regex: regex::Regex::new(r"^\d{4}-\d{2}-\d{2}$").unwrap(),
     };
 
-    let router = router::make_router(data);
+    #[cfg(feature = "http")]
+    let res = {
+        let mut router = router::make_router(data, env);
+        Ok(Service::call(&mut router, request).await?)
+    };
 
-    #[cfg(feature = "http")]
-    let req: Request = request.try_into()?;
     #[cfg(not(feature = "http"))]
-    let req = request;
-    let worker_response = router.run(req, env).await;
-    #[cfg(feature = "http")]
-    let res = worker_response.map(|r| r.try_into())?;
-    #[cfg(not(feature = "http"))]
-    let res = worker_response;
+    let res = {
+        let router = router::make_router(data);
+        router.run(request, env).await
+    };
+
     res
 }

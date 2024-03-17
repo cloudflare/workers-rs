@@ -4,61 +4,10 @@ use crate::HttpResponse;
 use crate::Result;
 use crate::WebSocket;
 use bytes::Bytes;
-use futures_util::Stream;
-use js_sys::Uint8Array;
-use pin_project::pin_project;
-use std::pin::Pin;
-use std::task::Context;
-use std::task::Poll;
-use wasm_bindgen::JsValue;
+
+use crate::http::body::BodyStream;
 use worker_sys::ext::ResponseExt;
 use worker_sys::ext::ResponseInitExt;
-
-#[pin_project]
-struct BodyStream<B> {
-    #[pin]
-    inner: B,
-}
-
-impl<B> BodyStream<B> {
-    fn new(inner: B) -> Self {
-        Self { inner }
-    }
-}
-
-impl<B: http_body::Body<Data = Bytes>> Stream for BodyStream<B> {
-    type Item = std::result::Result<JsValue, JsValue>;
-
-    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        let this = self.project();
-        let inner: Pin<&mut B> = this.inner;
-        inner.poll_frame(cx).map(|o| {
-            if let Some(r) = o {
-                match r {
-                    Ok(f) => {
-                        if f.is_data() {
-                            // Should not be Err after checking on previous line
-                            let b = f.into_data().unwrap();
-                            let array = Uint8Array::new_with_length(b.len() as _);
-                            array.copy_from(&b);
-                            Some(Ok(array.into()))
-                        } else {
-                            None
-                        }
-                    }
-                    Err(_) => Some(Err(JsValue::from_str("Error polling body"))),
-                }
-            } else {
-                None
-            }
-        })
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let hint = self.inner.size_hint();
-        (hint.lower() as usize, hint.upper().map(|u| u as usize))
-    }
-}
 
 /// **Requires** `http` feature. Convert generic [`http::Response<B>`](worker::HttpResponse)
 /// to [`web_sys::Resopnse`](web_sys::Response) where `B` can be any [`http_body::Body`](http_body::Body)
