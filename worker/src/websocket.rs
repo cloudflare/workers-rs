@@ -1,6 +1,6 @@
 use crate::{Error, Method, Request, Result};
 use futures_channel::mpsc::UnboundedReceiver;
-use futures_util::Stream;
+use futures_util::{Future, FutureExt, Stream};
 use serde::Serialize;
 use url::Url;
 use worker_sys::ext::WebSocketExt;
@@ -16,7 +16,7 @@ use std::rc::Rc;
 use std::task::{Context, Poll};
 use wasm_bindgen::convert::FromWasmAbi;
 use wasm_bindgen::prelude::Closure;
-use wasm_bindgen::JsCast;
+use wasm_bindgen::{JsCast, JsValue};
 #[cfg(feature = "http")]
 use wasm_bindgen_futures::JsFuture;
 
@@ -116,7 +116,7 @@ impl WebSocket {
         #[cfg(not(feature = "http"))]
         let res = Fetch::Request(req).send().await?;
         #[cfg(feature = "http")]
-        let res: crate::Response = fetch_with_request_raw(req, None).await?.into();
+        let res: crate::Response = fetch_with_request_raw(req).await?.into();
 
         match res.websocket() {
             Some(ws) => Ok(ws),
@@ -298,6 +298,9 @@ pub struct EventStream<'ws> {
     )>,
 }
 
+unsafe impl<'ws> Send for EventStream<'ws> {}
+unsafe impl<'ws> Sync for EventStream<'ws> {}
+
 impl<'ws> Stream for EventStream<'ws> {
     type Item = Result<WebsocketEvent>;
 
@@ -454,16 +457,12 @@ pub mod ws_events {
 
 /// TODO: Convert WebSocket to use `http` types and `reqwest`.
 #[cfg(feature = "http")]
-async fn fetch_with_request_raw(
-    request: crate::Request,
-    signal: Option<&AbortSignal>,
-) -> Result<web_sys::Response> {
-    let mut init = web_sys::RequestInit::new();
-    init.signal(signal.map(|x| x.deref()));
-
-    let worker: web_sys::WorkerGlobalScope = js_sys::global().unchecked_into();
+async fn fetch_with_request_raw(request: crate::Request) -> Result<web_sys::Response> {
     let req = request.inner();
-    let promise = worker.fetch_with_request_and_init(req, &init);
-    let resp = JsFuture::from(promise).await?;
+    let fut = {
+        let worker: web_sys::WorkerGlobalScope = js_sys::global().unchecked_into();
+        crate::SendJsFuture(JsFuture::from(worker.fetch_with_request(req)))
+    };
+    let resp = fut.await?;
     Ok(resp.dyn_into()?)
 }

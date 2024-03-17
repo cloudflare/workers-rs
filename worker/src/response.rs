@@ -57,16 +57,6 @@ impl TryFrom<Response> for crate::HttpResponse {
     }
 }
 
-#[cfg(feature = "http")]
-impl From<Response> for http::Response<axum::body::Body> {
-    fn from(res: Response) -> http::Response<axum::body::Body> {
-        let sys_resp: web_sys::Response = res.into();
-        // let res: Result<crate::HttpResponse> = crate::http::response::from_wasm(sys_resp);
-        // res.unwrap().into()
-        todo!()
-    }
-}
-
 impl Response {
     /// Create a `Response` using `B` as the body encoded as JSON. Sets the associated
     /// `Content-Type` header for the `Response` as `application/json`.

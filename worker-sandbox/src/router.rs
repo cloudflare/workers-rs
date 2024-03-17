@@ -14,7 +14,10 @@ use worker::Router;
 use worker::{Context, Env};
 
 #[cfg(feature = "http")]
-use axum::{routing::get, Extension};
+use axum::{
+    routing::{get, post},
+    Extension,
+};
 #[cfg(feature = "http")]
 use std::sync::Arc;
 
@@ -25,8 +28,8 @@ use axum_macros::debug_handler;
 #[cfg(feature = "http")]
 macro_rules! handler (
     ($name:path) => {
-        |Extension(env): Extension<Arc<Env>>, Extension(data): Extension<SomeSharedData>, req: axum::extract::Request| async {
-            let resp = $name(req.try_into().unwrap(), Arc::into_inner(env).unwrap(), data).await.unwrap();
+        |Extension(env): Extension<Env>, Extension(data): Extension<SomeSharedData>, req: axum::extract::Request| async {
+            let resp = $name(req.try_into().expect("convert request"), env, data).await.expect("handler result");
             Into::<http::Response<axum::body::Body>>::into(resp)
         }
     }
@@ -52,7 +55,40 @@ pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
         .route("/var", get(handler!(request::handle_var)))
         .route("/secret", get(handler!(request::handle_secret)))
         .route("/websocket", get(handler!(ws::handle_websocket)))
-        .layer(Extension(Arc::new(env)))
+        // TODO: got-close-event
+        .route("/ws-client", get(handler!(ws::handle_websocket_client)))
+        .route("/test-data", get(handler!(request::handle_test_data)))
+        .route("/xor/:num", post(handler!(request::handle_xor)))
+        .route("/headers", post(handler!(request::handle_headers)))
+        .route("/formdata-name", post(handler!(form::handle_formdata_name)))
+        .route("/is-secret", post(handler!(form::handle_is_secret)))
+        // TODO: formdata-file-size
+        // TODO: formdata-file-size-hash
+        .route(
+            "/post-file-size",
+            post(handler!(request::handle_post_file_size)),
+        )
+        .route("/user/:id/test", get(handler!(user::handle_user_id_test)))
+        .route("/user/:id", get(handler!(user::handle_user_id)))
+        .route(
+            "/account/:id/zones",
+            post(handler!(user::handle_post_account_id_zones)),
+        )
+        .route(
+            "/account/:id/zones",
+            get(handler!(user::handle_get_account_id_zones)),
+        )
+        .route(
+            "/async-text-echo",
+            post(handler!(request::handle_async_text_echo)),
+        )
+        .route("/fetch", get(handler!(fetch::handle_fetch)))
+        .route("/fetch_json", get(handler!(fetch::handle_fetch_json)))
+        .route(
+            "/proxy_request/*url",
+            get(handler!(fetch::handle_proxy_request)),
+        )
+        .layer(Extension(env))
         .layer(Extension(data))
 }
 
@@ -63,26 +99,35 @@ pub fn make_router<'a>(data: SomeSharedData) -> Router<'a, SomeSharedData> {
         .get_async("/async-request", handler!(request::handle_async_request))
         .get_async("/websocket", handler!(ws::handle_websocket))
         .get_async("/got-close-event", handle_close_event)
-        .get_async("/ws-client", ws::handle_websocket_client)
-        .get_async("/test-data", request::handle_test_data)
-        .post_async("/xor/:num", request::handle_xor)
-        .post_async("/headers", request::handle_headers)
-        .post_async("/formdata-name", form::handle_formdata_name)
-        .post_async("/is-secret", form::handle_is_secret)
+        .get_async("/ws-client", handler!(ws::handle_websocket_client))
+        .get_async("/test-data", handler!(request::handle_test_data))
+        .post_async("/xor/:num", handler!(request::handle_xor))
+        .post_async("/headers", handler!(request::handle_headers))
+        .post_async("/formdata-name", handler!(form::handle_formdata_name))
+        .post_async("/is-secret", handler!(form::handle_is_secret))
         .post_async("/formdata-file-size", form::handle_formdata_file_size)
         .get_async(
             "/formdata-file-size/:hash",
             form::handle_formdata_file_size_hash,
         )
-        .post_async("/post-file-size", request::handle_post_file_size)
-        .get_async("/user/:id/test", user::handle_user_id_test)
-        .get_async("/user/:id", user::handle_user_id)
-        .post_async("/account/:id/zones", user::handle_post_account_id_zones)
-        .get_async("/account/:id/zones", user::handle_get_account_id_zones)
-        .post_async("/async-text-echo", request::handle_async_text_echo)
-        .get_async("/fetch", fetch::handle_fetch)
-        .get_async("/fetch_json", fetch::handle_fetch_json)
-        .get_async("/proxy_request/*url", fetch::handle_proxy_request)
+        .post_async("/post-file-size", handler!(request::handle_post_file_size))
+        .get_async("/user/:id/test", handler!(user::handle_user_id_test))
+        .get_async("/user/:id", handler!(user::handle_user_id))
+        .post_async(
+            "/account/:id/zones",
+            handler!(user::handle_post_account_id_zones),
+        )
+        .get_async(
+            "/account/:id/zones",
+            handler!(user::handle_get_account_id_zones),
+        )
+        .post_async(
+            "/async-text-echo",
+            handler!(request::handle_async_text_echo),
+        )
+        .get_async("/fetch", handler!(fetch::handle_fetch))
+        .get_async("/fetch_json", handler!(fetch::handle_fetch_json))
+        .get_async("/proxy_request/*url", handler!(fetch::handle_proxy_request))
         .get_async("/durable/alarm", alarm::handle_alarm)
         .get_async("/durable/:id", alarm::handle_id)
         .get_async("/durable/put-raw", alarm::handle_put_raw)

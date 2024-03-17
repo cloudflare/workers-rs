@@ -1,7 +1,7 @@
 use std::ops::Deref;
 
+use crate::SendJsFuture;
 use wasm_bindgen::JsCast;
-use wasm_bindgen_futures::JsFuture;
 
 use crate::{
     request::Request as WorkerRequest, response::Response as WorkerResponse, AbortSignal, Result,
@@ -33,12 +33,14 @@ impl Fetch {
 }
 
 async fn fetch_with_str(url: &str, signal: Option<&AbortSignal>) -> Result<WorkerResponse> {
-    let mut init = web_sys::RequestInit::new();
-    init.signal(signal.map(|x| x.deref()));
-
-    let worker: web_sys::WorkerGlobalScope = js_sys::global().unchecked_into();
-    let promise = worker.fetch_with_str_and_init(url, &init);
-    let resp = JsFuture::from(promise).await?;
+    let fut = {
+        let mut init = web_sys::RequestInit::new();
+        init.signal(signal.map(|x| x.deref()));
+        let worker: web_sys::WorkerGlobalScope = js_sys::global().unchecked_into();
+        let promise = worker.fetch_with_str_and_init(url, &init);
+        SendJsFuture::from(promise)
+    };
+    let resp = fut.await?;
     let resp: web_sys::Response = resp.dyn_into()?;
     Ok(resp.into())
 }
@@ -47,13 +49,16 @@ async fn fetch_with_request(
     request: &WorkerRequest,
     signal: Option<&AbortSignal>,
 ) -> Result<WorkerResponse> {
-    let mut init = web_sys::RequestInit::new();
-    init.signal(signal.map(|x| x.deref()));
-
-    let worker: web_sys::WorkerGlobalScope = js_sys::global().unchecked_into();
     let req = request.inner();
-    let promise = worker.fetch_with_request_and_init(req, &init);
-    let resp = JsFuture::from(promise).await?;
+
+    let fut = {
+        let mut init = web_sys::RequestInit::new();
+        init.signal(signal.map(|x| x.deref()));
+        let worker: web_sys::WorkerGlobalScope = js_sys::global().unchecked_into();
+        let promise = worker.fetch_with_request_and_init(req, &init);
+        SendJsFuture::from(promise)
+    };
+    let resp = fut.await?;
     let edge_response: web_sys::Response = resp.dyn_into()?;
     Ok(edge_response.into())
 }

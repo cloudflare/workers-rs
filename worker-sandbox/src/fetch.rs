@@ -2,11 +2,11 @@ use super::{ApiData, SomeSharedData};
 use futures_util::future::Either;
 use std::time::Duration;
 use worker::{
-    wasm_bindgen_futures, AbortController, Delay, Fetch, Method, Request, RequestInit, Response,
-    Result, RouteContext,
+    wasm_bindgen_futures, AbortController, Delay, Env, Fetch, Method, Request, RequestInit,
+    Response, Result, RouteContext,
 };
 
-pub async fn handle_fetch(_req: Request, _ctx: RouteContext<SomeSharedData>) -> Result<Response> {
+pub async fn handle_fetch(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     let req = Request::new("https://example.com", Method::Post)?;
     let resp = Fetch::Request(req).send().await?;
     let resp2 = Fetch::Url("https://example.com".parse()?).send().await?;
@@ -17,10 +17,7 @@ pub async fn handle_fetch(_req: Request, _ctx: RouteContext<SomeSharedData>) -> 
     ))
 }
 
-pub async fn handle_fetch_json(
-    _req: Request,
-    _ctx: RouteContext<SomeSharedData>,
-) -> Result<Response> {
+pub async fn handle_fetch_json(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     let data: ApiData = Fetch::Url(
         "https://jsonplaceholder.typicode.com/todos/1"
             .parse()
@@ -37,10 +34,18 @@ pub async fn handle_fetch_json(
 }
 
 pub async fn handle_proxy_request(
-    _req: Request,
-    ctx: RouteContext<SomeSharedData>,
+    req: Request,
+    _env: Env,
+    _data: SomeSharedData,
 ) -> Result<Response> {
-    let url = ctx.param("url").unwrap();
+    let uri = req.url()?;
+    let url = uri
+        .path_segments()
+        .unwrap()
+        .skip(1)
+        .collect::<Vec<_>>()
+        .join("/");
+    crate::console_log!("{}", url);
     Fetch::Url(url.parse()?).send().await
 }
 

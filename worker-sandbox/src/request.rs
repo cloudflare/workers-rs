@@ -36,20 +36,8 @@ pub async fn handle_async_request(
     ))
 }
 
-#[cfg(not(feature = "http"))]
-pub async fn handle_test_data(_req: Request, ctx: HandlerContext) -> Result<Response> {
+pub async fn handle_test_data(_req: Request, _env: Env, data: SomeSharedData) -> Result<Response> {
     // just here to test data works
-    if ctx.data.regex.is_match("2014-01-01") {
-        Response::ok("data ok")
-    } else {
-        Response::error("bad match", 500)
-    }
-}
-
-#[cfg(feature = "http")]
-pub async fn handle_test_data(
-    Extension(data): Extension<std::sync::Arc<SomeSharedData>>,
-) -> Result<Response> {
     if data.regex.is_match("2014-01-01") {
         Response::ok("data ok")
     } else {
@@ -57,8 +45,9 @@ pub async fn handle_test_data(
     }
 }
 
-pub async fn handle_xor(mut req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    let num: u8 = match ctx.param("num").unwrap().parse() {
+pub async fn handle_xor(mut req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
+    let url = req.url()?;
+    let num: u8 = match url.path_segments().unwrap().nth(1).unwrap().parse() {
         Ok(num) => num,
         Err(_) => return Response::error("invalid byte", 400),
     };
@@ -71,19 +60,27 @@ pub async fn handle_xor(mut req: Request, ctx: RouteContext<SomeSharedData>) -> 
     Response::from_stream(xor_stream)
 }
 
-pub async fn handle_headers(req: Request, _ctx: HandlerContext) -> Result<Response> {
+pub async fn handle_headers(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     let mut headers: http::HeaderMap = req.headers().into();
     headers.append("Hello", "World!".parse().unwrap());
 
     Response::ok("returned your headers to you.").map(|res| res.with_headers(headers.into()))
 }
 
-pub async fn handle_post_file_size(mut req: Request, _ctx: HandlerContext) -> Result<Response> {
+pub async fn handle_post_file_size(
+    mut req: Request,
+    _env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
     let bytes = req.bytes().await?;
     Response::ok(format!("size = {}", bytes.len()))
 }
 
-pub async fn handle_async_text_echo(mut req: Request, _ctx: HandlerContext) -> Result<Response> {
+pub async fn handle_async_text_echo(
+    mut req: Request,
+    _env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
     Response::ok(req.text().await?)
 }
 

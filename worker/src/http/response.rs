@@ -58,3 +58,27 @@ pub fn from_wasm(res: web_sys::Response) -> Result<HttpResponse> {
         builder.body(Body::empty())?
     })
 }
+
+#[cfg(feature = "http")]
+impl From<crate::Response> for http::Response<axum::body::Body> {
+    fn from(resp: crate::Response) -> http::Response<axum::body::Body> {
+        let res: web_sys::Response = resp.into();
+        let mut builder = http::response::Builder::new()
+            .status(http::StatusCode::from_u16(res.status()).unwrap());
+        if let Some(headers) = builder.headers_mut() {
+            crate::http::header::header_map_from_web_sys_headers(res.headers(), headers).unwrap();
+        }
+        if let Some(ws) = res.websocket() {
+            builder = builder.extension(WebSocket::from(ws));
+        }
+        if let Some(body) = res.body() {
+            builder
+                .body(axum::body::Body::new(crate::Body::new(body)))
+                .unwrap()
+        } else {
+            builder
+                .body(axum::body::Body::new(crate::Body::empty()))
+                .unwrap()
+        }
+    }
+}

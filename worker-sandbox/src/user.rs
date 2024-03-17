@@ -1,5 +1,5 @@
 use serde::Serialize;
-use worker::{Date, DateInit, Request, Response, Result, RouteContext};
+use worker::{Date, DateInit, Env, Request, Response, Result, RouteContext};
 
 use crate::SomeSharedData;
 
@@ -12,18 +12,23 @@ struct User {
 }
 
 pub async fn handle_user_id_test(
-    _req: Request,
-    ctx: RouteContext<SomeSharedData>,
+    req: Request,
+    _env: Env,
+    _data: SomeSharedData,
 ) -> Result<Response> {
-    if let Some(id) = ctx.param("id") {
+    let url = req.url()?;
+    let id = url.path_segments().unwrap().nth(1);
+    if let Some(id) = id {
         return Response::ok(format!("TEST user id: {id}"));
     }
 
     Response::error("Error", 500)
 }
 
-pub async fn handle_user_id(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    if let Some(id) = ctx.param("id") {
+pub async fn handle_user_id(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
+    let url = req.url()?;
+    let id = url.path_segments().unwrap().nth(1);
+    if let Some(id) = id {
         return Response::from_json(&User {
             id: id.to_string(),
             timestamp: Date::now().as_millis(),
@@ -39,21 +44,27 @@ pub async fn handle_user_id(_req: Request, ctx: RouteContext<SomeSharedData>) ->
 }
 
 pub async fn handle_post_account_id_zones(
-    _req: Request,
-    ctx: RouteContext<SomeSharedData>,
+    req: Request,
+    _env: Env,
+    _data: SomeSharedData,
 ) -> Result<Response> {
+    let url = req.url()?;
+    let id = url.path_segments().unwrap().nth(1);
     Response::ok(format!(
         "Create new zone for Account: {}",
-        ctx.param("id").unwrap_or(&"not found".into())
+        id.unwrap_or("not found")
     ))
 }
 
 pub async fn handle_get_account_id_zones(
-    _req: Request,
-    ctx: RouteContext<SomeSharedData>,
+    req: Request,
+    _env: Env,
+    _data: SomeSharedData,
 ) -> Result<Response> {
+    let url = req.url()?;
+    let id = url.path_segments().unwrap().nth(1);
     Response::ok(format!(
         "Account id: {}..... You get a zone, you get a zone!",
-        ctx.param("id").unwrap_or(&"not found".into())
+        id.unwrap_or("not found")
     ))
 }

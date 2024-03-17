@@ -5,11 +5,11 @@ use crate::Date;
 use crate::DateInit;
 use crate::Result;
 
+use crate::SendJsFuture;
 use js_sys::Array;
 use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use wasm_bindgen_futures::JsFuture;
 
 /// Representing the options any FormData value can be, a field or a file.
 pub enum FormEntry {
@@ -164,7 +164,7 @@ impl File {
 
     /// Read the file from an internal buffer and get the resulting bytes.
     pub async fn bytes(&self) -> Result<Vec<u8>> {
-        JsFuture::from(self.0.array_buffer())
+        SendJsFuture::from(self.0.array_buffer())
             .await
             .map(|val| js_sys::Uint8Array::new(&val).to_vec())
             .map_err(|e| {
@@ -186,3 +186,6 @@ impl From<web_sys::File> for File {
         Self(file)
     }
 }
+
+unsafe impl Send for File {}
+unsafe impl Sync for File {}

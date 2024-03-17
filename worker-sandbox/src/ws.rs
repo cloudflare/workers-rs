@@ -43,7 +43,8 @@ pub async fn handle_websocket(_req: Request, env: Env, _data: SomeSharedData) ->
 
 pub async fn handle_websocket_client(
     _req: Request,
-    _ctx: RouteContext<SomeSharedData>,
+    _env: Env,
+    _data: SomeSharedData,
 ) -> Result<Response> {
     let ws = WebSocket::connect("wss://echo.miniflare.mocks/".parse()?).await?;
 

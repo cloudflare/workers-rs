@@ -3,12 +3,13 @@ use blake2::Blake2b512;
 use blake2::Digest;
 use serde::{Deserialize, Serialize};
 use worker::kv;
+use worker::{Env, Request, Result, RouteContext};
 use worker::{FormEntry, Response};
-use worker::{Request, Result, RouteContext};
 
 pub async fn handle_formdata_name(
     mut req: Request,
-    _ctx: RouteContext<SomeSharedData>,
+    _env: Env,
+    _data: SomeSharedData,
 ) -> Result<Response> {
     let form = req.form_data().await?;
     const NAME: &str = "name";
@@ -102,13 +103,14 @@ pub async fn handle_formdata_file_size_hash(
 
 pub async fn handle_is_secret(
     mut req: Request,
-    ctx: RouteContext<SomeSharedData>,
+    env: Env,
+    _data: SomeSharedData,
 ) -> Result<Response> {
     let form = req.form_data().await?;
     if let Some(secret) = form.get("secret") {
         match secret {
             FormEntry::Field(name) => {
-                let val = ctx.secret(&name)?;
+                let val = env.secret(&name)?;
                 return Response::ok(val.to_string());
             }
             _ => return Response::error("Bad Request", 400),
