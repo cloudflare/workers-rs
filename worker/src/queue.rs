@@ -145,6 +145,9 @@ impl<'a, T> std::iter::ExactSizeIterator for MessageIter<'a, T> where T: Deseria
 
 pub struct Queue(EdgeQueue);
 
+unsafe impl Send for Queue {}
+unsafe impl Sync for Queue {}
+
 impl EnvBinding for Queue {
     const TYPE_NAME: &'static str = "WorkerQueue";
 }
