@@ -1,6 +1,6 @@
 use crate::{Error, Method, Request, Result};
 use futures_channel::mpsc::UnboundedReceiver;
-use futures_util::{Future, FutureExt, Stream};
+use futures_util::Stream;
 use serde::Serialize;
 use url::Url;
 use worker_sys::ext::WebSocketExt;
@@ -16,7 +16,7 @@ use std::rc::Rc;
 use std::task::{Context, Poll};
 use wasm_bindgen::convert::FromWasmAbi;
 use wasm_bindgen::prelude::Closure;
-use wasm_bindgen::{JsCast, JsValue};
+use wasm_bindgen::JsCast;
 #[cfg(feature = "http")]
 use wasm_bindgen_futures::JsFuture;
 

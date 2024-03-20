@@ -186,6 +186,3 @@ impl From<web_sys::File> for File {
         Self(file)
     }
 }
-
-unsafe impl Send for File {}
-unsafe impl Sync for File {}

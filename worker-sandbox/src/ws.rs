@@ -1,8 +1,7 @@
 use super::SomeSharedData;
 use futures_util::StreamExt;
 use worker::{
-    wasm_bindgen_futures, Env, Request, Response, Result, RouteContext, WebSocket, WebSocketPair,
-    WebsocketEvent,
+    wasm_bindgen_futures, Env, Request, Response, Result, WebSocket, WebSocketPair, WebsocketEvent,
 };
 
 pub async fn handle_websocket(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {

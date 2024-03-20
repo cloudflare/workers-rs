@@ -69,7 +69,7 @@ pub use wasm_bindgen_futures;
 pub use worker_kv as kv;
 
 pub use cf::{Cf, TlsClientAuth};
-pub use worker_macros::{durable_object, event};
+pub use worker_macros::{durable_object, event, send};
 #[doc(hidden)]
 pub use worker_sys;
 pub use worker_sys::{console_debug, console_error, console_log, console_warn};
@@ -100,6 +100,7 @@ pub use crate::request_init::*;
 pub use crate::response::{Response, ResponseBody};
 pub use crate::router::{RouteContext, RouteParams, Router};
 pub use crate::schedule::*;
+pub use crate::send_future::SendFuture;
 pub use crate::socket::*;
 pub use crate::streams::*;
 pub use crate::websocket::*;
@@ -135,6 +136,7 @@ mod request_init;
 mod response;
 mod router;
 mod schedule;
+mod send_future;
 mod socket;
 mod streams;
 mod websocket;

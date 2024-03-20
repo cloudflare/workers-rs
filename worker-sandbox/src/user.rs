@@ -1,5 +1,5 @@
 use serde::Serialize;
-use worker::{Date, DateInit, Env, Request, Response, Result, RouteContext};
+use worker::{Date, DateInit, Env, Request, Response, Result};
 
 use crate::SomeSharedData;
 

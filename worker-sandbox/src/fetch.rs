@@ -6,7 +6,7 @@ use worker::{
     Response, Result, RouteContext,
 };
 
-pub async fn handle_fetch(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
+pub async fn handle_fetch(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     let req = Request::new("https://example.com", Method::Post)?;
     let resp = Fetch::Request(req).send().await?;
     let resp2 = Fetch::Url("https://example.com".parse()?).send().await?;
@@ -17,7 +17,12 @@ pub async fn handle_fetch(req: Request, _env: Env, _data: SomeSharedData) -> Res
     ))
 }
 
-pub async fn handle_fetch_json(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
+#[worker::send]
+pub async fn handle_fetch_json(
+    _req: Request,
+    _env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
     let data: ApiData = Fetch::Url(
         "https://jsonplaceholder.typicode.com/todos/1"
             .parse()

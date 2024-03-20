@@ -20,9 +20,6 @@ pub struct ByteStream {
     pub(crate) inner: IntoStream<'static>,
 }
 
-unsafe impl Send for ByteStream {}
-unsafe impl Sync for ByteStream {}
-
 impl Stream for ByteStream {
     type Item = Result<Vec<u8>>;
 

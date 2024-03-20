@@ -5,6 +5,7 @@ use crate::{
 #[cfg(feature = "http")]
 use std::convert::TryInto;
 use std::sync::atomic::Ordering;
+
 use worker::{console_log, Fetch, Headers, Request, Response, Result, RouteContext};
 
 #[cfg(not(feature = "http"))]
@@ -43,6 +44,19 @@ macro_rules! handler (
         }
     }
 );
+
+#[cfg(feature = "http")]
+#[debug_handler]
+#[worker::send]
+async fn test(
+    Extension(env): Extension<Env>,
+    Extension(data): Extension<SomeSharedData>,
+    req: axum::extract::Request,
+) -> &'static str {
+    let foo = env.kv("SOME_NAMESPACE").unwrap();
+    foo.put("test", "test").unwrap().execute().await.unwrap();
+    "hello world"
+}
 
 #[cfg(feature = "http")]
 pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
