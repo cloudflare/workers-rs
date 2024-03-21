@@ -1,16 +1,12 @@
-use crate::HandlerContext;
 use crate::SomeSharedData;
 
 use super::ApiData;
-#[cfg(feature = "http")]
-use axum::Extension;
 use futures_util::StreamExt;
 use futures_util::TryStreamExt;
 use std::time::Duration;
 use worker::Env;
-use worker::RouteContext;
 use worker::{console_log, Date, Delay, Request, Response, ResponseBody, Result};
-pub async fn handle_a_request(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
+pub fn handle_a_request(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     Response::ok(format!(
         "req at: {}, located at: {:?}, within: {}",
         req.path(),
@@ -67,6 +63,7 @@ pub async fn handle_headers(req: Request, _env: Env, _data: SomeSharedData) -> R
     Response::ok("returned your headers to you.").map(|res| res.with_headers(headers.into()))
 }
 
+#[worker::send]
 pub async fn handle_post_file_size(
     mut req: Request,
     _env: Env,
@@ -76,6 +73,7 @@ pub async fn handle_post_file_size(
     Response::ok(format!("size = {}", bytes.len()))
 }
 
+#[worker::send]
 pub async fn handle_async_text_echo(
     mut req: Request,
     _env: Env,
@@ -92,11 +90,16 @@ pub async fn handle_var(_req: Request, env: Env, _data: SomeSharedData) -> Resul
     Response::ok(env.var("SOME_VARIABLE")?.to_string())
 }
 
-pub async fn handle_bytes(_req: Request, _ctx: HandlerContext) -> Result<Response> {
+pub async fn handle_bytes(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     Response::from_bytes(vec![1, 2, 3, 4, 5, 6, 7])
 }
 
-pub async fn handle_api_data(mut req: Request, _ctx: HandlerContext) -> Result<Response> {
+#[worker::send]
+pub async fn handle_api_data(
+    mut req: Request,
+    _env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
     let data = req.bytes().await?;
     let mut todo: ApiData = match serde_json::from_slice(&data) {
         Ok(todo) => todo,
@@ -114,17 +117,21 @@ pub async fn handle_api_data(mut req: Request, _ctx: HandlerContext) -> Result<R
 
 pub async fn handle_nonsense_repeat(
     _req: Request,
-    ctx: RouteContext<SomeSharedData>,
+    _env: Env,
+    data: SomeSharedData,
 ) -> Result<Response> {
-    if ctx.data.regex.is_match("2014-01-01") {
+    if data.regex.is_match("2014-01-01") {
         Response::ok("data ok")
     } else {
         Response::error("bad match", 500)
     }
 }
 
-pub async fn handle_status(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    if let Some(code) = ctx.param("code") {
+pub async fn handle_status(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
+    let uri = req.url()?;
+    let mut segments = uri.path_segments().unwrap();
+    let code = segments.nth(1);
+    if let Some(code) = code {
         return match code.parse::<u16>() {
             Ok(status) => {
                 Response::ok("You set the status code!").map(|resp| resp.with_status(status))
@@ -136,20 +143,30 @@ pub async fn handle_status(_req: Request, ctx: RouteContext<SomeSharedData>) -> 
     Response::error("Bad Request", 400)
 }
 
-pub async fn handle_redirect_default(_req: Request, _ctx: HandlerContext) -> Result<Response> {
+pub async fn handle_redirect_default(
+    _req: Request,
+    _env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
     Response::redirect("https://example.com".parse().unwrap())
 }
 
-pub async fn handle_redirect_307(_req: Request, _ctx: HandlerContext) -> Result<Response> {
+pub async fn handle_redirect_307(
+    _req: Request,
+    _env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
     Response::redirect_with_status("https://example.com".parse().unwrap(), 307)
 }
 
-pub async fn handle_now(_req: Request, _ctx: HandlerContext) -> Result<Response> {
+pub async fn handle_now(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     let now = chrono::Utc::now();
     let js_date: Date = now.into();
     Response::ok(js_date.to_string())
 }
-pub async fn handle_cloned(_req: Request, _ctx: HandlerContext) -> Result<Response> {
+
+#[worker::send]
+pub async fn handle_cloned(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     let mut resp = Response::ok("Hello")?;
     let mut resp1 = resp.cloned()?;
 
@@ -159,7 +176,12 @@ pub async fn handle_cloned(_req: Request, _ctx: HandlerContext) -> Result<Respon
     Response::ok((left == right).to_string())
 }
 
-pub async fn handle_cloned_stream(_req: Request, _ctx: HandlerContext) -> Result<Response> {
+#[worker::send]
+pub async fn handle_cloned_stream(
+    _req: Request,
+    _env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
     let stream =
         futures_util::stream::repeat(())
             .take(10)
@@ -178,15 +200,20 @@ pub async fn handle_cloned_stream(_req: Request, _ctx: HandlerContext) -> Result
     Response::ok((left == right).to_string())
 }
 
-pub async fn handle_custom_response_body(_req: Request, _ctx: HandlerContext) -> Result<Response> {
+pub async fn handle_custom_response_body(
+    _req: Request,
+    _env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
     Response::from_body(ResponseBody::Body(vec![b'h', b'e', b'l', b'l', b'o']))
 }
 
-pub async fn handle_wait_delay(
-    _req: Request,
-    ctx: RouteContext<SomeSharedData>,
-) -> Result<Response> {
-    let delay: Delay = match ctx.param("delay").unwrap().parse() {
+#[worker::send]
+pub async fn handle_wait_delay(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
+    let uri = req.url()?;
+    let mut segments = uri.path_segments().unwrap();
+    let delay = segments.nth(1);
+    let delay: Delay = match delay.unwrap().parse() {
         Ok(delay) => Duration::from_millis(delay).into(),
         Err(_) => return Response::error("invalid delay", 400),
     };

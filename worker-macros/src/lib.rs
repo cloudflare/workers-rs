@@ -1,9 +1,8 @@
 mod durable_object;
 mod event;
+mod send;
 
 use proc_macro::TokenStream;
-use quote::quote;
-use syn::{parse_macro_input, ItemFn};
 
 #[proc_macro_attribute]
 pub fn durable_object(_attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -25,25 +24,19 @@ pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
-pub fn send(_attr: TokenStream, stream: TokenStream) -> TokenStream {
-    let stream_clone = stream.clone();
-    let input = parse_macro_input!(stream_clone as ItemFn);
-
-    let ItemFn {
-        attrs,
-        vis,
-        sig,
-        block,
-    } = input;
-    let stmts = &block.stmts;
-
-    let tokens = quote! {
-        #(#attrs)* #vis #sig {
-            worker::SendFuture::new(async {
-                #(#stmts)*
-            }).await
-        }
-    };
-
-    TokenStream::from(tokens)
+/// Convert an async function which is `!Send` to be `Send`.
+///
+/// This is useful for implementing async handlers in frameworks which
+/// expect the handler to be `Send`, such as `axum`.
+///
+/// ```rust
+/// #[worker::send]
+/// async fn foo() {
+///     // JsFuture is !Send
+///     let fut = JsFuture::from(promise);
+///     fut.await
+/// }
+/// ```
+pub fn send(attr: TokenStream, stream: TokenStream) -> TokenStream {
+    send::expand_macro(attr, stream)
 }

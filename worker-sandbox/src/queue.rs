@@ -2,9 +2,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::{SomeSharedData, GLOBAL_QUEUE_STATE};
-use worker::{
-    console_log, event, Context, Env, MessageBatch, Request, Response, Result, RouteContext,
-};
+use worker::{console_log, event, Context, Env, MessageBatch, Request, Response, Result};
 #[derive(Serialize, Debug, Clone, Deserialize)]
 pub struct QueueBody {
     pub id: Uuid,
@@ -26,12 +24,12 @@ pub async fn queue(message_batch: MessageBatch<QueueBody>, _env: Env, _ctx: Cont
     Ok(())
 }
 
-pub async fn handle_queue_send(
-    _req: Request,
-    ctx: RouteContext<SomeSharedData>,
-) -> Result<Response> {
-    let id = match ctx
-        .param("id")
+#[worker::send]
+pub async fn handle_queue_send(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let uri = req.url()?;
+    let mut segments = uri.path_segments().unwrap();
+    let id = match segments
+        .nth(2)
         .map(|id| Uuid::try_parse(id).ok())
         .and_then(|u| u)
     {
@@ -40,7 +38,7 @@ pub async fn handle_queue_send(
             return Response::error("Failed to parse id, expected a UUID", 400);
         }
     };
-    let my_queue = match ctx.env.queue("my_queue") {
+    let my_queue = match env.queue("my_queue") {
         Ok(queue) => queue,
         Err(err) => return Response::error(format!("Failed to get queue: {err:?}"), 500),
     };
@@ -56,7 +54,7 @@ pub async fn handle_queue_send(
     }
 }
 
-pub async fn handle_queue(_req: Request, _ctx: RouteContext<SomeSharedData>) -> Result<Response> {
+pub async fn handle_queue(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     let guard = GLOBAL_QUEUE_STATE.lock().unwrap();
     let messages: Vec<QueueBody> = guard.clone();
     Response::from_json(&messages)

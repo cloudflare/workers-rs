@@ -1,13 +1,15 @@
 use super::SomeSharedData;
 #[cfg(feature = "http")]
 use std::convert::TryInto;
-use worker::{Method, Request, RequestInit, Response, Result, RouteContext};
+use worker::{Env, Method, Request, RequestInit, Response, Result};
 
+#[worker::send]
 pub async fn handle_remote_by_request(
     req: Request,
-    ctx: RouteContext<SomeSharedData>,
+    env: Env,
+    _data: SomeSharedData,
 ) -> Result<Response> {
-    let fetcher = ctx.service("remote")?;
+    let fetcher = env.service("remote")?;
 
     #[cfg(feature = "http")]
     let http_request = req.try_into()?;
@@ -24,11 +26,13 @@ pub async fn handle_remote_by_request(
     result
 }
 
+#[worker::send]
 pub async fn handle_remote_by_path(
     req: Request,
-    ctx: RouteContext<SomeSharedData>,
+    env: Env,
+    _data: SomeSharedData,
 ) -> Result<Response> {
-    let fetcher = ctx.service("remote")?;
+    let fetcher = env.service("remote")?;
     let mut init = RequestInit::new();
     init.with_method(Method::Post);
     let response = fetcher.fetch(req.url()?.to_string(), Some(init)).await?;

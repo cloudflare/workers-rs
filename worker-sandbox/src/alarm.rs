@@ -42,8 +42,9 @@ impl DurableObject for AlarmObject {
     }
 }
 
-pub async fn handle_alarm(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    let namespace = ctx.durable_object("ALARM")?;
+#[worker::send]
+pub async fn handle_alarm(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let namespace = env.durable_object("ALARM")?;
     let stub = namespace.id_from_name("alarm")?.get_stub()?;
     // when calling fetch to a Durable Object, a full URL must be used. Alternatively, a
     // compatibility flag can be provided in wrangler.toml to opt-in to older behavior:
@@ -51,8 +52,9 @@ pub async fn handle_alarm(_req: Request, ctx: RouteContext<SomeSharedData>) -> R
     stub.fetch_with_str("https://fake-host/alarm").await
 }
 
-pub async fn handle_id(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    let namespace = ctx.durable_object("COUNTER").expect("DAWJKHDAD");
+#[worker::send]
+pub async fn handle_id(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let namespace = env.durable_object("COUNTER").expect("DAWJKHDAD");
     let stub = namespace.id_from_name("A")?.get_stub()?;
     // when calling fetch to a Durable Object, a full URL must be used. Alternatively, a
     // compatibility flag can be provided in wrangler.toml to opt-in to older behavior:
@@ -60,8 +62,9 @@ pub async fn handle_id(_req: Request, ctx: RouteContext<SomeSharedData>) -> Resu
     stub.fetch_with_str("https://fake-host/").await
 }
 
-pub async fn handle_put_raw(req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    let namespace = ctx.durable_object("PUT_RAW_TEST_OBJECT")?;
+#[worker::send]
+pub async fn handle_put_raw(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let namespace = env.durable_object("PUT_RAW_TEST_OBJECT")?;
     let id = namespace.unique_id()?;
     let stub = id.get_stub()?;
     stub.fetch_with_request(req).await

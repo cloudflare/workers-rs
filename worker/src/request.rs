@@ -4,11 +4,11 @@ use crate::{
     cf::Cf, error::Error, headers::Headers, http::Method, ByteStream, FormData, RequestInit, Result,
 };
 
-use crate::SendJsFuture;
 use serde::de::DeserializeOwned;
 use std::borrow::Cow;
 use url::{form_urlencoded::Parse, Url};
 use wasm_bindgen::JsCast;
+use wasm_bindgen_futures::JsFuture;
 use worker_sys::ext::RequestExt;
 
 /// A [Request](https://developer.mozilla.org/en-US/docs/Web/API/Request) representation for
@@ -120,7 +120,7 @@ impl Request {
     pub async fn json<B: DeserializeOwned>(&mut self) -> Result<B> {
         if !self.body_used {
             self.body_used = true;
-            return SendJsFuture::from(self.edge_request.json()?)
+            return JsFuture::from(self.edge_request.json()?)
                 .await
                 .map_err(|e| {
                     Error::JsError(
@@ -138,13 +138,15 @@ impl Request {
     pub async fn text(&mut self) -> Result<String> {
         if !self.body_used {
             self.body_used = true;
-            let fut = { SendJsFuture::from(self.edge_request.text()?) };
-            return fut.await.map(|val| val.as_string().unwrap()).map_err(|e| {
-                Error::JsError(
-                    e.as_string()
-                        .unwrap_or_else(|| "failed to get text for body value".into()),
-                )
-            });
+            return JsFuture::from(self.edge_request.text()?)
+                .await
+                .map(|val| val.as_string().unwrap())
+                .map_err(|e| {
+                    Error::JsError(
+                        e.as_string()
+                            .unwrap_or_else(|| "failed to get text for body value".into()),
+                    )
+                });
         }
 
         Err(Error::BodyUsed)
@@ -154,8 +156,7 @@ impl Request {
     pub async fn bytes(&mut self) -> Result<Vec<u8>> {
         if !self.body_used {
             self.body_used = true;
-            let fut = { SendJsFuture::from(self.edge_request.array_buffer()?) };
-            return fut
+            return JsFuture::from(self.edge_request.array_buffer()?)
                 .await
                 .map(|val| js_sys::Uint8Array::new(&val).to_vec())
                 .map_err(|e| {
@@ -173,13 +174,15 @@ impl Request {
     pub async fn form_data(&mut self) -> Result<FormData> {
         if !self.body_used {
             self.body_used = true;
-            let fut = { SendJsFuture::from(self.edge_request.form_data()?) };
-            return fut.await.map(|val| val.into()).map_err(|e| {
-                Error::JsError(
-                    e.as_string()
-                        .unwrap_or_else(|| "failed to get form data from request".into()),
-                )
-            });
+            return JsFuture::from(self.edge_request.form_data()?)
+                .await
+                .map(|val| val.into())
+                .map_err(|e| {
+                    Error::JsError(
+                        e.as_string()
+                            .unwrap_or_else(|| "failed to get form data from request".into()),
+                    )
+                });
         }
 
         Err(Error::BodyUsed)

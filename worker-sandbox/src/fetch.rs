@@ -3,9 +3,10 @@ use futures_util::future::Either;
 use std::time::Duration;
 use worker::{
     wasm_bindgen_futures, AbortController, Delay, Env, Fetch, Method, Request, RequestInit,
-    Response, Result, RouteContext,
+    Response, Result,
 };
 
+#[worker::send]
 pub async fn handle_fetch(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     let req = Request::new("https://example.com", Method::Post)?;
     let resp = Fetch::Request(req).send().await?;
@@ -38,6 +39,7 @@ pub async fn handle_fetch_json(
     ))
 }
 
+#[worker::send]
 pub async fn handle_proxy_request(
     req: Request,
     _env: Env,
@@ -54,9 +56,11 @@ pub async fn handle_proxy_request(
     Fetch::Url(url.parse()?).send().await
 }
 
+#[worker::send]
 pub async fn handle_request_init_fetch(
     _req: Request,
-    _ctx: RouteContext<SomeSharedData>,
+    _env: Env,
+    _data: SomeSharedData,
 ) -> Result<Response> {
     let init = RequestInit::new();
     Fetch::Request(Request::new_with_init("https://cloudflare.com", &init)?)
@@ -64,9 +68,11 @@ pub async fn handle_request_init_fetch(
         .await
 }
 
+#[worker::send]
 pub async fn handle_request_init_fetch_post(
     _req: Request,
-    _ctx: RouteContext<SomeSharedData>,
+    _env: Env,
+    _data: SomeSharedData,
 ) -> Result<Response> {
     let mut init = RequestInit::new();
     init.method = Method::Post;
@@ -75,9 +81,11 @@ pub async fn handle_request_init_fetch_post(
         .await
 }
 
+#[worker::send]
 pub async fn handle_cancelled_fetch(
     _req: Request,
-    _ctx: RouteContext<SomeSharedData>,
+    _env: Env,
+    _data: SomeSharedData,
 ) -> Result<Response> {
     let controller = AbortController::default();
     let signal = controller.signal();
@@ -106,9 +114,11 @@ pub async fn handle_cancelled_fetch(
     Ok(res)
 }
 
+#[worker::send]
 pub async fn handle_fetch_timeout(
     _req: Request,
-    _ctx: RouteContext<SomeSharedData>,
+    _env: Env,
+    _data: SomeSharedData,
 ) -> Result<Response> {
     let controller = AbortController::default();
     let signal = controller.signal();
@@ -147,9 +157,11 @@ pub async fn handle_fetch_timeout(
     }
 }
 
+#[worker::send]
 pub async fn handle_cloned_fetch(
     _req: Request,
-    _ctx: RouteContext<SomeSharedData>,
+    _env: Env,
+    _data: SomeSharedData,
 ) -> Result<Response> {
     let mut resp = Fetch::Url(
         "https://jsonplaceholder.typicode.com/todos/1"

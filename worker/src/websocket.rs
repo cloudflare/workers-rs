@@ -5,12 +5,8 @@ use serde::Serialize;
 use url::Url;
 use worker_sys::ext::WebSocketExt;
 
-#[cfg(feature = "http")]
-use crate::AbortSignal;
 #[cfg(not(feature = "http"))]
 use crate::Fetch;
-#[cfg(feature = "http")]
-use std::ops::Deref;
 use std::pin::Pin;
 use std::rc::Rc;
 use std::task::{Context, Poll};
@@ -297,9 +293,6 @@ pub struct EventStream<'ws> {
         EvCallback<web_sys::CloseEvent>,
     )>,
 }
-
-unsafe impl<'ws> Send for EventStream<'ws> {}
-unsafe impl<'ws> Sync for EventStream<'ws> {}
 
 impl<'ws> Stream for EventStream<'ws> {
     type Item = Result<WebsocketEvent>;

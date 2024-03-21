@@ -2,11 +2,19 @@ use super::SomeSharedData;
 use futures_util::stream::StreamExt;
 use rand::Rng;
 use std::time::Duration;
-use worker::{console_log, Cache, Date, Delay, Request, Response, Result, RouteContext};
+use worker::{console_log, Cache, Date, Delay, Env, Request, Response, Result};
 
+fn key(req: &Request) -> Result<Option<String>> {
+    let uri = req.url()?;
+    let mut segments = uri.path_segments().unwrap();
+    Ok(segments.nth(2).map(|s| s.to_owned()))
+}
+
+#[worker::send]
 pub async fn handle_cache_example(
     req: Request,
-    _ctx: RouteContext<SomeSharedData>,
+    _env: Env,
+    _data: SomeSharedData,
 ) -> Result<Response> {
     console_log!("url: {}", req.url()?.to_string());
     let cache = Cache::default();
@@ -27,11 +35,13 @@ pub async fn handle_cache_example(
     }
 }
 
+#[worker::send]
 pub async fn handle_cache_api_get(
-    _req: Request,
-    ctx: RouteContext<SomeSharedData>,
+    req: Request,
+    _env: Env,
+    _data: SomeSharedData,
 ) -> Result<Response> {
-    if let Some(key) = ctx.param("key") {
+    if let Some(key) = key(&req)? {
         let cache = Cache::default();
         if let Some(resp) = cache.get(format!("https://{key}"), true).await? {
             return Ok(resp);
@@ -42,11 +52,13 @@ pub async fn handle_cache_api_get(
     Response::error("key missing", 400)
 }
 
+#[worker::send]
 pub async fn handle_cache_api_put(
-    _req: Request,
-    ctx: RouteContext<SomeSharedData>,
+    req: Request,
+    _env: Env,
+    _data: SomeSharedData,
 ) -> Result<Response> {
-    if let Some(key) = ctx.param("key") {
+    if let Some(key) = key(&req)? {
         let cache = Cache::default();
 
         let mut resp =
@@ -61,11 +73,13 @@ pub async fn handle_cache_api_put(
     Response::error("key missing", 400)
 }
 
+#[worker::send]
 pub async fn handle_cache_api_delete(
-    _req: Request,
-    ctx: RouteContext<SomeSharedData>,
+    req: Request,
+    _env: Env,
+    _data: SomeSharedData,
 ) -> Result<Response> {
-    if let Some(key) = ctx.param("key") {
+    if let Some(key) = key(&req)? {
         let cache = Cache::default();
 
         let res = cache.delete(format!("https://{key}"), true).await?;
@@ -74,9 +88,11 @@ pub async fn handle_cache_api_delete(
     Response::error("key missing", 400)
 }
 
+#[worker::send]
 pub async fn handle_cache_stream(
     req: Request,
-    _ctx: RouteContext<SomeSharedData>,
+    _env: Env,
+    _data: SomeSharedData,
 ) -> Result<Response> {
     console_log!("url: {}", req.url()?.to_string());
     let cache = Cache::default();

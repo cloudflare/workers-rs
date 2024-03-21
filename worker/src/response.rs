@@ -36,9 +36,6 @@ pub struct Response {
     websocket: Option<WebSocket>,
 }
 
-unsafe impl Send for Response {}
-unsafe impl Sync for Response {}
-
 #[cfg(feature = "http")]
 impl<B: http_body::Body<Data = Bytes> + 'static> TryFrom<http::Response<B>> for Response {
     type Error = crate::Error;

@@ -69,11 +69,6 @@ type HandlerResponse = http::Response<axum::body::Body>;
 #[cfg(not(feature = "http"))]
 type HandlerResponse = Response;
 
-#[cfg(feature = "http")]
-type HandlerContext = Context;
-#[cfg(not(feature = "http"))]
-type HandlerContext = RouteContext<SomeSharedData>;
-
 #[event(fetch)]
 pub async fn main(
     request: HandlerRequest,
