@@ -41,7 +41,7 @@ where
     )?)
 }
 
-/// **Requires** `http` feature. Convert [`web_sys::Resopnse`](web_sys::Response)
+/// **Requires** `http` feature. Convert [`web_sys::Response`](web_sys::Response)
 /// to [`worker::HttpResponse`](crate::HttpResponse)
 pub fn from_wasm(res: web_sys::Response) -> Result<HttpResponse> {
     let mut builder =

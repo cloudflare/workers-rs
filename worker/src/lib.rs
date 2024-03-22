@@ -136,7 +136,6 @@ pub use crate::env::{Env, EnvBinding, Secret, Var};
 pub use crate::error::Error;
 pub use crate::fetcher::Fetcher;
 pub use crate::formdata::*;
-// #[cfg(not(feature="http"))]
 pub use crate::global::Fetch;
 pub use crate::headers::Headers;
 pub use crate::http::Method;
@@ -166,11 +165,8 @@ pub mod durable;
 mod dynamic_dispatch;
 mod env;
 mod error;
-// #[cfg(feature = "http")]
-// mod fetch;
 mod fetcher;
 mod formdata;
-// #[cfg(not(feature="http"))]
 mod global;
 mod headers;
 mod http;
@@ -203,26 +199,3 @@ pub type HttpRequest = ::http::Request<http::body::Body>;
 #[cfg(feature = "http")]
 /// **Requires** `http` feature. Type alias for `http::Response<worker::Body>`.
 pub type HttpResponse = ::http::Response<http::body::Body>;
-
-struct SendJsFuture(wasm_bindgen_futures::JsFuture);
-
-unsafe impl Send for SendJsFuture {}
-unsafe impl Sync for SendJsFuture {}
-
-impl futures_util::Future for SendJsFuture {
-    type Output = std::result::Result<wasm_bindgen::JsValue, wasm_bindgen::JsValue>;
-    fn poll(
-        self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<Self::Output> {
-        use futures_util::FutureExt;
-        let inner = &mut self.get_mut().0;
-        inner.poll_unpin(cx)
-    }
-}
-
-impl From<js_sys::Promise> for SendJsFuture {
-    fn from(value: js_sys::Promise) -> Self {
-        SendJsFuture(wasm_bindgen_futures::JsFuture::from(value))
-    }
-}

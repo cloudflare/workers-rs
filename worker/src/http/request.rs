@@ -45,7 +45,7 @@ pub fn from_wasm(req: web_sys::Request) -> Result<http::Request<Body>> {
     })
 }
 
-/// **Requires** `http` feature. Convert [`worker::HttpRequest`](crate::HttpRequest)
+/// **Requires** `http` feature. Convert [`http::Request`](http::Request)
 /// to [`web_sys::Request`](web_sys::Request)
 pub fn to_wasm<B: http_body::Body<Data = Bytes> + 'static>(
     mut req: http::Request<B>,
