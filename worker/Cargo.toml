@@ -19,6 +19,7 @@ async-trait.workspace = true
 bytes = "1.5"
 chrono.workspace = true
 chrono-tz.workspace = true
+flate2 = "1.0"
 futures-channel.workspace = true
 futures-util.workspace = true
 wasm-bindgen.workspace = true

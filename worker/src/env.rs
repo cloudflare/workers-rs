@@ -33,6 +33,10 @@ impl Env {
         }
     }
 
+    pub fn ai(&self, binding: &str) -> Result<crate::Ai> {
+        Ok(crate::Ai::new(self.get_binding::<Fetcher>(binding)?))
+    }
+
     /// Access Secret value bindings added to your Worker via the UI or `wrangler`:
     /// <https://developers.cloudflare.com/workers/cli-wrangler/commands#secret>
     pub fn secret(&self, binding: &str) -> Result<Secret> {
