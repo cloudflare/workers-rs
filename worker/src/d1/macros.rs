@@ -2,7 +2,7 @@
 ///
 /// Any parameter provided is required to implement [`serde::Serialize`] to be used.
 ///
-/// Using [`query`] is equivalent to using db.prepare('').bind('') in Javascript.
+/// Using [`query`](crate::query) is equivalent to using db.prepare('').bind('') in Javascript.
 ///
 /// # Example
 ///

@@ -9,7 +9,7 @@ use crate::http::body::BodyStream;
 use worker_sys::ext::ResponseExt;
 use worker_sys::ext::ResponseInitExt;
 
-/// **Requires** `http` feature. Convert generic [`http::Response<B>`](worker::HttpResponse)
+/// **Requires** `http` feature. Convert generic [`http::Response<B>`](crate::HttpResponse)
 /// to [`web_sys::Resopnse`](web_sys::Response) where `B` can be any [`http_body::Body`](http_body::Body)
 pub fn to_wasm<B>(mut res: http::Response<B>) -> Result<web_sys::Response>
 where
@@ -42,7 +42,7 @@ where
 }
 
 /// **Requires** `http` feature. Convert [`web_sys::Resopnse`](web_sys::Response)
-/// to [`worker::HttpResponse`](worker::HttpResponse)
+/// to [`worker::HttpResponse`](crate::HttpResponse)
 pub fn from_wasm(res: web_sys::Response) -> Result<HttpResponse> {
     let mut builder =
         http::response::Builder::new().status(http::StatusCode::from_u16(res.status())?);

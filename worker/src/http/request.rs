@@ -20,7 +20,7 @@ fn version_from_string(version: &str) -> http::Version {
 }
 
 /// **Requires** `http` feature. Convert [`web_sys::Request`](web_sys::Request)
-/// to [`worker::HttpRequest`](worker::HttpRequest)
+/// to [`worker::HttpRequest`](crate::HttpRequest)
 pub fn from_wasm(req: web_sys::Request) -> Result<http::Request<Body>> {
     let mut builder = http::request::Builder::new()
         .uri(req.url())
@@ -45,7 +45,7 @@ pub fn from_wasm(req: web_sys::Request) -> Result<http::Request<Body>> {
     })
 }
 
-/// **Requires** `http` feature. Convert [`worker::HttpRequest`](worker::HttpRequest)
+/// **Requires** `http` feature. Convert [`worker::HttpRequest`](crate::HttpRequest)
 /// to [`web_sys::Request`](web_sys::Request)
 pub fn to_wasm<B: http_body::Body<Data = Bytes> + 'static>(
     mut req: http::Request<B>,
