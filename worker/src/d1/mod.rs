@@ -131,23 +131,39 @@ impl From<D1DatabaseSys> for D1Database {
 }
 
 /// Possible arguments that can be bound to [`D1PreparedStatement`]
-pub enum D1Type<'a> {
-    Null,
-    Number(f64),
-    Text(&'a str),
-    Boolean(bool),
-    Blob(Vec<u8>),
-}
+/// See https://developers.cloudflare.com/d1/build-with-d1/d1-client-api/#type-conversion
+pub struct D1Type(JsValue);
 
-impl<'a> From<&&D1Type<'a>> for JsValue {
-    fn from(value: &&D1Type) -> Self {
-        match value {
-            D1Type::Null => JsValue::null(),
-            D1Type::Number(f) => JsValue::from_f64(*f),
-            D1Type::Text(s) => JsValue::from_str(s),
-            D1Type::Boolean(b) => JsValue::from_bool(*b),
-            D1Type::Blob(a) => serde_wasm_bindgen::to_value(a).expect("Convert blob to JsValue"),
-        }
+impl D1Type {
+    pub fn null() -> Self {
+        D1Type(JsValue::null())
+    }
+
+    pub fn real(f: f64) -> Self {
+        D1Type(JsValue::from_f64(f))
+    }
+
+    pub fn integer(i: i32) -> Self {
+        // I believe JS always casts to float. Documentation states it can accept up to 53 bits of signed precision
+        // so I went with i32 here.
+        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#number_type
+        D1Type(JsValue::from_f64(i as f64))
+    }
+
+    pub fn text(s: &str) -> Self {
+        D1Type(JsValue::from_str(s))
+    }
+
+    pub fn boolean(b: bool) -> Self {
+        D1Type(JsValue::from_bool(b))
+    }
+
+    pub fn blob(a: &[u8]) -> Result<Self> {
+        Ok(D1Type(serde_wasm_bindgen::to_value(a)?))
+    }
+
+    fn inner(&self) -> &JsValue {
+        &self.0
     }
 }
 
@@ -178,12 +194,9 @@ impl D1PreparedStatement {
     /// Returns a new statement with the bound parameters, leaving the old statement available for reuse.
     pub fn bind_refs<'a, T>(&self, values: T) -> Result<Self>
     where
-        T: IntoIterator<Item = &'a &'a D1Type<'a>>,
+        T: IntoIterator<Item = &'a &'a D1Type>,
     {
-        let array: Array = values
-            .into_iter()
-            .map(Into::<JsValue>::into)
-            .collect::<Array>();
+        let array: Array = values.into_iter().map(|t| t.inner()).collect::<Array>();
 
         match self.0.bind(array) {
             Ok(stmt) => Ok(D1PreparedStatement(stmt)),
@@ -196,7 +209,7 @@ impl D1PreparedStatement {
     pub fn batch_bind<'a, U: 'a, T: 'a>(&self, values: T) -> Result<Vec<Self>>
     where
         T: IntoIterator<Item = &'a &'a U>,
-        &'a U: IntoIterator<Item = &'a &'a D1Type<'a>>,
+        &'a U: IntoIterator<Item = &'a &'a D1Type>,
     {
         values
             .into_iter()
