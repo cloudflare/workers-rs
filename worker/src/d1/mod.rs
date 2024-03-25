@@ -132,13 +132,14 @@ impl From<D1DatabaseSys> for D1Database {
     }
 }
 
-/// Possible arguments that can be bound to [`D1PreparedStatement`]
+/// Possible argument types that can be bound to [`D1PreparedStatement`]
 /// See https://developers.cloudflare.com/d1/build-with-d1/d1-client-api/#type-conversion
 pub enum D1Type<'a> {
     Null,
     Real(f64),
     // I believe JS always casts to float. Documentation states it can accept up to 53 bits of signed precision
     // so I went with i32 here. https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#number_type
+    // D1 does not support `BigInt`
     Integer(i32),
     Text(&'a str),
     Boolean(bool),
@@ -148,15 +149,15 @@ pub enum D1Type<'a> {
 /// A pre-computed argument for `bind_refs`.
 ///
 /// Arguments must be converted to `JsValue` when bound. If you plan to
-/// re-use the same argument multiple times, consider using a `PreparedArgument`
+/// re-use the same argument multiple times, consider using a `D1PreparedArgument`
 /// which does this once on construction.
-pub struct PreparedArgument<'a> {
+pub struct D1PreparedArgument<'a> {
     value: &'a D1Type<'a>,
     js_value: JsValue,
 }
 
-impl<'a> PreparedArgument<'a> {
-    pub fn new(value: &'a D1Type) -> PreparedArgument<'a> {
+impl<'a> D1PreparedArgument<'a> {
+    pub fn new(value: &'a D1Type) -> D1PreparedArgument<'a> {
         Self {
             value,
             js_value: value.into(),
@@ -166,18 +167,18 @@ impl<'a> PreparedArgument<'a> {
 
 impl<'a> From<&'a D1Type<'a>> for JsValue {
     fn from(value: &'a D1Type<'a>) -> Self {
-        match value {
+        match *value {
             D1Type::Null => JsValue::null(),
-            D1Type::Real(f) => JsValue::from_f64(*f),
-            D1Type::Integer(i) => JsValue::from_f64(*i as f64),
+            D1Type::Real(f) => JsValue::from_f64(f),
+            D1Type::Integer(i) => JsValue::from_f64(i as f64),
             D1Type::Text(s) => JsValue::from_str(s),
-            D1Type::Boolean(b) => JsValue::from_bool(*b),
+            D1Type::Boolean(b) => JsValue::from_bool(b),
             D1Type::Blob(a) => serde_wasm_bindgen::to_value(a).unwrap(),
         }
     }
 }
 
-impl<'a> Deref for PreparedArgument<'a> {
+impl<'a> Deref for D1PreparedArgument<'a> {
     type Target = D1Type<'a>;
     fn deref(&self) -> &Self::Target {
         self.value
@@ -193,10 +194,10 @@ impl<'a> IntoIterator for &'a D1Type<'a> {
     }
 }
 
-impl<'a> IntoIterator for &'a PreparedArgument<'a> {
-    type Item = &'a PreparedArgument<'a>;
-    type IntoIter = Once<&'a PreparedArgument<'a>>;
-    /// Allows a single &PreparedArgument to be passed to `bind_refs`, without placing it in an array.
+impl<'a> IntoIterator for &'a D1PreparedArgument<'a> {
+    type Item = &'a D1PreparedArgument<'a>;
+    type IntoIter = Once<&'a D1PreparedArgument<'a>>;
+    /// Allows a single &D1PreparedArgument to be passed to `bind_refs`, without placing it in an array.
     fn into_iter(self) -> Self::IntoIter {
         once(self)
     }
@@ -212,7 +213,7 @@ impl<'a> D1Argument for D1Type<'a> {
     }
 }
 
-impl<'a> D1Argument for PreparedArgument<'a> {
+impl<'a> D1Argument for D1PreparedArgument<'a> {
     fn js_value(&self) -> impl AsRef<JsValue> {
         &self.js_value
     }

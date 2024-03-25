@@ -54,7 +54,7 @@ pub async fn prepared_statement(
     assert_eq!(person.name, "John Smith");
     assert_eq!(person.age, 92);
 
-    let prepared_argument = PreparedArgument::new(&D1Type::Text("Dorian Fischer"));
+    let prepared_argument = D1PreparedArgument::new(&D1Type::Text("Dorian Fischer"));
     let stmt_3 = unbound_stmt.bind_refs(&prepared_argument)?;
     let person = stmt_3.first::<Person>(None).await?.unwrap();
     assert_eq!(person.name, "Dorian Fischer");
