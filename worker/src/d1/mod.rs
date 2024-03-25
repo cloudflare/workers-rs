@@ -1,5 +1,7 @@
 use std::fmt::Display;
 use std::fmt::Formatter;
+use std::iter::{once, Once};
+use std::ops::Deref;
 use std::result::Result as StdResult;
 
 use js_sys::Array;
@@ -132,38 +134,87 @@ impl From<D1DatabaseSys> for D1Database {
 
 /// Possible arguments that can be bound to [`D1PreparedStatement`]
 /// See https://developers.cloudflare.com/d1/build-with-d1/d1-client-api/#type-conversion
-pub struct D1Type(JsValue);
+pub enum D1Type<'a> {
+    Null,
+    Real(f64),
+    // I believe JS always casts to float. Documentation states it can accept up to 53 bits of signed precision
+    // so I went with i32 here. https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#number_type
+    Integer(i32),
+    Text(&'a str),
+    Boolean(bool),
+    Blob(&'a [u8]),
+}
 
-impl D1Type {
-    pub fn null() -> Self {
-        D1Type(JsValue::null())
+/// A pre-computed argument for `bind_refs`.
+///
+/// Arguments must be converted to `JsValue` when bound. If you plan to
+/// re-use the same argument multiple times, consider using a `PreparedArgument`
+/// which does this once on construction.
+pub struct PreparedArgument<'a> {
+    value: &'a D1Type<'a>,
+    js_value: JsValue,
+}
+
+impl<'a> PreparedArgument<'a> {
+    pub fn new(value: &'a D1Type) -> PreparedArgument<'a> {
+        Self {
+            value,
+            js_value: value.into(),
+        }
     }
+}
 
-    pub fn real(f: f64) -> Self {
-        D1Type(JsValue::from_f64(f))
+impl<'a> From<&'a D1Type<'a>> for JsValue {
+    fn from(value: &'a D1Type<'a>) -> Self {
+        match value {
+            D1Type::Null => JsValue::null(),
+            D1Type::Real(f) => JsValue::from_f64(*f),
+            D1Type::Integer(i) => JsValue::from_f64(*i as f64),
+            D1Type::Text(s) => JsValue::from_str(s),
+            D1Type::Boolean(b) => JsValue::from_bool(*b),
+            D1Type::Blob(a) => serde_wasm_bindgen::to_value(a).unwrap(),
+        }
     }
+}
 
-    pub fn integer(i: i32) -> Self {
-        // I believe JS always casts to float. Documentation states it can accept up to 53 bits of signed precision
-        // so I went with i32 here.
-        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#number_type
-        D1Type(JsValue::from_f64(i as f64))
+impl<'a> Deref for PreparedArgument<'a> {
+    type Target = D1Type<'a>;
+    fn deref(&self) -> &Self::Target {
+        self.value
     }
+}
 
-    pub fn text(s: &str) -> Self {
-        D1Type(JsValue::from_str(s))
+impl<'a> IntoIterator for &'a D1Type<'a> {
+    type Item = &'a D1Type<'a>;
+    type IntoIter = Once<&'a D1Type<'a>>;
+    /// Allows a single &D1Type to be passed to `bind_refs`, without placing it in an array.
+    fn into_iter(self) -> Self::IntoIter {
+        once(self)
     }
+}
 
-    pub fn boolean(b: bool) -> Self {
-        D1Type(JsValue::from_bool(b))
+impl<'a> IntoIterator for &'a PreparedArgument<'a> {
+    type Item = &'a PreparedArgument<'a>;
+    type IntoIter = Once<&'a PreparedArgument<'a>>;
+    /// Allows a single &PreparedArgument to be passed to `bind_refs`, without placing it in an array.
+    fn into_iter(self) -> Self::IntoIter {
+        once(self)
     }
+}
 
-    pub fn blob(a: &[u8]) -> Result<Self> {
-        Ok(D1Type(serde_wasm_bindgen::to_value(a)?))
+pub trait D1Argument {
+    fn js_value(&self) -> impl AsRef<JsValue>;
+}
+
+impl<'a> D1Argument for D1Type<'a> {
+    fn js_value(&self) -> impl AsRef<JsValue> {
+        Into::<JsValue>::into(self)
     }
+}
 
-    fn inner(&self) -> &JsValue {
-        &self.0
+impl<'a> D1Argument for PreparedArgument<'a> {
+    fn js_value(&self) -> impl AsRef<JsValue> {
+        &self.js_value
     }
 }
 
@@ -192,11 +243,12 @@ impl D1PreparedStatement {
 
     /// Bind one or more parameters to the statement.
     /// Returns a new statement with the bound parameters, leaving the old statement available for reuse.
-    pub fn bind_refs<'a, T>(&self, values: T) -> Result<Self>
+    pub fn bind_refs<'a, T, U: 'a>(&self, values: T) -> Result<Self>
     where
-        T: IntoIterator<Item = &'a &'a D1Type>,
+        T: IntoIterator<Item = &'a U>,
+        U: D1Argument,
     {
-        let array: Array = values.into_iter().map(|t| t.inner()).collect::<Array>();
+        let array: Array = values.into_iter().map(|t| t.js_value()).collect::<Array>();
 
         match self.0.bind(array) {
             Ok(stmt) => Ok(D1PreparedStatement(stmt)),
@@ -206,10 +258,11 @@ impl D1PreparedStatement {
 
     /// Bind a batch of parameter values, returning a batch of prepared statements.
     /// Result can be passed to [`D1Database::batch`] to execute the statements.
-    pub fn batch_bind<'a, U: 'a, T: 'a>(&self, values: T) -> Result<Vec<Self>>
+    pub fn batch_bind<'a, U: 'a, T: 'a, V: 'a>(&self, values: T) -> Result<Vec<Self>>
     where
         T: IntoIterator<Item = &'a &'a U>,
-        &'a U: IntoIterator<Item = &'a &'a D1Type>,
+        &'a U: IntoIterator<Item = &'a V>,
+        V: D1Argument,
     {
         values
             .into_iter()
