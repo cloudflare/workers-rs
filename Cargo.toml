@@ -5,6 +5,7 @@ members = [
     "worker-macros",
     "worker-sandbox",
     "worker-sys",
+    "worker-kv",
     "examples/*",
 ]
 exclude = ["examples/coredump", "examples/axum"]
