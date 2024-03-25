@@ -151,21 +151,29 @@ impl D1PreparedStatement {
     }
 
     /// Bind one or more parameters to the statement.
-    /// Consumes the old statement and returns a new statement with the bound parameters.
-    ///
-    /// D1 follows the SQLite convention for prepared statements parameter binding.
-    ///
-    /// # Considerations
-    ///
-    /// Supports Ordered (?NNNN) and Anonymous (?) parameters - named parameters are currently not supported.
-    ///
-    pub fn bind_refs(self, values: &[&JsValue]) -> Result<Self> {
+    /// Returns a new statement with the bound parameters, leaving the old statement available for reuse.
+    pub fn bind_refs(&self, values: &[&JsValue]) -> Result<Self> {
         let array: Array = values.iter().collect::<Array>();
 
         match self.0.bind(array) {
             Ok(stmt) => Ok(D1PreparedStatement(stmt)),
             Err(err) => Err(Error::from(err)),
         }
+    }
+
+    /// Bind a batch of parameter values, returning a batch of prepared statements.
+    /// Result can be passed to [`D1Database::batch`] to execute the statements.
+    pub fn batch_bind(&self, values: &[&[&JsValue]]) -> Result<Vec<Self>> {
+        values
+            .iter()
+            .map(|batch| {
+                let array: Array = batch.iter().collect::<Array>();
+                match self.0.bind(array) {
+                    Ok(stmt) => Ok(D1PreparedStatement(stmt)),
+                    Err(err) => Err(Error::from(err)),
+                }
+            })
+            .collect()
     }
 
     /// Return the first row of results.
