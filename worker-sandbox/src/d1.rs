@@ -10,11 +10,13 @@ struct Person {
     age: u32,
 }
 
+#[worker::send]
 pub async fn prepared_statement(
     _req: Request,
-    ctx: RouteContext<SomeSharedData>,
+    env: Env,
+    _data: SomeSharedData,
 ) -> Result<Response> {
-    let db = ctx.env.d1("DB")?;
+    let db = env.d1("DB")?;
     let stmt = worker::query!(&db, "SELECT * FROM people WHERE name = ?", "Ryan Upton")?;
 
     // All rows
@@ -49,8 +51,9 @@ pub async fn prepared_statement(
     Response::ok("ok")
 }
 
-pub async fn batch(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    let db = ctx.env.d1("DB")?;
+#[worker::send]
+pub async fn batch(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let db = env.d1("DB")?;
     let mut results = db
         .batch(vec![
             worker::query!(&db, "SELECT * FROM people WHERE id < 4"),
@@ -73,8 +76,9 @@ pub async fn batch(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<R
     Response::ok("ok")
 }
 
-pub async fn exec(mut req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    let db = ctx.env.d1("DB")?;
+#[worker::send]
+pub async fn exec(mut req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let db = env.d1("DB")?;
     let result = db
         .exec(req.text().await?.as_ref())
         .await
@@ -83,14 +87,16 @@ pub async fn exec(mut req: Request, ctx: RouteContext<SomeSharedData>) -> Result
     Response::ok(result.count().unwrap_or_default().to_string())
 }
 
-pub async fn dump(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    let db = ctx.env.d1("DB")?;
+#[worker::send]
+pub async fn dump(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let db = env.d1("DB")?;
     let bytes = db.dump().await?;
     Response::from_bytes(bytes)
 }
 
-pub async fn error(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    let db = ctx.env.d1("DB")?;
+#[worker::send]
+pub async fn error(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let db = env.d1("DB")?;
     let error = db
         .exec("THIS IS NOT VALID SQL")
         .await

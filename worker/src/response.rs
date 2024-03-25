@@ -5,6 +5,8 @@ use crate::ByteStream;
 use crate::Result;
 use crate::WebSocket;
 
+#[cfg(feature = "http")]
+use bytes::Bytes;
 use futures_util::{TryStream, TryStreamExt};
 use js_sys::Uint8Array;
 use serde::{de::DeserializeOwned, Serialize};
@@ -35,9 +37,9 @@ pub struct Response {
 }
 
 #[cfg(feature = "http")]
-impl TryFrom<crate::HttpResponse> for Response {
+impl<B: http_body::Body<Data = Bytes> + 'static> TryFrom<http::Response<B>> for Response {
     type Error = crate::Error;
-    fn try_from(res: crate::HttpResponse) -> Result<Self> {
+    fn try_from(res: http::Response<B>) -> Result<Self> {
         let resp = crate::http::response::to_wasm(res)?;
         Ok(resp.into())
     }

@@ -4,7 +4,9 @@ use crate::Result;
 use crate::{http::redirect::RequestRedirect, AbortSignal};
 use worker_sys::ext::RequestExt;
 
+use crate::http::body::BodyStream;
 use crate::http::header::{header_map_from_web_sys_headers, web_sys_headers_from_header_map};
+use bytes::Bytes;
 
 fn version_from_string(version: &str) -> http::Version {
     match version {
@@ -18,7 +20,7 @@ fn version_from_string(version: &str) -> http::Version {
 }
 
 /// **Requires** `http` feature. Convert [`web_sys::Request`](web_sys::Request)
-/// to [`worker::HttpRequest`](worker::HttpRequest)
+/// to [`worker::HttpRequest`](crate::HttpRequest)
 pub fn from_wasm(req: web_sys::Request) -> Result<http::Request<Body>> {
     let mut builder = http::request::Builder::new()
         .uri(req.url())
@@ -43,9 +45,11 @@ pub fn from_wasm(req: web_sys::Request) -> Result<http::Request<Body>> {
     })
 }
 
-/// **Requires** `http` feature. Convert [`worker::HttpRequest`](worker::HttpRequest)
+/// **Requires** `http` feature. Convert [`http::Request`](http::Request)
 /// to [`web_sys::Request`](web_sys::Request)
-pub fn to_wasm(mut req: http::Request<Body>) -> Result<web_sys::Request> {
+pub fn to_wasm<B: http_body::Body<Data = Bytes> + 'static>(
+    mut req: http::Request<B>,
+) -> Result<web_sys::Request> {
     let mut init = web_sys::RequestInit::new();
     init.method(req.method().as_str());
     let headers = web_sys_headers_from_header_map(req.headers())?;
@@ -73,7 +77,10 @@ pub fn to_wasm(mut req: http::Request<Body>) -> Result<web_sys::Request> {
         let _ = r;
     }
 
-    if let Some(readable_stream) = req.into_body().into_inner() {
+    let body = req.into_body();
+    if !body.is_end_stream() {
+        let readable_stream =
+            wasm_streams::ReadableStream::from_stream(BodyStream::new(body)).into_raw();
         init.body(Some(readable_stream.as_ref()));
     }
 

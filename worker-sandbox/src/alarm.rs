@@ -2,6 +2,8 @@ use std::time::Duration;
 
 use worker::*;
 
+use super::SomeSharedData;
+
 #[durable_object]
 pub struct AlarmObject {
     state: State,
@@ -38,4 +40,32 @@ impl DurableObject for AlarmObject {
 
         Response::ok("ALARMED")
     }
+}
+
+#[worker::send]
+pub async fn handle_alarm(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let namespace = env.durable_object("ALARM")?;
+    let stub = namespace.id_from_name("alarm")?.get_stub()?;
+    // when calling fetch to a Durable Object, a full URL must be used. Alternatively, a
+    // compatibility flag can be provided in wrangler.toml to opt-in to older behavior:
+    // https://developers.cloudflare.com/workers/platform/compatibility-dates#durable-object-stubfetch-requires-a-full-url
+    stub.fetch_with_str("https://fake-host/alarm").await
+}
+
+#[worker::send]
+pub async fn handle_id(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let namespace = env.durable_object("COUNTER").expect("DAWJKHDAD");
+    let stub = namespace.id_from_name("A")?.get_stub()?;
+    // when calling fetch to a Durable Object, a full URL must be used. Alternatively, a
+    // compatibility flag can be provided in wrangler.toml to opt-in to older behavior:
+    // https://developers.cloudflare.com/workers/platform/compatibility-dates#durable-object-stubfetch-requires-a-full-url
+    stub.fetch_with_str("https://fake-host/").await
+}
+
+#[worker::send]
+pub async fn handle_put_raw(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let namespace = env.durable_object("PUT_RAW_TEST_OBJECT")?;
+    let id = namespace.unique_id()?;
+    let stub = id.get_stub()?;
+    stub.fetch_with_request(req).await
 }
