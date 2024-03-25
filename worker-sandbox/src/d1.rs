@@ -1,6 +1,5 @@
 use crate::SomeSharedData;
 use serde::Deserialize;
-use wasm_bindgen::JsValue;
 use worker::*;
 
 #[derive(Deserialize)]
@@ -19,7 +18,7 @@ pub async fn prepared_statement(
     let db = env.d1("DB")?;
     let unbound_stmt = worker::query!(&db, "SELECT * FROM people WHERE name = ?");
 
-    let stmt = unbound_stmt.bind_refs(&[&JsValue::from_str("Ryan Upton")])?;
+    let stmt = unbound_stmt.bind_refs(&[&D1Type::Text("Ryan Upton")])?;
 
     // All rows
     let results = stmt.all().await?;
@@ -50,7 +49,7 @@ pub async fn prepared_statement(
     assert_eq!(columns[1].as_str(), Some("Ryan Upton"));
     assert_eq!(columns[2].as_u64(), Some(21));
 
-    let stmt_2 = unbound_stmt.bind_refs(&[&JsValue::from_str("John Smith")])?;
+    let stmt_2 = unbound_stmt.bind_refs(&[&D1Type::Text("John Smith")])?;
     let person = stmt_2.first::<Person>(None).await?.unwrap();
     assert_eq!(person.name, "John Smith");
     assert_eq!(person.age, 92);

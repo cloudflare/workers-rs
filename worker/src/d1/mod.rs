@@ -25,6 +25,9 @@ pub mod macros;
 // A D1 Database.
 pub struct D1Database(D1DatabaseSys);
 
+unsafe impl Sync for D1Database {}
+unsafe impl Send for D1Database {}
+
 impl D1Database {
     /// Prepare a query statement from a query string.
     pub fn prepare<T: Into<String>>(&self, query: T) -> D1PreparedStatement {
@@ -127,6 +130,27 @@ impl From<D1DatabaseSys> for D1Database {
     }
 }
 
+/// Possible arguments that can be bound to [`D1PreparedStatement`]
+pub enum D1Type<'a> {
+    Null,
+    Number(f64),
+    Text(&'a str),
+    Boolean(bool),
+    Blob(Vec<u8>),
+}
+
+impl<'a> From<&&D1Type<'a>> for JsValue {
+    fn from(value: &&D1Type) -> Self {
+        match value {
+            D1Type::Null => JsValue::null(),
+            D1Type::Number(f) => JsValue::from_f64(*f),
+            D1Type::Text(s) => JsValue::from_str(s),
+            D1Type::Boolean(b) => JsValue::from_bool(*b),
+            D1Type::Blob(a) => serde_wasm_bindgen::to_value(a).expect("Convert blob to JsValue"),
+        }
+    }
+}
+
 // A D1 prepared query statement.
 #[derive(Clone)]
 pub struct D1PreparedStatement(D1PreparedStatementSys);
@@ -152,8 +176,14 @@ impl D1PreparedStatement {
 
     /// Bind one or more parameters to the statement.
     /// Returns a new statement with the bound parameters, leaving the old statement available for reuse.
-    pub fn bind_refs(&self, values: &[&JsValue]) -> Result<Self> {
-        let array: Array = values.iter().collect::<Array>();
+    pub fn bind_refs<'a, T>(&self, values: T) -> Result<Self>
+    where
+        T: IntoIterator<Item = &'a &'a D1Type<'a>>,
+    {
+        let array: Array = values
+            .into_iter()
+            .map(Into::<JsValue>::into)
+            .collect::<Array>();
 
         match self.0.bind(array) {
             Ok(stmt) => Ok(D1PreparedStatement(stmt)),
@@ -163,16 +193,14 @@ impl D1PreparedStatement {
 
     /// Bind a batch of parameter values, returning a batch of prepared statements.
     /// Result can be passed to [`D1Database::batch`] to execute the statements.
-    pub fn batch_bind(&self, values: &[&[&JsValue]]) -> Result<Vec<Self>> {
+    pub fn batch_bind<'a, U: 'a, T: 'a>(&self, values: T) -> Result<Vec<Self>>
+    where
+        T: IntoIterator<Item = &'a &'a U>,
+        &'a U: IntoIterator<Item = &'a &'a D1Type<'a>>,
+    {
         values
-            .iter()
-            .map(|batch| {
-                let array: Array = batch.iter().collect::<Array>();
-                match self.0.bind(array) {
-                    Ok(stmt) => Ok(D1PreparedStatement(stmt)),
-                    Err(err) => Err(Error::from(err)),
-                }
-            })
+            .into_iter()
+            .map(|&batch| self.bind_refs(batch))
             .collect()
     }
 
