@@ -261,13 +261,13 @@ impl D1PreparedStatement {
     /// Result can be passed to [`D1Database::batch`] to execute the statements.
     pub fn batch_bind<'a, U: 'a, T: 'a, V: 'a>(&self, values: T) -> Result<Vec<Self>>
     where
-        T: IntoIterator<Item = &'a &'a U>,
-        &'a U: IntoIterator<Item = &'a V>,
+        T: IntoIterator<Item = U>,
+        U: IntoIterator<Item = &'a V>,
         V: D1Argument,
     {
         values
             .into_iter()
-            .map(|&batch| self.bind_refs(batch))
+            .map(|batch| self.bind_refs(batch))
             .collect()
     }
 
