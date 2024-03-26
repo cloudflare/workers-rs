@@ -37,6 +37,10 @@ pub struct KvStore {
     pub(crate) delete_function: Function,
 }
 
+// Allows for attachment to axum router, as Workers will never allow multithreading.
+unsafe impl Send for KvStore {}
+unsafe impl Sync for KvStore {}
+
 impl KvStore {
     /// Creates a new [`KvStore`] with the binding specified in your `wrangler.toml`.
     pub fn create(binding: &str) -> Result<Self, KvError> {
