@@ -8,7 +8,6 @@ use std::{
 };
 
 use fs_extra::dir::CopyOptions;
-use serde::Deserialize;
 
 #[tokio::test]
 #[allow(clippy::needless_collect)]
@@ -92,12 +91,4 @@ fn start_miniflare() -> io::Result<Child> {
         .args(&["-c", "wrangler.toml", "-k", "test", "--kv-persist"])
         .current_dir("tests/worker_kv_test")
         .spawn()
-}
-
-#[derive(Debug, Deserialize)]
-enum TestResult {
-    #[serde(rename = "success")]
-    Success(String),
-    #[serde(rename = "failure")]
-    Failure(String),
 }
