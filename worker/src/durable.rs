@@ -18,7 +18,7 @@ use crate::{
     error::Error,
     request::Request,
     response::Response,
-    Result,
+    Result, WebSocket,
 };
 
 use async_trait::async_trait;
@@ -194,6 +194,37 @@ impl State {
     pub fn _inner(self) -> DurableObjectState {
         self.inner
     }
+
+    pub fn accept_web_socket(&self, ws: &WebSocket) {
+        self.inner.accept_websocket(ws.as_ref())
+    }
+
+    pub fn accept_websocket_with_tags(&self, ws: &WebSocket, tags: &[&str]) {
+        let tags = tags.iter().map(|it| (*it).into()).collect();
+
+        self.inner.accept_websocket_with_tags(ws.as_ref(), tags);
+    }
+
+    pub fn get_websockets(&self) -> Vec<WebSocket> {
+        self.inner
+            .get_websockets()
+            .into_iter()
+            .map(Into::into)
+            .collect()
+    }
+
+    pub fn get_websockets_with_tag(&self, tag: &str) -> Vec<WebSocket> {
+        self.inner
+            .get_websockets_with_tag(tag)
+            .into_iter()
+            .map(Into::into)
+            .collect()
+    }
+
+    /// Retrieve tags from a hibernatable websocket
+    pub fn get_tags(&self, websocket: &WebSocket) -> Vec<String> {
+        self.inner.get_tags(websocket.as_ref())
+    }
 }
 
 impl From<DurableObjectState> for State {
@@ -240,7 +271,12 @@ impl Storage {
 
     /// Stores the value and associates it with the given key.
     pub async fn put<T: Serialize>(&mut self, key: &str, value: T) -> Result<()> {
-        JsFuture::from(self.inner.put(key, serde_wasm_bindgen::to_value(&value)?)?)
+        self.put_raw(key, serde_wasm_bindgen::to_value(&value)?)
+            .await
+    }
+
+    pub async fn put_raw(&mut self, key: &str, value: impl Into<JsValue>) -> Result<()> {
+        JsFuture::from(self.inner.put(key, value.into())?)
             .await
             .map_err(Error::from)
             .map(|_| ())
@@ -252,7 +288,24 @@ impl Storage {
         if !values.is_object() {
             return Err("Must pass in a struct type".to_string().into());
         }
-        JsFuture::from(self.inner.put_multiple(values)?)
+        self.put_multiple_raw(values.dyn_into().unwrap()).await
+    }
+
+    /// Takes an object and stores each of its keys and values to storage.
+    ///
+    /// ```no_run
+    /// # use worker::Storage;
+    /// use worker::JsValue;
+    ///
+    /// # let storage: Storage = todo!();
+    ///
+    /// let obj = js_sys::Object::new();
+    /// js_sys::Reflect::set(&obj, &JsValue::from_str("foo"), JsValue::from_u64(1));
+    ///
+    /// storage.put_multiple_raw(obj);
+    /// ```
+    pub async fn put_multiple_raw(&mut self, values: Object) -> Result<()> {
+        JsFuture::from(self.inner.put_multiple(values.into())?)
             .await
             .map_err(Error::from)
             .map(|_| ())
@@ -389,36 +442,34 @@ impl Storage {
         fut.await.map(|_| ()).map_err(Error::from)
     }
 
-    // TODO(nilslice): follow up with runtime team on transaction API in general
-    // This function doesn't work on stable yet because the wasm_bindgen `Closure` type is still nightly-gated
-    // #[allow(dead_code)]
-    // async fn transaction<F>(&mut self, closure: fn(Transaction) -> F) -> Result<()>
-    // where
-    //     F: Future<Output = Result<()>> + 'static,
-    // {
-    //     let mut clos = |t: Transaction| {
-    //         future_to_promise(async move {
-    //             closure(t)
-    //                 .await
-    //                 .map_err(JsValue::from)
-    //                 .map(|_| JsValue::NULL)
-    //         })
-    //     };
-    //     JsFuture::from(self.inner.transaction_internal(&mut clos)?)
-    //         .await
-    //         .map_err(Error::from)
-    //         .map(|_| ())
-    // }
+    pub async fn transaction<F, Fut>(&mut self, mut closure: F) -> Result<()>
+    where
+        F: FnMut(Transaction) -> Fut + Copy + 'static,
+        Fut: Future<Output = Result<()>> + 'static,
+    {
+        let inner: Box<dyn FnMut(DurableObjectTransaction) -> js_sys::Promise> =
+            Box::new(move |t: DurableObjectTransaction| -> js_sys::Promise {
+                future_to_promise(async move {
+                    closure(Transaction { inner: t })
+                        .await
+                        .map_err(JsValue::from)
+                        .map(|_| JsValue::NULL)
+                })
+            });
+        let clos = wasm_bindgen::closure::Closure::wrap(inner);
+        JsFuture::from(self.inner.transaction(&clos)?)
+            .await
+            .map_err(Error::from)
+            .map(|_| ())
+    }
 }
 
-#[allow(dead_code)]
-struct Transaction {
+pub struct Transaction {
     inner: DurableObjectTransaction,
 }
 
-#[allow(dead_code)]
 impl Transaction {
-    async fn get<T: DeserializeOwned>(&self, key: &str) -> Result<T> {
+    pub async fn get<T: DeserializeOwned>(&self, key: &str) -> Result<T> {
         JsFuture::from(self.inner.get(key)?)
             .await
             .and_then(|val| {
@@ -431,7 +482,7 @@ impl Transaction {
             .map_err(Error::from)
     }
 
-    async fn get_multiple(&self, keys: Vec<impl Deref<Target = str>>) -> Result<Map> {
+    pub async fn get_multiple(&self, keys: Vec<impl Deref<Target = str>>) -> Result<Map> {
         let keys = self.inner.get_multiple(
             keys.into_iter()
                 .map(|key| JsValue::from(key.deref()))
@@ -441,7 +492,7 @@ impl Transaction {
         keys.dyn_into::<Map>().map_err(Error::from)
     }
 
-    async fn put<T: Serialize>(&mut self, key: &str, value: T) -> Result<()> {
+    pub async fn put<T: Serialize>(&mut self, key: &str, value: T) -> Result<()> {
         JsFuture::from(self.inner.put(key, serde_wasm_bindgen::to_value(&value)?)?)
             .await
             .map_err(Error::from)
@@ -449,7 +500,7 @@ impl Transaction {
     }
 
     // Each key-value pair in the serialized object will be added to the storage
-    async fn put_multiple<T: Serialize>(&mut self, values: T) -> Result<()> {
+    pub async fn put_multiple<T: Serialize>(&mut self, values: T) -> Result<()> {
         let values = serde_wasm_bindgen::to_value(&values)?;
         if !values.is_object() {
             return Err("Must pass in a struct type".to_string().into());
@@ -460,7 +511,7 @@ impl Transaction {
             .map(|_| ())
     }
 
-    async fn delete(&mut self, key: &str) -> Result<bool> {
+    pub async fn delete(&mut self, key: &str) -> Result<bool> {
         let fut: JsFuture = self.inner.delete(key)?.into();
         fut.await
             .and_then(|jsv| {
@@ -470,7 +521,7 @@ impl Transaction {
             .map_err(Error::from)
     }
 
-    async fn delete_multiple(&mut self, keys: Vec<impl Deref<Target = str>>) -> Result<usize> {
+    pub async fn delete_multiple(&mut self, keys: Vec<impl Deref<Target = str>>) -> Result<usize> {
         let fut: JsFuture = self
             .inner
             .delete_multiple(
@@ -488,19 +539,19 @@ impl Transaction {
             .map_err(Error::from)
     }
 
-    async fn delete_all(&mut self) -> Result<()> {
+    pub async fn delete_all(&mut self) -> Result<()> {
         let fut: JsFuture = self.inner.delete_all()?.into();
         fut.await.map(|_| ()).map_err(Error::from)
     }
 
-    async fn list(&self) -> Result<Map> {
+    pub async fn list(&self) -> Result<Map> {
         let fut: JsFuture = self.inner.list()?.into();
         fut.await
             .and_then(|jsv| jsv.dyn_into())
             .map_err(Error::from)
     }
 
-    async fn list_with_options(&self, opts: ListOptions<'_>) -> Result<Map> {
+    pub async fn list_with_options(&self, opts: ListOptions<'_>) -> Result<Map> {
         let fut: JsFuture = self
             .inner
             .list_with_options(serde_wasm_bindgen::to_value(&opts)?.into())?
@@ -510,7 +561,7 @@ impl Transaction {
             .map_err(Error::from)
     }
 
-    fn rollback(&mut self) -> Result<()> {
+    pub fn rollback(&mut self) -> Result<()> {
         self.inner.rollback().map_err(Error::from)
     }
 }
@@ -578,11 +629,11 @@ enum ScheduledTimeInit {
     Offset(f64),
 }
 
-/// Determines when a Durable Object alarm should be ran, based on a timestamp or offset.
+/// Determines when a Durable Object alarm should be ran, based on a timestamp or offset in milliseconds.
 ///
 /// Implements [`From`] for:
-/// - [`Duration`], interpreted as an offset.
-/// - [`i64`], interpreted as an offset.
+/// - [`Duration`], interpreted as an offset (in milliseconds).
+/// - [`i64`], interpreted as an offset (in milliseconds).
 /// - [`DateTime`], interpreted as a timestamp.
 ///
 /// When an offset is used, the time at which `set_alarm()` or `set_alarm_with_options()` is called
@@ -679,6 +730,11 @@ impl AsRef<JsValue> for ObjectNamespace {
     }
 }
 
+pub enum WebSocketIncomingMessage {
+    String(String),
+    Binary(Vec<u8>),
+}
+
 /**
 **Note:** Implement this trait with a standard `impl DurableObject for YourType` block, but in order to
 integrate them with the Workers Runtime, you must also add the **`#[durable_object]`** attribute
@@ -691,10 +747,9 @@ use worker::*;
 #[durable_object]
 pub struct Chatroom {
     users: Vec<User>,
-    messages: Vec<Message>
+    messages: Vec<Message>,
     state: State,
     env: Env, // access `Env` across requests, use inside `fetch`
-
 }
 
 #[durable_object]
@@ -703,7 +758,7 @@ impl DurableObject for Chatroom {
         Self {
             users: vec![],
             messages: vec![],
-            state: state,
+            state,
             env,
         }
     }
@@ -715,11 +770,40 @@ impl DurableObject for Chatroom {
 }
 ```
 */
+
 #[async_trait(?Send)]
 pub trait DurableObject {
     fn new(state: State, env: Env) -> Self;
+
     async fn fetch(&mut self, req: Request) -> Result<Response>;
+
+    #[allow(clippy::diverging_sub_expression)]
     async fn alarm(&mut self) -> Result<Response> {
         unimplemented!("alarm() handler not implemented")
+    }
+
+    #[allow(unused_variables, clippy::diverging_sub_expression)]
+    async fn websocket_message(
+        &mut self,
+        ws: WebSocket,
+        message: WebSocketIncomingMessage,
+    ) -> Result<()> {
+        unimplemented!("websocket_message() handler not implemented")
+    }
+
+    #[allow(unused_variables, clippy::diverging_sub_expression)]
+    async fn websocket_close(
+        &mut self,
+        ws: WebSocket,
+        code: usize,
+        reason: String,
+        was_clean: bool,
+    ) -> Result<()> {
+        unimplemented!("websocket_close() handler not implemented")
+    }
+
+    #[allow(unused_variables, clippy::diverging_sub_expression)]
+    async fn websocket_error(&mut self, ws: WebSocket, error: Error) -> Result<()> {
+        unimplemented!("websocket_error() handler not implemented")
     }
 }

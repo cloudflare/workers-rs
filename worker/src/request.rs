@@ -24,6 +24,26 @@ pub struct Request {
     immutable: bool,
 }
 
+unsafe impl Send for Request {}
+unsafe impl Sync for Request {}
+
+#[cfg(feature = "http")]
+impl<B: http_body::Body<Data = bytes::Bytes> + 'static> TryFrom<http::Request<B>> for Request {
+    type Error = crate::Error;
+    fn try_from(req: http::Request<B>) -> Result<Self> {
+        let web_request: web_sys::Request = crate::http::request::to_wasm(req)?;
+        Ok(Request::from(web_request))
+    }
+}
+
+#[cfg(feature = "http")]
+impl TryFrom<Request> for crate::HttpRequest {
+    type Error = crate::Error;
+    fn try_from(req: Request) -> Result<Self> {
+        crate::http::request::from_wasm(req.edge_request)
+    }
+}
+
 impl From<web_sys::Request> for Request {
     fn from(req: web_sys::Request) -> Self {
         Self {
@@ -204,8 +224,14 @@ impl Request {
     }
 
     /// Access this request's Cloudflare-specific properties.
-    pub fn cf(&self) -> &Cf {
-        self.cf.as_ref().unwrap()
+    ///
+    /// # Note
+    ///
+    /// Request objects constructed by the user and not the runtime will not have a [Cf] associated.
+    ///
+    /// See [workerd#825](https://github.com/cloudflare/workerd/issues/825)
+    pub fn cf(&self) -> Option<&Cf> {
+        self.cf.as_ref()
     }
 
     /// The HTTP Method associated with this `Request`.
@@ -234,6 +260,15 @@ impl Request {
         let url = self.edge_request.url();
         url.parse()
             .map_err(|e| Error::RustError(format!("failed to parse Url from {e}: {url}")))
+    }
+
+    /// Deserialize the url query
+    pub fn query<Q: DeserializeOwned>(&self) -> Result<Q> {
+        let url = self.url()?;
+        let pairs = url.query_pairs();
+        let deserializer = serde_urlencoded::Deserializer::new(pairs);
+
+        Q::deserialize(deserializer).map_err(Error::from)
     }
 
     #[allow(clippy::should_implement_trait)]

@@ -1,0 +1,35 @@
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+
+name: Create Release
+
+jobs:
+  github-release:
+    name: Github Release
+    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'releases/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Extract version
+        id: extract_version
+        run: |
+          BRANCH="${{ github.event.pull_request.head.ref }}"
+          VERSION=${BRANCH:10}
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+        with:
+          tag_name: v${{ steps.extract_version.outputs.version }}
+          release_name: Release v${{ steps.extract_version.outputs.version }}
+          draft: true
+          prerelease: false
+          generate_release_notes: true
+          commitish: ${{ github.event.pull_request.head.sha }}

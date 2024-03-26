@@ -8,6 +8,9 @@ pub enum Error {
     BodyUsed,
     Json((String, u16)),
     JsError(String),
+    #[cfg(feature = "http")]
+    Http(http::Error),
+    Infallible,
     Internal(JsValue),
     Io(std::io::Error),
     BindingError(String),
@@ -17,6 +20,54 @@ pub enum Error {
     SerdeJsonError(serde_json::Error),
     #[cfg(feature = "queue")]
     SerdeWasmBindgenError(serde_wasm_bindgen::Error),
+    #[cfg(feature = "http")]
+    StatusCode(http::status::InvalidStatusCode),
+    #[cfg(feature = "d1")]
+    D1(crate::d1::D1Error),
+    Utf8Error(std::str::Utf8Error),
+}
+
+unsafe impl Sync for Error {}
+unsafe impl Send for Error {}
+
+#[cfg(feature = "http")]
+impl From<http::Error> for Error {
+    fn from(value: http::Error) -> Self {
+        Self::Http(value)
+    }
+}
+
+#[cfg(feature = "http")]
+impl From<http::status::InvalidStatusCode> for Error {
+    fn from(value: http::status::InvalidStatusCode) -> Self {
+        Self::StatusCode(value)
+    }
+}
+
+#[cfg(feature = "http")]
+impl From<http::header::InvalidHeaderName> for Error {
+    fn from(value: http::header::InvalidHeaderName) -> Self {
+        Self::RustError(format!("Invalid header name: {:?}", value))
+    }
+}
+
+#[cfg(feature = "http")]
+impl From<http::header::InvalidHeaderValue> for Error {
+    fn from(value: http::header::InvalidHeaderValue) -> Self {
+        Self::RustError(format!("Invalid header value: {:?}", value))
+    }
+}
+
+impl From<std::str::Utf8Error> for Error {
+    fn from(value: std::str::Utf8Error) -> Self {
+        Self::Utf8Error(value)
+    }
+}
+
+impl From<core::convert::Infallible> for Error {
+    fn from(_value: core::convert::Infallible) -> Self {
+        Error::Infallible
+    }
 }
 
 impl From<worker_kv::KvError> for Error {
@@ -32,10 +83,23 @@ impl From<url::ParseError> for Error {
     }
 }
 
+impl From<serde_urlencoded::de::Error> for Error {
+    fn from(e: serde_urlencoded::de::Error) -> Self {
+        Self::RustError(e.to_string())
+    }
+}
+
 impl From<serde_wasm_bindgen::Error> for Error {
     fn from(e: serde_wasm_bindgen::Error) -> Self {
         let val: JsValue = e.into();
         val.into()
+    }
+}
+
+#[cfg(feature = "d1")]
+impl From<crate::d1::D1Error> for Error {
+    fn from(e: crate::d1::D1Error) -> Self {
+        Self::D1(e)
     }
 }
 
@@ -48,6 +112,9 @@ impl std::fmt::Display for Error {
             Error::JsError(s) | Error::RustError(s) => {
                 write!(f, "{s}")
             }
+            #[cfg(feature = "http")]
+            Error::Http(e) => write!(f, "http::Error: {e}"),
+            Error::Infallible => write!(f, "infallible"),
             Error::Internal(_) => write!(f, "unrecognized JavaScript object"),
             Error::Io(e) => write!(f, "IO Error: {e}"),
             Error::BindingError(name) => write!(f, "no binding found for `{name}`"),
@@ -56,18 +123,32 @@ impl std::fmt::Display for Error {
             Error::SerdeJsonError(e) => write!(f, "Serde Error: {e}"),
             #[cfg(feature = "queue")]
             Error::SerdeWasmBindgenError(e) => write!(f, "Serde Error: {e}"),
+            #[cfg(feature = "http")]
+            Error::StatusCode(e) => write!(f, "{e}"),
+            #[cfg(feature = "d1")]
+            Error::D1(e) => write!(f, "D1: {e:#?}"),
+            Error::Utf8Error(e) => write!(f, "{e}"),
         }
     }
 }
 
 impl std::error::Error for Error {}
 
+// Not sure if the changes I've made here are good or bad...
 impl From<JsValue> for Error {
     fn from(v: JsValue) -> Self {
-        match v
-            .as_string()
-            .or_else(|| v.dyn_ref::<js_sys::Error>().map(|e| e.to_string().into()))
-        {
+        match v.as_string().or_else(|| {
+            v.dyn_ref::<js_sys::Error>().map(|e| {
+                format!(
+                    "Error: {} - Cause: {}",
+                    e.to_string(),
+                    e.cause()
+                        .as_string()
+                        .or_else(|| { Some(e.to_string().into()) })
+                        .unwrap_or(String::from("N/A"))
+                )
+            })
+        }) {
             Some(s) => Self::JsError(s),
             None => Self::Internal(v),
         }

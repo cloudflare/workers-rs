@@ -6,17 +6,20 @@ use js_sys::{JsString, Reflect, Uint8Array};
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use worker_sys::{
-    FixedLengthStream as EdgeFixedLengthStream, R2Bucket as EdgeR2Bucket,
+    FixedLengthStream as EdgeFixedLengthStream, R2Bucket as EdgeR2Bucket, R2Checksums,
     R2MultipartUpload as EdgeR2MultipartUpload, R2Object as EdgeR2Object,
     R2ObjectBody as EdgeR2ObjectBody, R2Objects as EdgeR2Objects,
     R2UploadedPart as EdgeR2UploadedPart,
 };
 
-use crate::{env::EnvBinding, ByteStream, Date, Error, FixedLengthStream, Headers, Result};
+use crate::{
+    env::EnvBinding, ByteStream, Date, Error, FixedLengthStream, Headers, ResponseBody, Result,
+};
 
 mod builder;
 
 /// An instance of the R2 bucket binding.
+#[derive(Clone)]
 pub struct Bucket {
     inner: EdgeR2Bucket,
 }
@@ -60,7 +63,8 @@ impl Bucket {
             value: value.into(),
             http_metadata: None,
             custom_metadata: None,
-            md5: None,
+            checksum: None,
+            checksum_algorithm: "md5".into(),
         }
     }
 
@@ -213,6 +217,14 @@ impl Object {
         .into()
     }
 
+    pub fn checksum(&self) -> R2Checksums {
+        match &self.inner {
+            ObjectInner::NoBody(inner) => inner.checksums(),
+            ObjectInner::Body(inner) => inner.checksums(),
+        }
+        .into()
+    }
+
     pub fn custom_metadata(&self) -> Result<HashMap<String, String>> {
         let metadata = match &self.inner {
             ObjectInner::NoBody(inner) => inner.custom_metadata(),
@@ -280,6 +292,19 @@ impl<'body> ObjectBody<'body> {
         Ok(ByteStream {
             inner: stream.into_stream(),
         })
+    }
+
+    /// Returns a [ResponseBody] containing the data in the [Object].
+    ///
+    /// This function can be used to hand off the [Object] data to the workers runtime for streaming
+    /// to the client in a [crate::Response]. This ensures that the worker does not consume CPU time
+    /// while the streaming occurs, which can be significant if instead [ObjectBody::stream] is used.
+    pub fn response_body(self) -> Result<ResponseBody> {
+        if self.inner.body_used() {
+            return Err(Error::BodyUsed);
+        }
+
+        Ok(ResponseBody::Stream(self.inner.body()))
     }
 
     pub async fn bytes(self) -> Result<Vec<u8>> {
@@ -399,7 +424,7 @@ impl Objects {
     }
 
     /// If a delimiter has been specified, contains all prefixes between the specified prefix and
-    /// the next occurence of the delimiter.
+    /// the next occurrence of the delimiter.
     ///
     /// For example, if no prefix is provided and the delimiter is '/', `foo/bar/baz` would return
     /// `foo` as a delimited prefix. If `foo/` was passed as a prefix with the same structure and

@@ -4,6 +4,7 @@ use crate::headers::Headers;
 use crate::http::Method;
 
 use js_sys::{self, Object};
+use serde::Serialize;
 use wasm_bindgen::{prelude::*, JsValue};
 
 /// Optional options struct that contains settings to apply to the `Request`.
@@ -109,7 +110,7 @@ pub struct CfProperties {
     pub cache_ttl: Option<u32>,
     /// This option is a version of the cacheTtl feature which chooses a TTL based on the response’s
     /// status code. If the response to this request has a status code that matches, Cloudflare will
-    /// cache for the instructed time, and override cache instructives sent by the origin. For
+    /// cache for the instructed time, and override cache directives sent by the origin. For
     /// example: { "200-299": 86400, 404: 1, "500-599": 0 }. The value can be any integer, including
     /// zero and negative integers. A value of 0 indicates that the cache asset expires immediately.
     /// Any negative value instructs Cloudflare not to cache at all.
@@ -146,6 +147,7 @@ impl From<&CfProperties> for JsValue {
     fn from(props: &CfProperties) -> Self {
         let obj = js_sys::Object::new();
         let defaults = CfProperties::default();
+        let serializer = serde_wasm_bindgen::Serializer::new().serialize_maps_as_objects(true);
 
         set_prop(
             &obj,
@@ -191,7 +193,7 @@ impl From<&CfProperties> for JsValue {
         set_prop(
             &obj,
             &JsValue::from("cacheTtlByStatus"),
-            &serde_wasm_bindgen::to_value(&ttl_status_map).unwrap_or_default(),
+            &ttl_status_map.serialize(&serializer).unwrap_or_default(),
         );
 
         set_prop(

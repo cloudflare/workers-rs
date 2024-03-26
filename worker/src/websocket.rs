@@ -1,16 +1,20 @@
-use crate::{Error, Fetch, Method, Request, Result};
+use crate::{Error, Method, Request, Result};
 use futures_channel::mpsc::UnboundedReceiver;
 use futures_util::Stream;
 use serde::Serialize;
 use url::Url;
 use worker_sys::ext::WebSocketExt;
 
+#[cfg(not(feature = "http"))]
+use crate::Fetch;
 use std::pin::Pin;
 use std::rc::Rc;
 use std::task::{Context, Poll};
 use wasm_bindgen::convert::FromWasmAbi;
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
+#[cfg(feature = "http")]
+use wasm_bindgen_futures::JsFuture;
 
 pub use crate::ws_events::*;
 
@@ -20,6 +24,9 @@ pub struct WebSocketPair {
     pub client: WebSocket,
     pub server: WebSocket,
 }
+
+unsafe impl Send for WebSocketPair {}
+unsafe impl Sync for WebSocketPair {}
 
 impl WebSocketPair {
     /// Creates a new `WebSocketPair`.
@@ -36,6 +43,9 @@ impl WebSocketPair {
 pub struct WebSocket {
     socket: web_sys::WebSocket,
 }
+
+unsafe impl Send for WebSocket {}
+unsafe impl Sync for WebSocket {}
 
 impl WebSocket {
     /// Attempts to establish a [`WebSocket`] connection to the provided [`Url`].
@@ -63,7 +73,21 @@ impl WebSocket {
     ///
     /// Response::error("never got a message echoed back :(", 500)
     /// ```
-    pub async fn connect(mut url: Url) -> Result<WebSocket> {
+    pub async fn connect(url: Url) -> Result<WebSocket> {
+        WebSocket::connect_with_protocols(url, None).await
+    }
+
+    /// Attempts to establish a [`WebSocket`] connection to the provided [`Url`] and protocol.
+    ///
+    /// # Example:
+    /// ```rust,ignore
+    /// let ws = WebSocket::connect_with_protocols("wss://echo.zeb.workers.dev/".parse()?, Some(vec!["GiggleBytes"])).await?;
+    ///
+    /// ```
+    pub async fn connect_with_protocols(
+        mut url: Url,
+        protocols: Option<Vec<&str>>,
+    ) -> Result<WebSocket> {
         let scheme: String = match url.scheme() {
             "ws" => "http".into(),
             "wss" => "https".into(),
@@ -77,7 +101,18 @@ impl WebSocket {
         let mut req = Request::new(url.as_str(), Method::Get)?;
         req.headers_mut()?.set("upgrade", "websocket")?;
 
+        match protocols {
+            None => {}
+            Some(v) => {
+                req.headers_mut()?
+                    .set("Sec-WebSocket-Protocol", v.join(",").as_str())?;
+            }
+        }
+
+        #[cfg(not(feature = "http"))]
         let res = Fetch::Request(req).send().await?;
+        #[cfg(feature = "http")]
+        let res: crate::Response = fetch_with_request_raw(req).await?.into();
 
         match res.websocket() {
             Some(ws) => Ok(ws),
@@ -197,12 +232,30 @@ impl WebSocket {
             closures: Some((message_closure, error_closure, close_closure)),
         })
     }
+
+    pub fn serialize_attachment<T: Serialize>(&self, value: T) -> Result<()> {
+        self.socket
+            .serialize_attachment(serde_wasm_bindgen::to_value(&value)?)
+            .map_err(Error::from)
+    }
+
+    pub fn deserialize_attachment<T: serde::de::DeserializeOwned>(&self) -> Result<Option<T>> {
+        let value = self.socket.deserialize_attachment().map_err(Error::from)?;
+
+        if value.is_null() || value.is_undefined() {
+            return Ok(None);
+        }
+
+        serde_wasm_bindgen::from_value::<T>(value)
+            .map(Some)
+            .map_err(Error::from)
+    }
 }
 
 type EvCallback<T> = Closure<dyn FnMut(T)>;
 
 /// A [`Stream`](futures::Stream) that yields [`WebsocketEvent`](crate::ws_events::WebsocketEvent)s
-/// emitted by the inner [`WebSocket`](crate::WebSocket). The stream is guranteed to always yield a
+/// emitted by the inner [`WebSocket`](crate::WebSocket). The stream is guaranteed to always yield a
 /// `WebsocketEvent::Close` as the final non-none item.
 ///
 /// # Example
@@ -393,4 +446,16 @@ pub mod ws_events {
             &self.event
         }
     }
+}
+
+/// TODO: Convert WebSocket to use `http` types and `reqwest`.
+#[cfg(feature = "http")]
+async fn fetch_with_request_raw(request: crate::Request) -> Result<web_sys::Response> {
+    let req = request.inner();
+    let fut = {
+        let worker: web_sys::WorkerGlobalScope = js_sys::global().unchecked_into();
+        crate::send::SendFuture::new(JsFuture::from(worker.fetch_with_request(req)))
+    };
+    let resp = fut.await?;
+    Ok(resp.dyn_into()?)
 }

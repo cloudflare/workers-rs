@@ -11,6 +11,9 @@ pub struct Context {
     inner: JsContext,
 }
 
+unsafe impl Send for Context {}
+unsafe impl Sync for Context {}
+
 impl Context {
     /// Constructs a context from an underlying JavaScript context object.
     pub fn new(inner: JsContext) -> Self {

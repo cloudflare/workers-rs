@@ -1,0 +1,40 @@
+name: Open a release PR
+on:
+  workflow_dispatch:
+    inputs:
+      level:
+        description: Version bump level
+        required: true
+        type: choice
+        options:
+          - patch
+jobs:
+  make-release-pr:
+    permissions:
+      id-token: write # Enable OIDC
+      pull-requests: write
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: chainguard-dev/actions/setup-gitsign@main
+      - name: Install cargo-release
+        uses: taiki-e/install-action@v1
+        with:
+          tool: cargo-release
+      - name: Update versions
+        id: update_versions
+        run: |
+          cargo release version ${{ inputs.level }} --execute --no-confirm
+          cargo update
+          NEW_VERSION=$(cargo metadata --no-deps --format-version 1 | jq -rc '.packages[] | select(.name=="worker") | .version')
+          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore: bump versions"
+          branch: releases/v${{ steps.update_versions.outputs.version }}
+          base: main
+          title: Release v${{ steps.update_versions.outputs.version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

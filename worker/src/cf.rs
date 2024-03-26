@@ -1,12 +1,25 @@
 /// In addition to the methods on the `Request` struct, the `Cf` struct on an inbound Request contains information about the request provided by Cloudflare’s edge.
 ///
 /// [Details](https://developers.cloudflare.com/workers/runtime-apis/request#incomingrequestcfproperties)
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Cf {
     inner: worker_sys::IncomingRequestCfProperties,
 }
 
+unsafe impl Send for Cf {}
+unsafe impl Sync for Cf {}
+
 impl Cf {
+    #[cfg(feature = "http")]
+    pub(crate) fn new(inner: worker_sys::IncomingRequestCfProperties) -> Self {
+        Self { inner }
+    }
+
+    #[cfg(feature = "http")]
+    pub(crate) fn inner(&self) -> &worker_sys::IncomingRequestCfProperties {
+        &self.inner
+    }
+
     /// The three-letter airport code (e.g. `ATX`, `LUX`) representing
     /// the colocation which processed the request
     pub fn colo(&self) -> String {
@@ -16,6 +29,11 @@ impl Cf {
     /// The Autonomous System Number (ASN) of the request, e.g. `395747`
     pub fn asn(&self) -> u32 {
         self.inner.asn()
+    }
+
+    /// The Autonomous System organization name of the request, e.g. `Cloudflare, Inc.`
+    pub fn as_organization(&self) -> String {
+        self.inner.as_organization()
     }
 
     /// The two-letter country code of origin for the request.
