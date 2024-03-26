@@ -37,6 +37,7 @@ export const mf = new Miniflare({
   compatibilityDate: "2023-05-18",
   cache: true,
   cachePersist: false,
+  d1Databases: ["DB"],
   d1Persist: false,
   kvPersist: false,
   r2Persist: false,

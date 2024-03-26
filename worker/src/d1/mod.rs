@@ -1,5 +1,7 @@
 use std::fmt::Display;
 use std::fmt::Formatter;
+use std::iter::{once, Once};
+use std::ops::Deref;
 use std::result::Result as StdResult;
 
 use js_sys::Array;
@@ -24,6 +26,9 @@ pub mod macros;
 
 // A D1 Database.
 pub struct D1Database(D1DatabaseSys);
+
+unsafe impl Sync for D1Database {}
+unsafe impl Send for D1Database {}
 
 impl D1Database {
     /// Prepare a query statement from a query string.
@@ -127,6 +132,93 @@ impl From<D1DatabaseSys> for D1Database {
     }
 }
 
+/// Possible argument types that can be bound to [`D1PreparedStatement`]
+/// See https://developers.cloudflare.com/d1/build-with-d1/d1-client-api/#type-conversion
+pub enum D1Type<'a> {
+    Null,
+    Real(f64),
+    // I believe JS always casts to float. Documentation states it can accept up to 53 bits of signed precision
+    // so I went with i32 here. https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures#number_type
+    // D1 does not support `BigInt`
+    Integer(i32),
+    Text(&'a str),
+    Boolean(bool),
+    Blob(&'a [u8]),
+}
+
+/// A pre-computed argument for `bind_refs`.
+///
+/// Arguments must be converted to `JsValue` when bound. If you plan to
+/// re-use the same argument multiple times, consider using a `D1PreparedArgument`
+/// which does this once on construction.
+pub struct D1PreparedArgument<'a> {
+    value: &'a D1Type<'a>,
+    js_value: JsValue,
+}
+
+impl<'a> D1PreparedArgument<'a> {
+    pub fn new(value: &'a D1Type) -> D1PreparedArgument<'a> {
+        Self {
+            value,
+            js_value: value.into(),
+        }
+    }
+}
+
+impl<'a> From<&'a D1Type<'a>> for JsValue {
+    fn from(value: &'a D1Type<'a>) -> Self {
+        match *value {
+            D1Type::Null => JsValue::null(),
+            D1Type::Real(f) => JsValue::from_f64(f),
+            D1Type::Integer(i) => JsValue::from_f64(i as f64),
+            D1Type::Text(s) => JsValue::from_str(s),
+            D1Type::Boolean(b) => JsValue::from_bool(b),
+            D1Type::Blob(a) => serde_wasm_bindgen::to_value(a).unwrap(),
+        }
+    }
+}
+
+impl<'a> Deref for D1PreparedArgument<'a> {
+    type Target = D1Type<'a>;
+    fn deref(&self) -> &Self::Target {
+        self.value
+    }
+}
+
+impl<'a> IntoIterator for &'a D1Type<'a> {
+    type Item = &'a D1Type<'a>;
+    type IntoIter = Once<&'a D1Type<'a>>;
+    /// Allows a single &D1Type to be passed to `bind_refs`, without placing it in an array.
+    fn into_iter(self) -> Self::IntoIter {
+        once(self)
+    }
+}
+
+impl<'a> IntoIterator for &'a D1PreparedArgument<'a> {
+    type Item = &'a D1PreparedArgument<'a>;
+    type IntoIter = Once<&'a D1PreparedArgument<'a>>;
+    /// Allows a single &D1PreparedArgument to be passed to `bind_refs`, without placing it in an array.
+    fn into_iter(self) -> Self::IntoIter {
+        once(self)
+    }
+}
+
+pub trait D1Argument {
+    fn js_value(&self) -> impl AsRef<JsValue>;
+}
+
+impl<'a> D1Argument for D1Type<'a> {
+    fn js_value(&self) -> impl AsRef<JsValue> {
+        Into::<JsValue>::into(self)
+    }
+}
+
+impl<'a> D1Argument for D1PreparedArgument<'a> {
+    fn js_value(&self) -> impl AsRef<JsValue> {
+        &self.js_value
+    }
+}
+
 // A D1 prepared query statement.
 #[derive(Clone)]
 pub struct D1PreparedStatement(D1PreparedStatementSys);
@@ -148,6 +240,35 @@ impl D1PreparedStatement {
             Ok(stmt) => Ok(D1PreparedStatement(stmt)),
             Err(err) => Err(Error::from(err)),
         }
+    }
+
+    /// Bind one or more parameters to the statement.
+    /// Returns a new statement with the bound parameters, leaving the old statement available for reuse.
+    pub fn bind_refs<'a, T, U: 'a>(&self, values: T) -> Result<Self>
+    where
+        T: IntoIterator<Item = &'a U>,
+        U: D1Argument,
+    {
+        let array: Array = values.into_iter().map(|t| t.js_value()).collect::<Array>();
+
+        match self.0.bind(array) {
+            Ok(stmt) => Ok(D1PreparedStatement(stmt)),
+            Err(err) => Err(Error::from(err)),
+        }
+    }
+
+    /// Bind a batch of parameter values, returning a batch of prepared statements.
+    /// Result can be passed to [`D1Database::batch`] to execute the statements.
+    pub fn batch_bind<'a, U: 'a, T: 'a, V: 'a>(&self, values: T) -> Result<Vec<Self>>
+    where
+        T: IntoIterator<Item = U>,
+        U: IntoIterator<Item = &'a V>,
+        V: D1Argument,
+    {
+        values
+            .into_iter()
+            .map(|batch| self.bind_refs(batch))
+            .collect()
     }
 
     /// Return the first row of results.

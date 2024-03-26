@@ -53,7 +53,7 @@ extern "C" {
     #[wasm_bindgen(method, catch)]
     pub fn transaction(
         this: &DurableObjectStorage,
-        closure: &Closure<dyn FnMut(DurableObjectTransaction)>,
+        closure: &Closure<dyn FnMut(DurableObjectTransaction) -> js_sys::Promise>,
     ) -> Result<js_sys::Promise, JsValue>;
 
     #[wasm_bindgen(method, catch, js_name=getAlarm)]
