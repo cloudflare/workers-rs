@@ -14,7 +14,7 @@ path = "src/lib.rs"
 
 [features]
 default = ["console_error_panic_hook"]
-http = ["worker/http"]
+http = ["worker/http", "dep:axum", "dep:tower-service", "dep:axum-macros"]
 
 [dependencies]
 futures-channel.workspace = true
@@ -37,6 +37,20 @@ rand = "0.8.5"
 uuid = { version = "1.3.3", features = ["v4", "serde"] }
 serde-wasm-bindgen = "0.6.1"
 md5 = "0.7.0"
+
+[dependencies.axum]
+version = "0.7"
+optional = true
+default-features = false
+
+[dependencies.axum-macros]
+version = "0.4"
+optional = true
+default-features = false
+
+[dependencies.tower-service]
+version = "0.3"
+optional = true
 
 [dev-dependencies]
 wasm-bindgen-test.workspace = true

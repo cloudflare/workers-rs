@@ -24,10 +24,13 @@ pub struct Request {
     immutable: bool,
 }
 
+unsafe impl Send for Request {}
+unsafe impl Sync for Request {}
+
 #[cfg(feature = "http")]
-impl TryFrom<crate::HttpRequest> for Request {
+impl<B: http_body::Body<Data = bytes::Bytes> + 'static> TryFrom<http::Request<B>> for Request {
     type Error = crate::Error;
-    fn try_from(req: crate::HttpRequest) -> Result<Self> {
+    fn try_from(req: http::Request<B>) -> Result<Self> {
         let web_request: web_sys::Request = crate::http::request::to_wasm(req)?;
         Ok(Request::from(web_request))
     }
