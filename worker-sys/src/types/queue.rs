@@ -49,4 +49,7 @@ extern "C" {
 
     #[wasm_bindgen(method)]
     pub fn send(this: &Queue, mesage: JsValue) -> js_sys::Promise;
+
+    #[wasm_bindgen(method)]
+    pub fn send_batch(this: &Queue, mesage: JsValue) -> js_sys::Promise;
 }
