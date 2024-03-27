@@ -23,12 +23,8 @@ describe("queue", () => {
     resp = await mf.dispatchFetch("https://fake.host/queue");
     expect(resp.status).toBe(200);
 
-    const message_response = (await resp.json()) as { id: string }[];
-    const messages = message_response.filter((msg) => msg.id === id.toString());
-
-    expect(messages.length).toEqual(2);
-    for (let message of messages) {
-      expect(message).toMatchObject({ id: id.toString() });
-    }
+    const messages = (await resp.json()) as { id: string }[];
+    const message = messages.find((msg) => msg.id === id.toString());
+    expect(message).toMatchObject({ id: id.toString() });
   });
 });

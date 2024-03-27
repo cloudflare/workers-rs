@@ -1,4 +1,3 @@
-use queue::QueueBody;
 use serde::{Deserialize, Serialize};
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -93,47 +92,4 @@ pub async fn main(
     };
 
     res
-}
-
-#[event(queue)]
-pub async fn queue(message_batch: MessageBatch<QueueBody>, _env: Env, _ctx: Context) -> Result<()> {
-    let mut guard = GLOBAL_QUEUE_STATE.lock().unwrap();
-    for message in message_batch.messages()? {
-        console_log!(
-            "Received queue message {:?}, with id {} and timestamp: {}",
-            message.body(),
-            message.id(),
-            message.timestamp().to_string()
-        );
-        // Ack individual message
-        message.ack();
-
-        // Retry individual message
-        message.retry();
-
-        guard.push(message.into_body());
-    }
-
-    for raw_message in message_batch.raw_iter() {
-        let body: QueueBody = raw_message.body()?;
-        console_log!(
-            "Received queue message {:?}, with id {} and timestamp: {}",
-            body,
-            raw_message.id(),
-            raw_message.timestamp().to_string()
-        );
-        // Ack individual message
-        raw_message.ack();
-
-        // Retry individual message
-        raw_message.retry();
-
-        guard.push(body);
-    }
-
-    // Retry all messages
-    message_batch.retry_all();
-    // Ack all messages
-    message_batch.ack_all();
-    Ok(())
 }
