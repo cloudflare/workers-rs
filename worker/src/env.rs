@@ -148,6 +148,7 @@ impl ToString for StringBinding {
 }
 
 /// A string value representing a binding to a secret in a Worker.
-pub type Secret = StringBinding;
+#[doc(inline)]
+pub use StringBinding as Secret;
 /// A string value representing a binding to an environment variable in a Worker.
 pub type Var = StringBinding;
