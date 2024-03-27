@@ -2,7 +2,9 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::{SomeSharedData, GLOBAL_QUEUE_STATE};
-use worker::{console_log, event, Context, Env, MessageBatch, Request, Response, Result};
+use worker::{
+    console_log, event, Context, Env, MessageBatch, MessageExt, Request, Response, Result,
+};
 #[derive(Serialize, Debug, Clone, Deserialize)]
 pub struct QueueBody {
     pub id: Uuid,
@@ -15,11 +17,11 @@ pub async fn queue(message_batch: MessageBatch<QueueBody>, _env: Env, _ctx: Cont
     for message in message_batch.messages()? {
         console_log!(
             "Received queue message {:?}, with id {} and timestamp: {}",
-            message.body,
-            message.id,
-            message.timestamp.to_string()
+            message.body(),
+            message.id(),
+            message.timestamp().to_string()
         );
-        guard.push(message.body);
+        guard.push(message.into_body());
     }
     Ok(())
 }
