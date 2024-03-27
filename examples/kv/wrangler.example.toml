@@ -1,0 +1,12 @@
+name = "example"
+type = "rust"
+# Enter your account id
+account_id = ""
+workers_dev = true
+route = ""
+zone_id = ""
+
+# The KV name spaces we will be using in the example
+kv_namespaces = [
+    { binding = "EXAMPLE", id = "", preview_id = "" },
+]
