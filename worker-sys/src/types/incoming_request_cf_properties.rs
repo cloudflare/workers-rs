@@ -64,4 +64,7 @@ extern "C" {
 
     #[wasm_bindgen(method, getter, js_name=isEUCountry)]
     pub fn is_eu_country(this: &IncomingRequestCfProperties) -> Option<String>;
+
+    #[wasm_bindgen(method, getter, js_name=hostMetadata)]
+    pub fn host_metadata(this: &IncomingRequestCfProperties) -> wasm_bindgen::JsValue;
 }
