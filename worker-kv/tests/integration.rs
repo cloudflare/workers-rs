@@ -62,12 +62,15 @@ fn wait_for_worker_to_spawn() {
             Ok(_) => return,
             Err(e)
                 if e.kind() == ErrorKind::ConnectionRefused
-                    || e.kind() == ErrorKind::ConnectionReset => {}
-            Err(e) => Err(e).expect("unexpected error connecting to worker"),
+                    || e.kind() == ErrorKind::ConnectionReset =>
+            {
+                eprintln!("Connection refused or reset.")
+            }
+            Err(e) => panic!("{1}: {:?}", e, "Unexpected error connecting to worker"),
         }
     }
 
-    panic!("timed out connecting to worker")
+    panic!("Timed out connecting to worker.")
 }
 
 fn start_miniflare() -> io::Result<Child> {
@@ -88,7 +91,7 @@ fn start_miniflare() -> io::Result<Child> {
     .unwrap();
 
     Command::new("../node_modules/.bin/miniflare")
-        .args(&["-c", "wrangler.toml", "-k", "test", "--kv-persist"])
+        .args(["-c", "wrangler.toml", "-k", "test", "--kv-persist"])
         .current_dir("tests/worker_kv_test")
         .spawn()
 }
