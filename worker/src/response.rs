@@ -55,6 +55,24 @@ impl TryFrom<Response> for crate::HttpResponse {
 }
 
 impl Response {
+    /// Create a `Response` using `B` as the body encoded as prettified JSON. Sets the associated
+    /// `Content-Type` header for the `Response` as `application/json`.
+    pub fn from_json_pretty<B: Serialize>(value: &B) -> Result<Self> {
+        if let Ok(data) = serde_json::to_string_pretty(value) {
+            let mut headers = Headers::new();
+            headers.set(CONTENT_TYPE, "application/json")?;
+
+            return Ok(Self {
+                body: ResponseBody::Body(data.into_bytes()),
+                headers,
+                status_code: 200,
+                websocket: None,
+            });
+        }
+
+        Err(Error::Json(("Failed to encode data to json".into(), 500)))
+    }
+    
     /// Create a `Response` using `B` as the body encoded as JSON. Sets the associated
     /// `Content-Type` header for the `Response` as `application/json`.
     pub fn from_json<B: Serialize>(value: &B) -> Result<Self> {
