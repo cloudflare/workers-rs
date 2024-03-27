@@ -2211,7 +2211,7 @@ checksum = "32b752e52a2da0ddfbdbcc6fceadfeede4c939ed16d13e648833a61dfb611ed8"
 
 [[package]]
 name = "worker"
-version = "0.0.22"
+version = "0.0.23"
 dependencies = [
  "async-trait",
  "axum",
@@ -2270,7 +2270,7 @@ dependencies = [
 
 [[package]]
 name = "worker-macros"
-version = "0.0.14"
+version = "0.0.15"
 dependencies = [
  "async-trait",
  "proc-macro2",
@@ -2315,7 +2315,7 @@ dependencies = [
 
 [[package]]
 name = "worker-sys"
-version = "0.0.14"
+version = "0.0.15"
 dependencies = [
  "cfg-if",
  "js-sys",
