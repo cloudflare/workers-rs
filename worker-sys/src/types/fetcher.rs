@@ -26,3 +26,6 @@ extern "C" {
         init: &web_sys::RequestInit,
     ) -> js_sys::Promise;
 }
+
+unsafe impl Send for Fetcher {}
+unsafe impl Sync for Fetcher {}
