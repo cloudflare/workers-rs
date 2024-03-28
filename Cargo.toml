@@ -5,6 +5,7 @@ members = [
     "worker-macros",
     "worker-sandbox",
     "worker-sys",
+    "worker-kv",
     "examples/*",
 ]
 exclude = ["examples/coredump", "examples/axum"]
@@ -14,7 +15,7 @@ resolver = "2"
 worker = { path = "./worker" }
 async-trait = "0.1.74"
 # TODO: Unpin after https://github.com/chronotope/chrono-tz/issues/152
-chrono = { version = "=0.4.35", default-features = false, features = [
+chrono = { version = "0.4.37", default-features = false, features = [
     "wasmbind",
 ] }
 chrono-tz = { version = "0.8.4", default-features = false }

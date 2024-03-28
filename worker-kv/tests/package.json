@@ -1,0 +1,13 @@
+{
+  "name": "worker-kv-test-harness",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "miniflare": "^3.20240320.0"
+  }
+}

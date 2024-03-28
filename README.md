@@ -483,7 +483,7 @@ please [take a look](https://www.cloudflare.com/careers/).
 
 1. Upgrading worker package to version `0.0.18` and higher
 
-- While upgrading your worker to version `0.0.18` an error `error[E0432]: unresolved import `crate::sys::IoSourceState` can appear.
+- While upgrading your worker to version `0.0.18` an error "error[E0432]: unresolved import `crate::sys::IoSourceState`" can appear.
   In this case, upgrade `package.edition` to `edition = "2021"` in `wrangler.toml`
 
 ```toml
