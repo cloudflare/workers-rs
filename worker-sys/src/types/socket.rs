@@ -15,7 +15,7 @@ extern "C" {
     #[wasm_bindgen(method)]
     pub fn close(this: &Socket) -> js_sys::Promise;
 
-    #[wasm_bindgen(method, getter)]
+    #[wasm_bindgen(method)]
     pub fn closed(this: &Socket) -> js_sys::Promise;
 
     #[wasm_bindgen(method)]

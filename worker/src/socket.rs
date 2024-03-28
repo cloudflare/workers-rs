@@ -42,13 +42,6 @@ enum Closing {
     None,
 }
 
-#[derive(Default)]
-enum Opening {
-    Pending(JsFuture),
-    #[default]
-    None,
-}
-
 /// Represents an outbound TCP connection from your Worker.
 pub struct Socket {
     inner: worker_sys::Socket,
@@ -57,7 +50,6 @@ pub struct Socket {
     write: Option<Writing>,
     read: Option<Reading>,
     close: Option<Closing>,
-    opened: Option<Opening>,
 }
 
 // This can only be done because workers are single threaded.
@@ -75,7 +67,6 @@ impl Socket {
             read: None,
             write: None,
             close: None,
-            opened: None,
         }
     }
 
