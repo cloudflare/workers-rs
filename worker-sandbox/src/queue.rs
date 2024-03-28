@@ -56,6 +56,29 @@ pub async fn handle_queue_send(req: Request, env: Env, _data: SomeSharedData) ->
     }
 }
 
+#[worker::send]
+pub async fn handle_batch_send(mut req: Request, env: Env, _: SomeSharedData) -> Result<Response> {
+    let messages: Vec<QueueBody> = match req.json().await {
+        Ok(messages) => messages,
+        Err(err) => {
+            return Response::error(format!("Failed to parse request body: {err:?}"), 400);
+        }
+    };
+
+    let my_queue = match env.queue("my_queue") {
+        Ok(queue) => queue,
+        Err(err) => return Response::error(format!("Failed to get queue: {err:?}"), 500),
+    };
+
+    match my_queue.send_batch(messages).await {
+        Ok(()) => Response::ok("Message sent"),
+        Err(err) => Response::error(
+            format!("Failed to batch send message to queue: {err:?}"),
+            500,
+        ),
+    }
+}
+
 pub async fn handle_queue(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     let guard = GLOBAL_QUEUE_STATE.lock().unwrap();
     let messages: Vec<QueueBody> = guard.clone();

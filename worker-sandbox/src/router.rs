@@ -181,6 +181,10 @@ pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
             get(handler!(service::handle_remote_by_path)),
         )
         .route("/queue/send/:id", post(handler!(queue::handle_queue_send)))
+        .route(
+            "/queue/send_batch",
+            post(handler!(queue::handle_batch_send)),
+        )
         .route("/queue", get(handler!(queue::handle_queue)))
         .route("/d1/prepared", get(handler!(d1::prepared_statement)))
         .route("/d1/batch", get(handler!(d1::batch)))
@@ -301,6 +305,7 @@ pub fn make_router<'a>(data: SomeSharedData) -> Router<'a, SomeSharedData> {
         )
         .get_async("/remote-by-path", handler!(service::handle_remote_by_path))
         .post_async("/queue/send/:id", handler!(queue::handle_queue_send))
+        .post_async("/queue/send_batch", handler!(queue::handle_batch_send))
         .get_async("/queue", handler!(queue::handle_queue))
         .get_async("/d1/prepared", handler!(d1::prepared_statement))
         .get_async("/d1/batch", handler!(d1::batch))
