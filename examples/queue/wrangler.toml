@@ -1,0 +1,23 @@
+name = "queue-on-workers"
+main = "build/worker/shim.mjs"
+compatibility_date = "2024-03-26"
+
+
+[build]
+command = "cargo install --path ../../worker-build && worker-build --release"
+
+[[queues.consumers]]
+queue = "mymessages"
+dead_letter_queue = "mymessagesdlq"
+
+[[queues.consumers]]
+queue = "rawmessages"
+
+
+[[queues.producers]]
+queue = "mymessages"
+binding = "my_messages"
+
+[[queues.producers]]
+queue = "rawmessages"
+binding = "raw_messages"
