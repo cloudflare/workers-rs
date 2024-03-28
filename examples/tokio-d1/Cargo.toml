@@ -1,0 +1,20 @@
+[package]
+name = "tokio-postgres-on-workers"
+version = "0.1.0"
+edition = "2021"
+resolver = "2"
+
+[package.metadata.release]
+release = false
+
+# https://github.com/rustwasm/wasm-pack/issues/1247
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+worker = { workspace=true, features=["tokio-postgres", "d1"] }
+serde_json = "1.0.114"
+serde = "1.0.197"
