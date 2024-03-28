@@ -15,8 +15,11 @@ extern "C" {
     #[wasm_bindgen(method)]
     pub fn close(this: &Socket) -> js_sys::Promise;
 
-    #[wasm_bindgen(method)]
+    #[wasm_bindgen(method, getter)]
     pub fn closed(this: &Socket) -> js_sys::Promise;
+
+    #[wasm_bindgen(method)]
+    pub fn opened(this: &Socket) -> js_sys::Promise;
 
     #[wasm_bindgen(method, js_name=startTls)]
     pub fn start_tls(this: &Socket) -> Socket;
