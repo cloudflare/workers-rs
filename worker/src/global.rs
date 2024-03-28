@@ -14,6 +14,7 @@ pub enum Fetch {
     Request(WorkerRequest),
 }
 
+#[cfg(not(feature = "http"))]
 impl Fetch {
     /// Execute a Fetch call and receive a Response.
     pub async fn send(&self) -> Result<WorkerResponse> {
@@ -30,6 +31,13 @@ impl Fetch {
             Fetch::Request(req) => fetch_with_request(req, Some(signal)).await,
         }
     }
+}
+
+#[cfg(feature = "http")]
+impl Fetch {
+    pub async fn send(&self) -> Result<WorkerResponse> {()}
+
+    pub async fn send_with_signal(&self, signal: &AbortSignal) -> Result<WorkerResponse> {()}
 }
 
 async fn fetch_with_str(url: &str, signal: Option<&AbortSignal>) -> Result<WorkerResponse> {
