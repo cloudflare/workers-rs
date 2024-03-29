@@ -38,12 +38,12 @@ jobs:
           package: worker
           verbose: true
           release-type: minor
+          feature-group: default-features
       - name: Check semver (http)
         uses: obi1kenobi/cargo-semver-checks-action@v2
         continue-on-error: true
         with:
           package: worker
-          feature-group: all-features
           verbose: true
           release-type: minor
       - name: Build workspace
