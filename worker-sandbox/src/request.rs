@@ -200,6 +200,24 @@ pub async fn handle_cloned_stream(
     Response::ok((left == right).to_string())
 }
 
+#[worker::send]
+pub async fn handle_stream_response(
+    _req: Request,
+    _env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
+    let stream =
+        futures_util::stream::repeat(())
+            .take(10)
+            .enumerate()
+            .then(|(index, _)| async move {
+                Delay::from(Duration::from_millis(100)).await;
+                Result::Ok(index.to_string().into_bytes())
+            });
+    let resp = Response::from_stream(stream)?;
+    Ok(resp)
+}
+
 pub async fn handle_custom_response_body(
     _req: Request,
     _env: Env,
