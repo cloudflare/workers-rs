@@ -20,6 +20,8 @@ jobs:
       - uses: chainguard-dev/actions/setup-gitsign@main
       - name: Install cargo-release
         uses: taiki-e/install-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tool: cargo-release
       - name: Update versions
