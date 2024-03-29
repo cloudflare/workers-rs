@@ -31,11 +31,11 @@ async fn main(_req: Request, env: Env, _: worker::Context) -> Result<Response> {
     my_messages_queue
         .send_batch([
             // Use the MessageBuilder to set additional options
-            MessageBuilder::message(MyType {
+            MessageBuilder::new(MyType {
                 foo: "Hello world".into(),
                 bar: 2,
             })
-            .with_delay_seconds(20)
+            .delay_seconds(20)
             .build(),
             // Send a message with using a serializable struct
             MyType {
@@ -49,22 +49,23 @@ async fn main(_req: Request, env: Env, _: worker::Context) -> Result<Response> {
     // Send a batch of messages using the BatchMessageBuilder
     my_messages_queue
         .send_batch(
-            BatchMessageBuilder::message(MyType {
-                foo: "Hello world".into(),
-                bar: 4,
-            })
-            .with_messages(vec![
-                MyType {
+            BatchMessageBuilder::new()
+                .message(MyType {
                     foo: "Hello world".into(),
-                    bar: 5,
-                },
-                MyType {
-                    foo: "Hello world".into(),
-                    bar: 6,
-                },
-            ])
-            .with_delay_seconds(10)
-            .build(),
+                    bar: 4,
+                })
+                .messages(vec![
+                    MyType {
+                        foo: "Hello world".into(),
+                        bar: 5,
+                    },
+                    MyType {
+                        foo: "Hello world".into(),
+                        bar: 6,
+                    },
+                ])
+                .delay_seconds(10)
+                .build(),
         )
         .await?;
 
@@ -72,8 +73,8 @@ async fn main(_req: Request, env: Env, _: worker::Context) -> Result<Response> {
     raw_messages_queue
         .send_raw(
             // RawMessageBuilder has to be used as we should set content type of these raw messages
-            RawMessageBuilder::message(JsValue::from_str("7"))
-                .with_delay_seconds(30)
+            RawMessageBuilder::new(JsValue::from_str("7"))
+                .delay_seconds(30)
                 .build_with_content_type(QueueContentType::Json),
         )
         .await?;
@@ -81,23 +82,24 @@ async fn main(_req: Request, env: Env, _: worker::Context) -> Result<Response> {
     // Send a batch of raw JSValues using the BatchMessageBuilder
     raw_messages_queue
         .send_raw_batch(
-            BatchMessageBuilder::message(
-                RawMessageBuilder::message(js_sys::Date::new_0().into())
-                    .build_with_content_type(QueueContentType::V8),
-            )
-            .with_message(
-                RawMessageBuilder::message(JsValue::from_str("8"))
-                    .build_with_content_type(QueueContentType::Json),
-            )
-            .with_delay_seconds(10)
-            .build(),
+            BatchMessageBuilder::new()
+                .message(
+                    RawMessageBuilder::new(js_sys::Date::new_0().into())
+                        .build_with_content_type(QueueContentType::V8),
+                )
+                .message(
+                    RawMessageBuilder::new(JsValue::from_str("8"))
+                        .build_with_content_type(QueueContentType::Json),
+                )
+                .delay_seconds(10)
+                .build(),
         )
         .await?;
 
     // Send a batch of raw JsValues using some sort of iterator
     raw_messages_queue
-        .send_raw_batch(vec![RawMessageBuilder::message(JsValue::from_str("9"))
-            .with_delay_seconds(20)
+        .send_raw_batch(vec![RawMessageBuilder::new(JsValue::from_str("9"))
+            .delay_seconds(20)
             .build_with_content_type(QueueContentType::Text)])
         .await?;
 
@@ -131,7 +133,7 @@ pub async fn main(message_batch: MessageBatch<MyType>, _: Env, _: Context) -> Re
             for message in message_batch.raw_iter() {
                 console_log!(
                     "Got raw message {:?}, with id {} and timestamp: {}",
-                    message.raw_body(),
+                    message.body(),
                     message.id(),
                     message.timestamp().to_string(),
                 );

@@ -91,6 +91,11 @@ impl<T> Message<T> {
     pub fn into_body(self) -> T {
         self.body
     }
+
+    /// The raw body of the message.
+    pub fn raw_body(&self) -> JsValue {
+        self.inner().body()
+    }
 }
 
 impl<T> TryFrom<RawMessage> for Message<T>
@@ -100,7 +105,7 @@ where
     type Error = Error;
 
     fn try_from(value: RawMessage) -> std::result::Result<Self, Self::Error> {
-        let body = value.body()?;
+        let body = serde_wasm_bindgen::from_value(value.body())?;
         Ok(Self {
             inner: value.inner,
             body,
@@ -115,11 +120,8 @@ pub struct RawMessage {
 
 impl RawMessage {
     /// The body of the message.
-    pub fn body<T>(&self) -> Result<T>
-    where
-        T: DeserializeOwned,
-    {
-        Ok(serde_wasm_bindgen::from_value(self.raw_body())?)
+    pub fn body(&self) -> JsValue {
+        self.inner.body()
     }
 }
 
@@ -180,9 +182,6 @@ impl QueueRetryOptionsBuilder {
 }
 
 pub trait MessageExt {
-    /// The raw body of the message.
-    fn raw_body(&self) -> JsValue;
-
     /// A unique, system-generated ID for the message.
     fn id(&self) -> String;
 
@@ -200,11 +199,6 @@ pub trait MessageExt {
 }
 
 impl<T: MessageSysInner> MessageExt for T {
-    /// The raw body of the message.
-    fn raw_body(&self) -> JsValue {
-        self.inner().body()
-    }
-
     /// A unique, system-generated ID for the message.
     fn id(&self) -> String {
         self.inner().id().into()
@@ -380,7 +374,7 @@ pub struct MessageBuilder<T> {
 
 impl<T: Serialize> MessageBuilder<T> {
     /// Creates a new message builder. The message must be `serializable`.
-    pub fn message(message: T) -> Self {
+    pub fn new(message: T) -> Self {
         Self {
             message,
             delay_seconds: None,
@@ -390,7 +384,7 @@ impl<T: Serialize> MessageBuilder<T> {
 
     #[must_use]
     /// The number of seconds to delay a message for within the queue, before it can be delivered to a consumer
-    pub fn with_delay_seconds(mut self, delay_seconds: u32) -> Self {
+    pub fn delay_seconds(mut self, delay_seconds: u32) -> Self {
         self.delay_seconds = Some(delay_seconds);
         self
     }
@@ -398,7 +392,7 @@ impl<T: Serialize> MessageBuilder<T> {
     #[must_use]
     /// The content type of the message.
     /// Default is `QueueContentType::Json`.
-    pub fn with_content_type(mut self, content_type: QueueContentType) -> Self {
+    pub fn content_type(mut self, content_type: QueueContentType) -> Self {
         self.content_type = content_type;
         self
     }
@@ -422,7 +416,7 @@ pub struct RawMessageBuilder {
 
 impl RawMessageBuilder {
     /// Creates a new raw message builder. The message must be a `JsValue`.
-    pub fn message(message: JsValue) -> Self {
+    pub fn new(message: JsValue) -> Self {
         Self {
             message,
             delay_seconds: None,
@@ -431,7 +425,7 @@ impl RawMessageBuilder {
 
     #[must_use]
     /// The number of seconds to delay a message for within the queue, before it can be delivered to a consumer
-    pub fn with_delay_seconds(mut self, delay_seconds: u32) -> Self {
+    pub fn delay_seconds(mut self, delay_seconds: u32) -> Self {
         self.delay_seconds = Some(delay_seconds);
         self
     }
@@ -448,13 +442,23 @@ impl RawMessageBuilder {
     }
 }
 
+/// A wrapper type used for sending message.
+///
+/// This type can't be constructed directly.
+///
+/// It should be constructed using the `MessageBuilder`, `RawMessageBuilder` or by calling `.into()` on a struct that is `serializable`.
 pub struct SendMessage<T> {
+    /// The body of the message.
+    ///
+    /// Can be either a serializable struct or a `JsValue`.
     message: T,
+
+    /// Options to apply to the current message, including content type and message delay settings.
     options: Option<QueueSendOptions>,
 }
 
 impl<T: Serialize> SendMessage<T> {
-    pub fn into_raw_message(self) -> Result<SendMessage<JsValue>> {
+    fn into_raw_send_message(self) -> Result<SendMessage<JsValue>> {
         Ok(SendMessage {
             message: serde_wasm_bindgen::to_value(&self.message)?,
             options: self.options,
@@ -492,35 +496,23 @@ pub struct BatchMessageBuilder<T> {
 
 impl<T> BatchMessageBuilder<T> {
     /// Creates a new batch message builder.
-    pub fn message<U: Into<SendMessage<T>>>(message: U) -> Self {
+    pub fn new() -> Self {
         Self {
-            messages: vec![message.into()],
-            delay_seconds: None,
-        }
-    }
-
-    /// Creates a new batch message builder. Takes an iterator that produces `SendMessage` structs.
-    pub fn messages<U, V>(messages: U) -> Self
-    where
-        U: IntoIterator<Item = V>,
-        V: Into<SendMessage<T>>,
-    {
-        Self {
-            messages: messages.into_iter().map(std::convert::Into::into).collect(),
+            messages: Vec::new(),
             delay_seconds: None,
         }
     }
 
     #[must_use]
     /// Adds a message to the batch.
-    pub fn with_message<U: Into<SendMessage<T>>>(mut self, message: U) -> Self {
+    pub fn message<U: Into<SendMessage<T>>>(mut self, message: U) -> Self {
         self.messages.push(message.into());
         self
     }
 
     #[must_use]
     /// Adds messages to the batch.
-    pub fn with_messages<U, V>(mut self, messages: U) -> Self
+    pub fn messages<U, V>(mut self, messages: U) -> Self
     where
         U: IntoIterator<Item = V>,
         V: Into<SendMessage<T>>,
@@ -532,7 +524,7 @@ impl<T> BatchMessageBuilder<T> {
 
     #[must_use]
     /// The number of seconds to delay a message for within the queue, before it can be delivered to a consumer
-    pub fn with_delay_seconds(mut self, delay_seconds: u32) -> Self {
+    pub fn delay_seconds(mut self, delay_seconds: u32) -> Self {
         self.delay_seconds = Some(delay_seconds);
         self
     }
@@ -563,12 +555,12 @@ where
 }
 
 impl<T: Serialize> BatchSendMessage<T> {
-    pub fn into_raw_batch(self) -> Result<BatchSendMessage<JsValue>> {
+    fn into_raw_batch_send_message(self) -> Result<BatchSendMessage<JsValue>> {
         Ok(BatchSendMessage {
             body: self
                 .body
                 .into_iter()
-                .map(SendMessage::into_raw_message)
+                .map(SendMessage::into_raw_send_message)
                 .collect::<Result<_>>()?,
             options: self.options,
         })
@@ -596,7 +588,7 @@ impl Queue {
         T: Serialize,
     {
         let message: SendMessage<T> = message.into();
-        let serialized_message = message.into_raw_message()?;
+        let serialized_message = message.into_raw_send_message()?;
         self.send_raw(serialized_message).await
     }
 
@@ -635,7 +627,7 @@ impl Queue {
         messages: U,
     ) -> Result<()> {
         let messages: BatchSendMessage<T> = messages.into();
-        let serialized_messages = messages.into_raw_batch()?;
+        let serialized_messages = messages.into_raw_batch_send_message()?;
         self.send_raw_batch(serialized_messages).await
     }
 
