@@ -2,7 +2,9 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::{SomeSharedData, GLOBAL_QUEUE_STATE};
-use worker::{console_log, event, Context, Env, MessageBatch, Request, Response, Result};
+use worker::{
+    console_log, event, Context, Env, MessageBatch, MessageExt, Request, Response, Result,
+};
 #[derive(Serialize, Debug, Clone, Deserialize)]
 pub struct QueueBody {
     pub id: Uuid,
@@ -15,11 +17,11 @@ pub async fn queue(message_batch: MessageBatch<QueueBody>, _env: Env, _ctx: Cont
     for message in message_batch.messages()? {
         console_log!(
             "Received queue message {:?}, with id {} and timestamp: {}",
-            message.body,
-            message.id,
-            message.timestamp.to_string()
+            message.body(),
+            message.id(),
+            message.timestamp().to_string()
         );
-        guard.push(message.body);
+        guard.push(message.into_body());
     }
     Ok(())
 }
@@ -51,6 +53,29 @@ pub async fn handle_queue_send(req: Request, env: Env, _data: SomeSharedData) ->
     {
         Ok(_) => Response::ok("Message sent"),
         Err(err) => Response::error(format!("Failed to send message to queue: {err:?}"), 500),
+    }
+}
+
+#[worker::send]
+pub async fn handle_batch_send(mut req: Request, env: Env, _: SomeSharedData) -> Result<Response> {
+    let messages: Vec<QueueBody> = match req.json().await {
+        Ok(messages) => messages,
+        Err(err) => {
+            return Response::error(format!("Failed to parse request body: {err:?}"), 400);
+        }
+    };
+
+    let my_queue = match env.queue("my_queue") {
+        Ok(queue) => queue,
+        Err(err) => return Response::error(format!("Failed to get queue: {err:?}"), 500),
+    };
+
+    match my_queue.send_batch(messages).await {
+        Ok(()) => Response::ok("Message sent"),
+        Err(err) => Response::error(
+            format!("Failed to batch send message to queue: {err:?}"),
+            500,
+        ),
     }
 }
 

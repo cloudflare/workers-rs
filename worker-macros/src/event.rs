@@ -159,7 +159,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream, http: bool) -> TokenSt
                 pub async fn #wrapper_fn_ident(event: ::worker::worker_sys::MessageBatch, env: ::worker::Env, ctx: ::worker::worker_sys::Context) {
                     // call the original fn
                     let ctx = worker::Context::new(ctx);
-                    match #input_fn_ident(::worker::MessageBatch::new(event), env, ctx).await {
+                    match #input_fn_ident(::worker::MessageBatch::from(event), env, ctx).await {
                         Ok(()) => {},
                         Err(e) => {
                             ::worker::console_log!("{}", &e);
