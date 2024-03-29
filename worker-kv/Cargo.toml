@@ -7,6 +7,9 @@ description = "Rust bindings to Cloudflare Worker KV Stores."
 repository = "https://github.com/zebp/worker-kv"
 license = "MIT OR Apache-2.0"
 
+[package.metadata.release]
+release = false
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]

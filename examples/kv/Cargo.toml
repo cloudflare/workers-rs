@@ -4,6 +4,9 @@ version = "0.1.0"
 authors = ["Zeb Piasecki <zeb@zebulon.dev>"]
 edition = "2018"
 
+[package.metadata.release]
+release = false
+
 [lib]
 crate-type = ["cdylib", "rlib"]
 
