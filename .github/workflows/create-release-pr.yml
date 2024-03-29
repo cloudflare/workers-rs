@@ -20,6 +20,8 @@ jobs:
       - uses: chainguard-dev/actions/setup-gitsign@main
       - name: Install cargo-release
         uses: taiki-e/install-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tool: cargo-release
       - name: Update versions
@@ -57,3 +59,8 @@ jobs:
           title: Release v${{ steps.update_versions.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Trigger Pull Request Workflow
+        env:
+         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run .github/workflows/pullrequest.yml --ref releases/v${{ steps.update_versions.outputs.version }}
