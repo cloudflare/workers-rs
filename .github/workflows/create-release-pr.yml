@@ -29,6 +29,25 @@ jobs:
           cargo update
           NEW_VERSION=$(cargo metadata --no-deps --format-version 1 | jq -rc '.packages[] | select(.name=="worker") | .version')
           echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+      - name: Check semver
+        uses: obi1kenobi/cargo-semver-checks-action@v2
+        continue-on-error: true
+        with:
+          package: worker
+          verbose: true
+          release-type: minor
+      - name: Check semver (http)
+        uses: obi1kenobi/cargo-semver-checks-action@v2
+        continue-on-error: true
+        with:
+          package: worker
+          feature-group: all-features
+          verbose: true
+          release-type: minor
+      - name: Build workspace
+        run: cargo build --workspace
+      - name: Build workspace (http)
+        run: cargo build --package worker-sandbox --all-features
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v6
         with:
