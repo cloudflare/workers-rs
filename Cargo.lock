@@ -841,7 +841,7 @@ dependencies = [
  "serde_json",
  "wasm-bindgen",
  "wasm-bindgen-futures",
- "worker-kv 0.6.0",
+ "worker-kv 0.7.0",
 ]
 
 [[package]]
@@ -928,9 +928,9 @@ checksum = "490cc448043f947bae3cbee9c203358d62dbee0db12107a74be5c30ccfd09771"
 
 [[package]]
 name = "memchr"
-version = "2.7.1"
+version = "2.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "523dc4f511e55ab87b694dc30d0f820d60906ef06413f93d4d7a1385599cc149"
+checksum = "6c8640c5d730cb13ebd907d8d04b52f55ac9a2eec55b440c8892f40d56c76c1d"
 
 [[package]]
 name = "memoffset"
@@ -1082,9 +1082,9 @@ checksum = "ff011a302c396a5197692431fc1948019154afc178baf7d8e37367442a4601cf"
 
 [[package]]
 name = "openssl-sys"
-version = "0.9.101"
+version = "0.9.102"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dda2b0f344e78efc2facf7d195d098df0dd72151b26ab98da807afc26c198dff"
+checksum = "c597637d56fbc83893a35eb0dd04b2b8e7a50c91e64e9493e398b5df4fb45fa2"
 dependencies = [
  "cc",
  "libc",
@@ -1895,9 +1895,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.36.0"
+version = "1.37.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61285f6515fa018fb2d1e46eb21223fff441ee8db5d0f1435e8ab4f5cdb80931"
+checksum = "1adbebffeca75fcfd058afa480fb6c0b81e165a0323f9c9d39c9697e37c46787"
 dependencies = [
  "backtrace",
  "bytes",
@@ -2693,7 +2693,7 @@ dependencies = [
 
 [[package]]
 name = "worker"
-version = "0.0.23"
+version = "0.0.24"
 dependencies = [
  "async-trait",
  "axum",
@@ -2718,7 +2718,7 @@ dependencies = [
  "wasm-bindgen-futures",
  "wasm-streams",
  "web-sys",
- "worker-kv 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "worker-kv 0.6.0",
  "worker-macros",
  "worker-sys",
 ]
@@ -2738,6 +2738,21 @@ dependencies = [
 [[package]]
 name = "worker-kv"
 version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3d4b9fe1a87b7aef252fceb4f30bf6303036a5de329c81ccad9be9c35d1fdbc7"
+dependencies = [
+ "js-sys",
+ "serde",
+ "serde-wasm-bindgen 0.5.0",
+ "serde_json",
+ "thiserror",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+]
+
+[[package]]
+name = "worker-kv"
+version = "0.7.0"
 dependencies = [
  "fs_extra",
  "js-sys",
@@ -2753,23 +2768,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "worker-kv"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d4b9fe1a87b7aef252fceb4f30bf6303036a5de329c81ccad9be9c35d1fdbc7"
-dependencies = [
- "js-sys",
- "serde",
- "serde-wasm-bindgen 0.5.0",
- "serde_json",
- "thiserror",
- "wasm-bindgen",
- "wasm-bindgen-futures",
-]
-
-[[package]]
 name = "worker-macros"
-version = "0.0.15"
+version = "0.0.16"
 dependencies = [
  "async-trait",
  "proc-macro2",
@@ -2814,7 +2814,7 @@ dependencies = [
 
 [[package]]
 name = "worker-sys"
-version = "0.0.15"
+version = "0.0.16"
 dependencies = [
  "cfg-if",
  "js-sys",
