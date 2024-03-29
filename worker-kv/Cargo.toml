@@ -1,6 +1,6 @@
 [package]
 name = "worker-kv"
-version = "0.6.0"
+version = "0.7.0"
 authors = ["Zeb Piasecki <zeb@zebulon.dev>"]
 edition = "2018"
 description = "Rust bindings to Cloudflare Worker KV Stores."
