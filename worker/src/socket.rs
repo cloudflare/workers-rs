@@ -1,16 +1,18 @@
 use std::{
+    convert::TryFrom,
     io::ErrorKind,
     pin::Pin,
     task::{Context, Poll},
 };
 
-use crate::r2::js_object;
 use crate::Result;
+use crate::{r2::js_object, Error};
 use futures_util::FutureExt;
 use js_sys::{
     Boolean as JsBoolean, Error as JsError, JsString, Number as JsNumber, Object as JsObject,
     Reflect, Uint8Array,
 };
+use std::convert::TryInto;
 use std::io::Error as IoError;
 use std::io::Result as IoResult;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
@@ -19,6 +21,25 @@ use wasm_bindgen_futures::JsFuture;
 use web_sys::{
     ReadableStream, ReadableStreamDefaultReader, WritableStream, WritableStreamDefaultWriter,
 };
+
+#[derive(Debug)]
+pub struct SocketInfo {
+    pub remote_address: Option<String>,
+    pub local_address: Option<String>,
+}
+
+impl TryFrom<JsValue> for SocketInfo {
+    type Error = Error;
+    fn try_from(value: JsValue) -> Result<Self> {
+        let remote_address_value =
+            js_sys::Reflect::get(&value, &JsValue::from_str("remoteAddress"))?;
+        let local_address_value = js_sys::Reflect::get(&value, &JsValue::from_str("localAddress"))?;
+        Ok(Self {
+            remote_address: remote_address_value.as_string(),
+            local_address: local_address_value.as_string(),
+        })
+    }
+}
 
 #[derive(Default)]
 enum Reading {
@@ -83,9 +104,9 @@ impl Socket {
         Ok(())
     }
 
-    pub async fn opened(&self) -> Result<()> {
-        JsFuture::from(self.inner.opened()).await?;
-        Ok(())
+    pub async fn opened(&self) -> Result<SocketInfo> {
+        let value = JsFuture::from(self.inner.opened()).await?;
+        value.try_into()
     }
 
     /// Upgrades an insecure socket to a secure one that uses TLS,

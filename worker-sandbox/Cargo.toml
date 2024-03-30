@@ -38,6 +38,7 @@ uuid = { version = "1.3.3", features = ["v4", "serde"] }
 serde-wasm-bindgen = "0.6.1"
 md5 = "0.7.0"
 tokio-stream = "0.1.15"
+tokio = { version = "1.28", default-features = false, features=['io-util'] }
 
 [dependencies.axum]
 version = "0.7"
