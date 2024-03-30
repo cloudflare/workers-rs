@@ -6,6 +6,8 @@ use futures_util::TryStreamExt;
 use std::time::Duration;
 use worker::Env;
 use worker::{console_log, Date, Delay, Request, Response, ResponseBody, Result};
+
+#[cfg(not(feature = "http"))]
 pub fn handle_a_request(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     Response::ok(format!(
         "req at: {}, located at: {:?}, within: {}",
@@ -15,6 +17,11 @@ pub fn handle_a_request(req: Request, _env: Env, _data: SomeSharedData) -> Resul
             .map(|cf| cf.region().unwrap_or_else(|| "unknown region".into()))
             .unwrap_or(String::from("No CF properties"))
     ))
+}
+
+#[cfg(feature = "http")]
+pub async fn handle_a_request() -> &'static str {
+    "Hello World"
 }
 
 pub async fn handle_async_request(

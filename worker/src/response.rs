@@ -37,7 +37,7 @@ pub struct Response {
 }
 
 #[cfg(feature = "http")]
-impl<B: http_body::Body<Data = Bytes> + 'static> TryFrom<http::Response<B>> for Response {
+impl<B: http_body::Body<Data = Bytes> + Unpin + 'static> TryFrom<http::Response<B>> for Response {
     type Error = crate::Error;
     fn try_from(res: http::Response<B>) -> Result<Self> {
         let resp = crate::http::response::to_wasm(res)?;

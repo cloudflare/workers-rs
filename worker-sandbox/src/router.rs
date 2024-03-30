@@ -59,7 +59,7 @@ macro_rules! handler_sync (
 #[cfg(feature = "http")]
 pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
     axum::Router::new()
-        .route("/request", get(handler_sync!(request::handle_a_request)))
+        .route("/request", get(request::handle_a_request))
         .route(
             "/async-request",
             get(handler!(request::handle_async_request)),
