@@ -20,38 +20,26 @@ use web_sys::{
     ReadableStream, ReadableStreamDefaultReader, WritableStream, WritableStreamDefaultWriter,
 };
 
+#[derive(Default)]
 enum Reading {
+    #[default]
     None,
     Pending(JsFuture, ReadableStreamDefaultReader),
     Ready(Vec<u8>),
 }
 
-impl Default for Reading {
-    fn default() -> Self {
-        Self::None
-    }
-}
-
+#[derive(Default)]
 enum Writing {
     Pending(JsFuture, WritableStreamDefaultWriter, usize),
+    #[default]
     None,
 }
 
-impl Default for Writing {
-    fn default() -> Self {
-        Self::None
-    }
-}
-
+#[derive(Default)]
 enum Closing {
     Pending(JsFuture),
+    #[default]
     None,
-}
-
-impl Default for Closing {
-    fn default() -> Self {
-        Self::None
-    }
 }
 
 /// Represents an outbound TCP connection from your Worker.
@@ -92,6 +80,11 @@ impl Socket {
     /// and is rejected if the socket encounters an error.
     pub async fn closed(&self) -> Result<()> {
         JsFuture::from(self.inner.closed()).await?;
+        Ok(())
+    }
+
+    pub async fn opened(&self) -> Result<()> {
+        JsFuture::from(self.inner.opened()).await?;
         Ok(())
     }
 
