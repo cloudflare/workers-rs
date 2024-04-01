@@ -18,6 +18,7 @@ mod r2;
 mod request;
 mod router;
 mod service;
+mod socket;
 mod test;
 mod user;
 mod utils;

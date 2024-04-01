@@ -1,6 +1,6 @@
 use crate::{
-    alarm, cache, d1, fetch, form, kv, queue, r2, request, service, user, ws, SomeSharedData,
-    GLOBAL_STATE,
+    alarm, cache, d1, fetch, form, kv, queue, r2, request, service, socket, user, ws,
+    SomeSharedData, GLOBAL_STATE,
 };
 #[cfg(feature = "http")]
 use std::convert::TryInto;
@@ -199,6 +199,11 @@ pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
         .route("/r2/put-properties", put(handler!(r2::put_properties)))
         .route("/r2/put-multipart", put(handler!(r2::put_multipart)))
         .route("/r2/delete", delete(handler!(r2::delete)))
+        .route(
+            "/socket/failed",
+            get(handler!(socket::handle_socket_failed)),
+        )
+        .route("/socket/read", get(handler!(socket::handle_socket_read)))
         .fallback(get(handler!(catchall)))
         .layer(Extension(env))
         .layer(Extension(data))
@@ -320,6 +325,8 @@ pub fn make_router<'a>(data: SomeSharedData) -> Router<'a, SomeSharedData> {
         .put_async("/r2/put-properties", handler!(r2::put_properties))
         .put_async("/r2/put-multipart", handler!(r2::put_multipart))
         .delete_async("/r2/delete", handler!(r2::delete))
+        .get_async("/socket/failed", handler!(socket::handle_socket_failed))
+        .get_async("/socket/read", handler!(socket::handle_socket_read))
         .or_else_any_method_async("/*catchall", handler!(catchall))
 }
 

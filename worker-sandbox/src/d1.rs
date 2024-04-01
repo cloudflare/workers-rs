@@ -117,7 +117,7 @@ pub async fn error(_req: Request, env: Env, _data: SomeSharedData) -> Result<Res
     if let Error::D1(error) = error {
         assert_eq!(
             error.cause(),
-            "Error in line 1: THIS IS NOT VALID SQL: near \"THIS\": syntax error"
+            "Error in line 1: THIS IS NOT VALID SQL: near \"THIS\": syntax error at offset 0"
         )
     } else {
         panic!("expected D1 error");
