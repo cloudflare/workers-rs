@@ -18,7 +18,6 @@ all-features = true
 async-trait.workspace = true
 bytes = "1.5"
 chrono.workspace = true
-chrono-tz.workspace = true
 futures-channel.workspace = true
 futures-util.workspace = true
 wasm-bindgen.workspace = true
@@ -38,6 +37,11 @@ wasm-streams = "0.4"
 worker-kv = "0.6.0"
 worker-macros = { path = "../worker-macros", version = "0.0.16" }
 worker-sys = { path = "../worker-sys", version = "0.0.16" }
+
+[dependencies.chrono-tz]
+optional = true
+version = "0.8.4"
+default-features = false
 
 [dependencies.web-sys]
 version = "0.3.63"
@@ -63,3 +67,4 @@ default-features = false
 queue = ["worker-macros/queue", "worker-sys/queue"]
 d1 = ["worker-sys/d1"]
 http = ["worker-macros/http", "dep:axum"]
+timezone = ["dep:chrono-tz"]

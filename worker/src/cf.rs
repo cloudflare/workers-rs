@@ -150,7 +150,8 @@ impl Cf {
         self.inner.region_code()
     }
 
-    /// Timezone of the incoming request
+    /// **Requires** `timezone` feature. Timezone of the incoming request
+    #[cfg(feature = "timezone")]
     pub fn timezone(&self) -> impl chrono::TimeZone {
         let tz = self.inner.timezone();
         tz.parse::<chrono_tz::Tz>().unwrap()
