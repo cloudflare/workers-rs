@@ -321,8 +321,9 @@ impl D1PreparedStatement {
     pub async fn raw_js_value(&self) -> Result<Vec<JsValue>> {
         let result = JsFuture::from(self.0.raw()).await;
         let result = cast_to_d1_error(result)?;
-        let result = result.dyn_into::<Array>()?;
-        Ok(result.iter().collect())
+        let array = result.dyn_into::<Array>()?;
+
+        Ok(array.to_vec())
     }
 
     /// Returns the inner JsValue bindings object.
