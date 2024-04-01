@@ -57,7 +57,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream, http: bool) -> TokenSt
                     }
                 }
                 false => {
-                    quote! { panic!("{}", e) }
+                    quote! { ::worker::Response::error("INTERNAL SERVER ERROR", 500).unwrap().into() }
                 }
             };
 
