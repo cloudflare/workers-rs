@@ -316,6 +316,19 @@ impl D1PreparedStatement {
         }
         Ok(vec)
     }
+
+    /// Executes a query against the database and returns a `Vec` of JsValues.
+    pub async fn raw_js_value(&self) -> Result<Vec<JsValue>> {
+        let result = JsFuture::from(self.0.raw()).await;
+        let result = cast_to_d1_error(result)?;
+        let result = result.dyn_into::<Array>()?;
+        Ok(result.iter().collect())
+    }
+
+    /// Returns the inner JsValue bindings object.
+    pub fn inner(&self) -> &D1PreparedStatementSys {
+        &self.0
+    }
 }
 
 impl From<D1PreparedStatementSys> for D1PreparedStatement {
