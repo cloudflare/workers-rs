@@ -1,6 +1,7 @@
 use crate::{Error, Method, Request, Result};
 use futures_channel::mpsc::UnboundedReceiver;
 use futures_util::Stream;
+use js_sys::Uint8Array;
 use serde::Serialize;
 use url::Url;
 use worker_sys::ext::WebSocketExt;
@@ -140,8 +141,9 @@ impl WebSocket {
 
     /// Sends raw binary data through the `WebSocket`.
     pub fn send_with_bytes<D: AsRef<[u8]>>(&self, bytes: D) -> Result<()> {
-        let slice = bytes.as_ref();
-        self.socket.send_with_u8_array(slice).map_err(Error::from)
+        let uint8_array = Uint8Array::from(bytes.as_ref());
+        self.socket.send_with_array_buffer(&uint8_array.buffer())?;
+        Ok(())
     }
 
     /// Closes this channel.
