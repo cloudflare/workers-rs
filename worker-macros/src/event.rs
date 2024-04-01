@@ -50,15 +50,10 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream, http: bool) -> TokenSt
             // rename the original attributed fn
             input_fn.sig.ident = input_fn_ident.clone();
 
-            let error_handling = match respond_with_errors {
-                true => {
-                    quote! {
-                        ::worker::Response::error(e.to_string(), 500).unwrap().into()
-                    }
-                }
-                false => {
-                    quote! { ::worker::Response::error("INTERNAL SERVER ERROR", 500).unwrap().into() }
-                }
+            let error_handling = if respond_with_errors {
+                quote! { ::worker::Response::error(e.to_string(), 500).unwrap().into() }
+            } else {
+                quote! { ::worker::Response::error("INTERNAL SERVER ERROR", 500).unwrap().into() }
             };
 
             let fetch_invoke = if http {
