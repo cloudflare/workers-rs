@@ -1,3 +1,6 @@
+#[cfg(feature = "timezone")]
+use crate::Result;
+
 /// In addition to the methods on the `Request` struct, the `Cf` struct on an inbound Request contains information about the request provided by Cloudflare’s edge.
 ///
 /// [Details](https://developers.cloudflare.com/workers/runtime-apis/request#incomingrequestcfproperties)
@@ -150,10 +153,11 @@ impl Cf {
         self.inner.region_code()
     }
 
-    /// Timezone of the incoming request
-    pub fn timezone(&self) -> impl chrono::TimeZone {
+    /// **Requires** `timezone` feature. Timezone of the incoming request
+    #[cfg(feature = "timezone")]
+    pub fn timezone(&self) -> Result<impl chrono::TimeZone> {
         let tz = self.inner.timezone();
-        tz.parse::<chrono_tz::Tz>().unwrap()
+        Ok(tz.parse::<chrono_tz::Tz>()?)
     }
 
     /// Timezone name of the incoming request

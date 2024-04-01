@@ -18,7 +18,6 @@ async-trait = "0.1.74"
 chrono = { version = "0.4.37", default-features = false, features = [
     "wasmbind",
 ] }
-chrono-tz = { version = "0.8.4", default-features = false }
 futures-channel = "0.3.29"
 futures-util = { version = "0.3.29", default-features = false }
 http = "1.1.0"
