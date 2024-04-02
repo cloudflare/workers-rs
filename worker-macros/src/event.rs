@@ -68,7 +68,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream, http: bool) -> TokenSt
                     }
                 )
             } else {
-                quote!(#input_fn_ident(::worker::Request::from(req), env, ctx).await.map(::worker::worker_sys::web_sys::Response::from))
+                quote!(#input_fn_ident(req.into(), env, ctx).await.map(::worker::worker_sys::web_sys::Response::from))
             };
 
             // create a new "main" function that takes the worker_sys::Request, and calls the
