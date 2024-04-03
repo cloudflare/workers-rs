@@ -348,3 +348,26 @@ fn clone_mut_works() {
     let mut_req = req.clone_mut().unwrap();
     assert!(mut_req.immutable);
 }
+
+/// A trait used to represent any viable Request struct that can be used in the Worker.
+/// The only requirement is that it be convertable from a web_sys::Request.
+pub trait WorkerRequest {
+    fn from_web_sys(request: web_sys::Request) -> Self;
+}
+
+impl WorkerRequest for web_sys::Request {
+    fn from_web_sys(request: web_sys::Request) -> Self {
+        request
+    }
+}
+impl WorkerRequest for Request {
+    fn from_web_sys(request: web_sys::Request) -> Self {
+        request.into()
+    }
+}
+#[cfg(feature = "http")]
+impl WorkerRequest for crate::HttpRequest {
+    fn from_web_sys(request: web_sys::Request) -> Self {
+        crate::http::request::from_wasm(request).unwrap()
+    }
+}

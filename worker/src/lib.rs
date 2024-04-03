@@ -142,9 +142,9 @@ pub use crate::http::Method;
 #[cfg(feature = "queue")]
 pub use crate::queue::*;
 pub use crate::r2::*;
-pub use crate::request::Request;
+pub use crate::request::{Request, WorkerRequest};
 pub use crate::request_init::*;
-pub use crate::response::{Response, ResponseBody};
+pub use crate::response::{Response, ResponseBody, WorkerResponse};
 pub use crate::router::{RouteContext, RouteParams, Router};
 pub use crate::schedule::*;
 pub use crate::socket::*;
