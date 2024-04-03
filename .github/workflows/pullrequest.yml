@@ -82,3 +82,7 @@ jobs:
       - name: Run tests (http)
         shell: bash
         run: npm run test-http
+
+      - name: Run worker-kv tests
+        shell: bash
+        run: cd worker-kv/tests && npm install && cargo test
