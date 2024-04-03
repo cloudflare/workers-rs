@@ -1,3 +1,4 @@
+[workspace]
 [package]
 name = "worker_kv_test"
 version = "0.1.0"

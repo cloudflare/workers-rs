@@ -8,6 +8,6 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "miniflare": "^3.20240320.0"
+    "miniflare": "^1.4.1"
   }
 }
