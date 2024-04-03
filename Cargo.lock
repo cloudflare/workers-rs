@@ -352,6 +352,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "digest-stream-on-workers"
+version = "0.1.0"
+dependencies = [
+ "hex",
+ "worker",
+]
+
+[[package]]
 name = "dirs-next"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

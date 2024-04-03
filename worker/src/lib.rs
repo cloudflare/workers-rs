@@ -162,6 +162,7 @@ mod cors;
 pub mod d1;
 mod date;
 mod delay;
+pub mod digest_stream;
 pub mod durable;
 mod dynamic_dispatch;
 mod env;
