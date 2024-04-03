@@ -56,21 +56,6 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                 quote! { ::worker::Response::error("INTERNAL SERVER ERROR", 500).unwrap().into() }
             };
 
-            // let fetch_invoke = if http {
-            //     quote! (
-            //         match ::worker::request_from_wasm(req) {
-            //             Ok(request) => match #input_fn_ident(request, env, ctx).await.map(::worker::response_to_wasm) {
-            //                 Ok(Ok(response)) => Ok(response),
-            //                 Ok(Err(e)) => Err(e),
-            //                 Err(e) => Err(e)
-            //             },
-            //             Err(e) => Err(e)
-            //         }
-            //     )
-            // } else {
-            //     quote!(#input_fn_ident(req.into(), env, ctx).await.map(::worker::worker_sys::web_sys::Response::from))
-            // };
-
             // create a new "main" function that takes the worker_sys::Request, and calls the
             // original attributed function, passing in a converted worker::Request
             let wrapper_fn = quote! {
