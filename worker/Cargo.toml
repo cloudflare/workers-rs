@@ -66,5 +66,6 @@ default-features = false
 [features]
 queue = ["worker-macros/queue", "worker-sys/queue"]
 d1 = ["worker-sys/d1"]
-http = ["worker-macros/http", "dep:axum"]
+http = ["worker-macros/http"]
+axum = ["dep:axum"]
 timezone = ["dep:chrono-tz"]
