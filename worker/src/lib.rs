@@ -156,8 +156,8 @@ mod cache;
 mod cf;
 mod context;
 mod cors;
-// Require pub module for macro export
 pub mod crypto;
+// Require pub module for macro export
 #[cfg(feature = "d1")]
 /// **Requires** `d1` feature.
 pub mod d1;
