@@ -8,6 +8,7 @@ on:
         type: choice
         options:
           - patch
+          - minor
 jobs:
   make-release-pr:
     permissions:
@@ -37,7 +38,6 @@ jobs:
         with:
           package: worker
           verbose: true
-          release-type: minor
           feature-group: default-features
       - name: Check semver (http)
         uses: obi1kenobi/cargo-semver-checks-action@v2
@@ -45,7 +45,6 @@ jobs:
         with:
           package: worker
           verbose: true
-          release-type: minor
       - name: Build workspace
         run: cargo build --workspace
       - name: Build workspace (http)
