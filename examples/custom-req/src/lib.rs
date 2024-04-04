@@ -7,8 +7,8 @@ async fn main(_req: MyRequest, _env: Env, _ctx: Context) -> Result<MyResponse> {
 
 struct MyRequest {}
 
-impl WorkerRequest for MyRequest {
-    fn from_web_sys(_req: crate::worker_sys::web_sys::Request) -> Self {
+impl FromRequest for MyRequest {
+    fn from_raw(_req: crate::worker_sys::web_sys::Request) -> Self {
         // we don't care about the request, so we just return a new instance
         Self {}
     }
@@ -24,8 +24,8 @@ impl MyResponse {
     }
 }
 
-impl WorkerResponse for MyResponse {
-    fn into_web_sys(self) -> crate::worker_sys::web_sys::Response {
+impl IntoResponse for MyResponse {
+    fn into_raw(self) -> crate::worker_sys::web_sys::Response {
         crate::worker_sys::web_sys::Response::new_with_opt_str(Some(self.data)).unwrap()
     }
 }

@@ -475,32 +475,32 @@ impl From<web_sys::Response> for Response {
 
 /// A trait used to represent any viable Response struct that can be used in the Worker.
 /// The only requirement is that it be convertable to a web_sys::Response.
-pub trait WorkerResponse {
-    fn into_web_sys(self) -> web_sys::Response;
+pub trait IntoResponse {
+    fn into_raw(self) -> web_sys::Response;
 }
 
-impl WorkerResponse for web_sys::Response {
-    fn into_web_sys(self) -> web_sys::Response {
+impl IntoResponse for web_sys::Response {
+    fn into_raw(self) -> web_sys::Response {
         self
     }
 }
 
-impl WorkerResponse for Response {
-    fn into_web_sys(self) -> web_sys::Response {
+impl IntoResponse for Response {
+    fn into_raw(self) -> web_sys::Response {
         self.into()
     }
 }
 
 #[cfg(feature = "http")]
-impl WorkerResponse for crate::HttpResponse {
-    fn into_web_sys(self) -> web_sys::Response {
+impl IntoResponse for crate::HttpResponse {
+    fn into_raw(self) -> web_sys::Response {
         crate::http::response::to_wasm(self).unwrap()
     }
 }
 
 #[cfg(feature = "http")]
-impl WorkerResponse for http::Response<axum::body::Body> {
-    fn into_web_sys(self) -> web_sys::Response {
+impl IntoResponse for http::Response<axum::body::Body> {
+    fn into_raw(self) -> web_sys::Response {
         crate::http::response::to_wasm(self).unwrap()
     }
 }

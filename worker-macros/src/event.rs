@@ -65,7 +65,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                     ctx: ::worker::worker_sys::Context
                 ) -> ::worker::worker_sys::web_sys::Response {
                     let ctx = worker::Context::new(ctx);
-                    let result = #input_fn_ident(WorkerRequest::from_web_sys(req), env, ctx).await.map(WorkerResponse::into_web_sys);
+                    let result = #input_fn_ident(::worker::FromRequest::from_raw(req), env, ctx).await.map(::worker::IntoResponse::into_raw);
                     // get the worker::Result<worker::Response> by calling the original fn
                     match result {
                         Ok(res) => res,
@@ -86,7 +86,6 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                 mod _worker_fetch {
                     use ::worker::{wasm_bindgen, wasm_bindgen_futures};
                     use super::#input_fn_ident;
-                    use ::worker::{WorkerRequest, WorkerResponse};
                     #wasm_bindgen_code
                 }
             };
