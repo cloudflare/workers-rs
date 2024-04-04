@@ -141,6 +141,10 @@ impl WebSocket {
 
     /// Sends raw binary data through the `WebSocket`.
     pub fn send_with_bytes<D: AsRef<[u8]>>(&self, bytes: D) -> Result<()> {
+        // This clone to Uint8Array must happen, because workerd
+        // will not clone the supplied buffer and will send it asynchronously.
+        // Rust believes that the lifetime ends when `send` returns, and frees
+        // the memory, causing corruption.
         let uint8_array = Uint8Array::from(bytes.as_ref());
         self.socket.send_with_array_buffer(&uint8_array.buffer())?;
         Ok(())
