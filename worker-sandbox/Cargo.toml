@@ -14,7 +14,7 @@ path = "src/lib.rs"
 
 [features]
 default = ["console_error_panic_hook"]
-http = ["worker/http", "dep:axum", "dep:tower-service", "dep:axum-macros"]
+http = ["worker/http", "worker/axum", "dep:axum", "dep:tower-service", "dep:axum-macros"]
 
 [dependencies]
 futures-channel.workspace = true
