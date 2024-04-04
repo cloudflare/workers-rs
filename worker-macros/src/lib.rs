@@ -11,12 +11,6 @@ pub fn durable_object(_attr: TokenStream, item: TokenStream) -> TokenStream {
         .into()
 }
 
-#[cfg(feature = "http")]
-#[proc_macro_attribute]
-pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
-    event::expand_macro(attr, item)
-}
-
 /// The `event` macro is used to denote a [Worker handler](https://developers.cloudflare.com/workers/runtime-apis/handlers/), essentially binding from
 /// the JS runtime to a Rust function.
 ///
@@ -69,7 +63,6 @@ pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///   Ok(router().call(req).await?)
 /// }
 /// ```
-#[cfg(not(feature = "http"))]
 #[proc_macro_attribute]
 pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
     event::expand_macro(attr, item)
