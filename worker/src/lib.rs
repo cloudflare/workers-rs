@@ -157,12 +157,12 @@ mod cf;
 mod context;
 mod cors;
 // Require pub module for macro export
+pub mod crypto;
 #[cfg(feature = "d1")]
 /// **Requires** `d1` feature.
 pub mod d1;
 mod date;
 mod delay;
-pub mod digest_stream;
 pub mod durable;
 mod dynamic_dispatch;
 mod env;
