@@ -59,7 +59,7 @@ pub fn from_wasm(res: web_sys::Response) -> Result<HttpResponse> {
     })
 }
 
-#[cfg(feature = "http")]
+#[cfg(feature = "axum")]
 impl From<crate::Response> for http::Response<axum::body::Body> {
     fn from(resp: crate::Response) -> http::Response<axum::body::Body> {
         let res: web_sys::Response = resp.into();
