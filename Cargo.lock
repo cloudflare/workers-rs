@@ -841,7 +841,7 @@ dependencies = [
  "serde_json",
  "wasm-bindgen",
  "wasm-bindgen-futures",
- "worker-kv 0.7.0",
+ "worker-kv",
 ]
 
 [[package]]
@@ -2717,7 +2717,7 @@ dependencies = [
  "wasm-bindgen-futures",
  "wasm-streams",
  "web-sys",
- "worker-kv 0.6.0",
+ "worker-kv",
  "worker-macros",
  "worker-sys",
 ]
@@ -2732,21 +2732,6 @@ dependencies = [
  "tar",
  "ureq",
  "wasm-bindgen-cli-support",
-]
-
-[[package]]
-name = "worker-kv"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d4b9fe1a87b7aef252fceb4f30bf6303036a5de329c81ccad9be9c35d1fdbc7"
-dependencies = [
- "js-sys",
- "serde",
- "serde-wasm-bindgen 0.5.0",
- "serde_json",
- "thiserror",
- "wasm-bindgen",
- "wasm-bindgen-futures",
 ]
 
 [[package]]
