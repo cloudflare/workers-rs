@@ -367,6 +367,11 @@ impl MultipartUpload {
         })
     }
 
+    /// Request the upload id.
+    pub async fn upload_id(&self) -> String {
+        self.inner.upload_id()
+    }
+
     /// Aborts the multipart upload.
     pub async fn abort(&self) -> Result<()> {
         JsFuture::from(self.inner.abort()).await?;
