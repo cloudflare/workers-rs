@@ -5,6 +5,8 @@ use crate::error::Error;
 use crate::Queue;
 use crate::{durable::ObjectNamespace, Bucket, DynamicDispatcher, Fetcher, Result};
 
+use crate::Ai;
+
 use js_sys::Object;
 use wasm_bindgen::{prelude::*, JsCast, JsValue};
 use worker_kv::KvStore;
@@ -32,6 +34,10 @@ impl Env {
             // resulting in a terribly annoying javascript error which can't be caught
             T::get(binding)
         }
+    }
+
+    pub fn ai(&self, binding: &str) -> Result<Ai> {
+        self.get_binding::<Ai>(binding)
     }
 
     /// Access Secret value bindings added to your Worker via the UI or `wrangler`:
