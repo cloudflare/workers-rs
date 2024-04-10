@@ -7,6 +7,8 @@ use crate::Queue;
 use crate::{durable::ObjectNamespace, Bucket, DynamicDispatcher, Fetcher, Result};
 use crate::{error::Error, hyperdrive::Hyperdrive};
 
+use crate::Ai;
+
 use js_sys::Object;
 use serde::de::DeserializeOwned;
 use wasm_bindgen::{prelude::*, JsCast, JsValue};
@@ -35,6 +37,10 @@ impl Env {
             // resulting in a terribly annoying javascript error which can't be caught
             T::get(binding)
         }
+    }
+
+    pub fn ai(&self, binding: &str) -> Result<Ai> {
+        self.get_binding::<Ai>(binding)
     }
 
     /// Access Secret value bindings added to your Worker via the UI or `wrangler`:
