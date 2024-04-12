@@ -8,14 +8,14 @@ mod glue {
         #[wasm_bindgen]
         pub type AbortSignal;
 
-        #[wasm_bindgen(method, getter)]
-        pub fn reason(this: &AbortSignal) -> JsValue;
+        #[wasm_bindgen(method, catch, getter)]
+        pub fn reason(this: &AbortSignal) -> Result<JsValue, JsValue>
 
-        #[wasm_bindgen(static_method_of=AbortSignal)]
-        pub fn abort() -> web_sys::AbortSignal;
+        #[wasm_bindgen(static_method, catch_of=AbortSignal)]
+        pub fn abort() -> Result<web_sys::AbortSignal, JsValue>
 
-        #[wasm_bindgen(static_method_of=AbortSignal, js_name=abort)]
-        pub fn abort_with_reason(reason: &JsValue) -> web_sys::AbortSignal;
+        #[wasm_bindgen(static_method, catch_of=AbortSignal, js_name=abort)]
+        pub fn abort_with_reason(reason: &JsValue) -> Result<web_sys::AbortSignal, JsValue>
     }
 }
 

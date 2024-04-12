@@ -8,7 +8,7 @@ mod glue {
         #[wasm_bindgen]
         pub type AbortController;
 
-        #[wasm_bindgen(method, js_name=abort)]
+        #[wasm_bindgen(method, catch, js_name=abort)]
         pub fn abort_with_reason(this: &AbortController, reason: &JsValue);
     }
 }

@@ -10,8 +10,8 @@ mod glue {
         #[wasm_bindgen]
         pub type Request;
 
-        #[wasm_bindgen(method, getter)]
-        pub fn cf(this: &Request) -> Option<IncomingRequestCfProperties>;
+        #[wasm_bindgen(method, catch, getter)]
+        pub fn cf(this: &Request) -> Result<Option<IncomingRequestCfProperties>, JsValue>
     }
 }
 

@@ -8,8 +8,8 @@ mod glue {
         #[wasm_bindgen]
         pub type CacheStorage;
 
-        #[wasm_bindgen(method, getter)]
-        pub fn default(this: &CacheStorage) -> web_sys::Cache;
+        #[wasm_bindgen(method, catch, getter)]
+        pub fn default(this: &CacheStorage) -> Result<web_sys::Cache, JsValue>
     }
 }
 

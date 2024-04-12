@@ -8,7 +8,7 @@ extern "C" {
     pub type WebSocketPair;
 
     #[wasm_bindgen(constructor)]
-    pub fn new() -> WebSocketPair;
+    pub fn new() -> Result<WebSocketPair, JsValue>
 }
 
 impl WebSocketPair {
