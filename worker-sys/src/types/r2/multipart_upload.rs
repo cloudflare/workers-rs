@@ -25,6 +25,6 @@ extern "C" {
     #[wasm_bindgen(method, catch)]
     pub fn complete(
         this: &R2MultipartUpload,
-        uploaded_parts: Vec<JsValue>,
+        uploaded_parts: Vec<js_sys::Object>,
     ) -> Result<js_sys::Promise, JsValue>;
 }

@@ -329,12 +329,18 @@ pub struct UploadedPart {
 }
 
 impl UploadedPart {
+    pub fn new(part_number: u16, etag: String) -> Self {
+        Self {
+            inner: EdgeR2UploadedPart::new(part_number, etag),
+        }
+    }
+
     pub fn part_number(&self) -> u16 {
-        self.inner.part_number().unwrap()
+        self.inner.part_number
     }
 
     pub fn etag(&self) -> String {
-        self.inner.etag().unwrap()
+        self.inner.etag.clone()
     }
 }
 
@@ -362,6 +368,7 @@ impl MultipartUpload {
     ) -> Result<UploadedPart> {
         let uploaded_part =
             JsFuture::from(self.inner.upload_part(part_number, value.into().into())?).await?;
+        let uploaded_part: js_sys::Object = uploaded_part.into();
         Ok(UploadedPart {
             inner: uploaded_part.into(),
         })
@@ -388,7 +395,7 @@ impl MultipartUpload {
             self.inner.complete(
                 uploaded_parts
                     .into_iter()
-                    .map(|part| part.inner.into())
+                    .map(|part| part.inner.as_object())
                     .collect(),
             )?,
         )
