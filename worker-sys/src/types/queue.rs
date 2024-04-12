@@ -13,10 +13,10 @@ extern "C" {
     pub fn messages(this: &MessageBatch) -> Result<js_sys::Array, JsValue>;
 
     #[wasm_bindgen(method, catch, js_name=retryAll)]
-    pub fn retry_all(this: &MessageBatch, options: JsValue);
+    pub fn retry_all(this: &MessageBatch, options: JsValue) -> Result<(), JsValue>;
 
     #[wasm_bindgen(method, catch, js_name=ackAll)]
-    pub fn ack_all(this: &MessageBatch);
+    pub fn ack_all(this: &MessageBatch) -> Result<(), JsValue>;
 }
 
 #[wasm_bindgen]
@@ -35,10 +35,10 @@ extern "C" {
     pub fn body(this: &Message) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(method, catch)]
-    pub fn retry(this: &Message, options: JsValue);
+    pub fn retry(this: &Message, options: JsValue) -> Result<(), JsValue>;
 
     #[wasm_bindgen(method, catch)]
-    pub fn ack(this: &Message);
+    pub fn ack(this: &Message) -> Result<(), JsValue>;
 }
 
 #[wasm_bindgen]

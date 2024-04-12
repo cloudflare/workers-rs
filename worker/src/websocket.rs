@@ -32,7 +32,7 @@ unsafe impl Sync for WebSocketPair {}
 impl WebSocketPair {
     /// Creates a new `WebSocketPair`.
     pub fn new() -> Result<Self> {
-        let mut pair = worker_sys::WebSocketPair::new();
+        let mut pair = worker_sys::WebSocketPair::new()?;
         let client = pair.client()?.into();
         let server = pair.server()?.into();
         Ok(Self { client, server })
