@@ -34,7 +34,7 @@ pub fn from_wasm(req: web_sys::Request) -> Result<http::Request<Body>> {
 
     if let Some(cf) = req.cf() {
         builder = builder
-            .version(version_from_string(&cf.http_protocol()))
+            .version(version_from_string(&cf.http_protocol()?))
             .extension(Cf::new(cf));
     }
 
