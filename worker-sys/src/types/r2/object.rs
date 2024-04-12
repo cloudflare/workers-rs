@@ -9,34 +9,34 @@ extern "C" {
     pub type R2Object;
 
     #[wasm_bindgen(method, catch, getter)]
-    pub fn key(this: &R2Object) -> Result<String, JsValue>
+    pub fn key(this: &R2Object) -> Result<String, JsValue>;
 
     #[wasm_bindgen(method, catch, getter)]
-    pub fn version(this: &R2Object) -> Result<String, JsValue>
+    pub fn version(this: &R2Object) -> Result<String, JsValue>;
 
     #[wasm_bindgen(method, catch, getter)]
-    pub fn size(this: &R2Object) -> Result<u32, JsValue>
+    pub fn size(this: &R2Object) -> Result<u32, JsValue>;
 
     #[wasm_bindgen(method, catch, getter)]
-    pub fn etag(this: &R2Object) -> Result<String, JsValue>
+    pub fn etag(this: &R2Object) -> Result<String, JsValue>;
 
     #[wasm_bindgen(method, catch, getter, js_name=httpEtag)]
-    pub fn http_etag(this: &R2Object) -> Result<String, JsValue>
+    pub fn http_etag(this: &R2Object) -> Result<String, JsValue>;
 
     #[wasm_bindgen(method, catch, getter)]
-    pub fn uploaded(this: &R2Object) -> Result<js_sys::Date, JsValue>
+    pub fn uploaded(this: &R2Object) -> Result<js_sys::Date, JsValue>;
 
     #[wasm_bindgen(method, catch, getter, js_name=httpMetadata)]
-    pub fn http_metadata(this: &R2Object) -> Result<R2HttpMetadata, JsValue>
+    pub fn http_metadata(this: &R2Object) -> Result<R2HttpMetadata, JsValue>;
 
     #[wasm_bindgen(method, catch, getter)]
-    pub fn checksums(this: &R2Object) -> Result<js_sys::Object, JsValue>
+    pub fn checksums(this: &R2Object) -> Result<js_sys::Object, JsValue>;
 
     #[wasm_bindgen(method, catch, getter, js_name=customMetadata)]
-    pub fn custom_metadata(this: &R2Object) -> Result<js_sys::Object, JsValue>
+    pub fn custom_metadata(this: &R2Object) -> Result<js_sys::Object, JsValue>;
 
     #[wasm_bindgen(method, catch, getter)]
-    pub fn range(this: &R2Object) -> Result<R2Range, JsValue>
+    pub fn range(this: &R2Object) -> Result<R2Range, JsValue>;
 
     #[wasm_bindgen(method, catch, js_name=writeHttpMetadata)]
     pub fn write_http_metadata(

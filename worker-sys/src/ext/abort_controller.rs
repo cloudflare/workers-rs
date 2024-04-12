@@ -9,7 +9,7 @@ mod glue {
         pub type AbortController;
 
         #[wasm_bindgen(method, catch, js_name=abort)]
-        pub fn abort_with_reason(this: &AbortController, reason: &JsValue);
+        pub fn abort_with_reason(this: &AbortController, reason: &JsValue) -> Result<(), JsValue>;
     }
 }
 
@@ -21,5 +21,6 @@ impl AbortControllerExt for web_sys::AbortController {
     fn abort_with_reason(&self, reason: &JsValue) {
         self.unchecked_ref::<glue::AbortController>()
             .abort_with_reason(reason)
+            .unwrap()
     }
 }

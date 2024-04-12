@@ -7,10 +7,10 @@ extern "C" {
     pub type MessageBatch;
 
     #[wasm_bindgen(method, catch, getter)]
-    pub fn queue(this: &MessageBatch) -> Result<js_sys::JsString, JsValue>
+    pub fn queue(this: &MessageBatch) -> Result<js_sys::JsString, JsValue>;
 
     #[wasm_bindgen(method, catch, getter)]
-    pub fn messages(this: &MessageBatch) -> Result<js_sys::Array, JsValue>
+    pub fn messages(this: &MessageBatch) -> Result<js_sys::Array, JsValue>;
 
     #[wasm_bindgen(method, catch, js_name=retryAll)]
     pub fn retry_all(this: &MessageBatch, options: JsValue);
@@ -26,13 +26,13 @@ extern "C" {
     pub type Message;
 
     #[wasm_bindgen(method, catch, getter)]
-    pub fn id(this: &Message) -> Result<js_sys::JsString, JsValue>
+    pub fn id(this: &Message) -> Result<js_sys::JsString, JsValue>;
 
     #[wasm_bindgen(method, catch, getter)]
-    pub fn timestamp(this: &Message) -> Result<js_sys::Date, JsValue>
+    pub fn timestamp(this: &Message) -> Result<js_sys::Date, JsValue>;
 
     #[wasm_bindgen(method, catch, getter)]
-    pub fn body(this: &Message) -> Result<JsValue, JsValue>
+    pub fn body(this: &Message) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(method, catch)]
     pub fn retry(this: &Message, options: JsValue);
@@ -48,8 +48,16 @@ extern "C" {
     pub type Queue;
 
     #[wasm_bindgen(method, catch)]
-    pub fn send(this: &Queue, message: JsValue, options: JsValue) -> Result<js_sys::Promise, JsValue>
+    pub fn send(
+        this: &Queue,
+        message: JsValue,
+        options: JsValue,
+    ) -> Result<js_sys::Promise, JsValue>;
 
     #[wasm_bindgen(method, catch, js_name=sendBatch)]
-    pub fn send_batch(this: &Queue, messages: js_sys::Array, options: JsValue) -> Result<js_sys::Promise, JsValue>
+    pub fn send_batch(
+        this: &Queue,
+        messages: js_sys::Array,
+        options: JsValue,
+    ) -> Result<js_sys::Promise, JsValue>;
 }

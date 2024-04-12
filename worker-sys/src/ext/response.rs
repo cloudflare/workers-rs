@@ -9,7 +9,7 @@ mod glue {
         pub type Response;
 
         #[wasm_bindgen(method, catch, getter)]
-        pub fn webSocket(this: &Response) -> Result<Option<web_sys::WebSocket>, JsValue>
+        pub fn webSocket(this: &Response) -> Result<Option<web_sys::WebSocket>, JsValue>;
     }
 }
 
@@ -20,6 +20,6 @@ pub trait ResponseExt {
 
 impl ResponseExt for web_sys::Response {
     fn websocket(&self) -> Option<web_sys::WebSocket> {
-        self.unchecked_ref::<glue::Response>().webSocket()
+        self.unchecked_ref::<glue::Response>().webSocket().unwrap()
     }
 }
