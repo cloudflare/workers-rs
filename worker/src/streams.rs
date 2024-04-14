@@ -96,9 +96,9 @@ impl Stream for FixedLengthStream {
 impl From<FixedLengthStream> for FixedLengthStreamSys {
     fn from(stream: FixedLengthStream) -> Self {
         let raw = if stream.length < u32::MAX as u64 {
-            FixedLengthStreamSys::new(stream.length as u32)
+            FixedLengthStreamSys::new(stream.length as u32).unwrap()
         } else {
-            FixedLengthStreamSys::new_big_int(BigInt::from(stream.length))
+            FixedLengthStreamSys::new_big_int(BigInt::from(stream.length)).unwrap()
         };
 
         let js_stream = stream

@@ -17,9 +17,12 @@ extern "C" {
     #[wasm_bindgen(extends=js_sys::Object)]
     pub type DurableObject;
 
-    #[wasm_bindgen(method, js_name=fetch)]
-    pub fn fetch_with_request(this: &DurableObject, req: &web_sys::Request) -> js_sys::Promise;
+    #[wasm_bindgen(method, catch, js_name=fetch)]
+    pub fn fetch_with_request(
+        this: &DurableObject,
+        req: &web_sys::Request,
+    ) -> Result<js_sys::Promise, JsValue>;
 
-    #[wasm_bindgen(method, js_name=fetch)]
-    pub fn fetch_with_str(this: &DurableObject, url: &str) -> js_sys::Promise;
+    #[wasm_bindgen(method, catch, js_name=fetch)]
+    pub fn fetch_with_str(this: &DurableObject, url: &str) -> Result<js_sys::Promise, JsValue>;
 }

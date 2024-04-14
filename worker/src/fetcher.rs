@@ -35,7 +35,7 @@ impl Fetcher {
         let promise = match init {
             Some(ref init) => self.0.fetch_with_str_and_init(&path, &init.into()),
             None => self.0.fetch_with_str(&path),
-        };
+        }?;
 
         let resp_sys: web_sys::Response = JsFuture::from(promise).await?.dyn_into()?;
         #[cfg(not(feature = "http"))]
@@ -57,7 +57,7 @@ impl Fetcher {
         let req = TryInto::<Request>::try_into(request)?;
         #[cfg(not(feature = "http"))]
         let req = request;
-        let promise = self.0.fetch(req.inner());
+        let promise = self.0.fetch(req.inner())?;
         let resp_sys: web_sys::Response = JsFuture::from(promise).await?.dyn_into()?;
         let response = Response::from(resp_sys);
         #[cfg(feature = "http")]

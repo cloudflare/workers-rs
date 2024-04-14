@@ -43,14 +43,14 @@ pub struct Stub {
 impl Stub {
     /// Send an internal Request to the Durable Object to which the stub points.
     pub async fn fetch_with_request(&self, req: Request) -> Result<Response> {
-        let promise = self.inner.fetch_with_request(req.inner());
+        let promise = self.inner.fetch_with_request(req.inner())?;
         let response = JsFuture::from(promise).await?;
         Ok(response.dyn_into::<web_sys::Response>()?.into())
     }
 
     /// Construct a Request from a URL to the Durable Object to which the stub points.
     pub async fn fetch_with_str(&self, url: &str) -> Result<Response> {
-        let promise = self.inner.fetch_with_str(url);
+        let promise = self.inner.fetch_with_str(url)?;
         let response = JsFuture::from(promise).await?;
         Ok(response.dyn_into::<web_sys::Response>()?.into())
     }
@@ -152,7 +152,7 @@ impl ObjectId<'_> {
 
 impl ToString for ObjectId<'_> {
     fn to_string(&self) -> String {
-        self.inner.to_string()
+        self.inner.to_string().unwrap()
     }
 }
 
@@ -167,7 +167,7 @@ impl State {
     /// method.
     pub fn id(&self) -> ObjectId<'_> {
         ObjectId {
-            inner: self.inner.id(),
+            inner: self.inner.id().unwrap(),
             namespace: None,
         }
     }
@@ -176,7 +176,7 @@ impl State {
     /// [Transactional Storage API](https://developers.cloudflare.com/workers/runtime-apis/durable-objects#transactional-storage-api) for a detailed reference.
     pub fn storage(&self) -> Storage {
         Storage {
-            inner: self.inner.storage(),
+            inner: self.inner.storage().unwrap(),
         }
     }
 
@@ -184,10 +184,12 @@ impl State {
     where
         F: Future<Output = ()> + 'static,
     {
-        self.inner.wait_until(&future_to_promise(async {
-            future.await;
-            Ok(JsValue::UNDEFINED)
-        }))
+        self.inner
+            .wait_until(&future_to_promise(async {
+                future.await;
+                Ok(JsValue::UNDEFINED)
+            }))
+            .unwrap()
     }
 
     // needs to be accessed by the `durable_object` macro in a conversion step
@@ -196,18 +198,21 @@ impl State {
     }
 
     pub fn accept_web_socket(&self, ws: &WebSocket) {
-        self.inner.accept_websocket(ws.as_ref())
+        self.inner.accept_websocket(ws.as_ref()).unwrap()
     }
 
     pub fn accept_websocket_with_tags(&self, ws: &WebSocket, tags: &[&str]) {
         let tags = tags.iter().map(|it| (*it).into()).collect();
 
-        self.inner.accept_websocket_with_tags(ws.as_ref(), tags);
+        self.inner
+            .accept_websocket_with_tags(ws.as_ref(), tags)
+            .unwrap();
     }
 
     pub fn get_websockets(&self) -> Vec<WebSocket> {
         self.inner
             .get_websockets()
+            .unwrap()
             .into_iter()
             .map(Into::into)
             .collect()
@@ -216,6 +221,7 @@ impl State {
     pub fn get_websockets_with_tag(&self, tag: &str) -> Vec<WebSocket> {
         self.inner
             .get_websockets_with_tag(tag)
+            .unwrap()
             .into_iter()
             .map(Into::into)
             .collect()
@@ -223,7 +229,7 @@ impl State {
 
     /// Retrieve tags from a hibernatable websocket
     pub fn get_tags(&self, websocket: &WebSocket) -> Vec<String> {
-        self.inner.get_tags(websocket.as_ref())
+        self.inner.get_tags(websocket.as_ref()).unwrap()
     }
 }
 

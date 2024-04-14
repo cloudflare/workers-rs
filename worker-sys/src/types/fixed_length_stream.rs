@@ -6,12 +6,12 @@ extern "C" {
     #[derive(Debug, Clone)]
     pub type FixedLengthStream;
 
-    #[wasm_bindgen(constructor)]
-    pub fn new(length: u32) -> FixedLengthStream;
+    #[wasm_bindgen(constructor, catch)]
+    pub fn new(length: u32) -> Result<FixedLengthStream, JsValue>;
 
-    #[wasm_bindgen(constructor)]
-    pub fn new_big_int(length: js_sys::BigInt) -> FixedLengthStream;
+    #[wasm_bindgen(constructor, catch)]
+    pub fn new_big_int(length: js_sys::BigInt) -> Result<FixedLengthStream, JsValue>;
 
-    #[wasm_bindgen(method, getter)]
-    pub fn cron(this: &FixedLengthStream) -> String;
+    #[wasm_bindgen(method, catch, getter)]
+    pub fn cron(this: &FixedLengthStream) -> Result<String, JsValue>;
 }
