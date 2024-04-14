@@ -452,10 +452,17 @@ pub(crate) enum ObjectInner {
 }
 
 pub enum Data {
+    ReadableStream(web_sys::ReadableStream),
     Stream(FixedLengthStream),
     Text(String),
     Bytes(Vec<u8>),
     Empty,
+}
+
+impl From<web_sys::ReadableStream> for Data {
+    fn from(stream: web_sys::ReadableStream) -> Self {
+        Data::ReadableStream(stream)
+    }
 }
 
 impl From<FixedLengthStream> for Data {
@@ -479,6 +486,7 @@ impl From<Vec<u8>> for Data {
 impl From<Data> for JsValue {
     fn from(data: Data) -> Self {
         match data {
+            Data::ReadableStream(stream) => stream.into(),
             Data::Stream(stream) => {
                 let stream_sys: EdgeFixedLengthStream = stream.into();
                 stream_sys.readable().into()
