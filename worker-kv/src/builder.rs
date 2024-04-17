@@ -7,24 +7,27 @@ use wasm_bindgen_futures::JsFuture;
 use crate::{KvError, ListResponse};
 
 /// A builder to configure put requests.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone)]
 #[must_use = "PutOptionsBuilder does nothing until you 'execute' it"]
 pub struct PutOptionsBuilder {
-    #[serde(skip)]
     pub(crate) this: Object,
-    #[serde(skip)]
     pub(crate) put_function: Function,
-    #[serde(skip)]
     pub(crate) name: JsValue,
-    #[serde(skip)]
     pub(crate) value: JsValue,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) expiration: Option<u64>,
+    pub(crate) expiration_ttl: Option<u64>,
+    pub(crate) metadata: Option<Value>,
+}
+
+#[derive(Serialize)]
+struct PutOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    expiration: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "expirationTtl")]
-    pub(crate) expiration_ttl: Option<u64>,
+    expiration_ttl: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) metadata: Option<Value>,
+    metadata: Option<Value>,
 }
 
 impl PutOptionsBuilder {
@@ -46,7 +49,13 @@ impl PutOptionsBuilder {
     }
     /// Puts the value in the kv store.
     pub async fn execute(self) -> Result<(), KvError> {
-        let options_object = serde_wasm_bindgen::to_value(&self).map_err(JsValue::from)?;
+        let options = PutOptions {
+            expiration: self.expiration,
+            expiration_ttl: self.expiration_ttl,
+            metadata: self.metadata,
+        };
+
+        let options_object = serde_wasm_bindgen::to_value(&options).map_err(JsValue::from)?;
         let promise: Promise = self
             .put_function
             .call3(&self.this, &self.name, &self.value, &options_object)?
