@@ -1458,6 +1458,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rust-rpc-server"
+version = "0.1.0"
+dependencies = [
+ "console_error_panic_hook",
+ "wasm-bindgen",
+ "worker",
+]
+
+[[package]]
 name = "rustc-demangle"
 version = "0.1.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"

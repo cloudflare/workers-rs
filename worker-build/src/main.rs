@@ -210,6 +210,7 @@ fn bundle(esbuild_path: &Path) -> Result<()> {
     command.args([
         "--external:./index.wasm",
         "--external:cloudflare:sockets",
+        "--external:cloudflare:workers",
         "--format=esm",
         "--bundle",
         "./shim.js",
