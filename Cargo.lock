@@ -1458,6 +1458,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "rust-rpc-client"
+version = "0.1.0"
+dependencies = [
+ "console_error_panic_hook",
+ "js-sys",
+ "wasm-bindgen",
+ "worker",
+]
+
+[[package]]
 name = "rust-rpc-server"
 version = "0.1.0"
 dependencies = [

@@ -1,5 +1,5 @@
 {
-    "name": "rust-rpc-server",
+    "name": "rust-rpc-client",
     "version": "0.0.0",
     "private": true,
     "scripts": {
