@@ -1,6 +1,7 @@
 use js_sys::{ArrayBuffer, Function, Object, Promise, Uint8Array};
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
+use serde_wasm_bindgen::Serializer;
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 
@@ -49,13 +50,15 @@ impl PutOptionsBuilder {
     }
     /// Puts the value in the kv store.
     pub async fn execute(self) -> Result<(), KvError> {
-        let options = PutOptions {
+        let ser = Serializer::json_compatible();
+        let options_object = PutOptions {
             expiration: self.expiration,
             expiration_ttl: self.expiration_ttl,
             metadata: self.metadata,
-        };
+        }
+        .serialize(&ser)
+        .map_err(JsValue::from)?;
 
-        let options_object = serde_wasm_bindgen::to_value(&options).map_err(JsValue::from)?;
         let promise: Promise = self
             .put_function
             .call3(&self.this, &self.name, &self.value, &options_object)?
@@ -68,13 +71,18 @@ impl PutOptionsBuilder {
 }
 
 /// A builder to configure list requests.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone)]
 #[must_use = "ListOptionsBuilder does nothing until you 'execute' it"]
 pub struct ListOptionsBuilder {
-    #[serde(skip)]
     pub(crate) this: Object,
-    #[serde(skip)]
     pub(crate) list_function: Function,
+    pub(crate) limit: Option<u64>,
+    pub(crate) cursor: Option<String>,
+    pub(crate) prefix: Option<String>,
+}
+
+#[derive(Serialize)]
+struct ListOptions {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) limit: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -102,7 +110,15 @@ impl ListOptionsBuilder {
     }
     /// Lists the key value pairs in the kv store.
     pub async fn execute(self) -> Result<ListResponse, KvError> {
-        let options_object = serde_wasm_bindgen::to_value(&self).map_err(JsValue::from)?;
+        let ser = Serializer::json_compatible();
+        let options_object = ListOptions {
+            limit: self.limit,
+            cursor: self.cursor,
+            prefix: self.prefix,
+        }
+        .serialize(&ser)
+        .map_err(JsValue::from)?;
+
         let promise: Promise = self
             .list_function
             .call1(&self.this, &options_object)?
@@ -115,17 +131,19 @@ impl ListOptionsBuilder {
 }
 
 /// A builder to configure get requests.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone)]
 #[must_use = "GetOptionsBuilder does nothing until you 'get' it"]
 pub struct GetOptionsBuilder {
-    #[serde(skip)]
     pub(crate) this: Object,
-    #[serde(skip)]
     pub(crate) get_function: Function,
-    #[serde(skip)]
     pub(crate) get_with_meta_function: Function,
-    #[serde(skip)]
     pub(crate) name: JsValue,
+    pub(crate) cache_ttl: Option<u64>,
+    pub(crate) value_type: Option<GetValueType>,
+}
+
+#[derive(Serialize)]
+struct GetOptions {
     #[serde(rename = "cacheTtl", skip_serializing_if = "Option::is_none")]
     pub(crate) cache_ttl: Option<u64>,
     #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
@@ -150,8 +168,19 @@ impl GetOptionsBuilder {
         self
     }
 
+    fn options(&self) -> Result<JsValue, KvError> {
+        let ser = Serializer::json_compatible();
+        Ok(GetOptions {
+            cache_ttl: self.cache_ttl,
+            value_type: self.value_type,
+        }
+        .serialize(&ser)
+        .map_err(JsValue::from)?)
+    }
+
     async fn get(self) -> Result<JsValue, KvError> {
-        let options_object = serde_wasm_bindgen::to_value(&self).map_err(JsValue::from)?;
+        let options_object = self.options()?;
+
         let promise: Promise = self
             .get_function
             .call2(&self.this, &self.name, &options_object)?
@@ -194,7 +223,8 @@ impl GetOptionsBuilder {
     where
         M: DeserializeOwned,
     {
-        let options_object = serde_wasm_bindgen::to_value(&self).map_err(JsValue::from)?;
+        let options_object = self.options()?;
+
         let promise: Promise = self
             .get_with_meta_function
             .call2(&self.this, &self.name, &options_object)?
@@ -266,7 +296,7 @@ impl GetOptionsBuilder {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Copy)]
 #[serde(rename_all = "camelCase")]
 pub(crate) enum GetValueType {
     Text,
