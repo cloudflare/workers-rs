@@ -2,7 +2,7 @@ use std::{collections::HashMap, convert::TryInto};
 
 pub use builder::*;
 
-use js_sys::{JsString, Promise, Reflect, Uint8Array};
+use js_sys::{JsString, Reflect, Uint8Array};
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use worker_sys::{
@@ -331,8 +331,8 @@ pub struct UploadedPart {
 impl UploadedPart {
     pub fn new(part_number: u16, etag: String) -> Self {
         let obj: JsValue = js_sys::Object::new().into();
-        Reflect::set(&obj, &JsValue::from_str("partNumber"), &JsValue::from_f64(part_number as f64).dyn_into::<Promise>().unwrap()).unwrap();
-        Reflect::set(&obj, &JsValue::from_str("etag"), &JsValue::from_str(&etag).dyn_into::<Promise>().unwrap()).unwrap();
+        Reflect::set(&obj, &JsValue::from_str("partNumber"), &JsValue::from_f64(part_number as f64)).unwrap();
+        Reflect::set(&obj, &JsValue::from_str("etag"), &JsValue::from_str(&etag)).unwrap();
 
         Self {
             inner: obj.into()
