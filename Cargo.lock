@@ -2794,6 +2794,7 @@ dependencies = [
  "uuid",
  "wasm-bindgen-test",
  "worker",
+ "worker-kv",
 ]
 
 [[package]]

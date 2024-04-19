@@ -53,7 +53,7 @@ export const mf = new Miniflare({
     COUNTER: "Counter",
     PUT_RAW_TEST_OBJECT: "PutRawTestObject",
   },
-  kvNamespaces: ["SOME_NAMESPACE", "FILE_SIZES"],
+  kvNamespaces: ["SOME_NAMESPACE", "FILE_SIZES", "TEST"],
   serviceBindings: {
     async remote() {
       return new Response("hello world");
