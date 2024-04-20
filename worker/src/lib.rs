@@ -126,6 +126,7 @@ pub use crate::abort::*;
 pub use crate::cache::{Cache, CacheDeletionOutcome, CacheKey};
 pub use crate::context::Context;
 pub use crate::cors::Cors;
+pub use crate::crypto::*;
 #[cfg(feature = "d1")]
 pub use crate::d1::*;
 pub use crate::date::{Date, DateInit};
@@ -156,6 +157,7 @@ mod cache;
 mod cf;
 mod context;
 mod cors;
+mod crypto;
 // Require pub module for macro export
 #[cfg(feature = "d1")]
 /// **Requires** `d1` feature.

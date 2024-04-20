@@ -46,6 +46,7 @@ default-features = false
 [dependencies.web-sys]
 version = "0.3.63"
 features = [
+    "Crypto",
     "File",
     "WorkerGlobalScope",
     "ReadableStreamDefaultReader",
