@@ -330,12 +330,13 @@ pub struct UploadedPart {
 
 impl UploadedPart {
     pub fn new(part_number: u16, etag: String) -> Self {
-        let obj: JsValue = js_sys::Object::new().into();
+        let obj = js_sys::Object::new();
         Reflect::set(&obj, &JsValue::from_str("partNumber"), &JsValue::from_f64(part_number as f64)).unwrap();
         Reflect::set(&obj, &JsValue::from_str("etag"), &JsValue::from_str(&etag)).unwrap();
 
+        let val: JsValue = obj.into();
         Self {
-            inner: obj.into()
+            inner: val.into()
         }
     }
 
