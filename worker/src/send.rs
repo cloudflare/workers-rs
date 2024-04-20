@@ -30,6 +30,7 @@ impl<F> SendFuture<F> {
 }
 
 unsafe impl<F> Send for SendFuture<F> {}
+unsafe impl<F> Sync for SendFuture<F> {}
 
 impl<F: Future> Future for SendFuture<F> {
     type Output = F::Output;
