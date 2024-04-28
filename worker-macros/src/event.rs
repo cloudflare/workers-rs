@@ -65,12 +65,31 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                     ctx: ::worker::worker_sys::Context
                 ) -> ::worker::worker_sys::web_sys::Response {
                     let ctx = worker::Context::new(ctx);
-                    let result = #input_fn_ident(::worker::FromRequest::from_raw(req), env, ctx).await.map(::worker::IntoResponse::into_raw);
-                    // get the worker::Result<worker::Response> by calling the original fn
-                    match result {
-                        Ok(res) => res,
-                        Err(e) => {
-                            ::worker::console_error!("{}", &e);
+                    match ::worker::FromRequest::from_raw(req) {
+                        Ok(req) => {
+                            let result = #input_fn_ident(req, env, ctx).await;
+                            // get the worker::Result<worker::Response> by calling the original fn
+                            match result {
+                                Ok(raw_res) => {
+                                    match ::worker::IntoResponse::into_raw(raw_res) {
+                                        Ok(res) => res,
+                                        Err(err) => {
+                                            let e: Box<dyn std::error::Error> = err.into();
+                                            ::worker::console_error!("Error converting response: {}", &e);
+                                            #error_handling
+                                        }
+                                    }
+                                },
+                                Err(err) => {
+                                    let e: Box<dyn std::error::Error> = err.into();
+                                    ::worker::console_error!("{}", &e);
+                                    #error_handling
+                                }
+                            }
+                        },
+                        Err(err) => {
+                            let e: Box<dyn std::error::Error> = err.into();
+                            ::worker::console_error!("Error converting request: {}", &e);
                             #error_handling
                         }
                     }
