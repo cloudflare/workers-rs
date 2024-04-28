@@ -472,3 +472,31 @@ impl From<web_sys::Response> for Response {
         }
     }
 }
+
+/// A trait used to represent any viable Response struct that can be used in the Worker.
+/// The only requirement is that it be convertable to a web_sys::Response.
+pub trait IntoResponse {
+    fn into_raw(self) -> web_sys::Response;
+}
+
+impl IntoResponse for web_sys::Response {
+    fn into_raw(self) -> web_sys::Response {
+        self
+    }
+}
+
+impl IntoResponse for Response {
+    fn into_raw(self) -> web_sys::Response {
+        self.into()
+    }
+}
+
+#[cfg(feature = "http")]
+impl<B> IntoResponse for http::Response<B>
+where
+    B: http_body::Body<Data = Bytes> + 'static,
+{
+    fn into_raw(self) -> web_sys::Response {
+        crate::http::response::to_wasm(self).unwrap()
+    }
+}
