@@ -73,19 +73,22 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                                 Ok(raw_res) => {
                                     match ::worker::IntoResponse::into_raw(raw_res) {
                                         Ok(res) => res,
-                                        Err(e) => {
+                                        Err(err) => {
+                                            let e: Box<dyn std::error::Error> = err.into();
                                             ::worker::console_error!("Error converting response: {}", &e);
                                             #error_handling
                                         }
                                     }
                                 },
-                                Err(e) => {
+                                Err(err) => {
+                                    let e: Box<dyn std::error::Error> = err.into();
                                     ::worker::console_error!("{}", &e);
                                     #error_handling
                                 }
                             }
                         },
-                        Err(e) => {
+                        Err(err) => {
+                            let e: Box<dyn std::error::Error> = err.into();
                             ::worker::console_error!("Error converting request: {}", &e);
                             #error_handling
                         }

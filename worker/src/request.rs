@@ -352,24 +352,32 @@ fn clone_mut_works() {
 /// A trait used to represent any viable Request type that can be used in the Worker.
 /// The only requirement is that it be convertible from a web_sys::Request.
 pub trait FromRequest: std::marker::Sized {
-    fn from_raw(request: web_sys::Request) -> Result<Self>;
+    fn from_raw(
+        request: web_sys::Request,
+    ) -> std::result::Result<Self, impl Into<Box<dyn std::error::Error>>>;
 }
 
 impl FromRequest for web_sys::Request {
-    fn from_raw(request: web_sys::Request) -> Result<Self> {
-        Ok(request)
+    fn from_raw(
+        request: web_sys::Request,
+    ) -> std::result::Result<Self, impl Into<Box<dyn std::error::Error>>> {
+        Ok::<web_sys::Request, Error>(request)
     }
 }
 
 impl FromRequest for Request {
-    fn from_raw(request: web_sys::Request) -> Result<Self> {
-        Ok(request.into())
+    fn from_raw(
+        request: web_sys::Request,
+    ) -> std::result::Result<Self, impl Into<Box<dyn std::error::Error>>> {
+        Ok::<Request, Error>(request.into())
     }
 }
 
 #[cfg(feature = "http")]
 impl FromRequest for crate::HttpRequest {
-    fn from_raw(request: web_sys::Request) -> Result<Self> {
+    fn from_raw(
+        request: web_sys::Request,
+    ) -> std::result::Result<Self, impl Into<Box<dyn std::error::Error>>> {
         crate::http::request::from_wasm(request)
     }
 }
