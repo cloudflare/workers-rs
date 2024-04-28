@@ -45,7 +45,7 @@ impl<'bucket> GetOptionsBuilder<'bucket> {
                 "range" => self.range.map(JsObject::from),
             }
             .into(),
-        );
+        )?;
 
         let value = JsFuture::from(get_promise).await?;
 
@@ -228,7 +228,7 @@ impl<'bucket> PutOptionsBuilder<'bucket> {
                 }),
             }
             .into(),
-        );
+        )?;
         let res: EdgeR2Object = JsFuture::from(put_promise).await?.into();
         let inner = if JsString::from("bodyUsed").js_in(&res) {
             ObjectInner::Body(res.unchecked_into())
@@ -281,7 +281,7 @@ impl<'bucket> CreateMultipartUploadOptionsBuilder<'bucket> {
                 },
             }
             .into(),
-        );
+        )?;
         let inner: EdgeR2MultipartUpload = JsFuture::from(create_multipart_upload_promise)
             .await?
             .into();
@@ -325,12 +325,12 @@ impl From<HttpMetadata> for JsObject {
 impl From<R2HttpMetadataSys> for HttpMetadata {
     fn from(val: R2HttpMetadataSys) -> Self {
         Self {
-            content_type: val.content_type(),
-            content_language: val.content_language(),
-            content_disposition: val.content_disposition(),
-            content_encoding: val.content_encoding(),
-            cache_control: val.cache_control(),
-            cache_expiry: val.cache_expiry().map(Into::into),
+            content_type: val.content_type().unwrap(),
+            content_language: val.content_language().unwrap(),
+            content_disposition: val.content_disposition().unwrap(),
+            content_encoding: val.content_encoding().unwrap(),
+            cache_control: val.cache_control().unwrap(),
+            cache_expiry: val.cache_expiry().unwrap().map(Into::into),
         }
     }
 }
@@ -415,7 +415,7 @@ impl<'bucket> ListOptionsBuilder<'bucket> {
                     .unwrap_or(JsValue::UNDEFINED),
             }
             .into(),
-        );
+        )?;
         let inner = JsFuture::from(list_promise).await?.into();
         Ok(Objects { inner })
     }

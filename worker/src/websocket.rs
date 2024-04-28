@@ -1,6 +1,7 @@
 use crate::{Error, Method, Request, Result};
 use futures_channel::mpsc::UnboundedReceiver;
 use futures_util::Stream;
+use js_sys::Uint8Array;
 use serde::Serialize;
 use url::Url;
 use worker_sys::ext::WebSocketExt;
@@ -31,7 +32,7 @@ unsafe impl Sync for WebSocketPair {}
 impl WebSocketPair {
     /// Creates a new `WebSocketPair`.
     pub fn new() -> Result<Self> {
-        let mut pair = worker_sys::WebSocketPair::new();
+        let mut pair = worker_sys::WebSocketPair::new()?;
         let client = pair.client()?.into();
         let server = pair.server()?.into();
         Ok(Self { client, server })
@@ -140,8 +141,13 @@ impl WebSocket {
 
     /// Sends raw binary data through the `WebSocket`.
     pub fn send_with_bytes<D: AsRef<[u8]>>(&self, bytes: D) -> Result<()> {
-        let slice = bytes.as_ref();
-        self.socket.send_with_u8_array(slice).map_err(Error::from)
+        // This clone to Uint8Array must happen, because workerd
+        // will not clone the supplied buffer and will send it asynchronously.
+        // Rust believes that the lifetime ends when `send` returns, and frees
+        // the memory, causing corruption.
+        let uint8_array = Uint8Array::from(bytes.as_ref());
+        self.socket.send_with_array_buffer(&uint8_array.buffer())?;
+        Ok(())
     }
 
     /// Closes this channel.

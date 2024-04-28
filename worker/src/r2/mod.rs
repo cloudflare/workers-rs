@@ -27,7 +27,7 @@ pub struct Bucket {
 impl Bucket {
     /// Retrieves the [Object] for the given key containing only object metadata, if the key exists.
     pub async fn head(&self, key: impl Into<String>) -> Result<Option<Object>> {
-        let head_promise = self.inner.head(key.into());
+        let head_promise = self.inner.head(key.into())?;
         let value = JsFuture::from(head_promise).await?;
 
         if value.is_null() {
@@ -74,7 +74,7 @@ impl Bucket {
     /// R2 deletes are strongly consistent. Once the Promise resolves, all subsequent read
     /// operations will no longer see this key value pair globally.
     pub async fn delete(&self, key: impl Into<String>) -> Result<()> {
-        let delete_promise = self.inner.delete(key.into());
+        let delete_promise = self.inner.delete(key.into())?;
         JsFuture::from(delete_promise).await?;
         Ok(())
     }
@@ -122,7 +122,7 @@ impl Bucket {
         Ok(MultipartUpload {
             inner: self
                 .inner
-                .resume_multipart_upload(key.into(), upload_id.into())
+                .resume_multipart_upload(key.into(), upload_id.into())?
                 .into(),
         })
     }
@@ -168,67 +168,67 @@ pub struct Object {
 impl Object {
     pub fn key(&self) -> String {
         match &self.inner {
-            ObjectInner::NoBody(inner) => inner.key(),
-            ObjectInner::Body(inner) => inner.key(),
+            ObjectInner::NoBody(inner) => inner.key().unwrap(),
+            ObjectInner::Body(inner) => inner.key().unwrap(),
         }
     }
 
     pub fn version(&self) -> String {
         match &self.inner {
-            ObjectInner::NoBody(inner) => inner.version(),
-            ObjectInner::Body(inner) => inner.version(),
+            ObjectInner::NoBody(inner) => inner.version().unwrap(),
+            ObjectInner::Body(inner) => inner.version().unwrap(),
         }
     }
 
     pub fn size(&self) -> u32 {
         match &self.inner {
-            ObjectInner::NoBody(inner) => inner.size(),
-            ObjectInner::Body(inner) => inner.size(),
+            ObjectInner::NoBody(inner) => inner.size().unwrap(),
+            ObjectInner::Body(inner) => inner.size().unwrap(),
         }
     }
 
     pub fn etag(&self) -> String {
         match &self.inner {
-            ObjectInner::NoBody(inner) => inner.etag(),
-            ObjectInner::Body(inner) => inner.etag(),
+            ObjectInner::NoBody(inner) => inner.etag().unwrap(),
+            ObjectInner::Body(inner) => inner.etag().unwrap(),
         }
     }
 
     pub fn http_etag(&self) -> String {
         match &self.inner {
-            ObjectInner::NoBody(inner) => inner.http_etag(),
-            ObjectInner::Body(inner) => inner.http_etag(),
+            ObjectInner::NoBody(inner) => inner.http_etag().unwrap(),
+            ObjectInner::Body(inner) => inner.http_etag().unwrap(),
         }
     }
 
     pub fn uploaded(&self) -> Date {
         match &self.inner {
-            ObjectInner::NoBody(inner) => inner.uploaded(),
-            ObjectInner::Body(inner) => inner.uploaded(),
+            ObjectInner::NoBody(inner) => inner.uploaded().unwrap(),
+            ObjectInner::Body(inner) => inner.uploaded().unwrap(),
         }
         .into()
     }
 
     pub fn http_metadata(&self) -> HttpMetadata {
         match &self.inner {
-            ObjectInner::NoBody(inner) => inner.http_metadata(),
-            ObjectInner::Body(inner) => inner.http_metadata(),
+            ObjectInner::NoBody(inner) => inner.http_metadata().unwrap(),
+            ObjectInner::Body(inner) => inner.http_metadata().unwrap(),
         }
         .into()
     }
 
     pub fn checksum(&self) -> R2Checksums {
         match &self.inner {
-            ObjectInner::NoBody(inner) => inner.checksums(),
-            ObjectInner::Body(inner) => inner.checksums(),
+            ObjectInner::NoBody(inner) => inner.checksums().unwrap(),
+            ObjectInner::Body(inner) => inner.checksums().unwrap(),
         }
         .into()
     }
 
     pub fn custom_metadata(&self) -> Result<HashMap<String, String>> {
         let metadata = match &self.inner {
-            ObjectInner::NoBody(inner) => inner.custom_metadata(),
-            ObjectInner::Body(inner) => inner.custom_metadata(),
+            ObjectInner::NoBody(inner) => inner.custom_metadata().unwrap(),
+            ObjectInner::Body(inner) => inner.custom_metadata().unwrap(),
         };
 
         let keys = js_sys::Object::keys(&metadata).to_vec();
@@ -245,8 +245,8 @@ impl Object {
 
     pub fn range(&self) -> Result<Range> {
         match &self.inner {
-            ObjectInner::NoBody(inner) => inner.range(),
-            ObjectInner::Body(inner) => inner.range(),
+            ObjectInner::NoBody(inner) => inner.range().unwrap(),
+            ObjectInner::Body(inner) => inner.range().unwrap(),
         }
         .try_into()
     }
@@ -261,7 +261,7 @@ impl Object {
     pub fn body_used(&self) -> Option<bool> {
         match &self.inner {
             ObjectInner::NoBody(_) => None,
-            ObjectInner::Body(inner) => Some(inner.body_used()),
+            ObjectInner::Body(inner) => Some(inner.body_used().unwrap()),
         }
     }
 
@@ -283,11 +283,11 @@ pub struct ObjectBody<'body> {
 impl<'body> ObjectBody<'body> {
     /// Reads the data in the [Object] via a [ByteStream].
     pub fn stream(self) -> Result<ByteStream> {
-        if self.inner.body_used() {
+        if self.inner.body_used()? {
             return Err(Error::BodyUsed);
         }
 
-        let stream = self.inner.body();
+        let stream = self.inner.body()?;
         let stream = wasm_streams::ReadableStream::from_raw(stream.unchecked_into());
         Ok(ByteStream {
             inner: stream.into_stream(),
@@ -300,15 +300,15 @@ impl<'body> ObjectBody<'body> {
     /// to the client in a [crate::Response]. This ensures that the worker does not consume CPU time
     /// while the streaming occurs, which can be significant if instead [ObjectBody::stream] is used.
     pub fn response_body(self) -> Result<ResponseBody> {
-        if self.inner.body_used() {
+        if self.inner.body_used()? {
             return Err(Error::BodyUsed);
         }
 
-        Ok(ResponseBody::Stream(self.inner.body()))
+        Ok(ResponseBody::Stream(self.inner.body()?))
     }
 
     pub async fn bytes(self) -> Result<Vec<u8>> {
-        let js_buffer = JsFuture::from(self.inner.array_buffer()).await?;
+        let js_buffer = JsFuture::from(self.inner.array_buffer()?).await?;
         let js_buffer = Uint8Array::new(&js_buffer);
         let mut bytes = vec![0; js_buffer.length() as usize];
         js_buffer.copy_to(&mut bytes);
@@ -330,11 +330,11 @@ pub struct UploadedPart {
 
 impl UploadedPart {
     pub fn part_number(&self) -> u16 {
-        self.inner.part_number()
+        self.inner.part_number().unwrap()
     }
 
     pub fn etag(&self) -> String {
-        self.inner.etag()
+        self.inner.etag().unwrap()
     }
 }
 
@@ -361,15 +361,20 @@ impl MultipartUpload {
         value: impl Into<Data>,
     ) -> Result<UploadedPart> {
         let uploaded_part =
-            JsFuture::from(self.inner.upload_part(part_number, value.into().into())).await?;
+            JsFuture::from(self.inner.upload_part(part_number, value.into().into())?).await?;
         Ok(UploadedPart {
             inner: uploaded_part.into(),
         })
     }
 
+    /// Request the upload id.
+    pub async fn upload_id(&self) -> String {
+        self.inner.upload_id().unwrap()
+    }
+
     /// Aborts the multipart upload.
     pub async fn abort(&self) -> Result<()> {
-        JsFuture::from(self.inner.abort()).await?;
+        JsFuture::from(self.inner.abort()?).await?;
         Ok(())
     }
 
@@ -385,7 +390,7 @@ impl MultipartUpload {
                     .into_iter()
                     .map(|part| part.inner.into())
                     .collect(),
-            ),
+            )?,
         )
         .await?;
         Ok(Object {
@@ -404,6 +409,7 @@ impl Objects {
     pub fn objects(&self) -> Vec<Object> {
         self.inner
             .objects()
+            .unwrap()
             .into_iter()
             .map(|raw| Object {
                 inner: ObjectInner::NoBody(raw),
@@ -414,13 +420,13 @@ impl Objects {
     /// If true, indicates there are more results to be retrieved for the current
     /// [list](Bucket::list) request.
     pub fn truncated(&self) -> bool {
-        self.inner.truncated()
+        self.inner.truncated().unwrap()
     }
 
     /// A token that can be passed to future [list](Bucket::list) calls to resume listing from that
     /// point. Only present if truncated is true.
     pub fn cursor(&self) -> Option<String> {
-        self.inner.cursor()
+        self.inner.cursor().unwrap()
     }
 
     /// If a delimiter has been specified, contains all prefixes between the specified prefix and
@@ -432,6 +438,7 @@ impl Objects {
     pub fn delimited_prefixes(&self) -> Vec<String> {
         self.inner
             .delimited_prefixes()
+            .unwrap()
             .into_iter()
             .map(Into::into)
             .collect()
@@ -445,10 +452,17 @@ pub(crate) enum ObjectInner {
 }
 
 pub enum Data {
+    ReadableStream(web_sys::ReadableStream),
     Stream(FixedLengthStream),
     Text(String),
     Bytes(Vec<u8>),
     Empty,
+}
+
+impl From<web_sys::ReadableStream> for Data {
+    fn from(stream: web_sys::ReadableStream) -> Self {
+        Data::ReadableStream(stream)
+    }
 }
 
 impl From<FixedLengthStream> for Data {
@@ -472,6 +486,7 @@ impl From<Vec<u8>> for Data {
 impl From<Data> for JsValue {
     fn from(data: Data) -> Self {
         match data {
+            Data::ReadableStream(stream) => stream.into(),
             Data::Stream(stream) => {
                 let stream_sys: EdgeFixedLengthStream = stream.into();
                 stream_sys.readable().into()

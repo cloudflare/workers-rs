@@ -14,7 +14,7 @@ wasm-opt = false
 crate-type = ["cdylib"]
 
 [dependencies]
-worker = { path="../../worker", features=['http'] }
+worker = { path="../../worker", features=['http', 'axum'] }
 worker-macros = { path="../../worker-macros", features=['http'] }
 axum  = { version = "0.7", default-features = false }
 tower-service = "0.3.2"

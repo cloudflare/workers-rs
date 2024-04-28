@@ -14,7 +14,7 @@ path = "src/lib.rs"
 
 [features]
 default = ["console_error_panic_hook"]
-http = ["worker/http", "dep:axum", "dep:tower-service", "dep:axum-macros"]
+http = ["worker/http", "worker/axum", "dep:axum", "dep:tower-service", "dep:axum-macros"]
 
 [dependencies]
 futures-channel.workspace = true
@@ -32,13 +32,14 @@ http.workspace=true
 regex = "1.8.4"
 serde = { version = "1.0.164", features = ["derive"] }
 serde_json = "1.0.96"
-worker = { path = "../worker", version = "0.0.24", features = ["queue", "d1"] }
+worker = { path = "../worker", version = "0.1.0", features = ["queue", "d1"] }
 rand = "0.8.5"
 uuid = { version = "1.3.3", features = ["v4", "serde"] }
 serde-wasm-bindgen = "0.6.1"
 md5 = "0.7.0"
 tokio-stream = "0.1.15"
 tokio = { version = "1.28", default-features = false, features=['io-util'] }
+worker-kv = { path = "../worker-kv" }
 
 [dependencies.axum]
 version = "0.7"

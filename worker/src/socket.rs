@@ -79,8 +79,8 @@ unsafe impl Sync for Socket {}
 
 impl Socket {
     fn new(inner: worker_sys::Socket) -> Self {
-        let writable = inner.writable();
-        let readable = inner.readable();
+        let writable = inner.writable().unwrap();
+        let readable = inner.readable().unwrap();
         Socket {
             inner,
             writable,
@@ -93,19 +93,19 @@ impl Socket {
 
     /// Closes the TCP socket. Both the readable and writable streams are forcibly closed.
     pub async fn close(&mut self) -> Result<()> {
-        JsFuture::from(self.inner.close()).await?;
+        JsFuture::from(self.inner.close()?).await?;
         Ok(())
     }
 
     /// This Future is resolved when the socket is closed
     /// and is rejected if the socket encounters an error.
     pub async fn closed(&self) -> Result<()> {
-        JsFuture::from(self.inner.closed()).await?;
+        JsFuture::from(self.inner.closed()?).await?;
         Ok(())
     }
 
     pub async fn opened(&self) -> Result<SocketInfo> {
-        let value = JsFuture::from(self.inner.opened()).await?;
+        let value = JsFuture::from(self.inner.opened()?).await?;
         value.try_into()
     }
 
@@ -115,7 +115,7 @@ impl Socket {
     /// to [`StartTls`](SecureTransport::StartTls) when initially
     /// calling [`connect`](connect) to create the socket.
     pub fn start_tls(self) -> Socket {
-        let inner = self.inner.start_tls();
+        let inner = self.inner.start_tls().unwrap();
         Socket::new(inner)
     }
 
@@ -373,7 +373,7 @@ impl ConnectionBuilder {
         )
         .into();
 
-        let inner = worker_sys::connect(address, options);
+        let inner = worker_sys::connect(address, options)?;
         Ok(Socket::new(inner))
     }
 }
