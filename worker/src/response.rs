@@ -492,14 +492,10 @@ impl IntoResponse for Response {
 }
 
 #[cfg(feature = "http")]
-impl IntoResponse for crate::HttpResponse {
-    fn into_raw(self) -> web_sys::Response {
-        crate::http::response::to_wasm(self).unwrap()
-    }
-}
-
-#[cfg(feature = "http")]
-impl IntoResponse for http::Response<axum::body::Body> {
+impl<B> IntoResponse for http::Response<B>
+where
+    B: http_body::Body<Data = Bytes> + 'static,
+{
     fn into_raw(self) -> web_sys::Response {
         crate::http::response::to_wasm(self).unwrap()
     }
