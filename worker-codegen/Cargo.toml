@@ -2,7 +2,7 @@
 name = "worker-codegen"
 version = "0.1.0"
 authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
-repository = "https://github.com/cloudflare/workers-rs/tree/main/worker-macros"
+repository = "https://github.com/cloudflare/workers-rs/tree/main/worker-codegen"
 edition = "2018"
 license = "Apache-2.0"
 description = "Functions to generate Rust code from various formats such as WIT."
