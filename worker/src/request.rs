@@ -349,25 +349,27 @@ fn clone_mut_works() {
     assert!(mut_req.immutable);
 }
 
-/// A trait used to represent any viable Request struct that can be used in the Worker.
-/// The only requirement is that it be convertable from a web_sys::Request.
-pub trait FromRequest {
-    fn from_raw(request: web_sys::Request) -> Self;
+/// A trait used to represent any viable Request type that can be used in the Worker.
+/// The only requirement is that it be convertible from a web_sys::Request.
+pub trait FromRequest: std::marker::Sized {
+    fn from_raw(request: web_sys::Request) -> Result<Self>;
 }
 
 impl FromRequest for web_sys::Request {
-    fn from_raw(request: web_sys::Request) -> Self {
-        request
+    fn from_raw(request: web_sys::Request) -> Result<Self> {
+        Ok(request)
     }
 }
+
 impl FromRequest for Request {
-    fn from_raw(request: web_sys::Request) -> Self {
-        request.into()
+    fn from_raw(request: web_sys::Request) -> Result<Self> {
+        Ok(request.into())
     }
 }
+
 #[cfg(feature = "http")]
 impl FromRequest for crate::HttpRequest {
-    fn from_raw(request: web_sys::Request) -> Self {
-        crate::http::request::from_wasm(request).unwrap()
+    fn from_raw(request: web_sys::Request) -> Result<Self> {
+        crate::http::request::from_wasm(request)
     }
 }
