@@ -66,6 +66,29 @@ impl Fetcher {
         let result = Ok(response);
         result
     }
+
+    /// Convert Fetcher into user-defined RPC interface.
+    /// ```
+    /// #[wasm_bindgen]
+    /// extern "C" {
+    ///     #[wasm_bindgen(extends=js_sys::Object)]
+    ///     #[derive(Debug, Clone, PartialEq, Eq)]
+    ///     pub type MyRpcInterface;
+    ///
+    ///     #[wasm_bindgen(method, catch)]
+    ///     pub fn add(
+    ///         this: &MyRpcInterface,
+    ///         a: u32,
+    ///         b: u32,
+    ///     ) -> std::result::Result<js_sys::Promise, JsValue>;
+    /// }
+    ///
+    /// let rpc: MyRpcInterface = fetcher.into_rpc();
+    /// let result = rpc.add(1, 2);
+    /// ```
+    pub fn into_rpc<T: JsCast>(self) -> T {
+        self.0.unchecked_into()
+    }
 }
 
 impl EnvBinding for Fetcher {
