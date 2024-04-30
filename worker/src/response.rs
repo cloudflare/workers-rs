@@ -472,3 +472,39 @@ impl From<web_sys::Response> for Response {
         }
     }
 }
+
+/// A trait used to represent any viable Response type that can be used in the Worker.
+/// The only requirement is that it be convertible to a web_sys::Response.
+pub trait IntoResponse {
+    fn into_raw(
+        self,
+    ) -> std::result::Result<web_sys::Response, impl Into<Box<dyn std::error::Error>>>;
+}
+
+impl IntoResponse for web_sys::Response {
+    fn into_raw(
+        self,
+    ) -> std::result::Result<web_sys::Response, impl Into<Box<dyn std::error::Error>>> {
+        Ok::<web_sys::Response, Error>(self)
+    }
+}
+
+impl IntoResponse for Response {
+    fn into_raw(
+        self,
+    ) -> std::result::Result<web_sys::Response, impl Into<Box<dyn std::error::Error>>> {
+        Ok::<web_sys::Response, Error>(self.into())
+    }
+}
+
+#[cfg(feature = "http")]
+impl<B> IntoResponse for http::Response<B>
+where
+    B: http_body::Body<Data = Bytes> + 'static,
+{
+    fn into_raw(
+        self,
+    ) -> std::result::Result<web_sys::Response, impl Into<Box<dyn std::error::Error>>> {
+        crate::http::response::to_wasm(self)
+    }
+}

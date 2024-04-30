@@ -96,7 +96,7 @@ pub async fn exec(mut req: Request, env: Env, _data: SomeSharedData) -> Result<R
         .await
         .expect("doesn't exist");
 
-    Response::ok(result.count().unwrap_or_default().to_string())
+    Response::ok(result.count()?.unwrap_or_default().to_string())
 }
 
 #[worker::send]

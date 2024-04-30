@@ -11,12 +11,6 @@ pub fn durable_object(_attr: TokenStream, item: TokenStream) -> TokenStream {
         .into()
 }
 
-#[cfg(feature = "http")]
-#[proc_macro_attribute]
-pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
-    event::expand_macro(attr, item, true)
-}
-
 /// The `event` macro is used to denote a [Worker handler](https://developers.cloudflare.com/workers/runtime-apis/handlers/), essentially binding from
 /// the JS runtime to a Rust function.
 ///
@@ -35,11 +29,12 @@ pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// At a high-level, the `fetch` handler is used to handle incoming HTTP requests. The function signature for a `fetch` handler is conceptually something like:
 ///  
 /// ```rust
-/// async fn fetch(req: impl From<web_sys::Request>, env: Env, ctx: Context) -> Result<impl Into<web_sys::Response>, worker::Error>
+/// async fn fetch(req: impl From<web_sys::Request>, env: Env, ctx: Context) -> Result<impl Into<web_sys::Response>, impl Into<Box<dyn Error>>>
 /// ```
 ///
-/// In other words, it takes a some "request" object that can be derived *from* a `web_sys::Request` (into whatever concrete Request type you like), and returns some "response" object that can be converted *into* a `web_sys::Response` (from whatever concrete Response type you like).
-/// It also receives the worker `Env` and `Context` objects.
+/// In other words, it takes some "request" object that can be derived *from* a `web_sys::Request` (into whatever concrete Request type you like),
+/// and returns some "response" object that can be converted *into* a `web_sys::Response` (from whatever concrete Response type you like).
+/// Error types can be any type that implements [`std::error::Error`].
 ///
 /// In practice, the "request" and "response" objects are usually one of these concrete types, supported out of the box:
 ///
@@ -69,10 +64,9 @@ pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///   Ok(router().call(req).await?)
 /// }
 /// ```
-#[cfg(not(feature = "http"))]
 #[proc_macro_attribute]
 pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
-    event::expand_macro(attr, item, false)
+    event::expand_macro(attr, item)
 }
 
 #[proc_macro_attribute]

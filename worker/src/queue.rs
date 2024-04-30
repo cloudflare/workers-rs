@@ -19,29 +19,30 @@ pub struct MessageBatch<T> {
 impl<T> MessageBatch<T> {
     /// The name of the Queue that belongs to this batch.
     pub fn queue(&self) -> String {
-        self.inner.queue().into()
+        self.inner.queue().unwrap().into()
     }
 
     /// Marks every message to be retried in the next batch.
     pub fn retry_all(&self) {
-        self.inner.retry_all(JsValue::null());
+        self.inner.retry_all(JsValue::null()).unwrap();
     }
 
     /// Marks every message to be retried in the next batch with options.
     pub fn retry_all_with_options(&self, queue_retry_options: &QueueRetryOptions) {
         self.inner
             // SAFETY: QueueRetryOptions is controlled by this module and all data in it is serializable to a js value.
-            .retry_all(serde_wasm_bindgen::to_value(&queue_retry_options).unwrap());
+            .retry_all(serde_wasm_bindgen::to_value(&queue_retry_options).unwrap())
+            .unwrap();
     }
 
     /// Marks every message acknowledged in the batch.
     pub fn ack_all(&self) {
-        self.inner.ack_all();
+        self.inner.ack_all().unwrap();
     }
 
     /// Iterator for raw messages in the message batch. Ordering of messages is not guaranteed.
     pub fn raw_iter(&self) -> RawMessageIter {
-        let messages = self.inner.messages();
+        let messages = self.inner.messages().unwrap();
         RawMessageIter {
             range: 0..messages.length(),
             array: messages,
@@ -57,7 +58,7 @@ impl<T: DeserializeOwned> MessageBatch<T> {
 
     /// Iterator for messages in the message batch. Ordering of messages is not guaranteed.
     pub fn iter(&self) -> MessageIter<T> {
-        let messages = self.inner.messages();
+        let messages = self.inner.messages().unwrap();
         MessageIter {
             range: 0..messages.length(),
             array: messages,
@@ -94,7 +95,7 @@ impl<T> Message<T> {
 
     /// The raw body of the message.
     pub fn raw_body(&self) -> JsValue {
-        self.inner().body()
+        self.inner().body().unwrap()
     }
 }
 
@@ -121,7 +122,7 @@ pub struct RawMessage {
 impl RawMessage {
     /// The body of the message.
     pub fn body(&self) -> JsValue {
-        self.inner.body()
+        self.inner.body().unwrap()
     }
 }
 
@@ -201,29 +202,30 @@ pub trait MessageExt {
 impl<T: MessageSysInner> MessageExt for T {
     /// A unique, system-generated ID for the message.
     fn id(&self) -> String {
-        self.inner().id().into()
+        self.inner().id().unwrap().into()
     }
 
     /// A timestamp when the message was sent.
     fn timestamp(&self) -> Date {
-        Date::from(self.inner().timestamp())
+        Date::from(self.inner().timestamp().unwrap())
     }
 
     /// Marks message to be retried.
     fn retry(&self) {
-        self.inner().retry(JsValue::null());
+        self.inner().retry(JsValue::null()).unwrap();
     }
 
     /// Marks message to be retried with options.
     fn retry_with_options(&self, queue_retry_options: &QueueRetryOptions) {
         self.inner()
             // SAFETY: QueueRetryOptions is controlled by this module and all data in it is serializable to a js value.
-            .retry(serde_wasm_bindgen::to_value(&queue_retry_options).unwrap());
+            .retry(serde_wasm_bindgen::to_value(&queue_retry_options).unwrap())
+            .unwrap();
     }
 
     /// Marks message acknowledged.
     fn ack(&self) {
-        self.inner().ack();
+        self.inner().ack().unwrap();
     }
 }
 
@@ -602,7 +604,7 @@ impl Queue {
             None => JsValue::null(),
         };
 
-        let fut: JsFuture = self.0.send(message.message, options).into();
+        let fut: JsFuture = self.0.send(message.message, options)?.into();
         fut.await.map_err(Error::from)?;
         Ok(())
     }
@@ -670,7 +672,7 @@ impl Queue {
             })
             .collect::<Result<js_sys::Array>>()?;
 
-        let fut: JsFuture = self.0.send_batch(messages, batch_send_options).into();
+        let fut: JsFuture = self.0.send_batch(messages, batch_send_options)?.into();
         fut.await.map_err(Error::from)?;
         Ok(())
     }

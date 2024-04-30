@@ -101,6 +101,46 @@
 //! let router = axum::Router::new()
 //!     .route("/", get(handler))
 //! ```
+//!
+//! # RPC Support
+//! `workers-rs` has experimental support for [Workers RPC](https://developers.cloudflare.com/workers/runtime-apis/rpc/).
+//! For now, this relies on JavaScript bindings and may require some manual usage of `wasm-bindgen`.
+//!
+//! Not all features of RPC are supported yet (or have not been tested), including:
+//! - Function arguments and return values
+//! - Class instances
+//! - Stub forwarding
+//!
+//! ## RPC Server
+//!
+//! Writing an RPC server with `workers-rs` is relatively simple. Simply export methods using `wasm-bindgen`. These
+//! will be automatically detected by `worker-build` and made available to other Workers. See
+//! [example](https://github.com/cloudflare/workers-rs/tree/main/examples/rpc-server).
+//!
+//! ## RPC Client
+//!
+//! Creating types and bindings for invoking another Worker's RPC methods is a bit more involved. You will need to
+//! write more complex `wasm-bindgen` bindings and some boilerplate to make interacting with the RPC methods more
+//! idiomatic. See [example](https://github.com/cloudflare/workers-rs/blob/main/examples/rpc-client/src/calculator.rs).
+//!
+//! With manually written bindings, it should be possible to support non-primitive argument and return types, using
+//! `serde-wasm-bindgen`.
+//!
+//! ## Generating Client Bindings
+//!
+//! There are many routes that can be taken to describe RPC interfaces. Under the hood, Workers RPC uses
+//! [Cap'N Proto](https://capnproto.org/). A possible future direction is for Wasm guests to include Cap'N Proto
+//! serde support and speak directly to the RPC protocol, bypassing JavaScript. This would likely involve defining
+//! the RPC interface in Cap'N Proto schema and generating Rust code from that.
+//!
+//! Another popular interface schema in the WebAssembly community is
+//! [WIT](https://github.com/WebAssembly/component-model/blob/main/design/mvp/WIT.md). This is a lightweight format
+//! designed for the WebAssembly Component model. `workers-rs` includes an **experimental** code generator which
+//! allows you to describe your RPC interface using WIT and generate JavaScript bindings as shown in the
+//! [rpc-client example](https://github.com/cloudflare/workers-rs/blob/main/examples/rpc-client/wit/calculator.wit).
+//! The easiest way to use this code generator is using a
+//! [build script](https://github.com/cloudflare/workers-rs/blob/main/examples/rpc-client/build.rs) as shown in the example.
+//! This code generator is pre-alpha, with no support guarantee, and implemented only for primitive types at this time.
 
 #[doc(hidden)]
 use std::result::Result as StdResult;
@@ -142,9 +182,9 @@ pub use crate::http::Method;
 #[cfg(feature = "queue")]
 pub use crate::queue::*;
 pub use crate::r2::*;
-pub use crate::request::Request;
+pub use crate::request::{FromRequest, Request};
 pub use crate::request_init::*;
-pub use crate::response::{Response, ResponseBody};
+pub use crate::response::{IntoResponse, Response, ResponseBody};
 pub use crate::router::{RouteContext, RouteParams, Router};
 pub use crate::schedule::*;
 pub use crate::socket::*;

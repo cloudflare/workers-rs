@@ -8,14 +8,14 @@ mod glue {
         #[wasm_bindgen]
         pub type AbortSignal;
 
-        #[wasm_bindgen(method, getter)]
-        pub fn reason(this: &AbortSignal) -> JsValue;
+        #[wasm_bindgen(method, catch, getter)]
+        pub fn reason(this: &AbortSignal) -> Result<JsValue, JsValue>;
 
-        #[wasm_bindgen(static_method_of=AbortSignal)]
-        pub fn abort() -> web_sys::AbortSignal;
+        #[wasm_bindgen(static_method_of=AbortSignal, catch)]
+        pub fn abort() -> Result<web_sys::AbortSignal, JsValue>;
 
-        #[wasm_bindgen(static_method_of=AbortSignal, js_name=abort)]
-        pub fn abort_with_reason(reason: &JsValue) -> web_sys::AbortSignal;
+        #[wasm_bindgen(static_method_of=AbortSignal, js_name=abort, catch)]
+        pub fn abort_with_reason(reason: &JsValue) -> Result<web_sys::AbortSignal, JsValue>;
     }
 }
 
@@ -29,14 +29,14 @@ pub trait AbortSignalExt {
 
 impl AbortSignalExt for web_sys::AbortSignal {
     fn reason(&self) -> JsValue {
-        self.unchecked_ref::<glue::AbortSignal>().reason()
+        self.unchecked_ref::<glue::AbortSignal>().reason().unwrap()
     }
 
     fn abort() -> web_sys::AbortSignal {
-        glue::AbortSignal::abort()
+        glue::AbortSignal::abort().unwrap()
     }
 
     fn abort_with_reason(reason: &JsValue) -> web_sys::AbortSignal {
-        glue::AbortSignal::abort_with_reason(reason)
+        glue::AbortSignal::abort_with_reason(reason).unwrap()
     }
 }
