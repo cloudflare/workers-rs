@@ -1,4 +1,5 @@
 mod context;
+mod crypto;
 #[cfg(feature = "d1")]
 mod d1;
 mod durable_object;
@@ -15,6 +16,7 @@ mod tls_client_auth;
 mod websocket_pair;
 
 pub use context::*;
+pub use crypto::*;
 #[cfg(feature = "d1")]
 pub use d1::*;
 pub use durable_object::*;
