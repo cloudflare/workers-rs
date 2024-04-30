@@ -28,14 +28,12 @@ pub struct DigestStream {
 }
 
 impl DigestStream {
-    #[allow(dead_code)]
     pub fn new(algo: DigestStreamAlgorithm) -> Self {
         Self {
             inner: worker_sys::DigestStream::new(algo.as_str()),
         }
     }
 
-    #[allow(dead_code)]
     pub async fn digest(&self) -> Result<Uint8Array, crate::Error> {
         let fut = SendFuture::new(JsFuture::from(self.inner.digest()));
         let buffer: ArrayBuffer = fut.await?.unchecked_into();
