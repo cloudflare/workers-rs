@@ -38,7 +38,35 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
 }
 ```
 
-### `http` Feature
+## Getting Started
+
+The project uses [wrangler](https://github.com/cloudflare/workers-sdk/tree/main/packages/wrangler) for running and publishing your Worker.
+
+Use [cargo generate](https://github.com/cargo-generate/cargo-generate) to start from a template:
+
+```bash
+$ cargo generate cloudflare/workers-rs
+```
+
+There are several templates to chose from. You should see a new project layout with a `src/lib.rs`. 
+Start there! Use any local or remote crates and modules (as long as they compile to the `wasm32-unknown-unknown` target).
+
+Once you're ready to run your project, run your worker locally:
+
+```bash
+npx wrangler dev
+```
+
+Finally, go live:
+
+```bash
+# configure your routes, zones & more in your worker's `wrangler.toml` file
+npx wrangler deploy
+```
+
+If you would like to have `wrangler` installed on your machine, see instructions in [wrangler repository](https://github.com/cloudflare/workers-sdk/tree/main/packages/wrangler).
+
+## `http` Feature
 
 `worker` `0.0.21` introduced an `http` feature flag which starts to replace custom types with widely used types from the [`http`](https://docs.rs/http/latest/http/) crate.
 
@@ -142,36 +170,6 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
 }
 ```
 
-## Getting Started
-
-The project uses [wrangler](https://github.com/cloudflare/wrangler2) version 2.x for running and publishing your Worker.
-
-Git clone the Rust Worker project [template](https://github.com/cloudflare/workers-sdk/tree/main/templates/experimental/worker-rust) and install its dependencies.
-
-You should see a new project layout with a `src/lib.rs`. Start there! Use any local or remote crates
-and modules (as long as they compile to the `wasm32-unknown-unknown` target).
-
-Once you're ready to run your project:
-
-First check that the wrangler version is 2.x
-```bash
-npx wrangler --version
-```
-
-Then, run your worker
-
-```bash
-npx wrangler dev
-```
-
-Finally, go live:
-
-```bash
-# configure your routes, zones & more in your worker's `wrangler.toml` file
-npx wrangler publish
-```
-
-If you would like to have `wrangler` installed on your machine, see instructions in [wrangler repository](https://github.com/cloudflare/wrangler2).
 ## Durable Object, KV, Secret, & Variable Bindings
 
 All "bindings" to your script (Durable Object & KV Namespaces, Secrets, and Variables) are
