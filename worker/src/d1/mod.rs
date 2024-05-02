@@ -244,11 +244,10 @@ impl D1PreparedStatement {
 
     /// Bind one or more parameters to the statement.
     /// Returns a new statement with the bound parameters, leaving the old statement available for reuse.
-    pub fn bind_refs<'a, T, U: 'a>(&self, values: T) -> Result<Self>
-    where
-        T: IntoIterator<Item = &'a U>,
-        U: D1Argument,
-    {
+    pub fn bind_refs<'a, T: IntoIterator<Item = &'a U>, U: D1Argument + 'a>(
+        &self,
+        values: T,
+    ) -> Result<Self> {
         let array: Array = values.into_iter().map(|t| t.js_value()).collect::<Array>();
 
         match self.0.bind(array) {
@@ -259,12 +258,15 @@ impl D1PreparedStatement {
 
     /// Bind a batch of parameter values, returning a batch of prepared statements.
     /// Result can be passed to [`D1Database::batch`] to execute the statements.
-    pub fn batch_bind<'a, U: 'a, T: 'a, V: 'a>(&self, values: T) -> Result<Vec<Self>>
-    where
-        T: IntoIterator<Item = U>,
-        U: IntoIterator<Item = &'a V>,
-        V: D1Argument,
-    {
+    pub fn batch_bind<
+        'a,
+        U: IntoIterator<Item = &'a V> + 'a,
+        T: IntoIterator<Item = U> + 'a,
+        V: D1Argument + 'a,
+    >(
+        &self,
+        values: T,
+    ) -> Result<Vec<Self>> {
         values
             .into_iter()
             .map(|batch| self.bind_refs(batch))
