@@ -63,6 +63,9 @@ pub struct ObjectNamespace {
     inner: EdgeObjectNamespace,
 }
 
+unsafe impl Send for ObjectNamespace {}
+unsafe impl Sync for ObjectNamespace {}
+
 impl ObjectNamespace {
     /// This method derives a unique object ID from the given name string. It will always return the
     /// same ID when given the same name as input.
