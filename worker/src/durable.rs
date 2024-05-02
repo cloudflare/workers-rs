@@ -40,6 +40,9 @@ pub struct Stub {
     inner: EdgeDurableObject,
 }
 
+unsafe impl Send for Stub {}
+unsafe impl Sync for Stub {}
+
 impl Stub {
     /// Send an internal Request to the Durable Object to which the stub points.
     pub async fn fetch_with_request(&self, req: Request) -> Result<Response> {
@@ -59,9 +62,13 @@ impl Stub {
 /// Use an ObjectNamespace to get access to Stubs for communication with a Durable Object instance.
 /// A given namespace can support essentially unlimited Durable Objects, with each Object having
 /// access to a transactional, key-value storage API.
+#[derive(Clone)]
 pub struct ObjectNamespace {
     inner: EdgeObjectNamespace,
 }
+
+unsafe impl Send for ObjectNamespace {}
+unsafe impl Sync for ObjectNamespace {}
 
 impl ObjectNamespace {
     /// This method derives a unique object ID from the given name string. It will always return the
