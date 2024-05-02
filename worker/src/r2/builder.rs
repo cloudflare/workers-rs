@@ -93,34 +93,44 @@ impl From<Conditional> for JsObject {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Range {
-    OffsetWithLength { offset: u32, length: u32 },
-    OffsetWithOptionalLength { offset: u32, length: Option<u32> },
-    OptionalOffsetWithLength { offset: Option<u32>, length: u32 },
-    Suffix { suffix: u32 },
+    OffsetWithLength { offset: u64, length: u64 },
+    OffsetWithOptionalLength { offset: u64, length: Option<u64> },
+    OptionalOffsetWithLength { offset: Option<u64>, length: u64 },
+    Suffix { suffix: u64 },
+}
+
+const MAX_INT: u64 = (2 ^ 53) - 1;
+
+fn check_range_precision(value: u64) -> f64 {
+    assert!(
+        value <= MAX_INT,
+        "Integer precision loss when converting to JavaScript number"
+    );
+    value as f64
 }
 
 impl From<Range> for JsObject {
     fn from(val: Range) -> Self {
         match val {
             Range::OffsetWithLength { offset, length } => js_object! {
-                "offset" => Some(offset),
-                "length" => Some(length),
+                "offset" => Some(check_range_precision(offset)),
+                "length" => Some(check_range_precision(length)),
                 "suffix" => JsValue::UNDEFINED,
             },
             Range::OffsetWithOptionalLength { offset, length } => js_object! {
-                "offset" => Some(offset),
-                "length" => length,
+                "offset" => Some(check_range_precision(offset)),
+                "length" => length.map(check_range_precision),
                 "suffix" => JsValue::UNDEFINED,
             },
             Range::OptionalOffsetWithLength { offset, length } => js_object! {
-                "offset" => offset,
-                "length" => Some(length),
+                "offset" => offset.map(check_range_precision),
+                "length" => Some(check_range_precision(length)),
                 "suffix" => JsValue::UNDEFINED,
             },
             Range::Suffix { suffix } => js_object! {
                 "offset" => JsValue::UNDEFINED,
                 "length" => JsValue::UNDEFINED,
-                "suffix" => Some(suffix),
+                "suffix" => Some(check_range_precision(suffix)),
             },
         }
     }
@@ -131,16 +141,21 @@ impl TryFrom<R2RangeSys> for Range {
 
     fn try_from(val: R2RangeSys) -> Result<Self> {
         Ok(match (val.offset, val.length, val.suffix) {
-            (Some(offset), Some(length), None) => Self::OffsetWithLength { offset, length },
+            (Some(offset), Some(length), None) => Self::OffsetWithLength {
+                offset: offset.round() as u64,
+                length: length.round() as u64,
+            },
             (Some(offset), None, None) => Self::OffsetWithOptionalLength {
-                offset,
+                offset: offset.round() as u64,
                 length: None,
             },
             (None, Some(length), None) => Self::OptionalOffsetWithLength {
                 offset: None,
-                length,
+                length: length.round() as u64,
             },
-            (None, None, Some(suffix)) => Self::Suffix { suffix },
+            (None, None, Some(suffix)) => Self::Suffix {
+                suffix: suffix.round() as u64,
+            },
             _ => return Err(Error::JsError("invalid range".into())),
         })
     }
