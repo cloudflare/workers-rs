@@ -5,6 +5,9 @@ use crate::EnvBinding;
 
 pub struct Hyperdrive(HyperdriveSys);
 
+unsafe impl Send for Hyperdrive {}
+unsafe impl Sync for Hyperdrive {}
+
 impl EnvBinding for Hyperdrive {
     const TYPE_NAME: &'static str = "Hyperdrive";
 }
@@ -32,5 +35,31 @@ impl AsRef<JsValue> for Hyperdrive {
 impl From<Hyperdrive> for JsValue {
     fn from(hyperdrive: Hyperdrive) -> Self {
         JsValue::from(hyperdrive.0)
+    }
+}
+
+impl Hyperdrive {
+    pub fn connection_string(&self) -> String {
+        self.0.connection_string()
+    }
+
+    pub fn host(&self) -> String {
+        self.0.host()
+    }
+
+    pub fn port(&self) -> u16 {
+        self.0.port()
+    }
+
+    pub fn user(&self) -> String {
+        self.0.user()
+    }
+
+    pub fn password(&self) -> String {
+        self.0.password()
+    }
+
+    pub fn database(&self) -> String {
+        self.0.database()
     }
 }
