@@ -10,7 +10,7 @@
 //! [Learn more](https://developers.cloudflare.com/workers/learning/using-durable-objects) about
 //! using Durable Objects.
 
-use std::{ops::Deref, time::Duration};
+use std::{fmt::Display, ops::Deref, time::Duration};
 
 use crate::{
     date::Date,
@@ -150,9 +150,13 @@ impl ObjectId<'_> {
     }
 }
 
-impl ToString for ObjectId<'_> {
-    fn to_string(&self) -> String {
-        self.inner.to_string().unwrap()
+impl Display for ObjectId<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+        write!(
+            f,
+            "{}",
+            self.inner.to_string().map_err(|_| { std::fmt::Error })?
+        )
     }
 }
 

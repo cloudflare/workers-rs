@@ -1,3 +1,5 @@
+#![allow(clippy::empty_docs)]
+
 use worker::*;
 
 pub mod rpc {

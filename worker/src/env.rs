@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 #[cfg(feature = "d1")]
 use crate::d1::D1Database;
 use crate::error::Error;
@@ -141,9 +143,9 @@ impl From<StringBinding> for JsValue {
     }
 }
 
-impl ToString for StringBinding {
-    fn to_string(&self) -> String {
-        self.0.as_string().unwrap_or_default()
+impl Display for StringBinding {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+        write!(f, "{}", self.0.as_string().unwrap_or_default())
     }
 }
 

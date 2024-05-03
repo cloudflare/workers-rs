@@ -46,7 +46,7 @@ impl DurableObject for Counter {
         Response::ok(format!(
             "[durable_object]: self.count: {}, secret value: {}",
             self.count,
-            self.env.secret("SOME_SECRET")?.to_string()
+            self.env.secret("SOME_SECRET")?
         ))
     }
 
