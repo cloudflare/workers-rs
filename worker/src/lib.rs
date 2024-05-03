@@ -212,6 +212,7 @@ mod formdata;
 mod global;
 mod headers;
 mod http;
+mod hyperdrive;
 #[cfg(feature = "queue")]
 mod queue;
 mod r2;

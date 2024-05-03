@@ -2,10 +2,10 @@ use std::fmt::Display;
 
 #[cfg(feature = "d1")]
 use crate::d1::D1Database;
-use crate::error::Error;
 #[cfg(feature = "queue")]
 use crate::Queue;
 use crate::{durable::ObjectNamespace, Bucket, DynamicDispatcher, Fetcher, Result};
+use crate::{error::Error, hyperdrive::Hyperdrive};
 
 use js_sys::Object;
 use wasm_bindgen::{prelude::*, JsCast, JsValue};
@@ -83,6 +83,10 @@ impl Env {
     /// Access a D1 Database by the binding name configured in your wrangler.toml file.
     #[cfg(feature = "d1")]
     pub fn d1(&self, binding: &str) -> Result<D1Database> {
+        self.get_binding(binding)
+    }
+
+    pub fn hyperdrive(&self, binding: &str) -> Result<Hyperdrive> {
         self.get_binding(binding)
     }
 }
