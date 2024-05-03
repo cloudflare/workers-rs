@@ -59,7 +59,7 @@ macro_rules! handler_sync (
 #[cfg(feature = "http")]
 pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
     axum::Router::new()
-        .route("/request", get(handler_sync!(request::handle_a_request)))
+        .route("/request", get(request::handle_a_request))
         .route(
             "/async-request",
             get(handler!(request::handle_async_request)),
@@ -70,6 +70,7 @@ pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
         .route("/test-data", get(handler!(request::handle_test_data)))
         .route("/xor/:num", post(handler!(request::handle_xor)))
         .route("/headers", post(handler!(request::handle_headers)))
+        .route("/stream", get(handler!(request::handle_stream_response)))
         .route("/formdata-name", post(handler!(form::handle_formdata_name)))
         .route("/is-secret", post(handler!(form::handle_is_secret)))
         .route(
@@ -230,6 +231,7 @@ pub fn make_router<'a>(data: SomeSharedData) -> Router<'a, SomeSharedData> {
         .get_async("/test-data", handler!(request::handle_test_data))
         .post_async("/xor/:num", handler!(request::handle_xor))
         .post_async("/headers", handler!(request::handle_headers))
+        .get_async("/stream", handler!(request::handle_stream_response))
         .post_async("/formdata-name", handler!(form::handle_formdata_name))
         .post_async("/is-secret", handler!(form::handle_is_secret))
         .post_async(

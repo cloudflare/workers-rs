@@ -5,6 +5,7 @@ import { mf } from "./mf";
 
 test("basic sync request", async () => {
   const resp = await mf.dispatchFetch("https://fake.host/request");
+  expect(resp.headers.get("Transfer-Encoding")).not.toBe("chunked");
   expect(resp.status).toBe(200);
 });
 
@@ -27,6 +28,12 @@ test("headers", async () => {
   });
 
   expect(resp.headers.get("A")).toBe("B");
+});
+
+test("stream response", async () => {
+  const resp = await mf.dispatchFetch("https://fake.host/stream");
+  expect(resp.headers.get("Transfer-Encoding")).toBe("chunked");
+  expect(resp.status).toBe(200);
 });
 
 test("secret", async () => {

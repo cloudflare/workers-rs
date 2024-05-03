@@ -6,6 +6,8 @@ use futures_util::TryStreamExt;
 use std::time::Duration;
 use worker::Env;
 use worker::{console_log, Date, Delay, Request, Response, ResponseBody, Result};
+
+#[cfg(not(feature = "http"))]
 pub fn handle_a_request(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     Response::ok(format!(
         "req at: {}, located at: {:?}, within: {}",
@@ -15,6 +17,11 @@ pub fn handle_a_request(req: Request, _env: Env, _data: SomeSharedData) -> Resul
             .map(|cf| cf.region().unwrap_or_else(|| "unknown region".into()))
             .unwrap_or(String::from("No CF properties"))
     ))
+}
+
+#[cfg(feature = "http")]
+pub async fn handle_a_request() -> &'static str {
+    "Hello World"
 }
 
 pub async fn handle_async_request(
@@ -198,6 +205,24 @@ pub async fn handle_cloned_stream(
     let right = resp1.text().await?;
 
     Response::ok((left == right).to_string())
+}
+
+#[worker::send]
+pub async fn handle_stream_response(
+    _req: Request,
+    _env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
+    let stream =
+        futures_util::stream::repeat(())
+            .take(10)
+            .enumerate()
+            .then(|(index, _)| async move {
+                Delay::from(Duration::from_millis(100)).await;
+                Result::Ok(index.to_string().into_bytes())
+            });
+    let resp = Response::from_stream(stream)?;
+    Ok(resp)
 }
 
 pub async fn handle_custom_response_body(
