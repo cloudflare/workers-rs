@@ -5,6 +5,7 @@ use crate::types::{DurableObject, DurableObjectId};
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(extends=js_sys::Object)]
+    #[derive(Clone)]
     pub type DurableObjectNamespace;
 
     #[wasm_bindgen(method, catch, js_name=idFromName)]
