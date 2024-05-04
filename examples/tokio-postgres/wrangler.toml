@@ -1,6 +1,10 @@
-name = "tokio-postgres-on-workers"
+name = "hyperdrive-test"
 main = "build/worker/shim.mjs"
-compatibility_date = "2023-03-22"
+compatibility_date = "2024-05-01"
+
+[[hyperdrive]]
+binding = "DB"
+id = ""
 
 [build]
 command = "cargo install --path ../../worker-build && worker-build --release"
