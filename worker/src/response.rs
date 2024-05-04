@@ -31,9 +31,7 @@ const CONTENT_TYPE: &str = "content-type";
 #[derive(Debug)]
 pub struct Response {
     body: ResponseBody,
-    headers: Headers,
-    status_code: u16,
-    websocket: Option<WebSocket>,
+    init: ResponseInitBuilder,
 }
 
 #[cfg(feature = "http")]
@@ -64,9 +62,7 @@ impl Response {
 
             return Ok(Self {
                 body: ResponseBody::Body(data.into_bytes()),
-                headers,
-                status_code: 200,
-                websocket: None,
+                init: ResponseInit::builder().with_headers(headers),
             });
         }
 
@@ -82,9 +78,7 @@ impl Response {
         let data = html.as_ref().as_bytes().to_vec();
         Ok(Self {
             body: ResponseBody::Body(data),
-            headers,
-            status_code: 200,
-            websocket: None,
+            init: ResponseInit::builder().with_headers(headers),
         })
     }
 
@@ -96,9 +90,7 @@ impl Response {
 
         Ok(Self {
             body: ResponseBody::Body(bytes),
-            headers,
-            status_code: 200,
-            websocket: None,
+            init: ResponseInit::builder().with_headers(headers),
         })
     }
 
@@ -107,9 +99,7 @@ impl Response {
     pub fn from_body(body: ResponseBody) -> Result<Self> {
         Ok(Self {
             body,
-            headers: Headers::new(),
-            status_code: 200,
-            websocket: None,
+            init: ResponseInit::builder(),
         })
     }
 
@@ -118,9 +108,9 @@ impl Response {
     pub fn from_websocket(websocket: WebSocket) -> Result<Self> {
         Ok(Self {
             body: ResponseBody::Empty,
-            headers: Headers::new(),
-            status_code: 101,
-            websocket: Some(websocket),
+            init: ResponseInit::builder()
+                .with_websocket(websocket)
+                .with_status(101),
         })
     }
 
@@ -159,9 +149,7 @@ impl Response {
 
         Ok(Self {
             body: ResponseBody::Body(body.into().into_bytes()),
-            headers,
-            status_code: 200,
-            websocket: None,
+            init: ResponseInit::builder().with_headers(headers),
         })
     }
 
@@ -169,9 +157,7 @@ impl Response {
     pub fn empty() -> Result<Self> {
         Ok(Self {
             body: ResponseBody::Empty,
-            headers: Headers::new(),
-            status_code: 200,
-            websocket: None,
+            init: ResponseInit::builder(),
         })
     }
 
@@ -186,9 +172,7 @@ impl Response {
 
         Ok(Self {
             body: ResponseBody::Body(msg.into().into_bytes()),
-            headers: Headers::new(),
-            status_code: status,
-            websocket: None,
+            init: ResponseInit::builder(),
         })
     }
 
@@ -215,7 +199,7 @@ impl Response {
 
     /// Get the HTTP Status code of this `Response`.
     pub fn status_code(&self) -> u16 {
-        self.status_code
+        self.init.status_code
     }
 
     /// Access this response's body
@@ -278,12 +262,12 @@ impl Response {
 
     // Get the WebSocket returned by the the server.
     pub fn websocket(self) -> Option<WebSocket> {
-        self.websocket
+        self.init.websocket
     }
 
     /// Set this response's `Headers`.
     pub fn with_headers(mut self, headers: Headers) -> Self {
-        self.headers = headers;
+        self.init.headers = headers;
         self
     }
 
@@ -291,7 +275,7 @@ impl Response {
     /// The Workers platform will reject HTTP status codes outside the range of 200..599 inclusive,
     /// and will throw a JavaScript `RangeError`, returning a response with an HTTP 500 status code.
     pub fn with_status(mut self, status_code: u16) -> Self {
-        self.status_code = status_code;
+        self.init.status_code = status_code;
         self
     }
 
@@ -306,7 +290,7 @@ impl Response {
     /// }
     /// ```
     pub fn with_cors(self, cors: &Cors) -> Result<Self> {
-        let mut headers = self.headers.clone();
+        let mut headers = self.init.headers.clone();
         cors.apply_headers(&mut headers)?;
         Ok(self.with_headers(headers))
     }
@@ -314,24 +298,31 @@ impl Response {
     /// Sets this response's `webSocket` option.
     /// This will require a status code 101 to work.
     pub fn with_websocket(mut self, websocket: Option<WebSocket>) -> Self {
-        self.websocket = websocket;
+        self.init.websocket = websocket;
         self
     }
 
     /// Read the `Headers` on this response.
     pub fn headers(&self) -> &Headers {
-        &self.headers
+        &self.init.headers
     }
 
     /// Get a mutable reference to the `Headers` on this response.
     pub fn headers_mut(&mut self) -> &mut Headers {
-        &mut self.headers
+        &mut self.init.headers
     }
 
     /// Clones the response so it can be used multiple times.
     pub fn cloned(&mut self) -> Result<Self> {
-        if self.websocket.is_some() {
+        if self.init.websocket.is_some() {
             return Err(Error::RustError("WebSockets cannot be cloned".into()));
+        }
+        // This information is lost when we make the roundtrip though web_sys::Response
+        if self.init.encode_body.is_some() {
+            return Err(Error::RustError("encode_body cannot be cloned".into()));
+        }
+        if self.init.cf.is_some() {
+            return Err(Error::RustError("cf cannot be cloned".into()));
         }
 
         let edge = web_sys::Response::from(&*self);
@@ -356,9 +347,73 @@ fn no_using_invalid_error_status_code() {
 }
 
 pub struct ResponseInit {
-    pub status: u16,
-    pub headers: Headers,
-    pub websocket: Option<WebSocket>,
+    status: u16,
+    headers: Headers,
+    websocket: Option<WebSocket>,
+    encode_body: Option<String>,
+    cf: Option<serde_json::Value>,
+}
+
+impl ResponseInit {
+    pub fn builder() -> ResponseInitBuilder {
+        ResponseInitBuilder::new()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ResponseInitBuilder {
+    status_code: u16,
+    headers: Headers,
+    websocket: Option<WebSocket>,
+    encode_body: Option<String>,
+    cf: Option<serde_json::Value>,
+}
+
+impl ResponseInitBuilder {
+    fn new() -> Self {
+        Self {
+            status_code: 200,
+            headers: Headers::new(),
+            websocket: None,
+            encode_body: None,
+            cf: None,
+        }
+    }
+
+    pub fn with_status(mut self, status: u16) -> Self {
+        self.status_code = status;
+        self
+    }
+
+    pub fn with_headers(mut self, headers: Headers) -> Self {
+        self.headers = headers;
+        self
+    }
+
+    pub fn with_websocket(mut self, websocket: WebSocket) -> Self {
+        self.websocket = Some(websocket);
+        self
+    }
+
+    pub fn with_encode_body(mut self, encode_body: String) -> Self {
+        self.encode_body = Some(encode_body);
+        self
+    }
+
+    pub fn with_cf<T: serde::Serialize>(mut self, cf: T) -> Result<Self> {
+        self.cf = Some(serde_json::to_value(&cf)?);
+        Ok(self)
+    }
+
+    pub fn build(self) -> ResponseInit {
+        ResponseInit {
+            status: self.status_code,
+            headers: self.headers,
+            websocket: self.websocket,
+            encode_body: self.encode_body,
+            cf: self.cf,
+        }
+    }
 }
 
 impl From<ResponseInit> for web_sys::ResponseInit {
@@ -367,7 +422,19 @@ impl From<ResponseInit> for web_sys::ResponseInit {
         edge_init.status(init.status);
         edge_init.headers(&init.headers.0);
         if let Some(websocket) = &init.websocket {
-            edge_init.websocket(websocket.as_ref());
+            edge_init
+                .websocket(websocket.as_ref())
+                .expect("failed to set websocket");
+        }
+        if let Some(encode_body) = init.encode_body {
+            edge_init
+                .encode_body(encode_body)
+                .expect("failed to set encode_body");
+        }
+        if let Some(cf) = init.cf {
+            edge_init
+                .cf(&serde_wasm_bindgen::to_value(&cf).expect("failed to serialize cf"))
+                .expect("failed to set cf");
         }
         edge_init
     }
@@ -375,96 +442,60 @@ impl From<ResponseInit> for web_sys::ResponseInit {
 
 impl From<Response> for web_sys::Response {
     fn from(res: Response) -> Self {
+        let init = res.init.build();
         match res.body {
             ResponseBody::Body(bytes) => {
                 let array = Uint8Array::new_with_length(bytes.len() as u32);
                 array.copy_from(&bytes);
-                web_sys::Response::new_with_opt_buffer_source_and_init(
-                    Some(&array),
-                    &ResponseInit {
-                        status: res.status_code,
-                        headers: res.headers,
-                        websocket: res.websocket,
-                    }
-                    .into(),
-                )
-                .unwrap()
+                web_sys::Response::new_with_opt_buffer_source_and_init(Some(&array), &init.into())
+                    .unwrap()
             }
             ResponseBody::Stream(stream) => {
                 web_sys::Response::new_with_opt_readable_stream_and_init(
                     Some(&stream),
-                    &ResponseInit {
-                        status: res.status_code,
-                        headers: res.headers,
-                        websocket: res.websocket,
-                    }
-                    .into(),
+                    &init.into(),
                 )
                 .unwrap()
             }
-            ResponseBody::Empty => web_sys::Response::new_with_opt_str_and_init(
-                None,
-                &ResponseInit {
-                    status: res.status_code,
-                    headers: res.headers,
-                    websocket: res.websocket,
-                }
-                .into(),
-            )
-            .unwrap(),
+            ResponseBody::Empty => {
+                web_sys::Response::new_with_opt_str_and_init(None, &init.into()).unwrap()
+            }
         }
     }
 }
 
 impl From<&Response> for web_sys::Response {
     fn from(res: &Response) -> Self {
+        let init = res.init.clone().build();
         match &res.body {
             ResponseBody::Body(bytes) => {
                 let array = Uint8Array::new_with_length(bytes.len() as u32);
                 array.copy_from(bytes);
-                web_sys::Response::new_with_opt_buffer_source_and_init(
-                    Some(&array),
-                    &ResponseInit {
-                        status: res.status_code,
-                        headers: res.headers.clone(),
-                        websocket: res.websocket.clone(),
-                    }
-                    .into(),
-                )
-                .unwrap()
+                web_sys::Response::new_with_opt_buffer_source_and_init(Some(&array), &init.into())
+                    .unwrap()
             }
             ResponseBody::Stream(stream) => {
-                web_sys::Response::new_with_opt_readable_stream_and_init(
-                    Some(stream),
-                    &ResponseInit {
-                        status: res.status_code,
-                        headers: res.headers.clone(),
-                        websocket: res.websocket.clone(),
-                    }
-                    .into(),
-                )
-                .unwrap()
+                web_sys::Response::new_with_opt_readable_stream_and_init(Some(stream), &init.into())
+                    .unwrap()
             }
-            ResponseBody::Empty => web_sys::Response::new_with_opt_str_and_init(
-                None,
-                &ResponseInit {
-                    status: res.status_code,
-                    headers: res.headers.clone(),
-                    websocket: res.websocket.clone(),
-                }
-                .into(),
-            )
-            .unwrap(),
+            ResponseBody::Empty => {
+                web_sys::Response::new_with_opt_str_and_init(None, &init.into()).unwrap()
+            }
         }
     }
 }
 
 impl From<web_sys::Response> for Response {
     fn from(res: web_sys::Response) -> Self {
-        Self {
+        let init = ResponseInitBuilder {
             headers: Headers(res.headers()),
             status_code: res.status(),
             websocket: res.websocket().map(|ws| ws.into()),
+            encode_body: None,
+            cf: None,
+        };
+        Self {
+            init,
             body: match res.body() {
                 Some(stream) => ResponseBody::Stream(stream),
                 None => ResponseBody::Empty,

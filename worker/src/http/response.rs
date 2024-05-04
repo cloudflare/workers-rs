@@ -20,7 +20,7 @@ where
     let headers = web_sys_headers_from_header_map(res.headers())?;
     init.headers(headers.as_ref());
     if let Some(ws) = res.extensions_mut().remove::<WebSocket>() {
-        init.websocket(ws.as_ref());
+        init.websocket(ws.as_ref())?;
     }
 
     let body = res.into_body();
