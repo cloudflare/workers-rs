@@ -2,7 +2,7 @@ use super::SomeSharedData;
 use futures_util::stream::StreamExt;
 use rand::Rng;
 use std::time::Duration;
-use worker::{console_log, Cache, Date, Delay, Env, Request, Response, Result};
+use worker::{console_log, Cache, Date, Delay, Env, Request, Response, ResponseBuilder, Result};
 
 fn key(req: &Request) -> Result<Option<String>> {
     let uri = req.url()?;
@@ -24,12 +24,11 @@ pub async fn handle_cache_example(
         Ok(resp)
     } else {
         console_log!("Cache MISS!");
-        let mut resp =
-            Response::from_json(&serde_json::json!({ "timestamp": Date::now().as_millis() }))?;
-
         // Cache API respects Cache-Control headers. Setting s-max-age to 10
         // will limit the response to be in cache for 10 seconds max
-        resp.headers_mut().set("cache-control", "s-maxage=10")?;
+        let mut resp = ResponseBuilder::new()
+            .with_header("cache-control", "s-maxage=10")?
+            .from_json(&serde_json::json!({ "timestamp": Date::now().as_millis() }))?;
         cache.put(key, resp.cloned()?).await?;
         Ok(resp)
     }
@@ -60,13 +59,11 @@ pub async fn handle_cache_api_put(
 ) -> Result<Response> {
     if let Some(key) = key(&req)? {
         let cache = Cache::default();
-
-        let mut resp =
-            Response::from_json(&serde_json::json!({ "timestamp": Date::now().as_millis() }))?;
-
         // Cache API respects Cache-Control headers. Setting s-max-age to 10
         // will limit the response to be in cache for 10 seconds max
-        resp.headers_mut().set("cache-control", "s-maxage=10")?;
+        let mut resp = ResponseBuilder::new()
+            .with_header("cache-control", "s-maxage=10")?
+            .from_json(&serde_json::json!({ "timestamp": Date::now().as_millis() }))?;
         cache.put(format!("https://{key}"), resp.cloned()?).await?;
         return Ok(resp);
     }
@@ -111,12 +108,12 @@ pub async fn handle_cache_stream(
                 Result::Ok(text.as_bytes().to_vec())
             });
 
-        let mut resp = Response::from_stream(stream)?;
-        console_log!("resp = {:?}", resp);
         // Cache API respects Cache-Control headers. Setting s-max-age to 10
         // will limit the response to be in cache for 10 seconds max
-        resp.headers_mut().set("cache-control", "s-maxage=10")?;
-
+        let mut resp = ResponseBuilder::new()
+            .with_header("cache-control", "s-maxage=10")?
+            .from_stream(stream)?;
+        console_log!("resp = {:?}", resp);
         cache.put(key, resp.cloned()?).await?;
         Ok(resp)
     }

@@ -5,7 +5,7 @@ use futures_util::StreamExt;
 use futures_util::TryStreamExt;
 use std::time::Duration;
 use worker::Env;
-use worker::{console_log, Date, Delay, Request, Response, ResponseBody, Result};
+use worker::{console_log, Date, Delay, Request, Response, ResponseBody, ResponseBuilder, Result};
 pub fn handle_a_request(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     Response::ok(format!(
         "req at: {}, located at: {:?}, within: {}",
@@ -60,7 +60,9 @@ pub async fn handle_headers(req: Request, _env: Env, _data: SomeSharedData) -> R
     let mut headers: http::HeaderMap = req.headers().into();
     headers.append("Hello", "World!".parse().unwrap());
 
-    Response::ok("returned your headers to you.").map(|res| res.with_headers(headers.into()))
+    ResponseBuilder::new()
+        .with_headers(headers.into())
+        .ok("returned your headers to you.")
 }
 
 #[worker::send]
@@ -133,9 +135,9 @@ pub async fn handle_status(req: Request, _env: Env, _data: SomeSharedData) -> Re
     let code = segments.nth(1);
     if let Some(code) = code {
         return match code.parse::<u16>() {
-            Ok(status) => {
-                Response::ok("You set the status code!").map(|resp| resp.with_status(status))
-            }
+            Ok(status) => ResponseBuilder::new()
+                .with_status(status)
+                .ok("You set the status code!"),
             Err(_e) => Response::error("Failed to parse your status code.", 400),
         };
     }

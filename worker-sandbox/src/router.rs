@@ -6,7 +6,7 @@ use crate::{
 use std::convert::TryInto;
 use std::sync::atomic::Ordering;
 
-use worker::{console_log, Env, Fetch, Headers, Request, Response, Result};
+use worker::{console_log, Env, Fetch, Request, Response, ResponseBuilder, Result};
 
 #[cfg(not(feature = "http"))]
 use worker::{RouteContext, Router};
@@ -348,19 +348,15 @@ pub fn make_router<'a>(data: SomeSharedData) -> Router<'a, SomeSharedData> {
 }
 
 fn respond(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
-    Response::ok(format!("Ok: {}", String::from(req.method()))).map(|resp| {
-        let mut headers = Headers::new();
-        headers.set("x-testing", "123").unwrap();
-        resp.with_headers(headers)
-    })
+    ResponseBuilder::new()
+        .with_header("x-testing", "123")?
+        .ok(format!("Ok: {}", String::from(req.method())))
 }
 
 async fn respond_async(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
-    Response::ok(format!("Ok (async): {}", String::from(req.method()))).map(|resp| {
-        let mut headers = Headers::new();
-        headers.set("x-testing", "123").unwrap();
-        resp.with_headers(headers)
-    })
+    ResponseBuilder::new()
+        .with_header("x-testing", "123")?
+        .ok(format!("Ok (async): {}", String::from(req.method())))
 }
 
 #[worker::send]
@@ -382,10 +378,12 @@ async fn catchall(req: Request, _env: Env, _data: SomeSharedData) -> Result<Resp
     let path = uri.path();
     console_log!("[or_else_any_method_async] caught: {}", path);
 
-    Fetch::Url("https://github.com/404".parse().unwrap())
+    let (builder, body) = Fetch::Url("https://github.com/404".parse().unwrap())
         .send()
-        .await
-        .map(|resp| resp.with_status(404))
+        .await?
+        .into_parts();
+
+    Ok(builder.with_status(404).body(body))
 }
 
 async fn handle_options_catchall(

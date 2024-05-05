@@ -31,7 +31,7 @@ const CONTENT_TYPE: &str = "content-type";
 #[derive(Debug)]
 pub struct Response {
     body: ResponseBody,
-    init: ResponseInitBuilder,
+    init: ResponseBuilder,
 }
 
 #[cfg(feature = "http")]
@@ -53,65 +53,42 @@ impl TryFrom<Response> for crate::HttpResponse {
 }
 
 impl Response {
+    /// Construct a builder for a new `Response`.
+    pub fn builder() -> ResponseBuilder {
+        ResponseBuilder::new()
+    }
+
     /// Create a `Response` using `B` as the body encoded as JSON. Sets the associated
     /// `Content-Type` header for the `Response` as `application/json`.
     pub fn from_json<B: Serialize>(value: &B) -> Result<Self> {
-        if let Ok(data) = serde_json::to_string(value) {
-            let mut headers = Headers::new();
-            headers.set(CONTENT_TYPE, "application/json")?;
-
-            return Ok(Self {
-                body: ResponseBody::Body(data.into_bytes()),
-                init: ResponseInit::builder().with_headers(headers),
-            });
-        }
-
-        Err(Error::Json(("Failed to encode data to json".into(), 500)))
+        ResponseBuilder::new().from_json(value)
     }
 
     /// Create a `Response` using the body encoded as HTML. Sets the associated `Content-Type`
     /// header for the `Response` as `text/html; charset=utf-8`.
     pub fn from_html(html: impl AsRef<str>) -> Result<Self> {
-        let mut headers = Headers::new();
-        headers.set(CONTENT_TYPE, "text/html; charset=utf-8")?;
-
-        let data = html.as_ref().as_bytes().to_vec();
-        Ok(Self {
-            body: ResponseBody::Body(data),
-            init: ResponseInit::builder().with_headers(headers),
-        })
+        ResponseBuilder::new().from_html(html)
     }
 
     /// Create a `Response` using unprocessed bytes provided. Sets the associated `Content-Type`
     /// header for the `Response` as `application/octet-stream`.
     pub fn from_bytes(bytes: Vec<u8>) -> Result<Self> {
-        let mut headers = Headers::new();
-        headers.set(CONTENT_TYPE, "application/octet-stream")?;
-
-        Ok(Self {
-            body: ResponseBody::Body(bytes),
-            init: ResponseInit::builder().with_headers(headers),
-        })
+        ResponseBuilder::new().from_bytes(bytes)
     }
 
     /// Create a `Response` using a `ResponseBody` variant. Sets a status code of 200 and an empty
     /// set of Headers. Modify the Response with methods such as `with_status` and `with_headers`.
     pub fn from_body(body: ResponseBody) -> Result<Self> {
-        Ok(Self {
-            body,
-            init: ResponseInit::builder(),
-        })
+        Ok(ResponseBuilder::new().body(body))
     }
 
     /// Create a `Response` using a `WebSocket` client. Configures the browser to switch protocols
     /// (using status code 101) and returns the websocket.
     pub fn from_websocket(websocket: WebSocket) -> Result<Self> {
-        Ok(Self {
-            body: ResponseBody::Empty,
-            init: ResponseInit::builder()
-                .with_websocket(websocket)
-                .with_status(101),
-        })
+        Ok(ResponseBuilder::new()
+            .with_websocket(websocket)
+            .with_status(101)
+            .empty())
     }
 
     /// Create a `Response` using a [`Stream`](futures::stream::Stream) for the body. Sets a status
@@ -123,42 +100,18 @@ impl Response {
         S::Ok: Into<Vec<u8>>,
         S::Error: Into<Error>,
     {
-        let js_stream = stream
-            .map_ok(|item| -> Vec<u8> { item.into() })
-            .map_ok(|chunk| {
-                let array = Uint8Array::new_with_length(chunk.len() as _);
-                array.copy_from(&chunk);
-
-                array.into()
-            })
-            .map_err(|err| -> crate::Error { err.into() })
-            .map_err(|e| JsValue::from(e.to_string()));
-
-        let stream = wasm_streams::ReadableStream::from_stream(js_stream);
-        let stream: ReadableStream = stream.into_raw().dyn_into().unwrap();
-
-        let edge_res = web_sys::Response::new_with_opt_readable_stream(Some(&stream))?;
-        Ok(Self::from(edge_res))
+        ResponseBuilder::new().from_stream(stream)
     }
 
     /// Create a `Response` using unprocessed text provided. Sets the associated `Content-Type`
     /// header for the `Response` as `text/plain; charset=utf-8`.
     pub fn ok(body: impl Into<String>) -> Result<Self> {
-        let mut headers = Headers::new();
-        headers.set(CONTENT_TYPE, "text/plain; charset=utf-8")?;
-
-        Ok(Self {
-            body: ResponseBody::Body(body.into().into_bytes()),
-            init: ResponseInit::builder().with_headers(headers),
-        })
+        ResponseBuilder::new().ok(body)
     }
 
     /// Create an empty `Response` with a 200 status code.
     pub fn empty() -> Result<Self> {
-        Ok(Self {
-            body: ResponseBody::Empty,
-            init: ResponseInit::builder(),
-        })
+        Ok(ResponseBuilder::new().empty())
     }
 
     /// A helper method to send an error message to a client. Will return `Err` if the status code
@@ -170,10 +123,9 @@ impl Response {
             ));
         }
 
-        Ok(Self {
-            body: ResponseBody::Body(msg.into().into_bytes()),
-            init: ResponseInit::builder(),
-        })
+        Ok(ResponseBuilder::new()
+            .with_status(status)
+            .fixed(msg.into().into_bytes()))
     }
 
     /// Create a `Response` which redirects to the specified URL with default status_code of 302
@@ -267,7 +219,7 @@ impl Response {
 
     /// Set this response's `Headers`.
     pub fn with_headers(mut self, headers: Headers) -> Self {
-        self.init.headers = headers;
+        self.init = self.init.with_headers(headers);
         self
     }
 
@@ -275,7 +227,7 @@ impl Response {
     /// The Workers platform will reject HTTP status codes outside the range of 200..599 inclusive,
     /// and will throw a JavaScript `RangeError`, returning a response with an HTTP 500 status code.
     pub fn with_status(mut self, status_code: u16) -> Self {
-        self.init.status_code = status_code;
+        self.init = self.init.with_status(status_code);
         self
     }
 
@@ -289,10 +241,9 @@ impl Response {
     ///         .with_cors(&cors)
     /// }
     /// ```
-    pub fn with_cors(self, cors: &Cors) -> Result<Self> {
-        let mut headers = self.init.headers.clone();
-        cors.apply_headers(&mut headers)?;
-        Ok(self.with_headers(headers))
+    pub fn with_cors(mut self, cors: &Cors) -> Result<Self> {
+        self.init = self.init.with_cors(cors)?;
+        Ok(self)
     }
 
     /// Sets this response's `webSocket` option.
@@ -300,6 +251,23 @@ impl Response {
     pub fn with_websocket(mut self, websocket: Option<WebSocket>) -> Self {
         self.init.websocket = websocket;
         self
+    }
+
+    /// Set this response's `encodeBody` option.
+    /// In most cases this is not needed, but it can be set to "manual" to
+    /// return already compressed data to the user without re-compression.
+    pub fn with_encode_body(mut self, encode_body: Option<String>) -> Self {
+        self.init.encode_body = encode_body;
+        self
+    }
+
+    /// Set this response's `cf` options.
+    pub fn with_cf<T: serde::Serialize>(mut self, cf: Option<T>) -> Result<Self> {
+        match cf {
+            Some(cf) => self.init = self.init.with_cf(cf)?,
+            None => self.init.cf = None,
+        }
+        Ok(self)
     }
 
     /// Read the `Headers` on this response.
@@ -310,6 +278,12 @@ impl Response {
     /// Get a mutable reference to the `Headers` on this response.
     pub fn headers_mut(&mut self) -> &mut Headers {
         &mut self.init.headers
+    }
+
+    /// Split the response into `ResponseBuilder` and `ResponseBody` so that it
+    /// can be modified.
+    pub fn into_parts(self) -> (ResponseBuilder, ResponseBody) {
+        (self.init, self.body)
     }
 
     /// Clones the response so it can be used multiple times.
@@ -346,31 +320,17 @@ fn no_using_invalid_error_status_code() {
     assert!(Response::error("399", 399).is_err());
 }
 
-pub struct ResponseInit {
-    status: u16,
-    headers: Headers,
-    websocket: Option<WebSocket>,
-    encode_body: Option<String>,
-    cf: Option<serde_json::Value>,
-}
-
-impl ResponseInit {
-    pub fn builder() -> ResponseInitBuilder {
-        ResponseInitBuilder::new()
-    }
-}
-
 #[derive(Debug, Clone)]
-pub struct ResponseInitBuilder {
+pub struct ResponseBuilder {
     status_code: u16,
     headers: Headers,
     websocket: Option<WebSocket>,
     encode_body: Option<String>,
-    cf: Option<serde_json::Value>,
+    cf: Option<js_sys::Object>,
 }
 
-impl ResponseInitBuilder {
-    fn new() -> Self {
+impl ResponseBuilder {
+    pub fn new() -> Self {
         Self {
             status_code: 200,
             headers: Headers::new(),
@@ -380,46 +340,176 @@ impl ResponseInitBuilder {
         }
     }
 
+    /// Set this response's status code.
+    /// The Workers platform will reject HTTP status codes outside the range of 200..599 inclusive,
+    /// and will throw a JavaScript `RangeError`, returning a response with an HTTP 500 status code.
     pub fn with_status(mut self, status: u16) -> Self {
         self.status_code = status;
         self
     }
 
+    /// Set this response's `Headers`.
     pub fn with_headers(mut self, headers: Headers) -> Self {
         self.headers = headers;
         self
     }
 
+    /// Set a single header on this response.
+    pub fn with_header(mut self, key: &str, value: &str) -> Result<Self> {
+        self.headers.set(key, value)?;
+        Ok(self)
+    }
+
+    /// Sets this response's cors headers from the `Cors` struct.
+    /// Example usage:
+    /// ```
+    /// use worker::*;
+    /// fn fetch() -> worker::Result<Response> {
+    ///     let cors = Cors::default();
+    ///     Response::empty()?
+    ///         .with_cors(&cors)
+    /// }
+    /// ```
+    pub fn with_cors(self, cors: &Cors) -> Result<Self> {
+        let mut headers = self.headers.clone();
+        cors.apply_headers(&mut headers)?;
+        Ok(self.with_headers(headers))
+    }
+
+    /// Sets this response's `webSocket` option.
+    /// This will require a status code 101 to work.
     pub fn with_websocket(mut self, websocket: WebSocket) -> Self {
         self.websocket = Some(websocket);
         self
     }
 
+    /// Set this response's `encodeBody` option.
+    /// In most cases this is not needed, but it can be set to "manual" to
+    /// return already compressed data to the user without re-compression.
     pub fn with_encode_body(mut self, encode_body: String) -> Self {
         self.encode_body = Some(encode_body);
         self
     }
 
+    /// Set this response's `cf` options.
     pub fn with_cf<T: serde::Serialize>(mut self, cf: T) -> Result<Self> {
-        self.cf = Some(serde_json::to_value(&cf)?);
-        Ok(self)
+        let value = serde_wasm_bindgen::to_value(&cf)?;
+        if value.is_object() {
+            let obj = value.unchecked_into::<js_sys::Object>();
+            self.cf = Some(obj);
+            Ok(self)
+        } else {
+            Err(Error::from("cf must be an object"))
+        }
     }
 
-    pub fn build(self) -> ResponseInit {
-        ResponseInit {
-            status: self.status_code,
-            headers: self.headers,
-            websocket: self.websocket,
-            encode_body: self.encode_body,
-            cf: self.cf,
+    /// Build a response with a fixed-length body.
+    pub fn fixed(self, body: Vec<u8>) -> Response {
+        Response {
+            body: ResponseBody::Body(body),
+            init: self,
         }
+    }
+
+    /// Build a response with a stream body.
+    pub fn stream(self, stream: ReadableStream) -> Response {
+        Response {
+            body: ResponseBody::Stream(stream),
+            init: self,
+        }
+    }
+
+    /// Build a response from a [`ResponseBody`].
+    pub fn body(self, body: ResponseBody) -> Response {
+        Response { body, init: self }
+    }
+
+    /// Build a response with an empty body.
+    pub fn empty(self) -> Response {
+        Response {
+            body: ResponseBody::Empty,
+            init: self,
+        }
+    }
+
+    /// Create a `Response` using `B` as the body encoded as JSON. Sets the associated
+    /// `Content-Type` header for the `Response` as `application/json`.
+    pub fn from_json<B: Serialize>(mut self, value: &B) -> Result<Response> {
+        if let Ok(data) = serde_json::to_string(value) {
+            self.headers.set(CONTENT_TYPE, "application/json")?;
+            Ok(self.fixed(data.into_bytes()))
+        } else {
+            Err(Error::Json(("Failed to encode data to json".into(), 500)))
+        }
+    }
+
+    /// Create a `Response` using the body encoded as HTML. Sets the associated `Content-Type`
+    /// header for the `Response` as `text/html; charset=utf-8`.
+    pub fn from_html(mut self, html: impl AsRef<str>) -> Result<Response> {
+        self.headers.set(CONTENT_TYPE, "text/html; charset=utf-8")?;
+        let data = html.as_ref().as_bytes().to_vec();
+        Ok(self.fixed(data))
+    }
+
+    /// Create a `Response` using unprocessed bytes provided. Sets the associated `Content-Type`
+    /// header for the `Response` as `application/octet-stream`.
+    pub fn from_bytes(mut self, bytes: Vec<u8>) -> Result<Response> {
+        self.headers.set(CONTENT_TYPE, "application/octet-stream")?;
+        Ok(self.fixed(bytes))
+    }
+
+    /// Create a `Response` using a [`Stream`](futures::stream::Stream) for the body. Sets a status
+    /// code of 200 and an empty set of Headers. Modify the Response with methods such as
+    /// `with_status` and `with_headers`.
+    pub fn from_stream<S>(self, stream: S) -> Result<Response>
+    where
+        S: TryStream + 'static,
+        S::Ok: Into<Vec<u8>>,
+        S::Error: Into<Error>,
+    {
+        let js_stream = stream
+            .map_ok(|item| -> Vec<u8> { item.into() })
+            .map_ok(|chunk| {
+                let array = Uint8Array::new_with_length(chunk.len() as _);
+                array.copy_from(&chunk);
+
+                array.into()
+            })
+            .map_err(|err| -> crate::Error { err.into() })
+            .map_err(|e| JsValue::from(e.to_string()));
+
+        let stream = wasm_streams::ReadableStream::from_stream(js_stream);
+        let stream: ReadableStream = stream.into_raw().dyn_into().unwrap();
+
+        Ok(self.stream(stream))
+    }
+
+    /// Create a `Response` using unprocessed text provided. Sets the associated `Content-Type`
+    /// header for the `Response` as `text/plain; charset=utf-8`.
+    pub fn ok(mut self, body: impl Into<String>) -> Result<Response> {
+        self.headers
+            .set(CONTENT_TYPE, "text/plain; charset=utf-8")?;
+
+        Ok(self.fixed(body.into().into_bytes()))
+    }
+
+    /// A helper method to send an error message to a client. Will return `Err` if the status code
+    /// provided is outside the valid HTTP error range of 400-599.
+    pub fn error(self, msg: impl Into<String>, status: u16) -> Result<Response> {
+        if !(400..=599).contains(&status) {
+            return Err(Error::Internal(
+                "error status codes must be in the 400-599 range! see https://developer.mozilla.org/en-US/docs/Web/HTTP/Status for more".into(),
+            ));
+        }
+
+        Ok(self.with_status(status).fixed(msg.into().into_bytes()))
     }
 }
 
-impl From<ResponseInit> for web_sys::ResponseInit {
-    fn from(init: ResponseInit) -> Self {
+impl From<ResponseBuilder> for web_sys::ResponseInit {
+    fn from(init: ResponseBuilder) -> Self {
         let mut edge_init = web_sys::ResponseInit::new();
-        edge_init.status(init.status);
+        edge_init.status(init.status_code);
         edge_init.headers(&init.headers.0);
         if let Some(websocket) = &init.websocket {
             edge_init
@@ -432,9 +522,7 @@ impl From<ResponseInit> for web_sys::ResponseInit {
                 .expect("failed to set encode_body");
         }
         if let Some(cf) = init.cf {
-            edge_init
-                .cf(&serde_wasm_bindgen::to_value(&cf).expect("failed to serialize cf"))
-                .expect("failed to set cf");
+            edge_init.cf(&cf).expect("failed to set cf");
         }
         edge_init
     }
@@ -442,23 +530,25 @@ impl From<ResponseInit> for web_sys::ResponseInit {
 
 impl From<Response> for web_sys::Response {
     fn from(res: Response) -> Self {
-        let init = res.init.build();
         match res.body {
             ResponseBody::Body(bytes) => {
                 let array = Uint8Array::new_with_length(bytes.len() as u32);
                 array.copy_from(&bytes);
-                web_sys::Response::new_with_opt_buffer_source_and_init(Some(&array), &init.into())
-                    .unwrap()
+                web_sys::Response::new_with_opt_buffer_source_and_init(
+                    Some(&array),
+                    &res.init.into(),
+                )
+                .unwrap()
             }
             ResponseBody::Stream(stream) => {
                 web_sys::Response::new_with_opt_readable_stream_and_init(
                     Some(&stream),
-                    &init.into(),
+                    &res.init.into(),
                 )
                 .unwrap()
             }
             ResponseBody::Empty => {
-                web_sys::Response::new_with_opt_str_and_init(None, &init.into()).unwrap()
+                web_sys::Response::new_with_opt_str_and_init(None, &res.init.into()).unwrap()
             }
         }
     }
@@ -466,7 +556,7 @@ impl From<Response> for web_sys::Response {
 
 impl From<&Response> for web_sys::Response {
     fn from(res: &Response) -> Self {
-        let init = res.init.clone().build();
+        let init = res.init.clone();
         match &res.body {
             ResponseBody::Body(bytes) => {
                 let array = Uint8Array::new_with_length(bytes.len() as u32);
@@ -487,19 +577,16 @@ impl From<&Response> for web_sys::Response {
 
 impl From<web_sys::Response> for Response {
     fn from(res: web_sys::Response) -> Self {
-        let init = ResponseInitBuilder {
+        let builder = ResponseBuilder {
             headers: Headers(res.headers()),
             status_code: res.status(),
             websocket: res.websocket().map(|ws| ws.into()),
             encode_body: None,
             cf: None,
         };
-        Self {
-            init,
-            body: match res.body() {
-                Some(stream) => ResponseBody::Stream(stream),
-                None => ResponseBody::Empty,
-            },
+        match res.body() {
+            Some(stream) => builder.stream(stream),
+            None => builder.empty(),
         }
     }
 }

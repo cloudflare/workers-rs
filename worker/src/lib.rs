@@ -184,7 +184,7 @@ pub use crate::queue::*;
 pub use crate::r2::*;
 pub use crate::request::{FromRequest, Request};
 pub use crate::request_init::*;
-pub use crate::response::{IntoResponse, Response, ResponseBody};
+pub use crate::response::{IntoResponse, Response, ResponseBody, ResponseBuilder};
 pub use crate::router::{RouteContext, RouteParams, Router};
 pub use crate::schedule::*;
 pub use crate::socket::*;

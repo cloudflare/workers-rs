@@ -34,10 +34,10 @@ impl DurableObject for Counter {
                 .serialize_attachment("hello")
                 .expect("failed to serialize attachment");
 
-            return Ok(Response::empty()
-                .unwrap()
+            return Ok(ResponseBuilder::new()
                 .with_status(101)
-                .with_websocket(Some(pair.client)));
+                .with_websocket(pair.client)
+                .empty());
         }
 
         self.count += 10;
