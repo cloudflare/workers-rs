@@ -99,11 +99,11 @@ pub enum Range {
     Suffix { suffix: u64 },
 }
 
-const MAX_INT: u64 = (2 ^ 53) - 1;
+const MAX_SAFE_INTEGER: u64 = js_sys::Number::MAX_SAFE_INTEGER as u64;
 
 fn check_range_precision(value: u64) -> f64 {
     assert!(
-        value <= MAX_INT,
+        value <= MAX_SAFE_INTEGER,
         "Integer precision loss when converting to JavaScript number"
     );
     value as f64
