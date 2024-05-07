@@ -8,7 +8,7 @@ fn router() -> Router {
 
 #[event(fetch)]
 async fn fetch(
-    _req: HttpRequest,
+    req: HttpRequest,
     _env: Env,
     _ctx: Context,
 ) -> Result<axum::http::Response<axum::body::Body>> {
