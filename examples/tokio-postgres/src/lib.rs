@@ -1,5 +1,4 @@
-use worker::postgres_tls::PassthroughTls;
-use worker::*;
+use worker::{postgres_tls::PassthroughTls, *};
 
 #[event(fetch)]
 async fn main(_req: Request, env: Env, _ctx: Context) -> anyhow::Result<Response> {
@@ -25,13 +24,11 @@ async fn main(_req: Request, env: Env, _ctx: Context) -> anyhow::Result<Response
     // Setup table:
     // CREATE TABLE IF NOT EXISTS foo (id SERIAL PRIMARY KEY, name TEXT);
     // INSERT INTO foo (name) VALUES ('Fred');
-    let result = client.query("SELECT * FROM FOO", &[]).await?;
 
-    for row in result {
-        let id: i32 = row.get(0);
-        let name: &str = row.get(1);
-        console_log!("id: {}, name: {}", id, name);
-    }
+    // `query` uses a prepared statement which is not supported by Hyperdrive
+    let result = client.simple_query("SELECT * FROM FOO").await?;
+
+    console_log!("{:?}", result);
 
     Ok(Response::ok("Hello, World!")?)
 }
