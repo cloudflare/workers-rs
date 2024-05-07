@@ -17,3 +17,4 @@ crate-type = ["cdylib"]
 [dependencies]
 worker = { workspace=true, features=["tokio-postgres"] }
 tokio-postgres = { version="0.7", features=['js'], default-features=false }
+anyhow="1"

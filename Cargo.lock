@@ -2149,6 +2149,7 @@ dependencies = [
 name = "tokio-postgres-on-workers"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "tokio-postgres",
  "worker",
 ]
