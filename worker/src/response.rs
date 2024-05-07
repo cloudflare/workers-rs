@@ -256,7 +256,7 @@ impl Response {
     /// Set this response's `encodeBody` option.
     /// In most cases this is not needed, but it can be set to "manual" to
     /// return already compressed data to the user without re-compression.
-    pub fn with_encode_body(mut self, encode_body: Option<String>) -> Self {
+    pub fn with_encode_body(mut self, encode_body: EncodeBody) -> Self {
         self.init.encode_body = encode_body;
         self
     }
@@ -292,8 +292,10 @@ impl Response {
             return Err(Error::RustError("WebSockets cannot be cloned".into()));
         }
         // This information is lost when we make the roundtrip though web_sys::Response
-        if self.init.encode_body.is_some() {
-            return Err(Error::RustError("encode_body cannot be cloned".into()));
+        if matches!(self.init.encode_body, EncodeBody::Manual) {
+            return Err(Error::RustError(
+                "manual encode_body cannot be cloned".into(),
+            ));
         }
         if self.init.cf.is_some() {
             return Err(Error::RustError("cf cannot be cloned".into()));
@@ -320,12 +322,26 @@ fn no_using_invalid_error_status_code() {
     assert!(Response::error("399", 399).is_err());
 }
 
+#[non_exhaustive]
+#[derive(Default, Debug, Clone)]
+/// Control how the body of the response will be encoded by the runtime before
+/// it is returned to the user.
+pub enum EncodeBody {
+    /// Response body will be compressed according to the content-encoding header when transmitting.
+    /// This is the default.
+    #[default]
+    Automatic,
+    /// Response body will be returned as-is, allowing to return pre-compressed data.
+    /// The matching content-encoding header must be set manually.
+    Manual,
+}
+
 #[derive(Debug, Clone)]
 pub struct ResponseBuilder {
     status_code: u16,
     headers: Headers,
     websocket: Option<WebSocket>,
-    encode_body: Option<String>,
+    encode_body: EncodeBody,
     cf: Option<js_sys::Object>,
 }
 
@@ -335,7 +351,7 @@ impl ResponseBuilder {
             status_code: 200,
             headers: Headers::new(),
             websocket: None,
-            encode_body: None,
+            encode_body: EncodeBody::default(),
             cf: None,
         }
     }
@@ -363,12 +379,10 @@ impl ResponseBuilder {
     /// Sets this response's cors headers from the `Cors` struct.
     /// Example usage:
     /// ```
-    /// use worker::*;
-    /// fn fetch() -> worker::Result<Response> {
-    ///     let cors = Cors::default();
-    ///     Response::empty()?
-    ///         .with_cors(&cors)
-    /// }
+    /// let cors = Cors::default();
+    /// ResponseBuilder::new()
+    ///     .with_cors(&cors)
+    ///     .empty()
     /// ```
     pub fn with_cors(self, cors: &Cors) -> Result<Self> {
         let mut headers = self.headers.clone();
@@ -386,8 +400,8 @@ impl ResponseBuilder {
     /// Set this response's `encodeBody` option.
     /// In most cases this is not needed, but it can be set to "manual" to
     /// return already compressed data to the user without re-compression.
-    pub fn with_encode_body(mut self, encode_body: String) -> Self {
-        self.encode_body = Some(encode_body);
+    pub fn with_encode_body(mut self, encode_body: EncodeBody) -> Self {
+        self.encode_body = encode_body;
         self
     }
 
@@ -516,9 +530,9 @@ impl From<ResponseBuilder> for web_sys::ResponseInit {
                 .websocket(websocket.as_ref())
                 .expect("failed to set websocket");
         }
-        if let Some(encode_body) = init.encode_body {
+        if matches!(init.encode_body, EncodeBody::Manual) {
             edge_init
-                .encode_body(encode_body)
+                .encode_body("manual")
                 .expect("failed to set encode_body");
         }
         if let Some(cf) = init.cf {
@@ -581,7 +595,7 @@ impl From<web_sys::Response> for Response {
             headers: Headers(res.headers()),
             status_code: res.status(),
             websocket: res.websocket().map(|ws| ws.into()),
-            encode_body: None,
+            encode_body: EncodeBody::Automatic,
             cf: None,
         };
         match res.body() {
