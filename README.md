@@ -109,6 +109,7 @@ Parameterize routes and access the parameter values from within a handler. Each 
 `Request`, and a `RouteContext`. The `RouteContext` has shared data, route params, `Env` bindings, and more.
 
 ```rust
+use serde::{Deserialize, Serialize};
 use worker::*;
 
 #[event(fetch)]
