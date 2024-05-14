@@ -93,9 +93,13 @@ impl From<Conditional> for JsObject {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Range {
+    /// Read `length` bytes starting at `offset`.
     OffsetWithLength { offset: u64, length: u64 },
-    OffsetWithOptionalLength { offset: u64, length: Option<u64> },
-    OptionalOffsetWithLength { offset: Option<u64>, length: u64 },
+    /// Read from `offset` to the end of the object.
+    OffsetToEnd { offset: u64 },
+    /// Read `length` bytes starting at the beginning of the object.
+    Prefix { length: u64 },
+    /// Read `suffix` bytes from the end of the object.
     Suffix { suffix: u64 },
 }
 
@@ -117,13 +121,13 @@ impl From<Range> for JsObject {
                 "length" => Some(check_range_precision(length)),
                 "suffix" => JsValue::UNDEFINED,
             },
-            Range::OffsetWithOptionalLength { offset, length } => js_object! {
+            Range::OffsetToEnd { offset } => js_object! {
                 "offset" => Some(check_range_precision(offset)),
-                "length" => length.map(check_range_precision),
+                "length" => JsValue::UNDEFINED,
                 "suffix" => JsValue::UNDEFINED,
             },
-            Range::OptionalOffsetWithLength { offset, length } => js_object! {
-                "offset" => offset.map(check_range_precision),
+            Range::Prefix { length } => js_object! {
+                "offset" => JsValue::UNDEFINED,
                 "length" => Some(check_range_precision(length)),
                 "suffix" => JsValue::UNDEFINED,
             },
@@ -145,12 +149,10 @@ impl TryFrom<R2RangeSys> for Range {
                 offset: offset.round() as u64,
                 length: length.round() as u64,
             },
-            (Some(offset), None, None) => Self::OffsetWithOptionalLength {
+            (Some(offset), None, None) => Self::OffsetToEnd {
                 offset: offset.round() as u64,
-                length: None,
             },
-            (None, Some(length), None) => Self::OptionalOffsetWithLength {
-                offset: None,
+            (None, Some(length), None) => Self::Prefix {
                 length: length.round() as u64,
             },
             (None, None, Some(suffix)) => Self::Suffix {
