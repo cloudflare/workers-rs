@@ -152,6 +152,10 @@ pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
             get(handler!(request::handle_cloned_stream)),
         )
         .route("/cloned-fetch", get(handler!(fetch::handle_cloned_fetch)))
+        .route(
+            "/cloned-response",
+            get(handler!(fetch::handle_cloned_response_attributes)),
+        )
         .route("/wait/:delay", get(handler!(request::handle_wait_delay)))
         .route(
             "/custom-response-body",
@@ -300,6 +304,10 @@ pub fn make_router<'a>(data: SomeSharedData) -> Router<'a, SomeSharedData> {
         .get_async("/cloned", handler!(request::handle_cloned))
         .get_async("/cloned-stream", handler!(request::handle_cloned_stream))
         .get_async("/cloned-fetch", handler!(fetch::handle_cloned_fetch))
+        .get_async(
+            "/cloned-response",
+            handler!(fetch::handle_cloned_response_attributes),
+        )
         .get_async("/wait/:delay", handler!(request::handle_wait_delay))
         .get_async(
             "/custom-response-body",

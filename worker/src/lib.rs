@@ -156,7 +156,7 @@ pub use wasm_bindgen;
 pub use wasm_bindgen_futures;
 pub use worker_kv as kv;
 
-pub use cf::{Cf, TlsClientAuth};
+pub use cf::{Cf, CfResponseProperties, TlsClientAuth};
 pub use worker_macros::{durable_object, event, send};
 #[doc(hidden)]
 pub use worker_sys;
@@ -184,7 +184,7 @@ pub use crate::queue::*;
 pub use crate::r2::*;
 pub use crate::request::{FromRequest, Request};
 pub use crate::request_init::*;
-pub use crate::response::{IntoResponse, Response, ResponseBody, ResponseBuilder};
+pub use crate::response::{EncodeBody, IntoResponse, Response, ResponseBody, ResponseBuilder};
 pub use crate::router::{RouteContext, RouteParams, Router};
 pub use crate::schedule::*;
 pub use crate::socket::*;

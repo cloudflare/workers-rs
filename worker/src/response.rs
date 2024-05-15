@@ -253,6 +253,11 @@ impl Response {
         self
     }
 
+    /// Read the `encode_body` configuration for this `Response`.
+    pub fn encode_body(&self) -> &EncodeBody {
+        &self.init.encode_body
+    }
+
     /// Set this response's `encodeBody` option.
     /// In most cases this is not needed, but it can be set to "manual" to
     /// return already compressed data to the user without re-compression.
@@ -261,7 +266,18 @@ impl Response {
         self
     }
 
-    /// Set this response's `cf` options.
+    /// Read the `cf` information for this `Response`.
+    pub fn cf<T: serde::de::DeserializeOwned>(&self) -> Result<Option<T>> {
+        self.init
+            .cf
+            .clone()
+            .map(|cf| serde_wasm_bindgen::from_value(cf.unchecked_into()))
+            .transpose()
+            .map_err(Error::SerdeWasmBindgenError)
+    }
+
+    /// Set this response's `cf` options. This is used by consumers of the `Response` for
+    /// informational purposes and has no impact on Workers behavior.
     pub fn with_cf<T: serde::Serialize>(mut self, cf: Option<T>) -> Result<Self> {
         match cf {
             Some(cf) => self.init = self.init.with_cf(cf)?,
@@ -291,15 +307,6 @@ impl Response {
         if self.init.websocket.is_some() {
             return Err(Error::RustError("WebSockets cannot be cloned".into()));
         }
-        // This information is lost when we make the roundtrip though web_sys::Response
-        if matches!(self.init.encode_body, EncodeBody::Manual) {
-            return Err(Error::RustError(
-                "manual encode_body cannot be cloned".into(),
-            ));
-        }
-        if self.init.cf.is_some() {
-            return Err(Error::RustError("cf cannot be cloned".into()));
-        }
 
         let edge = web_sys::Response::from(&*self);
         let cloned = edge.clone()?;
@@ -311,7 +318,9 @@ impl Response {
             None => ResponseBody::Empty,
         };
 
-        Ok(cloned.into())
+        let clone: Response = cloned.into();
+
+        Ok(clone.with_encode_body(*self.encode_body()))
     }
 }
 
@@ -323,7 +332,7 @@ fn no_using_invalid_error_status_code() {
 }
 
 #[non_exhaustive]
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, Copy)]
 /// Control how the body of the response will be encoded by the runtime before
 /// it is returned to the user.
 pub enum EncodeBody {
@@ -405,16 +414,21 @@ impl ResponseBuilder {
         self
     }
 
-    /// Set this response's `cf` options.
-    pub fn with_cf<T: serde::Serialize>(mut self, cf: T) -> Result<Self> {
+    /// Set this response's `cf` options. This is used by consumers of the `Response` for
+    /// informational purposes and has no impact on Workers behavior.
+    pub fn with_cf<T: serde::Serialize>(self, cf: T) -> Result<Self> {
         let value = serde_wasm_bindgen::to_value(&cf)?;
         if value.is_object() {
             let obj = value.unchecked_into::<js_sys::Object>();
-            self.cf = Some(obj);
-            Ok(self)
+            Ok(self.with_cf_raw(obj))
         } else {
             Err(Error::from("cf must be an object"))
         }
+    }
+
+    pub(crate) fn with_cf_raw(mut self, obj: js_sys::Object) -> Self {
+        self.cf = Some(obj);
+        self
     }
 
     /// Build a response with a fixed-length body.
@@ -596,7 +610,7 @@ impl From<web_sys::Response> for Response {
             status_code: res.status(),
             websocket: res.websocket().map(|ws| ws.into()),
             encode_body: EncodeBody::Automatic,
-            cf: None,
+            cf: res.cf(),
         };
         match res.body() {
             Some(stream) => builder.stream(stream),
