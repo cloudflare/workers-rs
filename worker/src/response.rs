@@ -175,10 +175,6 @@ impl Response {
 
     /// Access this response's body encoded as JSON.
     pub async fn json<B: DeserializeOwned>(&mut self) -> Result<B> {
-        let content_type = self.headers().get(CONTENT_TYPE)?.unwrap_or_default();
-        if !content_type.contains("application/json") {
-            return Err(Error::BadEncoding);
-        }
         serde_json::from_str(&self.text().await?).map_err(Error::from)
     }
 
