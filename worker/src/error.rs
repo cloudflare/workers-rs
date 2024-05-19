@@ -18,7 +18,6 @@ pub enum Error {
     RouteNoDataError,
     RustError(String),
     SerdeJsonError(serde_json::Error),
-    #[cfg(feature = "queue")]
     SerdeWasmBindgenError(serde_wasm_bindgen::Error),
     #[cfg(feature = "http")]
     StatusCode(http::status::InvalidStatusCode),
@@ -121,7 +120,6 @@ impl std::fmt::Display for Error {
             Error::RouteInsertError(e) => write!(f, "failed to insert route: {e}"),
             Error::RouteNoDataError => write!(f, "route has no corresponding shared data"),
             Error::SerdeJsonError(e) => write!(f, "Serde Error: {e}"),
-            #[cfg(feature = "queue")]
             Error::SerdeWasmBindgenError(e) => write!(f, "Serde Error: {e}"),
             #[cfg(feature = "http")]
             Error::StatusCode(e) => write!(f, "{e}"),
