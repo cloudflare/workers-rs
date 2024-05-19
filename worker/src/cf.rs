@@ -1,6 +1,9 @@
 #[cfg(feature = "timezone")]
 use crate::Result;
 
+use serde::de::DeserializeOwned;
+use wasm_bindgen::JsCast;
+
 /// In addition to the methods on the `Request` struct, the `Cf` struct on an inbound Request contains information about the request provided by Cloudflare’s edge.
 ///
 /// [Details](https://developers.cloudflare.com/workers/runtime-apis/request#incomingrequestcfproperties)
@@ -254,3 +257,19 @@ impl From<worker_sys::TlsClientAuth> for TlsClientAuth {
         Self { inner }
     }
 }
+
+#[derive(Clone)]
+pub struct CfResponseProperties(pub(crate) js_sys::Object);
+
+impl CfResponseProperties {
+    pub fn into_raw(self) -> js_sys::Object {
+        self.0
+    }
+
+    pub fn try_into<T: DeserializeOwned>(self) -> crate::Result<T> {
+        Ok(serde_wasm_bindgen::from_value(self.0.unchecked_into())?)
+    }
+}
+
+unsafe impl Send for CfResponseProperties {}
+unsafe impl Sync for CfResponseProperties {}

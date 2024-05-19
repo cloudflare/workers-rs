@@ -6,8 +6,11 @@ use crate::WebSocket;
 use bytes::Bytes;
 
 use crate::http::body::BodyStream;
+use crate::response::EncodeBody;
+use crate::CfResponseProperties;
+use crate::Headers;
+use crate::ResponseBuilder;
 use worker_sys::ext::ResponseExt;
-use worker_sys::ext::ResponseInitExt;
 
 /// **Requires** `http` feature. Convert generic [`http::Response<B>`](crate::HttpResponse)
 /// to [`web_sys::Resopnse`](web_sys::Response) where `B` can be any [`http_body::Body`](http_body::Body)
@@ -15,12 +18,19 @@ pub fn to_wasm<B>(mut res: http::Response<B>) -> Result<web_sys::Response>
 where
     B: http_body::Body<Data = Bytes> + 'static,
 {
-    let mut init = web_sys::ResponseInit::new();
-    init.status(res.status().as_u16());
     let headers = web_sys_headers_from_header_map(res.headers())?;
-    init.headers(headers.as_ref());
+    let mut init = ResponseBuilder::new()
+        .with_status(res.status().as_u16())
+        .with_headers(Headers(headers));
+
     if let Some(ws) = res.extensions_mut().remove::<WebSocket>() {
-        init.websocket(ws.as_ref());
+        init = init.with_websocket(ws);
+    }
+    if let Some(encode_body) = res.extensions_mut().remove::<EncodeBody>() {
+        init = init.with_encode_body(encode_body);
+    }
+    if let Some(CfResponseProperties(obj)) = res.extensions_mut().remove::<CfResponseProperties>() {
+        init = init.with_cf_raw(obj);
     }
 
     let body = res.into_body();
@@ -37,7 +47,7 @@ where
 
     Ok(web_sys::Response::new_with_opt_readable_stream_and_init(
         readable_stream.as_ref(),
-        &init,
+        &init.into(),
     )?)
 }
 
@@ -51,6 +61,9 @@ pub fn from_wasm(res: web_sys::Response) -> Result<HttpResponse> {
     }
     if let Some(ws) = res.websocket() {
         builder = builder.extension(WebSocket::from(ws));
+    }
+    if let Some(cf) = res.cf() {
+        builder = builder.extension(CfResponseProperties(cf));
     }
     Ok(if let Some(body) = res.body() {
         builder.body(Body::new(body))?
@@ -70,6 +83,9 @@ impl From<crate::Response> for http::Response<axum::body::Body> {
         }
         if let Some(ws) = res.websocket() {
             builder = builder.extension(WebSocket::from(ws));
+        }
+        if let Some(cf) = res.cf() {
+            builder = builder.extension(CfResponseProperties(cf));
         }
         if let Some(body) = res.body() {
             builder

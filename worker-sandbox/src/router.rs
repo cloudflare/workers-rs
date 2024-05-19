@@ -6,7 +6,7 @@ use crate::{
 use std::convert::TryInto;
 use std::sync::atomic::Ordering;
 
-use worker::{console_log, Env, Fetch, Headers, Request, Response, Result};
+use worker::{console_log, Env, Fetch, Request, Response, ResponseBuilder, Result};
 
 #[cfg(not(feature = "http"))]
 use worker::{RouteContext, Router};
@@ -152,6 +152,10 @@ pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
             get(handler!(request::handle_cloned_stream)),
         )
         .route("/cloned-fetch", get(handler!(fetch::handle_cloned_fetch)))
+        .route(
+            "/cloned-response",
+            get(handler!(fetch::handle_cloned_response_attributes)),
+        )
         .route("/wait/:delay", get(handler!(request::handle_wait_delay)))
         .route(
             "/custom-response-body",
@@ -300,6 +304,10 @@ pub fn make_router<'a>(data: SomeSharedData) -> Router<'a, SomeSharedData> {
         .get_async("/cloned", handler!(request::handle_cloned))
         .get_async("/cloned-stream", handler!(request::handle_cloned_stream))
         .get_async("/cloned-fetch", handler!(fetch::handle_cloned_fetch))
+        .get_async(
+            "/cloned-response",
+            handler!(fetch::handle_cloned_response_attributes),
+        )
         .get_async("/wait/:delay", handler!(request::handle_wait_delay))
         .get_async(
             "/custom-response-body",
@@ -348,19 +356,15 @@ pub fn make_router<'a>(data: SomeSharedData) -> Router<'a, SomeSharedData> {
 }
 
 fn respond(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
-    Response::ok(format!("Ok: {}", String::from(req.method()))).map(|resp| {
-        let mut headers = Headers::new();
-        headers.set("x-testing", "123").unwrap();
-        resp.with_headers(headers)
-    })
+    ResponseBuilder::new()
+        .with_header("x-testing", "123")?
+        .ok(format!("Ok: {}", String::from(req.method())))
 }
 
 async fn respond_async(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
-    Response::ok(format!("Ok (async): {}", String::from(req.method()))).map(|resp| {
-        let mut headers = Headers::new();
-        headers.set("x-testing", "123").unwrap();
-        resp.with_headers(headers)
-    })
+    ResponseBuilder::new()
+        .with_header("x-testing", "123")?
+        .ok(format!("Ok (async): {}", String::from(req.method())))
 }
 
 #[worker::send]
@@ -382,10 +386,12 @@ async fn catchall(req: Request, _env: Env, _data: SomeSharedData) -> Result<Resp
     let path = uri.path();
     console_log!("[or_else_any_method_async] caught: {}", path);
 
-    Fetch::Url("https://github.com/404".parse().unwrap())
+    let (builder, body) = Fetch::Url("https://github.com/404".parse().unwrap())
         .send()
-        .await
-        .map(|resp| resp.with_status(404))
+        .await?
+        .into_parts();
+
+    Ok(builder.with_status(404).body(body))
 }
 
 async fn handle_options_catchall(

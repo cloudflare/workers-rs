@@ -1,9 +1,10 @@
 use super::{ApiData, SomeSharedData};
 use futures_util::future::Either;
+use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use worker::{
-    wasm_bindgen_futures, AbortController, Delay, Env, Fetch, Method, Request, RequestInit,
-    Response, Result,
+    wasm_bindgen_futures, AbortController, Delay, EncodeBody, Env, Fetch, Method, Request,
+    RequestInit, Response, Result,
 };
 
 #[worker::send]
@@ -176,4 +177,35 @@ pub async fn handle_cloned_fetch(
     let right = resp1.text().await?;
 
     Response::ok((left == right).to_string())
+}
+
+#[worker::send]
+pub async fn handle_cloned_response_attributes(
+    _req: Request,
+    _env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
+    #[derive(Serialize, Deserialize, PartialEq, Debug)]
+    struct TestCf {
+        foo: String,
+    }
+    let mut resp = Response::builder()
+        .with_status(200)
+        .with_encode_body(EncodeBody::Manual)
+        .with_cf(TestCf {
+            foo: "bar".to_owned(),
+        })?
+        .empty();
+
+    let resp1 = resp.cloned()?;
+
+    assert!(matches!(resp.encode_body(), EncodeBody::Manual));
+    assert!(matches!(resp1.encode_body(), EncodeBody::Manual));
+
+    let cf: TestCf = resp.cf()?.unwrap();
+    let cf1: TestCf = resp1.cf()?.unwrap();
+
+    assert_eq!(cf, cf1);
+
+    Response::ok("true")
 }
