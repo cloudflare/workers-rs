@@ -25,8 +25,8 @@ async fn main(_req: Request, env: Env, _ctx: Context) -> anyhow::Result<Response
     // CREATE TABLE IF NOT EXISTS foo (id SERIAL PRIMARY KEY, name TEXT);
     // INSERT INTO foo (name) VALUES ('Fred');
 
-    // `query` uses a prepared statement which is not supported by Hyperdrive
-    let result = client.simple_query("SELECT * FROM FOO").await?;
+    // `query` uses a prepared statement which is not supported if Hyperdrive caching is disabled.
+    let result = client.query("SELECT * FROM FOO", &[]).await?;
 
     console_log!("{:?}", result);
 
