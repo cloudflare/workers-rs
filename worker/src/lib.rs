@@ -179,6 +179,7 @@ pub use crate::formdata::*;
 pub use crate::global::Fetch;
 pub use crate::headers::Headers;
 pub use crate::http::Method;
+pub use crate::hyperdrive::*;
 #[cfg(feature = "queue")]
 pub use crate::queue::*;
 pub use crate::r2::*;
