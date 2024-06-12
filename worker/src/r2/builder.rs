@@ -308,7 +308,7 @@ impl<'bucket> CreateMultipartUploadOptionsBuilder<'bucket> {
 }
 
 /// Metadata that's automatically rendered into R2 HTTP API endpoints.
-/// ```
+/// ```ignore
 /// * contentType -> content-type
 /// * contentLanguage -> content-language
 /// etc...
@@ -395,7 +395,8 @@ impl<'bucket> ListOptionsBuilder<'bucket> {
     /// you are sending into one bucket. Make sure to look at `truncated` for the result
     /// rather than having logic like
     ///
-    /// ```no_run
+    /// ```ignore
+    /// # let limit = 10;
     /// while listed.len() < limit {
     ///     listed = bucket.list()
     ///         .limit(limit),
