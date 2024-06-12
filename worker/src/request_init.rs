@@ -5,7 +5,7 @@ use crate::http::Method;
 
 use js_sys::{self, Object};
 use serde::Serialize;
-use wasm_bindgen::{prelude::*, JsValue};
+use wasm_bindgen::JsValue;
 
 /// Optional options struct that contains settings to apply to the `Request`.
 pub struct RequestInit {
@@ -115,6 +115,8 @@ pub struct CfProperties {
     /// zero and negative integers. A value of 0 indicates that the cache asset expires immediately.
     /// Any negative value instructs Cloudflare not to cache at all.
     pub cache_ttl_by_status: Option<HashMap<String, i32>>,
+    // TODO docs
+    pub image: Option<ResizeConfig>,
     /// Enables or disables AutoMinify for various file types.
     /// For example: `{ javascript: true, css: true, html: false }`.
     pub minify: Option<MinifyConfig>,
@@ -199,7 +201,10 @@ impl From<&CfProperties> for JsValue {
         set_prop(
             &obj,
             &JsValue::from("minify"),
-            &JsValue::from(props.minify.unwrap_or(defaults.minify.unwrap_or_default())),
+            &serde_wasm_bindgen::to_value(
+                &props.minify.unwrap_or(defaults.minify.unwrap_or_default()),
+            )
+            .unwrap(),
         );
 
         set_prop(
@@ -208,11 +213,12 @@ impl From<&CfProperties> for JsValue {
             &JsValue::from(props.mirage.unwrap_or(defaults.mirage.unwrap_or_default())),
         );
 
-        let polish_val: &str = props
-            .polish
-            .unwrap_or(defaults.polish.unwrap_or_default())
-            .into();
-        set_prop(&obj, &JsValue::from("polish"), &JsValue::from(polish_val));
+        let polish_val = props.polish.unwrap_or(defaults.polish.unwrap_or_default());
+        set_prop(
+            &obj,
+            &JsValue::from("polish"),
+            &serde_wasm_bindgen::to_value(&polish_val).unwrap(),
+        );
 
         set_prop(
             &obj,
@@ -234,6 +240,14 @@ impl From<&CfProperties> for JsValue {
                     .unwrap_or(defaults.scrape_shield.unwrap_or_default()),
             ),
         );
+
+        if let Some(image) = &props.image {
+            set_prop(
+                &obj,
+                &JsValue::from("image"),
+                &serde_wasm_bindgen::to_value(&image).unwrap(),
+            );
+        }
 
         obj.into()
     }
@@ -264,6 +278,7 @@ impl Default for CfProperties {
             cache_ttl_by_status: None,
             minify: None,
             mirage: Some(true),
+            image: None,
             polish: None,
             resolve_override: None,
             scrape_shield: Some(true),
@@ -273,8 +288,8 @@ impl Default for CfProperties {
 
 /// Configuration options for Cloudflare's minification features:
 /// <https://www.cloudflare.com/website-optimization/>
-#[wasm_bindgen]
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Default, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct MinifyConfig {
     pub js: bool,
     pub html: bool,
@@ -283,47 +298,138 @@ pub struct MinifyConfig {
 
 /// Configuration options for Cloudflare's image optimization feature:
 /// <https://blog.cloudflare.com/introducing-polish-automatic-image-optimizati/>
-#[wasm_bindgen]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum PolishConfig {
+    #[default]
     Off,
     Lossy,
     Lossless,
 }
 
-impl Default for PolishConfig {
-    fn default() -> Self {
-        Self::Off
-    }
+#[derive(Clone, serde::Serialize)]
+#[serde(untagged)]
+pub enum ResizeBorder {
+    Uniform {
+        color: String,
+        width: usize,
+    },
+    Varying {
+        color: String,
+        top: usize,
+        right: usize,
+        bottom: usize,
+        left: usize,
+    },
 }
 
-impl From<PolishConfig> for &str {
-    fn from(conf: PolishConfig) -> Self {
-        match conf {
-            PolishConfig::Off => "off",
-            PolishConfig::Lossy => "lossy",
-            PolishConfig::Lossless => "lossless",
-        }
-    }
+/// Configuration options for Cloudflare's image resizing feature:
+/// <https://developers.cloudflare.com/images/image-resizing/>
+#[derive(Clone, Default, serde::Serialize)]
+pub struct ResizeConfig {
+    pub anim: Option<bool>,
+    pub background: Option<String>,
+    pub blur: Option<u8>,
+    pub border: Option<ResizeBorder>,
+    pub brightness: Option<f64>,
+    pub compression: Option<ResizeCompression>,
+    pub contrast: Option<f64>,
+    pub dpr: Option<f64>,
+    pub fit: Option<ResizeFit>,
+    pub format: Option<ResizeFormat>,
+    pub gamma: Option<f64>,
+    pub gravity: Option<ResizeGravity>,
+    pub height: Option<usize>,
+    pub metadata: Option<ResizeMetadata>,
+    pub onerror: Option<ResizeOnerror>,
+    pub quality: Option<usize>,
+    pub rotate: Option<usize>,
+    pub sharpen: Option<usize>,
+    pub trim: Option<ResizeTrim>,
+    pub width: Option<usize>,
 }
 
-#[wasm_bindgen]
-#[derive(Default, Clone, Copy)]
+#[derive(Clone, Copy, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ResizeCompression {
+    Fast,
+}
+
+#[derive(Clone, Copy, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ResizeFit {
+    ScaleDown,
+    Contain,
+    Cover,
+    Crop,
+    Pad,
+}
+
+#[derive(Clone, Copy, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ResizeFormat {
+    Auto,
+    Avif,
+    Webp,
+    Json,
+}
+
+#[derive(Clone, Copy, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ResizeGravitySide {
+    Auto,
+    Left,
+    Right,
+    Top,
+    Bottom,
+}
+
+#[derive(Clone, Copy, Serialize)]
+#[serde(rename_all = "kebab-case")]
+#[serde(untagged)]
+pub enum ResizeGravity {
+    Side(ResizeGravitySide),
+    Coords { x: f64, y: f64 },
+}
+
+#[derive(Clone, Copy, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ResizeMetadata {
+    Keep,
+    Copyright,
+    None,
+}
+
+#[derive(Clone, Copy, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ResizeOnerror {
+    Redirect,
+}
+
+#[derive(Clone, Copy, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ResizeTrim {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub top: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bottom: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub left: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub right: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub width: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub height: Option<usize>,
+}
+
+#[derive(Clone, Copy, Default, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum RequestRedirect {
     Error,
     #[default]
     Follow,
     Manual,
-}
-
-impl From<RequestRedirect> for &str {
-    fn from(redirect: RequestRedirect) -> Self {
-        match redirect {
-            RequestRedirect::Error => "error",
-            RequestRedirect::Follow => "follow",
-            RequestRedirect::Manual => "manual",
-        }
-    }
 }
 
 impl From<RequestRedirect> for web_sys::RequestRedirect {
