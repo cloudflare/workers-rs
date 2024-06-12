@@ -115,6 +115,8 @@ pub struct CfProperties {
     /// zero and negative integers. A value of 0 indicates that the cache asset expires immediately.
     /// Any negative value instructs Cloudflare not to cache at all.
     pub cache_ttl_by_status: Option<HashMap<String, i32>>,
+    // TODO docs
+    pub image: Option<ResizeConfig>,
     /// Enables or disables AutoMinify for various file types.
     /// For example: `{ javascript: true, css: true, html: false }`.
     pub minify: Option<MinifyConfig>,
@@ -235,6 +237,27 @@ impl From<&CfProperties> for JsValue {
             ),
         );
 
+        // TODO shouldn't the above calls to set_prop also use a pattern like the one below,
+        //      such as to avoid needless work when those properties are not actually set in Rust
+        //      code and thus should also not be passed on to the JS side;
+        //      there may also not be a clear default for each (sub-)property, but even if there
+        //      officially is, there may be discrepancies between official docs, official JS and
+        //      Rust libraries introduced because they behave differently -- I'm assuming here
+        //      that the JS library / API will simply not set default values for all fields
+        //      that are simply not provided by the user, thus allowing the underlying runtime
+        //      to set the true defaults, whether or not the docs agree what those are
+        //      side benefit being that a lot less work needs to be done, such as constructing
+        //      defaults, cloning & copying, calls across the wasm/JS bridge
+        if let Some(image) = &props.image {
+            set_prop(
+                &obj,
+                &JsValue::from("image"),
+                &JsValue::from(
+                    image.clone(),
+                ),
+            );
+        }
+
         obj.into()
     }
 }
@@ -264,6 +287,7 @@ impl Default for CfProperties {
             cache_ttl_by_status: None,
             minify: None,
             mirage: Some(true),
+            image: None,
             polish: None,
             resolve_override: None,
             scrape_shield: Some(true),
@@ -305,6 +329,98 @@ impl From<PolishConfig> for &str {
             PolishConfig::Lossless => "lossless",
         }
     }
+}
+
+/// Configuration options for Cloudflare's image resizing feature:
+/// <https://developers.cloudflare.com/images/image-resizing/>
+#[wasm_bindgen]
+#[derive(Clone, Default)]
+pub struct ResizeConfig {
+    pub anim: Option<bool>,
+    #[wasm_bindgen(skip)]
+    pub background: Option<String>,
+    #[wasm_bindgen(skip)]
+    pub blur: Option<String>,
+    pub brightness: Option<f64>,
+    pub contrast: Option<f64>,
+    pub dpr: Option<f64>,
+    pub fit: Option<ResizeFit>,
+    pub format: Option<ResizeFormat>,
+    pub gamma: Option<f64>,
+    // TODO
+    // #[wasm_bindgen(skip)]
+    // pub gravity: Option<ResizeGravity>,
+    pub height: Option<usize>,
+    pub metadata: Option<ResizeMetadata>,
+    pub onerror: Option<ResizeOnerror>,
+    pub quality: Option<usize>,
+    pub sharpen: Option<usize>,
+    pub trim: Option<ResizeTrim>,
+    pub width: Option<usize>,
+}
+
+#[wasm_bindgen]
+impl ResizeConfig {
+    #[wasm_bindgen(getter)]
+    pub fn background(&self) -> Option<String> {
+        self.background.clone()
+    }
+    #[wasm_bindgen(getter)]
+    pub fn blur(&self) -> Option<String> {
+        self.blur.clone()
+    }
+}
+
+#[wasm_bindgen]
+#[derive(Clone, Copy)]
+pub enum ResizeFit {
+    ScaleDown,
+    Contain,
+    Cover,
+    Crop,
+    Pad,
+}
+
+#[wasm_bindgen]
+#[derive(Clone, Copy)]
+pub enum ResizeFormat {
+    Auto,
+    Avif,
+    Webp,
+    Json,
+}
+
+// TODO implement in a wbg-compatible way
+// #[wasm_bindgen]
+// #[derive(Clone)]
+// pub enum ResizeGravity {
+//     Auto,
+//     // TODO maybe enum top/left/bottom/right?
+//     Side(String),
+//     Coords(f64, f64),
+// }
+
+#[wasm_bindgen]
+#[derive(Clone, Copy)]
+pub enum ResizeMetadata {
+    Keep,
+    Copyright,
+    None,
+}
+
+#[wasm_bindgen]
+#[derive(Clone, Copy)]
+pub enum ResizeOnerror {
+    Redirect,
+}
+
+#[wasm_bindgen]
+#[derive(Clone, Copy, Default)]
+pub struct ResizeTrim {
+    pub top: usize,
+    pub bottom: usize,
+    pub left: usize,
+    pub right: usize,
 }
 
 #[wasm_bindgen]
