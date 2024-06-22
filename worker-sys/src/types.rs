@@ -1,3 +1,4 @@
+mod ai;
 mod context;
 mod crypto;
 #[cfg(feature = "d1")]
@@ -16,6 +17,7 @@ mod socket;
 mod tls_client_auth;
 mod websocket_pair;
 
+pub use ai::*;
 pub use context::*;
 pub use crypto::*;
 #[cfg(feature = "d1")]
