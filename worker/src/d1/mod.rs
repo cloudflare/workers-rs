@@ -387,10 +387,10 @@ impl D1Result {
 
     /// Return the meta data in this result.
     ///
-    /// Returns `None` if it's not exists.
+    /// Returns `None` if `meta` field is not populated.
     pub fn meta(&self) -> Result<Option<D1ResultMeta>> {
         if let Ok(meta) = self.0.meta() {
-            let meta: D1ResultMeta = serde_wasm_bindgen::from_value(meta.into()).unwrap();
+            let meta: D1ResultMeta = serde_wasm_bindgen::from_value(meta.into())?;
             Ok(Some(meta))
         } else {
             Ok(None)
