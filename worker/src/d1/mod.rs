@@ -343,6 +343,18 @@ impl From<D1PreparedStatementSys> for D1PreparedStatement {
 // The result of a D1 query execution.
 pub struct D1Result(D1ResultSys);
 
+// The meta object of D1 result.
+#[derive(Debug, Clone, Deserialize)]
+pub struct D1ResultMeta {
+    pub changed_db: Option<bool>,
+    pub changes: Option<usize>,
+    pub duration: Option<f64>,
+    pub last_row_id: Option<i64>,
+    pub rows_read: Option<usize>,
+    pub rows_written: Option<usize>,
+    pub size_after: Option<usize>,
+}
+
 impl D1Result {
     /// Returns `true` if the result indicates a success, otherwise `false`.
     pub fn success(&self) -> bool {
@@ -370,6 +382,18 @@ impl D1Result {
             Ok(vec)
         } else {
             Ok(Vec::new())
+        }
+    }
+
+    /// Return the meta data in this result.
+    ///
+    /// Returns `None` if `meta` field is not populated.
+    pub fn meta(&self) -> Result<Option<D1ResultMeta>> {
+        if let Ok(meta) = self.0.meta() {
+            let meta: D1ResultMeta = serde_wasm_bindgen::from_value(meta.into())?;
+            Ok(Some(meta))
+        } else {
+            Ok(None)
         }
     }
 }
