@@ -1,4 +1,4 @@
-use std::{fs::OpenOptions, io::Write, path::PathBuf, process::Command};
+use std::{fs::OpenOptions, io::Write, path::PathBuf};
 
 use anyhow::Result;
 use flate2::read::GzDecoder;
@@ -29,26 +29,6 @@ pub fn is_installed(name: &str) -> Result<Option<PathBuf>> {
     }
 
     Ok(None)
-}
-
-pub fn ensure_wasm_pack() -> Result<()> {
-    if is_installed("wasm-pack")?.is_none() {
-        println!("Installing wasm-pack...");
-        let exit_status = Command::new("cargo")
-            .args(["install", "wasm-pack"])
-            .spawn()?
-            .wait()?;
-
-        match exit_status.success() {
-            true => Ok(()),
-            false => anyhow::bail!(
-                "installation of wasm-pack exited with status {}",
-                exit_status
-            ),
-        }
-    } else {
-        Ok(())
-    }
 }
 
 const ESBUILD_VERSION: &str = "0.14.47";
