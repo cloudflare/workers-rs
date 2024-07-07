@@ -3,7 +3,6 @@
 use std::{
     convert::TryInto,
     env::{self, VarError},
-    ffi::OsStr,
     fs::{self, File},
     io::{Read, Write},
     path::{Path, PathBuf},
@@ -11,6 +10,9 @@ use std::{
 };
 
 use anyhow::Result;
+
+use clap::Parser;
+use wasm_pack::command::build::{Build, BuildOptions};
 
 const OUT_DIR: &str = "build";
 const OUT_NAME: &str = "index";
@@ -36,8 +38,7 @@ mod install;
 pub fn main() -> Result<()> {
     // Our tests build the bundle ourselves.
     if !cfg!(test) {
-        install::ensure_wasm_pack()?;
-        wasm_pack_build(env::args_os().skip(1))?;
+        wasm_pack_build(env::args().skip(1))?;
     }
 
     let with_coredump = env::var("COREDUMP").is_ok();
@@ -127,25 +128,44 @@ fn wasm_coredump() -> Result<()> {
     }
 }
 
-fn wasm_pack_build<I, S>(args: I) -> Result<()>
-where
-    I: IntoIterator<Item = S>,
-    S: AsRef<OsStr>,
-{
-    let exit_status = Command::new("wasm-pack")
-        .arg("build")
-        .arg("--no-typescript")
-        .args(["--target", "bundler"])
-        .args(["--out-dir", OUT_DIR])
-        .args(["--out-name", OUT_NAME])
-        .args(args)
-        .spawn()?
-        .wait()?;
+#[derive(Parser)]
+struct BuildArgs {
+    #[clap(flatten)]
+    pub build_options: BuildOptions,
+}
 
-    match exit_status.success() {
-        true => Ok(()),
-        false => anyhow::bail!("wasm-pack exited with status {}", exit_status),
-    }
+fn parse_wasm_pack_opts<I>(args: I) -> Result<BuildOptions>
+where
+    I: IntoIterator<Item = String>,
+{
+    // This is done instead of explicitly constructing
+    // BuildOptions to preserve the behavior of appending
+    // arbitrary arguments in `args`.
+    let mut build_args = vec![
+        "--no-typescript".to_owned(),
+        "--target".to_owned(),
+        "bundler".to_owned(),
+        "--out-dir".to_owned(),
+        OUT_DIR.to_owned(),
+        "--out-name".to_owned(),
+        OUT_NAME.to_owned(),
+    ];
+
+    build_args.extend(args);
+
+    let command = BuildArgs::try_parse_from(build_args)?;
+    Ok(command.build_options)
+}
+
+fn wasm_pack_build<I>(args: I) -> Result<()>
+where
+    I: IntoIterator<Item = String>,
+{
+    let opts = parse_wasm_pack_opts(args)?;
+
+    let mut build = Build::try_from_opts(opts)?;
+
+    build.run()
 }
 
 fn create_worker_dir() -> Result<()> {
@@ -272,4 +292,23 @@ pub fn worker_path(name: impl AsRef<str>) -> PathBuf {
 
 pub fn output_path(name: impl AsRef<str>) -> PathBuf {
     PathBuf::from(OUT_DIR).join(name.as_ref())
+}
+
+#[cfg(test)]
+mod test {
+    use super::parse_wasm_pack_opts;
+    #[test]
+    fn test_wasm_pack_args_build_arg() {
+        let args = vec!["--release".to_owned()];
+        let result = parse_wasm_pack_opts(args);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_wasm_pack_args_additional_arg() {
+        let args = vec!["--weak-refs".to_owned()];
+        let result = parse_wasm_pack_opts(args).unwrap();
+
+        assert!(result.weak_refs);
+    }
 }
