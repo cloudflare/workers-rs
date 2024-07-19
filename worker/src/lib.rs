@@ -225,6 +225,7 @@ mod schedule;
 pub mod send;
 mod socket;
 mod streams;
+mod version;
 mod websocket;
 
 pub type Result<T> = StdResult<T, error::Error>;
