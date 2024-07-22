@@ -19,6 +19,10 @@ impl WorkerVersionMetadata {
     pub fn tag(&self) -> String {
         self.0.tag()
     }
+
+    pub fn timestamp(&self) -> String {
+        self.0.timestamp()
+    }
 }
 
 impl JsCast for WorkerVersionMetadata {

@@ -12,4 +12,7 @@ extern "C" {
 
     #[wasm_bindgen(method, getter, js_name=tag)]
     pub fn tag(this: &CfVersionMetadata) -> String;
+
+    #[wasm_bindgen(method, getter, js_name=timestamp)]
+    pub fn timestamp(this: &CfVersionMetadata) -> String;
 }
