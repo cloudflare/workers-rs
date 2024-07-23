@@ -235,6 +235,10 @@ impl TlsClientAuth {
         self.inner.cert_fingerprint_sha1().unwrap()
     }
 
+    pub fn cert_fingerprint_sha256(&self) -> String {
+        self.inner.cert_fingerprint_sha256().unwrap()
+    }
+
     pub fn cert_not_before(&self) -> String {
         self.inner.cert_not_before().unwrap()
     }
