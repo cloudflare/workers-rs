@@ -29,6 +29,9 @@ extern "C" {
     #[wasm_bindgen(method, catch, getter, js_name=certFingerprintSHA1)]
     pub fn cert_fingerprint_sha1(this: &TlsClientAuth) -> Result<String, JsValue>;
 
+    #[wasm_bindgen(method, catch, getter, js_name=certFingerprintSHA256)]
+    pub fn cert_fingerprint_sha256(this: &TlsClientAuth) -> Result<String, JsValue>;
+
     #[wasm_bindgen(method, catch, getter, js_name=certNotBefore)]
     pub fn cert_not_before(this: &TlsClientAuth) -> Result<String, JsValue>;
 
