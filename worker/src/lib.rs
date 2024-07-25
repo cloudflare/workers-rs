@@ -183,6 +183,7 @@ pub use crate::hyperdrive::*;
 #[cfg(feature = "queue")]
 pub use crate::queue::*;
 pub use crate::r2::*;
+pub use crate::rate_limit::RateLimiter;
 pub use crate::request::{FromRequest, Request};
 pub use crate::request_init::*;
 pub use crate::response::{EncodeBody, IntoResponse, Response, ResponseBody, ResponseBuilder};
@@ -218,6 +219,7 @@ mod hyperdrive;
 #[cfg(feature = "queue")]
 mod queue;
 mod r2;
+mod rate_limit;
 mod request;
 mod request_init;
 mod response;
