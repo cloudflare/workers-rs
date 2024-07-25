@@ -5,8 +5,11 @@ use crate::{
 };
 
 use serde::de::DeserializeOwned;
+#[cfg(test)]
 use std::borrow::Cow;
-use url::{form_urlencoded::Parse, Url};
+#[cfg(test)]
+use url::form_urlencoded::Parse;
+use url::Url;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 use worker_sys::ext::RequestExt;
@@ -290,11 +293,13 @@ impl Request {
     }
 }
 
+#[cfg(test)]
 pub struct ParamIter<'a> {
     inner: Parse<'a>,
     key: &'a str,
 }
 
+#[cfg(test)]
 impl<'a> Iterator for ParamIter<'a> {
     type Item = Cow<'a, str>;
 
