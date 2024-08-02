@@ -14,6 +14,7 @@ mod r2;
 mod schedule;
 mod socket;
 mod tls_client_auth;
+mod vectorize;
 mod version;
 mod websocket_pair;
 
@@ -33,5 +34,6 @@ pub use r2::*;
 pub use schedule::*;
 pub use socket::*;
 pub use tls_client_auth::*;
+pub use vectorize::*;
 pub use version::*;
 pub use websocket_pair::*;
