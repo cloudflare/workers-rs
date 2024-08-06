@@ -34,4 +34,11 @@ extern "C" {
         this: &DurableObjectNamespace,
         id: &DurableObjectId,
     ) -> Result<DurableObject, JsValue>;
+
+    #[wasm_bindgen(method, catch, js_name=get)]
+    pub fn get_with_options(
+        this: &DurableObjectNamespace,
+        id: &DurableObjectId,
+        options: &JsValue,
+    ) -> Result<DurableObject, JsValue>;
 }

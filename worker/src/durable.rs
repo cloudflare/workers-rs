@@ -155,6 +155,24 @@ impl ObjectId<'_> {
             })
             .map_err(Error::from)
     }
+
+    pub fn get_stub_with_location_hint(&self, location_hint: &str) -> Result<Stub> {
+        let options = Object::new();
+        js_sys::Reflect::set(
+            &options,
+            &JsValue::from("locationHint"),
+            &location_hint.into(),
+        )?;
+
+        self.namespace
+            .ok_or_else(|| JsValue::from("Cannot get stub from within a Durable Object"))
+            .and_then(|n| {
+                Ok(Stub {
+                    inner: n.inner.get_with_options(&self.inner, &options)?,
+                })
+            })
+            .map_err(Error::from)
+    }
 }
 
 impl Display for ObjectId<'_> {
