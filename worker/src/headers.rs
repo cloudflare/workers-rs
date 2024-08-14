@@ -65,8 +65,6 @@ impl Headers {
     pub fn entries(&self) -> HeaderIterator {
         self.0
             .entries()
-            // Header.entries() doesn't error: https://developer.mozilla.org/en-US/docs/Web/API/Headers/entries
-            .unwrap()
             .into_iter()
             // The entries iterator.next() will always return a proper value: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Iteration_protocols
             .map((|a| a.unwrap().into()) as F1)
@@ -79,8 +77,6 @@ impl Headers {
     pub fn keys(&self) -> impl Iterator<Item = String> {
         self.0
             .keys()
-            // Header.keys() doesn't error: https://developer.mozilla.org/en-US/docs/Web/API/Headers/keys
-            .unwrap()
             .into_iter()
             // The keys iterator.next() will always return a proper value containing a string
             .map(|a| a.unwrap().as_string().unwrap())
@@ -91,8 +87,6 @@ impl Headers {
     pub fn values(&self) -> impl Iterator<Item = String> {
         self.0
             .values()
-            // Header.values() doesn't error: https://developer.mozilla.org/en-US/docs/Web/API/Headers/values
-            .unwrap()
             .into_iter()
             // The values iterator.next() will always return a proper value containing a string
             .map(|a| a.unwrap().as_string().unwrap())
