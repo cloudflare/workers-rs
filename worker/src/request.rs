@@ -86,21 +86,20 @@ impl TryFrom<&Request> for web_sys::Request {
 impl Request {
     /// Construct a new `Request` with an HTTP Method.
     pub fn new(uri: &str, method: Method) -> Result<Self> {
-        web_sys::Request::new_with_str_and_init(
-            uri,
-            web_sys::RequestInit::new().method(method.as_ref()),
-        )
-        .map(|req| {
-            let mut req: Request = req.into();
-            req.immutable = false;
-            req
-        })
-        .map_err(|e| {
-            Error::JsError(
-                e.as_string()
-                    .unwrap_or_else(|| "invalid URL or method for Request".to_string()),
-            )
-        })
+        let init = web_sys::RequestInit::new();
+        init.set_method(method.as_ref());
+        web_sys::Request::new_with_str_and_init(uri, &init)
+            .map(|req| {
+                let mut req: Request = req.into();
+                req.immutable = false;
+                req
+            })
+            .map_err(|e| {
+                Error::JsError(
+                    e.as_string()
+                        .unwrap_or_else(|| "invalid URL or method for Request".to_string()),
+                )
+            })
     }
 
     /// Construct a new `Request` with a `RequestInit` configuration.

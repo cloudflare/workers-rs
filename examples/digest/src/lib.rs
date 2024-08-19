@@ -29,9 +29,9 @@ async fn main(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
 }
 
 fn str_to_readable_stream(value: &str) -> web_sys::ReadableStream {
-    let mut req_init = web_sys::RequestInit::new();
-    req_init.method("POST");
-    req_init.body(Some(&JsValue::from_str(value)));
+    let req_init = web_sys::RequestInit::new();
+    req_init.set_method("POST");
+    req_init.set_body(&JsValue::from_str(value));
     let req = web_sys::Request::new_with_str_and_init("http://internal", &req_init).unwrap();
     req.body().unwrap()
 }

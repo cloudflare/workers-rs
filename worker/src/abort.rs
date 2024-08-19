@@ -1,7 +1,6 @@
 use std::ops::Deref;
 
 use wasm_bindgen::JsValue;
-use worker_sys::ext::{AbortControllerExt, AbortSignalExt};
 
 /// An interface that allows you to abort in-flight [Fetch](crate::Fetch) requests.
 #[derive(Debug)]
