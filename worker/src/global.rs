@@ -31,8 +31,8 @@ impl Fetch {
 }
 
 async fn fetch_with_str(url: &str, signal: Option<&AbortSignal>) -> Result<Response> {
-    let mut init = web_sys::RequestInit::new();
-    init.signal(signal.map(|x| x.deref()));
+    let init = web_sys::RequestInit::new();
+    init.set_signal(signal.map(|x| x.deref()));
 
     let worker: web_sys::WorkerGlobalScope = js_sys::global().unchecked_into();
     let promise = worker.fetch_with_str_and_init(url, &init);
@@ -42,8 +42,8 @@ async fn fetch_with_str(url: &str, signal: Option<&AbortSignal>) -> Result<Respo
 }
 
 async fn fetch_with_request(request: &Request, signal: Option<&AbortSignal>) -> Result<Response> {
-    let mut init = web_sys::RequestInit::new();
-    init.signal(signal.map(|x| x.deref()));
+    let init = web_sys::RequestInit::new();
+    init.set_signal(signal.map(|x| x.deref()));
 
     let worker: web_sys::WorkerGlobalScope = js_sys::global().unchecked_into();
     let req = request.inner();
