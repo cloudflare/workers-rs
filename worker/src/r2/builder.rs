@@ -65,7 +65,7 @@ impl GetOptionsBuilder<'_> {
     }
 }
 
-/// You can pass an [Conditional] object to [GetOptionsBuilder]. If the condition check fails,
+/// You can pass an [Conditional] object to [GetOptionsBuilder] or [PutOptionsBuilder]. If the condition check fails,
 /// the body will not be returned. This will make [get](crate::r2::Bucket::get) have lower latency.
 ///
 /// For more information about conditional requests, refer to [RFC 7232](https://datatracker.ietf.org/doc/html/rfc7232).
@@ -174,6 +174,7 @@ pub struct PutOptionsBuilder<'bucket> {
     pub(crate) custom_metadata: Option<HashMap<String, String>>,
     pub(crate) checksum: Option<Vec<u8>>,
     pub(crate) checksum_algorithm: String,
+    pub(crate) only_if: Option<Conditional>,
 }
 
 impl PutOptionsBuilder<'_> {
@@ -220,8 +221,17 @@ impl PutOptionsBuilder<'_> {
         self.checksum_set("sha512", bytes)
     }
 
+    /// Specifies that the object should only be returned given satisfaction of certain conditions
+    /// in the [Conditional]. Refer to [Conditional operations](https://developers.cloudflare.com/r2/runtime-apis/#conditional-operations).
+    pub fn only_if(mut self, only_if: Conditional) -> Self {
+        self.only_if = Some(only_if);
+        self
+    }
+
     /// Executes the PUT operation on the R2 bucket.
-    pub async fn execute(self) -> Result<Object> {
+    ///
+    /// If the condition check fails, `None` will be returned instead of an [`Object`].
+    pub async fn execute(self) -> Result<Option<Object>> {
         let value: JsValue = self.value.into();
         let name: String = self.key;
 
@@ -229,6 +239,7 @@ impl PutOptionsBuilder<'_> {
             name,
             value,
             js_object! {
+                "onlyIf" => self.only_if.map(JsObject::from),
                 "httpMetadata" => self.http_metadata.map(JsObject::from),
                 "customMetadata" => match self.custom_metadata {
                     Some(metadata) => {
@@ -248,14 +259,21 @@ impl PutOptionsBuilder<'_> {
             }
             .into(),
         )?;
-        let res: EdgeR2Object = JsFuture::from(put_promise).await?.into();
+
+        let value = JsFuture::from(put_promise).await?;
+
+        if value.is_null() {
+            return Ok(None);
+        }
+
+        let res: EdgeR2Object = value.into();
         let inner = if JsString::from("bodyUsed").js_in(&res) {
             ObjectInner::Body(res.unchecked_into())
         } else {
             ObjectInner::NoBody(res)
         };
 
-        Ok(Object { inner })
+        Ok(Some(Object { inner }))
     }
 }
 
