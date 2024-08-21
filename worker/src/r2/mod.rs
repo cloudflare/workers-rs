@@ -65,6 +65,7 @@ impl Bucket {
             custom_metadata: None,
             checksum: None,
             checksum_algorithm: "md5".into(),
+            only_if: None,
         }
     }
 

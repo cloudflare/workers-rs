@@ -283,7 +283,8 @@ async fn put_full_properties(
         .custom_metadata(custom_metadata.clone())
         .md5(md5_hash)
         .execute()
-        .await?;
+        .await?
+        .expect("no conditional used for object PUT");
     Ok((http_metadata, custom_metadata, object_with_props))
 }
 
