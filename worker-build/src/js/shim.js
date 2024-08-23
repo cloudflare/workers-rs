@@ -20,6 +20,10 @@ class Entrypoint extends WorkerEntrypoint {
     async scheduled(event) {
         return await imports.scheduled(event, this.env, this.ctx)
     }
+
+    async email(message) {
+        return await imports.email(message, this.env, this.ctx)
+    }
 }
 
 const EXCLUDE_EXPORT = [
@@ -33,6 +37,7 @@ const EXCLUDE_EXPORT = [
     "fetch",
     "queue",
     "scheduled",
+    "email",
     "getMemory"
 ];
 
