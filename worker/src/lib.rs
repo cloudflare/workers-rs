@@ -10,12 +10,18 @@
 //!
 //! Enables `queue` event type in [`[event]`](worker_macros::event) macro.
 //!
-//! ```
+//! ```no_run
+//! # mod scope {
 //! // Consume messages from a queue
+//! # use worker::{Env, Context, Result, MessageBatch, event};
+//!
+//! struct MyType;
+//!
 //! #[event(queue)]
-//! pub async fn main(message_batch: MessageBatch<MyType>, env: Env, _ctx: Context) -> Result<()> {
+//! pub async fn handle(message_batch: MessageBatch<MyType>, env: Env, _ctx: Context) -> Result<()> {
 //!     Ok(())
 //! }
+//! # }
 //! ```
 //!
 //! ## `http`
@@ -33,7 +39,13 @@
 //!
 //! The end result is being able to use frameworks like `axum` directly (see [example](./examples/axum)):
 //!
-//! ```rust
+//! ```no_run
+//! # mod scope {
+//! # use worker::{Context, Env, HttpRequest, Result};
+//! # use axum::routing::get;
+//! # use axum::Router;
+//! # use worker::event;
+//! # use tower_service::Service;
 //! pub async fn root() -> &'static str {
 //!     "Hello Axum!"
 //! }
@@ -41,7 +53,6 @@
 //! fn router() -> Router {
 //!     Router::new().route("/", get(root))
 //! }
-//!
 //! #[event(fetch)]
 //! async fn fetch(
 //!     req: HttpRequest,
@@ -50,6 +61,7 @@
 //! ) -> Result<http::Response<axum::body::Body>> {
 //!     Ok(router().call(req).await?)
 //! }
+//! # }
 //! ```
 //!
 //! We also implement `try_from` between `worker::Request` and `http::Request<worker::Body>`, and between `worker::Response` and `http::Response<worker::Body>`.
@@ -64,8 +76,11 @@
 //!
 //! 1. [`send::SendFuture`] - wraps any `Future` and marks it as `Send`:
 //!
-//! ```rust
+//! ```no_run
 //! // `fut` is `Send`
+//! # use worker::send;
+//! # use wasm_bindgen_futures::JsFuture;
+//! # let promise = js_sys::Promise::new(&mut |_, _| {});
 //! let fut = send::SendFuture::new(async move {
 //!     // `JsFuture` is not `Send`
 //!     JsFuture::from(promise).await
@@ -75,31 +90,43 @@
 //! 2. [`send::SendWrapper`] - Marks an arbitrary object as `Send` and implements `Deref` and `DerefMut`, as well as `Clone`, `Debug`, and `Display` if the
 //!    inner type does. This is useful for attaching types as state to an `axum` `Router`:
 //!
-//! ```rust
+//! ```no_run
+//! # use axum::Extension;
+//! # use worker::send;
+//! # use worker_kv::KvStore;
 //! // `KvStore` is not `Send`
-//! let store = env.kv("FOO")?;
+//! let store = KvStore::create("FOO")?;
 //! // `state` is `Send`
 //! let state = send::SendWrapper::new(store);
-//! let router = axum::Router::new()
+//! let router = axum::Router::<()>::new()
 //!     .layer(Extension(state));
+//!
+//! # Ok::<(), worker::Error>(())
 //! ```
 //!
 //! 3. [`[worker::send]`](macro@crate::send) - Macro to make any `async` function `Send`. This can be a little tricky to identify as the problem, but
 //!    `axum`'s `[debug_handler]` macro can help, and looking for warnings that a function or object cannot safely be sent
 //!    between threads.
 //!
-//! ```rust
+//! ```no_run
+//! # #[cfg(feature="http")]
+//! # {
+//! # use axum::routing::get;
+//! # use axum::Extension;
+//! # use axum::response::Result;
+//! # use worker::Env;
 //! // This macro makes the whole function (i.e. the `Future` it returns) `Send`.
 //! #[worker::send]
-//! async fn handler(Extension(env): Extension<Env>) -> Response<String> {
-//!     let kv = env.kv("FOO").unwrap()?;
+//! async fn handler(Extension(env): Extension<Env>) -> Result<String> {
+//!     let kv = env.kv("FOO")?;
 //!     // Holding `kv`, which is not `Send` across `await` boundary would mark this function as `!Send`
 //!     let value = kv.get("foo").text().await?;
-//!     Ok(format!("Got value: {:?}", value));
+//!     Ok(format!("Got value: {:?}", value))
 //! }
 //!
-//! let router = axum::Router::new()
-//!     .route("/", get(handler))
+//! let router = axum::Router::<()>::new()
+//!     .route("/", get(handler));
+//! # }
 //! ```
 //!
 //! # RPC Support
