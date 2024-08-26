@@ -15,7 +15,7 @@ extern "C" {
     pub fn version(this: &R2Object) -> Result<String, JsValue>;
 
     #[wasm_bindgen(method, catch, getter)]
-    pub fn size(this: &R2Object) -> Result<u32, JsValue>;
+    pub fn size(this: &R2Object) -> Result<f64, JsValue>;
 
     #[wasm_bindgen(method, catch, getter)]
     pub fn etag(this: &R2Object) -> Result<String, JsValue>;
