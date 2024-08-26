@@ -21,8 +21,10 @@ class Entrypoint extends WorkerEntrypoint {
         return await imports.scheduled(event, this.env, this.ctx)
     }
 
-    async email(message) {
-        return await imports.email(message, this.env, this.ctx)
+    // For some reason, email events doesn't seem to use WorkerEntrypoint so we get the env and ctx from
+    //  from the function itself.
+    async email(message, _env, _ctx) {
+        return await imports.email_handler(message, _env, _ctx)
     }
 }
 

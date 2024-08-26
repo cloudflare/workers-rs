@@ -190,7 +190,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                 &(input_fn.sig.ident.to_string() + "_email_glue"),
                 input_fn.sig.ident.span(),
             );
-            let wrapper_fn_ident = Ident::new("email", input_fn.sig.ident.span());
+            let wrapper_fn_ident = Ident::new("email_handler", input_fn.sig.ident.span());
             // rename the original attributed fn
             input_fn.sig.ident = input_fn_ident.clone();
 
