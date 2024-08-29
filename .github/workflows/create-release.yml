@@ -10,7 +10,7 @@ name: Create Release
 jobs:
   github-release:
     name: Github Release
-    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'releases/')
+    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'releases/') && github.event.pull_request.head.repo.full_name == "cloudflare/workers-rs"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
