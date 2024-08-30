@@ -122,7 +122,7 @@ impl ObjectNamespace {
     /// currently compatible with ids created by `id_from_name()`.
     ///
     /// See supported jurisdictions and more documentation at:
-    /// <https://developers.cloudflare.com/workers/runtime-apis/durable-objects#restricting-objects-to-a-jurisdiction>
+    /// <https://developers.cloudflare.com/durable-objects/reference/data-location/#restrict-durable-objects-to-a-jurisdiction>
     pub fn unique_id_with_jurisdiction(&self, jd: &str) -> Result<ObjectId> {
         let options = Object::new();
         js_sys::Reflect::set(&options, &JsValue::from("jurisdiction"), &jd.into())?;
@@ -151,6 +151,24 @@ impl ObjectId<'_> {
             .and_then(|n| {
                 Ok(Stub {
                     inner: n.inner.get(&self.inner)?,
+                })
+            })
+            .map_err(Error::from)
+    }
+
+    pub fn get_stub_with_location_hint(&self, location_hint: &str) -> Result<Stub> {
+        let options = Object::new();
+        js_sys::Reflect::set(
+            &options,
+            &JsValue::from("locationHint"),
+            &location_hint.into(),
+        )?;
+
+        self.namespace
+            .ok_or_else(|| JsValue::from("Cannot get stub from within a Durable Object"))
+            .and_then(|n| {
+                Ok(Stub {
+                    inner: n.inner.get_with_options(&self.inner, &options)?,
                 })
             })
             .map_err(Error::from)

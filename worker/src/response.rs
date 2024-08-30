@@ -533,8 +533,8 @@ impl ResponseBuilder {
 impl From<ResponseBuilder> for web_sys::ResponseInit {
     fn from(init: ResponseBuilder) -> Self {
         let mut edge_init = web_sys::ResponseInit::new();
-        edge_init.status(init.status_code);
-        edge_init.headers(&init.headers.0);
+        edge_init.set_status(init.status_code);
+        edge_init.set_headers(&init.headers.0);
         if let Some(websocket) = &init.websocket {
             edge_init
                 .websocket(websocket.as_ref())

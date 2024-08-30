@@ -50,17 +50,17 @@ pub fn from_wasm(req: web_sys::Request) -> Result<http::Request<Body>> {
 pub fn to_wasm<B: http_body::Body<Data = Bytes> + 'static>(
     mut req: http::Request<B>,
 ) -> Result<web_sys::Request> {
-    let mut init = web_sys::RequestInit::new();
-    init.method(req.method().as_str());
+    let init = web_sys::RequestInit::new();
+    init.set_method(req.method().as_str());
     let headers = web_sys_headers_from_header_map(req.headers())?;
-    init.headers(headers.as_ref());
+    init.set_headers(headers.as_ref());
     let uri = req.uri().to_string();
 
     let signal = req.extensions_mut().remove::<AbortSignal>();
-    init.signal(signal.as_ref().map(|s| s.inner()));
+    init.set_signal(signal.as_ref().map(|s| s.inner()));
 
     if let Some(redirect) = req.extensions_mut().remove::<RequestRedirect>() {
-        init.redirect(redirect.into());
+        init.set_redirect(redirect.into());
     }
 
     if let Some(cf) = req.extensions_mut().remove::<Cf>() {
@@ -81,7 +81,7 @@ pub fn to_wasm<B: http_body::Body<Data = Bytes> + 'static>(
     if !body.is_end_stream() {
         let readable_stream =
             wasm_streams::ReadableStream::from_stream(BodyStream::new(body)).into_raw();
-        init.body(Some(readable_stream.as_ref()));
+        init.set_body(readable_stream.as_ref());
     }
 
     Ok(web_sys::Request::new_with_str_and_init(&uri, &init)?)

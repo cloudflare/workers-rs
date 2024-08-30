@@ -57,11 +57,13 @@ impl RequestInit {
 
 impl From<&RequestInit> for web_sys::RequestInit {
     fn from(req: &RequestInit) -> Self {
-        let mut inner = web_sys::RequestInit::new();
-        inner.headers(req.headers.as_ref());
-        inner.method(req.method.as_ref());
-        inner.redirect(req.redirect.into());
-        inner.body(req.body.as_ref());
+        let inner = web_sys::RequestInit::new();
+        inner.set_headers(req.headers.as_ref());
+        inner.set_method(req.method.as_ref());
+        inner.set_redirect(req.redirect.into());
+        if let Some(body) = req.body.as_ref() {
+            inner.set_body(body);
+        }
 
         // set the Cloudflare-specific `cf` property on FFI RequestInit
         let r = ::js_sys::Reflect::set(

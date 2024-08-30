@@ -173,7 +173,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
 
 ## Durable Object, KV, Secret, & Variable Bindings
 
-All "bindings" to your script (Durable Object & KV Namespaces, Secrets, and Variables) are
+All "bindings" to your script (Durable Object & KV Namespaces, Secrets, Variables and Version) are
 accessible from the `env` parameter provided to both the entrypoint (`main` in this example), and to
 the route handler callback (in the `ctx` argument), if you use the `Router` from the `worker` crate.
 
@@ -214,6 +214,7 @@ For more information about how to configure these bindings, see:
 
 - https://developers.cloudflare.com/workers/cli-wrangler/configuration#keys
 - https://developers.cloudflare.com/workers/learning/using-durable-objects#configuring-durable-object-bindings
+- https://developers.cloudflare.com/workers/runtime-apis/bindings/version-metadata/
 
 ## Durable Objects
 

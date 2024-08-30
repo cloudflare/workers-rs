@@ -2,7 +2,7 @@
 name = "worker-sys"
 authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
 edition = "2018"
-version = "0.3.0"
+version = "0.3.4"
 license = "Apache-2.0"
 repository = "https://github.com/cloudflare/workers-rs/tree/main/worker-sys"
 description = "Low-level extern definitions / FFI bindings to the Cloudflare Workers JS Runtime."
@@ -13,7 +13,7 @@ wasm-bindgen.workspace = true
 cfg-if = "1.0.0"
 
 [dependencies.web-sys]
-version = "0.3.63"
+version = ">=0.3.70"
 features = [
     "ReadableStream",
     "WritableStream",

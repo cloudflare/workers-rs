@@ -190,6 +190,7 @@ pub use crate::router::{RouteContext, RouteParams, Router};
 pub use crate::schedule::*;
 pub use crate::socket::*;
 pub use crate::streams::*;
+pub use crate::version::*;
 pub use crate::websocket::*;
 
 mod abort;
@@ -225,6 +226,7 @@ mod schedule;
 pub mod send;
 mod socket;
 mod streams;
+mod version;
 mod websocket;
 
 pub type Result<T> = StdResult<T, error::Error>;

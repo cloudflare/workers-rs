@@ -19,6 +19,7 @@ tar = "0.4.38"
 ureq = { version = "2.6.2", features = ["tls", "gzip"] }
 clap= { version="4.5", features=['derive'] }
 worker-codegen = { path="../worker-codegen", version="0.1.0" }
+wasm-pack = "0.13"
 
 [dev-dependencies]
 wasm-bindgen-cli-support.workspace = true
