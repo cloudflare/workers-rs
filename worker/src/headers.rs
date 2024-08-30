@@ -9,6 +9,7 @@ use std::{
 use http::{header::HeaderName, HeaderMap, HeaderValue};
 use js_sys::Array;
 use wasm_bindgen::JsValue;
+use worker_sys::ext::HeadersExt;
 
 /// A [Headers](https://developer.mozilla.org/en-US/docs/Web/API/Headers) representation used in
 /// Request and Response objects.
@@ -91,22 +92,13 @@ impl Headers {
             .map(|a| a.unwrap().as_string().unwrap())
     }
 
-    /// Returns all the values of a `Set-Cookie` header within a `Headers` object with a given name.
-    /// Returns an error if the name is not `Set-Cookie`.
+    /// Returns all the values of a header within a `Headers` object with a given name.
     pub fn get_all(&self, name: &str) -> Result<Vec<String>> {
-        if name.to_lowercase() != "set-cookie" {
-            return Err(Error::RustError("getAll() can only be used with the header name 'Set-Cookie'.".into()));
-        }
-
-        let mut result = Vec::new();
-        let entries = self.entries();
-        for (key, value) in entries {
-            if key.to_lowercase() == "set-cookie" {
-                result.push(value);
-            }
-        }
-
-        Ok(result)
+        let values = self.0.get_all(name)?;
+        values
+            .iter()
+            .map(|v| v.as_string().ok_or_else(|| Error::JsError("Invalid header value".into())))
+            .collect()
     }
 }
 
