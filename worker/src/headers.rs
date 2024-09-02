@@ -94,10 +94,13 @@ impl Headers {
 
     /// Returns all the values of a header within a `Headers` object with a given name.
     pub fn get_all(&self, name: &str) -> Result<Vec<String>> {
-        let values = self.0.get_all(name)?;
-        values
+        let array = self.0.get_all(name);
+        array
             .iter()
-            .map(|v| v.as_string().ok_or_else(|| Error::JsError("Invalid header value".into())))
+            .map(|v| {
+                v.as_string()
+                    .ok_or_else(|| Error::JsError("Invalid header value".into()))
+            })
             .collect()
     }
 }
