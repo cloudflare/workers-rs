@@ -9,6 +9,7 @@ use std::{
 use http::{header::HeaderName, HeaderMap, HeaderValue};
 use js_sys::Array;
 use wasm_bindgen::JsValue;
+use worker_sys::ext::HeadersExt;
 
 /// A [Headers](https://developer.mozilla.org/en-US/docs/Web/API/Headers) representation used in
 /// Request and Response objects.
@@ -89,6 +90,18 @@ impl Headers {
             .into_iter()
             // The values iterator.next() will always return a proper value containing a string
             .map(|a| a.unwrap().as_string().unwrap())
+    }
+
+    /// Returns all the values of a header within a `Headers` object with a given name.
+    pub fn get_all(&self, name: &str) -> Result<Vec<String>> {
+        let array = self.0.get_all(name);
+        array
+            .iter()
+            .map(|v| {
+                v.as_string()
+                    .ok_or_else(|| Error::JsError("Invalid header value".into()))
+            })
+            .collect()
     }
 }
 
