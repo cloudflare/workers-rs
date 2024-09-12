@@ -128,6 +128,12 @@ impl From<HashMap<&dyn AsRef<&str>, &dyn AsRef<&str>>> for FormData {
     }
 }
 
+impl From<FormData> for wasm_bindgen::JsValue {
+    fn from(val: FormData) -> Self {
+        val.0.into()
+    }
+}
+
 /// A [File](https://developer.mozilla.org/en-US/docs/Web/API/File) representation used with
 /// `FormData`.
 pub struct File(web_sys::File);
