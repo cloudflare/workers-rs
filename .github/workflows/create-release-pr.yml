@@ -33,7 +33,6 @@ jobs:
           cargo update
           NEW_VERSION=$(cargo metadata --no-deps --format-version 1 | jq -rc '.packages[] | select(.name=="worker") | .version')
           find templates | grep Cargo.toml | while read f; do sed -i -e "s/$OLD_VERSION/$NEW_VERSION/g" $f; done
-          git commit --amend --no-edit
           echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
       - name: Check semver
         uses: obi1kenobi/cargo-semver-checks-action@v2
