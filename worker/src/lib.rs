@@ -163,6 +163,7 @@ pub use worker_sys;
 pub use worker_sys::{console_debug, console_error, console_log, console_warn};
 
 pub use crate::abort::*;
+pub use crate::ai::*;
 pub use crate::cache::{Cache, CacheDeletionOutcome, CacheKey};
 pub use crate::context::Context;
 pub use crate::cors::Cors;
@@ -194,6 +195,7 @@ pub use crate::version::*;
 pub use crate::websocket::*;
 
 mod abort;
+mod ai;
 mod cache;
 mod cf;
 mod context;
