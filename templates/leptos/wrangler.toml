@@ -5,6 +5,5 @@ compatibility_date = "2024-09-01"
 [build]
 command = "cargo leptos build --release && LEPTOS_OUTPUT_NAME=start-axum worker-build --release --features ssr"
 
-# NOTE: Only supported locally, key WILL change
-[experimental_assets]
+[assets]
 directory = "./public"
