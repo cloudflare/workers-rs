@@ -4,6 +4,7 @@ use futures_util::Stream;
 use js_sys::Uint8Array;
 use serde::Serialize;
 use url::Url;
+use worker_sys::console_debug;
 use worker_sys::ext::WebSocketExt;
 
 #[cfg(not(feature = "http"))]
@@ -230,7 +231,7 @@ impl WebSocket {
                 let error = event.error();
                 tx.unbounded_send(Err(error.into())).unwrap();
             })?;
-
+            console_debug!("Close: {:?}, Message: {:?}, Err: {:?}", close_closure, message_closure, error_closure);
         Ok(EventStream {
             ws: self,
             rx,
