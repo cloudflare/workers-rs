@@ -1,10 +1,10 @@
 [package]
 name = "worker-kv"
-version = "0.7.0"
-authors = ["Zeb Piasecki <zeb@zebulon.dev>"]
+version = "0.8.0"
+authors = ["Zeb Piasecki <zeb@zebulon.dev>", "Kevin Flansburg <kflansburg@cloudflare.com>"]
 edition = "2018"
 description = "Rust bindings to Cloudflare Worker KV Stores."
-repository = "https://github.com/zebp/worker-kv"
+repository = "https://github.com/cloudflare/workers-rs"
 license = "MIT OR Apache-2.0"
 
 [package.metadata.release]
