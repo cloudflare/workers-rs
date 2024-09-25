@@ -13,7 +13,7 @@ struct RateLimitOptions {
 
 #[derive(Serialize, Deserialize)]
 pub struct RateLimitOutcome {
-    success: bool,
+    pub success: bool,
 }
 
 unsafe impl Send for RateLimiter {}
