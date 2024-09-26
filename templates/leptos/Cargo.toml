@@ -14,7 +14,7 @@ codegen-units = 1
 crate-type = ["cdylib"]
 
 [dependencies]
-worker = { version="0.4.0", features=['http', 'axum', 'd1'], optional = true }
+worker = { version="0.4.1", features=['http', 'axum', 'd1'], optional = true }
 axum  = { version = "0.7", default-features = false, optional = true }
 tower-service = "0.3"
 console_error_panic_hook = { version = "0.1" }

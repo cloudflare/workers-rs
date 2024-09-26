@@ -32,7 +32,7 @@ http.workspace=true
 regex = "1.8.4"
 serde = { version = "1.0.164", features = ["derive"] }
 serde_json = "1.0.96"
-worker = { path = "../worker", version = "0.4.0", features = ["queue", "d1"] }
+worker = { path = "../worker", version = "0.4.1", features = ["queue", "d1"] }
 rand = "0.8.5"
 uuid = { version = "1.3.3", features = ["v4", "serde"] }
 serde-wasm-bindgen = "0.6.1"

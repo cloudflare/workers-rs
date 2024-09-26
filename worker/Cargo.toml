@@ -1,6 +1,6 @@
 [package]
 name = "worker"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
 repository = "https://github.com/cloudflare/workers-rs"
 edition = "2018"
@@ -36,8 +36,8 @@ serde-wasm-bindgen = "0.6.1"
 serde_urlencoded = "0.7"
 wasm-streams = "0.4"
 worker-kv = { path = "../worker-kv", version = "0.7.0" }
-worker-macros = { path = "../worker-macros", version = "0.4.0" }
-worker-sys = { path = "../worker-sys", version = "0.4.0" }
+worker-macros = { path = "../worker-macros", version = "0.4.1" }
+worker-sys = { path = "../worker-sys", version = "0.4.1" }
 
 [dependencies.chrono-tz]
 optional = true
