@@ -1,6 +1,6 @@
 [package]
 name = "worker-macros"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
 repository = "https://github.com/cloudflare/workers-rs/tree/main/worker-macros"
 edition = "2018"
@@ -16,7 +16,7 @@ async-trait.workspace = true
 wasm-bindgen.workspace = true
 wasm-bindgen-futures.workspace = true
 wasm-bindgen-macro-support.workspace = true
-worker-sys = { path = "../worker-sys", version = "0.4.0" }
+worker-sys = { path = "../worker-sys", version = "0.4.1" }
 syn = "2.0.17"
 proc-macro2 = "1.0.60"
 quote = "1.0.28"

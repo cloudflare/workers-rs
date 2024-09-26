@@ -15,7 +15,7 @@ wasm-opt = false
 crate-type = ["cdylib"]
 
 [dependencies]
-worker = { version="0.4.0", features=['http'] }
-worker-macros = { version="0.4.0", features=['http'] }
+worker = { version="0.4.1", features=['http'] }
+worker-macros = { version="0.4.1", features=['http'] }
 console_error_panic_hook = { version = "0.1.1" }
 http = "1.1"
