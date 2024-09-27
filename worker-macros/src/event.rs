@@ -12,6 +12,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
         Start,
         #[cfg(feature = "queue")]
         Queue,
+        Email,
     }
     use HandlerType::*;
 
@@ -28,6 +29,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             "respond_with_errors" => {
                 respond_with_errors = true;
             }
+            "email" => handler_type = Some(Email),
             _ => panic!("Invalid attribute: {}", attr),
         }
     }
@@ -175,6 +177,45 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                 #input_fn
 
                 mod _worker_queue {
+                    use ::worker::{wasm_bindgen, wasm_bindgen_futures};
+                    use super::#input_fn_ident;
+                    #wasm_bindgen_code
+                }
+            };
+
+            TokenStream::from(output)
+        }
+        Email => {
+            let input_fn_ident = Ident::new(
+                &(input_fn.sig.ident.to_string() + "_email_glue"),
+                input_fn.sig.ident.span(),
+            );
+            let wrapper_fn_ident = Ident::new("email_handler", input_fn.sig.ident.span());
+            // rename the original attributed fn
+            input_fn.sig.ident = input_fn_ident.clone();
+
+            let wrapper_fn = quote! {
+                pub async fn #wrapper_fn_ident(message: ::worker::worker_sys::ForwardableEmailMessage, env: ::worker::Env, ctx: ::worker::worker_sys::Context) {
+                    // call the original fn
+                    let ctx = worker::Context::new(ctx);
+                    match #input_fn_ident(::worker::ForwardableEmailMessage::from(message), env, ctx).await {
+                        Ok(()) => {},
+                        Err(e) => {
+                            ::worker::console_log!("{}", &e);
+                            panic!("{}", e);
+                        }
+                    }
+                }
+            };
+
+            let wasm_bindgen_code =
+                wasm_bindgen_macro_support::expand(TokenStream::new().into(), wrapper_fn)
+                    .expect("wasm_bindgen macro failed to expand");
+
+            let output = quote! {
+                #input_fn
+
+                mod _worker_email {
                     use ::worker::{wasm_bindgen, wasm_bindgen_futures};
                     use super::#input_fn_ident;
                     #wasm_bindgen_code
