@@ -174,7 +174,7 @@ impl Cf {
     }
 
     pub fn host_metadata<T: serde::de::DeserializeOwned>(&self) -> crate::Result<Option<T>> {
-        let host_metadata = self.inner.host_metadata();
+        let host_metadata = self.inner.host_metadata()?;
         if host_metadata.is_undefined() {
             Ok(None)
         } else {
