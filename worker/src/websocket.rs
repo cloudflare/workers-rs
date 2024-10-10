@@ -1,16 +1,21 @@
-use crate::{Error, Fetch, Method, Request, Result};
+use crate::{Error, Method, Request, Result};
 use futures_channel::mpsc::UnboundedReceiver;
 use futures_util::Stream;
+use js_sys::Uint8Array;
 use serde::Serialize;
 use url::Url;
 use worker_sys::ext::WebSocketExt;
 
+#[cfg(not(feature = "http"))]
+use crate::Fetch;
 use std::pin::Pin;
 use std::rc::Rc;
 use std::task::{Context, Poll};
 use wasm_bindgen::convert::FromWasmAbi;
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
+#[cfg(feature = "http")]
+use wasm_bindgen_futures::JsFuture;
 
 pub use crate::ws_events::*;
 
@@ -21,10 +26,13 @@ pub struct WebSocketPair {
     pub server: WebSocket,
 }
 
+unsafe impl Send for WebSocketPair {}
+unsafe impl Sync for WebSocketPair {}
+
 impl WebSocketPair {
     /// Creates a new `WebSocketPair`.
     pub fn new() -> Result<Self> {
-        let mut pair = worker_sys::WebSocketPair::new();
+        let mut pair = worker_sys::WebSocketPair::new()?;
         let client = pair.client()?.into();
         let server = pair.server()?.into();
         Ok(Self { client, server })
@@ -36,6 +44,9 @@ impl WebSocketPair {
 pub struct WebSocket {
     socket: web_sys::WebSocket,
 }
+
+unsafe impl Send for WebSocket {}
+unsafe impl Sync for WebSocket {}
 
 impl WebSocket {
     /// Attempts to establish a [`WebSocket`] connection to the provided [`Url`].
@@ -63,7 +74,21 @@ impl WebSocket {
     ///
     /// Response::error("never got a message echoed back :(", 500)
     /// ```
-    pub async fn connect(mut url: Url) -> Result<WebSocket> {
+    pub async fn connect(url: Url) -> Result<WebSocket> {
+        WebSocket::connect_with_protocols(url, None).await
+    }
+
+    /// Attempts to establish a [`WebSocket`] connection to the provided [`Url`] and protocol.
+    ///
+    /// # Example:
+    /// ```rust,ignore
+    /// let ws = WebSocket::connect_with_protocols("wss://echo.zeb.workers.dev/".parse()?, Some(vec!["GiggleBytes"])).await?;
+    ///
+    /// ```
+    pub async fn connect_with_protocols(
+        mut url: Url,
+        protocols: Option<Vec<&str>>,
+    ) -> Result<WebSocket> {
         let scheme: String = match url.scheme() {
             "ws" => "http".into(),
             "wss" => "https".into(),
@@ -77,7 +102,18 @@ impl WebSocket {
         let mut req = Request::new(url.as_str(), Method::Get)?;
         req.headers_mut()?.set("upgrade", "websocket")?;
 
+        match protocols {
+            None => {}
+            Some(v) => {
+                req.headers_mut()?
+                    .set("Sec-WebSocket-Protocol", v.join(",").as_str())?;
+            }
+        }
+
+        #[cfg(not(feature = "http"))]
         let res = Fetch::Request(req).send().await?;
+        #[cfg(feature = "http")]
+        let res: crate::Response = fetch_with_request_raw(req).await?.into();
 
         match res.websocket() {
             Some(ws) => Ok(ws),
@@ -105,8 +141,13 @@ impl WebSocket {
 
     /// Sends raw binary data through the `WebSocket`.
     pub fn send_with_bytes<D: AsRef<[u8]>>(&self, bytes: D) -> Result<()> {
-        let slice = bytes.as_ref();
-        self.socket.send_with_u8_array(slice).map_err(Error::from)
+        // This clone to Uint8Array must happen, because workerd
+        // will not clone the supplied buffer and will send it asynchronously.
+        // Rust believes that the lifetime ends when `send` returns, and frees
+        // the memory, causing corruption.
+        let uint8_array = Uint8Array::from(bytes.as_ref());
+        self.socket.send_with_array_buffer(&uint8_array.buffer())?;
+        Ok(())
     }
 
     /// Closes this channel.
@@ -196,6 +237,24 @@ impl WebSocket {
             closed: false,
             closures: Some((message_closure, error_closure, close_closure)),
         })
+    }
+
+    pub fn serialize_attachment<T: Serialize>(&self, value: T) -> Result<()> {
+        self.socket
+            .serialize_attachment(serde_wasm_bindgen::to_value(&value)?)
+            .map_err(Error::from)
+    }
+
+    pub fn deserialize_attachment<T: serde::de::DeserializeOwned>(&self) -> Result<Option<T>> {
+        let value = self.socket.deserialize_attachment().map_err(Error::from)?;
+
+        if value.is_null() || value.is_undefined() {
+            return Ok(None);
+        }
+
+        serde_wasm_bindgen::from_value::<T>(value)
+            .map(Some)
+            .map_err(Error::from)
     }
 }
 
@@ -393,4 +452,16 @@ pub mod ws_events {
             &self.event
         }
     }
+}
+
+/// TODO: Convert WebSocket to use `http` types and `reqwest`.
+#[cfg(feature = "http")]
+async fn fetch_with_request_raw(request: crate::Request) -> Result<web_sys::Response> {
+    let req = request.inner();
+    let fut = {
+        let worker: web_sys::WorkerGlobalScope = js_sys::global().unchecked_into();
+        crate::send::SendFuture::new(JsFuture::from(worker.fetch_with_request(req)))
+    };
+    let resp = fut.await?;
+    Ok(resp.dyn_into()?)
 }

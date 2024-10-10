@@ -1,0 +1,20 @@
+[package]
+name = "queue-on-workers"
+version = "0.1.0"
+edition = "2021"
+
+[package.metadata.release]
+release = false
+
+# https://github.com/rustwasm/wasm-pack/issues/1247
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+serde = "1"
+worker = { workspace = true, features = ["queue"] }
+wasm-bindgen = { workspace = true }
+js-sys = { workspace = true }

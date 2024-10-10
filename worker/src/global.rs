@@ -3,20 +3,18 @@ use std::ops::Deref;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 
-use crate::{
-    request::Request as WorkerRequest, response::Response as WorkerResponse, AbortSignal, Result,
-};
+use crate::{request::Request, response::Response, AbortSignal, Result};
 
 /// Construct a Fetch call from a URL string or a Request object. Call its `send` method to execute
 /// the request.
 pub enum Fetch {
     Url(url::Url),
-    Request(WorkerRequest),
+    Request(Request),
 }
 
 impl Fetch {
     /// Execute a Fetch call and receive a Response.
-    pub async fn send(&self) -> Result<WorkerResponse> {
+    pub async fn send(&self) -> Result<Response> {
         match self {
             Fetch::Url(url) => fetch_with_str(url.as_ref(), None).await,
             Fetch::Request(req) => fetch_with_request(req, None).await,
@@ -24,7 +22,7 @@ impl Fetch {
     }
 
     /// Execute a Fetch call and receive a Response.
-    pub async fn send_with_signal(&self, signal: &AbortSignal) -> Result<WorkerResponse> {
+    pub async fn send_with_signal(&self, signal: &AbortSignal) -> Result<Response> {
         match self {
             Fetch::Url(url) => fetch_with_str(url.as_ref(), Some(signal)).await,
             Fetch::Request(req) => fetch_with_request(req, Some(signal)).await,
@@ -32,9 +30,9 @@ impl Fetch {
     }
 }
 
-async fn fetch_with_str(url: &str, signal: Option<&AbortSignal>) -> Result<WorkerResponse> {
-    let mut init = web_sys::RequestInit::new();
-    init.signal(signal.map(|x| x.deref()));
+async fn fetch_with_str(url: &str, signal: Option<&AbortSignal>) -> Result<Response> {
+    let init = web_sys::RequestInit::new();
+    init.set_signal(signal.map(|x| x.deref()));
 
     let worker: web_sys::WorkerGlobalScope = js_sys::global().unchecked_into();
     let promise = worker.fetch_with_str_and_init(url, &init);
@@ -43,12 +41,9 @@ async fn fetch_with_str(url: &str, signal: Option<&AbortSignal>) -> Result<Worke
     Ok(resp.into())
 }
 
-async fn fetch_with_request(
-    request: &WorkerRequest,
-    signal: Option<&AbortSignal>,
-) -> Result<WorkerResponse> {
-    let mut init = web_sys::RequestInit::new();
-    init.signal(signal.map(|x| x.deref()));
+async fn fetch_with_request(request: &Request, signal: Option<&AbortSignal>) -> Result<Response> {
+    let init = web_sys::RequestInit::new();
+    init.set_signal(signal.map(|x| x.deref()));
 
     let worker: web_sys::WorkerGlobalScope = js_sys::global().unchecked_into();
     let req = request.inner();

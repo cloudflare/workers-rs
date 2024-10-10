@@ -45,7 +45,7 @@ impl<'bucket> GetOptionsBuilder<'bucket> {
                 "range" => self.range.map(JsObject::from),
             }
             .into(),
-        );
+        )?;
 
         let value = JsFuture::from(get_promise).await?;
 
@@ -93,34 +93,48 @@ impl From<Conditional> for JsObject {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Range {
-    OffsetWithLength { offset: u32, length: u32 },
-    OffsetWithOptionalLength { offset: u32, length: Option<u32> },
-    OptionalOffsetWithLength { offset: Option<u32>, length: u32 },
-    Suffix { suffix: u32 },
+    /// Read `length` bytes starting at `offset`.
+    OffsetWithLength { offset: u64, length: u64 },
+    /// Read from `offset` to the end of the object.
+    OffsetToEnd { offset: u64 },
+    /// Read `length` bytes starting at the beginning of the object.
+    Prefix { length: u64 },
+    /// Read `suffix` bytes from the end of the object.
+    Suffix { suffix: u64 },
+}
+
+const MAX_SAFE_INTEGER: u64 = js_sys::Number::MAX_SAFE_INTEGER as u64;
+
+fn check_range_precision(value: u64) -> f64 {
+    assert!(
+        value <= MAX_SAFE_INTEGER,
+        "Integer precision loss when converting to JavaScript number"
+    );
+    value as f64
 }
 
 impl From<Range> for JsObject {
     fn from(val: Range) -> Self {
         match val {
             Range::OffsetWithLength { offset, length } => js_object! {
-                "offset" => Some(offset),
-                "length" => Some(length),
+                "offset" => Some(check_range_precision(offset)),
+                "length" => Some(check_range_precision(length)),
                 "suffix" => JsValue::UNDEFINED,
             },
-            Range::OffsetWithOptionalLength { offset, length } => js_object! {
-                "offset" => Some(offset),
-                "length" => length,
+            Range::OffsetToEnd { offset } => js_object! {
+                "offset" => Some(check_range_precision(offset)),
+                "length" => JsValue::UNDEFINED,
                 "suffix" => JsValue::UNDEFINED,
             },
-            Range::OptionalOffsetWithLength { offset, length } => js_object! {
-                "offset" => offset,
-                "length" => Some(length),
+            Range::Prefix { length } => js_object! {
+                "offset" => JsValue::UNDEFINED,
+                "length" => Some(check_range_precision(length)),
                 "suffix" => JsValue::UNDEFINED,
             },
             Range::Suffix { suffix } => js_object! {
                 "offset" => JsValue::UNDEFINED,
                 "length" => JsValue::UNDEFINED,
-                "suffix" => Some(suffix),
+                "suffix" => Some(check_range_precision(suffix)),
             },
         }
     }
@@ -131,16 +145,19 @@ impl TryFrom<R2RangeSys> for Range {
 
     fn try_from(val: R2RangeSys) -> Result<Self> {
         Ok(match (val.offset, val.length, val.suffix) {
-            (Some(offset), Some(length), None) => Self::OffsetWithLength { offset, length },
-            (Some(offset), None, None) => Self::OffsetWithOptionalLength {
-                offset,
-                length: None,
+            (Some(offset), Some(length), None) => Self::OffsetWithLength {
+                offset: offset.round() as u64,
+                length: length.round() as u64,
             },
-            (None, Some(length), None) => Self::OptionalOffsetWithLength {
-                offset: None,
-                length,
+            (Some(offset), None, None) => Self::OffsetToEnd {
+                offset: offset.round() as u64,
             },
-            (None, None, Some(suffix)) => Self::Suffix { suffix },
+            (None, Some(length), None) => Self::Prefix {
+                length: length.round() as u64,
+            },
+            (None, None, Some(suffix)) => Self::Suffix {
+                suffix: suffix.round() as u64,
+            },
             _ => return Err(Error::JsError("invalid range".into())),
         })
     }
@@ -153,7 +170,8 @@ pub struct PutOptionsBuilder<'bucket> {
     pub(crate) value: Data,
     pub(crate) http_metadata: Option<HttpMetadata>,
     pub(crate) custom_metadata: Option<HashMap<String, String>>,
-    pub(crate) md5: Option<Vec<u8>>,
+    pub(crate) checksum: Option<Vec<u8>>,
+    pub(crate) checksum_algorithm: String,
 }
 
 impl<'bucket> PutOptionsBuilder<'bucket> {
@@ -169,10 +187,35 @@ impl<'bucket> PutOptionsBuilder<'bucket> {
         self
     }
 
-    /// A md5 hash to use to check the received object’s integrity.
-    pub fn md5(mut self, bytes: impl Into<Vec<u8>>) -> Self {
-        self.md5 = Some(bytes.into());
+    fn checksum_set(mut self, algorithm: &str, checksum: impl Into<Vec<u8>>) -> Self {
+        self.checksum_algorithm = algorithm.into();
+        self.checksum = Some(checksum.into());
         self
+    }
+
+    /// A md5 hash to use to check the received object’s integrity.
+    pub fn md5(self, bytes: impl Into<Vec<u8>>) -> Self {
+        self.checksum_set("md5", bytes)
+    }
+
+    /// A sha1 hash to use to check the received object’s integrity.
+    pub fn sha1(self, bytes: impl Into<Vec<u8>>) -> Self {
+        self.checksum_set("sha1", bytes)
+    }
+
+    /// A sha256 hash to use to check the received object’s integrity.
+    pub fn sha256(self, bytes: impl Into<Vec<u8>>) -> Self {
+        self.checksum_set("sha256", bytes)
+    }
+
+    /// A sha384 hash to use to check the received object’s integrity.
+    pub fn sha384(self, bytes: impl Into<Vec<u8>>) -> Self {
+        self.checksum_set("sha384", bytes)
+    }
+
+    /// A sha512 hash to use to check the received object’s integrity.
+    pub fn sha512(self, bytes: impl Into<Vec<u8>>) -> Self {
+        self.checksum_set("sha512", bytes)
     }
 
     /// Executes the PUT operation on the R2 bucket.
@@ -195,14 +238,14 @@ impl<'bucket> PutOptionsBuilder<'bucket> {
                     }
                     None => JsValue::UNDEFINED,
                 },
-                "md5" => self.md5.map(|bytes| {
+                self.checksum_algorithm => self.checksum.map(|bytes| {
                     let arr = Uint8Array::new_with_length(bytes.len() as _);
                     arr.copy_from(&bytes);
                     arr.buffer()
-                })
+                }),
             }
             .into(),
-        );
+        )?;
         let res: EdgeR2Object = JsFuture::from(put_promise).await?.into();
         let inner = if JsString::from("bodyUsed").js_in(&res) {
             ObjectInner::Body(res.unchecked_into())
@@ -255,7 +298,7 @@ impl<'bucket> CreateMultipartUploadOptionsBuilder<'bucket> {
                 },
             }
             .into(),
-        );
+        )?;
         let inner: EdgeR2MultipartUpload = JsFuture::from(create_multipart_upload_promise)
             .await?
             .into();
@@ -299,12 +342,12 @@ impl From<HttpMetadata> for JsObject {
 impl From<R2HttpMetadataSys> for HttpMetadata {
     fn from(val: R2HttpMetadataSys) -> Self {
         Self {
-            content_type: val.content_type(),
-            content_language: val.content_language(),
-            content_disposition: val.content_disposition(),
-            content_encoding: val.content_encoding(),
-            cache_control: val.cache_control(),
-            cache_expiry: val.cache_expiry().map(Into::into),
+            content_type: val.content_type().unwrap(),
+            content_language: val.content_language().unwrap(),
+            content_disposition: val.content_disposition().unwrap(),
+            content_encoding: val.content_encoding().unwrap(),
+            cache_control: val.cache_control().unwrap(),
+            cache_expiry: val.cache_expiry().unwrap().map(Into::into),
         }
     }
 }
@@ -389,7 +432,7 @@ impl<'bucket> ListOptionsBuilder<'bucket> {
                     .unwrap_or(JsValue::UNDEFINED),
             }
             .into(),
-        );
+        )?;
         let inner = JsFuture::from(list_promise).await?.into();
         Ok(Objects { inner })
     }

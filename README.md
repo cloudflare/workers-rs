@@ -17,8 +17,8 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         "{} {}, located at: {:?}, within: {}",
         req.method().to_string(),
         req.path(),
-        req.cf().coordinates().unwrap_or_default(),
-        req.cf().region().unwrap_or("unknown region".into())
+        req.cf().unwrap().coordinates().unwrap_or_default(),
+        req.cf().unwrap().region().unwrap_or("unknown region".into())
     );
 
     if !matches!(req.method(), Method::Post) {
@@ -38,12 +38,78 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
 }
 ```
 
+## Getting Started
+
+The project uses [wrangler](https://github.com/cloudflare/workers-sdk/tree/main/packages/wrangler) for running and publishing your Worker.
+
+Use [cargo generate](https://github.com/cargo-generate/cargo-generate) to start from a template:
+
+```bash
+$ cargo generate cloudflare/workers-rs
+```
+
+There are several templates to chose from. You should see a new project layout with a `src/lib.rs`. 
+Start there! Use any local or remote crates and modules (as long as they compile to the `wasm32-unknown-unknown` target).
+
+Once you're ready to run your project, run your worker locally:
+
+```bash
+npx wrangler dev
+```
+
+Finally, go live:
+
+```bash
+# configure your routes, zones & more in your worker's `wrangler.toml` file
+npx wrangler deploy
+```
+
+If you would like to have `wrangler` installed on your machine, see instructions in [wrangler repository](https://github.com/cloudflare/workers-sdk/tree/main/packages/wrangler).
+
+## `http` Feature
+
+`worker` `0.0.21` introduced an `http` feature flag which starts to replace custom types with widely used types from the [`http`](https://docs.rs/http/latest/http/) crate.
+
+This makes it much easier to use crates which use these standard types such as `axum` and `hyper`. 
+
+This currently does a few things:
+
+1. Introduce `Body`, which implements `http_body::Body` and is a simple wrapper around `web_sys::ReadableStream`. 
+1. The `req` argument when using the `[event(fetch)]` macro becomes `http::Request<worker::Body>`.
+1. The expected return type for the fetch handler is `http::Response<B>` where `B` can be any `http_body::Body<Data=Bytes>`.
+1. The argument for `Fetcher::fetch_request` is `http::Request<worker::Body>`. 
+1. The return type of `Fetcher::fetch_request` is `Result<http::Response<worker::Body>>`.
+
+The end result is being able to use frameworks like `axum` directly (see [example](./examples/axum)): 
+
+```rust
+pub async fn root() -> &'static str {
+    "Hello Axum!"
+}
+
+fn router() -> Router {
+    Router::new().route("/", get(root))
+}
+
+#[event(fetch)]
+async fn fetch(
+    req: HttpRequest,
+    _env: Env,
+    _ctx: Context,
+) -> Result<http::Response<axum::body::Body>> {
+    Ok(router().call(req).await?)
+}
+```
+
+We also implement `try_from` between `worker::Request` and `http::Request<worker::Body>`, and between `worker::Response` and `http::Response<worker::Body>`. This allows you to convert your code incrementally if it is tightly coupled to the original types.
+
 ### Or use the `Router`:
 
 Parameterize routes and access the parameter values from within a handler. Each handler function takes a
 `Request`, and a `RouteContext`. The `RouteContext` has shared data, route params, `Env` bindings, and more.
 
 ```rust
+use serde::{Deserialize, Serialize};
 use worker::*;
 
 #[event(fetch)]
@@ -105,43 +171,9 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
 }
 ```
 
-## Getting Started
-
-The project uses [wrangler](https://github.com/cloudflare/wrangler2) version 2.x for running and publishing your Worker.
-
-Get the Rust worker project [template](https://github.com/cloudflare/workers-sdk/tree/main/templates/experimental/worker-rust) manually, or run the following command:
-```bash
-npm init cloudflare project_name worker-rust
-cd project_name
-```
-
-You should see a new project layout with a `src/lib.rs`. Start there! Use any local or remote crates
-and modules (as long as they compile to the `wasm32-unknown-unknown` target).
-
-Once you're ready to run your project:
-
-First check that the wrangler version is 2.x
-```bash
-npx wrangler --version
-```
-
-Then, run your worker
-
-```bash
-npx wrangler dev
-```
-
-Finally, go live:
-
-```bash
-# configure your routes, zones & more in your worker's `wrangler.toml` file
-npx wrangler publish
-```
-
-If you would like to have `wrangler` installed on your machine, see instructions in [wrangler repository](https://github.com/cloudflare/wrangler2).
 ## Durable Object, KV, Secret, & Variable Bindings
 
-All "bindings" to your script (Durable Object & KV Namespaces, Secrets, and Variables) are
+All "bindings" to your script (Durable Object & KV Namespaces, Secrets, Variables and Version) are
 accessible from the `env` parameter provided to both the entrypoint (`main` in this example), and to
 the route handler callback (in the `ctx` argument), if you use the `Router` from the `worker` crate.
 
@@ -158,7 +190,8 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
         .on_async("/durable", |_req, ctx| async move {
             let namespace = ctx.durable_object("CHATROOM")?;
             let stub = namespace.id_from_name("A")?.get_stub()?;
-            stub.fetch_with_str("/messages").await
+            // `fetch_with_str` requires a valid Url to make request to DO. But we can make one up!
+            stub.fetch_with_str("http://fake_url.com/messages").await
         })
         .get("/secret", |_req, ctx| {
             Response::ok(ctx.secret("CF_API_TOKEN")?.to_string())
@@ -181,6 +214,7 @@ For more information about how to configure these bindings, see:
 
 - https://developers.cloudflare.com/workers/cli-wrangler/configuration#keys
 - https://developers.cloudflare.com/workers/learning/using-durable-objects#configuring-durable-object-bindings
+- https://developers.cloudflare.com/workers/runtime-apis/bindings/version-metadata/
 
 ## Durable Objects
 
@@ -245,7 +279,7 @@ new_classes = ["Chatroom"] # Array of new classes
 ### Enabling queues
 As queues are in beta you need to enable the `queue` feature flag.
 
-Enable it by adding it to the worker dependency in your `Cargo.toml`: 
+Enable it by adding it to the worker dependency in your `Cargo.toml`:
 ```toml
 worker = {version = "...", features = ["queue"]}
 ```
@@ -274,20 +308,80 @@ pub async fn main(message_batch: MessageBatch<MyType>, env: Env, _ctx: Context) 
         // Log the message and meta data
         console_log!(
             "Got message {:?}, with id {} and timestamp: {}",
-            message.body,
-            message.id,
-            message.timestamp.to_string()
+            message.body(),
+            message.id(),
+            message.timestamp().to_string()
         );
 
         // Send the message body to the other queue
-        my_queue.send(&message.body).await?;
+        my_queue.send(message.body()).await?;
+
+        // Ack individual message
+        message.ack();
+
+        // Retry individual message
+        message.retry();
     }
 
     // Retry all messages
     message_batch.retry_all();
+    // Ack all messages
+    message_batch.ack_all();
     Ok(())
 }
 ```
+You'll need to ensure you have the correct bindings in your `wrangler.toml`:
+```toml
+# ...
+[[queues.consumers]]
+queue = "myqueueotherqueue"
+max_batch_size = 10
+max_batch_timeout = 30
+
+
+[[queues.producers]]
+queue = "myqueue"
+binding = "my_queue"
+```
+
+## RPC Support
+
+`workers-rs` has experimental support for [Workers RPC](https://developers.cloudflare.com/workers/runtime-apis/rpc/).
+For now, this relies on JavaScript bindings and may require some manual usage of `wasm-bindgen`. 
+
+Not all features of RPC are supported yet (or have not been tested), including:
+- Function arguments and return values
+- Class instances
+- Stub forwarding
+
+### RPC Server
+
+Writing an RPC server with `workers-rs` is relatively simple. Simply export methods using `wasm-bindgen`. These
+will be automatically detected by `worker-build` and made available to other Workers. See
+[example](./examples/rpc-server).
+
+### RPC Client
+
+Creating types and bindings for invoking another Worker's RPC methods is a bit more involved. You will need to
+write more complex `wasm-bindgen` bindings and some boilerplate to make interacting with the RPC methods more
+idiomatic. See [example](./examples/rpc-client/src/calculator.rs).
+
+With manually written bindings, it should be possible to support non-primitive argument and return types, using
+`serde-wasm-bindgen`. 
+
+### Generating Client Bindings
+
+There are many routes that can be taken to describe RPC interfaces. Under the hood, Workers RPC uses
+[Cap'N Proto](https://capnproto.org/). A possible future direction is for Wasm guests to include Cap'N Proto
+serde support and speak directly to the RPC protocol, bypassing JavaScript. This would likely involve defining 
+the RPC interface in Cap'N Proto schema and generating Rust code from that.
+
+Another popular interface schema in the WebAssembly community is
+[WIT](https://github.com/WebAssembly/component-model/blob/main/design/mvp/WIT.md). This is a lightweight format
+designed for the WebAssembly Component model. `workers-rs` includes an **experimental** code generator which 
+allows you to describe your RPC interface using WIT and generate JavaScript bindings as shown in the 
+[rpc-client example](./examples/rpc-client/wit/calculator.wit). The easiest way to use this code generator is using a [build script](./examples/rpc-client/build.rs) as shown in the example.
+This code generator is pre-alpha, with no support guarantee, and implemented only for primitive types at this time. 
 
 ## Testing with Miniflare
 
@@ -363,7 +457,7 @@ struct Thing {
 }
 
 #[event(fetch, respond_with_errors)]
-pub async fn main(request: Request,	env: Env, _ctx: Context) -> Result<Response> {
+pub async fn main(request: Request, env: Env, _ctx: Context) -> Result<Response> {
 	Router::new()
 		.get_async("/:id", |_, ctx| async move {
 			let id = ctx.param("id").unwrap()?;
@@ -423,6 +517,25 @@ please [take a look](https://www.cloudflare.com/careers/).
 - We're working on solutions here, but in the meantime you'll need to minimize the number of crates
   your code depends on, or strip as much from the `.wasm` binary as possible. Here are some extra
   steps you can try: https://rustwasm.github.io/book/reference/code-size.html#optimizing-builds-for-code-size
+
+### ⚠️ Caveats
+
+1. Upgrading worker package to version `0.0.18` and higher
+
+- While upgrading your worker to version `0.0.18` an error "error[E0432]: unresolved import `crate::sys::IoSourceState`" can appear.
+  In this case, upgrade `package.edition` to `edition = "2021"` in `wrangler.toml`
+
+```toml
+[package]
+edition = "2021"
+```
+
+# Releasing
+
+1. [Trigger](https://github.com/cloudflare/workers-rs/actions/workflows/create-release-pr.yml) a workflow to create a release PR.
+1. Review version changes and merge PR.
+1. A draft GitHub release will be created. Author release notes and publish when ready.
+1. Crates (`worker-sys`, `worker-macros`, `worker`) will be published automatically. 
 
 # Contributing
 

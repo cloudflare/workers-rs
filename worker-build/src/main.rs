@@ -3,14 +3,16 @@
 use std::{
     convert::TryInto,
     env::{self, VarError},
-    ffi::OsStr,
     fs::{self, File},
     io::{Read, Write},
     path::{Path, PathBuf},
-    process::Command,
+    process::{Command, Stdio},
 };
 
 use anyhow::Result;
+
+use clap::Parser;
+use wasm_pack::command::build::{Build, BuildOptions};
 
 const OUT_DIR: &str = "build";
 const OUT_NAME: &str = "index";
@@ -25,6 +27,10 @@ export function __wbg_set_wasm(val) {
 
 const WASM_IMPORT_REPLACEMENT: &str = r#"
 import wasm from './glue.js';
+
+export function getMemory() {
+    return wasm.memory;
+}
 "#;
 
 mod install;
@@ -32,8 +38,13 @@ mod install;
 pub fn main() -> Result<()> {
     // Our tests build the bundle ourselves.
     if !cfg!(test) {
-        install::ensure_wasm_pack()?;
-        wasm_pack_build(env::args_os().skip(1))?;
+        wasm_pack_build(env::args().skip(1))?;
+    }
+
+    let with_coredump = env::var("COREDUMP").is_ok();
+    if with_coredump {
+        println!("Adding wasm coredump");
+        wasm_coredump()?;
     }
 
     let esbuild_path = install::ensure_esbuild()?;
@@ -52,25 +63,109 @@ pub fn main() -> Result<()> {
     Ok(())
 }
 
-fn wasm_pack_build<I, S>(args: I) -> Result<()>
-where
-    I: IntoIterator<Item = S>,
-    S: AsRef<OsStr>,
-{
-    let exit_status = Command::new("wasm-pack")
-        .arg("build")
-        .arg("--no-typescript")
-        .args(["--target", "bundler"])
-        .args(["--out-dir", OUT_DIR])
-        .args(["--out-name", OUT_NAME])
-        .args(args)
-        .spawn()?
-        .wait()?;
+const INSTALL_HELP: &str = "In case you are missing the binary, you can install it using: `cargo install wasm-coredump-rewriter`";
 
-    match exit_status.success() {
-        true => Ok(()),
-        false => anyhow::bail!("wasm-pack exited with status {}", exit_status),
+fn wasm_coredump() -> Result<()> {
+    let coredump_flags = env::var("COREDUMP_FLAGS");
+    let coredump_flags: Vec<&str> = if let Ok(flags) = &coredump_flags {
+        flags.split(' ').collect()
+    } else {
+        vec![]
+    };
+
+    let mut child = Command::new("wasm-coredump-rewriter")
+        .args(coredump_flags)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .map_err(|err| {
+            anyhow::anyhow!("failed to spawn wasm-coredump-rewriter: {err}\n\n{INSTALL_HELP}.")
+        })?;
+
+    let input_filename = output_path("index_bg.wasm");
+
+    let input_bytes = {
+        let mut input = File::open(input_filename.clone())
+            .map_err(|err| anyhow::anyhow!("failed to open input file: {err}"))?;
+
+        let mut input_bytes = Vec::new();
+        input
+            .read_to_end(&mut input_bytes)
+            .map_err(|err| anyhow::anyhow!("failed to open input file: {err}"))?;
+
+        input_bytes
+    };
+
+    {
+        let child_stdin = child.stdin.as_mut().unwrap();
+        child_stdin
+            .write_all(&input_bytes)
+            .map_err(|err| anyhow::anyhow!("failed to write input file to rewriter: {err}"))?;
+        // Close stdin to finish and avoid indefinite blocking
     }
+
+    let output = child
+        .wait_with_output()
+        .map_err(|err| anyhow::anyhow!("failed to get rewriter's status: {err}"))?;
+
+    if output.status.success() {
+        // Open the input file again with truncate to write the output
+        let mut f = fs::OpenOptions::new()
+            .truncate(true)
+            .write(true)
+            .open(input_filename)
+            .map_err(|err| anyhow::anyhow!("failed to open output file: {err}"))?;
+        f.write_all(&output.stdout)
+            .map_err(|err| anyhow::anyhow!("failed to write output file: {err}"))?;
+
+        Ok(())
+    } else {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(anyhow::anyhow!(format!(
+            "failed to run Wasm coredump rewriter: {stdout}\n{stderr}"
+        )))
+    }
+}
+
+#[derive(Parser)]
+struct BuildArgs {
+    #[clap(flatten)]
+    pub build_options: BuildOptions,
+}
+
+fn parse_wasm_pack_opts<I>(args: I) -> Result<BuildOptions>
+where
+    I: IntoIterator<Item = String>,
+{
+    // This is done instead of explicitly constructing
+    // BuildOptions to preserve the behavior of appending
+    // arbitrary arguments in `args`.
+    let mut build_args = vec![
+        "--no-typescript".to_owned(),
+        "--target".to_owned(),
+        "bundler".to_owned(),
+        "--out-dir".to_owned(),
+        OUT_DIR.to_owned(),
+        "--out-name".to_owned(),
+        OUT_NAME.to_owned(),
+    ];
+
+    build_args.extend(args);
+
+    let command = BuildArgs::try_parse_from(build_args)?;
+    Ok(command.build_options)
+}
+
+fn wasm_pack_build<I>(args: I) -> Result<()>
+where
+    I: IntoIterator<Item = String>,
+{
+    let opts = parse_wasm_pack_opts(args)?;
+
+    let mut build = Build::try_from_opts(opts)?;
+
+    build.run()
 }
 
 fn create_worker_dir() -> Result<()> {
@@ -135,6 +230,7 @@ fn bundle(esbuild_path: &Path) -> Result<()> {
     command.args([
         "--external:./index.wasm",
         "--external:cloudflare:sockets",
+        "--external:cloudflare:workers",
         "--format=esm",
         "--bundle",
         "./shim.js",
@@ -196,4 +292,23 @@ pub fn worker_path(name: impl AsRef<str>) -> PathBuf {
 
 pub fn output_path(name: impl AsRef<str>) -> PathBuf {
     PathBuf::from(OUT_DIR).join(name.as_ref())
+}
+
+#[cfg(test)]
+mod test {
+    use super::parse_wasm_pack_opts;
+    #[test]
+    fn test_wasm_pack_args_build_arg() {
+        let args = vec!["--release".to_owned()];
+        let result = parse_wasm_pack_opts(args);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_wasm_pack_args_additional_arg() {
+        let args = vec!["--weak-refs".to_owned()];
+        let result = parse_wasm_pack_opts(args).unwrap();
+
+        assert!(result.weak_refs);
+    }
 }

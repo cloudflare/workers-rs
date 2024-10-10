@@ -1,0 +1,6 @@
+name = "rust-rpc-server"
+main = "build/worker/shim.mjs"
+compatibility_date = "2024-04-05"
+
+[build]
+command = "cargo install --path ../../worker-build && worker-build --release"

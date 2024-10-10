@@ -2,8 +2,8 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(module = "cloudflare:sockets")]
 extern "C" {
-    #[wasm_bindgen]
-    pub fn connect(address: JsValue, options: JsValue) -> Socket;
+    #[wasm_bindgen(catch)]
+    pub fn connect(address: JsValue, options: JsValue) -> Result<Socket, JsValue>;
 }
 
 #[wasm_bindgen]
@@ -12,18 +12,21 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type Socket;
 
-    #[wasm_bindgen(method)]
-    pub fn close(this: &Socket) -> js_sys::Promise;
+    #[wasm_bindgen(method, catch)]
+    pub fn close(this: &Socket) -> Result<js_sys::Promise, JsValue>;
 
-    #[wasm_bindgen(method)]
-    pub fn closed(this: &Socket) -> js_sys::Promise;
+    #[wasm_bindgen(method, catch, getter)]
+    pub fn closed(this: &Socket) -> Result<js_sys::Promise, JsValue>;
 
-    #[wasm_bindgen(method, js_name=startTls)]
-    pub fn start_tls(this: &Socket) -> Socket;
+    #[wasm_bindgen(method, catch, getter)]
+    pub fn opened(this: &Socket) -> Result<js_sys::Promise, JsValue>;
 
-    #[wasm_bindgen(method, getter)]
-    pub fn readable(this: &Socket) -> web_sys::ReadableStream;
+    #[wasm_bindgen(method, catch, js_name=startTls)]
+    pub fn start_tls(this: &Socket) -> Result<Socket, JsValue>;
 
-    #[wasm_bindgen(method, getter)]
-    pub fn writable(this: &Socket) -> web_sys::WritableStream;
+    #[wasm_bindgen(method, catch, getter)]
+    pub fn readable(this: &Socket) -> Result<web_sys::ReadableStream, JsValue>;
+
+    #[wasm_bindgen(method, catch, getter)]
+    pub fn writable(this: &Socket) -> Result<web_sys::WritableStream, JsValue>;
 }

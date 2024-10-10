@@ -14,8 +14,8 @@ pub struct ScheduledEvent {
 impl From<EdgeScheduledEvent> for ScheduledEvent {
     fn from(schedule: EdgeScheduledEvent) -> Self {
         Self {
-            cron: schedule.cron(),
-            scheduled_time: schedule.scheduled_time(),
+            cron: schedule.cron().unwrap(),
+            scheduled_time: schedule.scheduled_time().unwrap(),
             ty: String::from("scheduled"),
         }
     }
@@ -54,9 +54,11 @@ impl ScheduleContext {
     where
         T: Future<Output = ()> + 'static,
     {
-        self.edge.wait_until(future_to_promise(async {
-            handler.await;
-            Ok(JsValue::null())
-        }))
+        self.edge
+            .wait_until(future_to_promise(async {
+                handler.await;
+                Ok(JsValue::null())
+            }))
+            .unwrap()
     }
 }

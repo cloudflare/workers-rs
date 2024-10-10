@@ -5,12 +5,28 @@ members = [
     "worker-macros",
     "worker-sandbox",
     "worker-sys",
+    "worker-kv",
     "examples/*",
 ]
+exclude = ["examples/coredump", "examples/axum", "templates/*"]
 resolver = "2"
 
 [workspace.dependencies]
-worker = { path="./worker" }
+worker = { path = "./worker" }
+async-trait = "0.1.74"
+# TODO: Unpin after https://github.com/chronotope/chrono-tz/issues/152
+chrono = { version = "0.4.37", default-features = false, features = [
+    "wasmbind",
+] }
+futures-channel = "0.3.29"
+futures-util = { version = "0.3.29", default-features = false }
+http = "1.1.0"
+js-sys = "0.3.66"
+wasm-bindgen = "0.2.91"
+wasm-bindgen-cli-support = "0.2.91"
+wasm-bindgen-futures = "0.4.39"
+wasm-bindgen-macro-support = "0.2.91"
+wasm-bindgen-test = "0.3.39"
 
 [profile.release]
 # rustc supports two "optimize for size" levels:  opt-level = "s" and "z". 
@@ -34,4 +50,3 @@ lto = true
 [profile.release.package."*"]
 codegen-units = 1
 opt-level = "z"
-

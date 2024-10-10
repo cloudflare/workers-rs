@@ -16,4 +16,9 @@ describe("cache", () => {
     const resp = await mf.dispatchFetch("https://fake.host/cloned-fetch");
     expect(await resp.text()).toBe("true");
   });
+
+  test("cloned response", async () => {
+    const resp = await mf.dispatchFetch("https://fake.host/cloned-response");
+    expect(await resp.text()).toBe("true");
+  });
 });

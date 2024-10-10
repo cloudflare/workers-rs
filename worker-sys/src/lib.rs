@@ -1,4 +1,4 @@
-#![allow(clippy::manual_non_exhaustive)]
+#![allow(clippy::manual_non_exhaustive, clippy::empty_docs)]
 
 pub mod ext;
 pub mod types;

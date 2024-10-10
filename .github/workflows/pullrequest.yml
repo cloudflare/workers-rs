@@ -1,6 +1,8 @@
 name: Pull Request
 
-on: pull_request
+on:
+- pull_request
+- workflow_dispatch
 
 jobs:
   rustfmt:
@@ -20,7 +22,10 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Check for idiomatic code
-        run: cargo clippy --all-features --all-targets --all -- -D warnings
+        run: cargo clippy --features d1,queue --all-targets --workspace -- -D warnings
+
+      - name: Check for idiomatic code (http)
+        run: cargo clippy --all-features --package worker-sandbox --all-targets -- -D warnings
   test:
     name: Test
     runs-on: ubuntu-latest
@@ -70,12 +75,10 @@ jobs:
         shell: bash
         run: npm ci
 
-      - name: Build worker
-        shell: bash
-        working-directory: ./worker-sandbox
-        run: NO_MINIFY=1 worker-build --dev
-        
       - name: Run tests
         shell: bash
-        working-directory: ./worker-sandbox
-        run: NODE_OPTIONS=--experimental-vm-modules npx vitest run
+        run: npm run test
+
+      - name: Run tests (http)
+        shell: bash
+        run: npm run test-http

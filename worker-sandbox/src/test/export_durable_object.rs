@@ -1,7 +1,7 @@
 use serde::Serialize;
 use std::collections::HashMap;
 
-use worker::*;
+use worker::{js_sys::Uint8Array, wasm_bindgen::JsValue, *};
 
 use crate::ensure;
 
@@ -68,6 +68,18 @@ impl DurableObject for MyClass {
                         "Didn't get the right HashMap<String, i32> using get_multiple"
                     );
 
+                    {
+                        let bytes = Uint8Array::new_with_length(3);
+                        bytes.copy_from(b"123");
+                        storage.put_raw("bytes", bytes).await?;
+                        let bytes = storage.get::<Vec<u8>>("bytes").await?;
+                        storage.delete("bytes").await?;
+                        ensure!(
+                            bytes == b"123",
+                            "eficient serialization of bytes is not preserved"
+                        );
+                    }
+
                     #[derive(Serialize)]
                     struct Stuff {
                         thing: String,
@@ -90,6 +102,19 @@ impl DurableObject for MyClass {
                     );
 
                     storage.delete_multiple(vec!["thing", "other"]).await?;
+
+                    {
+                        let obj = js_sys::Object::new();
+                        const BAR: &[u8] = b"bar";
+                        let value = Uint8Array::new_with_length(BAR.len() as _);
+                        value.copy_from(BAR);
+                        js_sys::Reflect::set(&obj, &JsValue::from_str("foo"), &value.into())?;
+                        storage.put_multiple_raw(obj).await?;
+                        ensure!(
+                            storage.get::<Vec<u8>>("foo").await? == BAR,
+                            "Didn't the right thing with put_multiple_raw"
+                        );
+                    }
 
                     self.number = storage.get("count").await.unwrap_or(0) + 1;
 

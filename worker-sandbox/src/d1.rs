@@ -1,7 +1,6 @@
+use crate::SomeSharedData;
 use serde::Deserialize;
 use worker::*;
-
-use crate::SomeSharedData;
 
 #[derive(Deserialize)]
 struct Person {
@@ -10,12 +9,16 @@ struct Person {
     age: u32,
 }
 
+#[worker::send]
 pub async fn prepared_statement(
     _req: Request,
-    ctx: RouteContext<SomeSharedData>,
+    env: Env,
+    _data: SomeSharedData,
 ) -> Result<Response> {
-    let db = ctx.env.d1("DB")?;
-    let stmt = worker::query!(&db, "SELECT * FROM people WHERE name = ?", "Ryan Upton")?;
+    let db = env.d1("DB")?;
+    let unbound_stmt = worker::query!(&db, "SELECT * FROM people WHERE name = ?");
+
+    let stmt = unbound_stmt.bind_refs(&D1Type::Text("Ryan Upton"))?;
 
     // All rows
     let results = stmt.all().await?;
@@ -46,11 +49,23 @@ pub async fn prepared_statement(
     assert_eq!(columns[1].as_str(), Some("Ryan Upton"));
     assert_eq!(columns[2].as_u64(), Some(21));
 
+    let stmt_2 = unbound_stmt.bind_refs([&D1Type::Text("John Smith")])?;
+    let person = stmt_2.first::<Person>(None).await?.unwrap();
+    assert_eq!(person.name, "John Smith");
+    assert_eq!(person.age, 92);
+
+    let prepared_argument = D1PreparedArgument::new(&D1Type::Text("Dorian Fischer"));
+    let stmt_3 = unbound_stmt.bind_refs(&prepared_argument)?;
+    let person = stmt_3.first::<Person>(None).await?.unwrap();
+    assert_eq!(person.name, "Dorian Fischer");
+    assert_eq!(person.age, 19);
+
     Response::ok("ok")
 }
 
-pub async fn batch(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    let db = ctx.env.d1("DB")?;
+#[worker::send]
+pub async fn batch(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let db = env.d1("DB")?;
     let mut results = db
         .batch(vec![
             worker::query!(&db, "SELECT * FROM people WHERE id < 4"),
@@ -73,31 +88,37 @@ pub async fn batch(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<R
     Response::ok("ok")
 }
 
-pub async fn exec(mut req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    let db = ctx.env.d1("DB")?;
+#[worker::send]
+pub async fn exec(mut req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let db = env.d1("DB")?;
     let result = db
         .exec(req.text().await?.as_ref())
         .await
         .expect("doesn't exist");
 
-    Response::ok(result.count().unwrap_or_default().to_string())
+    Response::ok(result.count()?.unwrap_or_default().to_string())
 }
 
-pub async fn dump(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    let db = ctx.env.d1("DB")?;
+#[worker::send]
+pub async fn dump(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let db = env.d1("DB")?;
     let bytes = db.dump().await?;
     Response::from_bytes(bytes)
 }
 
-pub async fn error(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    let db = ctx.env.d1("DB")?;
+#[worker::send]
+pub async fn error(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let db = env.d1("DB")?;
     let error = db
         .exec("THIS IS NOT VALID SQL")
         .await
         .expect_err("did not get error");
 
     if let Error::D1(error) = error {
-        assert_eq!(error.cause(), "Error in line 1: THIS IS NOT VALID SQL: ERROR 9009: SQL prepare error: near \"THIS\": syntax error in THIS IS NOT VALID SQL at offset 0")
+        assert_eq!(
+            error.cause(),
+            "Error in line 1: THIS IS NOT VALID SQL: near \"THIS\": syntax error at offset 0: SQLITE_ERROR"
+        )
     } else {
         panic!("expected D1 error");
     }

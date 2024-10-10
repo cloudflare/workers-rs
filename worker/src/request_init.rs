@@ -4,6 +4,7 @@ use crate::headers::Headers;
 use crate::http::Method;
 
 use js_sys::{self, Object};
+use serde::Serialize;
 use wasm_bindgen::{prelude::*, JsValue};
 
 /// Optional options struct that contains settings to apply to the `Request`.
@@ -56,11 +57,13 @@ impl RequestInit {
 
 impl From<&RequestInit> for web_sys::RequestInit {
     fn from(req: &RequestInit) -> Self {
-        let mut inner = web_sys::RequestInit::new();
-        inner.headers(req.headers.as_ref());
-        inner.method(req.method.as_ref());
-        inner.redirect(req.redirect.into());
-        inner.body(req.body.as_ref());
+        let inner = web_sys::RequestInit::new();
+        inner.set_headers(req.headers.as_ref());
+        inner.set_method(req.method.as_ref());
+        inner.set_redirect(req.redirect.into());
+        if let Some(body) = req.body.as_ref() {
+            inner.set_body(body);
+        }
 
         // set the Cloudflare-specific `cf` property on FFI RequestInit
         let r = ::js_sys::Reflect::set(
@@ -146,6 +149,7 @@ impl From<&CfProperties> for JsValue {
     fn from(props: &CfProperties) -> Self {
         let obj = js_sys::Object::new();
         let defaults = CfProperties::default();
+        let serializer = serde_wasm_bindgen::Serializer::new().serialize_maps_as_objects(true);
 
         set_prop(
             &obj,
@@ -191,7 +195,7 @@ impl From<&CfProperties> for JsValue {
         set_prop(
             &obj,
             &JsValue::from("cacheTtlByStatus"),
-            &serde_wasm_bindgen::to_value(&ttl_status_map).unwrap_or_default(),
+            &ttl_status_map.serialize(&serializer).unwrap_or_default(),
         );
 
         set_prop(

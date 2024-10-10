@@ -1,0 +1,18 @@
+[package]
+name = "kv-on-workers"
+version = "0.1.0"
+authors = ["Zeb Piasecki <zeb@zebulon.dev>"]
+edition = "2018"
+
+[package.metadata.release]
+release = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+js-sys = { workspace = true }
+serde_json = "1.0.64"
+wasm-bindgen = { workspace = true }
+wasm-bindgen-futures = { workspace = true }
+worker-kv = { path = "../../worker-kv" }
