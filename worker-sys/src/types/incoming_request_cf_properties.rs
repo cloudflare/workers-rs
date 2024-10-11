@@ -61,6 +61,9 @@ extern "C" {
     #[wasm_bindgen(method, catch, getter, js_name=regionCode)]
     pub fn region_code(this: &IncomingRequestCfProperties) -> Result<Option<String>, JsValue>;
 
+    #[wasm_bindgen(method, catch, getter, js_name=hostMetadata)]
+    pub fn host_metadata(this: &IncomingRequestCfProperties) -> Result<JsValue, JsValue>;
+
     #[wasm_bindgen(method, catch, getter)]
     pub fn timezone(this: &IncomingRequestCfProperties) -> Result<String, JsValue>;
 

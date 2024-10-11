@@ -172,6 +172,18 @@ impl Cf {
     pub fn is_eu_country(&self) -> bool {
         self.inner.is_eu_country().unwrap() == Some("1".to_string())
     }
+
+    pub fn host_metadata<T: serde::de::DeserializeOwned>(&self) -> crate::Result<Option<T>> {
+        let host_metadata = self.inner.host_metadata()?;
+        if host_metadata.is_undefined() {
+            Ok(None)
+        } else {
+            serde_wasm_bindgen::from_value(host_metadata)
+                .map(Some)
+                .map_err(|e| wasm_bindgen::JsValue::from(e.to_string()))
+        }
+        .map_err(crate::Error::from)
+    }
 }
 
 /// Browser-requested prioritization information.
