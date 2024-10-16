@@ -18,6 +18,8 @@ const OUT_DIR: &str = "build";
 const OUT_NAME: &str = "index";
 const WORKER_SUBDIR: &str = "worker";
 
+const SHIM_TEMPLATE: &str = include_str!("./js/shim.js");
+
 const WASM_IMPORT: &str = r#"let wasm;
 export function __wbg_set_wasm(val) {
     wasm = val;
@@ -54,7 +56,13 @@ pub fn main() -> Result<()> {
     use_glue_import()?;
 
     write_string_to_file(worker_path("glue.js"), include_str!("./js/glue.js"))?;
-    write_string_to_file(worker_path("shim.js"), include_str!("./js/shim.js"))?;
+    let shim = if env::var("RUN_TO_COMPLETION").is_ok() {
+        SHIM_TEMPLATE.replace("$WAIT_UNTIL_RESPONSE", "this.ctx.waitUntil(response);")
+    } else {
+        SHIM_TEMPLATE.replace("$WAIT_UNTIL_RESPONSE", "")
+    };
+
+    write_string_to_file(worker_path("shim.js"), shim)?;
 
     bundle(&esbuild_path)?;
 
