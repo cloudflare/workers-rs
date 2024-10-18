@@ -105,6 +105,11 @@ impl Env {
         self.get_binding(binding)
     }
 
+    /// Access the worker assets by the binding name configured in your wrangler.toml file.
+    pub fn assets(&self, binding: &str) -> Result<Fetcher> {
+        self.get_binding(binding)
+    }
+
     pub fn hyperdrive(&self, binding: &str) -> Result<Hyperdrive> {
         self.get_binding(binding)
     }
