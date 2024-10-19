@@ -1,5 +1,5 @@
 use crate::{
-    alarm, cache, d1, fetch, form, kv, queue, r2, request, service, socket, user, ws,
+    alarm, assets, cache, d1, fetch, form, kv, queue, r2, request, service, socket, user, ws,
     SomeSharedData, GLOBAL_STATE,
 };
 #[cfg(feature = "http")]
@@ -229,6 +229,7 @@ pub fn make_router<'a>(data: SomeSharedData) -> Router<'a, SomeSharedData> {
     Router::with_data(data)
         .get("/request", handler_sync!(request::handle_a_request)) // can pass a fn pointer to keep routes tidy
         .get_async("/async-request", handler!(request::handle_async_request))
+        .get_async("/asset/:name", handler!(assets::handle_asset))
         .get_async("/websocket", handler!(ws::handle_websocket))
         .get_async("/got-close-event", handler!(handle_close_event))
         .get_async("/ws-client", handler!(ws::handle_websocket_client))
