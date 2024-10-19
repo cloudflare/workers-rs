@@ -11,6 +11,10 @@ kv_namespaces = [
 
 vars = { SOME_VARIABLE = "some value" }
 
+[assets]
+binding = "ASSETS"
+directory = "./public/"
+
 [[services]]
 binding = "remote"
 service = "remote-service"
