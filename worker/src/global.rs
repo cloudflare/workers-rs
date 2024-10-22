@@ -14,18 +14,18 @@ pub enum Fetch {
 
 impl Fetch {
     /// Execute a Fetch call and receive a Response.
-    pub async fn send(&self) -> Result<Response> {
+    pub async fn send(self) -> Result<Response> {
         match self {
             Fetch::Url(url) => fetch_with_str(url.as_ref(), None).await,
-            Fetch::Request(req) => fetch_with_request(req, None).await,
+            Fetch::Request(req) => fetch_with_request(req.to_owned(), None).await,
         }
     }
 
     /// Execute a Fetch call and receive a Response.
-    pub async fn send_with_signal(&self, signal: &AbortSignal) -> Result<Response> {
+    pub async fn send_with_signal(self, signal: &AbortSignal) -> Result<Response> {
         match self {
             Fetch::Url(url) => fetch_with_str(url.as_ref(), Some(signal)).await,
-            Fetch::Request(req) => fetch_with_request(req, Some(signal)).await,
+            Fetch::Request(req) => fetch_with_request(req.to_owned(), Some(signal)).await,
         }
     }
 }
@@ -41,7 +41,7 @@ async fn fetch_with_str(url: &str, signal: Option<&AbortSignal>) -> Result<Respo
     Ok(resp.into())
 }
 
-async fn fetch_with_request(request: &Request, signal: Option<&AbortSignal>) -> Result<Response> {
+async fn fetch_with_request(request: Request, signal: Option<&AbortSignal>) -> Result<Response> {
     let init = web_sys::RequestInit::new();
     init.set_signal(signal.map(|x| x.deref()));
 

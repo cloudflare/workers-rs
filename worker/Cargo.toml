@@ -64,9 +64,16 @@ version = "0.7"
 optional = true
 default-features = false
 
+[dependencies.tower]
+version = "0.5.1"
+optional = true
+default-features = false
+features = ["util", "buffer"]
+
 [features]
+default = [ "http" ]
 queue = ["worker-macros/queue", "worker-sys/queue"]
 d1 = ["worker-sys/d1"]
-http = ["worker-macros/http"]
+http = ["worker-macros/http", "dep:tower"]
 axum = ["dep:axum"]
 timezone = ["dep:chrono-tz"]
