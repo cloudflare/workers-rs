@@ -71,7 +71,6 @@ default-features = false
 features = ["util", "buffer"]
 
 [features]
-default = [ "http" ]
 queue = ["worker-macros/queue", "worker-sys/queue"]
 d1 = ["worker-sys/d1"]
 http = ["worker-macros/http", "dep:tower"]
