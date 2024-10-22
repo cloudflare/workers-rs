@@ -4,33 +4,27 @@ use wasm_bindgen::prelude::*;
 extern "C" {
     #[wasm_bindgen(extends=js_sys::Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
-    pub type VectorizeIndex;
+    pub type Vectorize;
 
     #[wasm_bindgen(method, catch)]
-    pub fn insert(
-        this: &VectorizeIndex,
-        vectors: js_sys::Object,
-    ) -> Result<js_sys::Promise, JsValue>;
+    pub fn insert(this: &Vectorize, vectors: js_sys::Object) -> Result<js_sys::Promise, JsValue>;
 
     #[wasm_bindgen(method, catch)]
-    pub fn upsert(
-        this: &VectorizeIndex,
-        vectors: js_sys::Object,
-    ) -> Result<js_sys::Promise, JsValue>;
+    pub fn upsert(this: &Vectorize, vectors: js_sys::Object) -> Result<js_sys::Promise, JsValue>;
 
     #[wasm_bindgen(method, catch)]
-    pub fn describe(this: &VectorizeIndex) -> Result<js_sys::Promise, JsValue>;
+    pub fn describe(this: &Vectorize) -> Result<js_sys::Promise, JsValue>;
 
     #[wasm_bindgen(method, catch)]
     pub fn query(
-        this: &VectorizeIndex,
-        vector: &[f32],
+        this: &Vectorize,
+        vector: JsValue,
         options: js_sys::Object,
     ) -> Result<js_sys::Promise, JsValue>;
 
     #[wasm_bindgen(method, catch, js_name = "getByIds")]
-    pub fn get_by_ids(this: &VectorizeIndex, ids: JsValue) -> Result<js_sys::Promise, JsValue>;
+    pub fn get_by_ids(this: &Vectorize, ids: JsValue) -> Result<js_sys::Promise, JsValue>;
 
     #[wasm_bindgen(method, catch, js_name = "deleteByIds")]
-    pub fn delete_by_ids(this: &VectorizeIndex, ids: JsValue) -> Result<js_sys::Promise, JsValue>;
+    pub fn delete_by_ids(this: &Vectorize, ids: JsValue) -> Result<js_sys::Promise, JsValue>;
 }

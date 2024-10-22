@@ -4,21 +4,21 @@ use crate::{send::SendFuture, EnvBinding, Result};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
-use worker_sys::types::VectorizeIndex as VectorizeIndexSys;
+use worker_sys::types::Vectorize as VectorizeSys;
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "kebab-case")]
 /// Supported distance metrics for an index.
 /// Distance metrics determine how other "similar" vectors are determined.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum VectorizeDistanceMetric {
     Euclidean,
     Cosine,
     DotProduct,
 }
 
+/// Information about the configuration of an index.
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
-/// Information about the configuration of an index.
 pub enum VectorizeIndexConfig {
     Preset {
         preset: String,
@@ -29,34 +29,32 @@ pub enum VectorizeIndexConfig {
     },
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 /// Metadata about an existing index.
-///
-/// This type is exclusively for the Vectorize **beta** and will be deprecated once Vectorize RC is released.
-pub struct VectorizeIndexDetails {
-    pub id: String,
-    pub name: String,
-    pub description: Option<String>,
-    pub config: VectorizeIndexConfig,
-    pub vectors_count: u64,
-}
-
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-/// Results of an operation that performed a mutation on a set of vectors.
-/// Here, `ids` is a list of vectors that were successfully processed.
-///
-/// This type is exclusively for the Vectorize **beta** and will be deprecated once Vectorize RC is released.
-pub struct VectorizeVectorMutation {
-    /// List of ids of vectors that were successfully processed.
-    pub ids: Vec<String>,
-    /// Total count of the number of processed vectors.
-    pub count: u64,
+pub struct VectorizeIndexInfo {
+    /// The number of records containing vectors within the index.
+    pub vector_count: u64,
+    /// Number of dimensions the index has been configured for.
+    pub dimensions: u32,
+    /// ISO 8601 datetime of the last processed mutation on in the index. All changes before this mutation will be reflected in the index state.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub processed_up_to_datetime: Option<String>,
+    /// UUIDv4 of the last mutation processed by the index. All changes before this mutation will be reflected in the index state.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub processed_up_to_mutation: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+/// Results of an operation that performed a mutation on a set of vectors.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VectorizeVectorAsyncMutation {
+    /// The unique identifier for the async mutation operation containing the changeset.
+    pub mutation_id: String,
+}
+
 /// Represents a single vector value set along with its associated metadata.
+#[derive(Debug, Serialize)]
 pub struct VectorizeVector<'a> {
     /// The ID for the vector. This can be user-defined, and must be unique. It should uniquely identify the object, and is best set based on the ID of what the vector represents.
     id: String,
@@ -90,22 +88,23 @@ impl<'a> VectorizeVector<'a> {
     }
 }
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "kebab-case")]
 /// Metadata return levels for a Vectorize query.
+#[derive(Debug, Default, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum VectorizeMetadataRetrievalLevel {
     /// Full metadata for the vector return set, including all fields (including those un-indexed) without truncation. This is a more expensive retrieval, as it requires additional fetching & reading of un-indexed data.
     All,
     /// Return all metadata fields configured for indexing in the vector return set. This level of retrieval is "free" in that no additional overhead is incurred returning this data. However, note that indexed metadata is subject to truncation (especially for larger strings).
     Indexed,
     /// No indexed metadata will be returned.
+    #[default]
     None,
 }
 
-#[derive(Debug, Serialize, Hash, PartialEq, Eq)]
 /// Comparison logic/operation to use for metadata filtering.
 ///
 /// This list is expected to grow as support for more operations are released.
+#[derive(Debug, Serialize, Hash, PartialEq, Eq)]
 pub enum VectorizeVectorMetadataFilterOp {
     #[serde(rename = "$eq")]
     Eq,
@@ -120,13 +119,14 @@ type VectorizeVectorMetadataFilter =
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VectorizeQueryOptions {
-    // Default 3, max 20
+    // Default 5, max 100
     top_k: u8,
+    /// Return vectors from the specified namespace. Default `none`.
     namespace: Option<String>,
     /// Return vector values. Default `false`.
     return_values: bool,
-    /// Return vector metadata. Default `false`.
-    return_metadata: bool,
+    /// Return vector metadata. Default `None`.
+    return_metadata: VectorizeMetadataRetrievalLevel,
     /// Default `none`.
     filter: Option<VectorizeVectorMetadataFilter>,
 }
@@ -151,7 +151,10 @@ impl VectorizeQueryOptions {
         self
     }
 
-    pub fn with_return_metadata(mut self, return_metadata: bool) -> Self {
+    pub fn with_return_metadata(
+        mut self,
+        return_metadata: VectorizeMetadataRetrievalLevel,
+    ) -> Self {
         self.return_metadata = return_metadata;
         self
     }
@@ -173,17 +176,17 @@ impl VectorizeQueryOptions {
 impl Default for VectorizeQueryOptions {
     fn default() -> Self {
         Self {
-            top_k: 3,
+            top_k: 5,
             namespace: None,
             return_values: false,
-            return_metadata: false,
+            return_metadata: VectorizeMetadataRetrievalLevel::None,
             filter: None,
         }
     }
 }
 
-#[derive(Debug, Deserialize)]
 /// Represents a single vector value set along with its associated metadata.
+#[derive(Debug, Deserialize)]
 pub struct VectorizeVectorResult {
     /// The ID for the vector. This can be user-defined, and must be unique. It should uniquely identify the object, and is best set based on the ID of what the vector represents.
     pub id: String,
@@ -191,6 +194,8 @@ pub struct VectorizeVectorResult {
     pub values: Option<Vec<f32>>,
     /// Metadata associated with the vector. Includes the values of other fields and potentially additional details.
     pub metadata: Option<serde_json::Map<String, serde_json::Value>>,
+    /** The namespace the vector belongs to. */
+    pub namespace: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -201,28 +206,26 @@ pub struct VectorizeMatchVector {
     pub score: Option<f64>,
 }
 
+/// A set of matching [VectorizeMatchVector] for a particular query.
 #[derive(Debug, Deserialize)]
-/// A set of matching {@link VectorizeMatch} for a particular query.
 pub struct VectorizeMatches {
     pub matches: Vec<VectorizeMatchVector>,
     pub count: u64,
 }
 
 /// A Vectorize Vector Search Index for querying vectors/embeddings.
-///
-/// This type is exclusively for the Vectorize **beta** and will be deprecated once Vectorize RC is released.
-pub struct VectorizeIndex(VectorizeIndexSys);
+pub struct Vectorize(VectorizeSys);
 
-unsafe impl Send for VectorizeIndex {}
-unsafe impl Sync for VectorizeIndex {}
+unsafe impl Send for Vectorize {}
+unsafe impl Sync for Vectorize {}
 
-impl EnvBinding for VectorizeIndex {
-    const TYPE_NAME: &'static str = "VectorizeIndexImpl";
+impl EnvBinding for Vectorize {
+    const TYPE_NAME: &'static str = "VectorizeImpl";
 }
 
-impl VectorizeIndex {
+impl Vectorize {
     /// Get information about the currently bound index.
-    pub async fn describe(&self) -> Result<VectorizeIndexDetails> {
+    pub async fn describe(&self) -> Result<VectorizeIndexInfo> {
         let promise = self.0.describe()?;
         let fut = SendFuture::new(JsFuture::from(promise));
         let details = fut.await?;
@@ -233,7 +236,7 @@ impl VectorizeIndex {
     pub async fn insert<'a>(
         &self,
         vectors: &[VectorizeVector<'a>],
-    ) -> Result<VectorizeVectorMutation> {
+    ) -> Result<VectorizeVectorAsyncMutation> {
         let promise = self
             .0
             .insert(serde_wasm_bindgen::to_value(&vectors)?.into())?;
@@ -246,7 +249,7 @@ impl VectorizeIndex {
     pub async fn upsert<'a>(
         &self,
         vectors: &[VectorizeVector<'a>],
-    ) -> Result<VectorizeVectorMutation> {
+    ) -> Result<VectorizeVectorAsyncMutation> {
         let promise = self
             .0
             .upsert(serde_wasm_bindgen::to_value(&vectors)?.into())?;
@@ -258,7 +261,7 @@ impl VectorizeIndex {
     /// Use the provided vector to perform a similarity search across the index.
     pub async fn query(
         &self,
-        vector: &[f32],
+        vector: JsValue,
         options: VectorizeQueryOptions,
     ) -> Result<VectorizeMatches> {
         let opts = serde_wasm_bindgen::to_value(&options)?;
@@ -269,7 +272,7 @@ impl VectorizeIndex {
     }
 
     /// Delete a list of vectors with a matching id.
-    pub async fn delete_by_ids<'a, T>(&self, ids: T) -> Result<VectorizeVectorMutation>
+    pub async fn delete_by_ids<'a, T>(&self, ids: T) -> Result<VectorizeVectorAsyncMutation>
     where
         T: IntoIterator<Item = &'a str>,
     {
@@ -296,9 +299,9 @@ impl VectorizeIndex {
     }
 }
 
-impl JsCast for VectorizeIndex {
+impl JsCast for Vectorize {
     fn instanceof(val: &JsValue) -> bool {
-        val.is_instance_of::<VectorizeIndex>()
+        val.is_instance_of::<Vectorize>()
     }
 
     fn unchecked_from_js(val: JsValue) -> Self {
@@ -310,13 +313,13 @@ impl JsCast for VectorizeIndex {
     }
 }
 
-impl From<VectorizeIndex> for JsValue {
-    fn from(index: VectorizeIndex) -> Self {
+impl From<Vectorize> for JsValue {
+    fn from(index: Vectorize) -> Self {
         JsValue::from(index.0)
     }
 }
 
-impl AsRef<JsValue> for VectorizeIndex {
+impl AsRef<JsValue> for Vectorize {
     fn as_ref(&self) -> &JsValue {
         &self.0
     }

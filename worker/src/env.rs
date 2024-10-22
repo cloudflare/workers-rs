@@ -4,7 +4,7 @@ use std::fmt::Display;
 use crate::d1::D1Database;
 #[cfg(feature = "queue")]
 use crate::Queue;
-use crate::VectorizeIndex;
+use crate::Vectorize;
 use crate::{durable::ObjectNamespace, Bucket, DynamicDispatcher, Fetcher, Result};
 use crate::{error::Error, hyperdrive::Hyperdrive};
 
@@ -91,7 +91,7 @@ impl Env {
         self.get_binding(binding)
     }
 
-    pub fn vectorize(&self, binding: &str) -> Result<VectorizeIndex> {
+    pub fn vectorize(&self, binding: &str) -> Result<Vectorize> {
         self.get_binding(binding)
     }
 }
