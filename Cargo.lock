@@ -560,7 +560,6 @@ dependencies = [
 name = "cron-worker"
 version = "0.1.0"
 dependencies = [
- "wasm-rs-dbg",
  "worker",
 ]
 
@@ -3184,15 +3183,6 @@ dependencies = [
  "ureq",
  "walkdir",
  "which",
-]
-
-[[package]]
-name = "wasm-rs-dbg"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61e5fe4ac478ca5cf1db842029f41a5881da39e70320deb0006912f226ea63f4"
-dependencies = [
- "web-sys",
 ]
 
 [[package]]

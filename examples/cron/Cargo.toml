@@ -15,4 +15,3 @@ crate-type = ["cdylib"]
 
 [dependencies]
 worker = { workspace = true }
-wasm-rs-dbg = "0.1.2"
