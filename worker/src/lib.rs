@@ -195,6 +195,8 @@ pub use crate::version::*;
 pub use crate::websocket::*;
 
 mod abort;
+#[cfg(feature = "alloc")]
+mod alloc;
 mod cache;
 mod cf;
 mod context;
