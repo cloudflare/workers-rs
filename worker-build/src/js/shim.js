@@ -3,6 +3,12 @@ export * from "./index_bg.js";
 import wasmModule from "./index.wasm";
 import { WorkerEntrypoint } from "cloudflare:workers";
 
+const instance = new WebAssembly.Instance(wasmModule, {
+	"./index_bg.js": imports,
+});
+
+imports.__wbg_set_wasm(instance.exports);
+
 // Run the worker's initialization function.
 imports.start?.();
 
