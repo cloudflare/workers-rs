@@ -557,6 +557,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "cron-worker"
+version = "0.1.0"
+dependencies = [
+ "worker",
+]
+
+[[package]]
 name = "crossbeam-utils"
 version = "0.8.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
