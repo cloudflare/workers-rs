@@ -10,6 +10,8 @@ mod redirect;
 pub mod request;
 #[cfg(feature = "http")]
 pub mod response;
+#[cfg(feature = "http")]
+pub mod service;
 
 /// A [`Method`](https://developer.mozilla.org/en-US/docs/Web/API/Request/method) representation
 /// used on Request objects.
