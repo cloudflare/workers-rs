@@ -207,36 +207,14 @@ impl WebSocket {
 
     /// Gets an implementation [`Stream`](futures::Stream) that yields events from the inner
     /// WebSocket.
-    pub fn events(&self) -> Result<EventStream> {
-        let (tx, rx) = futures_channel::mpsc::unbounded::<Result<WebsocketEvent>>();
-        let tx = Rc::new(tx);
+    pub fn events(&self) -> Result<EventStream<&Self>> {
+        EventStream::new(self)
+    }
+}
 
-        let close_closure = self.add_event_handler("close", {
-            let tx = tx.clone();
-            move |event: web_sys::CloseEvent| {
-                tx.unbounded_send(Ok(WebsocketEvent::Close(event.into())))
-                    .unwrap();
-            }
-        })?;
-        let message_closure = self.add_event_handler("message", {
-            let tx = tx.clone();
-            move |event: web_sys::MessageEvent| {
-                tx.unbounded_send(Ok(WebsocketEvent::Message(event.into())))
-                    .unwrap();
-            }
-        })?;
-        let error_closure =
-            self.add_event_handler("error", move |event: web_sys::ErrorEvent| {
-                let error = event.error();
-                tx.unbounded_send(Err(error.into())).unwrap();
-            })?;
-
-        Ok(EventStream {
-            ws: self,
-            rx,
-            closed: false,
-            closures: Some((message_closure, error_closure, close_closure)),
-        })
+impl AsRef<WebSocket> for WebSocket {
+    fn as_ref(&self) -> &WebSocket {
+        self
     }
 
     pub fn serialize_attachment<T: Serialize>(&self, value: T) -> Result<()> {
@@ -286,8 +264,8 @@ type EvCallback<T> = Closure<dyn FnMut(T)>;
 /// });
 /// ```
 #[pin_project::pin_project(PinnedDrop)]
-pub struct EventStream<'ws> {
-    ws: &'ws WebSocket,
+pub struct EventStream<T: AsRef<WebSocket>> {
+    ws: T,
     #[pin]
     rx: UnboundedReceiver<Result<WebsocketEvent>>,
     closed: bool,
@@ -300,7 +278,48 @@ pub struct EventStream<'ws> {
     )>,
 }
 
-impl<'ws> Stream for EventStream<'ws> {
+impl<T: AsRef<WebSocket>> EventStream<T> {
+    /// Create EventStream from Websocket. The input can be [`WebSocket`](self::WebSocket),
+    /// [`&WebSocket`](self::WebSocket), [`Arc<WebSocket>`](self::WebSocket), etc.
+    pub fn new(ws: T) -> Result<EventStream<T>> {
+        let ws_ref = ws.as_ref();
+        let (tx, rx) = futures_channel::mpsc::unbounded::<Result<WebsocketEvent>>();
+        let tx = Rc::new(tx);
+
+        let close_closure = ws_ref.add_event_handler("close", {
+            let tx = tx.clone();
+            move |event: web_sys::CloseEvent| {
+                tx.unbounded_send(Ok(WebsocketEvent::Close(event.into())))
+                    .unwrap();
+            }
+        })?;
+        let message_closure = ws_ref.add_event_handler("message", {
+            let tx = tx.clone();
+            move |event: web_sys::MessageEvent| {
+                tx.unbounded_send(Ok(WebsocketEvent::Message(event.into())))
+                    .unwrap();
+            }
+        })?;
+        let error_closure =
+            ws_ref.add_event_handler("error", move |event: web_sys::ErrorEvent| {
+                let error = event.error();
+                tx.unbounded_send(Err(error.into())).unwrap();
+            })?;
+
+        Ok(EventStream {
+            ws,
+            rx,
+            closed: false,
+            closures: Some((message_closure, error_closure, close_closure)),
+        })
+    }
+
+    pub fn socket(&self) -> &WebSocket {
+        self.ws.as_ref()
+    }
+}
+
+impl<T: AsRef<WebSocket>> Stream for EventStream<T> {
     type Item = Result<WebsocketEvent>;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
@@ -327,8 +346,8 @@ impl<'ws> Stream for EventStream<'ws> {
 // Because we don't want to receive messages once our stream is done we need to remove all our
 // listeners when we go to drop the stream.
 #[pin_project::pinned_drop]
-impl PinnedDrop for EventStream<'_> {
-    fn drop(self: Pin<&'_ mut Self>) {
+impl<T: AsRef<WebSocket>> PinnedDrop for EventStream<T> {
+    fn drop(self: Pin<&mut Self>) {
         let this = self.project();
 
         // remove_event_handler takes an owned closure, so we'll do this little hack and wrap our
@@ -336,14 +355,13 @@ impl PinnedDrop for EventStream<'_> {
         let (message_closure, error_closure, close_closure) =
             std::mem::take(this.closures).expect("double drop on worker::EventStream");
 
-        this.ws
-            .remove_event_handler("message", message_closure)
+        let ws = this.ws.as_ref();
+
+        ws.remove_event_handler("message", message_closure)
             .expect("could not remove message handler");
-        this.ws
-            .remove_event_handler("error", error_closure)
+        ws.remove_event_handler("error", error_closure)
             .expect("could not remove error handler");
-        this.ws
-            .remove_event_handler("close", close_closure)
+        ws.remove_event_handler("close", close_closure)
             .expect("could not remove close handler");
     }
 }
