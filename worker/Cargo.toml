@@ -29,10 +29,11 @@ http-body = "1"
 matchit = "0.7"
 pin-project = "1.1.0"
 serde = { version = "1.0.164", features = ["derive"] }
+serde-wasm-bindgen = "0.6.1"
 serde_json = "1.0.96"
 tokio = { version = "1.28", default-features = false }
 url = "2.4.0"
-serde-wasm-bindgen = "0.6.1"
+
 serde_urlencoded = "0.7"
 wasm-streams = "0.4"
 worker-kv = { path = "../worker-kv", version = "0.7.0" }
