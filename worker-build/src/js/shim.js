@@ -22,6 +22,12 @@ class Entrypoint extends WorkerEntrypoint {
     async scheduled(event) {
         return await imports.scheduled(event, this.env, this.ctx)
     }
+
+    // For some reason, email events doesn't seem to use WorkerEntrypoint so we get the env and ctx from
+    //  from the function itself.
+    async email(message, _env, _ctx) {
+        return await imports.email_handler(message, _env, _ctx)
+    }
 }
 
 const EXCLUDE_EXPORT = [
@@ -35,6 +41,7 @@ const EXCLUDE_EXPORT = [
     "fetch",
     "queue",
     "scheduled",
+    "email",
     "getMemory"
 ];
 
