@@ -1,0 +1,11 @@
+name = "tokio-postgres-on-workers"
+main = "build/worker/shim.mjs"
+compatibility_date = "2023-03-22"
+
+[build]
+command = "cargo install --path ../../worker-build && worker-build --release"
+
+[[d1_databases]]
+binding = "DB" # i.e. available in your Worker on env.DB
+database_name = "dev-d1-rust"
+database_id = "<YOUR_DATABASE_ID>"
