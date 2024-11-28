@@ -162,7 +162,7 @@ pub fn expand_macro(attr: TokenStream, tokens: TokenStream) -> syn::Result<Token
     
     let bindgen_methods = match durable_object_type {
         // if not specified, bindgen all.
-        // accept this for #[durable_object] backward compatibility
+        // this is expected behavoir, and is also required for #[durable_object] to compile and work
         None => vec![
             bindgen_methods::core(),
             bindgen_methods::alarm(),
