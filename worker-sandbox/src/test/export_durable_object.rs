@@ -5,13 +5,12 @@ use worker::{js_sys::Uint8Array, wasm_bindgen::JsValue, *};
 
 use crate::ensure;
 
-#[durable_object]
+#[DurableObject]
 pub struct MyClass {
     state: State,
     number: usize,
 }
 
-#[durable_object]
 impl DurableObject for MyClass {
     fn new(state: State, _env: Env) -> Self {
         Self { state, number: 0 }
