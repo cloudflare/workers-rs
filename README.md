@@ -221,13 +221,12 @@ For more information about how to configure these bindings, see:
 ### Define a Durable Object in Rust
 
 To define a Durable Object using the `worker` crate you need to implement the `DurableObject` trait
-on your own struct. Additionally, the `#[durable_object]` attribute macro must be applied to _both_
-your struct definition and the trait `impl` block for it.
+on your own struct. Additionally, the `#[DurableObject]` attribute macro must be applied to your struct definition.
 
 ```rust
 use worker::*;
 
-#[durable_object]
+#[DurableObject]
 pub struct Chatroom {
     users: Vec<User>,
     messages: Vec<Message>,
@@ -235,7 +234,6 @@ pub struct Chatroom {
     env: Env, // access `Env` across requests, use inside `fetch`
 }
 
-#[durable_object]
 impl DurableObject for Chatroom {
     fn new(state: State, env: Env) -> Self {
         Self {
