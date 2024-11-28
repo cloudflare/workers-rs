@@ -21,7 +21,6 @@ use crate::{
     Result, WebSocket,
 };
 
-use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use futures_util::Future;
 use js_sys::{Map, Number, Object};
@@ -225,7 +224,7 @@ impl State {
             .unwrap()
     }
 
-    // needs to be accessed by the `durable_object` macro in a conversion step
+    // needs to be accessed by the `#[DurableObject]` macro in a conversion step
     pub fn _inner(self) -> DurableObjectState {
         self.inner
     }
@@ -789,14 +788,14 @@ pub enum WebSocketIncomingMessage {
 
 /**
 **Note:** Implement this trait with a standard `impl DurableObject for YourType` block, but in order to
-integrate them with the Workers Runtime, you must also add the **`#[durable_object]`** attribute
-macro to both the impl block and the struct type definition.
+integrate them with the Workers Runtime, you must also add the **`#[DurableObject]`** attribute
+to the struct.
 
 ## Example
 ```no_run
 use worker::*;
 
-#[durable_object]
+#[DurableObject]
 pub struct Chatroom {
     users: Vec<User>,
     messages: Vec<Message>,
@@ -804,7 +803,6 @@ pub struct Chatroom {
     env: Env, // access `Env` across requests, use inside `fetch`
 }
 
-#[durable_object]
 impl DurableObject for Chatroom {
     fn new(state: State, env: Env) -> Self {
         Self {
@@ -823,14 +821,15 @@ impl DurableObject for Chatroom {
 ```
 */
 
-#[async_trait(?Send)]
-pub trait DurableObject {
+#[allow(async_fn_in_trait)] // Send is not needed 
+pub trait DurableObject: has_DurableObject_attribute {
     fn new(state: State, env: Env) -> Self;
 
     async fn fetch(&self, req: Request) -> Result<Response>;
 
     #[allow(clippy::diverging_sub_expression)]
     async fn alarm(&self) -> Result<Response> {
+        worker_sys::console_error!("alarm() handler not implemented");
         unimplemented!("alarm() handler not implemented")
     }
 
@@ -840,6 +839,7 @@ pub trait DurableObject {
         ws: WebSocket,
         message: WebSocketIncomingMessage,
     ) -> Result<()> {
+        worker_sys::console_error!("websocket_message() handler not implemented");
         unimplemented!("websocket_message() handler not implemented")
     }
 
@@ -851,11 +851,17 @@ pub trait DurableObject {
         reason: String,
         was_clean: bool,
     ) -> Result<()> {
+        worker_sys::console_error!("websocket_close() handler not implemented");
         unimplemented!("websocket_close() handler not implemented")
     }
 
     #[allow(unused_variables, clippy::diverging_sub_expression)]
     async fn websocket_error(&self, ws: WebSocket, error: Error) -> Result<()> {
+        worker_sys::console_error!("websocket_error() handler not implemented");
         unimplemented!("websocket_error() handler not implemented")
     }
 }
+
+#[doc(hidden)]
+#[allow(non_camel_case_types)]
+pub trait has_DurableObject_attribute {}
