@@ -37,7 +37,7 @@ use proc_macro::TokenStream;
 /// 
 /// ## Note
 /// 
-/// You can specify the usage of the Durable Object via argument to control wasm outout:
+/// You can specify the usage of the Durable Object via an argument in order to control WASM/JS outout:
 /// 
 /// * `fetch`: simple `fetch` target
 /// * `alarm`: with [Alarms API](https://developers.cloudflare.com/durable-objects/examples/alarms-api/)
