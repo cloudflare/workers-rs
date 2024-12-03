@@ -10,7 +10,9 @@ export { wasmModule };
 
 class Entrypoint extends WorkerEntrypoint {
     async fetch(request) {
-        return await imports.fetch(request, this.env, this.ctx)
+        let response = imports.fetch(request, this.env, this.ctx);
+        $WAIT_UNTIL_RESPONSE
+        return await response;
     }
 
     async queue(batch) {
