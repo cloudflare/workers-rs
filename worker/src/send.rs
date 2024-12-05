@@ -47,7 +47,7 @@ impl<F: Future> Future for SendFuture<F> {
 /// let fut = JsFuture::from(promise).into_send();
 /// fut.await
 /// ```
-trait IntoSendFuture {
+pub trait IntoSendFuture {
     type Output;
     fn into_send(self) -> SendFuture<Self>
     where
