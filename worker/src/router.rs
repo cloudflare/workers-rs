@@ -113,7 +113,7 @@ impl<D> RouteContext<D> {
     }
 }
 
-impl<'a> Router<'a, ()> {
+impl Router<'_, ()> {
     /// Construct a new `Router`. Or, call `Router::with_data(D)` to add arbitrary data that will be
     /// available to your various routes.
     pub fn new() -> Self {

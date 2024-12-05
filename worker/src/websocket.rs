@@ -300,7 +300,7 @@ pub struct EventStream<'ws> {
     )>,
 }
 
-impl<'ws> Stream for EventStream<'ws> {
+impl Stream for EventStream<'_> {
     type Item = Result<WebsocketEvent>;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
