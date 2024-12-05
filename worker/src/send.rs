@@ -41,6 +41,29 @@ impl<F: Future> Future for SendFuture<F> {
     }
 }
 
+/// Trait for SendFuture. Implemented for any type that implements Future.
+///
+/// ```rust
+/// let fut = JsFuture::from(promise).into_send();
+/// fut.await
+/// ```
+trait IntoSendFuture {
+    type Output;
+    fn into_send(self) -> SendFuture<Self>
+    where
+        Self: Sized;
+}
+
+impl<F, T> IntoSendFuture for F
+where
+    F: Future<Output = T>,
+{
+    type Output = T;
+    fn into_send(self) -> SendFuture<Self> {
+        SendFuture::new(self)
+    }
+}
+
 /// Wrap any type to make it `Send`.
 ///
 /// ```rust
