@@ -68,3 +68,6 @@ main = "./shim.mjs"
 [[build.upload.rules]]
 globs = ["**/*.wasm"]
 type = "CompiledWasm"
+
+[package.metadata.wasm-pack.profile.dev.wasm-bindgen]
+dwarf-debug-info = true
