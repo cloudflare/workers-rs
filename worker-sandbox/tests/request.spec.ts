@@ -130,7 +130,7 @@ test("some var", async () => {
 
 test("some object var", async () => {
   const resp = await mf.dispatchFetch("https://fake.host/object-var");
-  expect(await resp.json()).toBe({ foo: 42, bar: "string" });
+  expect(await resp.json()).toStrictEqual({ foo: 42, bar: "string" });
 });
 
 test("kv key value", async () => {
