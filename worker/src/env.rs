@@ -8,6 +8,7 @@ use crate::{durable::ObjectNamespace, Bucket, DynamicDispatcher, Fetcher, Result
 use crate::{error::Error, hyperdrive::Hyperdrive};
 
 use js_sys::Object;
+use serde::de::DeserializeOwned;
 use wasm_bindgen::{prelude::*, JsCast, JsValue};
 use worker_kv::KvStore;
 
@@ -42,10 +43,22 @@ impl Env {
         self.get_binding::<Secret>(binding)
     }
 
-    /// Environment variables are defined via the `[vars]` configuration in your wrangler.toml file
-    /// and are always plaintext values.
+    /// Get an environment variable defined in the [vars] section of your wrangler.toml or a secret
+    /// defined using `wrangler secret` as a plaintext value.
+    ///
+    /// See: <https://developers.cloudflare.com/workers/configuration/environment-variables/>
     pub fn var(&self, binding: &str) -> Result<Var> {
         self.get_binding::<Var>(binding)
+    }
+
+    /// Get an environment variable defined in the [vars] section of your wrangler.toml that is
+    /// defined as an object.
+    ///
+    /// See: <https://developers.cloudflare.com/workers/configuration/environment-variables/>
+    pub fn object_var<T: DeserializeOwned>(&self, binding: &str) -> Result<T> {
+        Ok(serde_wasm_bindgen::from_value(
+            self.get_binding::<JsValueWrapper>(binding)?.0,
+        )?)
     }
 
     /// Access a Workers KV namespace by the binding name configured in your wrangler.toml file.
@@ -150,6 +163,39 @@ impl From<StringBinding> for JsValue {
 impl Display for StringBinding {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
         write!(f, "{}", self.0.as_string().unwrap_or_default())
+    }
+}
+
+#[repr(transparent)]
+struct JsValueWrapper(JsValue);
+
+impl EnvBinding for JsValueWrapper {
+    const TYPE_NAME: &'static str = "Object";
+}
+
+impl JsCast for JsValueWrapper {
+    fn instanceof(_: &JsValue) -> bool {
+        true
+    }
+
+    fn unchecked_from_js(val: JsValue) -> Self {
+        Self(val)
+    }
+
+    fn unchecked_from_js_ref(val: &JsValue) -> &Self {
+        unsafe { std::mem::transmute(val) }
+    }
+}
+
+impl From<JsValueWrapper> for wasm_bindgen::JsValue {
+    fn from(value: JsValueWrapper) -> Self {
+        value.0
+    }
+}
+
+impl AsRef<JsValue> for JsValueWrapper {
+    fn as_ref(&self) -> &JsValue {
+        &self.0
     }
 }
 

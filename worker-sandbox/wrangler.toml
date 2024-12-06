@@ -9,7 +9,9 @@ kv_namespaces = [
     { binding = "FILE_SIZES", id = "FILE_SIZES", preview_id = "FILE_SIZES" },
 ]
 
-vars = { SOME_VARIABLE = "some value" }
+[vars]
+SOME_VARIABLE = "some value"
+SOME_OBJECT_VARIABLE = { foo = 42, bar = "string" }
 
 [[services]]
 binding = "remote"

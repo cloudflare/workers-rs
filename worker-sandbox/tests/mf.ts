@@ -48,6 +48,11 @@ export const mf = new Miniflare({
   bindings: {
     EXAMPLE_SECRET: "example",
     SOME_SECRET: "secret!",
+    SOME_VARIABLE: "some value",
+    SOME_OBJECT_VARIABLE: {
+      foo: 42,
+      bar: "string"
+    },
   },
   durableObjects: {
     COUNTER: "Counter",
