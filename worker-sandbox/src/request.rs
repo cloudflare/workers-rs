@@ -3,6 +3,8 @@ use crate::SomeSharedData;
 use super::ApiData;
 use futures_util::StreamExt;
 use futures_util::TryStreamExt;
+use serde::Deserialize;
+use serde::Serialize;
 use std::time::Duration;
 use worker::Env;
 use worker::{console_log, Date, Delay, Request, Response, ResponseBody, ResponseBuilder, Result};
@@ -90,6 +92,16 @@ pub async fn handle_secret(_req: Request, env: Env, _data: SomeSharedData) -> Re
 
 pub async fn handle_var(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     Response::ok(env.var("SOME_VARIABLE")?.to_string())
+}
+
+pub async fn handle_object_var(_req: Request, env: Env, _: SomeSharedData) -> Result<Response> {
+    #[derive(Serialize, Deserialize, PartialEq, Eq)]
+    struct Obj {
+        foo: i32,
+        bar: String,
+    }
+    let obj = env.object_var::<Obj>("SOME_OBJECT_VARIABLE")?;
+    Response::from_json(&obj)
 }
 
 pub async fn handle_bytes(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {

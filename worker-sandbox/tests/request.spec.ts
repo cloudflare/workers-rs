@@ -123,6 +123,16 @@ test("some secret", async () => {
   expect(await resp.text()).toBe("secret!");
 });
 
+test("some var", async () => {
+  const resp = await mf.dispatchFetch("https://fake.host/var");
+  expect(await resp.text()).toBe("some value");
+});
+
+test("some object var", async () => {
+  const resp = await mf.dispatchFetch("https://fake.host/object-var");
+  expect(await resp.json()).toBe({ foo: 42, bar: "string" });
+});
+
 test("kv key value", async () => {
   const resp = await mf.dispatchFetch("https://fake.host/kv/a/b", {
     method: "POST",
