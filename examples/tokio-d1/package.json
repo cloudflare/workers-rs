@@ -1,0 +1,12 @@
+{
+	"name": "tokio-d1",
+	"version": "0.0.0",
+	"private": true,
+	"scripts": {
+		"deploy": "wrangler deploy",
+		"dev": "wrangler dev --local"
+	},
+	"devDependencies": {
+		"wrangler": "^2.13.0"
+	}
+}
