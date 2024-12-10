@@ -1,5 +1,5 @@
 import { Miniflare, Response } from "miniflare";
-import { MockAgent } from "undici";
+import { MockAgent } from 'undici';
 
 const mockAgent = new MockAgent();
 
@@ -34,7 +34,7 @@ mockAgent
 
 export const mf = new Miniflare({
   scriptPath: "./build/worker/shim.mjs",
-  compatibilityDate: "2023-05-18",
+  compatibilityDate: "2024-12-05",
   cache: true,
   cachePersist: false,
   d1Databases: ["DB"],
@@ -73,7 +73,7 @@ export const mf = new Miniflare({
   queueProducers: ["my_queue", "my_queue"],
   fetchMock: mockAgent,
   assets: {
-    path: "./public",
+    directory: "./public",
     bindingName: "ASSETS",
     routingConfig: {
       has_user_worker: true,
