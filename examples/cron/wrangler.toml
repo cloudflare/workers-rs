@@ -1,0 +1,14 @@
+name = "cron-worker"
+main = "build/worker/shim.mjs"
+compatibility_date = "2023-03-22"
+
+[build]
+command = "cargo install worker-build && worker-build --release"
+
+[triggers]
+# Run every 5 minutes. https://developers.cloudflare.com/workers/configuration/cron-triggers/
+crons = ["*/5 * * * *"]
+
+[observability]
+enabled = true
+head_sampling_rate = 1
