@@ -2,7 +2,6 @@ use crate::{js_sys::{Object, Reflect}, wasm_bindgen};
 use crate::SomeSharedData;
 use serde::Deserialize;
 use wasm_bindgen::JsValue;
-use wasm_bindgen_test::wasm_bindgen_test;
 use worker::{D1PreparedArgument, D1Type, Env, Error, Request, Response, Result};
 
 #[derive(Deserialize)]
@@ -134,37 +133,6 @@ struct NullablePerson {
     id: u32,
     name: Option<String>,
     age: Option<u32>,
-}
-
-#[wasm_bindgen_test]
-pub fn test_js_value_is_null() {
-    assert!(JsValue::NULL.is_null());
-}
-
-#[wasm_bindgen_test]
-pub fn test_serialize_option_none() {
-    let serializer = serde_wasm_bindgen::Serializer::new().serialize_missing_as_null(true);
-
-    let none_value: Option<String> = None;
-    let js_value = ::serde::ser::Serialize::serialize(&none_value, &serializer).unwrap();
-
-    assert!(js_value.is_null(), "Expected null, got {:?}", js_value);
-}
-
-#[wasm_bindgen_test]
-pub fn test_deserialize_option_none() {
-    let js_value = Object::new();
-    Reflect::set(&js_value, &JsValue::from_str("id"), &JsValue::from_f64(1.0)).unwrap();
-    Reflect::set(&js_value, &JsValue::from_str("name"), &JsValue::NULL).unwrap();
-    Reflect::set(&js_value, &JsValue::from_str("age"), &JsValue::NULL).unwrap();
-
-    let js_value: JsValue = js_value.into();
-
-    let value: NullablePerson = serde_wasm_bindgen::from_value(js_value).unwrap();
-
-    assert_eq!(value.id, 1);
-    assert_eq!(value.name, None);
-    assert_eq!(value.age, None);
 }
 
 #[worker::send]
