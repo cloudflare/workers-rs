@@ -1,6 +1,6 @@
 use worker::{js_sys::Uint8Array, wasm_bindgen::JsValue, *};
 
-#[durable_object]
+#[DurableObject]
 pub struct PutRawTestObject {
     state: State,
 }
@@ -39,7 +39,6 @@ impl PutRawTestObject {
     }
 }
 
-#[durable_object]
 impl DurableObject for PutRawTestObject {
     fn new(state: State, _env: Env) -> Self {
         Self { state }
