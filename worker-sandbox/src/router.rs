@@ -64,6 +64,7 @@ pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
             "/async-request",
             get(handler!(request::handle_async_request)),
         )
+        .route("/asset/:name", get(handler!(assets::handle_asset)))
         .route("/websocket", get(handler!(ws::handle_websocket)))
         .route("/got-close-event", get(handler!(handle_close_event)))
         .route("/ws-client", get(handler!(ws::handle_websocket_client)))
