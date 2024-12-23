@@ -2,7 +2,7 @@
 
 use std::{
     env::{self, VarError},
-    fs::{self, File},
+    fs::{self, read_to_string, File},
     io::{Read, Write},
     path::{Path, PathBuf},
     process::{Command, Stdio},
@@ -38,10 +38,20 @@ pub fn main() -> Result<()> {
     create_worker_dir()?;
     copy_generated_code_to_worker_dir()?;
 
+    let shim_template = match env::var("CUSTOM_SHIM") {
+        Ok(path) => {
+            let path = Path::new(&path).to_owned();
+            println!("Using custom shim from {}", path.display());
+            // NOTE: we fail in case that file doesnt exist or something else happens
+            read_to_string(path)?
+        }
+        Err(_) => SHIM_TEMPLATE.to_owned(),
+    };
+
     let shim = if env::var("RUN_TO_COMPLETION").is_ok() {
-        SHIM_TEMPLATE.replace("$WAIT_UNTIL_RESPONSE", "this.ctx.waitUntil(response);")
+        shim_template.replace("$WAIT_UNTIL_RESPONSE", "this.ctx.waitUntil(response);")
     } else {
-        SHIM_TEMPLATE.replace("$WAIT_UNTIL_RESPONSE", "")
+        shim_template.replace("$WAIT_UNTIL_RESPONSE", "")
     };
 
     write_string_to_file(worker_path("shim.js"), shim)?;
