@@ -286,9 +286,6 @@ impl D1PreparedStatement {
     {
         let result = JsFuture::from(self.0.first(col_name)?).await;
         let js_value = cast_to_d1_error(result)?;
-        if js_value.is_null() {
-            return Ok(None);
-        }
         let value = serde_wasm_bindgen::from_value(js_value)?;
         Ok(value)
     }
