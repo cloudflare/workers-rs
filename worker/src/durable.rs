@@ -85,7 +85,7 @@ impl ObjectNamespace {
 
     /// This method parses an ID that was previously stringified. This is useful in particular with
     /// IDs created using `unique_id(&self)`, as these IDs need to be stored somewhere, probably as
-    /// as a string.
+    /// a string.
     ///
     /// A stringified object ID is a 64-digit hexadecimal number. However, not all 64-digit hex
     /// numbers are valid IDs. This method will throw if it is passed an ID that was not originally
