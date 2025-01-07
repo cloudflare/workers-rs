@@ -92,7 +92,6 @@ impl PinnedDrop for Delay {
         }
 
         if let Some(id) = this.timeout_id {
-            crate::console_debug!("{:#?} has been dropped", &this.inner);
             let global: web_sys::WorkerGlobalScope = js_sys::global().unchecked_into();
             global.clear_timeout_with_handle(*id);
         }
