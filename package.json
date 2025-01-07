@@ -16,11 +16,11 @@
   "devDependencies": {
     "@types/node": "^20.4.8",
     "@types/uuid": "^9.0.2",
-    "miniflare": "^3.20241205.0",
+    "miniflare": "^3.20241230.0",
     "typescript": "^5.1.6",
     "undici": "^5.28.4",
     "uuid": "^9.0.0",
-    "vitest": "^0.32.4"
+    "vitest": "^2.1.8"
   },
   "scripts": {
     "test": "cd worker-sandbox && NO_MINIFY=1 worker-build --dev && NODE_OPTIONS=--experimental-vm-modules npx vitest run",
