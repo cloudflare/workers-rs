@@ -8,6 +8,7 @@ use tower_service::Service;
 use worker::*;
 
 mod alarm;
+mod analytics_engine;
 mod assets;
 mod cache;
 mod counter;
