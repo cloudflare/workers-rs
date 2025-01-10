@@ -140,10 +140,12 @@ impl AnalyticsEngineDataPointBuilder {
     ///     .indexes(vec!["index1"].as_slice())
     ///     .build();
     /// ```
-    pub fn indexes(self, indexes: &[&str]) -> Self {
+    pub fn indexes(mut self, indexes: &[&str]) -> Self {
+        let values = Array::new();
         for idx in indexes {
-            self.indexes.push(&JsValue::from_str(idx));
+            values.push(&JsValue::from_str(idx));
         }
+        self.indexes = values;
         self
     }
 
