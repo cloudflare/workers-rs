@@ -1,7 +1,6 @@
 use super::SomeSharedData;
-use worker::{
-    AnalyticsEngineDataPoint, AnalyticsEngineDataPointBuilder, Env, Request, Response, Result,
-};
+use uuid::Uuid;
+use worker::{AnalyticsEngineDataPointBuilder, Env, Request, Response, Result};
 
 #[worker::send]
 pub async fn handle_analytics_event(
@@ -14,21 +13,23 @@ pub async fn handle_analytics_event(
         Err(err) => return Response::error(format!("Failed to get dataset: {err:?}"), 500),
     };
 
-    // String blobs
-    let event: AnalyticsEngineDataPoint<String> = AnalyticsEngineDataPointBuilder::new()
-        .indexes(vec!["http".into()])
-        .blobs(vec![req.method().to_string()])
-        .doubles(vec![200.into()])
+    let request_id = Uuid::new_v4();
+    // Build the event and write it to analytics engine
+    let point = AnalyticsEngineDataPointBuilder::new()
+        .indexes(vec!["index1"].as_slice())
+        .add_blob(req.method().as_ref()) // blob1
+        .add_blob(request_id.as_bytes().as_ref()) // blob2
+        .add_double(200)
         .build();
-    dataset.write_data_point(&event)?;
+    dataset.write_data_point(&point)?;
 
-    // Binary blobs
-    let event: AnalyticsEngineDataPoint<Vec<u8>> = AnalyticsEngineDataPointBuilder::new()
-        .indexes(vec!["http".into()])
-        .blobs(vec![req.method().to_string().as_bytes().to_vec()])
-        .doubles(vec![200.into()])
-        .build();
-    dataset.write_data_point(&event)?;
+    // Or write it directly from the builder using write_to
+    AnalyticsEngineDataPointBuilder::new()
+        .indexes(vec!["index1"].as_slice())
+        .add_blob(req.method().as_ref()) // blob1
+        .add_blob(req.method().as_ref()) // blob2
+        .add_double(200)
+        .write_to(&dataset)?;
 
     return Response::ok("Events sent");
 }

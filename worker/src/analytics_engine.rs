@@ -1,8 +1,7 @@
 use crate::EnvBinding;
 use crate::Result;
-use js_sys::Array;
 use js_sys::Object;
-use std::marker::PhantomData;
+use js_sys::{Array, Uint8Array};
 use wasm_bindgen::{JsCast, JsValue};
 use worker_sys::AnalyticsEngineDataset as AnalyticsEngineSys;
 
@@ -51,92 +50,264 @@ impl AsRef<JsValue> for AnalyticsEngineDataset {
 }
 
 impl AnalyticsEngineDataset {
-    pub fn write_data_point<T>(&self, event: &AnalyticsEngineDataPoint<T>) -> Result<()>
+    pub fn write_data_point(&self, event: &AnalyticsEngineDataPoint) -> Result<()>
     where
-        T: BlobType,
-        AnalyticsEngineDataPoint<T>: Clone,
-        JsValue: From<AnalyticsEngineDataPoint<T>>,
+        AnalyticsEngineDataPoint: Clone,
+        JsValue: From<AnalyticsEngineDataPoint>,
     {
         Ok(self.0.write_data_point(event.to_js_object()?)?)
     }
 }
 
-// Marker traits to constrain T
-pub trait BlobType {}
-impl BlobType for String {}
-impl BlobType for Vec<u8> {}
-
-#[derive(Clone, Debug)]
-pub struct AnalyticsEngineDataPoint<T>
-where
-    T: BlobType,
-{
-    indexes: Vec<String>,
-    doubles: Vec<f64>,
-    blobs: Vec<T>,
+pub enum BlobType {
+    String(String),
+    Blob(Vec<u8>),
+}
+impl From<BlobType> for JsValue {
+    fn from(val: BlobType) -> Self {
+        match val {
+            BlobType::String(s) => JsValue::from_str(&s),
+            BlobType::Blob(b) => {
+                let value = Uint8Array::from(b.as_slice());
+                value.into()
+            }
+        }
+    }
 }
 
-pub struct AnalyticsEngineDataPointBuilder<T: BlobType> {
-    indexes: Vec<String>,
-    doubles: Vec<f64>,
-    blobs: Vec<T>,
-    _phantom: PhantomData<T>,
+impl From<&str> for BlobType {
+    fn from(value: &str) -> Self {
+        BlobType::String(value.to_string())
+    }
 }
 
-impl<T: BlobType> AnalyticsEngineDataPointBuilder<T> {
+impl From<String> for BlobType {
+    fn from(value: String) -> Self {
+        BlobType::String(value)
+    }
+}
+
+impl From<&[u8]> for BlobType {
+    fn from(value: &[u8]) -> Self {
+        BlobType::Blob(value.to_vec())
+    }
+}
+
+impl From<Vec<u8>> for BlobType {
+    fn from(value: Vec<u8>) -> Self {
+        BlobType::Blob(value)
+    }
+}
+
+#[derive(Clone)]
+pub struct AnalyticsEngineDataPoint {
+    indexes: Array,
+    doubles: Array,
+    blobs: Array,
+}
+
+pub struct AnalyticsEngineDataPointBuilder {
+    indexes: Array,
+    doubles: Array,
+    blobs: Array,
+}
+
+impl AnalyticsEngineDataPointBuilder {
     pub fn new() -> Self {
         Self {
-            indexes: Vec::new(),
-            doubles: Vec::new(),
-            blobs: Vec::new(),
-            _phantom: PhantomData,
+            indexes: Array::new(),
+            doubles: Array::new(),
+            blobs: Array::new(),
         }
     }
 
-    pub fn indexes(mut self, index: impl Into<Vec<String>>) -> Self {
-        self.indexes = index.into();
+    /// Sets the index values for the data point.
+    /// While the indexes field accepts an array, you currently must *only* provide a single index.
+    /// If you attempt to provide multiple indexes, your data point will not be recorded.
+    ///
+    /// # Arguments
+    ///
+    /// * `index`: A string or byte-array value to use as the index.
+    ///
+    /// returns: AnalyticsEngineDataPointBuilder
+    ///
+    /// # Examples
+    ///
+    /// ```
+    ///  use worker::AnalyticsEngineDataPointBuilder;
+    ///
+    ///  let data = AnalyticsEngineDataPointBuilder::new()
+    ///     .indexes(vec!["index1"].as_slice())
+    ///     .build();
+    /// ```
+    pub fn indexes(self, indexes: &[&str]) -> Self {
+        for idx in indexes {
+            self.indexes.push(&JsValue::from_str(idx));
+        }
         self
     }
 
-    pub fn doubles(mut self, doubles: impl Into<Vec<f64>>) -> Self {
-        self.doubles = doubles.into();
+    /// Adds a numeric value to the end of the array of doubles.
+    ///
+    /// # Arguments
+    ///
+    /// * `double`: The numeric values that you want to record in your data point
+    ///
+    /// returns: AnalyticsEngineDataPointBuilder
+    ///
+    /// # Examples
+    ///
+    /// ```
+    ///  use worker::AnalyticsEngineDataPointBuilder;
+    ///  let point = AnalyticsEngineDataPointBuilder::new()
+    ///     .indexes(vec!["index1"].into())
+    ///     .add_double(25)     // double1
+    ///     .add_double(0.5)    // double2
+    ///     .build();
+    ///  println!("{:?}", point);
+    /// ```
+    pub fn add_double(self, double: impl Into<f64>) -> Self {
+        self.doubles.push(&JsValue::from_f64(double.into()));
         self
     }
 
-    pub fn blobs(mut self, blobs: impl Into<Vec<T>>) -> Self {
-        self.blobs = blobs.into();
+    /// Set doubles1-20 with the provide values. This method will remove any doubles previously
+    /// added using the `add_double` method.
+    ///
+    /// # Arguments
+    ///
+    /// * `doubles`: An array of doubles
+    ///
+    /// returns: AnalyticsEngineDataPointBuilder
+    ///
+    /// # Examples
+    ///
+    /// ```
+    ///  use worker::AnalyticsEngineDataPointBuilder;
+    ///  let point = AnalyticsEngineDataPointBuilder::new()
+    ///     .indexes(vec!["index1"].into())
+    ///     .add_double(1) // value will be replaced by the following line
+    ///     .doubles(vec![1, 2, 3].into()) // sets double1, double2 and double3
+    ///     .build();
+    ///  println!("{:?}", point);
+    /// ```
+    pub fn doubles(mut self, doubles: &[f64]) -> Self {
+        let values = Array::new();
+        for n in doubles {
+            values.push(&JsValue::from_f64(*n));
+        }
+        self.doubles = values;
         self
     }
 
-    pub fn build(self) -> AnalyticsEngineDataPoint<T> {
+    /// Adds a blob-like value to the end of the array of blobs.
+    ///
+    /// # Arguments
+    ///
+    /// * `blob`: The blob values that you want to record in your data point
+    ///
+    /// returns: AnalyticsEngineDataPointBuilder
+    ///
+    /// # Examples
+    ///
+    /// ```
+    ///  use worker::AnalyticsEngineDataPointBuilder;
+    ///  let point = AnalyticsEngineDataPointBuilder::new()
+    ///     .indexes(vec!["index1"].into())
+    ///     .add_blob("Seattle")            // blob1
+    ///     .add_blob("USA")                // blob2
+    ///     .add_blob("pro_sensor_9000")    // blob3
+    ///     .build();
+    ///  println!("{:?}", point);
+    /// ```
+    pub fn add_blob(self, blob: impl Into<BlobType>) -> Self {
+        let v = blob.into();
+        self.blobs.push(&v.into());
+        self
+    }
+
+    /// Sets blobs1-20 with the provided array, replacing any values previously stored using `add_blob`.
+    ///
+    /// # Arguments
+    ///
+    /// * `blob`: The blob values that you want to record in your data point
+    ///
+    /// returns: AnalyticsEngineDataPointBuilder
+    ///
+    /// # Examples
+    ///
+    /// ```
+    ///  use worker::AnalyticsEngineDataPointBuilder;
+    ///  let point = AnalyticsEngineDataPointBuilder::new()
+    ///     .indexes(vec!["index1"].into())
+    ///     .blobs(vec!["Seattle", "USA", "pro_sensor_9000"]) // sets blob1, blob2, and blob3
+    ///     .build();
+    ///  println!("{:?}", point);
+    /// ```
+    pub fn blobs(mut self, blobs: Vec<impl Into<BlobType>>) -> Self {
+        let values = Array::new();
+        for blob in blobs {
+            let value = blob.into();
+            values.push(&value.into());
+        }
+        self.blobs = values;
+        self
+    }
+
+    pub fn build(self) -> AnalyticsEngineDataPoint {
         AnalyticsEngineDataPoint {
             indexes: self.indexes,
             doubles: self.doubles,
             blobs: self.blobs,
         }
     }
+
+    /// Write the data point to the provided analytics engine dataset. This is a convenience method
+    /// that can be used in place of a `.build()` followed by a call to `dataset.write_data_point(point)`.
+    ///
+    /// # Arguments
+    ///
+    /// * `dataset`: Analytics engine dataset binding
+    ///
+    /// returns: worker::Result<()>
+    ///
+    /// # Examples
+    ///
+    /// ```
+    ///  use worker::{Env, AnalyticsEngineDataPointBuilder, Response};
+    ///  use std::io::Error;
+    ///
+    ///  fn main(env: Env) -> worker::Result<Response> {
+    ///     let dataset = match env.analytics_engine("HTTP_ANALYTICS") {
+    ///         Ok(dataset) => dataset,
+    ///         Err(err) => return Response::error(format!("Failed to get dataset: {err:?}"), 500),
+    ///     };
+    ///
+    ///     AnalyticsEngineDataPointBuilder::new()
+    ///         .indexes(vec!["index1"].as_slice())
+    ///         .add_blob("GET") // blob1
+    ///         .add_double(200) // double1
+    ///         .write_to(&dataset)?;
+    ///
+    ///     Response::ok("OK")
+    /// }
+    /// ```
+    pub fn write_to(self, dataset: &AnalyticsEngineDataset) -> Result<()> {
+        dataset.write_data_point(&self.build())
+    }
 }
 
 // Implement From for JsValue separately for each type
-impl From<AnalyticsEngineDataPoint<String>> for JsValue {
-    fn from(event: AnalyticsEngineDataPoint<String>) -> Self {
+impl From<AnalyticsEngineDataPoint> for JsValue {
+    fn from(event: AnalyticsEngineDataPoint) -> Self {
         let obj = Object::new();
 
-        let indexes = Array::new();
-        for index in event.indexes {
-            indexes.push(&JsValue::from_str(&index));
-        }
-        js_sys::Reflect::set(&obj, &JsValue::from_str("indexes"), &indexes).unwrap();
-
-        let doubles = Array::new();
-        for double in event.doubles {
-            doubles.push(&JsValue::from_f64(double));
-        }
-        js_sys::Reflect::set(&obj, &JsValue::from_str("doubles"), &doubles).unwrap();
+        js_sys::Reflect::set(&obj, &JsValue::from_str("indexes"), &event.indexes).unwrap();
+        js_sys::Reflect::set(&obj, &JsValue::from_str("doubles"), &event.doubles).unwrap();
 
         let blobs = Array::new();
         for blob in event.blobs {
-            blobs.push(&JsValue::from_str(&blob));
+            blobs.push(&JsValue::from(&blob));
         }
         js_sys::Reflect::set(&obj, &JsValue::from_str("blobs"), &blobs).unwrap();
 
@@ -144,38 +315,7 @@ impl From<AnalyticsEngineDataPoint<String>> for JsValue {
     }
 }
 
-impl From<AnalyticsEngineDataPoint<Vec<u8>>> for JsValue {
-    fn from(event: AnalyticsEngineDataPoint<Vec<u8>>) -> Self {
-        let obj = Object::new();
-
-        let indexes = Array::new();
-        for index in event.indexes {
-            indexes.push(&JsValue::from_str(&index));
-        }
-        js_sys::Reflect::set(&obj, &JsValue::from_str("indexes"), &indexes).unwrap();
-
-        let doubles = Array::new();
-        for double in event.doubles {
-            doubles.push(&JsValue::from_f64(double));
-        }
-        js_sys::Reflect::set(&obj, &JsValue::from_str("doubles"), &doubles).unwrap();
-
-        // An array of u8 arrays.
-        let blobs = Array::new();
-        for blob in event.blobs {
-            let slice = Array::new();
-            for byte in blob {
-                slice.push(&JsValue::from_f64(byte as f64));
-            }
-            blobs.push(&JsValue::from(slice));
-        }
-        js_sys::Reflect::set(&obj, &JsValue::from_str("blobs"), &blobs).unwrap();
-
-        JsValue::from(obj)
-    }
-}
-
-impl<T: BlobType> AnalyticsEngineDataPoint<T> {
+impl AnalyticsEngineDataPoint {
     pub fn to_js_object(&self) -> Result<JsValue>
     where
         Self: Clone,
