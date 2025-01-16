@@ -20,7 +20,7 @@ pub struct GetOptionsBuilder<'bucket> {
     pub(crate) range: Option<Range>,
 }
 
-impl<'bucket> GetOptionsBuilder<'bucket> {
+impl GetOptionsBuilder<'_> {
     /// Specifies that the object should only be returned given satisfaction of certain conditions
     /// in the [R2Conditional]. Refer to [Conditional operations](https://developers.cloudflare.com/r2/runtime-apis/#conditional-operations).
     pub fn only_if(mut self, only_if: Conditional) -> Self {
@@ -174,7 +174,7 @@ pub struct PutOptionsBuilder<'bucket> {
     pub(crate) checksum_algorithm: String,
 }
 
-impl<'bucket> PutOptionsBuilder<'bucket> {
+impl PutOptionsBuilder<'_> {
     /// Various HTTP headers associated with the object. Refer to [HttpMetadata].
     pub fn http_metadata(mut self, metadata: HttpMetadata) -> Self {
         self.http_metadata = Some(metadata);
@@ -265,7 +265,7 @@ pub struct CreateMultipartUploadOptionsBuilder<'bucket> {
     pub(crate) custom_metadata: Option<HashMap<String, String>>,
 }
 
-impl<'bucket> CreateMultipartUploadOptionsBuilder<'bucket> {
+impl CreateMultipartUploadOptionsBuilder<'_> {
     /// Various HTTP headers associated with the object. Refer to [HttpMetadata].
     pub fn http_metadata(mut self, metadata: HttpMetadata) -> Self {
         self.http_metadata = Some(metadata);
@@ -362,7 +362,7 @@ pub struct ListOptionsBuilder<'bucket> {
     pub(crate) include: Option<Vec<Include>>,
 }
 
-impl<'bucket> ListOptionsBuilder<'bucket> {
+impl ListOptionsBuilder<'_> {
     /// The number of results to return. Defaults to 1000, with a maximum of 1000.
     pub fn limit(mut self, limit: u32) -> Self {
         self.limit = Some(limit);
