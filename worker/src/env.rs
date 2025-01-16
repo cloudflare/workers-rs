@@ -4,6 +4,7 @@ use std::fmt::Display;
 use crate::d1::D1Database;
 #[cfg(feature = "queue")]
 use crate::Queue;
+use crate::Vectorize;
 use crate::{durable::ObjectNamespace, Bucket, DynamicDispatcher, Fetcher, Result};
 use crate::{error::Error, hyperdrive::Hyperdrive};
 
@@ -111,6 +112,10 @@ impl Env {
     }
 
     pub fn hyperdrive(&self, binding: &str) -> Result<Hyperdrive> {
+        self.get_binding(binding)
+    }
+
+    pub fn vectorize(&self, binding: &str) -> Result<Vectorize> {
         self.get_binding(binding)
     }
 }
