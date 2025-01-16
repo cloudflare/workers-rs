@@ -61,7 +61,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt clean
-          sudo apt install -y build-essential libssl-dev netcat libc++-dev
+          sudo apt install -y build-essential libssl-dev netcat-traditional libc++-dev
       - name: Install wasmpack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
