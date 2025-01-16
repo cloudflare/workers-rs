@@ -91,10 +91,10 @@ fn expand_struct(struct_name: &Ident, sys_name: &Ident) -> anyhow::Result<syn::I
     Ok(struct_item)
 }
 
-fn expand_from_impl(struct_name: &Ident) -> anyhow::Result<syn::ItemImpl> {
+fn expand_from_impl(struct_name: &Ident, from_type: &syn::Type) -> anyhow::Result<syn::ItemImpl> {
     let impl_raw = quote!(
-        impl From<::worker::Fetcher> for #struct_name {
-            fn from(fetcher: ::worker::Fetcher) -> Self {
+        impl From<#from_type> for #struct_name {
+            fn from(fetcher: #from_type) -> Self {
                 Self(::worker::send::SendWrapper::new(fetcher.into_rpc()))
             }
         }
@@ -222,8 +222,15 @@ fn expand_wit(path: &str) -> anyhow::Result<syn::File> {
             &interface_name,
             &struct_name,
         )?));
-        // From Impl
-        items.push(syn::Item::Impl(expand_from_impl(&struct_name)?));
+        // From Impl for Fetcher and Stub
+        items.push(syn::Item::Impl(expand_from_impl(
+            &struct_name,
+            &syn::parse_str("::worker::Fetcher")?,
+        )?));
+        items.push(syn::Item::Impl(expand_from_impl(
+            &struct_name,
+            &syn::parse_str("::worker::Stub")?,
+        )?));
     }
 
     let rust_file = syn::File {
