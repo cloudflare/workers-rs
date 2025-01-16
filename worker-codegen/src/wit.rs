@@ -117,7 +117,7 @@ fn expand_rpc_impl(
     for (name, method) in &interface.functions {
         println!("\tFound method: '{}'.", name);
         let ident = format_ident!("{}", name.to_case(Case::Snake));
-        let invocation_raw = quote!(self.0.add());
+        let invocation_raw = quote!(self.0.#ident());
         let mut invocation_item: syn::ExprMethodCall = syn::parse2(invocation_raw)?;
         for (arg_name, _) in &method.params {
             let mut segments = syn::punctuated::Punctuated::new();
