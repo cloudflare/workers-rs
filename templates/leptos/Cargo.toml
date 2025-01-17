@@ -17,7 +17,6 @@ crate-type = ["cdylib"]
 axum = { version = "0.7", default-features = false, optional = true }
 console_error_panic_hook = "0.1"
 getrandom = { version = "0.2.15", features = ["js"]}
-leptos = "0.7"
 leptos = { version = "0.7"{% if use_nightly %}, features = ["nightly"]{% endif %} }
 leptos_axum = { version = "0.7", default-features = false, features = ["wasm"], optional = true }
 leptos_meta = { version = "0.7" }
