@@ -5,12 +5,11 @@ use worker::*;
 
 use super::SomeSharedData;
 
-#[durable_object]
+#[DurableObject]
 pub struct AlarmObject {
     state: State,
 }
 
-#[durable_object]
 impl DurableObject for AlarmObject {
     fn new(state: State, _: Env) -> Self {
         Self { state }
