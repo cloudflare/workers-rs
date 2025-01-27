@@ -45,7 +45,7 @@ The project uses [wrangler](https://github.com/cloudflare/workers-sdk/tree/main/
 Use [cargo generate](https://github.com/cargo-generate/cargo-generate) to start from a template:
 
 ```bash
-$ cargo generate cloudflare/workers-rs
+cargo generate cloudflare/workers-rs
 ```
 
 There are several templates to chose from. You should see a new project layout with a `src/lib.rs`. 
