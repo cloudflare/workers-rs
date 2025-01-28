@@ -10,9 +10,19 @@ use crate::{env::EnvBinding, Fetcher, Result};
 /// # Example:
 ///
 /// ```no_run
+/// # use js_sys::Object;
+/// # use wasm_bindgen::JsCast;
+/// # let env: worker::Env = Object::new().unchecked_into();
+/// # tokio_test::block_on(async {
+/// # #[cfg(feature="http")]
+/// # let req = http::Request::get("http://localhost:8080").body(worker::Body::empty())?;
+/// # #[cfg(not(feature="http"))]
+/// # let req = worker::Request::new("http://localhost:8080", worker::Method::Get)?;
 /// let dispatcher = env.dynamic_dispatcher("DISPATCHER")?;
 /// let fetcher = dispatcher.get("namespaced-worker-name")?;
 /// let resp = fetcher.fetch_request(req).await?;
+/// # Ok::<(), worker::Error>(())
+/// # });
 /// ```
 #[derive(Debug, Clone)]
 pub struct DynamicDispatcher(DynamicDispatcherSys);

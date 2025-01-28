@@ -188,3 +188,13 @@ impl From<serde_json::Error> for Error {
         Error::SerdeJsonError(e)
     }
 }
+
+#[cfg(feature = "axum")]
+impl axum::response::IntoResponse for Error {
+    fn into_response(self) -> axum::response::Response<axum::body::Body> {
+        axum::response::Response::builder()
+            .status(500)
+            .body("INTERNAL SERVER ERROR".into())
+            .unwrap()
+    }
+}
