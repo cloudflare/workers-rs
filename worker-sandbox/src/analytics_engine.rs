@@ -16,7 +16,7 @@ pub async fn handle_analytics_event(
     let request_id = Uuid::new_v4();
     // Build the event and write it to analytics engine
     let point = AnalyticsEngineDataPointBuilder::new()
-        .indexes(vec!["index1"].as_slice())
+        .indexes(vec!["index1"])
         .add_blob(req.method().as_ref()) // blob1
         .add_blob(request_id.as_bytes().as_ref()) // blob2
         .add_double(200)
@@ -25,7 +25,7 @@ pub async fn handle_analytics_event(
 
     // Or write it directly from the builder using write_to
     AnalyticsEngineDataPointBuilder::new()
-        .indexes(vec!["index1"].as_slice())
+        .indexes(["index1"])
         .add_blob(req.method().as_ref()) // blob1
         .add_blob(req.method().as_ref()) // blob2
         .add_double(200)

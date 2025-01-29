@@ -99,6 +99,12 @@ impl From<Vec<u8>> for BlobType {
     }
 }
 
+impl<const COUNT: usize> From<&[u8; COUNT]> for BlobType {
+    fn from(value: &[u8; COUNT]) -> Self {
+        BlobType::Blob(value.to_vec())
+    }
+}
+
 #[derive(Clone)]
 pub struct AnalyticsEngineDataPoint {
     indexes: Array,
@@ -137,12 +143,12 @@ impl AnalyticsEngineDataPointBuilder {
     ///  use worker::AnalyticsEngineDataPointBuilder;
     ///
     ///  let data = AnalyticsEngineDataPointBuilder::new()
-    ///     .indexes(vec!["index1"].as_slice())
+    ///     .indexes(["index1"])
     ///     .build();
     /// ```
-    pub fn indexes(mut self, indexes: &[&str]) -> Self {
+    pub fn indexes<'index>(mut self, indexes: impl AsRef<[&'index str]>) -> Self {
         let values = Array::new();
-        for idx in indexes {
+        for idx in indexes.as_ref() {
             values.push(&JsValue::from_str(idx));
         }
         self.indexes = values;
@@ -162,7 +168,7 @@ impl AnalyticsEngineDataPointBuilder {
     /// ```
     ///  use worker::AnalyticsEngineDataPointBuilder;
     ///  let point = AnalyticsEngineDataPointBuilder::new()
-    ///     .indexes(vec!["index1"].into())
+    ///     .indexes(["index1"])
     ///     .add_double(25)     // double1
     ///     .add_double(0.5)    // double2
     ///     .build();
@@ -187,16 +193,16 @@ impl AnalyticsEngineDataPointBuilder {
     /// ```
     ///  use worker::AnalyticsEngineDataPointBuilder;
     ///  let point = AnalyticsEngineDataPointBuilder::new()
-    ///     .indexes(vec!["index1"].into())
+    ///     .indexes(["index1"])
     ///     .add_double(1) // value will be replaced by the following line
-    ///     .doubles(vec![1, 2, 3].into()) // sets double1, double2 and double3
+    ///     .doubles([1, 2, 3]) // sets double1, double2 and double3
     ///     .build();
     ///  println!("{:?}", point);
     /// ```
-    pub fn doubles(mut self, doubles: &[f64]) -> Self {
+    pub fn doubles(mut self, doubles: impl IntoIterator<Item = f64>) -> Self {
         let values = Array::new();
         for n in doubles {
-            values.push(&JsValue::from_f64(*n));
+            values.push(&JsValue::from_f64(n));
         }
         self.doubles = values;
         self
@@ -215,7 +221,7 @@ impl AnalyticsEngineDataPointBuilder {
     /// ```
     ///  use worker::AnalyticsEngineDataPointBuilder;
     ///  let point = AnalyticsEngineDataPointBuilder::new()
-    ///     .indexes(vec!["index1"].into())
+    ///     .indexes(["index1"])
     ///     .add_blob("Seattle")            // blob1
     ///     .add_blob("USA")                // blob2
     ///     .add_blob("pro_sensor_9000")    // blob3
@@ -241,12 +247,12 @@ impl AnalyticsEngineDataPointBuilder {
     /// ```
     ///  use worker::AnalyticsEngineDataPointBuilder;
     ///  let point = AnalyticsEngineDataPointBuilder::new()
-    ///     .indexes(vec!["index1"].into())
-    ///     .blobs(vec!["Seattle", "USA", "pro_sensor_9000"]) // sets blob1, blob2, and blob3
+    ///     .indexes(["index1"])
+    ///     .blobs(["Seattle", "USA", "pro_sensor_9000"]) // sets blob1, blob2, and blob3
     ///     .build();
     ///  println!("{:?}", point);
     /// ```
-    pub fn blobs(mut self, blobs: Vec<impl Into<BlobType>>) -> Self {
+    pub fn blobs(mut self, blobs: impl IntoIterator<Item = impl Into<BlobType>>) -> Self {
         let values = Array::new();
         for blob in blobs {
             let value = blob.into();
