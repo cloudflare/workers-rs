@@ -700,9 +700,9 @@ impl ScheduledTime {
 }
 
 impl From<i64> for ScheduledTime {
-    fn from(offset: i64) -> Self {
+    fn from(millis: i64) -> Self {
         ScheduledTime {
-            init: ScheduledTimeInit::Offset(offset as f64),
+            init: ScheduledTimeInit::Offset(millis as f64),
         }
     }
 }
@@ -718,9 +718,9 @@ impl From<DateTime<Utc>> for ScheduledTime {
 }
 
 impl From<Duration> for ScheduledTime {
-    fn from(offset: Duration) -> Self {
+    fn from(duration: Duration) -> Self {
         ScheduledTime {
-            init: ScheduledTimeInit::Offset(offset.as_millis() as f64),
+            init: ScheduledTimeInit::Offset(duration.as_millis() as f64),
         }
     }
 }
