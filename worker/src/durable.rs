@@ -700,9 +700,9 @@ impl ScheduledTime {
 }
 
 impl From<i64> for ScheduledTime {
-    fn from(millis: i64) -> Self {
+    fn from(in_millis: i64) -> Self {
         ScheduledTime {
-            init: ScheduledTimeInit::Offset(millis as f64),
+            init: ScheduledTimeInit::Offset(in_millis as f64),
         }
     }
 }
