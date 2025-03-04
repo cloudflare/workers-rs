@@ -489,12 +489,12 @@ impl Storage {
         fut.await.map(|_| ()).map_err(Error::from)
     }
 
-    pub async fn transaction<F, Fut>(&self, mut closure: F) -> Result<()>
+    pub async fn transaction<F, Fut>(&self, closure: F) -> Result<()>
     where
-        F: FnMut(Transaction) -> Fut + Copy + 'static,
+        F: FnOnce(Transaction) -> Fut + 'static,
         Fut: Future<Output = Result<()>> + 'static,
     {
-        let inner: Box<dyn FnMut(DurableObjectTransaction) -> js_sys::Promise> =
+        let inner: Box<dyn FnOnce(DurableObjectTransaction) -> js_sys::Promise> =
             Box::new(move |t: DurableObjectTransaction| -> js_sys::Promise {
                 future_to_promise(async move {
                     closure(Transaction { inner: t })
@@ -503,7 +503,7 @@ impl Storage {
                         .map(|_| JsValue::NULL)
                 })
             });
-        let clos = wasm_bindgen::closure::Closure::wrap(inner);
+        let clos = wasm_bindgen::closure::Closure::once(inner);
         JsFuture::from(self.inner.transaction(&clos)?)
             .await
             .map_err(Error::from)
