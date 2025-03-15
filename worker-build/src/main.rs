@@ -187,7 +187,11 @@ fn generate_handlers(out_dir: &Path) -> Result<String> {
   return response;
 }
 ";
-        } else if func_name == "fetch" || func_name == "queue" || func_name == "scheduled" {
+        } else if func_name == "fetch"
+            || func_name == "queue"
+            || func_name == "scheduled"
+            || func_name == "email"
+        {
             // TODO: Switch these over to https://github.com/wasm-bindgen/wasm-bindgen/pull/4757
             // once that lands.
             handlers += &format!(

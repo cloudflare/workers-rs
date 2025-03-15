@@ -174,6 +174,7 @@ pub use crate::date::{Date, DateInit};
 pub use crate::delay::Delay;
 pub use crate::durable::*;
 pub use crate::dynamic_dispatch::*;
+pub use crate::email::*;
 pub use crate::env::{Env, EnvBinding, Secret, Var};
 pub use crate::error::Error;
 pub use crate::fetcher::Fetcher;
