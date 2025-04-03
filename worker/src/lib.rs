@@ -101,22 +101,65 @@
 //! let router = axum::Router::new()
 //!     .route("/", get(handler))
 //! ```
-//!
-//! # RPC Support
+//! 
+//! ## RPC Support
+//! 
 //! `workers-rs` has experimental support for [Workers RPC](https://developers.cloudflare.com/workers/runtime-apis/rpc/).
-//! For now, this relies on JavaScript bindings and may require some manual usage of `wasm-bindgen`.
-//!
+//! 
 //! Not all features of RPC are supported yet (or have not been tested), including:
 //! - Function arguments and return values
 //! - Class instances
 //! - Stub forwarding
-//!
-//! ## RPC Server
-//!
-//! Writing an RPC server with `workers-rs` is relatively simple. Simply export methods using `wasm-bindgen`. These
-//! will be automatically detected by `worker-build` and made available to other Workers. See
-//! [example](https://github.com/cloudflare/workers-rs/tree/main/examples/rpc-server).
-//!
+//! 
+//! ### RPC Server 
+//! 
+//! RPC methods can be exported using a custom `#[rpc]` attribute macro. 
+//! RPC methods must be defined inside an `impl` block annotated with `#[rpc]`, and individual methods must also be marked with `#[rpc]`.
+//! 
+//! When the macro is expanded, it generates:
+//! - A `#[wasm_bindgen]`-annotated struct with `env: worker::Env`
+//! - A constructor function: `#[wasm_bindgen(constructor)] pub fn new(env: Env)`
+//! - A method `#[wasm_bindgen(js_name = "__is_rpc__")] fn is_rpc(&self) -> bool` for RPC auto-discovery
+//! - All methods marked with `#[rpc]` converted into `#[wasm_bindgen]`-annotated exports
+//! 
+//! **RPC method names must be unique across all types.**
+//! 
+//! Due to how the JavaScript shim dynamically attaches RPC methods to the `Entrypoint` prototype, each `#[rpc]` method must have a unique name, 
+//! even if it is defined on a different struct. If two methods share the same name, only one will be registered and the others will be silently skipped or overwritten.
+//! 
+//! 
+//! #### Example
+//! 
+//! ```rust
+//! #[rpc]
+//! impl Rpc {
+//!     #[rpc]
+//!     pub async fn add(&self, a: u32, b: u32) -> u32 {
+//!         a + b
+//!     }
+//! }
+//! ```
+//! 
+//! Expands to:
+//! 
+//! ```rust
+//! #[wasm_bindgen]
+//! pub struct Rpc {
+//!     env: worker::Env,
+//! }
+//! 
+//! #[wasm_bindgen]
+//! impl Rpc {
+//!     #[wasm_bindgen(js_name = "__is_rpc__")]
+//!     pub fn is_rpc(&self) -> bool {
+//!         true
+//!     }
+//!     #[wasm_bindgen(constructor)]
+//!     pub fn new(env: worker::
+//! ```
+//! 
+//! See [example](./examples/rpc-server).
+//! 
 //! ## RPC Client
 //!
 //! Creating types and bindings for invoking another Worker's RPC methods is a bit more involved. You will need to
@@ -157,7 +200,7 @@ pub use wasm_bindgen_futures;
 pub use worker_kv as kv;
 
 pub use cf::{Cf, CfResponseProperties, TlsClientAuth};
-pub use worker_macros::{durable_object, event, send};
+pub use worker_macros::{durable_object, event, send, rpc};
 #[doc(hidden)]
 pub use worker_sys;
 pub use worker_sys::{console_debug, console_error, console_log, console_warn};
@@ -234,6 +277,7 @@ mod socket;
 mod streams;
 mod version;
 mod websocket;
+
 
 pub type Result<T> = StdResult<T, error::Error>;
 

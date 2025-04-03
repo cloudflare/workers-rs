@@ -1,6 +1,7 @@
 mod durable_object;
 mod event;
 mod send;
+mod rpc;
 
 use proc_macro::TokenStream;
 
@@ -85,4 +86,46 @@ pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// ```
 pub fn send(attr: TokenStream, stream: TokenStream) -> TokenStream {
     send::expand_macro(attr, stream)
+}
+
+
+
+
+#[proc_macro_attribute]
+/// Marks an `impl` block and its methods for RPC export to JavaScript (Workers RPC).
+///
+/// This macro generates a `#[wasm_bindgen]`-annotated struct with a constructor that stores the `Env`,
+/// and creates JavaScript-accessible exports for all methods marked with `#[rpc]` inside the block.
+///
+/// The following are added automatically:
+/// - `#[wasm_bindgen] pub struct Rpc { env: worker::Env }`
+/// - `#[wasm_bindgen(constructor)] pub fn new(env: Env) -> Self`
+/// - `#[wasm_bindgen(js_name = "__is_rpc__")] pub fn is_rpc(&self) -> bool`
+///
+/// ## Usage
+///
+/// Apply `#[rpc]` to an `impl` block, and to any individual methods you want exported.
+///
+/// ```rust
+/// #[worker::rpc]
+/// impl Rpc {
+///     #[worker::rpc]
+///     pub async fn add(&self, a: u32, b: u32) -> u32 {
+///         a + b
+///     }
+/// }
+/// ```
+///
+/// This will generate a WASM-exported `Rpc` class usable from JavaScript,
+/// with `add` available as an RPC endpoint.
+///
+/// ## Constraints
+///
+/// - All exported method names **must be unique across the entire Worker**.
+///   The underlying JavaScript shim attaches methods to a single `Entrypoint` prototype.
+///   If two methods share the same name (even from different `impl` blocks), only one will be used.
+/// - Only methods explicitly marked with `#[rpc]` are exported.
+/// - Method bodies are not modified. You can use `self.env` as needed inside methods.
+pub fn rpc(attr: TokenStream, stream: TokenStream) -> TokenStream {
+    rpc::expand_macro(attr, stream)
 }
