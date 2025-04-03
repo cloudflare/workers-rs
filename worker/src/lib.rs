@@ -155,7 +155,15 @@
 //!         true
 //!     }
 //!     #[wasm_bindgen(constructor)]
-//!     pub fn new(env: worker::
+//!     pub fn new(env: worker::Env) -> Self {
+//!         Self { env }
+//!     }
+//! 
+//!     #[wasm_bindgen]
+//!     pub async fn add(&self, a: u32, b: u32) -> u32 {
+//!         a + b
+//!     }
+//! }
 //! ```
 //! 
 //! See [example](./examples/rpc-server).
