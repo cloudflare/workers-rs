@@ -10,7 +10,7 @@
 //! [Learn more](https://developers.cloudflare.com/workers/learning/using-durable-objects) about
 //! using Durable Objects.
 
-use std::{fmt::Display, ops::Deref, time::Duration};
+use std::{convert::Into, fmt::Display, marker::PhantomData, ops::Deref, time::Duration};
 
 use crate::{
     date::Date,
@@ -24,12 +24,13 @@ use crate::{
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use futures_util::Future;
-use js_sys::{Map, Number, Object};
+use js_sys::{IntoIter, Map, Number, Object};
 use serde::{de::DeserializeOwned, Serialize};
 use wasm_bindgen::{prelude::*, JsCast};
 use worker_sys::{
     DurableObject as EdgeDurableObject, DurableObjectId,
-    DurableObjectNamespace as EdgeObjectNamespace, DurableObjectState, DurableObjectStorage,
+    DurableObjectNamespace as EdgeObjectNamespace, DurableObjectSqlStorage,
+    DurableObjectSqlStorageCursor, DurableObjectState, DurableObjectStorage,
     DurableObjectTransaction,
 };
 // use wasm_bindgen_futures::future_to_promise;
@@ -501,6 +502,121 @@ impl Storage {
             .map_err(Error::from)
             .map(|_| ())
     }
+
+    pub fn sql(&self) -> Result<SqlStorage> {
+        let sql = self.inner.sql()?;
+        Ok(SqlStorage { inner: sql })
+    }
+}
+
+pub enum SqlStorageValue {
+    Null,
+    Boolean(bool),
+    Integer(i32),
+    Float(f64),
+    String(String),
+    Blob(Vec<u8>),
+}
+
+impl<T: Into<SqlStorageValue>> From<Option<T>> for SqlStorageValue {
+    fn from(value: Option<T>) -> Self {
+        match value {
+            Some(v) => v.into(),
+            None => SqlStorageValue::Null,
+        }
+    }
+}
+
+impl From<bool> for SqlStorageValue {
+    fn from(value: bool) -> Self {
+        Self::Boolean(value)
+    }
+}
+
+impl From<f64> for SqlStorageValue {
+    fn from(value: f64) -> Self {
+        Self::Float(value)
+    }
+}
+
+impl From<String> for SqlStorageValue {
+    fn from(value: String) -> Self {
+        Self::String(value)
+    }
+}
+
+impl From<Vec<u8>> for SqlStorageValue {
+    fn from(value: Vec<u8>) -> Self {
+        Self::Blob(value)
+    }
+}
+
+impl From<i32> for SqlStorageValue {
+    fn from(value: i32) -> Self {
+        Self::Integer(value)
+    }
+}
+
+impl Into<JsValue> for SqlStorageValue {
+    fn into(self) -> JsValue {
+        match self {
+            SqlStorageValue::Null => JsValue::NULL,
+            SqlStorageValue::Boolean(b) => b.into(),
+            SqlStorageValue::Integer(i) => i.into(),
+            SqlStorageValue::Float(f) => f.into(),
+            SqlStorageValue::String(s) => s.into(),
+            SqlStorageValue::Blob(b) => b.into(),
+        }
+    }
+}
+
+pub struct SqlStorage {
+    inner: DurableObjectSqlStorage,
+}
+
+impl SqlStorage {
+    pub fn exec<T: DeserializeOwned>(
+        &self,
+        query: &str,
+        params: Vec<SqlStorageValue>,
+    ) -> Result<SqlStorageCursor<T>> {
+        let cursor = self
+            .inner
+            .exec(query.into(), params.into_iter().map(Into::into).collect())?;
+        let iter = js_sys::try_iter(&cursor)?;
+        Ok(SqlStorageCursor {
+            inner: cursor,
+            iter,
+            _row_type: PhantomData,
+        })
+    }
+}
+
+pub struct SqlStorageCursor<T: DeserializeOwned> {
+    inner: DurableObjectSqlStorageCursor,
+    iter: Option<IntoIter>,
+    _row_type: PhantomData<T>,
+}
+
+impl<T: DeserializeOwned> SqlStorageCursor<T> {
+    pub fn one(&self) -> Result<T> {
+        self.inner
+            .one()
+            .and_then(|row| serde_wasm_bindgen::from_value(row).map_err(JsValue::from))
+            .map_err(Error::from)
+    }
+}
+
+impl<T: DeserializeOwned> Iterator for SqlStorageCursor<T> {
+    type Item = Result<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let row = self.iter.as_mut()?.next()?;
+        Some(
+            row.and_then(|row| serde_wasm_bindgen::from_value(row).map_err(JsValue::from))
+                .map_err(Error::from),
+        )
+    }
 }
 
 pub struct Transaction {
@@ -515,7 +631,7 @@ impl Transaction {
                 if val.is_undefined() {
                     Err(JsValue::from("No such value in storage."))
                 } else {
-                    serde_wasm_bindgen::from_value(val).map_err(std::convert::Into::into)
+                    serde_wasm_bindgen::from_value(val).map_err(Into::into)
                 }
             })
             .map_err(Error::from)

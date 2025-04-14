@@ -2,12 +2,14 @@ use wasm_bindgen::prelude::*;
 
 mod id;
 mod namespace;
+mod sql_storage;
 mod state;
 mod storage;
 mod transaction;
 
 pub use id::*;
 pub use namespace::*;
+pub use sql_storage::*;
 pub use state::*;
 pub use storage::*;
 pub use transaction::*;
