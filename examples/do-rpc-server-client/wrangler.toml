@@ -1,0 +1,13 @@
+name = "do-rpc-server-client"
+main = "build/worker/shim.mjs"
+compatibility_date = "2025-05-08"
+
+[build]
+command = "cargo install --path ../../worker-build && worker-build --release"
+
+[durable_objects]
+bindings = [{ name = "DO_RPC_SERVER", class_name = "RPCServer" }]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["RPCServer"]
