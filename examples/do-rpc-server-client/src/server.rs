@@ -3,7 +3,6 @@ use worker::*;
 
 #[durable_object]
 pub struct RPCServer {
-    state: State,
     counter: u32,
 }
 
@@ -20,6 +19,6 @@ impl RPCServer {
 #[durable_object]
 impl DurableObject for RPCServer {
     fn new(state: State, _env: Env) -> Self {
-        Self { state, counter: 0 }
+        Self { counter: 0 }
     }
 }
