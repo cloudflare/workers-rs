@@ -2,14 +2,13 @@ use worker::*;
 
 #[durable_object]
 pub struct Server {
-    state: State,
     counter: u32,
 }
 
 #[durable_object]
 impl DurableObject for Server {
     fn new(state: State, _env: Env) -> Self {
-        Self { state, counter: 0 }
+        Self { counter: 0 }
     }
 
     // URL /{left}+{right}
