@@ -16,7 +16,6 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
             let pound = syn::Token![#](imp.span()).to_token_stream();
             let wasm_bindgen_attr = quote! {#pound[wasm_bindgen::prelude::wasm_bindgen]};
 
-
             let struct_name = imp.self_ty;
             let items = imp.items;
             let mut tokenized = vec![];
@@ -278,7 +277,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
             let pound = syn::Token![#](struc.span()).to_token_stream();
             let struct_name = struc.ident;
             Ok(quote! {
-                #pound[wasm_bindgen::prelude::wasm_bindgen]
+                #pound[wasm_bindgen::prelude::wasm_bindgen(extends = worker::worker_sys::DurableObject)]
                 #tokens
 
                 const _: bool = <#struct_name as __Need_Durable_Object_Trait_Impl_With_durable_object_Attribute>::MACROED;
