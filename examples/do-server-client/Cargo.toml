@@ -1,0 +1,23 @@
+[package]
+name = "do-server-client"
+version = "0.1.0"
+edition = "2021"
+authors = ["Alexandre Faria <alexandre.faria@auroka.pt>"]
+
+[package.metadata.release]
+release = false
+
+# https://github.com/rustwasm/wasm-pack/issues/1247
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+worker = { path = "../../worker" }
+worker-macros = { path = "../../worker-macros" }
+console_error_panic_hook = { version = "0.1.1" }
+
+[build-dependencies]
+worker-codegen = { path = "../../worker-codegen" }
