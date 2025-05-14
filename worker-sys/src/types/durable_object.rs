@@ -5,12 +5,14 @@ mod namespace;
 mod state;
 mod storage;
 mod transaction;
+mod sql_storage;
 
 pub use id::*;
 pub use namespace::*;
 pub use state::*;
 pub use storage::*;
 pub use transaction::*;
+pub use sql_storage::*;
 
 #[wasm_bindgen]
 extern "C" {
