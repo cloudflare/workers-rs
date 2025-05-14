@@ -1,6 +1,6 @@
 use crate::{
     alarm, analytics_engine, assets, cache, d1, fetch, form, kv, queue, r2, request, service,
-    socket, user, ws, SomeSharedData, GLOBAL_STATE,
+    socket, sql_counter, user, ws, SomeSharedData, GLOBAL_STATE,
 };
 #[cfg(feature = "http")]
 use std::convert::TryInto;
@@ -231,6 +231,10 @@ pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
             "/durable/auto-response",
             get(handler!(crate::test::auto_response::handle_auto_response)),
         )
+        .route(
+            "/sql-counter/{name}",
+            get(handler!(sql_counter::handle_sql_counter)),
+        )
         .fallback(get(handler!(catchall)))
         .layer(Extension(env))
         .layer(Extension(data))
@@ -245,7 +249,7 @@ pub fn make_router<'a>(data: SomeSharedData) -> Router<'a, SomeSharedData> {
             handler!(analytics_engine::handle_analytics_event),
         )
         .get_async("/async-request", handler!(request::handle_async_request))
-        .get_async("/asset/:name", handler!(assets::handle_asset))
+        .get_async("/asset/{name}", handler!(assets::handle_asset))
         .get_async("/websocket", handler!(ws::handle_websocket))
         .get_async("/got-close-event", handler!(handle_close_event))
         .get_async("/ws-client", handler!(ws::handle_websocket_client))
@@ -374,6 +378,10 @@ pub fn make_router<'a>(data: SomeSharedData) -> Router<'a, SomeSharedData> {
         .get_async(
             "/durable/auto-response",
             handler!(crate::test::auto_response::handle_auto_response),
+        )
+        .get_async(
+            "/sql-counter/:name",
+            handler!(sql_counter::handle_sql_counter),
         )
         .or_else_any_method_async("/*catchall", handler!(catchall))
 }

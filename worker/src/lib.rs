@@ -231,6 +231,7 @@ mod router;
 mod schedule;
 pub mod send;
 mod socket;
+mod sql;
 mod streams;
 mod version;
 mod websocket;
@@ -252,3 +253,5 @@ pub type HttpRequest = ::http::Request<http::body::Body>;
 #[cfg(feature = "http")]
 /// **Requires** `http` feature. Type alias for `http::Response<worker::Body>`.
 pub type HttpResponse = ::http::Response<http::body::Body>;
+
+pub use crate::sql::*;

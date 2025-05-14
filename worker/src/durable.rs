@@ -509,6 +509,11 @@ impl Storage {
             .map_err(Error::from)
             .map(|_| ())
     }
+
+    // Add new method to access SQLite APIs
+    pub fn sql(&self) -> crate::sql::SqlStorage {
+        crate::sql::SqlStorage::new(self.inner.sql())
+    }
 }
 
 pub struct Transaction {

@@ -22,6 +22,7 @@ mod request;
 mod router;
 mod service;
 mod socket;
+mod sql_counter;
 mod test;
 mod user;
 mod utils;
