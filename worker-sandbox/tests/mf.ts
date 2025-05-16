@@ -59,6 +59,7 @@ export const mf = new Miniflare({
       durableObjects: {
         COUNTER: "Counter",
         PUT_RAW_TEST_OBJECT: "PutRawTestObject",
+        AUTO: "AutoResponseObject",
       },
       kvNamespaces: ["SOME_NAMESPACE", "FILE_SIZES", "TEST"],
       serviceBindings: {

@@ -264,6 +264,14 @@ impl State {
     pub fn get_tags(&self, websocket: &WebSocket) -> Vec<String> {
         self.inner.get_tags(websocket.as_ref()).unwrap()
     }
+
+    pub fn set_websocket_auto_response(&self, pair: &worker_sys::WebSocketRequestResponsePair) {
+        self.inner.set_websocket_auto_response(pair).unwrap();
+    }
+
+    pub fn get_websocket_auto_response(&self) -> Option<worker_sys::WebSocketRequestResponsePair> {
+        self.inner.get_websocket_auto_response().unwrap()
+    }
 }
 
 impl From<DurableObjectState> for State {

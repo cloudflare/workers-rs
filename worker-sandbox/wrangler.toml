@@ -29,6 +29,7 @@ bindings = [
     { name = "COUNTER", class_name = "Counter" },
     { name = "ALARM", class_name = "AlarmObject" },
     { name = "PUT_RAW_TEST_OBJECT", class_name = "PutRawTestObject" },
+    { name = "AUTO", class_name = "AutoResponseObject" },
 ]
 
 [[analytics_engine_datasets]]

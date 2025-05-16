@@ -19,6 +19,7 @@ mod socket;
 mod tls_client_auth;
 mod version;
 mod websocket_pair;
+mod websocket_request_response_pair;
 
 pub use ai::*;
 pub use analytics_engine::*;
@@ -41,3 +42,4 @@ pub use socket::*;
 pub use tls_client_auth::*;
 pub use version::*;
 pub use websocket_pair::*;
+pub use websocket_request_response_pair::*;
