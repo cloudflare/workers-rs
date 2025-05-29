@@ -24,13 +24,8 @@ impl SharedDurableObject for SharedCounter {
     async fn fetch(&self, req: Request) -> Result<Response> {
         if !*self.initialized.borrow() {
             *self.initialized.borrow_mut() = true;
-            let count = self
-                .state
-                .borrow()
-                .storage()
-                .get("count")
-                .await
-                .unwrap_or(0);
+            let storage = self.state.borrow().storage();
+            let count = storage.get("count").await.unwrap_or(0);
             *self.count.borrow_mut() = count;
         }
 
@@ -53,11 +48,9 @@ impl SharedDurableObject for SharedCounter {
         TimeoutFuture::new(1_000).await;
 
         *self.count.borrow_mut() += 15;
-        self.state
-            .borrow()
-            .storage()
-            .put("count", *self.count.borrow())
-            .await?;
+        let mut storage = self.state.borrow().storage();
+        let count = *self.count.borrow();
+        storage.put("count", count).await?;
 
         Response::ok(format!(
             "[durable_object]: self.count: {}, secret value: {}",
@@ -79,15 +72,10 @@ impl SharedDurableObject for SharedCounter {
         TimeoutFuture::new(1_000).await;
 
         // get and increment storage by 15
-        let mut count: usize = self
-            .state
-            .borrow()
-            .storage()
-            .get("count")
-            .await
-            .unwrap_or(0);
+        let mut storage = self.state.borrow().storage();
+        let mut count = storage.get("count").await.unwrap_or(0);
         count += 15;
-        self.state.borrow().storage().put("count", count).await?;
+        storage.put("count", count).await?;
         // send value to client
         ws.send_with_str(format!("{}", count))
             .expect("failed to send value to client");

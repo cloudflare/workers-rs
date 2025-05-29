@@ -92,10 +92,8 @@ pub fn expand_macro(tokens: TokenStream, shared: bool) -> syn::Result<TokenStrea
                         // For shared objects, we need to use &self instead of &mut self
                         if shared {
                             // Update the method signature to use &self
-                            if let Some(first_arg) = method.sig.inputs.first_mut() {
-                                if let FnArg::Receiver(receiver) = first_arg {
-                                    receiver.mutability = None; // Remove mut
-                                }
+                            if let Some(FnArg::Receiver(receiver)) = method.sig.inputs.first_mut() {
+                                receiver.mutability = None;
                             }
                         }
 
@@ -127,10 +125,8 @@ pub fn expand_macro(tokens: TokenStream, shared: bool) -> syn::Result<TokenStrea
                         method.vis = Visibility::Inherited;
 
                         if shared {
-                            if let Some(first_arg) = method.sig.inputs.first_mut() {
-                                if let FnArg::Receiver(receiver) = first_arg {
-                                    receiver.mutability = None;
-                                }
+                            if let Some(FnArg::Receiver(receiver)) = method.sig.inputs.first_mut() {
+                                receiver.mutability = None;
                             }
                         }
 
@@ -186,10 +182,8 @@ pub fn expand_macro(tokens: TokenStream, shared: bool) -> syn::Result<TokenStrea
                         method.vis = Visibility::Inherited;
 
                         if shared {
-                            if let Some(first_arg) = method.sig.inputs.first_mut() {
-                                if let FnArg::Receiver(receiver) = first_arg {
-                                    receiver.mutability = None;
-                                }
+                            if let Some(FnArg::Receiver(receiver)) = method.sig.inputs.first_mut() {
+                                receiver.mutability = None;
                             }
                         }
 
@@ -215,10 +209,8 @@ pub fn expand_macro(tokens: TokenStream, shared: bool) -> syn::Result<TokenStrea
                         method.vis = Visibility::Inherited;
 
                         if shared {
-                            if let Some(first_arg) = method.sig.inputs.first_mut() {
-                                if let FnArg::Receiver(receiver) = first_arg {
-                                    receiver.mutability = None;
-                                }
+                            if let Some(FnArg::Receiver(receiver)) = method.sig.inputs.first_mut() {
+                                receiver.mutability = None;
                             }
                         }
 
