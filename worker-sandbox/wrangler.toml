@@ -27,6 +27,7 @@ remote-service = "./remote-service"
 [durable_objects]
 bindings = [
     { name = "COUNTER", class_name = "Counter" },
+    { name = "SHARED_COUNTER", class_name = "SharedCounter" },
     { name = "ALARM", class_name = "AlarmObject" },
     { name = "PUT_RAW_TEST_OBJECT", class_name = "PutRawTestObject" },
 ]

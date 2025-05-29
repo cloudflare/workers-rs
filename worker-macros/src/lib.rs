@@ -6,7 +6,14 @@ use proc_macro::TokenStream;
 
 #[proc_macro_attribute]
 pub fn durable_object(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    durable_object::expand_macro(item.into())
+    durable_object::expand_macro(item.into(), false)
+        .unwrap_or_else(syn::Error::into_compile_error)
+        .into()
+}
+
+#[proc_macro_attribute]
+pub fn shared_durable_object(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    durable_object::expand_macro(item.into(), true)
         .unwrap_or_else(syn::Error::into_compile_error)
         .into()
 }

@@ -54,8 +54,13 @@ pub async fn handle_alarm(_req: Request, env: Env, _data: SomeSharedData) -> Res
 }
 
 #[worker::send]
-pub async fn handle_id(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
-    let namespace = env.durable_object("COUNTER").expect("DAWJKHDAD");
+pub async fn handle_id(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let durable_object_name = if req.path().contains("shared") {
+        "SHARED_COUNTER"
+    } else {
+        "COUNTER"
+    };
+    let namespace = env.durable_object(durable_object_name).expect("DAWJKHDAD");
     let stub = namespace.id_from_name("A")?.get_stub()?;
     // when calling fetch to a Durable Object, a full URL must be used. Alternatively, a
     // compatibility flag can be provided in wrangler.toml to opt-in to older behavior:
@@ -72,7 +77,12 @@ pub async fn handle_put_raw(req: Request, env: Env, _data: SomeSharedData) -> Re
 }
 
 #[worker::send]
-pub async fn handle_websocket(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+pub async fn handle_websocket(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let durable_object_name = if req.path().contains("shared") {
+        "SHARED_COUNTER"
+    } else {
+        "COUNTER"
+    };
     // Accept / handle a websocket connection
     let pair = WebSocketPair::new()?;
     let server = pair.server;
@@ -80,7 +90,7 @@ pub async fn handle_websocket(_req: Request, env: Env, _data: SomeSharedData) ->
 
     // Connect to Durable Object via WS
     let namespace = env
-        .durable_object("COUNTER")
+        .durable_object(durable_object_name)
         .expect("failed to get namespace");
     let stub = namespace.id_from_name("A")?.get_stub()?;
     let mut req = Request::new("https://fake-host/ws", Method::Get)?;
