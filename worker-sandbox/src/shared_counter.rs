@@ -46,10 +46,8 @@ impl SharedDurableObject for SharedCounter {
         TimeoutFuture::new(1_000).await;
 
         *self.count.borrow_mut() += 15;
-        self.state
-            .storage()
-            .put("count", *self.count.borrow())
-            .await?;
+        let count = *self.count.borrow();
+        self.state.storage().put("count", count).await?;
 
         Response::ok(format!(
             "[durable_object]: self.count: {}, secret value: {}",
