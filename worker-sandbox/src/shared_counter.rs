@@ -5,7 +5,7 @@ use worker::*;
 #[shared_durable_object]
 pub struct SharedCounter {
     count: RefCell<usize>,
-    state: RefCell<State>,
+    state: State,
     initialized: RefCell<bool>,
     env: Env,
 }
@@ -16,7 +16,7 @@ impl SharedDurableObject for SharedCounter {
         Self {
             count: RefCell::new(0),
             initialized: RefCell::new(false),
-            state: RefCell::new(state),
+            state,
             env,
         }
     }
@@ -24,16 +24,14 @@ impl SharedDurableObject for SharedCounter {
     async fn fetch(&self, req: Request) -> Result<Response> {
         if !*self.initialized.borrow() {
             *self.initialized.borrow_mut() = true;
-            let storage = self.state.borrow().storage();
-            let count = storage.get("count").await.unwrap_or(0);
-            *self.count.borrow_mut() = count;
+            *self.count.borrow_mut() = self.state.storage().get("count").await.unwrap_or(0);
         }
 
         if req.path().eq("/ws") {
             let pair = WebSocketPair::new()?;
             let server = pair.server;
             // accept websocket with hibernation api
-            self.state.borrow().accept_web_socket(&server);
+            self.state.accept_web_socket(&server);
             server
                 .serialize_attachment("hello")
                 .expect("failed to serialize attachment");
@@ -48,9 +46,10 @@ impl SharedDurableObject for SharedCounter {
         TimeoutFuture::new(1_000).await;
 
         *self.count.borrow_mut() += 15;
-        let mut storage = self.state.borrow().storage();
-        let count = *self.count.borrow();
-        storage.put("count", count).await?;
+        self.state
+            .storage()
+            .put("count", *self.count.borrow())
+            .await?;
 
         Response::ok(format!(
             "[durable_object]: self.count: {}, secret value: {}",
@@ -72,10 +71,9 @@ impl SharedDurableObject for SharedCounter {
         TimeoutFuture::new(1_000).await;
 
         // get and increment storage by 15
-        let mut storage = self.state.borrow().storage();
-        let mut count = storage.get("count").await.unwrap_or(0);
+        let mut count = self.state.storage().get("count").await.unwrap_or(0);
         count += 15;
-        storage.put("count", count).await?;
+        self.state.storage().put("count", count).await?;
         // send value to client
         ws.send_with_str(format!("{}", count))
             .expect("failed to send value to client");
