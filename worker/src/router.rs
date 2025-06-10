@@ -173,6 +173,12 @@ impl<'a, D: 'a> Router<'a, D> {
         self
     }
 
+    /// Register an HTTP handler that will exclusively respond to REPORT requests.
+    pub fn report(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
+        self.add_handler(pattern, Handler::Sync(func), vec![Method::Report]);
+        self
+    }
+
     /// Register an HTTP handler that will respond to any requests.
     pub fn on(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
         self.add_handler(pattern, Handler::Sync(func), Method::all());
