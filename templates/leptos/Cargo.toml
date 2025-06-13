@@ -2,7 +2,7 @@
 name = "{{project-name}}"
 version = "0.1.0"
 edition = "2021"
-authors = [ "{{authors}}" ]
+authors = ["{{authors}}"]
 
 [profile.release]
 opt-level = "s"   # optimize for size in release builds
@@ -32,11 +32,11 @@ ssr = [
   "dep:leptos_axum",
   "dep:worker",
   "leptos/ssr",
-  "leptos_meta/ssr",
   "leptos_router/ssr",
 ]
 
 [package.metadata.leptos]
+wasm-validation = false
 # The name used by wasm-bindgen/cargo-leptos for the JS/WASM bundle. Defaults to the crate name
 output-name = "{{project-name}}"
 

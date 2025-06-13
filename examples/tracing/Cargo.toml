@@ -14,8 +14,8 @@ wasm-opt = false
 crate-type = ["cdylib"]
 
 [dependencies]
-worker = { workspace=true }
+worker = { workspace = true }
 tracing = "0.1"
 tracing-web = "0.1"
-tracing-subscriber = { version = "0.3", features=['time', 'json'] }
-time = { version = "0.3", features=['wasm-bindgen'] }
+tracing-subscriber = { version = "0.3", features = ['time', 'json'] }
+time = { version = "0.3", features = ['wasm-bindgen'] }

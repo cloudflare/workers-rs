@@ -74,7 +74,8 @@ fn download_esbuild(writer: &mut impl Write) -> Result<()> {
         platform()
     );
 
-    let body = ureq::get(&esbuild_url).call()?.into_reader();
+    let mut res = ureq::get(&esbuild_url).call()?;
+    let body = res.body_mut().as_reader();
     let deflater = GzDecoder::new(body);
     let mut archive = tar::Archive::new(deflater);
 
