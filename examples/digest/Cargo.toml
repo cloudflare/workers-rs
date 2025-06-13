@@ -14,5 +14,5 @@ wasm-opt = false
 crate-type = ["cdylib"]
 
 [dependencies]
-worker = { workspace=true }
-hex = "0.4.3"
+worker = { workspace = true }
+hex = "0.4"

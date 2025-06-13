@@ -1,4 +1,4 @@
-use leptos::*;
+use leptos::prelude::*;
 
 use crate::components::show_data_from_api::ShowDataFromApi;
 
