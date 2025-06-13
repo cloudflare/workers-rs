@@ -31,6 +31,10 @@ bindings = [
     { name = "PUT_RAW_TEST_OBJECT", class_name = "PutRawTestObject" },
 ]
 
+[[analytics_engine_datasets]]
+dataset = "http"
+binding = "HTTP_ANALYTICS"
+
 [[d1_databases]]
 binding = 'DB'
 database_name = 'my_db'
@@ -62,6 +66,7 @@ preview_bucket_name = 'seeded_bucket'
 binding = 'DELETE_BUCKET'
 bucket_name = 'delete_bucket'
 preview_bucket_name = 'delete_bucket'
+
 
 [build]
 command = "worker-build --release"
