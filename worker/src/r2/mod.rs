@@ -281,7 +281,7 @@ pub struct ObjectBody<'body> {
     inner: &'body EdgeR2ObjectBody,
 }
 
-impl<'body> ObjectBody<'body> {
+impl ObjectBody<'_> {
     /// Reads the data in the [Object] via a [ByteStream].
     pub fn stream(self) -> Result<ByteStream> {
         if self.inner.body_used()? {

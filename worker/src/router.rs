@@ -113,7 +113,7 @@ impl<D> RouteContext<D> {
     }
 }
 
-impl<'a> Router<'a, ()> {
+impl Router<'_, ()> {
     /// Construct a new `Router`. Or, call `Router::with_data(D)` to add arbitrary data that will be
     /// available to your various routes.
     pub fn new() -> Self {
@@ -170,6 +170,12 @@ impl<'a, D: 'a> Router<'a, D> {
     /// Register an HTTP handler that will exclusively respond to OPTIONS requests.
     pub fn options(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
         self.add_handler(pattern, Handler::Sync(func), vec![Method::Options]);
+        self
+    }
+
+    /// Register an HTTP handler that will exclusively respond to REPORT requests.
+    pub fn report(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
+        self.add_handler(pattern, Handler::Sync(func), vec![Method::Report]);
         self
     }
 
