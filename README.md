@@ -389,7 +389,7 @@ In order to test your Rust worker locally, the best approach is to use
 [Miniflare](https://github.com/cloudflare/miniflare). However, because Miniflare
 is a Node package, you will need to write your end-to-end tests in JavaScript or
 TypeScript in your project. The official documentation for writing tests using
-Miniflare is [available here](https://miniflare.dev/testing). This documentation
+Miniflare is [available here](https://miniflare.dev). This documentation
 being focused on JavaScript / TypeScript codebase, you will need to configure
 as follows to make it work with your Rust-based, WASM-generated worker:
 
