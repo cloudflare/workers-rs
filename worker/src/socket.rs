@@ -1,6 +1,5 @@
 use std::{
     convert::TryFrom,
-    io::ErrorKind,
     pin::Pin,
     task::{Context, Poll},
 };
@@ -150,7 +149,7 @@ fn js_value_to_std_io_error(value: JsValue) -> IoError {
     } else {
         format!("Error interpreting JsError: {:?}", value)
     };
-    IoError::new(ErrorKind::Other, s)
+    IoError::other(s)
 }
 impl AsyncRead for Socket {
     fn poll_read(
@@ -173,10 +172,7 @@ impl AsyncRead for Socket {
                             Ok(value) => value.into(),
                             Err(error) => {
                                 let msg = format!("Unable to interpret field 'done' in ReadableStreamDefaultReader.read(): {:?}", error);
-                                return (
-                                    Reading::None,
-                                    Poll::Ready(Err(IoError::new(ErrorKind::Other, msg))),
-                                );
+                                return (Reading::None, Poll::Ready(Err(IoError::other(msg))));
                             }
                         };
                         if done.is_truthy() {
@@ -189,10 +185,7 @@ impl AsyncRead for Socket {
                                 Ok(value) => value.into(),
                                 Err(error) => {
                                     let msg = format!("Unable to interpret field 'value' in ReadableStreamDefaultReader.read(): {:?}", error);
-                                    return (
-                                        Reading::None,
-                                        Poll::Ready(Err(IoError::new(ErrorKind::Other, msg))),
-                                    );
+                                    return (Reading::None, Poll::Ready(Err(IoError::other(msg))));
                                 }
                             };
                             let data = arr.to_vec();
@@ -214,7 +207,7 @@ impl AsyncRead for Socket {
                                 "Unable to cast JsObject to ReadableStreamDefaultReader: {:?}",
                                 error
                             );
-                            return Poll::Ready(Err(IoError::new(ErrorKind::Other, msg)));
+                            return Poll::Ready(Err(IoError::other(msg)));
                         }
                     };
 
@@ -241,7 +234,7 @@ impl AsyncWrite for Socket {
                     Ok(writer) => writer,
                     Err(error) => {
                         let msg = format!("Could not retrieve Writer: {:?}", error);
-                        return Poll::Ready(Err(IoError::new(ErrorKind::Other, msg)));
+                        return Poll::Ready(Err(IoError::other(msg)));
                     }
                 };
                 Self::handle_write_future(
