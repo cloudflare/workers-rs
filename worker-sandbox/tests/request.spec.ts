@@ -108,7 +108,7 @@ test("fetch json", async () => {
 
 test("proxy request", async () => {
   const resp = await mf.dispatchFetch(
-    "https://fake.host/proxy_request/https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding/contributors.txt"
+    "https://fake.host/proxy_request/https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Encoding/contributors.txt"
   );
   expect(resp.status).toBe(200);
 });
