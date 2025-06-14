@@ -2,6 +2,8 @@ use wasm_bindgen::prelude::*;
 
 use crate::types::DurableObjectTransaction;
 
+use super::DurableObjectSqlStorage;
+
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(extends=js_sys::Object)]
@@ -74,4 +76,7 @@ extern "C" {
         this: &DurableObjectStorage,
         options: js_sys::Object,
     ) -> Result<js_sys::Promise, JsValue>;
+
+    #[wasm_bindgen(method, catch, js_name=sql, getter)]
+    pub fn sql(this: &DurableObjectStorage) -> Result<DurableObjectSqlStorage, JsValue>;
 }
