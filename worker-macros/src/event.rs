@@ -12,6 +12,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
         Start,
         #[cfg(feature = "queue")]
         Queue,
+        Email,
     }
     use HandlerType::*;
 
@@ -25,6 +26,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             "start" => handler_type = Some(Start),
             #[cfg(feature = "queue")]
             "queue" => handler_type = Some(Queue),
+            "email" => handler_type = Some(Email),
             "respond_with_errors" => {
                 respond_with_errors = true;
             }
@@ -32,7 +34,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     }
     let handler_type = handler_type.expect(
-        "must have either 'fetch', 'scheduled', 'queue' or 'start' attribute, e.g. #[event(fetch)]",
+        "must have either 'fetch', 'scheduled', 'queue', 'email', or 'start' attribute, e.g. #[event(fetch)]",
     );
 
     // create new var using syn item of the attributed fn
@@ -213,6 +215,43 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             };
 
+            TokenStream::from(output)
+        }
+        Email => {
+            let input_fn_ident = Ident::new(
+                &(input_fn.sig.ident.to_string() + "_email_glue"),
+                input_fn.sig.ident.span(),
+            );
+            let wrapper_fn_ident = Ident::new("email", input_fn.sig.ident.span());
+            // rename the original attributed fn
+            input_fn.sig.ident = input_fn_ident.clone();
+
+            let wrapper_fn = quote! {
+                pub async fn #wrapper_fn_ident(message: ::worker::worker_sys::EmailMessage, env: ::worker::Env, ctx: ::worker::worker_sys::Context) {
+                    // call the original fn
+                    let ctx = worker::Context::new(ctx);
+                    match #input_fn_ident(::worker::EmailMessage { inner: message }, env, ctx).await {
+                        Ok(()) => {},
+                        Err(e) => {
+                            ::worker::console_log!("{}", &e);
+                            panic!("{}", e);
+                        }
+                    }
+                }
+            };
+            let wasm_bindgen_code =
+                wasm_bindgen_macro_support::expand(TokenStream::new().into(), wrapper_fn)
+                    .expect("wasm_bindgen macro failed to expand");
+
+            let output = quote! {
+                #input_fn
+
+                mod _worker_email {
+                    use ::worker::{wasm_bindgen, wasm_bindgen_futures};
+                    use super::#input_fn_ident;
+                    #wasm_bindgen_code
+                }
+            };
             TokenStream::from(output)
         }
     }
