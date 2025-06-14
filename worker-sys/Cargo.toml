@@ -13,7 +13,7 @@ wasm-bindgen.workspace = true
 cfg-if = "1.0.1"
 
 [dependencies.web-sys]
-version = ">=0.3.70"
+version = "0.3.70"
 features = [
     "ReadableStream",
     "WritableStream",
