@@ -12,7 +12,7 @@ Read the [Notes and FAQ](#notes-and-faq)
 use worker::*;
 
 #[event(fetch)]
-pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
+pub async fn main(mut req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
     console_log!(
         "{} {}, located at: {:?}, within: {}",
         req.method().to_string(),
