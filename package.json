@@ -18,7 +18,7 @@
     "@types/uuid": "^9.0.2",
     "miniflare": "^3.20241230.0",
     "typescript": "^5.1.6",
-    "undici": "^5.28.4",
+    "undici": "^5.29.0",
     "uuid": "^9.0.0",
     "vitest": "^2.1.8"
   },
