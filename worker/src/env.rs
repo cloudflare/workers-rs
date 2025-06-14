@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+use crate::analytics_engine::AnalyticsEngineDataset;
 #[cfg(feature = "d1")]
 use crate::d1::D1Database;
 #[cfg(feature = "queue")]
@@ -41,6 +42,10 @@ impl Env {
 
     pub fn ai(&self, binding: &str) -> Result<Ai> {
         self.get_binding::<Ai>(binding)
+    }
+
+    pub fn analytics_engine(&self, binding: &str) -> Result<AnalyticsEngineDataset> {
+        self.get_binding::<AnalyticsEngineDataset>(binding)
     }
 
     /// Access Secret value bindings added to your Worker via the UI or `wrangler`:

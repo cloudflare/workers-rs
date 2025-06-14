@@ -1,6 +1,6 @@
 use crate::{
-    alarm, assets, cache, d1, fetch, form, kv, queue, r2, request, service, socket, user, ws,
-    SomeSharedData, GLOBAL_STATE,
+    alarm, analytics_engine, assets, cache, d1, fetch, form, kv, queue, r2, request, service,
+    socket, user, ws, SomeSharedData, GLOBAL_STATE,
 };
 #[cfg(feature = "http")]
 use std::convert::TryInto;
@@ -220,6 +220,10 @@ pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
             get(handler!(socket::handle_socket_failed)),
         )
         .route("/socket/read", get(handler!(socket::handle_socket_read)))
+        .route(
+            "/analytics-engine",
+            get(handler!(analytics_engine::handle_analytics_event)),
+        )
         .fallback(get(handler!(catchall)))
         .layer(Extension(env))
         .layer(Extension(data))
@@ -229,6 +233,10 @@ pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
 pub fn make_router<'a>(data: SomeSharedData) -> Router<'a, SomeSharedData> {
     Router::with_data(data)
         .get("/request", handler_sync!(request::handle_a_request)) // can pass a fn pointer to keep routes tidy
+        .get_async(
+            "/analytics-engine",
+            handler!(analytics_engine::handle_analytics_event),
+        )
         .get_async("/async-request", handler!(request::handle_async_request))
         .get_async("/asset/:name", handler!(assets::handle_asset))
         .get_async("/websocket", handler!(ws::handle_websocket))

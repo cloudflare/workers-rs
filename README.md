@@ -389,7 +389,7 @@ In order to test your Rust worker locally, the best approach is to use
 [Miniflare](https://github.com/cloudflare/miniflare). However, because Miniflare
 is a Node package, you will need to write your end-to-end tests in JavaScript or
 TypeScript in your project. The official documentation for writing tests using
-Miniflare is [available here](https://miniflare.dev/testing). This documentation
+Miniflare is [available here](https://miniflare.dev). This documentation
 being focused on JavaScript / TypeScript codebase, you will need to configure
 as follows to make it work with your Rust-based, WASM-generated worker:
 
@@ -505,7 +505,7 @@ please [take a look](https://www.cloudflare.com/careers/).
 1. Can I deploy a Worker that uses `tokio` or `async_std` runtimes?
 
 - Currently no. All crates in your Worker project must compile to `wasm32-unknown-unknown` target,
-  which is more limited in some ways than targets for x86 and ARM64.
+  which is more limited in some ways than targets for x86 and ARM64. However, you should still be able to use runtime-agnostic primitives from those crates such as those from [tokio::sync](https://docs.rs/tokio/latest/tokio/sync/index.html#runtime-compatibility).
 
 2. The `worker` crate doesn't have _X_! Why not?
 
