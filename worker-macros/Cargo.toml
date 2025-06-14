@@ -16,7 +16,7 @@ async-trait.workspace = true
 wasm-bindgen.workspace = true
 wasm-bindgen-futures.workspace = true
 wasm-bindgen-macro-support.workspace = true
-worker-sys = { path = "../worker-sys", version = "0.5.0" }
+worker-sys.workspace = true
 syn = "2.0.17"
 proc-macro2 = "1.0.60"
 quote = "1.0.28"

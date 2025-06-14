@@ -14,8 +14,8 @@ wasm-opt = false
 crate-type = ["cdylib"]
 
 [dependencies]
-worker = { path="../../worker" }
-console_error_panic_hook = { version = "0.1.1" }
+worker = { path = "../../worker" }
+console_error_panic_hook = { version = "0.1.7" }
 
 # TODO: Remove the need for these
 async-trait = "0.1"

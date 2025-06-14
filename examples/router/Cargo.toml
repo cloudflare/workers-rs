@@ -14,8 +14,8 @@ wasm-opt = false
 crate-type = ["cdylib"]
 
 [dependencies]
-serde = "1.0.188"
-worker = { workspace=true }
+serde = "1"
+worker = { workspace = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
