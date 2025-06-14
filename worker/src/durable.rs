@@ -846,3 +846,40 @@ pub trait DurableObject {
         unimplemented!("websocket_error() handler not implemented")
     }
 }
+
+#[async_trait(?Send)]
+pub trait SharedDurableObject {
+    fn new(state: State, env: Env) -> Self;
+
+    async fn fetch(&self, req: Request) -> Result<Response>;
+
+    #[allow(clippy::diverging_sub_expression)]
+    async fn alarm(&self) -> Result<Response> {
+        unimplemented!("alarm() handler not implemented")
+    }
+
+    #[allow(unused_variables, clippy::diverging_sub_expression)]
+    async fn websocket_message(
+        &self,
+        ws: WebSocket,
+        message: WebSocketIncomingMessage,
+    ) -> Result<()> {
+        unimplemented!("websocket_message() handler not implemented")
+    }
+
+    #[allow(unused_variables, clippy::diverging_sub_expression)]
+    async fn websocket_close(
+        &self,
+        ws: WebSocket,
+        code: usize,
+        reason: String,
+        was_clean: bool,
+    ) -> Result<()> {
+        unimplemented!("websocket_close() handler not implemented")
+    }
+
+    #[allow(unused_variables, clippy::diverging_sub_expression)]
+    async fn websocket_error(&self, ws: WebSocket, error: Error) -> Result<()> {
+        unimplemented!("websocket_error() handler not implemented")
+    }
+}

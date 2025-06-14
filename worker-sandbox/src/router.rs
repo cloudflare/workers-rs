@@ -109,6 +109,11 @@ pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
         .route("/durable/:id", get(handler!(alarm::handle_id)))
         .route("/durable/put-raw", get(handler!(alarm::handle_put_raw)))
         .route("/durable/websocket", get(handler!(alarm::handle_websocket)))
+        .route("/durable-shared/:id", get(handler!(alarm::handle_id)))
+        .route(
+            "/durable-shared/websocket",
+            get(handler!(alarm::handle_websocket)),
+        )
         .route("/var", get(handler!(request::handle_var)))
         .route("/object-var", get(handler!(request::handle_object_var)))
         .route("/secret", get(handler!(request::handle_secret)))
@@ -277,6 +282,11 @@ pub fn make_router<'a>(data: SomeSharedData) -> Router<'a, SomeSharedData> {
         .get_async("/durable/:id", handler!(alarm::handle_id))
         .get_async("/durable/put-raw", handler!(alarm::handle_put_raw))
         .get_async("/durable/websocket", handler!(alarm::handle_websocket))
+        .get_async("/durable-shared/:id", handler!(alarm::handle_id))
+        .get_async(
+            "/durable-shared/websocket",
+            handler!(alarm::handle_websocket),
+        )
         .get_async("/secret", handler!(request::handle_secret))
         .get_async("/var", handler!(request::handle_var))
         .get_async("/object-var", handler!(request::handle_object_var))

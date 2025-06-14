@@ -21,6 +21,7 @@ mod r2;
 mod request;
 mod router;
 mod service;
+mod shared_counter;
 mod socket;
 mod test;
 mod user;

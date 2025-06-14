@@ -44,3 +44,41 @@ describe("durable", () => {
   });
 });
 
+describe("durable-shared", () => {
+  test("websocket-to-durable", async () => {
+    const resp = await mf.dispatchFetch("http://fake.host/durable-shared/websocket", {
+      headers: {
+        upgrade: "websocket",
+      },
+    });
+    expect(resp.webSocket).not.toBeNull();
+
+    const socket = resp.webSocket!;
+    socket.accept();
+
+    const handlers = {
+      messageHandler: (event: MessageEvent) => {
+        expect(Number(event.data) % 15).toBe(0);
+      },
+      close(event: CloseEvent) {},
+    };
+
+    const messageHandlerWrapper = vi.spyOn(handlers, "messageHandler");
+    const closeHandlerWrapper = vi.spyOn(handlers, "messageHandler");
+    socket.addEventListener("message", handlers.messageHandler);
+    socket.addEventListener("close", handlers.close);
+
+    for (let i = 0; i < 10; i++) {
+      socket.send("hi, can you ++?");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    expect(messageHandlerWrapper).toHaveBeenCalledTimes(10);
+
+    socket.send("hi again, more ++?");
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    expect(messageHandlerWrapper).toHaveBeenCalledTimes(11);
+
+    socket.close();
+    expect(closeHandlerWrapper).toBeCalled();
+  });
+});
