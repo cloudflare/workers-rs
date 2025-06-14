@@ -207,13 +207,13 @@ pub trait D1Argument {
     fn js_value(&self) -> impl AsRef<JsValue>;
 }
 
-impl<'a> D1Argument for D1Type<'a> {
+impl D1Argument for D1Type<'_> {
     fn js_value(&self) -> impl AsRef<JsValue> {
         Into::<JsValue>::into(self)
     }
 }
 
-impl<'a> D1Argument for D1PreparedArgument<'a> {
+impl D1Argument for D1PreparedArgument<'_> {
     fn js_value(&self) -> impl AsRef<JsValue> {
         &self.js_value
     }

@@ -6,7 +6,10 @@ use std::sync::{
 #[cfg(feature = "http")]
 use tower_service::Service;
 use worker::*;
+
 mod alarm;
+mod analytics_engine;
+mod assets;
 mod cache;
 mod counter;
 mod d1;

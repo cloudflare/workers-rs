@@ -57,6 +57,10 @@ impl Stub {
         let response = JsFuture::from(promise).await?;
         Ok(response.dyn_into::<web_sys::Response>()?.into())
     }
+
+    pub fn into_rpc<T: JsCast>(self) -> T {
+        self.inner.unchecked_into()
+    }
 }
 
 /// Use an ObjectNamespace to get access to Stubs for communication with a Durable Object instance.

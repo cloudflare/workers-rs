@@ -1,9 +1,8 @@
 //! Arguments are forwarded directly to wasm-pack
 
 use std::{
-    convert::TryInto,
     env::{self, VarError},
-    fs::{self, File},
+    fs::{self, read_to_string, File},
     io::{Read, Write},
     path::{Path, PathBuf},
     process::{Command, Stdio},
@@ -19,21 +18,6 @@ const OUT_NAME: &str = "index";
 const WORKER_SUBDIR: &str = "worker";
 
 const SHIM_TEMPLATE: &str = include_str!("./js/shim.js");
-
-const WASM_IMPORT: &str = r#"let wasm;
-export function __wbg_set_wasm(val) {
-    wasm = val;
-}
-
-"#;
-
-const WASM_IMPORT_REPLACEMENT: &str = r#"
-import wasm from './glue.js';
-
-export function getMemory() {
-    return wasm.memory;
-}
-"#;
 
 mod install;
 
@@ -53,13 +37,21 @@ pub fn main() -> Result<()> {
 
     create_worker_dir()?;
     copy_generated_code_to_worker_dir()?;
-    use_glue_import()?;
 
-    write_string_to_file(worker_path("glue.js"), include_str!("./js/glue.js"))?;
+    let shim_template = match env::var("CUSTOM_SHIM") {
+        Ok(path) => {
+            let path = Path::new(&path).to_owned();
+            println!("Using custom shim from {}", path.display());
+            // NOTE: we fail in case that file doesnt exist or something else happens
+            read_to_string(path)?
+        }
+        Err(_) => SHIM_TEMPLATE.to_owned(),
+    };
+
     let shim = if env::var("RUN_TO_COMPLETION").is_ok() {
-        SHIM_TEMPLATE.replace("$WAIT_UNTIL_RESPONSE", "this.ctx.waitUntil(response);")
+        shim_template.replace("$WAIT_UNTIL_RESPONSE", "this.ctx.waitUntil(response);")
     } else {
-        SHIM_TEMPLATE.replace("$WAIT_UNTIL_RESPONSE", "")
+        shim_template.replace("$WAIT_UNTIL_RESPONSE", "")
     };
 
     write_string_to_file(worker_path("shim.js"), shim)?;
@@ -220,15 +212,6 @@ fn copy_generated_code_to_worker_dir() -> Result<()> {
     Ok(())
 }
 
-// Replaces the wasm import with an import that instantiates the WASM modules itself.
-fn use_glue_import() -> Result<()> {
-    let bindgen_glue_path = worker_path(format!("{OUT_NAME}_bg.js"));
-    let old_bindgen_glue = read_file_to_string(&bindgen_glue_path)?;
-    let fixed_bindgen_glue = old_bindgen_glue.replace(WASM_IMPORT, WASM_IMPORT_REPLACEMENT);
-    write_string_to_file(bindgen_glue_path, fixed_bindgen_glue)?;
-    Ok(())
-}
-
 // Bundles the snippets and worker-related code into a single file.
 fn bundle(esbuild_path: &Path) -> Result<()> {
     let no_minify = !matches!(env::var("NO_MINIFY"), Err(VarError::NotPresent));
@@ -266,23 +249,10 @@ fn remove_unused_js() -> Result<()> {
         std::fs::remove_dir_all(&snippets_dir)?;
     }
 
-    for to_remove in [
-        format!("{OUT_NAME}_bg.js"),
-        "shim.js".into(),
-        "glue.js".into(),
-    ] {
-        std::fs::remove_file(worker_path(to_remove))?;
-    }
+    std::fs::remove_file(worker_path(format!("{OUT_NAME}_bg.js")))?;
+    std::fs::remove_file(worker_path("shim.js"))?;
 
     Ok(())
-}
-
-fn read_file_to_string<P: AsRef<Path>>(path: P) -> Result<String> {
-    let file_size = path.as_ref().metadata()?.len().try_into()?;
-    let mut file = File::open(path)?;
-    let mut buf = Vec::with_capacity(file_size);
-    file.read_to_end(&mut buf)?;
-    String::from_utf8(buf).map_err(anyhow::Error::from)
 }
 
 fn write_string_to_file<P: AsRef<Path>>(path: P, contents: impl AsRef<str>) -> Result<()> {

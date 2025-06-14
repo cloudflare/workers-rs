@@ -33,46 +33,70 @@ mockAgent
   );
 
 export const mf = new Miniflare({
-  scriptPath: "./build/worker/shim.mjs",
-  compatibilityDate: "2023-05-18",
-  cache: true,
-  cachePersist: false,
-  d1Databases: ["DB"],
   d1Persist: false,
   kvPersist: false,
   r2Persist: false,
-  modules: true,
-  modulesRules: [
-    { type: "CompiledWasm", include: ["**/*.wasm"], fallthrough: true },
-  ],
-  bindings: {
-    EXAMPLE_SECRET: "example",
-    SOME_SECRET: "secret!",
-  },
-  durableObjects: {
-    COUNTER: "Counter",
-    PUT_RAW_TEST_OBJECT: "PutRawTestObject",
-  },
-  kvNamespaces: ["SOME_NAMESPACE", "FILE_SIZES", "TEST"],
-  serviceBindings: {
-    async remote() {
-      return new Response("hello world");
+  cachePersist: false,
+  workers: [
+    {
+      scriptPath: "./build/worker/shim.mjs",
+      compatibilityDate: "2023-05-18",
+      cache: true,
+      d1Databases: ["DB"],
+      modules: true,
+      modulesRules: [
+        { type: "CompiledWasm", include: ["**/*.wasm"], fallthrough: true },
+      ],
+      bindings: {
+        EXAMPLE_SECRET: "example",
+        SOME_SECRET: "secret!",
+        SOME_VARIABLE: "some value",
+        SOME_OBJECT_VARIABLE: {
+          foo: 42,
+          bar: "string"
+        },
+      },
+      durableObjects: {
+        COUNTER: "Counter",
+        PUT_RAW_TEST_OBJECT: "PutRawTestObject",
+      },
+      kvNamespaces: ["SOME_NAMESPACE", "FILE_SIZES", "TEST"],
+      serviceBindings: {
+        async remote() {
+          return new Response("hello world");
+        },
+      },
+      r2Buckets: ["EMPTY_BUCKET", "PUT_BUCKET", "SEEDED_BUCKET", "DELETE_BUCKET"],
+      queueConsumers: {
+        my_queue: {
+          maxBatchTimeout: 1,
+        },
+      },
+      queueProducers: ["my_queue", "my_queue"],
+      fetchMock: mockAgent,
+      assets: {
+        directory: "./public",
+        binding: "ASSETS",
+        routingConfig: {
+          has_user_worker: true,
+        },
+        assetConfig: {},
+      },
+      wrappedBindings: {
+        HTTP_ANALYTICS: {
+          scriptName: "mini-analytics-engine" // mock out analytics engine binding to the "mini-analytics-engine" worker
+        }
+      }
     },
-  },
-  r2Buckets: ["EMPTY_BUCKET", "PUT_BUCKET", "SEEDED_BUCKET", "DELETE_BUCKET"],
-  queueConsumers: {
-    my_queue: {
-      maxBatchTimeout: 1,
-    },
-  },
-  queueProducers: ["my_queue", "my_queue"],
-  fetchMock: mockAgent,
-  assets: {
-    path: "./public",
-    bindingName: "ASSETS",
-    routingConfig: {
-      has_user_worker: true,
-    },
-    assetConfig: {},
-  }
+    {
+      name: "mini-analytics-engine",
+      modules: true,
+      script: `export default function (env) {
+        return {
+          writeDataPoint(data) {
+            console.log(data)
+          }
+        }
+      }`
+    }]
 });

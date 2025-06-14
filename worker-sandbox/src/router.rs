@@ -1,6 +1,6 @@
 use crate::{
-    alarm, cache, d1, fetch, form, kv, queue, r2, request, service, socket, user, ws,
-    SomeSharedData, GLOBAL_STATE,
+    alarm, analytics_engine, assets, cache, d1, fetch, form, kv, queue, r2, request, service,
+    socket, user, ws, SomeSharedData, GLOBAL_STATE,
 };
 #[cfg(feature = "http")]
 use std::convert::TryInto;
@@ -64,6 +64,7 @@ pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
             "/async-request",
             get(handler!(request::handle_async_request)),
         )
+        .route("/asset/:name", get(handler!(assets::handle_asset)))
         .route("/websocket", get(handler!(ws::handle_websocket)))
         .route("/got-close-event", get(handler!(handle_close_event)))
         .route("/ws-client", get(handler!(ws::handle_websocket_client)))
@@ -109,6 +110,7 @@ pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
         .route("/durable/put-raw", get(handler!(alarm::handle_put_raw)))
         .route("/durable/websocket", get(handler!(alarm::handle_websocket)))
         .route("/var", get(handler!(request::handle_var)))
+        .route("/object-var", get(handler!(request::handle_object_var)))
         .route("/secret", get(handler!(request::handle_secret)))
         .route("/kv/:key/:value", post(handler!(kv::handle_post_key_value)))
         .route("/bytes", get(handler!(request::handle_bytes)))
@@ -218,6 +220,10 @@ pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
             get(handler!(socket::handle_socket_failed)),
         )
         .route("/socket/read", get(handler!(socket::handle_socket_read)))
+        .route(
+            "/analytics-engine",
+            get(handler!(analytics_engine::handle_analytics_event)),
+        )
         .fallback(get(handler!(catchall)))
         .layer(Extension(env))
         .layer(Extension(data))
@@ -227,7 +233,12 @@ pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
 pub fn make_router<'a>(data: SomeSharedData) -> Router<'a, SomeSharedData> {
     Router::with_data(data)
         .get("/request", handler_sync!(request::handle_a_request)) // can pass a fn pointer to keep routes tidy
+        .get_async(
+            "/analytics-engine",
+            handler!(analytics_engine::handle_analytics_event),
+        )
         .get_async("/async-request", handler!(request::handle_async_request))
+        .get_async("/asset/:name", handler!(assets::handle_asset))
         .get_async("/websocket", handler!(ws::handle_websocket))
         .get_async("/got-close-event", handler!(handle_close_event))
         .get_async("/ws-client", handler!(ws::handle_websocket_client))
@@ -268,6 +279,7 @@ pub fn make_router<'a>(data: SomeSharedData) -> Router<'a, SomeSharedData> {
         .get_async("/durable/websocket", handler!(alarm::handle_websocket))
         .get_async("/secret", handler!(request::handle_secret))
         .get_async("/var", handler!(request::handle_var))
+        .get_async("/object-var", handler!(request::handle_object_var))
         .post_async("/kv/:key/:value", handler!(kv::handle_post_key_value))
         .get_async("/bytes", handler!(request::handle_bytes))
         .post_async("/api-data", handler!(request::handle_api_data))
