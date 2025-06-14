@@ -26,6 +26,7 @@ mod test;
 mod user;
 mod utils;
 mod ws;
+mod sql_counter;
 
 #[derive(Deserialize, Serialize)]
 struct MyData {

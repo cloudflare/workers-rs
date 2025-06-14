@@ -1,6 +1,6 @@
 use crate::{
     alarm, analytics_engine, assets, cache, d1, fetch, form, kv, queue, r2, request, service,
-    socket, user, ws, SomeSharedData, GLOBAL_STATE,
+    socket, user, ws, sql_counter, SomeSharedData, GLOBAL_STATE,
 };
 #[cfg(feature = "http")]
 use std::convert::TryInto;
@@ -224,6 +224,7 @@ pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
             "/analytics-engine",
             get(handler!(analytics_engine::handle_analytics_event)),
         )
+        .route("/sql-counter/:name", get(handler!(sql_counter::handle_sql_counter)))
         .fallback(get(handler!(catchall)))
         .layer(Extension(env))
         .layer(Extension(data))
@@ -364,6 +365,7 @@ pub fn make_router<'a>(data: SomeSharedData) -> Router<'a, SomeSharedData> {
         .delete_async("/r2/delete", handler!(r2::delete))
         .get_async("/socket/failed", handler!(socket::handle_socket_failed))
         .get_async("/socket/read", handler!(socket::handle_socket_read))
+        .get_async("/sql-counter/:name", handler!(sql_counter::handle_sql_counter))
         .or_else_any_method_async("/*catchall", handler!(catchall))
 }
 
