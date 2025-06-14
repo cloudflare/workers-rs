@@ -16,7 +16,6 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
             let pound = syn::Token![#](imp.span()).to_token_stream();
             let wasm_bindgen_attr = quote! {#pound[wasm_bindgen::prelude::wasm_bindgen]};
 
-
             let struct_name = imp.self_ty;
             let items = imp.items;
             let mut tokenized = vec![];
@@ -24,6 +23,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
             #[derive(Default)]
             struct OptionalMethods {
                 has_alarm: bool,
+                has_fetch: bool,
                 has_websocket_message: bool,
                 has_websocket_close: bool,
                 has_websocket_error: bool,
@@ -76,6 +76,8 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                         })
                     },
                     "fetch" => {
+                        optional_methods.has_fetch = true;
+
                         let mut method = impl_method.clone();
                         method.sig.ident = Ident::new("_fetch_raw", method.sig.ident.span());
                         method.vis = Visibility::Inherited;
@@ -220,6 +222,12 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                 tokenized.push(tokens?);
             }
 
+            let fetch = optional_methods.has_fetch.then(|| quote!{
+                async fn fetch(&mut self, req: ::worker::Request) -> ::worker::Result<worker::Response> {
+                    self._fetch_raw(req).await
+                }
+            });
+
             let alarm_tokens = optional_methods.has_alarm.then(|| quote! {
                 async fn alarm(&mut self) -> ::worker::Result<worker::Response> {
                     self._alarm_raw().await
@@ -256,9 +264,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                         Self::_new(state._inner(), env)
                     }
 
-                    async fn fetch(&mut self, req: ::worker::Request) -> ::worker::Result<worker::Response> {
-                        self._fetch_raw(req).await
-                    }
+                    #fetch
 
                     #alarm_tokens
 
@@ -278,7 +284,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
             let pound = syn::Token![#](struc.span()).to_token_stream();
             let struct_name = struc.ident;
             Ok(quote! {
-                #pound[wasm_bindgen::prelude::wasm_bindgen]
+                #pound[wasm_bindgen::prelude::wasm_bindgen(extends = worker::worker_sys::DurableObject)]
                 #tokens
 
                 const _: bool = <#struct_name as __Need_Durable_Object_Trait_Impl_With_durable_object_Attribute>::MACROED;
