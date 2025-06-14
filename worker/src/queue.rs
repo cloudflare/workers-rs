@@ -578,12 +578,19 @@ impl Queue {
     ///
     /// ## Example
     /// ```no_run
+    /// # use serde::Serialize;
+    /// # use js_sys::Object;
+    /// # use wasm_bindgen::JsCast;
     /// #[derive(Serialize)]
     /// pub struct MyMessage {
     ///     my_data: u32,
     /// }
-    ///
+    /// # let env: worker::Env = Object::new().unchecked_into();
+    /// # tokio_test::block_on(async {
+    /// # let queue = env.queue("FOO")?;
     /// queue.send(MyMessage{ my_data: 1}).await?;
+    /// # Ok::<(), worker::Error>(())
+    /// # });
     /// ```
     pub async fn send<T, U: Into<SendMessage<T>>>(&self, message: U) -> Result<()>
     where
@@ -617,12 +624,19 @@ impl Queue {
     ///
     /// ## Example
     /// ```no_run
+    /// # use serde::Serialize;
+    /// # use wasm_bindgen::JsCast;
+    /// # use js_sys::Object;
     /// #[derive(Serialize)]
     /// pub struct MyMessage {
     ///     my_data: u32,
     /// }
-    ///
+    /// # let env: worker::Env = Object::new().unchecked_into();
+    /// # tokio_test::block_on(async {
+    /// # let queue = env.queue("FOO")?;
     /// queue.send_batch(vec![MyMessage{ my_data: 1}]).await?;
+    /// # Ok::<(), worker::Error>(())
+    /// # });
     /// ```
     pub async fn send_batch<T: Serialize, U: Into<BatchSendMessage<T>>>(
         &self,

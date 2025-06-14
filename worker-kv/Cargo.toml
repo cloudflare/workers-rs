@@ -10,6 +10,7 @@ license = "MIT OR Apache-2.0"
 [package.metadata.release]
 release = false
 
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -32,3 +33,11 @@ tokio = { version = "1.5.0", features = [
     "test-util",
     "time",
 ] }
+
+[dependencies.axum]
+version = "0.7"
+optional = true
+default-features = false
+
+[features]
+axum = ["dep:axum"]

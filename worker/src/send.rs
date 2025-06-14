@@ -11,13 +11,18 @@ use std::pin::Pin;
 use std::task::Context;
 use std::task::Poll;
 
-#[pin_project]
 /// Wrap any future to make it `Send`.
 ///
-/// ```rust
+/// ```no_run
+/// # use wasm_bindgen_futures::JsFuture;
+/// # use worker::send::SendFuture;
+/// # tokio_test::block_on(async {
+/// # let promise = js_sys::Promise::new(&mut |_, _| {});
 /// let fut = SendFuture::new(JsFuture::from(promise));
-/// fut.await
+/// fut.await;
+/// # })
 /// ```
+#[pin_project]
 pub struct SendFuture<F> {
     #[pin]
     inner: F,
@@ -43,8 +48,10 @@ impl<F: Future> Future for SendFuture<F> {
 
 /// Wrap any type to make it `Send`.
 ///
-/// ```rust
-/// // js_sys::Promise is !Send
+/// ```no_run
+/// # use worker::send::SendWrapper;
+/// # let promise = js_sys::Promise::new(&mut |_, _| {});
+/// /// js_sys::Promise is !Send
 /// let send_promise = SendWrapper::new(promise);
 /// ```
 pub struct SendWrapper<T>(pub T);

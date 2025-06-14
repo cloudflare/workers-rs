@@ -334,12 +334,12 @@ impl Storage {
     ///
     /// ```no_run
     /// # use worker::Storage;
-    /// use worker::JsValue;
+    /// use wasm_bindgen::JsValue;
     ///
     /// # let storage: Storage = todo!();
     ///
     /// let obj = js_sys::Object::new();
-    /// js_sys::Reflect::set(&obj, &JsValue::from_str("foo"), JsValue::from_u64(1));
+    /// js_sys::Reflect::set(&obj, &JsValue::from_str("foo"), &JsValue::from_f64(1.0));
     ///
     /// storage.put_multiple_raw(obj);
     /// ```
@@ -782,6 +782,10 @@ macro to both the impl block and the struct type definition.
 ## Example
 ```no_run
 use worker::*;
+
+struct Message;
+
+struct User;
 
 #[durable_object]
 pub struct Chatroom {

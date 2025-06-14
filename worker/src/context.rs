@@ -24,7 +24,7 @@ impl Context {
     /// until the given future has been completed. The future is executed before the handler
     /// terminates but does not block the response. For example, this is ideal for caching
     /// responses or handling logging.
-    /// ```no_run
+    /// ```ignore
     /// context.wait_until(async move {
     ///     let _ = cache.put(request, response).await;
     /// });

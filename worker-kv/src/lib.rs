@@ -232,3 +232,13 @@ impl<T: Serialize> ToRawKvValue for T {
 fn get(target: &JsValue, name: &str) -> Result<JsValue, JsValue> {
     Reflect::get(target, &JsValue::from(name))
 }
+
+#[cfg(feature = "axum")]
+impl axum::response::IntoResponse for KvError {
+    fn into_response(self) -> axum::response::Response<axum::body::Body> {
+        axum::response::Response::builder()
+            .status(500)
+            .body("INTERNAL SERVER ERROR".into())
+            .unwrap()
+    }
+}
