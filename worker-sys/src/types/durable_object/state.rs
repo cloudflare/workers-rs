@@ -1,6 +1,6 @@
 use wasm_bindgen::prelude::*;
 
-use crate::types::{DurableObjectId, DurableObjectStorage};
+use crate::types::{DurableObjectId, DurableObjectStorage, WebSocketRequestResponsePair};
 
 #[wasm_bindgen]
 extern "C" {
@@ -43,4 +43,15 @@ extern "C" {
         this: &DurableObjectState,
         ws: &web_sys::WebSocket,
     ) -> Result<Vec<String>, JsValue>;
+
+    #[wasm_bindgen(method, catch, js_name=setWebSocketAutoResponse)]
+    pub fn set_websocket_auto_response(
+        this: &DurableObjectState,
+        pair: &WebSocketRequestResponsePair,
+    ) -> Result<(), JsValue>;
+
+    #[wasm_bindgen(method, catch, js_name=getWebSocketAutoResponse)]
+    pub fn get_websocket_auto_response(
+        this: &DurableObjectState,
+    ) -> Result<Option<WebSocketRequestResponsePair>, JsValue>;
 }
