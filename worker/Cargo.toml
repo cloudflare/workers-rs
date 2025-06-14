@@ -39,7 +39,7 @@ worker-kv.workspace = true
 worker-macros.workspace = true
 worker-sys.workspace = true
 chrono-tz = { version = "0.10.3", optional = true, default-features = false }
-web-sys = { version = ">=0.3.70", features = [
+web-sys = { version = "0.3.70", features = [
     "File",
     "WorkerGlobalScope",
     "ReadableStreamDefaultReader",
