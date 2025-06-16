@@ -112,7 +112,10 @@ pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
         .route("/var", get(handler!(request::handle_var)))
         .route("/object-var", get(handler!(request::handle_object_var)))
         .route("/secret", get(handler!(request::handle_secret)))
-        .route("/kv/{key}/{value}", post(handler!(kv::handle_post_key_value)))
+        .route(
+            "/kv/{key}/{value}",
+            post(handler!(kv::handle_post_key_value)),
+        )
         .route("/bytes", get(handler!(request::handle_bytes)))
         .route("/api-data", post(handler!(request::handle_api_data)))
         .route(
