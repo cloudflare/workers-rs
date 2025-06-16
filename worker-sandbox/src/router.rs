@@ -64,12 +64,12 @@ pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
             "/async-request",
             get(handler!(request::handle_async_request)),
         )
-        .route("/asset/:name", get(handler!(assets::handle_asset)))
+        .route("/asset/{name}", get(handler!(assets::handle_asset)))
         .route("/websocket", get(handler!(ws::handle_websocket)))
         .route("/got-close-event", get(handler!(handle_close_event)))
         .route("/ws-client", get(handler!(ws::handle_websocket_client)))
         .route("/test-data", get(handler!(request::handle_test_data)))
-        .route("/xor/:num", post(handler!(request::handle_xor)))
+        .route("/xor/{num}", post(handler!(request::handle_xor)))
         .route("/headers", post(handler!(request::handle_headers)))
         .route("/formdata-name", post(handler!(form::handle_formdata_name)))
         .route("/is-secret", post(handler!(form::handle_is_secret)))
@@ -78,21 +78,21 @@ pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
             post(handler!(form::handle_formdata_file_size)),
         )
         .route(
-            "/formdata-file-size/:hash",
+            "/formdata-file-size/{hash}",
             get(handler!(form::handle_formdata_file_size_hash)),
         )
         .route(
             "/post-file-size",
             post(handler!(request::handle_post_file_size)),
         )
-        .route("/user/:id/test", get(handler!(user::handle_user_id_test)))
-        .route("/user/:id", get(handler!(user::handle_user_id)))
+        .route("/user/{id}/test", get(handler!(user::handle_user_id_test)))
+        .route("/user/{id}", get(handler!(user::handle_user_id)))
         .route(
-            "/account/:id/zones",
+            "/account/{id}/zones",
             post(handler!(user::handle_post_account_id_zones)),
         )
         .route(
-            "/account/:id/zones",
+            "/account/{id}/zones",
             get(handler!(user::handle_get_account_id_zones)),
         )
         .route(
@@ -102,24 +102,24 @@ pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
         .route("/fetch", get(handler!(fetch::handle_fetch)))
         .route("/fetch_json", get(handler!(fetch::handle_fetch_json)))
         .route(
-            "/proxy_request/*url",
+            "/proxy_request/{*url}",
             get(handler!(fetch::handle_proxy_request)),
         )
         .route("/durable/alarm", get(handler!(alarm::handle_alarm)))
-        .route("/durable/:id", get(handler!(alarm::handle_id)))
+        .route("/durable/{id}", get(handler!(alarm::handle_id)))
         .route("/durable/put-raw", get(handler!(alarm::handle_put_raw)))
         .route("/durable/websocket", get(handler!(alarm::handle_websocket)))
         .route("/var", get(handler!(request::handle_var)))
         .route("/object-var", get(handler!(request::handle_object_var)))
         .route("/secret", get(handler!(request::handle_secret)))
-        .route("/kv/:key/:value", post(handler!(kv::handle_post_key_value)))
+        .route("/kv/{key}/{value}", post(handler!(kv::handle_post_key_value)))
         .route("/bytes", get(handler!(request::handle_bytes)))
         .route("/api-data", post(handler!(request::handle_api_data)))
         .route(
             "/nonsense-repeat",
             post(handler!(request::handle_nonsense_repeat)),
         )
-        .route("/status/:code", get(handler!(request::handle_status)))
+        .route("/status/{code}", get(handler!(request::handle_status)))
         .route("/", put(handler_sync!(respond)))
         .route("/", patch(handler_sync!(respond)))
         .route("/", delete(handler_sync!(respond)))
@@ -128,7 +128,7 @@ pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
         .route("/async", patch(handler!(respond_async)))
         .route("/async", delete(handler!(respond_async)))
         .route("/async", head(handler!(respond_async)))
-        .route("/*catchall", options(handler!(handle_options_catchall)))
+        .route("/{*catchall}", options(handler!(handle_options_catchall)))
         .route(
             "/request-init-fetch",
             get(handler!(fetch::handle_request_init_fetch)),
@@ -158,7 +158,7 @@ pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
             "/cloned-response",
             get(handler!(fetch::handle_cloned_response_attributes)),
         )
-        .route("/wait/:delay", get(handler!(request::handle_wait_delay)))
+        .route("/wait/{delay}", get(handler!(request::handle_wait_delay)))
         .route(
             "/custom-response-body",
             get(handler!(request::handle_custom_response_body)),
@@ -166,15 +166,15 @@ pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
         .route("/init-called", get(handler!(handle_init_called)))
         .route("/cache-example", get(handler!(cache::handle_cache_example)))
         .route(
-            "/cache-api/get/:key",
+            "/cache-api/get/{key}",
             get(handler!(cache::handle_cache_api_get)),
         )
         .route(
-            "/cache-api/put/:key",
+            "/cache-api/put/{key}",
             put(handler!(cache::handle_cache_api_put)),
         )
         .route(
-            "/cache-api/delete/:key",
+            "/cache-api/delete/{key}",
             post(handler!(cache::handle_cache_api_delete)),
         )
         .route("/cache-stream", get(handler!(cache::handle_cache_stream)))
@@ -186,7 +186,7 @@ pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
             "/remote-by-path",
             get(handler!(service::handle_remote_by_path)),
         )
-        .route("/queue/send/:id", post(handler!(queue::handle_queue_send)))
+        .route("/queue/send/{id}", post(handler!(queue::handle_queue_send)))
         .route(
             "/queue/send_batch",
             post(handler!(queue::handle_batch_send)),
