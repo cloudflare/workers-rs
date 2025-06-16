@@ -2,7 +2,7 @@
 name = "{{project-name}}"
 version = "0.1.0"
 edition = "2021"
-authors = [ "{{authors}}" ]
+authors = ["{{authors}}"]
 
 [profile.release]
 opt-level = "s"   # optimize for size in release builds
@@ -14,15 +14,15 @@ codegen-units = 1
 crate-type = ["cdylib"]
 
 [dependencies]
-axum = { version = "0.7", default-features = false, optional = true }
+axum = { version = "0.8", default-features = false, optional = true }
 console_error_panic_hook = "0.1"
-getrandom = { version = "0.2.15", features = ["js"]}
-leptos = { version = "0.7"{% if use_nightly %}, features = ["nightly"]{% endif %} }
-leptos_axum = { version = "0.7", default-features = false, features = ["wasm"], optional = true }
-leptos_meta = { version = "0.7" }
-leptos_router = { version = "0.7"{% if use_nightly %}, features = ["nightly"]{% endif %} }
+getrandom = { version = "0.3", features = ["wasm_js"]}
+leptos = { version = "0.8"{% if use_nightly %}, features = ["nightly"]{% endif %} }
+leptos_axum = { version = "0.8", default-features = false, features = ["wasm"], optional = true }
+leptos_meta = { version = "0.8" }
+leptos_router = { version = "0.8"{% if use_nightly %}, features = ["nightly"]{% endif %} }
 tower-service = "0.3"
-wasm-bindgen = "=0.2.100"
+wasm-bindgen = "0.2"
 worker = { version = "0.5", features = ["http", "axum", "d1"], optional = true }
 
 [features]
@@ -32,11 +32,11 @@ ssr = [
   "dep:leptos_axum",
   "dep:worker",
   "leptos/ssr",
-  "leptos_meta/ssr",
   "leptos_router/ssr",
 ]
 
 [package.metadata.leptos]
+wasm-validation = false
 # The name used by wasm-bindgen/cargo-leptos for the JS/WASM bundle. Defaults to the crate name
 output-name = "{{project-name}}"
 
