@@ -481,7 +481,7 @@ impl Storage {
         fut.await.map(|_| ()).map_err(Error::from)
     }
 
-    pub async fn transaction<F, Fut>(&mut self, mut closure: F) -> Result<()>
+    pub async fn transaction<F, Fut>(&self, mut closure: F) -> Result<()>
     where
         F: FnMut(Transaction) -> Fut + Copy + 'static,
         Fut: Future<Output = Result<()>> + 'static,
@@ -600,7 +600,7 @@ impl Transaction {
             .map_err(Error::from)
     }
 
-    pub fn rollback(&mut self) -> Result<()> {
+    pub fn rollback(&self) -> Result<()> {
         self.inner.rollback().map_err(Error::from)
     }
 }
