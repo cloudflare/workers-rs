@@ -58,6 +58,7 @@ export const mf = new Miniflare({
       },
       durableObjects: {
         COUNTER: "Counter",
+        SHARED_COUNTER: "SharedCounter",
         PUT_RAW_TEST_OBJECT: "PutRawTestObject",
         AUTO: "AutoResponseObject",
       },
