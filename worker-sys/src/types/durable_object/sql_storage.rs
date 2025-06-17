@@ -23,6 +23,9 @@ extern "C" {
         query: &str,
         bindings: Array,
     ) -> Result<SqlStorageCursor, JsValue>;
+
+    // TODO: prepare, ingest, and setMaxPageCountForTest are experimental
+    // https://github.com/cloudflare/workerd/blob/3d177d3/src/workerd/api/sql.h#L43-L52
 }
 
 #[wasm_bindgen]
@@ -58,4 +61,7 @@ extern "C" {
     /// Rows written so far.
     #[wasm_bindgen(method, getter, js_name = rowsWritten)]
     pub fn rows_written(this: &SqlStorageCursor) -> f64;
+
+    // TODO: resusedCachedQueryForTest is experimental
+    // https://github.com/cloudflare/workerd/blob/3d177d3/src/workerd/api/sql.h#L219
 }
