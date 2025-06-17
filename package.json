@@ -19,7 +19,7 @@
     "typescript": "^5.8.3",
     "undici": "^5.29.0",
     "uuid": "^11.1.0",
-    "vitest": "^2.1.9"
+    "vitest": "^3.2.3"
   },
   "scripts": {
     "install": "cargo install --path ./worker-build --force --debug",
