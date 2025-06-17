@@ -2,7 +2,7 @@
 authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
 edition = "2018"
 name = "worker-build"
-version = "0.1.0"
+version = "0.1.2"
 license = "Apache-2.0"
 repository = "https://github.com/cloudflare/workers-rs/tree/main/worker-build"
 readme = "README.md"
@@ -12,18 +12,17 @@ description = "This is a tool to be used as a custom build command for a Cloudfl
 release = false
 
 [dependencies]
-anyhow = "1.0.71"
-dirs-next = "2.0.0"
-flate2 = "1.0.26"
-tar = "0.4.38"
-ureq = { version = "2.6.2", features = ["tls", "gzip"] }
-clap= { version="4.5", features=['derive'] }
-worker-codegen = { path="../worker-codegen", version="0.1.0" }
+anyhow = "1.0.98"
+dirs-next = "2.0"
+flate2 = "1.1"
+tar = "0.4"
+ureq = { version = "3.0", features = ["gzip"] }
+clap = { version = "4.5", features = ['derive'] }
+worker-codegen = { path = "../worker-codegen", version = "0.1.0" }
 wasm-pack = "0.13"
 
 [dev-dependencies]
 wasm-bindgen-cli-support.workspace = true
 
-
 [[bin]]
-name="worker-codegen"
+name = "worker-codegen"

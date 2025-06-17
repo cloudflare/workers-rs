@@ -9,7 +9,13 @@ kv_namespaces = [
     { binding = "FILE_SIZES", id = "FILE_SIZES", preview_id = "FILE_SIZES" },
 ]
 
-vars = { SOME_VARIABLE = "some value" }
+[vars]
+SOME_VARIABLE = "some value"
+SOME_OBJECT_VARIABLE = { foo = 42, bar = "string" }
+
+[assets]
+binding = "ASSETS"
+directory = "./public/"
 
 [[services]]
 binding = "remote"
@@ -21,9 +27,15 @@ remote-service = "./remote-service"
 [durable_objects]
 bindings = [
     { name = "COUNTER", class_name = "Counter" },
+    { name = "SHARED_COUNTER", class_name = "SharedCounter" },
     { name = "ALARM", class_name = "AlarmObject" },
     { name = "PUT_RAW_TEST_OBJECT", class_name = "PutRawTestObject" },
+    { name = "AUTO", class_name = "AutoResponseObject" },
 ]
+
+[[analytics_engine_datasets]]
+dataset = "http"
+binding = "HTTP_ANALYTICS"
 
 [[d1_databases]]
 binding = 'DB'
@@ -57,6 +69,7 @@ binding = 'DELETE_BUCKET'
 bucket_name = 'delete_bucket'
 preview_bucket_name = 'delete_bucket'
 
+
 [build]
 command = "worker-build --release"
 
@@ -68,3 +81,6 @@ main = "./shim.mjs"
 [[build.upload.rules]]
 globs = ["**/*.wasm"]
 type = "CompiledWasm"
+
+[package.metadata.wasm-pack.profile.dev.wasm-bindgen]
+dwarf-debug-info = true

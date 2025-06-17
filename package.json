@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "@changesets/changelog-github": "^0.4.8",
-    "@changesets/cli": "^2.26.2",
+    "@changesets/cli": "^2.29.4",
     "@cloudflare/workers-types": "^4.20240909.0"
   },
   "name": "workers-rs",
@@ -14,15 +14,15 @@
   },
   "homepage": "https://github.com/cloudflare/workers-rs#readme",
   "devDependencies": {
-    "@types/node": "^20.4.8",
-    "@types/uuid": "^9.0.2",
-    "miniflare": "^3.20240909.4",
-    "typescript": "^5.1.6",
-    "undici": "^5.28.4",
-    "uuid": "^9.0.0",
-    "vitest": "^0.32.4"
+    "@types/node": "^24.0.1",
+    "miniflare": "^3.20241230.0",
+    "typescript": "^5.8.3",
+    "undici": "^5.29.0",
+    "uuid": "^11.1.0",
+    "vitest": "^2.1.9"
   },
   "scripts": {
+    "install": "cargo install --path ./worker-build --force --debug",
     "test": "cd worker-sandbox && NO_MINIFY=1 worker-build --dev && NODE_OPTIONS=--experimental-vm-modules npx vitest run",
     "test-http": "cd worker-sandbox && NO_MINIFY=1 worker-build --dev --features http && NODE_OPTIONS=--experimental-vm-modules npx vitest run"
   }

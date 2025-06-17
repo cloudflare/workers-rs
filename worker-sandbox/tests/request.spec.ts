@@ -108,7 +108,7 @@ test("fetch json", async () => {
 
 test("proxy request", async () => {
   const resp = await mf.dispatchFetch(
-    "https://fake.host/proxy_request/https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding/contributors.txt"
+    "https://fake.host/proxy_request/https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Encoding/contributors.txt"
   );
   expect(resp.status).toBe(200);
 });
@@ -121,6 +121,16 @@ test("durable id", async () => {
 test("some secret", async () => {
   const resp = await mf.dispatchFetch("https://fake.host/secret");
   expect(await resp.text()).toBe("secret!");
+});
+
+test("some var", async () => {
+  const resp = await mf.dispatchFetch("https://fake.host/var");
+  expect(await resp.text()).toBe("some value");
+});
+
+test("some object var", async () => {
+  const resp = await mf.dispatchFetch("https://fake.host/object-var");
+  expect(await resp.json()).toStrictEqual({ foo: 42, bar: "string" });
 });
 
 test("kv key value", async () => {

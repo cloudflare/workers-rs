@@ -1,4 +1,4 @@
-use leptos::*;
+use leptos::prelude::*;
 
 #[server(SayHello)]
 pub async fn say_hello(num: i32) -> Result<String, ServerFnError> {

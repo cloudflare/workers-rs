@@ -44,20 +44,20 @@ impl Headers {
     }
 
     /// Returns an error if the name is invalid (e.g. contains spaces)
-    pub fn append(&mut self, name: &str, value: &str) -> Result<()> {
+    pub fn append(&self, name: &str, value: &str) -> Result<()> {
         self.0.append(name, value).map_err(Error::from)
     }
 
     /// Sets a new value for an existing header inside a `Headers` object, or adds the header if it does not already exist.
     /// Returns an error if the name is invalid (e.g. contains spaces)
-    pub fn set(&mut self, name: &str, value: &str) -> Result<()> {
+    pub fn set(&self, name: &str, value: &str) -> Result<()> {
         self.0.set(name, value).map_err(Error::from)
     }
 
     /// Deletes a header from a `Headers` object.
     /// Returns an error if the name is invalid (e.g. contains spaces)
     /// or if the JS Headers object's guard is immutable (e.g. for an incoming request)
-    pub fn delete(&mut self, name: &str) -> Result<()> {
+    pub fn delete(&self, name: &str) -> Result<()> {
         self.0.delete(name).map_err(Error::from)
     }
 
@@ -127,7 +127,7 @@ impl IntoIterator for &Headers {
 
 impl<T: AsRef<str>> FromIterator<(T, T)> for Headers {
     fn from_iter<U: IntoIterator<Item = (T, T)>>(iter: U) -> Self {
-        let mut headers = Headers::new();
+        let headers = Headers::new();
         iter.into_iter().for_each(|(name, value)| {
             headers.append(name.as_ref(), value.as_ref()).ok();
         });
@@ -137,7 +137,7 @@ impl<T: AsRef<str>> FromIterator<(T, T)> for Headers {
 
 impl<'a, T: AsRef<str>> FromIterator<&'a (T, T)> for Headers {
     fn from_iter<U: IntoIterator<Item = &'a (T, T)>>(iter: U) -> Self {
-        let mut headers = Headers::new();
+        let headers = Headers::new();
         iter.into_iter().for_each(|(name, value)| {
             headers.append(name.as_ref(), value.as_ref()).ok();
         });
