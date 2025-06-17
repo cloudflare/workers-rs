@@ -271,6 +271,67 @@ tag = "v1" # Should be unique for each entry
 new_classes = ["Chatroom"] # Array of new classes
 ```
 
+### SQLite Storage in Durable Objects
+
+Durable Objects can use SQLite for persistent storage, providing a relational database interface. To enable SQLite storage, you need to use `new_sqlite_classes` in your migration and access the SQL storage through `state.storage().sql()`.
+
+```rust
+use worker::*;
+
+#[durable_object]
+pub struct SqlCounter {
+    sql: SqlStorage,
+}
+
+#[durable_object]
+impl DurableObject for SqlCounter {
+    fn new(state: State, _env: Env) -> Self {
+        let sql = state.storage().sql();
+        // Create table if it does not exist
+        sql.exec("CREATE TABLE IF NOT EXISTS counter(value INTEGER);", None)
+            .expect("create table");
+        Self { sql }
+    }
+
+    async fn fetch(&mut self, _req: Request) -> Result<Response> {
+        #[derive(serde::Deserialize)]
+        struct Row {
+            value: i32,
+        }
+
+        // Read current value
+        let rows: Vec<Row> = self
+            .sql
+            .exec("SELECT value FROM counter LIMIT 1;", None)?
+            .to_array()?;
+        let current = rows.get(0).map(|r| r.value).unwrap_or(0);
+        let next = current + 1;
+
+        // Update counter
+        self.sql.exec("DELETE FROM counter;", None)?;
+        self.sql
+            .exec("INSERT INTO counter(value) VALUES (?);", vec![next.into()])?;
+
+        Response::ok(format!("SQL counter is now {}", next))
+    }
+}
+```
+
+Configure your `wrangler.toml` to enable SQLite storage:
+
+```toml
+# ...
+
+[durable_objects]
+bindings = [
+  { name = "SQL_COUNTER", class_name = "SqlCounter" }
+]
+
+[[migrations]]
+tag = "v1" # Should be unique for each entry
+new_sqlite_classes = ["SqlCounter"] # Use new_sqlite_classes for SQLite-enabled objects
+```
+
 - For more information about migrating your Durable Object as it changes, see the docs here:
   https://developers.cloudflare.com/workers/learning/using-durable-objects#durable-object-migrations-in-wranglertoml
 
