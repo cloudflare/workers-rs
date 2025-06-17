@@ -19,12 +19,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: chainguard-dev/actions/setup-gitsign@main
+      - uses: cargo-bins/cargo-binstall@main
       - name: Install cargo-release
-        uses: taiki-e/install-action@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tool: cargo-release
+        run: cargo binstall cargo-release -y
       - name: Update versions
         id: update_versions
         run: |
