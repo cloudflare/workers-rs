@@ -16,7 +16,7 @@ use worker_sys::ext::RequestExt;
 
 /// A [Request](https://developer.mozilla.org/en-US/docs/Web/API/Request) representation for
 /// handling incoming and creating outbound HTTP requests.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Request {
     method: Method,
     path: String,

@@ -252,3 +252,5 @@ pub type HttpRequest = ::http::Request<http::body::Body>;
 #[cfg(feature = "http")]
 /// **Requires** `http` feature. Type alias for `http::Response<worker::Body>`.
 pub type HttpResponse = ::http::Response<http::body::Body>;
+#[cfg(feature = "http")]
+pub use http::service::Service;
