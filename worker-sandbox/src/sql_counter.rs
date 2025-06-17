@@ -1,4 +1,3 @@
-use wasm_bindgen::JsValue;
 use worker::*;
 
 /// A simple SQLite-backed counter stored in Durable Object storage.
@@ -15,33 +14,29 @@ impl DurableObject for SqlCounter {
     fn new(state: State, _env: Env) -> Self {
         let sql = state.storage().sql();
         // Create table if it does not exist.  Note: `exec` is synchronous.
-        sql.exec(
-            "CREATE TABLE IF NOT EXISTS counter(value INTEGER);",
-            Vec::new(),
-        )
-        .expect("create table");
+        sql.exec("CREATE TABLE IF NOT EXISTS counter(value INTEGER);", None)
+            .expect("create table");
         Self { sql }
     }
 
-    async fn fetch(&mut self, _req: Request) -> Result<Response> {
+    async fn fetch(&self, _req: Request) -> Result<Response> {
         // Read current value (if any)
         #[derive(serde::Deserialize)]
         struct Row {
-            value: i64,
+            value: i32,
         }
 
         let rows: Vec<Row> = self
             .sql
-            .exec("SELECT value FROM counter LIMIT 1;", Vec::new())?
+            .exec("SELECT value FROM counter LIMIT 1;", None)?
             .to_array()?;
         let current = rows.get(0).map(|r| r.value).unwrap_or(0);
         let next = current + 1;
 
         // Upsert new value – simplest way: delete and insert again.
-        self.sql.exec("DELETE FROM counter;", Vec::new())?;
-        let val_js = JsValue::from_f64(next as f64);
+        self.sql.exec("DELETE FROM counter;", None)?;
         self.sql
-            .exec("INSERT INTO counter(value) VALUES (?);", vec![val_js])?;
+            .exec("INSERT INTO counter(value) VALUES (?);", vec![next.into()])?;
 
         Response::ok(format!("SQL counter is now {}", next))
     }

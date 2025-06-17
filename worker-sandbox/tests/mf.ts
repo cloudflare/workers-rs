@@ -61,7 +61,10 @@ export const mf = new Miniflare({
         SHARED_COUNTER: "SharedCounter",
         PUT_RAW_TEST_OBJECT: "PutRawTestObject",
         AUTO: "AutoResponseObject",
-        SQL_COUNTER: "SqlCounter",
+        SQL_COUNTER: {
+          className: "SqlCounter",
+          useSQLite: true,
+        },
       },
       kvNamespaces: ["SOME_NAMESPACE", "FILE_SIZES", "TEST"],
       serviceBindings: {

@@ -380,7 +380,7 @@ pub fn make_router<'a>(data: SomeSharedData) -> Router<'a, SomeSharedData> {
             handler!(crate::test::auto_response::handle_auto_response),
         )
         .get_async(
-            "/sql-counter/:name",
+            "/sql-counter/{name}",
             handler!(sql_counter::handle_sql_counter),
         )
         .or_else_any_method_async("/*catchall", handler!(catchall))

@@ -1,8 +1,7 @@
 import { describe, test, expect } from "vitest";
 import { mf } from "./mf";
 
-// Unsupported by miniflare
-describe.skip("sqlite durable object", () => {
+describe("sqlite durable object", () => {
   test("counter increments per object", async () => {
     // First access for object "alice"
     let resp = await mf.dispatchFetch("http://fake.host/sql-counter/alice");

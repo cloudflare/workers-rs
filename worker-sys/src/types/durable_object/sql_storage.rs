@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(extends = js_sys::Object)]
-    #[derive(Clone)]
+    #[derive(Clone, Debug)]
     pub type SqlStorage;
 
     /// Returns the on-disk size of the SQLite database, in bytes.
@@ -28,7 +28,7 @@ extern "C" {
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(extends = js_sys::Object)]
-    #[derive(Clone)]
+    #[derive(Clone, Debug)]
     pub type SqlStorageCursor;
 
     /// JavaScript `Iterator.next()` implementation.  Returns an object with `{ done, value }`.
