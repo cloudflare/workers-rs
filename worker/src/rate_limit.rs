@@ -20,7 +20,7 @@ unsafe impl Send for RateLimiter {}
 unsafe impl Sync for RateLimiter {}
 
 impl EnvBinding for RateLimiter {
-    const TYPE_NAME: &'static str = "RateLimiter";
+    const TYPE_NAME: &'static str = "Ratelimit";
 }
 impl RateLimiter {
     pub async fn limit(&self, key: String) -> Result<RateLimitOutcome> {
