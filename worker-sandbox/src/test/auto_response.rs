@@ -15,7 +15,7 @@ impl DurableObject for AutoResponseObject {
         match req.path().as_str() {
             "/set" => {
                 // Configure ping -> pong auto-response for all websockets bound to this DO.
-                let pair = worker_sys::WebSocketRequestResponsePair::new("ping", "pong")?;
+                let pair = WebSocketRequestResponsePair::new("ping", "pong")?;
                 self.state.set_websocket_auto_response(&pair);
                 Response::ok("ok")
             }
