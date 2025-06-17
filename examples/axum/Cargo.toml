@@ -14,9 +14,9 @@ wasm-opt = false
 crate-type = ["cdylib"]
 
 [dependencies]
-worker = { path="../../worker", features=['http', 'axum'] }
-worker-macros = { path="../../worker-macros", features=['http'] }
-axum  = { version = "0.7", default-features = false }
-tower-service = "0.3.2"
-console_error_panic_hook = { version = "0.1.1" }
+worker = { path = "../../worker", features = ['http', 'axum'] }
+worker-macros = { path = "../../worker-macros", features = ['http'] }
+axum = { version = "0.8", default-features = false }
+tower-service = "0.3.3"
+console_error_panic_hook = { version = "0.1.7" }
 wasm-bindgen-futures = "0.4"

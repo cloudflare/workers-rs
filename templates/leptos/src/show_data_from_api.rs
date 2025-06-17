@@ -1,17 +1,15 @@
 use leptos::prelude::*;
+use wasm_bindgen_futures::spawn_local;
 
-#[server(SayHello)]
-pub async fn say_hello(num: i32) -> Result<String, ServerFnError> {
-    Ok(format!("Hello from the API!!! I got {num}"))
-}
+use crate::api::say_hello::say_hello;
 
 #[component]
 pub fn ShowDataFromApi() -> impl IntoView {
-    let value = RwSignal::new("".to_string());
-    let counter = RwSignal::new(0);
+    let value = create_rw_signal("".to_string());
+    let counter = create_rw_signal(0);
 
     let on_click = move |_| {
-        leptos::task::spawn_local(async move {
+        spawn_local(async move {
             let api_said = say_hello(counter.get()).await.unwrap();
             value.set(api_said);
             counter.update(|v| *v += 1);
