@@ -43,4 +43,3 @@ describe("durable", () => {
     expect(closeHandlerWrapper).toBeCalled();
   });
 });
-
