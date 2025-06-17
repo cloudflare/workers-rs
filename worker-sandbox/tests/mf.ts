@@ -60,6 +60,7 @@ export const mf = new Miniflare({
         COUNTER: "Counter",
         SHARED_COUNTER: "SharedCounter",
         PUT_RAW_TEST_OBJECT: "PutRawTestObject",
+        AUTO: "AutoResponseObject",
       },
       kvNamespaces: ["SOME_NAMESPACE", "FILE_SIZES", "TEST"],
       serviceBindings: {

@@ -18,6 +18,7 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 
 pub use crate::ws_events::*;
+pub use worker_sys::WebSocketRequestResponsePair;
 
 /// Struct holding the values for a JavaScript `WebSocketPair`
 #[derive(Debug, Clone, PartialEq, Eq)]

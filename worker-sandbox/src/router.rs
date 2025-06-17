@@ -227,6 +227,10 @@ pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
             "/analytics-engine",
             get(handler!(analytics_engine::handle_analytics_event)),
         )
+        .route(
+            "/durable/auto-response",
+            get(handler!(crate::test::auto_response::handle_auto_response)),
+        )
         .fallback(get(handler!(catchall)))
         .layer(Extension(env))
         .layer(Extension(data))
@@ -367,6 +371,10 @@ pub fn make_router<'a>(data: SomeSharedData) -> Router<'a, SomeSharedData> {
         .delete_async("/r2/delete", handler!(r2::delete))
         .get_async("/socket/failed", handler!(socket::handle_socket_failed))
         .get_async("/socket/read", handler!(socket::handle_socket_read))
+        .get_async(
+            "/durable/auto-response",
+            handler!(crate::test::auto_response::handle_auto_response),
+        )
         .or_else_any_method_async("/*catchall", handler!(catchall))
 }
 
