@@ -236,11 +236,7 @@ pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
             get(handler!(sql_counter::handle_sql_counter)),
         )
         .route(
-            "/sql-iterator/{name}",
-            get(handler!(sql_iterator::handle_sql_iterator)),
-        )
-        .route(
-            "/sql-iterator/{name}{*path}",
+            "/sql-iterator/{*path}",
             get(handler!(sql_iterator::handle_sql_iterator)),
         )
         .fallback(get(handler!(catchall)))
@@ -392,11 +388,7 @@ pub fn make_router<'a>(data: SomeSharedData) -> Router<'a, SomeSharedData> {
             handler!(sql_counter::handle_sql_counter),
         )
         .get_async(
-            "/sql-iterator/:name",
-            handler!(sql_iterator::handle_sql_iterator),
-        )
-        .get_async(
-            "/sql-iterator/:name/*path",
+            "/sql-iterator/*path",
             handler!(sql_iterator::handle_sql_iterator),
         )
         .or_else_any_method_async("/*catchall", handler!(catchall))

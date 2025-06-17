@@ -147,14 +147,20 @@ pub async fn handle_sql_iterator(
     let mut segments = uri.path_segments().unwrap();
     // skip "sql-iterator"
     let _ = segments.next();
+    
+    // Get name and remaining path
     let name = segments.next().unwrap_or("default");
+    let remaining_path: Vec<&str> = segments.collect();
+    let path = if remaining_path.is_empty() {
+        "/"
+    } else {
+        &format!("/{}", remaining_path.join("/"))
+    };
 
     let namespace = env.durable_object("SQL_ITERATOR")?;
     let stub = namespace.id_from_name(name)?.get_stub()?;
 
     // Forward the request path to the DO
-    let prefix = format!("/sql-iterator/{}", name);
-    let path = uri.path().strip_prefix(&prefix).unwrap_or("/");
     let new_url = format!("https://fake-host{}", path);
 
     stub.fetch_with_str(&new_url).await
