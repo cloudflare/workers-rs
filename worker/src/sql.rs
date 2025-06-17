@@ -1,5 +1,6 @@
 use js_sys::Array;
-use wasm_bindgen::JsValue;
+use std::convert::TryFrom;
+use wasm_bindgen::{JsCast, JsValue};
 use worker_sys::types::{SqlStorage as SqlStorageSys, SqlStorageCursor as SqlStorageCursorSys};
 
 use serde::de::DeserializeOwned;
@@ -96,6 +97,33 @@ impl From<SqlStorageValue> for JsValue {
     }
 }
 
+impl TryFrom<JsValue> for SqlStorageValue {
+    type Error = crate::Error;
+
+    fn try_from(js_val: JsValue) -> Result<Self> {
+        if js_val.is_null() || js_val.is_undefined() {
+            Ok(SqlStorageValue::Null)
+        } else if let Some(bool_val) = js_val.as_bool() {
+            Ok(SqlStorageValue::Boolean(bool_val))
+        } else if let Some(str_val) = js_val.as_string() {
+            Ok(SqlStorageValue::String(str_val))
+        } else if let Some(num_val) = js_val.as_f64() {
+            if num_val.fract() == 0.0 && num_val >= i32::MIN as f64 && num_val <= i32::MAX as f64 {
+                Ok(SqlStorageValue::Integer(num_val as i32))
+            } else {
+                Ok(SqlStorageValue::Float(num_val))
+            }
+        } else if js_val.is_instance_of::<js_sys::Uint8Array>() {
+            let uint8_array = js_sys::Uint8Array::from(js_val);
+            let mut bytes = vec![0u8; uint8_array.length() as usize];
+            uint8_array.copy_to(&mut bytes);
+            Ok(SqlStorageValue::Blob(bytes))
+        } else {
+            Err(Error::from("Unsupported JavaScript value type"))
+        }
+    }
+}
+
 /// Wrapper around the Workers `SqlStorage` interface exposed at `ctx.storage.sql`.
 ///
 /// The API is intentionally minimal for now – additional helper utilities can be built on top
@@ -172,6 +200,81 @@ pub struct SqlCursor {
 unsafe impl Send for SqlCursor {}
 unsafe impl Sync for SqlCursor {}
 
+/// Iterator wrapper for typed cursor results.
+///
+/// This iterator yields deserialized rows of type `T`, providing a type-safe
+/// way to iterate over SQL query results with automatic conversion to Rust types.
+pub struct SqlCursorIterator<T> {
+    cursor: SqlCursor,
+    _phantom: std::marker::PhantomData<T>,
+}
+
+impl<T> Iterator for SqlCursorIterator<T>
+where
+    T: DeserializeOwned,
+{
+    type Item = Result<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let result = self.cursor.inner.next();
+
+        let done = js_sys::Reflect::get(&result, &JsValue::from("done"))
+            .ok()
+            .and_then(|v| v.as_bool())
+            .unwrap_or(true);
+
+        if done {
+            None
+        } else {
+            let value = js_sys::Reflect::get(&result, &JsValue::from("value"))
+                .map_err(Error::from)
+                .and_then(|js_val| swb::from_value(js_val).map_err(Error::from));
+            Some(value)
+        }
+    }
+}
+
+/// Iterator wrapper for raw cursor results as Vec<SqlStorageValue>.
+///
+/// This iterator yields raw values as `Vec<SqlStorageValue>`, providing efficient
+/// access to SQL data without deserialization overhead. Useful when you need
+/// direct access to the underlying SQL values without column names.
+pub struct SqlCursorRawIterator {
+    inner: js_sys::Iterator,
+}
+
+impl Iterator for SqlCursorRawIterator {
+    type Item = Result<Vec<SqlStorageValue>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.inner.next() {
+            Ok(iterator_next) => {
+                if iterator_next.done() {
+                    None
+                } else {
+                    let js_val = iterator_next.value();
+                    let array_result = js_array_to_sql_storage_values(js_val);
+                    Some(array_result)
+                }
+            }
+            Err(e) => Some(Err(Error::from(e))),
+        }
+    }
+}
+
+fn js_array_to_sql_storage_values(js_val: JsValue) -> Result<Vec<SqlStorageValue>> {
+    let array = js_sys::Array::from(&js_val);
+    let mut values = Vec::with_capacity(array.length() as usize);
+
+    for i in 0..array.length() {
+        let item = array.get(i);
+        let sql_value = SqlStorageValue::try_from(item)?;
+        values.push(sql_value);
+    }
+
+    Ok(values)
+}
+
 impl SqlCursor {
     /// Consume the remaining rows of the cursor into a `Vec` of deserialised objects.
     pub fn to_array<T>(&self) -> Result<Vec<T>>
@@ -214,20 +317,28 @@ impl SqlCursor {
         self.inner.rows_written() as usize
     }
 
-    /// JavaScript Iterator.next() implementation.
+    /// Returns a Rust iterator that yields deserialized rows of type T.
     ///
-    /// Returns an object with `{ done, value }` properties. This allows the cursor
-    /// to be used as a JavaScript iterator.
-    pub fn next(&self) -> js_sys::Object {
-        self.inner.next()
+    /// This provides a first-class Rust API for iterating over query results
+    /// with proper type safety and error handling.
+    pub fn next<T>(&self) -> SqlCursorIterator<T>
+    where
+        T: DeserializeOwned,
+    {
+        SqlCursorIterator {
+            cursor: self.clone(),
+            _phantom: std::marker::PhantomData,
+        }
     }
 
-    /// Returns an iterator where each row is an array rather than an object.
+    /// Returns a Rust iterator where each row is a Vec<SqlStorageValue>.
     ///
     /// This method provides a more efficient way to iterate over results when you
-    /// only need the raw values without column names.
-    pub fn raw(&self) -> js_sys::Iterator {
-        self.inner.raw()
+    /// only need the raw values without column names, using proper Rust types.
+    pub fn raw(&self) -> SqlCursorRawIterator {
+        SqlCursorRawIterator {
+            inner: self.inner.raw(),
+        }
     }
 }
 
@@ -236,19 +347,18 @@ impl Iterator for SqlCursor {
 
     fn next(&mut self) -> Option<Self::Item> {
         let result = self.inner.next();
-        
+
         // Extract 'done' property from iterator result
         let done = js_sys::Reflect::get(&result, &JsValue::from("done"))
             .ok()
             .and_then(|v| v.as_bool())
             .unwrap_or(true);
-        
+
         if done {
             None
         } else {
             // Extract 'value' property from iterator result
-            let value = js_sys::Reflect::get(&result, &JsValue::from("value"))
-                .map_err(Error::from);
+            let value = js_sys::Reflect::get(&result, &JsValue::from("value")).map_err(Error::from);
             Some(value)
         }
     }

@@ -65,6 +65,10 @@ export const mf = new Miniflare({
           className: "SqlCounter",
           useSQLite: true,
         },
+        SQL_ITERATOR: {
+          className: "SqlIterator",
+          useSQLite: true,
+        },
       },
       kvNamespaces: ["SOME_NAMESPACE", "FILE_SIZES", "TEST"],
       serviceBindings: {

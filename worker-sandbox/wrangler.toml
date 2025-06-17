@@ -32,6 +32,7 @@ bindings = [
     { name = "PUT_RAW_TEST_OBJECT", class_name = "PutRawTestObject" },
     { name = "AUTO", class_name = "AutoResponseObject" },
     { name = "SQL_COUNTER", class_name = "SqlCounter" },
+    { name = "SQL_ITERATOR", class_name = "SqlIterator" },
 ]
 
 [[analytics_engine_datasets]]
@@ -88,4 +89,4 @@ dwarf-debug-info = true
 
 [[migrations]]
 tag = "v1"
-new_sqlite_classes = ["SqlCounter"]
+new_sqlite_classes = ["SqlCounter", "SqlIterator"]
