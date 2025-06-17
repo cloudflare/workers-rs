@@ -30,7 +30,7 @@ impl DurableObject for SqlCounter {
             .sql
             .exec("SELECT value FROM counter LIMIT 1;", None)?
             .to_array()?;
-        let current = rows.get(0).map(|r| r.value).unwrap_or(0);
+        let current = rows.first().map(|r| r.value).unwrap_or(0);
         let next = current + 1;
 
         // Upsert new value – simplest way: delete and insert again.

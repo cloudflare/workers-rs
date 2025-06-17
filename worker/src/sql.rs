@@ -78,9 +78,9 @@ where
 }
 
 // Convert SqlStorageValue to JsValue for passing to JavaScript
-impl Into<JsValue> for SqlStorageValue {
-    fn into(self) -> JsValue {
-        match self {
+impl From<SqlStorageValue> for JsValue {
+    fn from(val: SqlStorageValue) -> Self {
+        match val {
             SqlStorageValue::Null => JsValue::NULL,
             SqlStorageValue::Boolean(b) => JsValue::from(b),
             SqlStorageValue::Integer(i) => JsValue::from(i),
