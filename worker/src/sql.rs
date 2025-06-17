@@ -213,4 +213,43 @@ impl SqlCursor {
     pub fn rows_written(&self) -> usize {
         self.inner.rows_written() as usize
     }
+
+    /// JavaScript Iterator.next() implementation.
+    ///
+    /// Returns an object with `{ done, value }` properties. This allows the cursor
+    /// to be used as a JavaScript iterator.
+    pub fn next(&self) -> js_sys::Object {
+        self.inner.next()
+    }
+
+    /// Returns an iterator where each row is an array rather than an object.
+    ///
+    /// This method provides a more efficient way to iterate over results when you
+    /// only need the raw values without column names.
+    pub fn raw(&self) -> js_sys::Iterator {
+        self.inner.raw()
+    }
+}
+
+impl Iterator for SqlCursor {
+    type Item = Result<JsValue>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let result = self.inner.next();
+        
+        // Extract 'done' property from iterator result
+        let done = js_sys::Reflect::get(&result, &JsValue::from("done"))
+            .ok()
+            .and_then(|v| v.as_bool())
+            .unwrap_or(true);
+        
+        if done {
+            None
+        } else {
+            // Extract 'value' property from iterator result
+            let value = js_sys::Reflect::get(&result, &JsValue::from("value"))
+                .map_err(Error::from);
+            Some(value)
+        }
+    }
 }
