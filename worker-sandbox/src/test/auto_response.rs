@@ -11,7 +11,7 @@ impl DurableObject for AutoResponseObject {
         Self { state }
     }
 
-    async fn fetch(&mut self, req: Request) -> Result<Response> {
+    async fn fetch(&self, req: Request) -> Result<Response> {
         match req.path().as_str() {
             "/set" => {
                 // Configure ping -> pong auto-response for all websockets bound to this DO.
