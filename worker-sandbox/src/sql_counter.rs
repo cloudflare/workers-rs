@@ -19,7 +19,21 @@ impl DurableObject for SqlCounter {
         Self { sql }
     }
 
-    async fn fetch(&self, _req: Request) -> Result<Response> {
+    async fn fetch(&self, req: Request) -> Result<Response> {
+        let url = req.url()?;
+        let path = url.path();
+
+        // Parse path to determine action
+        if path.contains("/set-large/") {
+            self.handle_set_large_value(&url).await
+        } else {
+            self.handle_increment().await
+        }
+    }
+}
+
+impl SqlCounter {
+    async fn handle_increment(&self) -> Result<Response> {
         // Read current value (if any)
         #[derive(serde::Deserialize)]
         struct Row {
@@ -40,6 +54,35 @@ impl DurableObject for SqlCounter {
 
         Response::ok(format!("SQL counter is now {}", next))
     }
+
+    async fn handle_set_large_value(&self, url: &worker::Url) -> Result<Response> {
+        // Extract the large value from the path /set-large/{value}
+        let path = url.path();
+        let value_str = path.split("/set-large/").nth(1).unwrap_or("0");
+
+        // Parse the value as i64
+        let large_value: i64 = value_str
+            .parse()
+            .map_err(|_| worker::Error::from("Invalid number format"))?;
+
+        // Use try_from_i64 to safely create SqlStorageValue
+        let safe_value = match worker::SqlStorageValue::try_from_i64(large_value) {
+            Ok(value) => value,
+            Err(e) => {
+                return Response::ok(format!(
+                    "Error: Cannot store value {} - {}. JavaScript safe range is ±9007199254740991",
+                    large_value, e
+                ));
+            }
+        };
+
+        // Store the safe value
+        self.sql.exec("DELETE FROM counter;", None)?;
+        self.sql
+            .exec("INSERT INTO counter(value) VALUES (?);", vec![safe_value])?;
+
+        Response::ok(format!("Successfully stored large value: {}", large_value))
+    }
 }
 
 #[worker::send]
@@ -55,7 +98,16 @@ pub async fn handle_sql_counter(
     // skip "sql-counter"
     let _ = segments.next();
     let name = segments.next().unwrap_or("default");
+
+    // Build the remaining path for the durable object request
+    let remaining_path: Vec<&str> = segments.collect();
+    let full_path = if remaining_path.is_empty() {
+        "https://fake-host/".to_string()
+    } else {
+        format!("https://fake-host/{}", remaining_path.join("/"))
+    };
+
     let namespace = env.durable_object("SQL_COUNTER")?;
     let stub = namespace.id_from_name(name)?.get_stub()?;
-    stub.fetch_with_str("https://fake-host/").await
+    stub.fetch_with_str(&full_path).await
 }

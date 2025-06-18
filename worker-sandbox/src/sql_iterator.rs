@@ -18,6 +18,14 @@ struct Product {
     in_stock: i32,
 }
 
+#[derive(Deserialize)]
+struct BadProduct {
+    id: String, // This will cause deserialization to fail since id is actually an integer
+    name: String,
+    price: f64,
+    in_stock: i32,
+}
+
 #[durable_object]
 impl DurableObject for SqlIterator {
     fn new(state: State, _env: Env) -> Self {
@@ -75,7 +83,8 @@ impl DurableObject for SqlIterator {
         match path {
             "/next" => self.handle_next().await,
             "/raw" => self.handle_raw().await,
-            _ => Response::ok("SQL Iterator Test - try /next or /raw endpoints"),
+            "/next-invalid" => self.handle_next_invalid().await,
+            _ => Response::ok("SQL Iterator Test - try /next, /raw, or /next-invalid endpoints"),
         }
     }
 }
@@ -134,6 +143,34 @@ impl SqlIterator {
 
         Response::ok(response_body)
     }
+
+    async fn handle_next_invalid(&self) -> Result<Response> {
+        let cursor = self.sql.exec("SELECT * FROM products ORDER BY id;", None)?;
+
+        let mut results = Vec::new();
+        let iterator = cursor.next::<BadProduct>();
+
+        for result in iterator {
+            match result {
+                Ok(product) => {
+                    results.push(format!(
+                        "BadProduct {}: {} - ${:.2} (in stock: {})",
+                        product.id,
+                        product.name,
+                        product.price,
+                        product.in_stock != 0
+                    ));
+                }
+                Err(e) => {
+                    results.push(format!("Error deserializing row: {}", e));
+                }
+            }
+        }
+
+        let response_body = format!("next-invalid() iterator results:\n{}", results.join("\n"));
+
+        Response::ok(response_body)
+    }
 }
 
 #[worker::send]
@@ -147,7 +184,7 @@ pub async fn handle_sql_iterator(
     let mut segments = uri.path_segments().unwrap();
     // skip "sql-iterator"
     let _ = segments.next();
-    
+
     // Get name and remaining path
     let name = segments.next().unwrap_or("default");
     let remaining_path: Vec<&str> = segments.collect();

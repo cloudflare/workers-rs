@@ -83,6 +83,24 @@ describe("sql iterator durable object", () => {
     expect(text).toContain("Columns: id, name, price, in_stock");
   });
 
+  test("next() iterator handles deserialization errors", async () => {
+    const resp = await mf.dispatchFetch(
+      "http://fake.host/sql-iterator/test/next-invalid",
+    );
+    expect(resp.status).toBe(200);
+
+    const text = await resp.text();
+    expect(text).toContain("next-invalid() iterator results:");
+    
+    // Should have 5 error messages (one for each row that failed deserialization)
+    const deserializationErrors = text.match(/Error deserializing row:/g);
+    expect(deserializationErrors).toBeTruthy();
+    expect(deserializationErrors!.length).toBe(5);
+    
+    // Check that the error messages contain information about the type mismatch
+    expect(text).toContain("invalid type");
+  });
+
   test.each([
     ["root", ""],
     ["invalid", "/invalid"],
@@ -93,7 +111,7 @@ describe("sql iterator durable object", () => {
     expect(resp.status).toBe(200);
 
     const text = await resp.text();
-    expect(text).toBe("SQL Iterator Test - try /next or /raw endpoints");
+    expect(text).toBe("SQL Iterator Test - try /next, /raw, or /next-invalid endpoints");
   });
 
   test("data consistency between next() and raw() methods", async () => {

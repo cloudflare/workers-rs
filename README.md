@@ -293,7 +293,7 @@ impl DurableObject for SqlCounter {
         Self { sql }
     }
 
-    async fn fetch(&mut self, _req: Request) -> Result<Response> {
+    async fn fetch(&self, _req: Request) -> Result<Response> {
         #[derive(serde::Deserialize)]
         struct Row {
             value: i32,

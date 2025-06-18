@@ -19,8 +19,9 @@ pub enum SqlStorageValue {
     Null,
     /// Boolean value
     Boolean(bool),
-    /// 32-bit signed integer (safe for JavaScript Number conversion)
-    Integer(i32),
+    /// 64-bit signed integer
+    /// Precision may be lost if outside JavaScript safe integer range. Use `try_from_i64` to ensure safety.
+    Integer(i64),
     /// 64-bit floating point number
     Float(f64),
     /// UTF-8 string
@@ -38,7 +39,31 @@ impl From<bool> for SqlStorageValue {
 
 impl From<i32> for SqlStorageValue {
     fn from(value: i32) -> Self {
+        SqlStorageValue::Integer(value as i64)
+    }
+}
+
+impl From<i64> for SqlStorageValue {
+    fn from(value: i64) -> Self {
         SqlStorageValue::Integer(value)
+    }
+}
+
+impl SqlStorageValue {
+    /// Create a new Integer value, checking if it's within JavaScript safe integer bounds.
+    ///
+    /// Returns an error if the value is outside the range that can be safely represented
+    /// in JavaScript (±2^53 - 1).
+    pub fn try_from_i64(value: i64) -> Result<Self> {
+        if value >= js_sys::Number::MIN_SAFE_INTEGER as i64
+            && value <= js_sys::Number::MAX_SAFE_INTEGER as i64
+        {
+            Ok(SqlStorageValue::Integer(value))
+        } else {
+            Err(crate::Error::from(
+                "Value outside JavaScript safe integer range",
+            ))
+        }
     }
 }
 
@@ -84,7 +109,18 @@ impl From<SqlStorageValue> for JsValue {
         match val {
             SqlStorageValue::Null => JsValue::NULL,
             SqlStorageValue::Boolean(b) => JsValue::from(b),
-            SqlStorageValue::Integer(i) => JsValue::from(i),
+            SqlStorageValue::Integer(i) => {
+                let js_value = JsValue::from(i as f64);
+
+                if !js_sys::Number::is_safe_integer(&js_value) {
+                    crate::console_debug!(
+                        "Warning: Converting {} to JsValue as Integer, \
+                         but it is outside the JavaScript safe-integer range",
+                        i
+                    );
+                }
+                js_value
+            }
             SqlStorageValue::Float(f) => JsValue::from(f),
             SqlStorageValue::String(s) => JsValue::from(s),
             SqlStorageValue::Blob(bytes) => {
@@ -108,8 +144,8 @@ impl TryFrom<JsValue> for SqlStorageValue {
         } else if let Some(str_val) = js_val.as_string() {
             Ok(SqlStorageValue::String(str_val))
         } else if let Some(num_val) = js_val.as_f64() {
-            if num_val.fract() == 0.0 && num_val >= i32::MIN as f64 && num_val <= i32::MAX as f64 {
-                Ok(SqlStorageValue::Integer(num_val as i32))
+            if js_sys::Number::is_safe_integer(&js_val) {
+                Ok(SqlStorageValue::Integer(num_val as i64))
             } else {
                 Ok(SqlStorageValue::Float(num_val))
             }

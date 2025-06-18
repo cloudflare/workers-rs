@@ -232,7 +232,7 @@ pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
             get(handler!(crate::test::auto_response::handle_auto_response)),
         )
         .route(
-            "/sql-counter/{name}",
+            "/sql-counter/{*path}",
             get(handler!(sql_counter::handle_sql_counter)),
         )
         .route(
@@ -384,7 +384,7 @@ pub fn make_router<'a>(data: SomeSharedData) -> Router<'a, SomeSharedData> {
             handler!(crate::test::auto_response::handle_auto_response),
         )
         .get_async(
-            "/sql-counter/:name",
+            "/sql-counter/*path",
             handler!(sql_counter::handle_sql_counter),
         )
         .get_async(
