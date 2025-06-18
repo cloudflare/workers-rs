@@ -1,5 +1,8 @@
-use crate::{js_sys::{Object, Reflect}, wasm_bindgen};
 use crate::SomeSharedData;
+use crate::{
+    js_sys::{Object, Reflect},
+    wasm_bindgen,
+};
 use serde::Deserialize;
 use wasm_bindgen::JsValue;
 use worker::{D1PreparedArgument, D1Type, Env, Error, Request, Response, Result};
