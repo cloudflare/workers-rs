@@ -2,7 +2,7 @@ use std::cell::RefCell;
 
 use worker::*;
 
-#[DurableObject]
+#[durable_object]
 pub struct Counter {
     count: RefCell<usize>,
     state: State,

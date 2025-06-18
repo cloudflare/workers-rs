@@ -5,7 +5,7 @@ use worker::*;
 
 use super::SomeSharedData;
 
-#[DurableObject]
+#[durable_object]
 pub struct AlarmObject {
     state: State,
 }

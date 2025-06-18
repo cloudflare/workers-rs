@@ -1,6 +1,6 @@
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use syn::{Error, ItemStruct, ItemImpl};
+use syn::{Error, ItemImpl, ItemStruct};
 
 enum DurableObjectType {
     Fetch,
@@ -149,9 +149,12 @@ mod bindgen_methods {
 }
 
 pub fn expand_macro(attr: TokenStream, tokens: TokenStream) -> syn::Result<TokenStream> {
-    // accept an impl block for #[durable_object] backward compatibility
-    if let Ok(_) = syn::parse2::<ItemImpl>(tokens.clone()) {
-        return Ok(tokens)
+    // Try to give a nice error for previous impl usage
+    if syn::parse2::<ItemImpl>(tokens.clone()).is_ok() {
+        return Err(syn::Error::new(
+            proc_macro2::Span::call_site(),
+            "The #[durable_object] macro is no longer required for `impl` blocks, and can be removed"
+        ));
     }
 
     let target = syn::parse2::<ItemStruct>(tokens)?;
@@ -159,7 +162,7 @@ pub fn expand_macro(attr: TokenStream, tokens: TokenStream) -> syn::Result<Token
     let durable_object_type = (!attr.is_empty())
         .then(|| syn::parse2::<DurableObjectType>(attr))
         .transpose()?;
-    
+
     let bindgen_methods = match durable_object_type {
         // if not specified, bindgen all.
         // this is expected behavior, and is also required for #[durable_object] to compile and work
@@ -170,24 +173,18 @@ pub fn expand_macro(attr: TokenStream, tokens: TokenStream) -> syn::Result<Token
         ],
 
         // if specified, bindgen only related methods.
-        Some(DurableObjectType::Fetch) => vec![
-            bindgen_methods::core(),
-        ],
-        Some(DurableObjectType::Alarm) => vec![
-            bindgen_methods::core(),
-            bindgen_methods::alarm(),
-        ],
-        Some(DurableObjectType::WebSocket) => vec![
-            bindgen_methods::core(),
-            bindgen_methods::websocket(),
-        ],
+        Some(DurableObjectType::Fetch) => vec![bindgen_methods::core()],
+        Some(DurableObjectType::Alarm) => vec![bindgen_methods::core(), bindgen_methods::alarm()],
+        Some(DurableObjectType::WebSocket) => {
+            vec![bindgen_methods::core(), bindgen_methods::websocket()]
+        }
     };
 
     let target_name = &target.ident;
     Ok(quote! {
         #target
 
-        impl ::worker::has_DurableObject_attribute for #target_name {}
+        impl ::worker::has_durable_object_attribute for #target_name {}
 
         const _: () = {
             use ::worker::wasm_bindgen;

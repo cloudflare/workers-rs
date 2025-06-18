@@ -703,18 +703,18 @@ impl ScheduledTime {
     fn schedule(self) -> js_sys::Date {
         match self.init {
             ScheduledTimeInit::Date(date) => date,
-            ScheduledTimeInit::Offset(offset) => {
+            ScheduledTimeInit::Offset(offset_ms) => {
                 let now = Date::now().as_millis() as f64;
-                js_sys::Date::new(&Number::from(now + offset))
+                js_sys::Date::new(&Number::from(now + offset_ms))
             }
         }
     }
 }
 
 impl From<i64> for ScheduledTime {
-    fn from(offset: i64) -> Self {
+    fn from(offset_ms: i64) -> Self {
         ScheduledTime {
-            init: ScheduledTimeInit::Offset(offset as f64),
+            init: ScheduledTimeInit::Offset(offset_ms as f64),
         }
     }
 }
@@ -820,9 +820,8 @@ impl DurableObject for Chatroom {
 }
 ```
 */
-
-#[allow(async_fn_in_trait)] // Send is not needed 
-pub trait DurableObject: has_DurableObject_attribute {
+#[allow(async_fn_in_trait)] // Send is not needed
+pub trait DurableObject: has_durable_object_attribute {
     fn new(state: State, env: Env) -> Self;
 
     async fn fetch(&self, req: Request) -> Result<Response>;
@@ -830,7 +829,7 @@ pub trait DurableObject: has_DurableObject_attribute {
     #[allow(clippy::diverging_sub_expression)]
     async fn alarm(&self) -> Result<Response> {
         worker_sys::console_error!("alarm() handler not implemented");
-        unimplemented!("alarm() handler not implemented")
+        unimplemented!("alarm() handler")
     }
 
     #[allow(unused_variables, clippy::diverging_sub_expression)]
@@ -840,7 +839,7 @@ pub trait DurableObject: has_DurableObject_attribute {
         message: WebSocketIncomingMessage,
     ) -> Result<()> {
         worker_sys::console_error!("websocket_message() handler not implemented");
-        unimplemented!("websocket_message() handler not implemented")
+        unimplemented!("websocket_message() handler")
     }
 
     #[allow(unused_variables, clippy::diverging_sub_expression)]
@@ -852,16 +851,16 @@ pub trait DurableObject: has_DurableObject_attribute {
         was_clean: bool,
     ) -> Result<()> {
         worker_sys::console_error!("websocket_close() handler not implemented");
-        unimplemented!("websocket_close() handler not implemented")
+        unimplemented!("websocket_close() handler")
     }
 
     #[allow(unused_variables, clippy::diverging_sub_expression)]
     async fn websocket_error(&self, ws: WebSocket, error: Error) -> Result<()> {
         worker_sys::console_error!("websocket_error() handler not implemented");
-        unimplemented!("websocket_error() handler not implemented")
+        unimplemented!("websocket_error() handler")
     }
 }
 
 #[doc(hidden)]
 #[allow(non_camel_case_types)]
-pub trait has_DurableObject_attribute {}
+pub trait has_durable_object_attribute {}

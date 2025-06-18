@@ -5,10 +5,10 @@ mod send;
 use proc_macro::TokenStream;
 
 /// Integrate the struct with the Workers Runtime as Durable Object.\
-/// This requires to impl `DurableObject` trait and the trait requires the durable_object attribute.
-/// 
+/// Requires the `DurableObject` trait with the durable_object attribute macro on the struct.
+///
 /// ## Example
-/// 
+///
 /// ```rust
 /// #[durable_object]
 /// pub struct Chatroom {
@@ -17,7 +17,7 @@ use proc_macro::TokenStream;
 ///     state: State,
 ///     env: Env, // access `Env` across requests, use inside `fetch`
 /// }
-/// 
+///
 /// impl DurableObject for Chatroom {
 ///     fn new(state: State, env: Env) -> Self {
 ///         Self {
@@ -27,22 +27,23 @@ use proc_macro::TokenStream;
 ///             env,
 ///         }
 ///     }
-/// 
+///
 ///     async fn fetch(&self, _req: Request) -> Result<Response> {
 ///         // do some work when a worker makes a request to this DO
 ///         Response::ok(&format!("{} active users.", self.users.len()))
 ///     }
 /// }
 /// ```
-/// 
+///
 /// ## Note
-/// 
-/// You can specify the usage of the Durable Object via an argument in order to control WASM/JS outout:
-/// 
+///
+/// By default all durable object events are enabled.
+/// Arguments may be provided to the macro to only generate the desired events, and reduce the generated JS & Wasm output:
+///
 /// * `fetch`: simple `fetch` target
 /// * `alarm`: with [Alarms API](https://developers.cloudflare.com/durable-objects/examples/alarms-api/)
 /// * `websocket`: [WebSocket server](https://developers.cloudflare.com/durable-objects/examples/websocket-hibernation-server/)
-/// 
+///
 /// ```rust
 /// #[durable_object(fetch)]
 /// pub struct Chatroom {
@@ -53,7 +54,6 @@ use proc_macro::TokenStream;
 /// }
 /// ```
 #[proc_macro_attribute]
-#[allow(non_snake_case)]
 pub fn durable_object(attr: TokenStream, item: TokenStream) -> TokenStream {
     durable_object::expand_macro(attr.into(), item.into())
         .unwrap_or_else(syn::Error::into_compile_error)

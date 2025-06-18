@@ -9,7 +9,6 @@ pub struct SqlCounter {
     sql: SqlStorage,
 }
 
-#[durable_object]
 impl DurableObject for SqlCounter {
     fn new(state: State, _env: Env) -> Self {
         let sql = state.storage().sql();

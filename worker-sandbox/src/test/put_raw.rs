@@ -1,6 +1,6 @@
 use worker::{js_sys::Uint8Array, wasm_bindgen::JsValue, *};
 
-#[DurableObject]
+#[durable_object]
 pub struct PutRawTestObject {
     state: State,
 }

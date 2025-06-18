@@ -5,7 +5,7 @@ use worker::{js_sys::Uint8Array, wasm_bindgen::JsValue, *};
 
 use crate::ensure;
 
-#[DurableObject]
+#[durable_object]
 pub struct MyClass {
     state: State,
     number: RefCell<usize>,

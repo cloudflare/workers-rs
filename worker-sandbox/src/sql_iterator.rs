@@ -26,7 +26,6 @@ struct BadProduct {
     in_stock: i32,
 }
 
-#[durable_object]
 impl DurableObject for SqlIterator {
     fn new(state: State, _env: Env) -> Self {
         let sql = state.storage().sql();
