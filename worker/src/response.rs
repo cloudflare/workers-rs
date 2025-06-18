@@ -376,7 +376,7 @@ impl ResponseBuilder {
     }
 
     /// Set a single header on this response.
-    pub fn with_header(mut self, key: &str, value: &str) -> Result<Self> {
+    pub fn with_header(self, key: &str, value: &str) -> Result<Self> {
         self.headers.set(key, value)?;
         Ok(self)
     }
@@ -458,7 +458,7 @@ impl ResponseBuilder {
 
     /// Create a `Response` using `B` as the body encoded as JSON. Sets the associated
     /// `Content-Type` header for the `Response` as `application/json`.
-    pub fn from_json<B: Serialize>(mut self, value: &B) -> Result<Response> {
+    pub fn from_json<B: Serialize>(self, value: &B) -> Result<Response> {
         if let Ok(data) = serde_json::to_string(value) {
             self.headers.set(CONTENT_TYPE, "application/json")?;
             Ok(self.fixed(data.into_bytes()))
@@ -469,7 +469,7 @@ impl ResponseBuilder {
 
     /// Create a `Response` using the body encoded as HTML. Sets the associated `Content-Type`
     /// header for the `Response` as `text/html; charset=utf-8`.
-    pub fn from_html(mut self, html: impl AsRef<str>) -> Result<Response> {
+    pub fn from_html(self, html: impl AsRef<str>) -> Result<Response> {
         self.headers.set(CONTENT_TYPE, "text/html; charset=utf-8")?;
         let data = html.as_ref().as_bytes().to_vec();
         Ok(self.fixed(data))
@@ -477,7 +477,7 @@ impl ResponseBuilder {
 
     /// Create a `Response` using unprocessed bytes provided. Sets the associated `Content-Type`
     /// header for the `Response` as `application/octet-stream`.
-    pub fn from_bytes(mut self, bytes: Vec<u8>) -> Result<Response> {
+    pub fn from_bytes(self, bytes: Vec<u8>) -> Result<Response> {
         self.headers.set(CONTENT_TYPE, "application/octet-stream")?;
         Ok(self.fixed(bytes))
     }
@@ -510,7 +510,7 @@ impl ResponseBuilder {
 
     /// Create a `Response` using unprocessed text provided. Sets the associated `Content-Type`
     /// header for the `Response` as `text/plain; charset=utf-8`.
-    pub fn ok(mut self, body: impl Into<String>) -> Result<Response> {
+    pub fn ok(self, body: impl Into<String>) -> Result<Response> {
         self.headers
             .set(CONTENT_TYPE, "text/plain; charset=utf-8")?;
 

@@ -1,10 +1,12 @@
+use std::cell::RefCell;
+
 use worker::*;
 
 #[durable_object]
 pub struct Counter {
-    count: usize,
+    count: RefCell<usize>,
     state: State,
-    initialized: bool,
+    initialized: RefCell<bool>,
     env: Env,
 }
 
@@ -12,17 +14,17 @@ pub struct Counter {
 impl DurableObject for Counter {
     fn new(state: State, env: Env) -> Self {
         Self {
-            count: 0,
-            initialized: false,
+            count: RefCell::new(0),
+            initialized: RefCell::new(false),
             state,
             env,
         }
     }
 
-    async fn fetch(&mut self, req: Request) -> Result<Response> {
-        if !self.initialized {
-            self.initialized = true;
-            self.count = self.state.storage().get("count").await.unwrap_or(0);
+    async fn fetch(&self, req: Request) -> Result<Response> {
+        if !*self.initialized.borrow() {
+            *self.initialized.borrow_mut() = true;
+            *self.count.borrow_mut() = self.state.storage().get("count").await.unwrap_or(0);
         }
 
         if req.path().eq("/ws") {
@@ -40,18 +42,19 @@ impl DurableObject for Counter {
                 .empty());
         }
 
-        self.count += 10;
-        self.state.storage().put("count", self.count).await?;
+        *self.count.borrow_mut() += 10;
+        let count = *self.count.borrow();
+        self.state.storage().put("count", count).await?;
 
         Response::ok(format!(
             "[durable_object]: self.count: {}, secret value: {}",
-            self.count,
+            self.count.borrow(),
             self.env.secret("SOME_SECRET")?
         ))
     }
 
     async fn websocket_message(
-        &mut self,
+        &self,
         ws: WebSocket,
         _message: WebSocketIncomingMessage,
     ) -> Result<()> {
@@ -69,7 +72,7 @@ impl DurableObject for Counter {
     }
 
     async fn websocket_close(
-        &mut self,
+        &self,
         _ws: WebSocket,
         _code: usize,
         _reason: String,
@@ -78,7 +81,7 @@ impl DurableObject for Counter {
         Ok(())
     }
 
-    async fn websocket_error(&mut self, _ws: WebSocket, _error: Error) -> Result<()> {
+    async fn websocket_error(&self, _ws: WebSocket, _error: Error) -> Result<()> {
         Ok(())
     }
 }

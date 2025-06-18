@@ -24,6 +24,8 @@ pub enum Error {
     #[cfg(feature = "d1")]
     D1(crate::d1::D1Error),
     Utf8Error(std::str::Utf8Error),
+    #[cfg(feature = "timezone")]
+    TimezoneError,
 }
 
 unsafe impl Sync for Error {}
@@ -54,6 +56,13 @@ impl From<http::header::InvalidHeaderName> for Error {
 impl From<http::header::InvalidHeaderValue> for Error {
     fn from(value: http::header::InvalidHeaderValue) -> Self {
         Self::RustError(format!("Invalid header value: {:?}", value))
+    }
+}
+
+#[cfg(feature = "timezone")]
+impl From<chrono_tz::ParseError> for Error {
+    fn from(_value: chrono_tz::ParseError) -> Self {
+        Self::RustError("Invalid timezone".to_string())
     }
 }
 
@@ -126,6 +135,8 @@ impl std::fmt::Display for Error {
             #[cfg(feature = "d1")]
             Error::D1(e) => write!(f, "D1: {e:#?}"),
             Error::Utf8Error(e) => write!(f, "{e}"),
+            #[cfg(feature = "timezone")]
+            Error::TimezoneError => write!(f, "Timezone Error"),
         }
     }
 }

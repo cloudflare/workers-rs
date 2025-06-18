@@ -9,14 +9,24 @@ jobs:
     name: Formatter
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          target: wasm32-unknown-unknown
-          override: true
+          components: clippy, rustfmt
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
 
       - name: Check Formatting
         run: cargo fmt --all -- --check
@@ -31,54 +41,52 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          target: wasm32-unknown-unknown
-          override: true
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
 
       - name: Check for errors
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
+        run: cargo check
 
       - name: Run builder tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --manifest-path worker-build/Cargo.toml
+        run: cargo test --manifest-path worker-build/Cargo.toml
           
       - name: Setup node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: v18.12.1
+          node-version: 18
 
       - name: Install packages
         run: |
           sudo apt update
           sudo apt clean
           sudo apt install -y build-essential libssl-dev netcat-traditional libc++-dev
+
       - name: Install wasmpack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
       - name: Build local worker-build
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: --path ./worker-build --force --debug
+        run: cargo install --path ./worker-build --force --debug
 
       - name: Install npm dependencies
-        shell: bash
         run: npm ci
 
       - name: Run tests
-        shell: bash
         run: npm run test
 
       - name: Run tests (http)
-        shell: bash
         run: npm run test-http

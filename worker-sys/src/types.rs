@@ -1,4 +1,5 @@
 mod ai;
+mod analytics_engine;
 mod context;
 mod crypto;
 #[cfg(feature = "d1")]
@@ -18,8 +19,10 @@ mod socket;
 mod tls_client_auth;
 mod version;
 mod websocket_pair;
+mod websocket_request_response_pair;
 
 pub use ai::*;
+pub use analytics_engine::*;
 pub use context::*;
 pub use crypto::*;
 #[cfg(feature = "d1")]
@@ -39,3 +42,4 @@ pub use socket::*;
 pub use tls_client_auth::*;
 pub use version::*;
 pub use websocket_pair::*;
+pub use websocket_request_response_pair::*;

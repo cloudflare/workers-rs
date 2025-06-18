@@ -9,13 +9,15 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
             let impl_token = imp.impl_token;
             let trai = imp.trait_.clone();
             let (_, trai, _) = trai.ok_or_else(|| Error::new_spanned(impl_token, "Must be a DurableObject trait impl"))?;
-            if !trai.segments.last().map(|x| x.ident == "DurableObject").unwrap_or(false) {
-                return Err(Error::new(trai.span(), "Must be a DurableObject trait impl"))
+
+            // Check for the correct trait based on shared parameter
+            let expected_trait = "DurableObject";
+            if !trai.segments.last().map(|x| x.ident == expected_trait).unwrap_or(false) {
+                return Err(Error::new(trai.span(), format!("Must be a {} trait impl", expected_trait)));
             }
 
             let pound = syn::Token![#](imp.span()).to_token_stream();
             let wasm_bindgen_attr = quote! {#pound[wasm_bindgen::prelude::wasm_bindgen]};
-
 
             let struct_name = imp.self_ty;
             let items = imp.items;
@@ -31,6 +33,10 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
 
             let mut optional_methods = OptionalMethods::default();
 
+            let self_name = quote! { DurableObject };
+            let self_param = quote! { &self };
+            let self_cast = quote! { let static_self: &'static Self = unsafe {&*(self as *const _)}; };
+
             for item in items {
                 let impl_method = match item {
                     ImplItem::Fn(func) => func,
@@ -44,7 +50,6 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                         let mut method = impl_method.clone();
                         method.sig.ident = Ident::new("_new", method.sig.ident.span());
                         method.vis = Visibility::Inherited;
-
 
                         // modify the `state` argument so it is type ObjectState
                         let arg_tokens = method.sig.inputs.first_mut().expect("DurableObject `new` method must have 2 arguments: state and env").into_token_stream();                        
@@ -80,16 +85,22 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                         method.sig.ident = Ident::new("_fetch_raw", method.sig.ident.span());
                         method.vis = Visibility::Inherited;
 
+                        // For shared objects, we need to use &self instead of &mut self
+                        // Update the method signature to use &self
+                        if let Some(FnArg::Receiver(receiver)) = method.sig.inputs.first_mut() {
+                            receiver.mutability = None;
+                        }
+
                         Ok(quote! {
                             #pound[wasm_bindgen::prelude::wasm_bindgen(js_name = fetch)]
-                            pub fn _fetch(&mut self, req: worker::worker_sys::web_sys::Request) -> worker::js_sys::Promise {
+                            pub fn _fetch(#self_param, req: worker::worker_sys::web_sys::Request) -> worker::js_sys::Promise {
                                 // SAFETY:
                                 // On the surface, this is unsound because the Durable Object could be dropped
                                 // while JavaScript still has possession of the future. However,
                                 // we know something that Rust doesn't: that the Durable Object will never be destroyed
                                 // while there is still a running promise inside of it, therefore we can let a reference
                                 // to the durable object escape into a static-lifetime future.
-                                let static_self: &'static mut Self = unsafe {&mut *(self as *mut _)};
+                                #self_cast
 
                                 wasm_bindgen_futures::future_to_promise(async move {
                                     static_self._fetch_raw(req.into()).await.map(worker::worker_sys::web_sys::Response::from).map(wasm_bindgen::JsValue::from)
@@ -107,16 +118,14 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                         method.sig.ident = Ident::new("_alarm_raw", method.sig.ident.span());
                         method.vis = Visibility::Inherited;
 
+                        if let Some(FnArg::Receiver(receiver)) = method.sig.inputs.first_mut() {
+                            receiver.mutability = None;
+                        }
+
                         Ok(quote! {
                             #pound[wasm_bindgen::prelude::wasm_bindgen(js_name = alarm)]
-                            pub fn _alarm(&mut self) -> worker::js_sys::Promise {
-                                // SAFETY:
-                                // On the surface, this is unsound because the Durable Object could be dropped
-                                // while JavaScript still has possession of the future. However,
-                                // we know something that Rust doesn't: that the Durable Object will never be destroyed
-                                // while there is still a running promise inside of it, therefore we can let a reference
-                                // to the durable object escape into a static-lifetime future.
-                                let static_self: &'static mut Self = unsafe {&mut *(self as *mut _)};
+                            pub fn _alarm(#self_param) -> worker::js_sys::Promise {
+                                #self_cast
 
                                 wasm_bindgen_futures::future_to_promise(async move {
                                     static_self._alarm_raw().await.map(worker::worker_sys::web_sys::Response::from).map(wasm_bindgen::JsValue::from)
@@ -134,9 +143,11 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                         method.sig.ident = Ident::new("_websocket_message_raw", method.sig.ident.span());
                         method.vis = Visibility::Inherited;
 
+
+
                         Ok(quote! {
                             #pound[wasm_bindgen::prelude::wasm_bindgen(js_name = webSocketMessage)]
-                            pub fn _websocket_message(&mut self, ws: worker::worker_sys::web_sys::WebSocket, message: wasm_bindgen::JsValue) -> worker::js_sys::Promise {
+                            pub fn _websocket_message(#self_param, ws: worker::worker_sys::web_sys::WebSocket, message: wasm_bindgen::JsValue) -> worker::js_sys::Promise {
                                 let ws_message = if let Some(string_message) = message.as_string() {
                                     worker::WebSocketIncomingMessage::String(string_message)
                                 } else {
@@ -144,13 +155,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                                     worker::WebSocketIncomingMessage::Binary(v)
                                 };
 
-                                // SAFETY:
-                                // On the surface, this is unsound because the Durable Object could be dropped
-                                // while JavaScript still has possession of the future. However,
-                                // we know something that Rust doesn't: that the Durable Object will never be destroyed
-                                // while there is still a running promise inside of it, therefore we can let a reference
-                                // to the durable object escape into a static-lifetime future.
-                                let static_self: &'static mut Self = unsafe {&mut *(self as *mut _)};
+                                #self_cast
 
                                 wasm_bindgen_futures::future_to_promise(async move {
                                     static_self._websocket_message_raw(ws.into(), ws_message).await.map(|_| wasm_bindgen::JsValue::NULL)
@@ -168,16 +173,14 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                         method.sig.ident = Ident::new("_websocket_close_raw", method.sig.ident.span());
                         method.vis = Visibility::Inherited;
 
+                        if let Some(FnArg::Receiver(receiver)) = method.sig.inputs.first_mut() {
+                            receiver.mutability = None;
+                        }
+
                         Ok(quote! {
                             #pound[wasm_bindgen::prelude::wasm_bindgen(js_name = webSocketClose)]
-                            pub fn _websocket_close(&mut self, ws: worker::worker_sys::web_sys::WebSocket, code: usize, reason: String, was_clean: bool) -> worker::js_sys::Promise {
-                                // SAFETY:
-                                // On the surface, this is unsound because the Durable Object could be dropped
-                                // while JavaScript still has possession of the future. However,
-                                // we know something that Rust doesn't: that the Durable Object will never be destroyed
-                                // while there is still a running promise inside of it, therefore we can let a reference
-                                // to the durable object escape into a static-lifetime future.
-                                let static_self: &'static mut Self = unsafe {&mut *(self as *mut _)};
+                            pub fn _websocket_close(#self_param, ws: worker::worker_sys::web_sys::WebSocket, code: usize, reason: String, was_clean: bool) -> worker::js_sys::Promise {
+                                #self_cast
 
                                 wasm_bindgen_futures::future_to_promise(async move {
                                     static_self._websocket_close_raw(ws.into(), code, reason, was_clean).await.map(|_| wasm_bindgen::JsValue::NULL)
@@ -195,16 +198,14 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                         method.sig.ident = Ident::new("_websocket_error_raw", method.sig.ident.span());
                         method.vis = Visibility::Inherited;
 
+                        if let Some(FnArg::Receiver(receiver)) = method.sig.inputs.first_mut() {
+                            receiver.mutability = None;
+                        }
+
                         Ok(quote! {
                             #pound[wasm_bindgen::prelude::wasm_bindgen(js_name = webSocketError)]
-                            pub fn _websocket_error(&mut self, ws: worker::worker_sys::web_sys::WebSocket, error: wasm_bindgen::JsValue) -> worker::js_sys::Promise {
-                                // SAFETY:
-                                // On the surface, this is unsound because the Durable Object could be dropped
-                                // while JavaScript still has possession of the future. However,
-                                // we know something that Rust doesn't: that the Durable Object will never be destroyed
-                                // while there is still a running promise inside of it, therefore we can let a reference
-                                // to the durable object escape into a static-lifetime future.
-                                let static_self: &'static mut Self = unsafe {&mut *(self as *mut _)};
+                            pub fn _websocket_error(#self_param, ws: worker::worker_sys::web_sys::WebSocket, error: wasm_bindgen::JsValue) -> worker::js_sys::Promise {
+                                #self_cast
 
                                 wasm_bindgen_futures::future_to_promise(async move {
                                     static_self._websocket_error_raw(ws.into(), error.into()).await.map(|_| wasm_bindgen::JsValue::NULL)
@@ -220,43 +221,40 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                 tokenized.push(tokens?);
             }
 
+            // Generate optional method implementations with correct self type
             let alarm_tokens = optional_methods.has_alarm.then(|| quote! {
-                async fn alarm(&mut self) -> ::worker::Result<worker::Response> {
-                    self._alarm_raw().await
-                }
-            });
+                    async fn alarm(#self_param) -> ::worker::Result<worker::Response> {
+                        self._alarm_raw().await
+                    }
+                });
 
             let websocket_message_tokens = optional_methods.has_websocket_message.then(|| quote! {
-                async fn websocket_message(&mut self, ws: ::worker::WebSocket, message: ::worker::WebSocketIncomingMessage) -> ::worker::Result<()> {
-                    self._websocket_message_raw(ws, message).await
-                }
-            });
+                    async fn websocket_message(#self_param, ws: ::worker::WebSocket, message: ::worker::WebSocketIncomingMessage) -> ::worker::Result<()> {
+                        self._websocket_message_raw(ws, message).await
+                    }
+                    });
 
             let websocket_close_tokens = optional_methods.has_websocket_close.then(|| quote! {
-                async fn websocket_close(&mut self, ws: ::worker::WebSocket, code: usize, reason: String, was_clean: bool) -> ::worker::Result<()> {
-                    self._websocket_close_raw(ws, code, reason, was_clean).await
-                }
-            });
+                    async fn websocket_close(#self_param, ws: ::worker::WebSocket, code: usize, reason: String, was_clean: bool) -> ::worker::Result<()> {
+                        self._websocket_close_raw(ws, code, reason, was_clean).await
+                    }
+                });
 
             let websocket_error_tokens = optional_methods.has_websocket_error.then(|| quote! {
-                async fn websocket_error(&mut self, ws: ::worker::WebSocket, error: ::worker::Error) -> ::worker::Result<()> {
-                    self._websocket_error_raw(ws, error).await
-                }
-            });
+                    async fn websocket_error(#self_param, ws: ::worker::WebSocket, error: ::worker::Error) -> ::worker::Result<()> {
+                        self._websocket_error_raw(ws, error).await
+                    }
+                });
 
-            Ok(quote! {
-                #wasm_bindgen_attr
-                impl #struct_name {
-                    #(#tokenized)*
-                }
-
+            // Generate the appropriate trait implementation
+            let trait_impl = quote! {
                 #pound[async_trait::async_trait(?Send)]
-                impl ::worker::durable::DurableObject for #struct_name {
+                impl ::worker::durable::#self_name for #struct_name {
                     fn new(state: ::worker::durable::State, env: ::worker::Env) -> Self {
                         Self::_new(state._inner(), env)
                     }
 
-                    async fn fetch(&mut self, req: ::worker::Request) -> ::worker::Result<worker::Response> {
+                    async fn fetch(#self_param, req: ::worker::Request) -> ::worker::Result<worker::Response> {
                         self._fetch_raw(req).await
                     }
 
@@ -271,12 +269,22 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
 
                 trait __Need_Durable_Object_Trait_Impl_With_durable_object_Attribute { const MACROED: bool = true; }
                 impl __Need_Durable_Object_Trait_Impl_With_durable_object_Attribute for #struct_name {}
+            };
+
+            Ok(quote! {
+                #wasm_bindgen_attr
+                impl #struct_name {
+                    #(#tokenized)*
+                }
+
+                #trait_impl
             })
         },
         Item::Struct(struc) => {
             let tokens = struc.to_token_stream();
             let pound = syn::Token![#](struc.span()).to_token_stream();
             let struct_name = struc.ident;
+
             Ok(quote! {
                 #pound[wasm_bindgen::prelude::wasm_bindgen]
                 #tokens
