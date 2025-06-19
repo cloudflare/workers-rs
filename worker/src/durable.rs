@@ -224,7 +224,7 @@ impl State {
             .unwrap()
     }
 
-    // needs to be accessed by the `#[DurableObject]` macro in a conversion step
+    // needs to be accessed by the `#[durable_object]` macro in a conversion step
     pub fn _inner(self) -> DurableObjectState {
         self.inner
     }
@@ -788,14 +788,14 @@ pub enum WebSocketIncomingMessage {
 
 /**
 **Note:** Implement this trait with a standard `impl DurableObject for YourType` block, but in order to
-integrate them with the Workers Runtime, you must also add the **`#[DurableObject]`** attribute
+integrate them with the Workers Runtime, you must also add the **`#[durable_object]`** attribute
 to the struct.
 
 ## Example
 ```no_run
 use worker::*;
 
-#[DurableObject]
+#[durable_object]
 pub struct Chatroom {
     users: Vec<User>,
     messages: Vec<Message>,
