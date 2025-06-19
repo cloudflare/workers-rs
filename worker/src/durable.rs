@@ -21,7 +21,6 @@ use crate::{
     Result, WebSocket,
 };
 
-use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use futures_util::Future;
 use js_sys::{Map, Number, Object};
@@ -225,7 +224,7 @@ impl State {
             .unwrap()
     }
 
-    // needs to be accessed by the `durable_object` macro in a conversion step
+    // needs to be accessed by the `#[durable_object]` macro in a conversion step
     pub fn _inner(self) -> DurableObjectState {
         self.inner
     }
@@ -509,6 +508,11 @@ impl Storage {
             .map_err(Error::from)
             .map(|_| ())
     }
+
+    // Add new method to access SQLite APIs
+    pub fn sql(&self) -> crate::sql::SqlStorage {
+        crate::sql::SqlStorage::new(self.inner.sql())
+    }
 }
 
 pub struct Transaction {
@@ -699,18 +703,18 @@ impl ScheduledTime {
     fn schedule(self) -> js_sys::Date {
         match self.init {
             ScheduledTimeInit::Date(date) => date,
-            ScheduledTimeInit::Offset(offset) => {
+            ScheduledTimeInit::Offset(offset_ms) => {
                 let now = Date::now().as_millis() as f64;
-                js_sys::Date::new(&Number::from(now + offset))
+                js_sys::Date::new(&Number::from(now + offset_ms))
             }
         }
     }
 }
 
 impl From<i64> for ScheduledTime {
-    fn from(in_millis: i64) -> Self {
+    fn from(offset_ms: i64) -> Self {
         ScheduledTime {
-            init: ScheduledTimeInit::Offset(in_millis as f64),
+            init: ScheduledTimeInit::Offset(offset_ms as f64),
         }
     }
 }
@@ -785,7 +789,7 @@ pub enum WebSocketIncomingMessage {
 /**
 **Note:** Implement this trait with a standard `impl DurableObject for YourType` block, but in order to
 integrate them with the Workers Runtime, you must also add the **`#[durable_object]`** attribute
-macro to both the impl block and the struct type definition.
+to the struct.
 
 ## Example
 ```no_run
@@ -799,7 +803,6 @@ pub struct Chatroom {
     env: Env, // access `Env` across requests, use inside `fetch`
 }
 
-#[durable_object]
 impl DurableObject for Chatroom {
     fn new(state: State, env: Env) -> Self {
         Self {
@@ -817,16 +820,16 @@ impl DurableObject for Chatroom {
 }
 ```
 */
-
-#[async_trait(?Send)]
-pub trait DurableObject {
+#[allow(async_fn_in_trait)] // Send is not needed
+pub trait DurableObject: has_durable_object_attribute {
     fn new(state: State, env: Env) -> Self;
 
     async fn fetch(&self, req: Request) -> Result<Response>;
 
     #[allow(clippy::diverging_sub_expression)]
     async fn alarm(&self) -> Result<Response> {
-        unimplemented!("alarm() handler not implemented")
+        worker_sys::console_error!("alarm() handler not implemented");
+        unimplemented!("alarm() handler")
     }
 
     #[allow(unused_variables, clippy::diverging_sub_expression)]
@@ -835,7 +838,8 @@ pub trait DurableObject {
         ws: WebSocket,
         message: WebSocketIncomingMessage,
     ) -> Result<()> {
-        unimplemented!("websocket_message() handler not implemented")
+        worker_sys::console_error!("websocket_message() handler not implemented");
+        unimplemented!("websocket_message() handler")
     }
 
     #[allow(unused_variables, clippy::diverging_sub_expression)]
@@ -846,11 +850,17 @@ pub trait DurableObject {
         reason: String,
         was_clean: bool,
     ) -> Result<()> {
-        unimplemented!("websocket_close() handler not implemented")
+        worker_sys::console_error!("websocket_close() handler not implemented");
+        unimplemented!("websocket_close() handler")
     }
 
     #[allow(unused_variables, clippy::diverging_sub_expression)]
     async fn websocket_error(&self, ws: WebSocket, error: Error) -> Result<()> {
-        unimplemented!("websocket_error() handler not implemented")
+        worker_sys::console_error!("websocket_error() handler not implemented");
+        unimplemented!("websocket_error() handler")
     }
 }
+
+#[doc(hidden)]
+#[allow(non_camel_case_types)]
+pub trait has_durable_object_attribute {}

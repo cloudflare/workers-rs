@@ -10,7 +10,6 @@ pub struct Counter {
     env: Env,
 }
 
-#[durable_object]
 impl DurableObject for Counter {
     fn new(state: State, env: Env) -> Self {
         Self {

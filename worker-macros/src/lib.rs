@@ -4,9 +4,58 @@ mod send;
 
 use proc_macro::TokenStream;
 
+/// Integrate the struct with the Workers Runtime as Durable Object.\
+/// Requires the `DurableObject` trait with the durable_object attribute macro on the struct.
+///
+/// ## Example
+///
+/// ```rust
+/// #[durable_object]
+/// pub struct Chatroom {
+///     users: Vec<User>,
+///     messages: Vec<Message>,
+///     state: State,
+///     env: Env, // access `Env` across requests, use inside `fetch`
+/// }
+///
+/// impl DurableObject for Chatroom {
+///     fn new(state: State, env: Env) -> Self {
+///         Self {
+///             users: vec![],
+///             messages: vec![],
+///             state,
+///             env,
+///         }
+///     }
+///
+///     async fn fetch(&self, _req: Request) -> Result<Response> {
+///         // do some work when a worker makes a request to this DO
+///         Response::ok(&format!("{} active users.", self.users.len()))
+///     }
+/// }
+/// ```
+///
+/// ## Note
+///
+/// By default all durable object events are enabled.
+/// Arguments may be provided to the macro to only generate the desired events, and reduce the generated JS & Wasm output:
+///
+/// * `fetch`: simple `fetch` target
+/// * `alarm`: with [Alarms API](https://developers.cloudflare.com/durable-objects/examples/alarms-api/)
+/// * `websocket`: [WebSocket server](https://developers.cloudflare.com/durable-objects/examples/websocket-hibernation-server/)
+///
+/// ```rust
+/// #[durable_object(fetch)]
+/// pub struct Chatroom {
+///     users: Vec<User>,
+///     messages: Vec<Message>,
+///     state: State,
+///     env: Env, // access `Env` across requests, use inside `fetch`
+/// }
+/// ```
 #[proc_macro_attribute]
-pub fn durable_object(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    durable_object::expand_macro(item.into())
+pub fn durable_object(attr: TokenStream, item: TokenStream) -> TokenStream {
+    durable_object::expand_macro(attr.into(), item.into())
         .unwrap_or_else(syn::Error::into_compile_error)
         .into()
 }
@@ -85,4 +134,10 @@ pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// ```
 pub fn send(attr: TokenStream, stream: TokenStream) -> TokenStream {
     send::expand_macro(attr, stream)
+}
+
+#[doc(hidden)]
+#[proc_macro_attribute]
+pub fn consume(_: TokenStream, _: TokenStream) -> TokenStream {
+    TokenStream::new()
 }
