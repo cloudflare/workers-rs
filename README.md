@@ -221,8 +221,7 @@ For more information about how to configure these bindings, see:
 ### Define a Durable Object in Rust
 
 To define a Durable Object using the `worker` crate you need to implement the `DurableObject` trait
-on your own struct. Additionally, the `#[durable_object]` attribute macro must be applied to _both_
-your struct definition and the trait `impl` block for it.
+on your own struct. Additionally, the `#[durable_object]` attribute macro must be applied to the struct definition.
 
 ```rust
 use worker::*;
@@ -235,7 +234,6 @@ pub struct Chatroom {
     env: Env, // access `Env` across requests, use inside `fetch`
 }
 
-#[durable_object]
 impl DurableObject for Chatroom {
     fn new(state: State, env: Env) -> Self {
         Self {
@@ -246,7 +244,7 @@ impl DurableObject for Chatroom {
         }
     }
 
-    async fn fetch(&mut self, _req: Request) -> Result<Response> {
+    async fn fetch(&self, _req: Request) -> Result<Response> {
         // do some work when a worker makes a request to this DO
         Response::ok(&format!("{} active users.", self.users.len()))
     }
@@ -283,7 +281,6 @@ pub struct SqlCounter {
     sql: SqlStorage,
 }
 
-#[durable_object]
 impl DurableObject for SqlCounter {
     fn new(state: State, _env: Env) -> Self {
         let sql = state.storage().sql();

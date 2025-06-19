@@ -11,7 +11,6 @@ pub struct MyClass {
     number: RefCell<usize>,
 }
 
-#[durable_object]
 impl DurableObject for MyClass {
     fn new(state: State, _env: Env) -> Self {
         Self {

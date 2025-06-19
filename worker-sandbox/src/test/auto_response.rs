@@ -5,7 +5,6 @@ pub struct AutoResponseObject {
     state: State,
 }
 
-#[durable_object]
 impl DurableObject for AutoResponseObject {
     fn new(state: State, _env: Env) -> Self {
         Self { state }

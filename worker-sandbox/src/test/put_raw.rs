@@ -39,7 +39,6 @@ impl PutRawTestObject {
     }
 }
 
-#[durable_object]
 impl DurableObject for PutRawTestObject {
     fn new(state: State, _env: Env) -> Self {
         Self { state }
