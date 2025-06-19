@@ -31,7 +31,7 @@ wasm-bindgen-test = "0.3.50"
 worker = { path = "worker", version = "0.6.0", features = ["queue", "d1", "axum", "timezone"] }
 worker-build = { path = "worker-build", version = "0.1.3" }
 worker-codegen = { path = "worker-codegen", version = "0.1.1" }
-worker-kv = { path = "worker-kv", version = "0.7.0" }
+worker-kv = { path = "worker-kv", version = "0.9.0" }
 worker-macros = { path = "worker-macros", version = "0.6.0", features = ["queue"] }
 worker-sys = { path = "worker-sys", version = "0.6.0", features = ["d1", "queue"] }
 
