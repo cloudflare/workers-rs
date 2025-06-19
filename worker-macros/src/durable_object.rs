@@ -184,6 +184,9 @@ pub fn expand_macro(attr: TokenStream, tokens: TokenStream) -> syn::Result<Token
     Ok(quote! {
         #target
 
+        #[allow(unused_imports)]
+        use ::worker::DurableObject;
+
         impl ::worker::has_durable_object_attribute for #target_name {}
 
         const _: () = {
