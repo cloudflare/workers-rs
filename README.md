@@ -12,7 +12,7 @@ Read the [Notes and FAQ](#notes-and-faq)
 use worker::*;
 
 #[event(fetch)]
-pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
+pub async fn main(mut req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
     console_log!(
         "{} {}, located at: {:?}, within: {}",
         req.method().to_string(),
@@ -221,11 +221,10 @@ For more information about how to configure these bindings, see:
 ### Define a Durable Object in Rust
 
 To define a Durable Object using the `worker` crate you need to implement the `DurableObject` trait
-on your own struct. Additionally, the `#[durable_object]` attribute macro must be applied to _both_
-your struct definition and the trait `impl` block for it.
+on your own struct. Additionally, the `#[durable_object]` attribute macro must be applied to the struct definition.
 
 ```rust
-use worker::*;
+use worker::{durable_object, State, Env, Result, Request, Response};
 
 #[durable_object]
 pub struct Chatroom {
@@ -235,7 +234,6 @@ pub struct Chatroom {
     env: Env, // access `Env` across requests, use inside `fetch`
 }
 
-#[durable_object]
 impl DurableObject for Chatroom {
     fn new(state: State, env: Env) -> Self {
         Self {
@@ -246,7 +244,7 @@ impl DurableObject for Chatroom {
         }
     }
 
-    async fn fetch(&mut self, _req: Request) -> Result<Response> {
+    async fn fetch(&self, _req: Request) -> Result<Response> {
         // do some work when a worker makes a request to this DO
         Response::ok(&format!("{} active users.", self.users.len()))
     }
@@ -269,6 +267,66 @@ bindings = [
 [[migrations]]
 tag = "v1" # Should be unique for each entry
 new_classes = ["Chatroom"] # Array of new classes
+```
+
+### SQLite Storage in Durable Objects
+
+Durable Objects can use SQLite for persistent storage, providing a relational database interface. To enable SQLite storage, you need to use `new_sqlite_classes` in your migration and access the SQL storage through `state.storage().sql()`.
+
+```rust
+use worker::{durable_object, State, Env, Result, Request, Response, SqlStorage};
+
+#[durable_object]
+pub struct SqlCounter {
+    sql: SqlStorage,
+}
+
+impl DurableObject for SqlCounter {
+    fn new(state: State, _env: Env) -> Self {
+        let sql = state.storage().sql();
+        // Create table if it does not exist
+        sql.exec("CREATE TABLE IF NOT EXISTS counter(value INTEGER);", None)
+            .expect("create table");
+        Self { sql }
+    }
+
+    async fn fetch(&self, _req: Request) -> Result<Response> {
+        #[derive(serde::Deserialize)]
+        struct Row {
+            value: i32,
+        }
+
+        // Read current value
+        let rows: Vec<Row> = self
+            .sql
+            .exec("SELECT value FROM counter LIMIT 1;", None)?
+            .to_array()?;
+        let current = rows.get(0).map(|r| r.value).unwrap_or(0);
+        let next = current + 1;
+
+        // Update counter
+        self.sql.exec("DELETE FROM counter;", None)?;
+        self.sql
+            .exec("INSERT INTO counter(value) VALUES (?);", vec![next.into()])?;
+
+        Response::ok(format!("SQL counter is now {}", next))
+    }
+}
+```
+
+Configure your `wrangler.toml` to enable SQLite storage:
+
+```toml
+# ...
+
+[durable_objects]
+bindings = [
+  { name = "SQL_COUNTER", class_name = "SqlCounter" }
+]
+
+[[migrations]]
+tag = "v1" # Should be unique for each entry
+new_sqlite_classes = ["SqlCounter"] # Use new_sqlite_classes for SQLite-enabled objects
 ```
 
 - For more information about migrating your Durable Object as it changes, see the docs here:

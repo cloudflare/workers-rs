@@ -1,28 +1,33 @@
 use serde::Serialize;
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap};
 
-use worker::{js_sys::Uint8Array, wasm_bindgen::JsValue, *};
+use worker::{
+    durable_object, js_sys, js_sys::Uint8Array, wasm_bindgen::JsValue, Env, Request, Response,
+    Result, State,
+};
 
 use crate::ensure;
 
 #[durable_object]
 pub struct MyClass {
     state: State,
-    number: usize,
+    number: RefCell<usize>,
 }
 
-#[durable_object]
 impl DurableObject for MyClass {
     fn new(state: State, _env: Env) -> Self {
-        Self { state, number: 0 }
+        Self {
+            state,
+            number: RefCell::new(0),
+        }
     }
 
-    async fn fetch(&mut self, req: Request) -> Result<Response> {
+    async fn fetch(&self, req: Request) -> Result<Response> {
         let handler = async move {
             match req.path().as_str() {
                 "/hello" => Response::ok("Hello!"),
                 "/storage" => {
-                    let mut storage = self.state.storage();
+                    let storage = self.state.storage();
                     let map = [("one".to_string(), 1), ("two".to_string(), 2)]
                         .iter()
                         .cloned()
@@ -116,12 +121,13 @@ impl DurableObject for MyClass {
                         );
                     }
 
-                    self.number = storage.get("count").await.unwrap_or(0) + 1;
+                    *self.number.borrow_mut() = storage.get("count").await.unwrap_or(0) + 1;
 
                     storage.delete_all().await?;
 
-                    storage.put("count", self.number).await?;
-                    Response::ok(self.number.to_string())
+                    let count = *self.number.borrow();
+                    storage.put("count", count).await?;
+                    Response::ok(self.number.borrow().to_string())
                 }
                 "/transaction" => {
                     Response::error("transactional storage API is still unstable", 501)

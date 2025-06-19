@@ -33,6 +33,7 @@ chrono = { version = "0.4", default-features = false, features = [
 cfg-if = "1.0"
 console_error_panic_hook = { version = "0.1.7", optional = true }
 getrandom = { version = "0.3", features = ["wasm_js"] }
+gloo-timers = { version = "0.3.0", features = ["futures"] }
 hex = "0.4"
 http.workspace = true
 regex = "1.8.4"

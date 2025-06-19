@@ -1,3 +1,4 @@
+pub mod auto_response;
 pub mod durable;
 pub mod export_durable_object;
 pub mod put_raw;

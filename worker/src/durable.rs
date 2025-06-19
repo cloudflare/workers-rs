@@ -21,7 +21,6 @@ use crate::{
     Result, WebSocket,
 };
 
-use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use futures_util::Future;
 use js_sys::{Map, Number, Object};
@@ -225,7 +224,7 @@ impl State {
             .unwrap()
     }
 
-    // needs to be accessed by the `durable_object` macro in a conversion step
+    // needs to be accessed by the `#[durable_object]` macro in a conversion step
     pub fn _inner(self) -> DurableObjectState {
         self.inner
     }
@@ -263,6 +262,14 @@ impl State {
     /// Retrieve tags from a hibernatable websocket
     pub fn get_tags(&self, websocket: &WebSocket) -> Vec<String> {
         self.inner.get_tags(websocket.as_ref()).unwrap()
+    }
+
+    pub fn set_websocket_auto_response(&self, pair: &worker_sys::WebSocketRequestResponsePair) {
+        self.inner.set_websocket_auto_response(pair).unwrap();
+    }
+
+    pub fn get_websocket_auto_response(&self) -> Option<worker_sys::WebSocketRequestResponsePair> {
+        self.inner.get_websocket_auto_response().unwrap()
     }
 }
 
@@ -309,12 +316,12 @@ impl Storage {
     }
 
     /// Stores the value and associates it with the given key.
-    pub async fn put<T: Serialize>(&mut self, key: &str, value: T) -> Result<()> {
+    pub async fn put<T: Serialize>(&self, key: &str, value: T) -> Result<()> {
         self.put_raw(key, serde_wasm_bindgen::to_value(&value)?)
             .await
     }
 
-    pub async fn put_raw(&mut self, key: &str, value: impl Into<JsValue>) -> Result<()> {
+    pub async fn put_raw(&self, key: &str, value: impl Into<JsValue>) -> Result<()> {
         JsFuture::from(self.inner.put(key, value.into())?)
             .await
             .map_err(Error::from)
@@ -322,7 +329,7 @@ impl Storage {
     }
 
     /// Takes a serializable struct and stores each of its keys and values to storage.
-    pub async fn put_multiple<T: Serialize>(&mut self, values: T) -> Result<()> {
+    pub async fn put_multiple<T: Serialize>(&self, values: T) -> Result<()> {
         let values = serde_wasm_bindgen::to_value(&values)?;
         if !values.is_object() {
             return Err("Must pass in a struct type".to_string().into());
@@ -343,7 +350,7 @@ impl Storage {
     ///
     /// storage.put_multiple_raw(obj);
     /// ```
-    pub async fn put_multiple_raw(&mut self, values: Object) -> Result<()> {
+    pub async fn put_multiple_raw(&self, values: Object) -> Result<()> {
         JsFuture::from(self.inner.put_multiple(values.into())?)
             .await
             .map_err(Error::from)
@@ -351,7 +358,7 @@ impl Storage {
     }
 
     /// Deletes the key and associated value. Returns true if the key existed or false if it didn't.
-    pub async fn delete(&mut self, key: &str) -> Result<bool> {
+    pub async fn delete(&self, key: &str) -> Result<bool> {
         let fut: JsFuture = self.inner.delete(key)?.into();
         fut.await
             .and_then(|jsv| {
@@ -363,7 +370,7 @@ impl Storage {
 
     /// Deletes the provided keys and their associated values. Returns a count of the number of
     /// key-value pairs deleted.
-    pub async fn delete_multiple(&mut self, keys: Vec<impl Deref<Target = str>>) -> Result<usize> {
+    pub async fn delete_multiple(&self, keys: Vec<impl Deref<Target = str>>) -> Result<usize> {
         let fut: JsFuture = self
             .inner
             .delete_multiple(
@@ -384,7 +391,7 @@ impl Storage {
     /// Deletes all keys and associated values, effectively deallocating all storage used by the
     /// Durable Object. In the event of a failure while the operation is still in flight, it may be
     /// that only a subset of the data is properly deleted.
-    pub async fn delete_all(&mut self) -> Result<()> {
+    pub async fn delete_all(&self) -> Result<()> {
         let fut: JsFuture = self.inner.delete_all()?.into();
         fut.await.map(|_| ()).map_err(Error::from)
     }
@@ -481,12 +488,12 @@ impl Storage {
         fut.await.map(|_| ()).map_err(Error::from)
     }
 
-    pub async fn transaction<F, Fut>(&mut self, mut closure: F) -> Result<()>
+    pub async fn transaction<F, Fut>(&self, closure: F) -> Result<()>
     where
-        F: FnMut(Transaction) -> Fut + Copy + 'static,
+        F: FnOnce(Transaction) -> Fut + 'static,
         Fut: Future<Output = Result<()>> + 'static,
     {
-        let inner: Box<dyn FnMut(DurableObjectTransaction) -> js_sys::Promise> =
+        let inner: Box<dyn FnOnce(DurableObjectTransaction) -> js_sys::Promise> =
             Box::new(move |t: DurableObjectTransaction| -> js_sys::Promise {
                 future_to_promise(async move {
                     closure(Transaction { inner: t })
@@ -495,11 +502,16 @@ impl Storage {
                         .map(|_| JsValue::NULL)
                 })
             });
-        let clos = wasm_bindgen::closure::Closure::wrap(inner);
+        let clos = wasm_bindgen::closure::Closure::once(inner);
         JsFuture::from(self.inner.transaction(&clos)?)
             .await
             .map_err(Error::from)
             .map(|_| ())
+    }
+
+    // Add new method to access SQLite APIs
+    pub fn sql(&self) -> crate::sql::SqlStorage {
+        crate::sql::SqlStorage::new(self.inner.sql())
     }
 }
 
@@ -531,7 +543,7 @@ impl Transaction {
         keys.dyn_into::<Map>().map_err(Error::from)
     }
 
-    pub async fn put<T: Serialize>(&mut self, key: &str, value: T) -> Result<()> {
+    pub async fn put<T: Serialize>(&self, key: &str, value: T) -> Result<()> {
         JsFuture::from(self.inner.put(key, serde_wasm_bindgen::to_value(&value)?)?)
             .await
             .map_err(Error::from)
@@ -539,7 +551,7 @@ impl Transaction {
     }
 
     // Each key-value pair in the serialized object will be added to the storage
-    pub async fn put_multiple<T: Serialize>(&mut self, values: T) -> Result<()> {
+    pub async fn put_multiple<T: Serialize>(&self, values: T) -> Result<()> {
         let values = serde_wasm_bindgen::to_value(&values)?;
         if !values.is_object() {
             return Err("Must pass in a struct type".to_string().into());
@@ -550,7 +562,7 @@ impl Transaction {
             .map(|_| ())
     }
 
-    pub async fn delete(&mut self, key: &str) -> Result<bool> {
+    pub async fn delete(&self, key: &str) -> Result<bool> {
         let fut: JsFuture = self.inner.delete(key)?.into();
         fut.await
             .and_then(|jsv| {
@@ -560,7 +572,7 @@ impl Transaction {
             .map_err(Error::from)
     }
 
-    pub async fn delete_multiple(&mut self, keys: Vec<impl Deref<Target = str>>) -> Result<usize> {
+    pub async fn delete_multiple(&self, keys: Vec<impl Deref<Target = str>>) -> Result<usize> {
         let fut: JsFuture = self
             .inner
             .delete_multiple(
@@ -578,7 +590,7 @@ impl Transaction {
             .map_err(Error::from)
     }
 
-    pub async fn delete_all(&mut self) -> Result<()> {
+    pub async fn delete_all(&self) -> Result<()> {
         let fut: JsFuture = self.inner.delete_all()?.into();
         fut.await.map(|_| ()).map_err(Error::from)
     }
@@ -600,7 +612,7 @@ impl Transaction {
             .map_err(Error::from)
     }
 
-    pub fn rollback(&mut self) -> Result<()> {
+    pub fn rollback(&self) -> Result<()> {
         self.inner.rollback().map_err(Error::from)
     }
 }
@@ -691,18 +703,18 @@ impl ScheduledTime {
     fn schedule(self) -> js_sys::Date {
         match self.init {
             ScheduledTimeInit::Date(date) => date,
-            ScheduledTimeInit::Offset(offset) => {
+            ScheduledTimeInit::Offset(offset_ms) => {
                 let now = Date::now().as_millis() as f64;
-                js_sys::Date::new(&Number::from(now + offset))
+                js_sys::Date::new(&Number::from(now + offset_ms))
             }
         }
     }
 }
 
 impl From<i64> for ScheduledTime {
-    fn from(offset: i64) -> Self {
+    fn from(offset_ms: i64) -> Self {
         ScheduledTime {
-            init: ScheduledTimeInit::Offset(offset as f64),
+            init: ScheduledTimeInit::Offset(offset_ms as f64),
         }
     }
 }
@@ -777,7 +789,7 @@ pub enum WebSocketIncomingMessage {
 /**
 **Note:** Implement this trait with a standard `impl DurableObject for YourType` block, but in order to
 integrate them with the Workers Runtime, you must also add the **`#[durable_object]`** attribute
-macro to both the impl block and the struct type definition.
+to the struct.
 
 ## Example
 ```no_run
@@ -791,7 +803,6 @@ pub struct Chatroom {
     env: Env, // access `Env` across requests, use inside `fetch`
 }
 
-#[durable_object]
 impl DurableObject for Chatroom {
     fn new(state: State, env: Env) -> Self {
         Self {
@@ -802,47 +813,54 @@ impl DurableObject for Chatroom {
         }
     }
 
-    async fn fetch(&mut self, _req: Request) -> Result<Response> {
+    async fn fetch(&self, _req: Request) -> Result<Response> {
         // do some work when a worker makes a request to this DO
         Response::ok(&format!("{} active users.", self.users.len()))
     }
 }
 ```
 */
-
-#[async_trait(?Send)]
-pub trait DurableObject {
+#[allow(async_fn_in_trait)] // Send is not needed
+pub trait DurableObject: has_durable_object_attribute {
     fn new(state: State, env: Env) -> Self;
 
-    async fn fetch(&mut self, req: Request) -> Result<Response>;
+    async fn fetch(&self, req: Request) -> Result<Response>;
 
     #[allow(clippy::diverging_sub_expression)]
-    async fn alarm(&mut self) -> Result<Response> {
-        unimplemented!("alarm() handler not implemented")
+    async fn alarm(&self) -> Result<Response> {
+        worker_sys::console_error!("alarm() handler not implemented");
+        unimplemented!("alarm() handler")
     }
 
     #[allow(unused_variables, clippy::diverging_sub_expression)]
     async fn websocket_message(
-        &mut self,
+        &self,
         ws: WebSocket,
         message: WebSocketIncomingMessage,
     ) -> Result<()> {
-        unimplemented!("websocket_message() handler not implemented")
+        worker_sys::console_error!("websocket_message() handler not implemented");
+        unimplemented!("websocket_message() handler")
     }
 
     #[allow(unused_variables, clippy::diverging_sub_expression)]
     async fn websocket_close(
-        &mut self,
+        &self,
         ws: WebSocket,
         code: usize,
         reason: String,
         was_clean: bool,
     ) -> Result<()> {
-        unimplemented!("websocket_close() handler not implemented")
+        worker_sys::console_error!("websocket_close() handler not implemented");
+        unimplemented!("websocket_close() handler")
     }
 
     #[allow(unused_variables, clippy::diverging_sub_expression)]
-    async fn websocket_error(&mut self, ws: WebSocket, error: Error) -> Result<()> {
-        unimplemented!("websocket_error() handler not implemented")
+    async fn websocket_error(&self, ws: WebSocket, error: Error) -> Result<()> {
+        worker_sys::console_error!("websocket_error() handler not implemented");
+        unimplemented!("websocket_error() handler")
     }
 }
+
+#[doc(hidden)]
+#[allow(non_camel_case_types)]
+pub trait has_durable_object_attribute {}

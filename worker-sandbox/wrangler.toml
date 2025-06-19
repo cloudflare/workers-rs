@@ -29,6 +29,9 @@ bindings = [
     { name = "COUNTER", class_name = "Counter" },
     { name = "ALARM", class_name = "AlarmObject" },
     { name = "PUT_RAW_TEST_OBJECT", class_name = "PutRawTestObject" },
+    { name = "AUTO", class_name = "AutoResponseObject" },
+    { name = "SQL_COUNTER", class_name = "SqlCounter" },
+    { name = "SQL_ITERATOR", class_name = "SqlIterator" },
 ]
 
 [[analytics_engine_datasets]]
@@ -82,3 +85,7 @@ type = "CompiledWasm"
 
 [package.metadata.wasm-pack.profile.dev.wasm-bindgen]
 dwarf-debug-info = true
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["SqlCounter", "SqlIterator"]
