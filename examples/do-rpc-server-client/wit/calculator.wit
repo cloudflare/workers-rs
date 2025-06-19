@@ -1,0 +1,6 @@
+package rpc:calculator;
+
+interface calculator {
+    // Add two unsigned integers
+    add: func(a: u32, b: u32) -> u32;
+}

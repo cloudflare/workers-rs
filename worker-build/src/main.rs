@@ -11,6 +11,7 @@ use std::{
 use anyhow::Result;
 
 use clap::Parser;
+use durable_object::inject_durable_objects_shim;
 use wasm_pack::command::build::{Build, BuildOptions};
 
 const OUT_DIR: &str = "build";
@@ -19,7 +20,9 @@ const WORKER_SUBDIR: &str = "worker";
 
 const SHIM_TEMPLATE: &str = include_str!("./js/shim.js");
 
+mod durable_object;
 mod install;
+mod wrangler_config;
 
 pub fn main() -> Result<()> {
     // Our tests build the bundle ourselves.
@@ -53,6 +56,8 @@ pub fn main() -> Result<()> {
     } else {
         shim_template.replace("$WAIT_UNTIL_RESPONSE", "")
     };
+
+    let shim = inject_durable_objects_shim(shim)?;
 
     write_string_to_file(worker_path("shim.js"), shim)?;
 

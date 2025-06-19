@@ -1,5 +1,4 @@
 import * as imports from "./index_bg.js";
-export * from "./index_bg.js";
 import wasmModule from "./index.wasm";
 import { WorkerEntrypoint } from "cloudflare:workers";
 
@@ -12,7 +11,7 @@ imports.__wbg_set_wasm(instance.exports);
 // Run the worker's initialization function.
 instance.exports.__wbindgen_start?.();
 
-export { wasmModule };
+$DURABLE_OBJECTS_INJECTION_POINT
 
 class Entrypoint extends WorkerEntrypoint {
 	async fetch(request) {
@@ -31,6 +30,7 @@ class Entrypoint extends WorkerEntrypoint {
 }
 
 const EXCLUDE_EXPORT = [
+	...successfullyWrappedDONames,
 	"IntoUnderlyingByteSource",
 	"IntoUnderlyingSink",
 	"IntoUnderlyingSource",
@@ -44,10 +44,11 @@ const EXCLUDE_EXPORT = [
 	"getMemory",
 ];
 
-Object.keys(imports).map((k) => {
+Object.keys(imports).forEach((k) => {
 	if (!(EXCLUDE_EXPORT.includes(k) | k.startsWith("__"))) {
 		Entrypoint.prototype[k] = imports[k];
 	}
 });
 
 export default Entrypoint;
+export { wasmModule };

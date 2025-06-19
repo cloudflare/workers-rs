@@ -14,9 +14,9 @@ pub use state::*;
 pub use storage::*;
 pub use transaction::*;
 
-#[wasm_bindgen]
+#[wasm_bindgen(module = "cloudflare:workers")]
 extern "C" {
-    #[wasm_bindgen(extends=js_sys::Object)]
+    #[wasm_bindgen(js_name = "DurableObject")]
     #[derive(Clone)]
     pub type DurableObject;
 
