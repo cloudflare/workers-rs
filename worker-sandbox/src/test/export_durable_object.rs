@@ -10,13 +10,16 @@ use crate::ensure;
 
 #[durable_object]
 pub struct MyClass {
+    name: String,
     state: State,
     number: RefCell<usize>,
 }
 
 impl DurableObject for MyClass {
     fn new(state: State, _env: Env) -> Self {
+        let name = state.id().name().unwrap_or_else(|| state.id().to_string());
         Self {
+            name,
             state,
             number: RefCell::new(0),
         }
@@ -25,7 +28,7 @@ impl DurableObject for MyClass {
     async fn fetch(&self, req: Request) -> Result<Response> {
         let handler = async move {
             match req.path().as_str() {
-                "/hello" => Response::ok("Hello!"),
+                "/hello" => Response::ok(format!("Hello from {}!", self.name)),
                 "/storage" => {
                     let storage = self.state.storage();
                     let map = [("one".to_string(), 1), ("two".to_string(), 2)]
@@ -139,4 +142,38 @@ impl DurableObject for MyClass {
             .await
             .or_else(|err| Response::error(err.to_string(), 500))
     }
+}
+
+// Route handlers to exercise the Durable Object from tests.
+#[worker::send]
+pub async fn handle_hello(
+    _req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let namespace = env.durable_object("MY_CLASS")?;
+    let stub = namespace.id_from_name("your Durable Object")?.get_stub()?;
+    stub.fetch_with_str("https://fake-host/hello").await
+}
+
+#[worker::send]
+pub async fn handle_hello_unique(
+    _req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let namespace = env.durable_object("MY_CLASS")?;
+    let stub = namespace.unique_id()?.get_stub()?;
+    stub.fetch_with_str("https://fake-host/hello").await
+}
+
+#[worker::send]
+pub async fn handle_storage(
+    _req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let namespace = env.durable_object("MY_CLASS")?;
+    let stub = namespace.id_from_name("singleton")?.get_stub()?;
+    stub.fetch_with_str("https://fake-host/storage").await
 }
