@@ -3,6 +3,7 @@ type = "javascript"
 workers_dev = true
 compatibility_date = "2022-09-12"                     # required
 compatibility_flags = ["streams_enable_constructors"]
+main = "build/worker/shim.mjs"
 
 kv_namespaces = [
     { binding = "SOME_NAMESPACE", id = "SOME_NAMESPACE", preview_id = "SOME_NAMESPACE" },
@@ -32,6 +33,7 @@ bindings = [
     { name = "AUTO", class_name = "AutoResponseObject" },
     { name = "SQL_COUNTER", class_name = "SqlCounter" },
     { name = "SQL_ITERATOR", class_name = "SqlIterator" },
+    { name = "MY_CLASS", class_name = "MyClass" },
 ]
 
 [[analytics_engine_datasets]]
@@ -52,36 +54,26 @@ queue = "my_queue"
 binding = "my_queue"
 [[r2_buckets]]
 binding = 'EMPTY_BUCKET'
-bucket_name = 'empty_bucket'
-preview_bucket_name = 'empty_bucket'
+bucket_name = 'empty-bucket'
+preview_bucket_name = 'empty-bucket'
 
 [[r2_buckets]]
 binding = 'PUT_BUCKET'
-bucket_name = 'put_bucket'
-preview_bucket_name = 'put_bucket'
+bucket_name = 'put-bucket'
+preview_bucket_name = 'put-bucket'
 
 [[r2_buckets]]
 binding = 'SEEDED_BUCKET'
-bucket_name = 'seeded_bucket'
-preview_bucket_name = 'seeded_bucket'
+bucket_name = 'seeded-bucket'
+preview_bucket_name = 'seeded-bucket'
 
 [[r2_buckets]]
 binding = 'DELETE_BUCKET'
-bucket_name = 'delete_bucket'
-preview_bucket_name = 'delete_bucket'
-
+bucket_name = 'delete-bucket'
+preview_bucket_name = 'delete-bucket'
 
 [build]
 command = "worker-build --release"
-
-[build.upload]
-dir = "build/worker"
-format = "modules"
-main = "./shim.mjs"
-
-[[build.upload.rules]]
-globs = ["**/*.wasm"]
-type = "CompiledWasm"
 
 [package.metadata.wasm-pack.profile.dev.wasm-bindgen]
 dwarf-debug-info = true

@@ -5,6 +5,11 @@ use worker::*;
 pub async fn basic_test(env: &Env) -> Result<()> {
     let namespace: ObjectNamespace = env.durable_object("MY_CLASS")?;
     let id = namespace.id_from_name("A")?;
+    ensure!(id.name() == Some("A".into()), "Missing name");
+    ensure!(
+        namespace.unique_id()?.name().is_none(),
+        "Expected name property to be absent"
+    );
     let bad = env.durable_object("DFSDF_FAKE_BINDING");
     ensure!(bad.is_err(), "Invalid binding did not raise error");
 

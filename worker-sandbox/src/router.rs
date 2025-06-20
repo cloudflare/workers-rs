@@ -453,6 +453,18 @@ pub fn make_router<'a>(data: SomeSharedData) -> Router<'a, SomeSharedData> {
             handler!(crate::test::auto_response::handle_auto_response),
         )
         .get_async(
+            "/durable/hello",
+            handler!(crate::test::export_durable_object::handle_hello),
+        )
+        .get_async(
+            "/durable/hello-unique",
+            handler!(crate::test::export_durable_object::handle_hello_unique),
+        )
+        .get_async(
+            "/durable/storage",
+            handler!(crate::test::export_durable_object::handle_storage),
+        )
+        .get_async(
             "/sql-counter/*path",
             handler!(sql_counter::handle_sql_counter),
         )
