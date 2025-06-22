@@ -1,5 +1,4 @@
 name = "testing-rust-worker"
-type = "javascript"
 workers_dev = true
 compatibility_date = "2022-09-12"                     # required
 compatibility_flags = ["streams_enable_constructors"]
@@ -21,9 +20,6 @@ directory = "./public/"
 [[services]]
 binding = "remote"
 service = "remote-service"
-
-[miniflare.mounts]
-remote-service = "./remote-service"
 
 [durable_objects]
 bindings = [
@@ -74,9 +70,6 @@ preview_bucket_name = 'delete-bucket'
 
 [build]
 command = "worker-build --release"
-
-[package.metadata.wasm-pack.profile.dev.wasm-bindgen]
-dwarf-debug-info = true
 
 [[migrations]]
 tag = "v1"

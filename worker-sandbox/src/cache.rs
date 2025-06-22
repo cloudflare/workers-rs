@@ -7,7 +7,7 @@ use worker::{console_log, Cache, Date, Delay, Env, Request, Response, ResponseBu
 fn key(req: &Request) -> Result<Option<String>> {
     let uri = req.url()?;
     let mut segments = uri.path_segments().unwrap();
-    Ok(segments.nth(2).map(|s| s.to_owned()))
+    Ok(segments.nth(2).map(std::borrow::ToOwned::to_owned))
 }
 
 #[worker::send]
@@ -44,9 +44,8 @@ pub async fn handle_cache_api_get(
         let cache = Cache::default();
         if let Some(resp) = cache.get(format!("https://{key}"), true).await? {
             return Ok(resp);
-        } else {
-            return Response::ok("cache miss");
         }
+        return Response::ok("cache miss");
     }
     Response::error("key missing", 400)
 }

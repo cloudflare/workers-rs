@@ -30,16 +30,14 @@ pub async fn queue(message_batch: MessageBatch<QueueBody>, _env: Env, _ctx: Cont
 pub async fn handle_queue_send(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let uri = req.url()?;
     let mut segments = uri.path_segments().unwrap();
-    let id = match segments
+    let Some(id) = segments
         .nth(2)
         .map(|id| Uuid::try_parse(id).ok())
         .and_then(|u| u)
-    {
-        Some(id) => id,
-        None => {
-            return Response::error("Failed to parse id, expected a UUID", 400);
-        }
+    else {
+        return Response::error("Failed to parse id, expected a UUID", 400);
     };
+
     let my_queue = match env.queue("my_queue") {
         Ok(queue) => queue,
         Err(err) => return Response::error(format!("Failed to get queue: {err:?}"), 500),
@@ -51,7 +49,7 @@ pub async fn handle_queue_send(req: Request, env: Env, _data: SomeSharedData) ->
         })
         .await
     {
-        Ok(_) => Response::ok("Message sent"),
+        Ok(()) => Response::ok("Message sent"),
         Err(err) => Response::error(format!("Failed to send message to queue: {err:?}"), 500),
     }
 }
