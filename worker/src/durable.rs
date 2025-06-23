@@ -184,6 +184,14 @@ impl ObjectId<'_> {
     }
 }
 
+impl PartialEq for ObjectId<'_> {
+    /// Compare equality between two ObjectIds using [`equals`](<https://developers.cloudflare.com/durable-objects/api/id/#equals>).
+    /// <div class="warning">The equality check ignores the namespace.</div>
+    fn eq(&self, other: &Self) -> bool {
+        self.inner.equals(&other.inner)
+    }
+}
+
 impl Display for ObjectId<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
         write!(
