@@ -180,10 +180,7 @@ impl ObjectId<'_> {
     /// The name that was used to create the `ObjectId` via [`id_from_name`](https://developers.cloudflare.com/durable-objects/api/namespace/#idfromname).
     /// `None` is returned if the `ObjectId` was constructed using [`unique_id`](https://developers.cloudflare.com/durable-objects/api/namespace/#newuniqueid).
     pub fn name(&self) -> Option<String> {
-        js_sys::Reflect::get(&self.inner, &"name".into())
-            .ok()
-            .as_ref()
-            .and_then(JsValue::as_string)
+        self.inner.name()
     }
 }
 
