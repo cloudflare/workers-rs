@@ -10,13 +10,26 @@ use crate::ensure;
 
 #[durable_object]
 pub struct MyClass {
+    name: String,
     state: State,
     number: RefCell<usize>,
 }
 
 impl DurableObject for MyClass {
-    fn new(state: State, _env: Env) -> Self {
+    fn new(state: State, env: Env) -> Self {
+        // Check that we can re-derive the expected names.
+        let namespace = env.durable_object("MY_CLASS").unwrap();
+        let name = if let Some(name) = state.id().name() {
+            assert!(state.id() == namespace.id_from_name(&name).unwrap());
+            name
+        } else {
+            let id = state.id().to_string();
+            assert!(state.id() == namespace.id_from_string(&id).unwrap());
+            id
+        };
+
         Self {
+            name,
             state,
             number: RefCell::new(0),
         }
@@ -25,7 +38,7 @@ impl DurableObject for MyClass {
     async fn fetch(&self, req: Request) -> Result<Response> {
         let handler = async move {
             match req.path().as_str() {
-                "/hello" => Response::ok("Hello!"),
+                "/hello" => Response::ok(format!("Hello from {}!", self.name)),
                 "/storage" => {
                     let storage = self.state.storage();
                     let map = [("one".to_string(), 1), ("two".to_string(), 2)]
@@ -139,4 +152,52 @@ impl DurableObject for MyClass {
             .await
             .or_else(|err| Response::error(err.to_string(), 500))
     }
+}
+
+// Route handlers to exercise the Durable Object from tests.
+#[worker::send]
+pub async fn handle_hello(
+    _req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let name = "your Durable Object";
+    let namespace = env.durable_object("MY_CLASS")?;
+    let id = namespace.id_from_name(name)?;
+    // Same name gives the same ID
+    assert!(id == namespace.id_from_name(name)?);
+
+    // Same name but different namespaces gives different IDs
+    let namespace2 = env.durable_object("COUNTER")?;
+    assert!(id != namespace2.id_from_name(name)?);
+
+    let stub = id.get_stub()?;
+    stub.fetch_with_str("https://fake-host/hello").await
+}
+
+#[worker::send]
+pub async fn handle_hello_unique(
+    _req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let namespace = env.durable_object("MY_CLASS")?;
+    let id = namespace.unique_id()?;
+    // Different unique IDs should never be equal
+    assert!(id != namespace.unique_id()?);
+    // Deriving from the string form of the unique ID gives the same ID
+    assert!(id == namespace.id_from_string(&id.to_string()).unwrap());
+    let stub = id.get_stub()?;
+    stub.fetch_with_str("https://fake-host/hello").await
+}
+
+#[worker::send]
+pub async fn handle_storage(
+    _req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let namespace = env.durable_object("MY_CLASS")?;
+    let stub = namespace.id_from_name("singleton")?.get_stub()?;
+    stub.fetch_with_str("https://fake-host/storage").await
 }

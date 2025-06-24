@@ -176,6 +176,20 @@ impl ObjectId<'_> {
             })
             .map_err(Error::from)
     }
+
+    /// The name that was used to create the `ObjectId` via [`id_from_name`](https://developers.cloudflare.com/durable-objects/api/namespace/#idfromname).
+    /// `None` is returned if the `ObjectId` was constructed using [`unique_id`](https://developers.cloudflare.com/durable-objects/api/namespace/#newuniqueid).
+    pub fn name(&self) -> Option<String> {
+        self.inner.name()
+    }
+}
+
+impl PartialEq for ObjectId<'_> {
+    /// Compare equality between two ObjectIds using [`equals`](<https://developers.cloudflare.com/durable-objects/api/id/#equals>).
+    /// <div class="warning">The equality check ignores the namespace.</div>
+    fn eq(&self, other: &Self) -> bool {
+        self.inner.equals(&other.inner)
+    }
 }
 
 impl Display for ObjectId<'_> {
