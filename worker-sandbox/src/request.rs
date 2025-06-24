@@ -8,14 +8,16 @@ use serde::Serialize;
 use std::time::Duration;
 use worker::Env;
 use worker::{console_log, Date, Delay, Request, Response, ResponseBody, ResponseBuilder, Result};
+
+#[allow(clippy::needless_pass_by_value)]
 pub fn handle_a_request(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     Response::ok(format!(
         "req at: {}, located at: {:?}, within: {}",
         req.path(),
         req.cf().map(|cf| cf.coordinates().unwrap_or_default()),
-        req.cf()
-            .map(|cf| cf.region().unwrap_or_else(|| "unknown region".into()))
-            .unwrap_or(String::from("No CF properties"))
+        req.cf().map_or(String::from("No CF properties"), |cf| cf
+            .region()
+            .unwrap_or_else(|| "unknown region".into()))
     ))
 }
 
@@ -28,9 +30,9 @@ pub async fn handle_async_request(
         "[async] req at: {}, located at: {:?}, within: {}",
         req.path(),
         req.cf().map(|cf| cf.coordinates().unwrap_or_default()),
-        req.cf()
-            .map(|cf| cf.region().unwrap_or_else(|| "unknown region".into()))
-            .unwrap_or(String::from("No CF properties"))
+        req.cf().map_or(String::from("No CF properties"), |cf| cf
+            .region()
+            .unwrap_or_else(|| "unknown region".into()))
     ))
 }
 
@@ -200,7 +202,7 @@ pub async fn handle_cloned_stream(
         futures_util::stream::repeat(())
             .take(10)
             .enumerate()
-            .then(|(index, _)| async move {
+            .then(|(index, ())| async move {
                 Delay::from(Duration::from_millis(100)).await;
                 Result::Ok(index.to_string().into_bytes())
             });

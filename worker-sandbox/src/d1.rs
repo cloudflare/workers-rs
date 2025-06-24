@@ -123,7 +123,7 @@ pub async fn error(_req: Request, env: Env, _data: SomeSharedData) -> Result<Res
         assert_eq!(
             error.cause(),
             "Error in line 1: THIS IS NOT VALID SQL: near \"THIS\": syntax error at offset 0: SQLITE_ERROR"
-        )
+        );
     } else {
         panic!("expected D1 error");
     }

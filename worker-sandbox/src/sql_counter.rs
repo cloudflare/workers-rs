@@ -1,3 +1,4 @@
+#[allow(clippy::wildcard_imports)]
 use worker::*;
 
 /// A simple SQLite-backed counter stored in Durable Object storage.
@@ -24,15 +25,15 @@ impl DurableObject for SqlCounter {
 
         // Parse path to determine action
         if path.contains("/set-large/") {
-            self.handle_set_large_value(&url).await
+            self.handle_set_large_value(&url)
         } else {
-            self.handle_increment().await
+            self.handle_increment()
         }
     }
 }
 
 impl SqlCounter {
-    async fn handle_increment(&self) -> Result<Response> {
+    fn handle_increment(&self) -> Result<Response> {
         // Read current value (if any)
         #[derive(serde::Deserialize)]
         struct Row {
@@ -43,7 +44,7 @@ impl SqlCounter {
             .sql
             .exec("SELECT value FROM counter LIMIT 1;", None)?
             .to_array()?;
-        let current = rows.first().map(|r| r.value).unwrap_or(0);
+        let current = rows.first().map_or(0, |r| r.value);
         let next = current + 1;
 
         // Upsert new value – simplest way: delete and insert again.
@@ -51,10 +52,10 @@ impl SqlCounter {
         self.sql
             .exec("INSERT INTO counter(value) VALUES (?);", vec![next.into()])?;
 
-        Response::ok(format!("SQL counter is now {}", next))
+        Response::ok(format!("SQL counter is now {next}"))
     }
 
-    async fn handle_set_large_value(&self, url: &worker::Url) -> Result<Response> {
+    fn handle_set_large_value(&self, url: &worker::Url) -> Result<Response> {
         // Extract the large value from the path /set-large/{value}
         let path = url.path();
         let value_str = path.split("/set-large/").nth(1).unwrap_or("0");
@@ -69,8 +70,7 @@ impl SqlCounter {
             Ok(value) => value,
             Err(e) => {
                 return Response::ok(format!(
-                    "Error: Cannot store value {} - {}. JavaScript safe range is ±9007199254740991",
-                    large_value, e
+                    "Error: Cannot store value {large_value} - {e}. JavaScript safe range is ±9007199254740991"
                 ));
             }
         };
@@ -80,7 +80,7 @@ impl SqlCounter {
         self.sql
             .exec("INSERT INTO counter(value) VALUES (?);", vec![safe_value])?;
 
-        Response::ok(format!("Successfully stored large value: {}", large_value))
+        Response::ok(format!("Successfully stored large value: {large_value}"))
     }
 }
 

@@ -1,4 +1,10 @@
-use worker::{js_sys::Uint8Array, wasm_bindgen::JsValue, *};
+use std::convert::TryFrom;
+use worker::{
+    durable_object, js_sys, js_sys::Uint8Array, wasm_bindgen, wasm_bindgen::JsValue, Env, Request,
+    Response, Result, State,
+};
+
+use crate::SomeSharedData;
 
 #[durable_object]
 pub struct PutRawTestObject {
@@ -21,10 +27,10 @@ impl PutRawTestObject {
     }
 
     async fn put_multiple_raw(&self) -> Result<()> {
+        const BAR: &[u8] = b"bar";
         let storage = self.state.storage();
         let obj = js_sys::Object::new();
-        const BAR: &[u8] = b"bar";
-        let value = Uint8Array::new_with_length(BAR.len() as _);
+        let value = Uint8Array::new_with_length(u32::try_from(BAR.len()).unwrap());
         value.copy_from(BAR);
         js_sys::Reflect::set(&obj, &JsValue::from_str("foo"), &value.into())?;
         storage.put_multiple_raw(obj).await?;
@@ -32,7 +38,7 @@ impl PutRawTestObject {
         assert_eq!(
             storage.get::<Vec<u8>>("foo").await?,
             BAR,
-            "Didn't the right thing with put_multiple_raw"
+            "Didn't get the right thing with put_multiple_raw"
         );
 
         Ok(())
@@ -50,4 +56,16 @@ impl DurableObject for PutRawTestObject {
 
         Response::ok("ok")
     }
+}
+
+#[worker::send]
+pub(crate) async fn handle_put_raw(
+    req: Request,
+    env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
+    let namespace = env.durable_object("PUT_RAW_TEST_OBJECT")?;
+    let id = namespace.unique_id()?;
+    let stub = id.get_stub()?;
+    stub.fetch_with_request(req).await
 }

@@ -32,7 +32,7 @@ pub async fn handle_user_id(req: Request, _env: Env, _data: SomeSharedData) -> R
         return Response::from_json(&User {
             id: id.to_string(),
             timestamp: Date::now().as_millis(),
-            date_from_int: Date::new(DateInit::Millis(1234567890)).to_string(),
+            date_from_int: Date::new(DateInit::Millis(1_234_567_890)).to_string(),
             date_from_str: Date::new(DateInit::String(
                 "Wed Jan 14 1980 23:56:07 GMT-0700 (Mountain Standard Time)".into(),
             ))

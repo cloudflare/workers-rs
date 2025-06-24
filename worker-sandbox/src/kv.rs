@@ -95,7 +95,7 @@ pub async fn put_metadata(_req: Request, env: Env, _data: SomeSharedData) -> Res
 
 #[worker::send]
 pub async fn put_expiration(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
-    const EXPIRATION: u64 = 2000000000;
+    const EXPIRATION: u64 = 2_000_000_000;
     let store = env.kv(TEST_NAMESPACE)?;
     store
         .put("put_c", "test")?
