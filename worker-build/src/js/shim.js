@@ -4,7 +4,7 @@ import wasmModule from "./index.wasm";
 import { WorkerEntrypoint } from "cloudflare:workers";
 
 const instance = new WebAssembly.Instance(wasmModule, {
-	"./index_bg.js": imports,
+  "./index_bg.js": imports,
 });
 
 imports.__wbg_set_wasm(instance.exports);
@@ -15,39 +15,44 @@ instance.exports.__wbindgen_start?.();
 export { wasmModule };
 
 class Entrypoint extends WorkerEntrypoint {
-	async fetch(request) {
-		let response = imports.fetch(request, this.env, this.ctx);
-		$WAIT_UNTIL_RESPONSE;
-		return await response;
-	}
+  async fetch(request) {
+    let response = imports.fetch(request, this.env, this.ctx);
+    $WAIT_UNTIL_RESPONSE;
+    return await response;
+  }
 
-	async queue(batch) {
-		return await imports.queue(batch, this.env, this.ctx);
-	}
+  async queue(batch) {
+    return await imports.queue(batch, this.env, this.ctx);
+  }
 
-	async scheduled(event) {
-		return await imports.scheduled(event, this.env, this.ctx);
-	}
+  async scheduled(event) {
+    return await imports.scheduled(event, this.env, this.ctx);
+  }
+
+  async email(message) {
+    return await imports.email(message, this.env, this.ctx);
+  }
 }
 
 const EXCLUDE_EXPORT = [
-	"IntoUnderlyingByteSource",
-	"IntoUnderlyingSink",
-	"IntoUnderlyingSource",
-	"MinifyConfig",
-	"PolishConfig",
-	"R2Range",
-	"RequestRedirect",
-	"fetch",
-	"queue",
-	"scheduled",
-	"getMemory",
+  "IntoUnderlyingByteSource",
+  "IntoUnderlyingSink",
+  "IntoUnderlyingSource",
+  "MinifyConfig",
+  "PolishConfig",
+  "R2Range",
+  "RequestRedirect",
+  "fetch",
+  "queue",
+  "scheduled",
+  "email",
+  "getMemory",
 ];
 
 Object.keys(imports).map((k) => {
-	if (!(EXCLUDE_EXPORT.includes(k) | k.startsWith("__"))) {
-		Entrypoint.prototype[k] = imports[k];
-	}
+  if (!(EXCLUDE_EXPORT.includes(k) | k.startsWith("__"))) {
+    Entrypoint.prototype[k] = imports[k];
+  }
 });
 
 export default Entrypoint;
