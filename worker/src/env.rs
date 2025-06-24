@@ -138,6 +138,7 @@ pub trait EnvBinding: Sized + JsCast {
     }
 }
 
+#[repr(transparent)]
 pub struct StringBinding(JsValue);
 
 impl EnvBinding for StringBinding {
@@ -154,6 +155,7 @@ impl JsCast for StringBinding {
     }
 
     fn unchecked_from_js_ref(val: &JsValue) -> &Self {
+        // Safety: Self is marked repr(transparent)
         unsafe { &*(val as *const JsValue as *const Self) }
     }
 }
@@ -199,7 +201,8 @@ impl JsCast for JsValueWrapper {
     }
 
     fn unchecked_from_js_ref(val: &JsValue) -> &Self {
-        unsafe { std::mem::transmute(val) }
+        // Safety: Self is marked repr(transparent)
+        unsafe { &*(val as *const JsValue as *const Self) }
     }
 }
 
