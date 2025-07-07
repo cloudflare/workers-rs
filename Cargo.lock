@@ -1421,14 +1421,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "js_snippets"
-version = "0.1.0"
-dependencies = [
- "console_error_panic_hook",
- "worker",
-]
-
-[[package]]
 name = "kv-on-workers"
 version = "0.1.0"
 dependencies = [

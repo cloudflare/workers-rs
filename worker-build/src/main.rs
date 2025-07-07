@@ -2,7 +2,6 @@
 
 use std::{
     env::{self, VarError},
-    ffi::OsStr,
     fmt::Write as _,
     fs::{self, read_to_string, File},
     io::{Read, Write},
@@ -100,7 +99,7 @@ pub fn main() -> Result<()> {
     let wasm_imports = snippets
         .into_iter()
         .fold(String::new(), |mut output, (name, path)| {
-            let _ = write!(output, "\"{}\": {},\n", path, name);
+            let _ = writeln!(output, "\"{}\": {},", path, name);
             output
         });
 
