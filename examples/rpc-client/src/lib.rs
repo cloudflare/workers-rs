@@ -14,5 +14,5 @@ async fn main(_req: Request, env: Env, _ctx: Context) -> Result<Response> {
 
     let num = service.add(1, 2).await?;
 
-    Response::ok(format!("{:?}", num))
+    Response::ok(format!("{num:?}"))
 }

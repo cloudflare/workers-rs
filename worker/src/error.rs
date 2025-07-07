@@ -48,14 +48,14 @@ impl From<http::status::InvalidStatusCode> for Error {
 #[cfg(feature = "http")]
 impl From<http::header::InvalidHeaderName> for Error {
     fn from(value: http::header::InvalidHeaderName) -> Self {
-        Self::RustError(format!("Invalid header name: {:?}", value))
+        Self::RustError(format!("Invalid header name: {value:?}"))
     }
 }
 
 #[cfg(feature = "http")]
 impl From<http::header::InvalidHeaderValue> for Error {
     fn from(value: http::header::InvalidHeaderValue) -> Self {
-        Self::RustError(format!("Invalid header value: {:?}", value))
+        Self::RustError(format!("Invalid header value: {value:?}"))
     }
 }
 

@@ -34,6 +34,6 @@ impl IntoResponse for MyResponse {
         impl Into<Box<dyn std::error::Error>>,
     > {
         crate::worker_sys::web_sys::Response::new_with_opt_str(Some(self.data))
-            .map_err(|e| Error::JsError(format!("{:?}", e)))
+            .map_err(|e| Error::JsError(format!("{e:?}")))
     }
 }

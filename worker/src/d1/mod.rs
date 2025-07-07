@@ -426,7 +426,7 @@ impl Display for D1Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let cause = self.inner.cause();
         let cause = JsString::from(cause);
-        write!(f, "{}", cause)
+        write!(f, "{cause}")
     }
 }
 
