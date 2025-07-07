@@ -2,9 +2,8 @@ use super::SomeSharedData;
 use blake2::Blake2b512;
 use blake2::Digest;
 use serde::{Deserialize, Serialize};
-use worker::kv;
-use worker::{Env, Request, Result};
-use worker::{FormEntry, Response};
+use std::convert::TryFrom;
+use worker::{kv, Env, FormEntry, Request, Response, Result};
 
 #[worker::send]
 pub async fn handle_formdata_name(
@@ -64,10 +63,9 @@ pub async fn handle_formdata_file_size(
 
                 // create a new FileSize record to store
                 let b = file.bytes().await?;
-                #[allow(clippy::cast_possible_truncation)]
                 let record = FileSize {
                     name: file.name(),
-                    size: b.len() as u32,
+                    size: u32::try_from(b.len()).unwrap(),
                 };
 
                 // hash the file, and use result as the key

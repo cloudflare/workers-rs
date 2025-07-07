@@ -14,7 +14,9 @@ release = false
 wasm-opt = false
 
 # Change to `dwarf-debug-info = true` to preserve debug symbols in the dev
-# profile. We leave this as false (the default) to avoid breaking tests.
+# profile. We leave this as false (the default) to avoid breaking tests,
+# although tests _do_ seem to work when we update package.json to run vitest
+# with `--test-timeout=0 --no-file-parallelism`.
 # https://developers.cloudflare.com/workers/observability/dev-tools/cpu-usage/#taking-a-profile
 [package.metadata.wasm-pack.profile.dev.wasm-bindgen]
 dwarf-debug-info = false

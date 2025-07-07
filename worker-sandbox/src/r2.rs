@@ -1,6 +1,5 @@
-use std::{collections::HashMap, sync::Mutex};
-
 use futures_util::StreamExt;
+use std::{collections::HashMap, convert::TryFrom, sync::Mutex};
 use worker::{
     Bucket, Conditional, Data, Date, Env, FixedLengthStream, HttpMetadata, Include, Request,
     Response, Result,
@@ -211,10 +210,12 @@ pub async fn put_multipart(_req: Request, env: Env, _data: SomeSharedData) -> Re
     ];
     let mut uploaded_parts = vec![];
     for (chunk_index, chunk_size) in chunk_sizes.iter().copied().enumerate() {
-        #[allow(clippy::cast_possible_truncation)]
-        let chunk = vec![chunk_index as u8; chunk_size];
-        #[allow(clippy::cast_possible_truncation)]
-        uploaded_parts.push(upload.upload_part(chunk_index as u16, chunk).await?);
+        let chunk = vec![u8::try_from(chunk_index).unwrap(); chunk_size];
+        uploaded_parts.push(
+            upload
+                .upload_part(u16::try_from(chunk_index).unwrap(), chunk)
+                .await?,
+        );
     }
     upload.complete(uploaded_parts).await?;
 

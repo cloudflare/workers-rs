@@ -1,6 +1,5 @@
 use std::time::Duration;
-#[allow(clippy::wildcard_imports)]
-use worker::*;
+use worker::{console_log, durable_object, wasm_bindgen, Env, Request, Response, Result, State};
 
 use super::SomeSharedData;
 

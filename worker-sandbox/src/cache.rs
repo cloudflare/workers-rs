@@ -1,13 +1,13 @@
 use super::SomeSharedData;
 use futures_util::stream::StreamExt;
 use rand::Rng;
-use std::time::Duration;
+use std::{borrow::ToOwned, time::Duration};
 use worker::{console_log, Cache, Date, Delay, Env, Request, Response, ResponseBuilder, Result};
 
 fn key(req: &Request) -> Result<Option<String>> {
     let uri = req.url()?;
     let mut segments = uri.path_segments().unwrap();
-    Ok(segments.nth(2).map(std::borrow::ToOwned::to_owned))
+    Ok(segments.nth(2).map(ToOwned::to_owned))
 }
 
 #[worker::send]

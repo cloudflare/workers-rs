@@ -1,7 +1,10 @@
 use std::cell::RefCell;
 use tokio_stream::{StreamExt, StreamMap};
-#[allow(clippy::wildcard_imports)]
-use worker::*;
+use worker::{
+    durable_object, wasm_bindgen, wasm_bindgen_futures, Env, Error, Method, Request, Response,
+    ResponseBuilder, Result, State, WebSocket, WebSocketIncomingMessage, WebSocketPair,
+    WebsocketEvent,
+};
 
 use crate::SomeSharedData;
 
