@@ -100,7 +100,7 @@ pub fn main() -> Result<()> {
     let wasm_imports = snippets
         .into_iter()
         .fold(String::new(), |mut output, (name, path)| {
-            let _ = write!(output, ", \"{}\": {}", path, name);
+            let _ = write!(output, "\"{}\": {},\n", path, name);
             output
         });
 
