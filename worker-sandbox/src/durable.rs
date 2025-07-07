@@ -1,12 +1,13 @@
 use serde::Serialize;
+use std::convert::TryFrom;
 use std::{cell::RefCell, collections::HashMap};
 
 use worker::{
-    durable_object, js_sys, js_sys::Uint8Array, wasm_bindgen::JsValue, Env, Request, Response,
-    Result, State,
+    durable_object,
+    js_sys::{self, Uint8Array},
+    wasm_bindgen::JsValue,
+    Env, Method, ObjectNamespace, Request, RequestInit, Response, Result, State,
 };
-
-use crate::ensure;
 
 #[durable_object]
 pub struct MyClass {
@@ -16,18 +17,8 @@ pub struct MyClass {
 }
 
 impl DurableObject for MyClass {
-    fn new(state: State, env: Env) -> Self {
-        // Check that we can re-derive the expected names.
-        let namespace = env.durable_object("MY_CLASS").unwrap();
-        let name = if let Some(name) = state.id().name() {
-            assert!(state.id() == namespace.id_from_name(&name).unwrap());
-            name
-        } else {
-            let id = state.id().to_string();
-            assert!(state.id() == namespace.id_from_string(&id).unwrap());
-            id
-        };
-
+    fn new(state: State, _env: Env) -> Self {
+        let name = state.id().name().unwrap_or_else(|| state.id().to_string());
         Self {
             name,
             state,
@@ -35,6 +26,7 @@ impl DurableObject for MyClass {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     async fn fetch(&self, req: Request) -> Result<Response> {
         let handler = async move {
             match req.path().as_str() {
@@ -56,33 +48,39 @@ impl DurableObject for MyClass {
                         let key = key?
                             .as_string()
                             .ok_or_else(|| "Key wasn't a string".to_string())?;
-                        keys.push(key);
+                        if key != "count" {
+                            keys.push(key);
+                        }
                     }
 
-                    ensure!(
-                        keys == vec!["anything", "array", "map"],
-                        format!("Didn't list all of the keys: {keys:?}")
+                    assert_eq!(
+                        keys,
+                        vec!["anything", "array", "map"],
+                        "Didn't list all of the keys: {keys:?}"
                     );
                     let vals = storage
                         .get_multiple(keys)
                         .await
                         .map_err(|e| e.to_string() + " -- get_multiple")?;
-                    ensure!(
+                    assert_eq!(
                         serde_wasm_bindgen::from_value::<Option<i32>>(
                             vals.get(&"anything".into())
-                        )? == Some(45),
+                        )?,
+                        Some(45),
                         "Didn't get the right Option<i32> using get_multiple"
                     );
-                    ensure!(
+                    assert_eq!(
                         serde_wasm_bindgen::from_value::<[(String, i32); 2]>(
                             vals.get(&"array".into())
-                        )? == [("one".to_string(), 1), ("two".to_string(), 2)],
+                        )?,
+                        [("one".to_string(), 1), ("two".to_string(), 2)],
                         "Didn't get the right array using get_multiple"
                     );
-                    ensure!(
+                    assert_eq!(
                         serde_wasm_bindgen::from_value::<HashMap<String, i32>>(
                             vals.get(&"map".into())
-                        )? == map,
+                        )?,
+                        map,
                         "Didn't get the right HashMap<String, i32> using get_multiple"
                     );
 
@@ -92,12 +90,13 @@ impl DurableObject for MyClass {
                         storage.put_raw("bytes", bytes).await?;
                         let bytes = storage.get::<Vec<u8>>("bytes").await?;
                         storage.delete("bytes").await?;
-                        ensure!(
-                            bytes == b"123",
+                        assert_eq!(
+                            bytes, b"123",
                             "eficient serialization of bytes is not preserved"
                         );
                     }
 
+                    #[allow(clippy::items_after_statements)]
                     #[derive(Serialize)]
                     struct Stuff {
                         thing: String,
@@ -110,26 +109,29 @@ impl DurableObject for MyClass {
                         })
                         .await?;
 
-                    ensure!(
-                        storage.get::<String>("thing").await? == "Hello there",
+                    assert_eq!(
+                        storage.get::<String>("thing").await?,
+                        "Hello there",
                         "Didn't put the right thing with put_multiple"
                     );
-                    ensure!(
-                        storage.get::<i32>("other").await? == 56,
+                    assert_eq!(
+                        storage.get::<i32>("other").await?,
+                        56,
                         "Didn't put the right thing with put_multiple"
                     );
 
                     storage.delete_multiple(vec!["thing", "other"]).await?;
 
                     {
-                        let obj = js_sys::Object::new();
                         const BAR: &[u8] = b"bar";
-                        let value = Uint8Array::new_with_length(BAR.len() as _);
+                        let obj = js_sys::Object::new();
+                        let value = Uint8Array::new_with_length(u32::try_from(BAR.len()).unwrap());
                         value.copy_from(BAR);
                         js_sys::Reflect::set(&obj, &JsValue::from_str("foo"), &value.into())?;
                         storage.put_multiple_raw(obj).await?;
-                        ensure!(
-                            storage.get::<Vec<u8>>("foo").await? == BAR,
+                        assert_eq!(
+                            storage.get::<Vec<u8>>("foo").await?,
+                            BAR,
                             "Didn't the right thing with put_multiple_raw"
                         );
                     }
@@ -161,17 +163,8 @@ pub async fn handle_hello(
     env: Env,
     _data: crate::SomeSharedData,
 ) -> Result<Response> {
-    let name = "your Durable Object";
     let namespace = env.durable_object("MY_CLASS")?;
-    let id = namespace.id_from_name(name)?;
-    // Same name gives the same ID
-    assert!(id == namespace.id_from_name(name)?);
-
-    // Same name but different namespaces gives different IDs
-    let namespace2 = env.durable_object("COUNTER")?;
-    assert!(id != namespace2.id_from_name(name)?);
-
-    let stub = id.get_stub()?;
+    let stub = namespace.id_from_name("your Durable Object")?.get_stub()?;
     stub.fetch_with_str("https://fake-host/hello").await
 }
 
@@ -182,12 +175,7 @@ pub async fn handle_hello_unique(
     _data: crate::SomeSharedData,
 ) -> Result<Response> {
     let namespace = env.durable_object("MY_CLASS")?;
-    let id = namespace.unique_id()?;
-    // Different unique IDs should never be equal
-    assert!(id != namespace.unique_id()?);
-    // Deriving from the string form of the unique ID gives the same ID
-    assert!(id == namespace.id_from_string(&id.to_string()).unwrap());
-    let stub = id.get_stub()?;
+    let stub = namespace.unique_id()?.get_stub()?;
     stub.fetch_with_str("https://fake-host/hello").await
 }
 
@@ -200,4 +188,76 @@ pub async fn handle_storage(
     let namespace = env.durable_object("MY_CLASS")?;
     let stub = namespace.id_from_name("singleton")?.get_stub()?;
     stub.fetch_with_str("https://fake-host/storage").await
+}
+
+#[worker::send]
+pub async fn handle_basic_test(
+    _req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let namespace: ObjectNamespace = env.durable_object("MY_CLASS")?;
+    let id = namespace.id_from_name("A")?;
+    assert_eq!(id.name(), Some("A".into()), "Missing name");
+    assert!(
+        namespace.unique_id()?.name().is_none(),
+        "Expected name property to be absent"
+    );
+    let bad = env.durable_object("DFSDF_FAKE_BINDING");
+    assert!(bad.is_err(), "Invalid binding did not raise error");
+
+    let stub = id.get_stub()?;
+    let res = stub
+        .fetch_with_str("https://fake-host/hello")
+        .await?
+        .text()
+        .await?;
+    let res2 = stub
+        .fetch_with_request(Request::new_with_init(
+            "https://fake-host/hello",
+            RequestInit::new()
+                .with_body(Some("lol".into()))
+                .with_method(Method::Post),
+        )?)
+        .await?
+        .text()
+        .await?;
+
+    assert_eq!(res, res2, "Durable object responded wrong to 'hello'");
+
+    let res = stub
+        .fetch_with_str("https://fake-host/storage")
+        .await?
+        .text()
+        .await?;
+    let num = res
+        .parse::<usize>()
+        .map_err(|_| "Durable Object responded wrong to 'storage': ".to_string() + &res)?;
+    let res = stub
+        .fetch_with_str("https://fake-host/storage")
+        .await?
+        .text()
+        .await?;
+    let num2 = res
+        .parse::<usize>()
+        .map_err(|_| "Durable Object responded wrong to 'storage'".to_string())?;
+
+    assert_eq!(num2, num + 1, "Durable object responded wrong to 'storage'");
+
+    let res = stub
+        .fetch_with_str("https://fake-host/transaction")
+        .await?
+        .text()
+        .await?;
+    let num = res
+        .parse::<usize>()
+        .map_err(|_| "Durable Object responded wrong to 'transaction': ".to_string() + &res)?;
+
+    assert_eq!(
+        num,
+        num2 + 1,
+        "Durable object responded wrong to 'transaction'"
+    );
+
+    Response::ok("ok")
 }

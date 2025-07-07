@@ -20,9 +20,9 @@ impl DurableObject for AutoResponseObject {
             }
             "/get" => {
                 if let Some(pair) = self.state.get_websocket_auto_response() {
-                    let req_str = pair.request();
-                    let res_str = pair.response();
-                    Response::ok(format!("{req_str}:{res_str}"))
+                    let request_str = pair.request();
+                    let response_str = pair.response();
+                    Response::ok(format!("{request_str}:{response_str}"))
                 } else {
                     Response::ok("none")
                 }

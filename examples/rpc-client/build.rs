@@ -7,7 +7,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("cargo::rerun-if-changed=wit/calculator.wit");
     let source = expand_wit_source("wit/calculator.wit")?;
     let out_dir = var("OUT_DIR")?;
-    let dest = format!("{}/calculator.rs", out_dir);
+    let dest = format!("{out_dir}/calculator.rs");
     std::fs::write(dest, source)?;
     Ok(())
 }

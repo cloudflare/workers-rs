@@ -1,21 +1,29 @@
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::sync::{
     atomic::{AtomicBool, Ordering},
-    Mutex,
+    LazyLock, Mutex,
 };
 #[cfg(feature = "http")]
 use tower_service::Service;
-use worker::*;
+#[cfg(feature = "http")]
+use worker::HttpRequest;
+use worker::{console_log, event, js_sys, wasm_bindgen, Env, Result};
+#[cfg(not(feature = "http"))]
+use worker::{Request, Response};
 
 mod alarm;
 mod analytics_engine;
 mod assets;
+mod auto_response;
 mod cache;
 mod counter;
 mod d1;
+mod durable;
 mod fetch;
 mod form;
 mod kv;
+mod put_raw;
 mod queue;
 mod r2;
 mod request;
@@ -24,7 +32,6 @@ mod service;
 mod socket;
 mod sql_counter;
 mod sql_iterator;
-mod test;
 mod user;
 mod utils;
 mod ws;
@@ -48,12 +55,14 @@ struct ApiData {
 
 #[derive(Clone)]
 pub struct SomeSharedData {
-    regex: regex::Regex,
+    regex: &'static Regex,
 }
 
 static GLOBAL_STATE: AtomicBool = AtomicBool::new(false);
 
 static GLOBAL_QUEUE_STATE: Mutex<Vec<queue::QueueBody>> = Mutex::new(Vec::new());
+
+static DATA_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\d{4}-\d{2}-\d{2}$").unwrap());
 
 // We're able to specify a start event that is called when the WASM is initialized before any
 // requests. This is useful if you have some global state or setup code, like a logger. This is
@@ -75,15 +84,18 @@ type HandlerResponse = http::Response<axum::body::Body>;
 #[cfg(not(feature = "http"))]
 type HandlerResponse = Response;
 
+/// Entrypoint to the worker for handling fetch requests.
+///
+/// # Errors
+///
+/// Returns the same error as the underlying router implementation.
 #[event(fetch, respond_with_errors)]
 pub async fn main(
     request: HandlerRequest,
     env: Env,
     _ctx: worker::Context,
 ) -> Result<HandlerResponse> {
-    let data = SomeSharedData {
-        regex: regex::Regex::new(r"^\d{4}-\d{2}-\d{2}$").unwrap(),
-    };
+    let data = SomeSharedData { regex: &DATA_REGEX };
 
     #[cfg(feature = "http")]
     let res = {

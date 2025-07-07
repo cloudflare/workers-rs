@@ -2,9 +2,8 @@ use super::SomeSharedData;
 use blake2::Blake2b512;
 use blake2::Digest;
 use serde::{Deserialize, Serialize};
-use worker::kv;
-use worker::{Env, Request, Result};
-use worker::{FormEntry, Response};
+use std::convert::TryFrom;
+use worker::{kv, Env, FormEntry, Request, Response, Result};
 
 #[worker::send]
 pub async fn handle_formdata_name(
@@ -36,7 +35,7 @@ pub async fn handle_formdata_name(
     if let Some(value) = form.get(NAME) {
         match value {
             FormEntry::Field(v) => Response::from_json(&serde_json::json!({ NAME: v })),
-            _ => bad_request,
+            FormEntry::File(_) => bad_request,
         }
     } else {
         bad_request
@@ -66,7 +65,7 @@ pub async fn handle_formdata_file_size(
                 let b = file.bytes().await?;
                 let record = FileSize {
                     name: file.name(),
-                    size: b.len() as u32,
+                    size: u32::try_from(b.len()).unwrap(),
                 };
 
                 // hash the file, and use result as the key
@@ -82,7 +81,7 @@ pub async fn handle_formdata_file_size(
                 // list the default number of keys from the namespace
                 Response::from_json(&kv.list().execute().await?.keys)
             }
-            _ => Response::error("Bad Request", 400),
+            FormEntry::Field(_) => Response::error("Bad Request", 400),
         };
     }
 
@@ -122,7 +121,7 @@ pub async fn handle_is_secret(
                 let val = env.secret(&name)?;
                 return Response::ok(val.to_string());
             }
-            _ => return Response::error("Bad Request", 400),
+            FormEntry::File(_) => return Response::error("Bad Request", 400),
         };
     }
 

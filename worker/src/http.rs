@@ -88,6 +88,6 @@ impl AsRef<str> for Method {
 impl Display for Method {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
         let s: String = (*self).clone().into();
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
 }

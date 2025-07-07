@@ -51,7 +51,7 @@ impl Body {
                 array.copy_from(&chunk);
                 array.into()
             })
-            .map_err(|err| crate::Error::RustError(format!("{:?}", err)))
+            .map_err(|err| crate::Error::RustError(format!("{err:?}")))
             .map_err(|e| wasm_bindgen::JsValue::from(e.to_string()));
 
         let stream = wasm_streams::ReadableStream::from_stream(js_stream);

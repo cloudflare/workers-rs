@@ -17,7 +17,7 @@ pub async fn handle_socket_failed(
                 "Socket should have failed to open.".to_owned(),
             ))
         }
-        Err(e) => Response::ok(format!("{:?}", e)),
+        Err(e) => Response::ok(format!("{e:?}")),
     }
 }
 
