@@ -24,6 +24,8 @@
   "scripts": {
     "install": "cargo install --path ./worker-build --force --debug",
     "test": "cd worker-sandbox && NO_MINIFY=1 worker-build --dev && NODE_OPTIONS=--experimental-vm-modules npx vitest run",
-    "test-http": "cd worker-sandbox && NO_MINIFY=1 worker-build --dev --features http && NODE_OPTIONS=--experimental-vm-modules npx vitest run"
+    "test-http": "cd worker-sandbox && NO_MINIFY=1 worker-build --dev --features http && NODE_OPTIONS=--experimental-vm-modules npx vitest run",
+    "lint": "cargo clippy --features d1,queue --all-targets --workspace -- -D warnings",
+    "lint:fix": "cargo clippy --features d1,queue --all-targets --workspace --fix -- -D warnings"
   }
 }

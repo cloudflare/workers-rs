@@ -76,7 +76,7 @@ pub fn main() -> Result<()> {
                 )?;
             }
         } else if path.is_file() {
-            snippets.push((format!("snippets_{}", counter), path_string));
+            snippets.push((format!("snippets_{counter}"), path_string));
             *counter += 1;
         }
         Ok(())
@@ -92,14 +92,14 @@ pub fn main() -> Result<()> {
     let js_imports = snippets
         .iter()
         .fold(String::new(), |mut output, (name, path)| {
-            let _ = writeln!(output, "import * as {} from \"{}\";", name, path);
+            let _ = writeln!(output, "import * as {name} from \"{path}\";");
             output
         });
 
     let wasm_imports = snippets
         .into_iter()
         .fold(String::new(), |mut output, (name, path)| {
-            let _ = writeln!(output, "\"{}\": {},", path, name);
+            let _ = writeln!(output, "\"{path}\": {name},");
             output
         });
 
