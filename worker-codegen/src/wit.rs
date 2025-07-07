@@ -29,7 +29,7 @@ fn wit_type_to_str(ty: &wit_parser::Type) -> anyhow::Result<String> {
         wit_parser::Type::F64 => "f64".to_string(),
         wit_parser::Type::Char => "char".to_string(),
         wit_parser::Type::String => "String".to_string(),
-        wit_parser::Type::Id(t) => anyhow::bail!("Unsupported type: '{:?}'", t),
+        wit_parser::Type::Id(t) => anyhow::bail!("Unsupported type: '{t:?}'"),
     })
 }
 
@@ -115,7 +115,7 @@ fn expand_rpc_impl(
     let mut impl_item: syn::ItemImpl = syn::parse2(impl_raw)?;
 
     for (name, method) in &interface.functions {
-        println!("\tFound method: '{}'.", name);
+        println!("\tFound method: '{name}'.");
         let ident = format_ident!("{}", name.to_case(Case::Snake));
         let invocation_raw = quote!(self.0.#ident());
         let mut invocation_item: syn::ExprMethodCall = syn::parse2(invocation_raw)?;
@@ -204,9 +204,9 @@ fn expand_wit(path: &str) -> anyhow::Result<syn::File> {
 
     for (_, interface) in resolver.interfaces {
         let name = interface.name.clone().unwrap();
-        println!("Found Interface: '{}'", name);
+        println!("Found Interface: '{name}'");
         let interface_name = format_ident!("{}", name.to_case(Case::Pascal));
-        println!("Generating Trait '{}'", interface_name);
+        println!("Generating Trait '{interface_name}'");
         let struct_name = format_ident!("{}Service", interface_name);
         let sys_name = format_ident!("{}Sys", interface_name);
 

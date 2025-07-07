@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use worker::*;
+use worker::{durable_object, wasm_bindgen, Env, Request, Response, Result, SqlStorage, State};
 
 /// A Durable Object that demonstrates SQL cursor iterator methods.
 ///
@@ -46,7 +46,7 @@ impl DurableObject for SqlIterator {
         if count
             .first()
             .and_then(|v| v.get("count"))
-            .and_then(|v| v.as_i64())
+            .and_then(serde_json::Value::as_i64)
             .unwrap_or(0)
             == 0
         {
@@ -62,11 +62,7 @@ impl DurableObject for SqlIterator {
             for (name, price, in_stock) in products {
                 sql.exec(
                     "INSERT INTO products(name, price, in_stock) VALUES (?, ?, ?);",
-                    vec![
-                        name.into(),
-                        price.into(),
-                        (if in_stock { 1i32 } else { 0i32 }).into(),
-                    ],
+                    vec![name.into(), price.into(), i32::from(in_stock).into()],
                 )
                 .expect("insert product");
             }
@@ -80,16 +76,16 @@ impl DurableObject for SqlIterator {
         let path = url.path();
 
         match path {
-            "/next" => self.handle_next().await,
-            "/raw" => self.handle_raw().await,
-            "/next-invalid" => self.handle_next_invalid().await,
+            "/next" => self.handle_next(),
+            "/raw" => self.handle_raw(),
+            "/next-invalid" => self.handle_next_invalid(),
             _ => Response::ok("SQL Iterator Test - try /next, /raw, or /next-invalid endpoints"),
         }
     }
 }
 
 impl SqlIterator {
-    async fn handle_next(&self) -> Result<Response> {
+    fn handle_next(&self) -> Result<Response> {
         let cursor = self.sql.exec("SELECT * FROM products ORDER BY id;", None)?;
 
         let mut results = Vec::new();
@@ -107,7 +103,7 @@ impl SqlIterator {
                     ));
                 }
                 Err(e) => {
-                    results.push(format!("Error deserializing row: {}", e));
+                    results.push(format!("Error deserializing row: {e}"));
                 }
             }
         }
@@ -117,7 +113,7 @@ impl SqlIterator {
         Response::ok(response_body)
     }
 
-    async fn handle_raw(&self) -> Result<Response> {
+    fn handle_raw(&self) -> Result<Response> {
         let cursor = self.sql.exec("SELECT * FROM products ORDER BY id;", None)?;
 
         let mut results = Vec::new();
@@ -129,11 +125,11 @@ impl SqlIterator {
         for result in iterator {
             match result {
                 Ok(row) => {
-                    let row_str: Vec<String> = row.iter().map(|v| format!("{:?}", v)).collect();
+                    let row_str: Vec<String> = row.iter().map(|v| format!("{v:?}")).collect();
                     results.push(format!("Row: [{}]", row_str.join(", ")));
                 }
                 Err(e) => {
-                    results.push(format!("Error reading row: {}", e));
+                    results.push(format!("Error reading row: {e}"));
                 }
             }
         }
@@ -143,7 +139,7 @@ impl SqlIterator {
         Response::ok(response_body)
     }
 
-    async fn handle_next_invalid(&self) -> Result<Response> {
+    fn handle_next_invalid(&self) -> Result<Response> {
         let cursor = self.sql.exec("SELECT * FROM products ORDER BY id;", None)?;
 
         let mut results = Vec::new();
@@ -161,7 +157,7 @@ impl SqlIterator {
                     ));
                 }
                 Err(e) => {
-                    results.push(format!("Error deserializing row: {}", e));
+                    results.push(format!("Error deserializing row: {e}"));
                 }
             }
         }
@@ -197,7 +193,7 @@ pub async fn handle_sql_iterator(
     let stub = namespace.id_from_name(name)?.get_stub()?;
 
     // Forward the request path to the DO
-    let new_url = format!("https://fake-host{}", path);
+    let new_url = format!("https://fake-host{path}");
 
     stub.fetch_with_str(&new_url).await
 }

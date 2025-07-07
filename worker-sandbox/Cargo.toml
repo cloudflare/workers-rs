@@ -1,4 +1,5 @@
 [package]
+description = "A functioning Cloudflare Worker for testing features and ergonomics"
 authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
 edition = "2018"
 name = "worker-sandbox"
@@ -11,6 +12,14 @@ release = false
 # https://github.com/rustwasm/wasm-pack/issues/1247
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = false
+
+# Change to `dwarf-debug-info = true` to preserve debug symbols in the dev
+# profile. We leave this as false (the default) to avoid breaking tests,
+# although tests _do_ seem to work when we update package.json to run vitest
+# with `--test-timeout=0 --no-file-parallelism`.
+# https://developers.cloudflare.com/workers/observability/dev-tools/cpu-usage/#taking-a-profile
+[package.metadata.wasm-pack.profile.dev.wasm-bindgen]
+dwarf-debug-info = false
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -54,6 +63,7 @@ worker-kv.workspace = true
 axum = { version = "0.8", optional = true, default-features = false }
 axum-macros = { version = "0.5", optional = true, default-features = false }
 tower-service = { version = "0.3", optional = true }
+paste = "1.0.15"
 
 [dev-dependencies]
 wasm-bindgen-test.workspace = true

@@ -1,6 +1,5 @@
-use std::{collections::HashMap, sync::Mutex};
-
 use futures_util::StreamExt;
+use std::{collections::HashMap, convert::TryFrom, sync::Mutex};
 use worker::{
     Bucket, Conditional, Data, Date, Env, FixedLengthStream, HttpMetadata, Include, Request,
     Response, Result,
@@ -78,8 +77,7 @@ pub async fn list(_req: Request, env: Env, _data: SomeSharedData) -> Result<Resp
         .filter(|obj| {
             obj.custom_metadata()
                 .ok()
-                .map(|map| !map.is_empty())
-                .unwrap_or(false)
+                .is_some_and(|map| !map.is_empty())
         })
         .count();
     assert_eq!(count, 1);
@@ -171,7 +169,7 @@ pub async fn put(_req: Request, env: Env, _data: SomeSharedData) -> Result<Respo
     // a body property. But in workerd it will only return an object without a body property in the
     // event that a condition failed
     if let Some(body) = empty_obj.body() {
-        assert_eq!(body.bytes().await?.len(), 0)
+        assert_eq!(body.bytes().await?.len(), 0);
     }
 
     Response::ok("ok")
@@ -191,6 +189,7 @@ pub async fn put_properties(_req: Request, env: Env, _data: SomeSharedData) -> R
     Response::ok("ok")
 }
 
+#[allow(clippy::large_stack_arrays)]
 #[worker::send]
 pub async fn put_multipart(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     const R2_MULTIPART_CHUNK_MIN_SIZE: usize = 5 * 1_024 * 1_024; // 5MiB.
@@ -211,8 +210,12 @@ pub async fn put_multipart(_req: Request, env: Env, _data: SomeSharedData) -> Re
     ];
     let mut uploaded_parts = vec![];
     for (chunk_index, chunk_size) in chunk_sizes.iter().copied().enumerate() {
-        let chunk = vec![chunk_index as u8; chunk_size];
-        uploaded_parts.push(upload.upload_part(chunk_index as u16, chunk).await?);
+        let chunk = vec![u8::try_from(chunk_index).unwrap(); chunk_size];
+        uploaded_parts.push(
+            upload
+                .upload_part(u16::try_from(chunk_index).unwrap(), chunk)
+                .await?,
+        );
     }
     upload.complete(uploaded_parts).await?;
 
