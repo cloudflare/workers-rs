@@ -13,13 +13,33 @@ release = false
 
 [dependencies]
 anyhow = "1.0.98"
-dirs-next = "2.0"
-flate2 = "1.1"
-tar = "0.4"
-ureq = { version = "3.0", features = ["gzip"] }
+binary-install = "0.4.1"
+cargo_metadata = "0.15.2"
+chrono = "0.4.23"
 clap = { version = "4.5", features = ['derive'] }
+console = "0.15.5"
+dialoguer = "0.10.3"
+dirs-next = "2.0"
+env_logger = { version = "0.10.0", default-features = false }
+flate2 = "1.1"
+glob = "0.3.1"
+human-panic = "1.0.3"
+log = "0.4.17"
+parking_lot = "0.12.1"
+path-clean = "1.0.1"
+semver = "1.0.16"
+serde = "1.0.152"
+serde_derive = "1.0.152"
+serde_ignored = "0.1.7"
+serde_json = "1.0.91"
+siphasher = "0.3.10"
+strsim = "0.10.0"
+tar = "0.4"
+toml = "0.7.3"
+ureq = { version = "3.0", features = ["gzip", "json"] }
+walkdir = "2.3.2"
+which = "4.4.0"
 worker-codegen.workspace = true
-wasm-pack = "0.13"
 
 [dev-dependencies]
 wasm-bindgen-cli-support.workspace = true
