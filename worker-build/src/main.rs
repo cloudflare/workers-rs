@@ -59,7 +59,6 @@ pub fn main() -> Result<()> {
     let mut snippets = Vec::new();
     let mut counter = 0;
 
-
     // wasm-bindgen outputs snippets (https://rustwasm.github.io/wasm-bindgen/reference/js-snippets.html)
     // into the snippets folder, so we recursively read what files were written here and set these up as
     // explicit imports for Wasm instantiation.
