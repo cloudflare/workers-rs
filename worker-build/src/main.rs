@@ -59,10 +59,14 @@ pub fn main() -> Result<()> {
     let mut snippets = Vec::new();
     let mut counter = 0;
 
+
+    // wasm-bindgen outputs snippets (https://rustwasm.github.io/wasm-bindgen/reference/js-snippets.html)
+    // into the snippets folder, so we recursively read what files were written here and set these up as
+    // explicit imports for Wasm instantiation.
     fn get_snippets(
         path: &Path,
         path_string: String,
-        counter: &mut usize,
+        counter: &mut i32,
         snippets: &mut Vec<(String, String)>,
     ) -> Result<()> {
         if path.is_dir() {
