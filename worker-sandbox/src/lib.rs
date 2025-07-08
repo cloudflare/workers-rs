@@ -22,6 +22,7 @@ mod d1;
 mod durable;
 mod fetch;
 mod form;
+mod js_snippets;
 mod kv;
 mod put_raw;
 mod queue;

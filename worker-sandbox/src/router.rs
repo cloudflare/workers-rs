@@ -1,7 +1,7 @@
 use crate::{
-    alarm, analytics_engine, assets, auto_response, cache, counter, d1, durable, fetch, form, kv,
-    put_raw, queue, r2, request, service, socket, sql_counter, sql_iterator, user, ws,
-    SomeSharedData, GLOBAL_STATE,
+    alarm, analytics_engine, assets, auto_response, cache, counter, d1, durable, fetch, form,
+    js_snippets, kv, put_raw, queue, r2, request, service, socket, sql_counter, sql_iterator, user,
+    ws, SomeSharedData, GLOBAL_STATE,
 };
 #[cfg(feature = "http")]
 use std::convert::TryInto;
@@ -216,6 +216,8 @@ macro_rules! add_routes (
     add_route!($obj, get, "/durable/hello-unique", durable::handle_hello_unique);
     add_route!($obj, get, "/durable/storage", durable::handle_storage);
     add_route!($obj, get, "/durable/handle-basic-test", durable::handle_basic_test);
+    add_route!($obj, get, "/js_snippets/now", js_snippets::performance_now);
+    add_route!($obj, get, "/js_snippets/log", js_snippets::console_log);
     add_route!($obj, get, format_route!("/sql-counter/{}", "*path"), sql_counter::handle_sql_counter);
     add_route!($obj, get, format_route!("/sql-iterator/{}", "*path"), sql_iterator::handle_sql_iterator);
 });
