@@ -1,0 +1,34 @@
+{
+  "name": "wasm-pack",
+  "version": "0.13.1",
+  "description": "📦✨ your favorite rust -> wasm workflow tool!",
+  "main": "binary.js",
+  "scripts": {
+    "postinstall": "node ./install.js"
+  },
+  "bin": {
+    "wasm-pack": "./run.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rustwasm/wasm-pack.git"
+  },
+  "keywords": [
+    "wasm",
+    "rust-wasm",
+    "registry",
+    "cli",
+    "rust",
+    "npm",
+    "package"
+  ],
+  "author": "Jesper Håkansson <jesper@jesperh.se>",
+  "license": "MIT OR Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/rustwasm/wasm-pack/issues"
+  },
+  "homepage": "https://github.com/rustwasm/wasm-pack#readme",
+  "dependencies": {
+    "binary-install": "^1.0.1"
+  }
+}
