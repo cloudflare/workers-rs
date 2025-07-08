@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "wasm-pack",
     "worker",
     "worker-build",
     "worker-macros",
@@ -28,6 +29,7 @@ wasm-bindgen-cli-support = "0.2.100"
 wasm-bindgen-futures = "0.4.50"
 wasm-bindgen-macro-support = "0.2.100"
 wasm-bindgen-test = "0.3.50"
+wasm-pack = { path = "wasm-pack" }
 worker = { path = "worker", version = "0.6.0", features = ["queue", "d1", "axum", "timezone"] }
 worker-build = { path = "worker-build", version = "0.1.3" }
 worker-codegen = { path = "worker-codegen", version = "0.1.1" }
