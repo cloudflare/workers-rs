@@ -179,6 +179,7 @@ impl ObjectId<'_> {
 
     /// The name that was used to create the `ObjectId` via [`id_from_name`](https://developers.cloudflare.com/durable-objects/api/namespace/#idfromname).
     /// `None` is returned if the `ObjectId` was constructed using [`unique_id`](https://developers.cloudflare.com/durable-objects/api/namespace/#newuniqueid).
+    /// `None` is also returned within the Durable Object constructor, as the `name` property is not accessible there (see <https://github.com/cloudflare/workerd/issues/2240>).
     pub fn name(&self) -> Option<String> {
         self.inner.name()
     }
