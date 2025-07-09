@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::{cell::RefCell, collections::HashMap};
 
@@ -11,16 +11,20 @@ use worker::{
 
 #[durable_object]
 pub struct MyClass {
-    name: String,
     state: State,
     number: RefCell<usize>,
 }
 
+#[derive(Deserialize)]
+pub struct QueryParams {
+    name: String,
+}
+
 impl DurableObject for MyClass {
     fn new(state: State, _env: Env) -> Self {
-        let name = state.id().name().unwrap_or_else(|| state.id().to_string());
+        // Unfortunately we can't access the `name` property within the Durable Object (see <https://github.com/cloudflare/workerd/issues/2240>). Instead, we can pass it as a request parameter.
+        assert!(state.id().name().is_none());
         Self {
-            name,
             state,
             number: RefCell::new(0),
         }
@@ -30,7 +34,10 @@ impl DurableObject for MyClass {
     async fn fetch(&self, req: Request) -> Result<Response> {
         let handler = async move {
             match req.path().as_str() {
-                "/hello" => Response::ok(format!("Hello from {}!", self.name)),
+                "/hello" => {
+                    let name = &req.query::<QueryParams>()?.name;
+                    Response::ok(format!("Hello from {name}!"))
+                }
                 "/storage" => {
                     let storage = self.state.storage();
                     let map = [("one".to_string(), 1), ("two".to_string(), 2)]
@@ -164,8 +171,11 @@ pub async fn handle_hello(
     _data: crate::SomeSharedData,
 ) -> Result<Response> {
     let namespace = env.durable_object("MY_CLASS")?;
-    let stub = namespace.id_from_name("your Durable Object")?.get_stub()?;
-    stub.fetch_with_str("https://fake-host/hello").await
+    let name = "my-durable-object";
+    let id = namespace.id_from_name(name)?;
+    let stub = id.get_stub()?;
+    stub.fetch_with_str(&format!("https://fake-host/hello?name={name}"))
+        .await
 }
 
 #[worker::send]
@@ -175,8 +185,11 @@ pub async fn handle_hello_unique(
     _data: crate::SomeSharedData,
 ) -> Result<Response> {
     let namespace = env.durable_object("MY_CLASS")?;
-    let stub = namespace.unique_id()?.get_stub()?;
-    stub.fetch_with_str("https://fake-host/hello").await
+    let id = namespace.unique_id()?;
+    let name = id.to_string();
+    let stub = id.get_stub()?;
+    stub.fetch_with_str(&format!("https://fake-host/hello?name={name}"))
+        .await
 }
 
 #[worker::send]
@@ -208,13 +221,16 @@ pub async fn handle_basic_test(
 
     let stub = id.get_stub()?;
     let res = stub
-        .fetch_with_str("https://fake-host/hello")
+        .fetch_with_str(&format!(
+            "https://fake-host/hello?name={}",
+            id.name().unwrap()
+        ))
         .await?
         .text()
         .await?;
     let res2 = stub
         .fetch_with_request(Request::new_with_init(
-            "https://fake-host/hello",
+            &format!("https://fake-host/hello?name={}", id.name().unwrap()),
             RequestInit::new()
                 .with_body(Some("lol".into()))
                 .with_method(Method::Post),
