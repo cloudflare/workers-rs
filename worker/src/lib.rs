@@ -193,6 +193,7 @@ pub use crate::router::{RouteContext, RouteParams, Router};
 pub use crate::schedule::*;
 pub use crate::socket::*;
 pub use crate::streams::*;
+pub use crate::vectorize::*;
 pub use crate::version::*;
 pub use crate::websocket::*;
 
@@ -233,6 +234,7 @@ pub mod send;
 mod socket;
 mod sql;
 mod streams;
+mod vectorize;
 mod version;
 mod websocket;
 
