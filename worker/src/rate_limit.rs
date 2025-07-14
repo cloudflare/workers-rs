@@ -4,6 +4,7 @@ use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use worker_sys::RateLimiter as RateLimiterSys;
 
+#[derive(Debug)]
 pub struct RateLimiter(RateLimiterSys);
 
 #[derive(Serialize, Deserialize)]
@@ -11,7 +12,7 @@ struct RateLimitOptions {
     key: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RateLimitOutcome {
     pub success: bool,
 }

@@ -25,6 +25,7 @@ pub use serde_wasm_bindgen;
 pub mod macros;
 
 // A D1 Database.
+#[derive(Debug)]
 pub struct D1Database(D1DatabaseSys);
 
 unsafe impl Sync for D1Database {}
@@ -134,6 +135,7 @@ impl From<D1DatabaseSys> for D1Database {
 
 /// Possible argument types that can be bound to [`D1PreparedStatement`]
 /// See https://developers.cloudflare.com/d1/build-with-d1/d1-client-api/#type-conversion
+#[derive(Debug)]
 pub enum D1Type<'a> {
     Null,
     Real(f64),
@@ -151,6 +153,7 @@ pub enum D1Type<'a> {
 /// Arguments must be converted to `JsValue` when bound. If you plan to
 /// re-use the same argument multiple times, consider using a `D1PreparedArgument`
 /// which does this once on construction.
+#[derive(Debug)]
 pub struct D1PreparedArgument<'a> {
     value: &'a D1Type<'a>,
     js_value: JsValue,
@@ -220,7 +223,7 @@ impl D1Argument for D1PreparedArgument<'_> {
 }
 
 // A D1 prepared query statement.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct D1PreparedStatement(D1PreparedStatementSys);
 
 impl D1PreparedStatement {
@@ -341,6 +344,7 @@ impl From<D1PreparedStatementSys> for D1PreparedStatement {
 }
 
 // The result of a D1 query execution.
+#[derive(Debug)]
 pub struct D1Result(D1ResultSys);
 
 // The meta object of D1 result.

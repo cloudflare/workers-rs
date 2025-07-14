@@ -287,6 +287,7 @@ type EvCallback<T> = Closure<dyn FnMut(T)>;
 /// });
 /// ```
 #[pin_project::pin_project(PinnedDrop)]
+#[derive(Debug)]
 pub struct EventStream<'ws> {
     ws: &'ws WebSocket,
     #[pin]
