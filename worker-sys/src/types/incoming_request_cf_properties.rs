@@ -12,7 +12,7 @@ extern "C" {
     pub fn colo(this: &IncomingRequestCfProperties) -> Result<String, JsValue>;
 
     #[wasm_bindgen(method, catch, getter)]
-    pub fn asn(this: &IncomingRequestCfProperties) -> Result<u32, JsValue>;
+    pub fn asn(this: &IncomingRequestCfProperties) -> Result<Option<u32>, JsValue>;
 
     #[wasm_bindgen(method, catch, getter, js_name=asOrganization)]
     pub fn as_organization(this: &IncomingRequestCfProperties) -> Result<Option<String>, JsValue>;

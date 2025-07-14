@@ -33,7 +33,7 @@ impl Cf {
     }
 
     /// The Autonomous System Number (ASN) of the request, e.g. `395747`
-    pub fn asn(&self) -> u32 {
+    pub fn asn(&self) -> Option<u32> {
         self.inner.asn().unwrap()
     }
 
