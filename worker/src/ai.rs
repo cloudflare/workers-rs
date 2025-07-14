@@ -6,6 +6,7 @@ use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use worker_sys::Ai as AiSys;
 
+#[derive(Debug)]
 pub struct Ai(AiSys);
 
 impl Ai {

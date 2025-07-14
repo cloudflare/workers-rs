@@ -18,7 +18,7 @@ use worker_kv::KvStore;
 #[wasm_bindgen]
 extern "C" {
     /// Env contains any bindings you have associated with the Worker when you uploaded it.
-    #[derive(Clone)]
+    #[derive(Debug, Clone)]
     pub type Env;
 }
 
@@ -144,6 +144,7 @@ pub trait EnvBinding: Sized + JsCast {
 }
 
 #[repr(transparent)]
+#[derive(Debug)]
 pub struct StringBinding(JsValue);
 
 impl EnvBinding for StringBinding {
