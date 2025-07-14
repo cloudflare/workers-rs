@@ -38,7 +38,7 @@ impl Cf {
     }
 
     /// The Autonomous System organization name of the request, e.g. `Cloudflare, Inc.`
-    pub fn as_organization(&self) -> String {
+    pub fn as_organization(&self) -> Option<String> {
         self.inner.as_organization().unwrap()
     }
 

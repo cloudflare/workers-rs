@@ -15,7 +15,7 @@ extern "C" {
     pub fn asn(this: &IncomingRequestCfProperties) -> Result<u32, JsValue>;
 
     #[wasm_bindgen(method, catch, getter, js_name=asOrganization)]
-    pub fn as_organization(this: &IncomingRequestCfProperties) -> Result<String, JsValue>;
+    pub fn as_organization(this: &IncomingRequestCfProperties) -> Result<Option<String>, JsValue>;
 
     #[wasm_bindgen(method, catch, getter)]
     pub fn country(this: &IncomingRequestCfProperties) -> Result<Option<String>, JsValue>;
