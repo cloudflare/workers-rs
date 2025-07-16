@@ -23,6 +23,10 @@ extern "C" {
     #[wasm_bindgen(method, catch)]
     pub fn delete(this: &R2Bucket, key: String) -> Result<js_sys::Promise, JsValue>;
 
+    #[wasm_bindgen(method, catch, js_name=delete)]
+    pub fn delete_multiple(this: &R2Bucket, keys: Vec<JsValue>)
+        -> Result<js_sys::Promise, JsValue>;
+
     #[wasm_bindgen(method, catch)]
     pub fn list(this: &R2Bucket, options: JsValue) -> Result<js_sys::Promise, JsValue>;
 
