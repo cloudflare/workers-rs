@@ -257,6 +257,14 @@ pub async fn delete(_req: Request, env: Env, _data: SomeSharedData) -> Result<Re
 
     bucket.delete("key").await?;
 
+    let keys: Vec<String> = (0..1000).map(|i| format!("key_{i}")).collect();
+    for key in &keys {
+        bucket.put(key, Data::Empty).execute().await?;
+    }
+    let objects = bucket.list().execute().await?;
+    assert_eq!(objects.objects().len(), keys.len());
+
+    bucket.delete_multiple(keys).await?;
     let objects = bucket.list().execute().await?;
     assert_eq!(objects.objects().len(), 0);
 

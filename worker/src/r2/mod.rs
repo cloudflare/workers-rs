@@ -1,4 +1,4 @@
-use std::{collections::HashMap, convert::TryInto};
+use std::{collections::HashMap, convert::TryInto, ops::Deref};
 
 pub use builder::*;
 
@@ -76,6 +76,23 @@ impl Bucket {
     pub async fn delete(&self, key: impl Into<String>) -> Result<()> {
         let delete_promise = self.inner.delete(key.into())?;
         JsFuture::from(delete_promise).await?;
+        Ok(())
+    }
+
+    /// Deletes the given values and metadata under the associated keys. Once
+    /// the delete succeeds, returns void.
+    ///
+    /// R2 deletes are strongly consistent. Once the Promise resolves, all
+    /// subsequent read operations will no longer see the provided key value
+    /// pairs globally.
+    ///
+    /// Up to 1000 keys may be deleted per call.
+    pub async fn delete_multiple(&self, keys: Vec<impl Deref<Target = str>>) -> Result<()> {
+        let fut: JsFuture = self
+            .inner
+            .delete_multiple(keys.into_iter().map(|key| JsValue::from(&*key)).collect())?
+            .into();
+        fut.await?;
         Ok(())
     }
 
