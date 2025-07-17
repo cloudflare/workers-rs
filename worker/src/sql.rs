@@ -240,6 +240,7 @@ unsafe impl Sync for SqlCursor {}
 ///
 /// This iterator yields deserialized rows of type `T`, providing a type-safe
 /// way to iterate over SQL query results with automatic conversion to Rust types.
+#[derive(Debug)]
 pub struct SqlCursorIterator<T> {
     cursor: SqlCursor,
     _phantom: std::marker::PhantomData<T>,
@@ -275,6 +276,7 @@ where
 /// This iterator yields raw values as `Vec<SqlStorageValue>`, providing efficient
 /// access to SQL data without deserialization overhead. Useful when you need
 /// direct access to the underlying SQL values without column names.
+#[derive(Debug)]
 pub struct SqlCursorRawIterator {
     inner: js_sys::Iterator,
 }

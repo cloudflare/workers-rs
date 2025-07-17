@@ -55,3 +55,11 @@ extern "C" {
         this: &DurableObjectState,
     ) -> Result<Option<WebSocketRequestResponsePair>, JsValue>;
 }
+
+impl core::fmt::Debug for DurableObjectState {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("DurableObjectState")
+            .field("id", &self.id())
+            .finish()
+    }
+}

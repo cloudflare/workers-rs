@@ -160,6 +160,7 @@ impl Cache {
 }
 
 /// The `String` or `Request` object used as the lookup key. `String`s are interpreted as the URL for a new `Request` object.
+#[derive(Debug)]
 pub enum CacheKey<'a> {
     Url(String),
     Request(&'a Request),
@@ -190,7 +191,7 @@ impl<'a> From<&'a Request> for CacheKey<'a> {
 }
 
 /// Successful outcomes when attempting to delete a `Response` from the cache
-#[derive(Serialize)]
+#[derive(Serialize, Debug, Clone)]
 pub enum CacheDeletionOutcome {
     /// The response was cached but is now deleted
     Success,

@@ -274,7 +274,7 @@ impl From<worker_sys::TlsClientAuth> for TlsClientAuth {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct CfResponseProperties(pub(crate) js_sys::Object);
 
 impl CfResponseProperties {

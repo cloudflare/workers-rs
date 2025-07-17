@@ -7,6 +7,7 @@ use crate::{request::Request, response::Response, AbortSignal, Result};
 
 /// Construct a Fetch call from a URL string or a Request object. Call its `send` method to execute
 /// the request.
+#[derive(Debug)]
 pub enum Fetch {
     Url(url::Url),
     Request(Request),
