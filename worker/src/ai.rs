@@ -14,7 +14,7 @@ impl Ai {
         model: impl AsRef<str>,
         input: T,
     ) -> Result<U> {
-        let fut = SendFuture::new(JsFuture::from(
+        let fut = SendFuture::new_unchecked(JsFuture::from(
             self.0
                 .run(model.as_ref(), serde_wasm_bindgen::to_value(&input)?),
         ));
@@ -24,9 +24,6 @@ impl Ai {
         }
     }
 }
-
-unsafe impl Sync for Ai {}
-unsafe impl Send for Ai {}
 
 impl From<AiSys> for Ai {
     fn from(inner: AiSys) -> Self {

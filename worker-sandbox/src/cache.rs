@@ -10,7 +10,6 @@ fn key(req: &Request) -> Result<Option<String>> {
     Ok(segments.nth(2).map(ToOwned::to_owned))
 }
 
-#[worker::send]
 pub async fn handle_cache_example(
     req: Request,
     _env: Env,
@@ -34,7 +33,6 @@ pub async fn handle_cache_example(
     }
 }
 
-#[worker::send]
 pub async fn handle_cache_api_get(
     req: Request,
     _env: Env,
@@ -50,7 +48,6 @@ pub async fn handle_cache_api_get(
     Response::error("key missing", 400)
 }
 
-#[worker::send]
 pub async fn handle_cache_api_put(
     req: Request,
     _env: Env,
@@ -69,7 +66,6 @@ pub async fn handle_cache_api_put(
     Response::error("key missing", 400)
 }
 
-#[worker::send]
 pub async fn handle_cache_api_delete(
     req: Request,
     _env: Env,
@@ -84,7 +80,6 @@ pub async fn handle_cache_api_delete(
     Response::error("key missing", 400)
 }
 
-#[worker::send]
 pub async fn handle_cache_stream(
     req: Request,
     _env: Env,
