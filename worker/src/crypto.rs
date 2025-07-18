@@ -35,7 +35,7 @@ impl DigestStream {
     }
 
     pub async fn digest(&self) -> Result<Uint8Array, crate::Error> {
-        let fut = SendFuture::new(JsFuture::from(self.inner.digest()));
+        let fut = SendFuture::new_unchecked(JsFuture::from(self.inner.digest()));
         let buffer: ArrayBuffer = fut.await?.unchecked_into();
         Ok(Uint8Array::new(&buffer))
     }

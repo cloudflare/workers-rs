@@ -17,7 +17,6 @@ macro_rules! kv_assert_eq {
     }};
 }
 
-#[worker::send]
 pub async fn handle_post_key_value(
     req: Request,
     env: Env,
@@ -39,7 +38,6 @@ pub async fn handle_post_key_value(
 
 const TEST_NAMESPACE: &str = "TEST";
 
-#[worker::send]
 pub async fn get(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let store = env.kv(TEST_NAMESPACE)?;
     let value = store.get("simple").text().await?;
@@ -49,7 +47,6 @@ pub async fn get(_req: Request, env: Env, _data: SomeSharedData) -> Result<Respo
     }
 }
 
-#[worker::send]
 pub async fn get_not_found(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let store = env.kv(TEST_NAMESPACE)?;
     let value = store.get("not_found").text().await?;
@@ -59,7 +56,6 @@ pub async fn get_not_found(_req: Request, env: Env, _data: SomeSharedData) -> Re
     }
 }
 
-#[worker::send]
 pub async fn list_keys(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let store = env.kv(TEST_NAMESPACE)?;
     let list_res = store.list().execute().await?;
@@ -70,7 +66,6 @@ pub async fn list_keys(_req: Request, env: Env, _data: SomeSharedData) -> Result
     Response::ok("passed")
 }
 
-#[worker::send]
 pub async fn put_simple(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let store = env.kv(TEST_NAMESPACE)?;
     store.put("put_a", "test")?.execute().await?;
@@ -81,7 +76,6 @@ pub async fn put_simple(_req: Request, env: Env, _data: SomeSharedData) -> Resul
     Response::ok("passed")
 }
 
-#[worker::send]
 pub async fn put_metadata(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let store = env.kv(TEST_NAMESPACE)?;
     store.put("put_b", "test")?.metadata(100)?.execute().await?;
@@ -93,7 +87,6 @@ pub async fn put_metadata(_req: Request, env: Env, _data: SomeSharedData) -> Res
     Response::ok("passed")
 }
 
-#[worker::send]
 pub async fn put_expiration(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     const EXPIRATION: u64 = 2_000_000_000;
     let store = env.kv(TEST_NAMESPACE)?;
@@ -117,7 +110,6 @@ pub async fn put_expiration(_req: Request, env: Env, _data: SomeSharedData) -> R
     Response::ok("passed")
 }
 
-#[worker::send]
 pub async fn put_metadata_struct(
     _req: Request,
     env: Env,

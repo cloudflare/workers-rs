@@ -83,7 +83,6 @@ impl SqlCounter {
     }
 }
 
-#[worker::send]
 /// Route handler that proxies a request to our SqlCounter Durable Object with id derived from the
 /// path `/sql-counter/{name}` (so every name gets its own instance).
 pub async fn handle_sql_counter(

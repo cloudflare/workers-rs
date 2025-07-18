@@ -7,6 +7,9 @@ use crate::{
 use std::convert::TryInto;
 use std::sync::atomic::Ordering;
 
+#[cfg(feature = "http")]
+use worker::send::SendFuture;
+
 use worker::{console_log, Env, Fetch, Request, Response, ResponseBuilder, Result};
 
 #[cfg(not(feature = "http"))]
@@ -60,7 +63,9 @@ macro_rules! format_route (
 macro_rules! handler (
     ($name:path) => {
         |Extension(env): Extension<Env>, Extension(data): Extension<SomeSharedData>, req: axum::extract::Request| async {
-            let resp = $name(req.try_into().expect("convert request"), env, data).await.expect("handler result");
+            // SAFETY
+            // This can only be called from a worker context
+            let resp = unsafe { SendFuture::new($name(req.try_into().expect("convert request"), env, data)).await.expect("handler result") };
             Into::<http::Response<axum::body::Body>>::into(resp)
         }
     };
@@ -252,7 +257,6 @@ async fn respond_async(req: Request, _env: Env, _data: SomeSharedData) -> Result
         .ok(format!("Ok (async): {}", String::from(req.method())))
 }
 
-#[worker::send]
 async fn handle_close_event(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let some_namespace_kv = env.kv("SOME_NAMESPACE")?;
     let got_close_event = some_namespace_kv
@@ -265,7 +269,6 @@ async fn handle_close_event(_req: Request, env: Env, _data: SomeSharedData) -> R
     Response::ok(got_close_event)
 }
 
-#[worker::send]
 async fn catchall(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     let uri = req.url()?;
     let path = uri.path();
