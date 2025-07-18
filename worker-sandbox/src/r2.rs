@@ -1,5 +1,9 @@
 use futures_util::StreamExt;
-use std::{collections::HashMap, convert::TryFrom, sync::Mutex};
+use std::{
+    collections::HashMap,
+    convert::TryFrom,
+    sync::atomic::{AtomicBool, Ordering},
+};
 use worker::{
     Bucket, Conditional, Data, Date, Env, FixedLengthStream, HttpMetadata, Include, Request,
     Response, Result,
@@ -7,18 +11,14 @@ use worker::{
 
 use crate::SomeSharedData;
 
-static SEEDED: Mutex<bool> = Mutex::new(false);
+static SEEDED: AtomicBool = AtomicBool::new(false);
 
 pub async fn seed_bucket(bucket: &Bucket) -> Result<()> {
-    {
-        let mut seeded = SEEDED.lock().unwrap();
-
-        if *seeded {
-            return Ok(());
-        }
-
-        *seeded = true;
+    if SEEDED.load(Ordering::Acquire) {
+        return Ok(());
     }
+
+    SEEDED.store(true, Ordering::Release);
 
     bucket.put("no-props", "text".to_string()).execute().await?;
     bucket
