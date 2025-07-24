@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { mf } from "./mf";
+import { mf, mfUrl } from "./mf";
 
 const productNames = ["Laptop", "Mouse", "Keyboard", "Monitor", "Headphones"];
 const expectedTypedStrings = [
@@ -13,7 +13,7 @@ const expectedTypedStrings = [
 describe("sql iterator durable object", () => {
   test("next() iterator returns typed results", async () => {
     const resp = await mf.dispatchFetch(
-      "http://fake.host/sql-iterator/test/next",
+      `${mfUrl}sql-iterator/test/next`,
     );
     expect(resp.status).toBe(200);
 
@@ -28,7 +28,7 @@ describe("sql iterator durable object", () => {
 
   test("raw() iterator returns column names and raw values", async () => {
     const resp = await mf.dispatchFetch(
-      "http://fake.host/sql-iterator/test/raw",
+      `${mfUrl}sql-iterator/test/raw`,
     );
     expect(resp.status).toBe(200);
 
@@ -53,7 +53,7 @@ describe("sql iterator durable object", () => {
   test("different object instances have independent data", async () => {
     // Test first instance
     const resp1 = await mf.dispatchFetch(
-      "http://fake.host/sql-iterator/instance1/next",
+      `${mfUrl}sql-iterator/instance1/next`,
     );
     expect(resp1.status).toBe(200);
     const text1 = await resp1.text();
@@ -61,7 +61,7 @@ describe("sql iterator durable object", () => {
 
     // Test second instance - should have same seeded data
     const resp2 = await mf.dispatchFetch(
-      "http://fake.host/sql-iterator/instance2/next",
+      `${mfUrl}sql-iterator/instance2/next`,
     );
     expect(resp2.status).toBe(200);
     const text2 = await resp2.text();
@@ -74,7 +74,7 @@ describe("sql iterator durable object", () => {
   test("iterator handles empty results gracefully", async () => {
     // Create a new instance to test empty query behavior
     const resp = await mf.dispatchFetch(
-      "http://fake.host/sql-iterator/empty-test/raw",
+      `${mfUrl}sql-iterator/empty-test/raw`,
     );
     expect(resp.status).toBe(200);
 
@@ -85,7 +85,7 @@ describe("sql iterator durable object", () => {
 
   test("next() iterator handles deserialization errors", async () => {
     const resp = await mf.dispatchFetch(
-      "http://fake.host/sql-iterator/test/next-invalid",
+      `${mfUrl}sql-iterator/test/next-invalid`,
     );
     expect(resp.status).toBe(200);
 
@@ -117,14 +117,14 @@ describe("sql iterator durable object", () => {
   test("data consistency between next() and raw() methods", async () => {
     // Get data from next() method
     const nextResp = await mf.dispatchFetch(
-      "http://fake.host/sql-iterator/consistency-test/next",
+      `${mfUrl}sql-iterator/consistency-test/next`,
     );
     expect(nextResp.status).toBe(200);
     const nextText = await nextResp.text();
 
     // Get data from raw() method
     const rawResp = await mf.dispatchFetch(
-      "http://fake.host/sql-iterator/consistency-test/raw",
+      `${mfUrl}sql-iterator/consistency-test/raw`,
     );
     expect(rawResp.status).toBe(200);
     const rawText = await rawResp.text();

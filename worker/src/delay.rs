@@ -21,6 +21,7 @@ use wasm_bindgen::{prelude::Closure, JsCast};
 /// // Waits a second
 /// Delay::from(duration).await;
 /// ```
+#[derive(Debug)]
 #[pin_project::pin_project(PinnedDrop)]
 pub struct Delay {
     inner: Duration,

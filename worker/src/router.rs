@@ -19,6 +19,7 @@ type AsyncHandlerFn<'a, D> =
 
 /// Represents the URL parameters parsed from the path, e.g. a route with "/user/:id" pattern would
 /// contain a single "id" key.
+#[derive(Debug)]
 pub struct RouteParams(HashMap<String, String>);
 
 impl RouteParams {
@@ -48,8 +49,15 @@ pub struct Router<'a, D> {
     data: D,
 }
 
+impl core::fmt::Debug for Router<'_, ()> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("Router").finish()
+    }
+}
+
 /// Container for a route's parsed parameters, data, and environment bindings from the Runtime (such
 /// as KV Stores, Durable Objects, Variables, and Secrets).
+#[derive(Debug)]
 pub struct RouteContext<D> {
     pub data: D,
     pub env: Env,

@@ -1,5 +1,6 @@
 #![allow(clippy::new_without_default)]
 #![allow(clippy::or_fun_call)]
+#![warn(missing_debug_implementations)]
 //! # Features
 //! ## `d1`
 //!
@@ -191,6 +192,7 @@ pub use crate::request_init::*;
 pub use crate::response::{EncodeBody, IntoResponse, Response, ResponseBody, ResponseBuilder};
 pub use crate::router::{RouteContext, RouteParams, Router};
 pub use crate::schedule::*;
+pub use crate::secret_store::SecretStore;
 pub use crate::socket::*;
 pub use crate::streams::*;
 pub use crate::version::*;
@@ -229,6 +231,7 @@ mod request_init;
 mod response;
 mod router;
 mod schedule;
+mod secret_store;
 pub mod send;
 mod socket;
 mod sql;

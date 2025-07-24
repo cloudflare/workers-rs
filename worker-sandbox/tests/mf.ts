@@ -32,7 +32,7 @@ mockAgent
     }
   );
 
-export const mf = new Miniflare({
+const mf_instance = new Miniflare({
   d1Persist: false,
   kvPersist: false,
   r2Persist: false,
@@ -40,7 +40,7 @@ export const mf = new Miniflare({
   workers: [
     {
       scriptPath: "./build/worker/shim.mjs",
-      compatibilityDate: "2023-05-18",
+      compatibilityDate: "2025-07-24",
       cache: true,
       d1Databases: ["DB"],
       modules: true,
@@ -86,10 +86,19 @@ export const mf = new Miniflare({
       assets: {
         directory: "./public",
         binding: "ASSETS",
-        routingConfig: {
-          has_user_worker: true,
+        routerConfig: {
+          has_user_worker: true
+        }
+      },
+      secretsStoreSecrets: {
+        SECRETS: {
+          store_id: "SECRET_STORE",
+          secret_name: "secret-name"
         },
-        assetConfig: {},
+        MISSING_SECRET: {
+          store_id: "SECRET_STORE_MISSING",
+          secret_name: "missing-secret"
+        }
       },
       wrappedBindings: {
         HTTP_ANALYTICS: {
@@ -109,3 +118,10 @@ export const mf = new Miniflare({
       }`
     }]
 });
+
+// Seed the secret store with a value using the new API
+const secretAPI = await mf_instance.getSecretsStoreSecretAPI("SECRETS");
+await secretAPI().create("secret value");
+
+export const mf = mf_instance;
+export const mfUrl = await mf.ready;

@@ -14,3 +14,11 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &DurableObjectId) -> Option<String>;
 }
+
+impl core::fmt::Debug for DurableObjectId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DurableObjectId")
+            .field("name", &self.name())
+            .finish()
+    }
+}

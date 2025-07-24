@@ -5,7 +5,7 @@ use js_sys::{Array, Uint8Array};
 use wasm_bindgen::{JsCast, JsValue};
 use worker_sys::AnalyticsEngineDataset as AnalyticsEngineSys;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct AnalyticsEngineDataset(AnalyticsEngineSys);
 
 unsafe impl Send for AnalyticsEngineDataset {}
@@ -59,10 +59,12 @@ impl AnalyticsEngineDataset {
     }
 }
 
+#[derive(Debug)]
 pub enum BlobType {
     String(String),
     Blob(Vec<u8>),
 }
+
 impl From<BlobType> for JsValue {
     fn from(val: BlobType) -> Self {
         match val {
@@ -105,13 +107,14 @@ impl<const COUNT: usize> From<&[u8; COUNT]> for BlobType {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct AnalyticsEngineDataPoint {
     indexes: Array,
     doubles: Array,
     blobs: Array,
 }
 
+#[derive(Debug)]
 pub struct AnalyticsEngineDataPointBuilder {
     indexes: Array,
     doubles: Array,

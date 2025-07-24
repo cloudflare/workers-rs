@@ -19,7 +19,7 @@ use crate::{
 mod builder;
 
 /// An instance of the R2 bucket binding.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Bucket {
     inner: EdgeR2Bucket,
 }
@@ -178,6 +178,7 @@ impl AsRef<JsValue> for Bucket {
 /// [Object] is created when you [put](Bucket::put) an object into a [Bucket]. [Object] represents
 /// the metadata of an object based on the information provided by the uploader. Every object that
 /// you [put](Bucket::put) into a [Bucket] will have an [Object] created.
+#[derive(Debug)]
 pub struct Object {
     inner: ObjectInner,
 }
@@ -294,6 +295,7 @@ impl Object {
 }
 
 /// The data contained within an [Object].
+#[derive(Debug)]
 pub struct ObjectBody<'body> {
     inner: &'body EdgeR2ObjectBody,
 }
@@ -342,6 +344,7 @@ impl ObjectBody<'_> {
 /// [UploadedPart] represents a part that has been uploaded.
 /// [UploadedPart] objects are returned from [upload_part](MultipartUpload::upload_part) operations
 /// and must be passed to the [complete](MultipartUpload::complete) operation.
+#[derive(Debug)]
 pub struct UploadedPart {
     inner: EdgeR2UploadedPart,
 }
@@ -370,6 +373,7 @@ impl UploadedPart {
     }
 }
 
+#[derive(Debug)]
 pub struct MultipartUpload {
     inner: EdgeR2MultipartUpload,
 }
@@ -432,6 +436,7 @@ impl MultipartUpload {
 }
 
 /// A series of [Object]s returned by [list](Bucket::list).
+#[derive(Debug)]
 pub struct Objects {
     inner: EdgeR2Objects,
 }
@@ -477,12 +482,13 @@ impl Objects {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub(crate) enum ObjectInner {
     NoBody(EdgeR2Object),
     Body(EdgeR2ObjectBody),
 }
 
+#[derive(Debug)]
 pub enum Data {
     ReadableStream(web_sys::ReadableStream),
     Stream(FixedLengthStream),

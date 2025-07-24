@@ -13,6 +13,7 @@ use crate::{Date, Error, MultipartUpload, ObjectInner, Objects, Result};
 use super::{Data, Object};
 
 /// Options for configuring the [get](crate::r2::Bucket::get) operation.
+#[derive(Debug)]
 pub struct GetOptionsBuilder<'bucket> {
     pub(crate) edge_bucket: &'bucket EdgeR2Bucket,
     pub(crate) key: String,
@@ -164,6 +165,7 @@ impl TryFrom<R2RangeSys> for Range {
 }
 
 /// Options for configuring the [put](crate::r2::Bucket::put) operation.
+#[derive(Debug)]
 pub struct PutOptionsBuilder<'bucket> {
     pub(crate) edge_bucket: &'bucket EdgeR2Bucket,
     pub(crate) key: String,
@@ -258,6 +260,7 @@ impl PutOptionsBuilder<'_> {
 }
 
 /// Options for configuring the [create_multipart_upload](crate::r2::Bucket::create_multipart_upload) operation.
+#[derive(Debug)]
 pub struct CreateMultipartUploadOptionsBuilder<'bucket> {
     pub(crate) edge_bucket: &'bucket EdgeR2Bucket,
     pub(crate) key: String,
@@ -353,6 +356,7 @@ impl From<R2HttpMetadataSys> for HttpMetadata {
 }
 
 /// Options for configuring the [list](crate::r2::Bucket::list) operation.
+#[derive(Debug)]
 pub struct ListOptionsBuilder<'bucket> {
     pub(crate) edge_bucket: &'bucket EdgeR2Bucket,
     pub(crate) limit: Option<u32>,
