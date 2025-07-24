@@ -304,7 +304,7 @@ pub struct Storage {
     inner: DurableObjectStorage,
 }
 
-impl std::fmt::Debug for Storage {
+impl core::fmt::Debug for Storage {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Storage").finish()
     }
