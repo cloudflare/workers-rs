@@ -1,5 +1,6 @@
 #![allow(clippy::new_without_default)]
 #![allow(clippy::or_fun_call)]
+#![warn(missing_debug_implementations)]
 //! # Features
 //! ## `d1`
 //!

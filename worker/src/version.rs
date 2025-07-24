@@ -2,6 +2,7 @@ use crate::EnvBinding;
 use wasm_bindgen::{JsCast, JsValue};
 use worker_sys::types::CfVersionMetadata;
 
+#[derive(Debug)]
 pub struct WorkerVersionMetadata(CfVersionMetadata);
 
 unsafe impl Send for WorkerVersionMetadata {}

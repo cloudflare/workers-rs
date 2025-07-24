@@ -5,6 +5,7 @@ use web_sys::WritableStream;
 extern "C" {
     /// Bindings for the non-standard [crypto.DigestStream](https://developers.cloudflare.com/workers/runtime-apis/web-crypto/#constructors) API
     #[wasm_bindgen(extends = WritableStream)]
+    #[derive(Debug)]
     pub type DigestStream;
 
     #[wasm_bindgen(constructor, js_namespace = crypto)]

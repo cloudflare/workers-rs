@@ -47,6 +47,15 @@ pub struct FixedLengthStream {
     inner: Pin<Box<dyn Stream<Item = Result<Vec<u8>>> + 'static>>,
 }
 
+impl core::fmt::Debug for FixedLengthStream {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("FixedLengthStream")
+            .field("length", &self.length)
+            .field("bytes_read", &self.bytes_read)
+            .finish()
+    }
+}
+
 impl FixedLengthStream {
     pub fn wrap(stream: impl Stream<Item = Result<Vec<u8>>> + 'static, length: u64) -> Self {
         Self {

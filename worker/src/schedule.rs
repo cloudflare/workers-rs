@@ -38,7 +38,7 @@ impl ScheduledEvent {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct ScheduleContext {
     edge: EdgeScheduleContext,
 }
