@@ -29,6 +29,7 @@ mod queue;
 mod r2;
 mod request;
 mod router;
+mod secret_store;
 mod service;
 mod socket;
 mod sql_counter;
