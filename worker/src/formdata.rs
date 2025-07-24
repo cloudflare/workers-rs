@@ -12,6 +12,7 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 
 /// Representing the options any FormData value can be, a field or a file.
+#[derive(Debug)]
 pub enum FormEntry {
     Field(String),
     File(File),
@@ -136,6 +137,7 @@ impl From<FormData> for wasm_bindgen::JsValue {
 
 /// A [File](https://developer.mozilla.org/en-US/docs/Web/API/File) representation used with
 /// `FormData`.
+#[derive(Debug)]
 pub struct File(web_sys::File);
 
 impl File {

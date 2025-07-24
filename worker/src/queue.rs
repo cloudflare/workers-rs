@@ -11,6 +11,7 @@ use wasm_bindgen_futures::JsFuture;
 use worker_sys::{Message as MessageSys, MessageBatch as MessageBatchSys, Queue as EdgeQueue};
 
 /// A batch of messages that are sent to a consumer Worker.
+#[derive(Debug)]
 pub struct MessageBatch<T> {
     inner: MessageBatchSys,
     phantom: PhantomData<T>,
@@ -77,6 +78,7 @@ impl<T> From<MessageBatchSys> for MessageBatch<T> {
 }
 
 /// A message that is sent to a consumer Worker.
+#[derive(Debug)]
 pub struct Message<T> {
     inner: MessageSys,
     body: T,
@@ -115,6 +117,7 @@ where
 }
 
 /// A message that is sent to a consumer Worker.
+#[derive(Debug)]
 pub struct RawMessage {
     inner: MessageSys,
 }
@@ -150,11 +153,13 @@ impl<T> MessageSysInner for Message<T> {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 /// Optional configuration when marking a message or a batch of messages for retry.
 pub struct QueueRetryOptions {
     delay_seconds: Option<u32>,
 }
 
+#[derive(Debug)]
 pub struct QueueRetryOptionsBuilder {
     delay_seconds: Option<u32>,
 }
@@ -229,6 +234,7 @@ impl<T: MessageSysInner> MessageExt for T {
     }
 }
 
+#[derive(Debug)]
 pub struct MessageIter<T> {
     range: std::ops::Range<u32>,
     array: Array,
@@ -270,6 +276,7 @@ impl<T> std::iter::FusedIterator for MessageIter<T> where T: DeserializeOwned {}
 
 impl<T> std::iter::ExactSizeIterator for MessageIter<T> where T: DeserializeOwned {}
 
+#[derive(Debug)]
 pub struct RawMessageIter {
     range: std::ops::Range<u32>,
     array: Array,
@@ -302,7 +309,7 @@ impl std::iter::FusedIterator for RawMessageIter {}
 
 impl std::iter::ExactSizeIterator for RawMessageIter {}
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Queue(EdgeQueue);
 
 unsafe impl Send for Queue {}
@@ -361,13 +368,14 @@ impl Serialize for QueueContentType {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct QueueSendOptions {
     content_type: Option<QueueContentType>,
     delay_seconds: Option<u32>,
 }
 
+#[derive(Debug)]
 pub struct MessageBuilder<T> {
     message: T,
     delay_seconds: Option<u32>,
@@ -411,6 +419,7 @@ impl<T: Serialize> MessageBuilder<T> {
     }
 }
 
+#[derive(Debug)]
 pub struct RawMessageBuilder {
     message: JsValue,
     delay_seconds: Option<u32>,
@@ -449,6 +458,7 @@ impl RawMessageBuilder {
 /// This type can't be constructed directly.
 ///
 /// It should be constructed using the `MessageBuilder`, `RawMessageBuilder` or by calling `.into()` on a struct that is `serializable`.
+#[derive(Debug)]
 pub struct SendMessage<T> {
     /// The body of the message.
     ///
@@ -480,17 +490,19 @@ impl<T: Serialize> From<T> for SendMessage<T> {
     }
 }
 
+#[derive(Debug)]
 pub struct BatchSendMessage<T> {
     body: Vec<SendMessage<T>>,
     options: Option<QueueSendBatchOptions>,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct QueueSendBatchOptions {
     delay_seconds: Option<u32>,
 }
 
+#[derive(Debug)]
 pub struct BatchMessageBuilder<T> {
     messages: Vec<SendMessage<T>>,
     delay_seconds: Option<u32>,

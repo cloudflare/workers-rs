@@ -1,7 +1,7 @@
 use wasm_bindgen::prelude::*;
 #[wasm_bindgen]
 extern "C" {
-    #[derive(Clone)]
+    #[derive(Debug, Clone)]
     #[wasm_bindgen(extends = js_sys::Object)]
     pub type SecretStoreSys;
     #[wasm_bindgen(method, catch, js_name = "get")]

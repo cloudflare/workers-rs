@@ -40,7 +40,7 @@ impl TryFrom<JsValue> for SocketInfo {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 enum Reading {
     #[default]
     None,
@@ -48,14 +48,14 @@ enum Reading {
     Ready(Vec<u8>),
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 enum Writing {
     Pending(JsFuture, WritableStreamDefaultWriter, usize),
     #[default]
     None,
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 enum Closing {
     Pending(JsFuture),
     #[default]
@@ -63,6 +63,7 @@ enum Closing {
 }
 
 /// Represents an outbound TCP connection from your Worker.
+#[derive(Debug)]
 pub struct Socket {
     inner: worker_sys::Socket,
     writable: WritableStream,
@@ -283,6 +284,7 @@ impl AsyncWrite for Socket {
 }
 
 /// Secure transport options for outbound TCP connections.
+#[derive(Debug, Clone)]
 pub enum SecureTransport {
     /// Do not use TLS.
     Off,
@@ -294,6 +296,7 @@ pub enum SecureTransport {
 }
 
 /// Used to configure outbound TCP connections.
+#[derive(Debug, Clone)]
 pub struct SocketOptions {
     /// Specifies whether or not to use TLS when creating the TCP socket.
     pub secure_transport: SecureTransport,
@@ -314,6 +317,7 @@ impl Default for SocketOptions {
 }
 
 /// The host and port that you wish to connect to.
+#[derive(Debug, Clone)]
 pub struct SocketAddress {
     /// The hostname to connect to. Example: `cloudflare.com`.
     pub hostname: String,
@@ -321,7 +325,7 @@ pub struct SocketAddress {
     pub port: u16,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug, Clone)]
 pub struct ConnectionBuilder {
     options: SocketOptions,
 }
@@ -403,6 +407,7 @@ pub mod postgres_tls {
     ///     .connect("database_url", 5432)?;
     /// let _ = config.connect_raw(socket, PassthroughTls).await?;
     /// ```
+    #[derive(Debug, Clone, Default)]
     pub struct PassthroughTls;
 
     #[derive(Debug)]
