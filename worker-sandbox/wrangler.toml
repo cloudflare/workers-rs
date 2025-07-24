@@ -74,3 +74,8 @@ command = "worker-build --release"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["SqlCounter", "SqlIterator"]
+
+[[secrets_store_secrets]]
+binding = "SECRETS"
+store_id = "SECRET_STORE"
+secret_name = "secret-name"

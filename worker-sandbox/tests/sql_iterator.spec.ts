@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { mf } from "./mf";
+import { mf, mfUrl } from "./mf";
 
 const productNames = ["Laptop", "Mouse", "Keyboard", "Monitor", "Headphones"];
 const expectedTypedStrings = [

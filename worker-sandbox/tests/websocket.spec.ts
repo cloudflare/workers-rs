@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 import { MessageEvent } from "miniflare";
-import { mf } from "./mf";
+import { mf, mfUrl } from "./mf";
 
 describe("websocket", () => {
   test("to echo", async () => {

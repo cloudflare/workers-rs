@@ -20,3 +20,5 @@ export const mf = new Miniflare({
     network: { allow: ["local"] }
   }
 });
+
+export const mfUrl = await mf.ready;

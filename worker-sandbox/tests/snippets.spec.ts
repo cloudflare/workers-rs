@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { mf } from "./mf";
+import { mf, mfUrl } from "./mf";
 
 describe("JS Snippets", () => {
   test("performance.now", async () => {

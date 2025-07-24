@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { mf } from "./mf";
+import { mf, mfUrl } from "./mf";
 
 describe("durable object websocket auto-response", () => {
   test("set and get auto-response pair", async () => {

@@ -1,10 +1,10 @@
 import {describe, test, expect, vi} from "vitest";
-import { mf } from "./mf";
+import { mf, mfUrl } from "./mf";
 import {MessageEvent} from "miniflare";
 
 describe("durable", () => {
   test("put-raw", async () => {
-    const resp = await mf.dispatchFetch("https://fake.host/durable/put-raw");
+    const resp = await mf.dispatchFetch(`${mfUrl}durable/put-raw`);
     expect(await resp.text()).toBe("ok");
   });
 

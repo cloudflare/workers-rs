@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { mf } from "./mf";
+import { mf, mfUrl } from "./mf";
 
 async function exec(query: string): Promise<number> {
   const resp = await mf.dispatchFetch("http://fake.host/d1/exec", {
