@@ -4,7 +4,7 @@ import { mf, mfUrl } from "./mf";
 
 describe("websocket", () => {
   test("to echo", async () => {
-    const resp = await mf.dispatchFetch("http://fake.host/websocket", {
+    const resp = await mf.dispatchFetch(`${mfUrl}websocket`, {
       headers: {
         upgrade: "websocket",
       },

@@ -5,22 +5,9 @@ use crate::{
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 
-mod sys {
-    #[wasm_bindgen::prelude::wasm_bindgen]
-    extern "C" {
-        #[derive(Clone)]
-        #[wasm_bindgen::prelude::wasm_bindgen(extends = js_sys::Object)]
-        pub type SecretStoreSys;
-        #[wasm_bindgen::prelude::wasm_bindgen(method, catch, js_name = "get")]
-        pub fn get(
-            this: &SecretStoreSys,
-        ) -> std::result::Result<js_sys::Promise, wasm_bindgen::JsValue>;
-    }
-}
-
 /// A binding to a Cloudflare Secret Store.
 #[derive(Clone)]
-pub struct SecretStore(SendWrapper<sys::SecretStoreSys>);
+pub struct SecretStore(SendWrapper<worker_sys::SecretStoreSys>);
 
 // Allows for attachment to axum router, as Workers will never allow multithreading.
 unsafe impl Send for SecretStore {}
@@ -65,7 +52,7 @@ impl From<Fetcher> for SecretStore {
 
 impl From<SecretStore> for wasm_bindgen::JsValue {
     fn from(secret_store: SecretStore) -> Self {
-        let sys_obj: &sys::SecretStoreSys = secret_store.0.as_ref();
+        let sys_obj: &worker_sys::SecretStoreSys = secret_store.0.as_ref();
         sys_obj.clone().into()
     }
 }

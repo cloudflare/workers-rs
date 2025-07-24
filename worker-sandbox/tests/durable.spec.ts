@@ -9,7 +9,7 @@ describe("durable", () => {
   });
 
   test("websocket-to-durable", async () => {
-    const resp = await mf.dispatchFetch("http://fake.host/durable/websocket", {
+    const resp = await mf.dispatchFetch(`${mfUrl}durable/websocket`, {
       headers: {
         upgrade: "websocket",
       },

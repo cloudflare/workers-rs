@@ -2,7 +2,7 @@ import { describe, test, expect } from "vitest";
 import { mf, mfUrl } from "./mf";
 
 async function exec(query: string): Promise<number> {
-  const resp = await mf.dispatchFetch("http://fake.host/d1/exec", {
+  const resp = await mf.dispatchFetch(`${mfUrl}d1/exec`, {
     method: "POST",
     body: query.split("\n").join(""),
   });
@@ -46,17 +46,17 @@ describe("d1", () => {
   });
 
   test("prepared statement", async () => {
-    const resp = await mf.dispatchFetch("http://fake.host/d1/prepared");
+    const resp = await mf.dispatchFetch(`${mfUrl}d1/prepared`);
     expect(resp.status).toBe(200);
   });
 
   test("batch", async () => {
-    const resp = await mf.dispatchFetch("http://fake.host/d1/batch");
+    const resp = await mf.dispatchFetch(`${mfUrl}d1/batch`);
     expect(resp.status).toBe(200);
   });
 
   test("error", async () => {
-    const resp = await mf.dispatchFetch("http://fake.host/d1/error");
+    const resp = await mf.dispatchFetch(`${mfUrl}d1/error`);
     expect(resp.status).toBe(200);
   });
 
@@ -79,55 +79,55 @@ describe("d1", () => {
   });
 
   test("jsvalue_null_is_null", async () => {
-    const resp = await mf.dispatchFetch("http://fake.host/d1/jsvalue_null_is_null");
+    const resp = await mf.dispatchFetch(`${mfUrl}d1/jsvalue_null_is_null`);
     expect(await resp.text()).toBe("ok");
     expect(resp.status).toBe(200);
   });
 
   test("serialize_optional_none", async () => {
-    const resp = await mf.dispatchFetch("http://fake.host/d1/serialize_optional_none");
+    const resp = await mf.dispatchFetch(`${mfUrl}d1/serialize_optional_none`);
     expect(await resp.text()).toBe("ok");
     expect(resp.status).toBe(200);
   });
 
   test("serialize_optional_some", async () => {
-    const resp = await mf.dispatchFetch("http://fake.host/d1/serialize_optional_some");
+    const resp = await mf.dispatchFetch(`${mfUrl}d1/serialize_optional_some`);
     expect(await resp.text()).toBe("ok");
     expect(resp.status).toBe(200);
   });
 
   test("deserialize_optional_none", async () => {
-    const resp = await mf.dispatchFetch("http://fake.host/d1/deserialize_optional_none");
+    const resp = await mf.dispatchFetch(`${mfUrl}d1/deserialize_optional_none`);
     expect(await resp.text()).toBe("ok");
     expect(resp.status).toBe(200);
   });
 
   test("insert_and_retrieve_optional_none", async () => {
-    const resp = await mf.dispatchFetch("http://fake.host/d1/insert_and_retrieve_optional_none");
+    const resp = await mf.dispatchFetch(`${mfUrl}d1/insert_and_retrieve_optional_none`);
     expect(await resp.text()).toBe("ok");
     expect(resp.status).toBe(200);
   });
 
   test("insert_and_retrieve_optional_some", async () => {
-    const resp = await mf.dispatchFetch("http://fake.host/d1/insert_and_retrieve_optional_some");
+    const resp = await mf.dispatchFetch(`${mfUrl}d1/insert_and_retrieve_optional_some`);
     expect(await resp.text()).toBe("ok");
     expect(resp.status).toBe(200);
   });
 
   test("retrieve_optional_none", async () => {
-    const resp = await mf.dispatchFetch("http://fake.host/d1/retrieve_optional_none");
+    const resp = await mf.dispatchFetch(`${mfUrl}d1/retrieve_optional_none`);
     expect(await resp.text()).toBe("ok");
     expect(resp.status).toBe(200);
     });
   
   test("retrieve_optional_some", async () => {
-    const resp = await mf.dispatchFetch("http://fake.host/d1/retrieve_optional_some");
+    const resp = await mf.dispatchFetch(`${mfUrl}d1/retrieve_optional_some`);
     expect(await resp.text()).toBe("ok");
     expect(resp.status).toBe(200);
     });
   
   test("retrive_first_none", async () => {
-    const resp = await mf.dispatchFetch("http://fake.host/d1/retrive_first_none");
+    const resp = await mf.dispatchFetch(`${mfUrl}d1/retrive_first_none`);
     expect(await resp.text()).toBe("ok");
     expect(resp.status).toBe(200);
   });
