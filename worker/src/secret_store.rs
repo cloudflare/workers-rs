@@ -6,7 +6,7 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 
 /// A binding to a Cloudflare Secret Store.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct SecretStore(SendWrapper<worker_sys::SecretStoreSys>);
 
 // Allows for attachment to axum router, as Workers will never allow multithreading.
