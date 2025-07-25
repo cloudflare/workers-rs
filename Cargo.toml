@@ -29,8 +29,8 @@ wasm-bindgen-futures = "0.4.50"
 wasm-bindgen-macro-support = "0.2.100"
 wasm-bindgen-test = "0.3.50"
 worker = { path = "worker", version = "0.6.1", features = ["queue", "d1", "axum", "timezone"] }
-worker-build = { path = "worker-build", version = "0.1.3" }
-worker-codegen = { path = "worker-codegen", version = "0.1.1" }
+worker-build = { path = "worker-build", version = "0.1.4" }
+worker-codegen = { path = "worker-codegen", version = "0.2.0" }
 worker-kv = { path = "worker-kv", version = "0.9.0" }
 worker-macros = { path = "worker-macros", version = "0.6.1", features = ["queue"] }
 worker-sys = { path = "worker-sys", version = "0.6.1", features = ["d1", "queue"] }
