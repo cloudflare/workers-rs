@@ -14,7 +14,6 @@ struct Person {
     age: u32,
 }
 
-#[worker::send]
 pub async fn prepared_statement(
     _req: Request,
     env: Env,
@@ -68,7 +67,6 @@ pub async fn prepared_statement(
     Response::ok("ok")
 }
 
-#[worker::send]
 pub async fn batch(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let db = env.d1("DB")?;
     let mut results = db
@@ -93,7 +91,6 @@ pub async fn batch(_req: Request, env: Env, _data: SomeSharedData) -> Result<Res
     Response::ok("ok")
 }
 
-#[worker::send]
 pub async fn exec(mut req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let db = env.d1("DB")?;
     let result = db
@@ -104,14 +101,12 @@ pub async fn exec(mut req: Request, env: Env, _data: SomeSharedData) -> Result<R
     Response::ok(result.count()?.unwrap_or_default().to_string())
 }
 
-#[worker::send]
 pub async fn dump(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let db = env.d1("DB")?;
     let bytes = db.dump().await?;
     Response::from_bytes(bytes)
 }
 
-#[worker::send]
 pub async fn error(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let db = env.d1("DB")?;
     let error = db
@@ -138,7 +133,6 @@ struct NullablePerson {
     age: Option<u32>,
 }
 
-#[worker::send]
 pub async fn jsvalue_null_is_null(
     _req: Request,
     _env: Env,
@@ -151,7 +145,6 @@ pub async fn jsvalue_null_is_null(
     Response::ok("ok")
 }
 
-#[worker::send]
 pub async fn serialize_optional_none(
     _req: Request,
     _env: Env,
@@ -167,7 +160,6 @@ pub async fn serialize_optional_none(
     Response::ok("ok")
 }
 
-#[worker::send]
 pub async fn serialize_optional_some(
     _req: Request,
     _env: Env,
@@ -183,7 +175,6 @@ pub async fn serialize_optional_some(
     Response::ok("ok")
 }
 
-#[worker::send]
 pub async fn deserialize_optional_none(
     _req: Request,
     _env: Env,
@@ -207,7 +198,6 @@ pub async fn deserialize_optional_none(
     Response::ok("ok")
 }
 
-#[worker::send]
 pub async fn insert_and_retrieve_optional_none(
     _req: Request,
     env: Env,
@@ -233,7 +223,6 @@ pub async fn insert_and_retrieve_optional_none(
     Response::ok("ok")
 }
 
-#[worker::send]
 pub async fn insert_and_retrieve_optional_some(
     _req: Request,
     env: Env,
@@ -258,7 +247,6 @@ pub async fn insert_and_retrieve_optional_some(
     Response::ok("ok")
 }
 
-#[worker::send]
 pub async fn retrieve_optional_none(
     _req: Request,
     env: Env,
@@ -275,7 +263,6 @@ pub async fn retrieve_optional_none(
     Response::ok("ok")
 }
 
-#[worker::send]
 pub async fn retrieve_optional_some(
     _req: Request,
     env: Env,
@@ -292,7 +279,6 @@ pub async fn retrieve_optional_some(
     Response::ok("ok")
 }
 
-#[worker::send]
 pub async fn retrive_first_none(
     _req: Request,
     env: Env,
