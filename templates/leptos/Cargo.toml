@@ -23,7 +23,7 @@ leptos_meta = { version = "0.8" }
 leptos_router = { version = "0.8"{% if use_nightly %}, features = ["nightly"]{% endif %} }
 tower-service = "0.3"
 wasm-bindgen = "0.2"
-worker = { version = "0.5", features = ["http", "axum", "d1"], optional = true }
+worker = { version = "0.6", features = ["http", "axum", "d1"], optional = true }
 
 [features]
 hydrate = ["leptos/hydrate"]
@@ -34,6 +34,12 @@ ssr = [
   "leptos/ssr",
   "leptos_router/ssr",
 ]
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
+[package.metadata.wasm-pack.profile.dev]
+wasm-opt = false
 
 [package.metadata.leptos]
 wasm-validation = false
