@@ -12,6 +12,7 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 
 /// Representing the options any FormData value can be, a field or a file.
+#[derive(Debug)]
 pub enum FormEntry {
     Field(String),
     File(File),
@@ -95,18 +96,18 @@ impl FormData {
 
     /// Appends a new value onto an existing key inside a `FormData` object, or adds the key if it
     /// does not already exist.
-    pub fn append(&mut self, name: &str, value: &str) -> Result<()> {
+    pub fn append(&self, name: &str, value: &str) -> Result<()> {
         self.0.append_with_str(name, value).map_err(Error::from)
     }
 
     /// Sets a new value for an existing key inside a `FormData` object, or adds the key/value if it
     /// does not already exist.
-    pub fn set(&mut self, name: &str, value: &str) -> Result<()> {
+    pub fn set(&self, name: &str, value: &str) -> Result<()> {
         self.0.set_with_str(name, value).map_err(Error::from)
     }
 
     /// Deletes a key/value pair from a `FormData` object.
-    pub fn delete(&mut self, name: &str) {
+    pub fn delete(&self, name: &str) {
         self.0.delete(name)
     }
 }
@@ -119,7 +120,7 @@ impl From<JsValue> for FormData {
 
 impl From<HashMap<&dyn AsRef<&str>, &dyn AsRef<&str>>> for FormData {
     fn from(m: HashMap<&dyn AsRef<&str>, &dyn AsRef<&str>>) -> Self {
-        let mut formdata = FormData::new();
+        let formdata = FormData::new();
         for (k, v) in m {
             // TODO: determine error case and consider how to handle
             formdata.set(k.as_ref(), v.as_ref()).unwrap();
@@ -128,8 +129,15 @@ impl From<HashMap<&dyn AsRef<&str>, &dyn AsRef<&str>>> for FormData {
     }
 }
 
+impl From<FormData> for wasm_bindgen::JsValue {
+    fn from(val: FormData) -> Self {
+        val.0.into()
+    }
+}
+
 /// A [File](https://developer.mozilla.org/en-US/docs/Web/API/File) representation used with
 /// `FormData`.
+#[derive(Debug)]
 pub struct File(web_sys::File);
 
 impl File {

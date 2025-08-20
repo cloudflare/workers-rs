@@ -1,33 +1,93 @@
+use crate::{env::EnvBinding, RequestInit, Result};
+#[cfg(feature = "http")]
+use std::convert::TryInto;
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 
-use crate::{env::EnvBinding, Request, RequestInit, Response, Result};
-
+#[cfg(feature = "http")]
+use crate::{HttpRequest, HttpResponse};
+use crate::{Request, Response};
 /// A struct for invoking fetch events to other Workers.
+#[derive(Debug, Clone)]
 pub struct Fetcher(worker_sys::Fetcher);
+
+#[cfg(not(feature = "http"))]
+type FetchResponseType = Response;
+#[cfg(feature = "http")]
+type FetchResponseType = HttpResponse;
+
+#[cfg(not(feature = "http"))]
+type FetchRequestType = Request;
+#[cfg(feature = "http")]
+type FetchRequestType = HttpRequest;
 
 impl Fetcher {
     /// Invoke a fetch event in a worker with a url and optionally a [RequestInit].
+    ///
+    /// Return type is [`Response`](crate::Response) unless `http` feature is enabled
+    /// and then it is [`http::Response<worker::Body>`].
     pub async fn fetch(
         &self,
         url: impl Into<String>,
         init: Option<RequestInit>,
-    ) -> Result<Response> {
+    ) -> Result<FetchResponseType> {
         let path = url.into();
         let promise = match init {
             Some(ref init) => self.0.fetch_with_str_and_init(&path, &init.into()),
             None => self.0.fetch_with_str(&path),
-        };
+        }?;
 
         let resp_sys: web_sys::Response = JsFuture::from(promise).await?.dyn_into()?;
-        Ok(Response::from(resp_sys))
+        #[cfg(not(feature = "http"))]
+        let result = Ok(Response::from(resp_sys));
+        #[cfg(feature = "http")]
+        let result = crate::response_from_wasm(resp_sys);
+        result
     }
 
     /// Invoke a fetch event with an existing [Request].
-    pub async fn fetch_request(&self, request: Request) -> Result<Response> {
-        let promise = self.0.fetch(request.inner());
+    ///
+    /// Argument type is [`Request`](crate::Request) unless `http` feature is enabled
+    /// and then it is [`http::Request<worker::Body>`].
+    ///
+    /// Return type is [`Response`](crate::Response) unless `http` feature is enabled
+    /// and then it is [`http::Response<worker::Body>`].
+    pub async fn fetch_request(&self, request: FetchRequestType) -> Result<FetchResponseType> {
+        #[cfg(feature = "http")]
+        let req = TryInto::<Request>::try_into(request)?;
+        #[cfg(not(feature = "http"))]
+        let req = request;
+        let promise = self.0.fetch(req.inner())?;
         let resp_sys: web_sys::Response = JsFuture::from(promise).await?.dyn_into()?;
-        Ok(Response::from(resp_sys))
+        let response = Response::from(resp_sys);
+        #[cfg(feature = "http")]
+        let result = response.try_into();
+        #[cfg(not(feature = "http"))]
+        let result = Ok(response);
+        result
+    }
+
+    /// Convert Fetcher into user-defined RPC interface.
+    /// ```
+    /// #[wasm_bindgen]
+    /// extern "C" {
+    ///     #[wasm_bindgen(extends=js_sys::Object)]
+    ///     #[derive(Debug, Clone, PartialEq, Eq)]
+    ///     pub type MyRpcInterface;
+    ///
+    ///     #[wasm_bindgen(method, catch)]
+    ///     pub fn add(
+    ///         this: &MyRpcInterface,
+    ///         a: u32,
+    ///         b: u32,
+    ///     ) -> std::result::Result<js_sys::Promise, JsValue>;
+    /// }
+    ///
+    /// let rpc: MyRpcInterface = fetcher.into_rpc();
+    /// let result = rpc.add(1, 2);
+    /// ```
+    pub fn into_rpc<T: JsCast>(self) -> T {
+        self.0.unchecked_into()
     }
 }
 

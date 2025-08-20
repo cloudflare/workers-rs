@@ -1,7 +1,6 @@
 use std::ops::Deref;
 
 use wasm_bindgen::JsValue;
-use worker_sys::ext::{AbortControllerExt, AbortSignalExt};
 
 /// An interface that allows you to abort in-flight [Fetch](crate::Fetch) requests.
 #[derive(Debug)]
@@ -37,10 +36,13 @@ impl Default for AbortController {
 
 /// An interface representing a signal that can be passed to cancellable operations, primarily a
 /// [Fetch](crate::Fetch) request.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct AbortSignal {
     inner: web_sys::AbortSignal,
 }
+
+unsafe impl Send for AbortSignal {}
+unsafe impl Sync for AbortSignal {}
 
 impl AbortSignal {
     /// A [bool] indicating if the operation that the signal is used for has been aborted.
@@ -62,6 +64,11 @@ impl AbortSignal {
     pub fn abort_with_reason(reason: impl Into<JsValue>) -> Self {
         let reason = reason.into();
         Self::from(web_sys::AbortSignal::abort_with_reason(&reason))
+    }
+
+    #[cfg(feature = "http")]
+    pub(crate) fn inner(&self) -> &web_sys::AbortSignal {
+        &self.inner
     }
 }
 

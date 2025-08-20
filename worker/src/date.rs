@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use chrono::offset::TimeZone;
 use chrono::Datelike;
 use js_sys::Date as JsDate;
@@ -65,9 +67,9 @@ impl Date {
     }
 }
 
-impl ToString for Date {
-    fn to_string(&self) -> String {
-        self.js_date.to_string().into()
+impl Display for Date {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+        write!(f, "{}", self.js_date.to_string())
     }
 }
 

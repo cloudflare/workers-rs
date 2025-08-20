@@ -5,8 +5,11 @@ use crate::{
 };
 
 use serde::de::DeserializeOwned;
+#[cfg(test)]
 use std::borrow::Cow;
-use url::{form_urlencoded::Parse, Url};
+#[cfg(test)]
+use url::form_urlencoded::Parse;
+use url::Url;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 use worker_sys::ext::RequestExt;
@@ -22,6 +25,26 @@ pub struct Request {
     edge_request: web_sys::Request,
     body_used: bool,
     immutable: bool,
+}
+
+unsafe impl Send for Request {}
+unsafe impl Sync for Request {}
+
+#[cfg(feature = "http")]
+impl<B: http_body::Body<Data = bytes::Bytes> + 'static> TryFrom<http::Request<B>> for Request {
+    type Error = crate::Error;
+    fn try_from(req: http::Request<B>) -> Result<Self> {
+        let web_request: web_sys::Request = crate::http::request::to_wasm(req)?;
+        Ok(Request::from(web_request))
+    }
+}
+
+#[cfg(feature = "http")]
+impl TryFrom<Request> for crate::HttpRequest {
+    type Error = crate::Error;
+    fn try_from(req: Request) -> Result<Self> {
+        crate::http::request::from_wasm(req.edge_request)
+    }
 }
 
 impl From<web_sys::Request> for Request {
@@ -63,21 +86,20 @@ impl TryFrom<&Request> for web_sys::Request {
 impl Request {
     /// Construct a new `Request` with an HTTP Method.
     pub fn new(uri: &str, method: Method) -> Result<Self> {
-        web_sys::Request::new_with_str_and_init(
-            uri,
-            web_sys::RequestInit::new().method(method.as_ref()),
-        )
-        .map(|req| {
-            let mut req: Request = req.into();
-            req.immutable = false;
-            req
-        })
-        .map_err(|e| {
-            Error::JsError(
-                e.as_string()
-                    .unwrap_or_else(|| "invalid URL or method for Request".to_string()),
-            )
-        })
+        let init = web_sys::RequestInit::new();
+        init.set_method(method.as_ref());
+        web_sys::Request::new_with_str_and_init(uri, &init)
+            .map(|req| {
+                let mut req: Request = req.into();
+                req.immutable = false;
+                req
+            })
+            .map_err(|e| {
+                Error::JsError(
+                    e.as_string()
+                        .unwrap_or_else(|| "invalid URL or method for Request".to_string()),
+                )
+            })
     }
 
     /// Construct a new `Request` with a `RequestInit` configuration.
@@ -270,32 +292,13 @@ impl Request {
     }
 }
 
-/// Used to add additional helper functions to url::Url
-pub trait UrlExt {
-    /// Given a query parameter, returns the value of the first occurrence of that parameter if it
-    /// exists
-    fn param<'a>(&'a self, key: &'a str) -> Option<Cow<'a, str>> {
-        self.param_iter(key).next()
-    }
-    /// Given a query parameter, returns an Iterator of values for that parameter in the url's
-    /// query string
-    fn param_iter<'a>(&'a self, key: &'a str) -> ParamIter<'a>;
-}
-
-impl UrlExt for Url {
-    fn param_iter<'a>(&'a self, key: &'a str) -> ParamIter<'a> {
-        ParamIter {
-            inner: self.query_pairs(),
-            key,
-        }
-    }
-}
-
+#[cfg(test)]
 pub struct ParamIter<'a> {
     inner: Parse<'a>,
     key: &'a str,
 }
 
+#[cfg(test)]
 impl<'a> Iterator for ParamIter<'a> {
     type Item = Cow<'a, str>;
 
@@ -305,26 +308,85 @@ impl<'a> Iterator for ParamIter<'a> {
     }
 }
 
-#[test]
-fn url_param_works() {
-    let url = Url::parse("https://example.com/foo.html?a=foo&b=bar&a=baz").unwrap();
-    assert_eq!(url.param("a").as_deref(), Some("foo"));
-    assert_eq!(url.param("b").as_deref(), Some("bar"));
-    assert_eq!(url.param("c").as_deref(), None);
-    let mut a_values = url.param_iter("a");
-    assert_eq!(a_values.next().as_deref(), Some("foo"));
-    assert_eq!(a_values.next().as_deref(), Some("baz"));
-    assert_eq!(a_values.next(), None);
+/// A trait used to represent any viable Request type that can be used in the Worker.
+/// The only requirement is that it be convertible from a web_sys::Request.
+pub trait FromRequest: std::marker::Sized {
+    fn from_raw(
+        request: web_sys::Request,
+    ) -> std::result::Result<Self, impl Into<Box<dyn std::error::Error>>>;
 }
 
-#[test]
-fn clone_mut_works() {
-    let req = Request::new(
-        "https://example.com/foo.html?a=foo&b=bar&a=baz",
-        crate::Method::Get,
-    )
-    .unwrap();
-    assert!(!req.immutable);
-    let mut_req = req.clone_mut().unwrap();
-    assert!(mut_req.immutable);
+impl FromRequest for web_sys::Request {
+    fn from_raw(
+        request: web_sys::Request,
+    ) -> std::result::Result<Self, impl Into<Box<dyn std::error::Error>>> {
+        Ok::<web_sys::Request, Error>(request)
+    }
+}
+
+impl FromRequest for Request {
+    fn from_raw(
+        request: web_sys::Request,
+    ) -> std::result::Result<Self, impl Into<Box<dyn std::error::Error>>> {
+        Ok::<Request, Error>(request.into())
+    }
+}
+
+#[cfg(feature = "http")]
+impl FromRequest for crate::HttpRequest {
+    fn from_raw(
+        request: web_sys::Request,
+    ) -> std::result::Result<Self, impl Into<Box<dyn std::error::Error>>> {
+        crate::http::request::from_wasm(request)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    /// Used to add additional helper functions to url::Url
+    pub trait UrlExt {
+        /// Given a query parameter, returns the value of the first occurrence of that parameter if it
+        /// exists
+        fn param<'a>(&'a self, key: &'a str) -> Option<Cow<'a, str>> {
+            self.param_iter(key).next()
+        }
+        /// Given a query parameter, returns an Iterator of values for that parameter in the url's
+        /// query string
+        fn param_iter<'a>(&'a self, key: &'a str) -> ParamIter<'a>;
+    }
+
+    impl UrlExt for Url {
+        fn param_iter<'a>(&'a self, key: &'a str) -> ParamIter<'a> {
+            ParamIter {
+                inner: self.query_pairs(),
+                key,
+            }
+        }
+    }
+
+    #[test]
+    fn url_param_works() {
+        let url = Url::parse("https://example.com/foo.html?a=foo&b=bar&a=baz").unwrap();
+        assert_eq!(url.param("a").as_deref(), Some("foo"));
+        assert_eq!(url.param("b").as_deref(), Some("bar"));
+        assert_eq!(url.param("c").as_deref(), None);
+        let mut a_values = url.param_iter("a");
+        assert_eq!(a_values.next().as_deref(), Some("foo"));
+        assert_eq!(a_values.next().as_deref(), Some("baz"));
+        assert_eq!(a_values.next(), None);
+    }
+
+    #[test]
+    fn clone_mut_works() {
+        let req = Request::new(
+            "https://example.com/foo.html?a=foo&b=bar&a=baz",
+            crate::Method::Get,
+        )
+        .unwrap();
+        assert!(!req.immutable);
+        let mut_req = req.clone_mut().unwrap();
+        assert!(mut_req.immutable);
+    }
 }

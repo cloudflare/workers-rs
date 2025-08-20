@@ -1,11 +1,8 @@
 import { describe, test, expect } from "vitest";
-
-const hasLocalDevServer = await fetch("http://localhost:8787/request")
-  .then((resp) => resp.ok)
-  .catch(() => false);
+import { mf, mfUrl } from "./mf";
 
 async function exec(query: string): Promise<number> {
-  const resp = await fetch("http://127.0.0.1:8787/d1/exec", {
+  const resp = await mf.dispatchFetch(`${mfUrl}d1/exec`, {
     method: "POST",
     body: query.split("\n").join(""),
   });
@@ -15,7 +12,7 @@ async function exec(query: string): Promise<number> {
   return Number(body);
 }
 
-describe.skipIf(!hasLocalDevServer)("d1", () => {
+describe("d1", () => {
   test("create table", async () => {
     const query = `CREATE TABLE IF NOT EXISTS uniqueTable (
       id INTEGER PRIMARY KEY,
@@ -49,22 +46,89 @@ describe.skipIf(!hasLocalDevServer)("d1", () => {
   });
 
   test("prepared statement", async () => {
-    const resp = await fetch("http://127.0.0.1:8787/d1/prepared");
+    const resp = await mf.dispatchFetch(`${mfUrl}d1/prepared`);
     expect(resp.status).toBe(200);
   });
 
   test("batch", async () => {
-    const resp = await fetch("http://127.0.0.1:8787/d1/batch");
-    expect(resp.status).toBe(200);
-  });
-
-  test("dump", async () => {
-    const resp = await fetch("http://127.0.0.1:8787/d1/dump");
+    const resp = await mf.dispatchFetch(`${mfUrl}d1/batch`);
     expect(resp.status).toBe(200);
   });
 
   test("error", async () => {
-    const resp = await fetch("http://127.0.0.1:8787/d1/error");
+    const resp = await mf.dispatchFetch(`${mfUrl}d1/error`);
+    expect(resp.status).toBe(200);
+  });
+
+  test("create table nullable", async () => {
+    let query = `CREATE TABLE IF NOT EXISTS nullable_people (
+      id INTEGER PRIMARY KEY,
+      name TEXT,
+      age INTEGER
+    );`;
+
+    expect(await exec(query)).toBe(1);
+
+    query = `INSERT OR IGNORE INTO nullable_people
+    (id, name, age)
+    VALUES
+    (1, NULL, NULL),
+    (2, 'Wynne Ogley', 67)`;
+
+    expect(await exec(query)).toBe(1);
+  });
+
+  test("jsvalue_null_is_null", async () => {
+    const resp = await mf.dispatchFetch(`${mfUrl}d1/jsvalue_null_is_null`);
+    expect(await resp.text()).toBe("ok");
+    expect(resp.status).toBe(200);
+  });
+
+  test("serialize_optional_none", async () => {
+    const resp = await mf.dispatchFetch(`${mfUrl}d1/serialize_optional_none`);
+    expect(await resp.text()).toBe("ok");
+    expect(resp.status).toBe(200);
+  });
+
+  test("serialize_optional_some", async () => {
+    const resp = await mf.dispatchFetch(`${mfUrl}d1/serialize_optional_some`);
+    expect(await resp.text()).toBe("ok");
+    expect(resp.status).toBe(200);
+  });
+
+  test("deserialize_optional_none", async () => {
+    const resp = await mf.dispatchFetch(`${mfUrl}d1/deserialize_optional_none`);
+    expect(await resp.text()).toBe("ok");
+    expect(resp.status).toBe(200);
+  });
+
+  test("insert_and_retrieve_optional_none", async () => {
+    const resp = await mf.dispatchFetch(`${mfUrl}d1/insert_and_retrieve_optional_none`);
+    expect(await resp.text()).toBe("ok");
+    expect(resp.status).toBe(200);
+  });
+
+  test("insert_and_retrieve_optional_some", async () => {
+    const resp = await mf.dispatchFetch(`${mfUrl}d1/insert_and_retrieve_optional_some`);
+    expect(await resp.text()).toBe("ok");
+    expect(resp.status).toBe(200);
+  });
+
+  test("retrieve_optional_none", async () => {
+    const resp = await mf.dispatchFetch(`${mfUrl}d1/retrieve_optional_none`);
+    expect(await resp.text()).toBe("ok");
+    expect(resp.status).toBe(200);
+    });
+  
+  test("retrieve_optional_some", async () => {
+    const resp = await mf.dispatchFetch(`${mfUrl}d1/retrieve_optional_some`);
+    expect(await resp.text()).toBe("ok");
+    expect(resp.status).toBe(200);
+    });
+  
+  test("retrive_first_none", async () => {
+    const resp = await mf.dispatchFetch(`${mfUrl}d1/retrive_first_none`);
+    expect(await resp.text()).toBe("ok");
     expect(resp.status).toBe(200);
   });
 });

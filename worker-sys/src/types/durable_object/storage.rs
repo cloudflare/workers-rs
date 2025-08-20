@@ -53,7 +53,7 @@ extern "C" {
     #[wasm_bindgen(method, catch)]
     pub fn transaction(
         this: &DurableObjectStorage,
-        closure: &Closure<dyn FnMut(DurableObjectTransaction)>,
+        closure: &Closure<dyn FnMut(DurableObjectTransaction) -> js_sys::Promise>,
     ) -> Result<js_sys::Promise, JsValue>;
 
     #[wasm_bindgen(method, catch, js_name=getAlarm)]
@@ -74,4 +74,7 @@ extern "C" {
         this: &DurableObjectStorage,
         options: js_sys::Object,
     ) -> Result<js_sys::Promise, JsValue>;
+
+    #[wasm_bindgen(method, getter)]
+    pub fn sql(this: &DurableObjectStorage) -> crate::types::SqlStorage;
 }

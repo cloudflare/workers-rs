@@ -1,8 +1,8 @@
-/// Prepare a D1 query from the provided D1Database, query string, and optional query parameters.
+/// **Requires** `d1` feature. Prepare a D1 query from the provided D1Database, query string, and optional query parameters.
 ///
 /// Any parameter provided is required to implement [`serde::Serialize`] to be used.
 ///
-/// Using [`query`] is equivalent to using db.prepare('').bind('') in Javascript.
+/// Using [`query`](crate::query) is equivalent to using db.prepare('').bind('') in Javascript.
 ///
 /// # Example
 ///

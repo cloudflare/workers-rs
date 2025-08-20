@@ -7,8 +7,8 @@ extern "C" {
     /// The `WebSocketPair` dictionary.
     pub type WebSocketPair;
 
-    #[wasm_bindgen(constructor)]
-    pub fn new() -> WebSocketPair;
+    #[wasm_bindgen(constructor, catch)]
+    pub fn new() -> Result<WebSocketPair, JsValue>;
 }
 
 impl WebSocketPair {

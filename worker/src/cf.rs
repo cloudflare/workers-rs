@@ -1,39 +1,63 @@
+#[cfg(feature = "timezone")]
+use crate::Result;
+
+use serde::de::DeserializeOwned;
+use wasm_bindgen::JsCast;
+
 /// In addition to the methods on the `Request` struct, the `Cf` struct on an inbound Request contains information about the request provided by Cloudflare’s edge.
 ///
 /// [Details](https://developers.cloudflare.com/workers/runtime-apis/request#incomingrequestcfproperties)
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Cf {
     inner: worker_sys::IncomingRequestCfProperties,
 }
 
+unsafe impl Send for Cf {}
+unsafe impl Sync for Cf {}
+
 impl Cf {
+    #[cfg(feature = "http")]
+    pub(crate) fn new(inner: worker_sys::IncomingRequestCfProperties) -> Self {
+        Self { inner }
+    }
+
+    #[cfg(feature = "http")]
+    pub(crate) fn inner(&self) -> &worker_sys::IncomingRequestCfProperties {
+        &self.inner
+    }
+
     /// The three-letter airport code (e.g. `ATX`, `LUX`) representing
     /// the colocation which processed the request
     pub fn colo(&self) -> String {
-        self.inner.colo()
+        self.inner.colo().unwrap()
     }
 
     /// The Autonomous System Number (ASN) of the request, e.g. `395747`
-    pub fn asn(&self) -> u32 {
-        self.inner.asn()
+    pub fn asn(&self) -> Option<u32> {
+        self.inner.asn().unwrap()
+    }
+
+    /// The Autonomous System organization name of the request, e.g. `Cloudflare, Inc.`
+    pub fn as_organization(&self) -> Option<String> {
+        self.inner.as_organization().unwrap()
     }
 
     /// The two-letter country code of origin for the request.
     /// This is the same value as that provided in the CF-IPCountry header, e.g.  `"US"`
     pub fn country(&self) -> Option<String> {
-        self.inner.country()
+        self.inner.country().unwrap()
     }
 
     /// The HTTP Protocol (e.g. "HTTP/2") used by the request
     pub fn http_protocol(&self) -> String {
-        self.inner.http_protocol()
+        self.inner.http_protocol().unwrap()
     }
 
     /// The browser-requested prioritization information in the request object,
     ///
     /// See [this blog post](https://blog.cloudflare.com/better-http-2-prioritization-for-a-faster-web/#customizingprioritizationwithworkers) for details.
     pub fn request_priority(&self) -> Option<RequestPriority> {
-        if let Some(priority) = self.inner.request_priority() {
+        if let Some(priority) = self.inner.request_priority().unwrap() {
             let mut weight = 1;
             let mut exclusive = false;
             let mut group = 0;
@@ -72,35 +96,35 @@ impl Cf {
 
     /// The cipher for the connection to Cloudflare, e.g. "AEAD-AES128-GCM-SHA256".
     pub fn tls_cipher(&self) -> String {
-        self.inner.tls_cipher()
+        self.inner.tls_cipher().unwrap()
     }
 
     /// Information about the client's authorization.
     /// Only set when using Cloudflare Access or API Shield.
     pub fn tls_client_auth(&self) -> Option<TlsClientAuth> {
-        self.inner.tls_client_auth().map(Into::into)
+        self.inner.tls_client_auth().unwrap().map(Into::into)
     }
 
     /// The TLS version of the connection to Cloudflare, e.g. TLSv1.3.
     pub fn tls_version(&self) -> String {
         // TODO: should this be strongly typed? with ordering, etc.?
-        self.inner.tls_version()
+        self.inner.tls_version().unwrap()
     }
 
     /// City of the incoming request, e.g. "Austin".
     pub fn city(&self) -> Option<String> {
-        self.inner.city()
+        self.inner.city().unwrap()
     }
 
     /// Continent of the incoming request, e.g. "NA"
     pub fn continent(&self) -> Option<String> {
-        self.inner.continent()
+        self.inner.continent().unwrap()
     }
 
     /// Latitude and longitude of the incoming request, e.g. (30.27130, -97.74260)
     pub fn coordinates(&self) -> Option<(f32, f32)> {
-        let lat_opt = self.inner.latitude();
-        let lon_opt = self.inner.longitude();
+        let lat_opt = self.inner.latitude().unwrap();
+        let lon_opt = self.inner.longitude().unwrap();
         match (lat_opt, lon_opt) {
             (Some(lat_str), Some(lon_str)) => {
                 // SAFETY: i think this is fine..?
@@ -114,38 +138,51 @@ impl Cf {
 
     /// Postal code of the incoming request, e.g. "78701"
     pub fn postal_code(&self) -> Option<String> {
-        self.inner.postal_code()
+        self.inner.postal_code().unwrap()
     }
 
     /// Metro code (DMA) of the incoming request, e.g. "635"
     pub fn metro_code(&self) -> Option<String> {
-        self.inner.metro_code()
+        self.inner.metro_code().unwrap()
     }
 
     /// If known, the [ISO 3166-2](https://en.wikipedia.org/wiki/ISO_3166-2) name for the first level region associated with the IP address of the incoming request, e.g. "Texas".
     pub fn region(&self) -> Option<String> {
-        self.inner.region()
+        self.inner.region().unwrap()
     }
 
     /// If known, the [ISO 3166-2](https://en.wikipedia.org/wiki/ISO_3166-2) code for the first level region associated with the IP address of the incoming request, e.g. "TX".
     pub fn region_code(&self) -> Option<String> {
-        self.inner.region_code()
+        self.inner.region_code().unwrap()
     }
 
-    /// Timezone of the incoming request
-    pub fn timezone(&self) -> impl chrono::TimeZone {
-        let tz = self.inner.timezone();
-        tz.parse::<chrono_tz::Tz>().unwrap()
+    /// **Requires** `timezone` feature. Timezone of the incoming request
+    #[cfg(feature = "timezone")]
+    pub fn timezone(&self) -> Result<impl chrono::TimeZone> {
+        let tz = self.inner.timezone()?;
+        Ok(tz.parse::<chrono_tz::Tz>()?)
     }
 
     /// Timezone name of the incoming request
     pub fn timezone_name(&self) -> String {
-        self.inner.timezone()
+        self.inner.timezone().unwrap()
     }
 
     /// Whether the country of the incoming request is in the EU
     pub fn is_eu_country(&self) -> bool {
-        self.inner.is_eu_country() == Some("1".to_string())
+        self.inner.is_eu_country().unwrap() == Some("1".to_string())
+    }
+
+    pub fn host_metadata<T: serde::de::DeserializeOwned>(&self) -> crate::Result<Option<T>> {
+        let host_metadata = self.inner.host_metadata()?;
+        if host_metadata.is_undefined() {
+            Ok(None)
+        } else {
+            serde_wasm_bindgen::from_value(host_metadata)
+                .map(Some)
+                .map_err(|e| wasm_bindgen::JsValue::from(e.to_string()))
+        }
+        .map_err(crate::Error::from)
     }
 }
 
@@ -179,51 +216,55 @@ pub struct TlsClientAuth {
 
 impl TlsClientAuth {
     pub fn cert_issuer_dn_legacy(&self) -> String {
-        self.inner.cert_issuer_dn_legacy()
+        self.inner.cert_issuer_dn_legacy().unwrap()
     }
 
     pub fn cert_issuer_dn(&self) -> String {
-        self.inner.cert_issuer_dn()
+        self.inner.cert_issuer_dn().unwrap()
     }
 
     pub fn cert_issuer_dn_rfc2253(&self) -> String {
-        self.inner.cert_issuer_dn_rfc2253()
+        self.inner.cert_issuer_dn_rfc2253().unwrap()
     }
 
     pub fn cert_subject_dn_legacy(&self) -> String {
-        self.inner.cert_subject_dn_legacy()
+        self.inner.cert_subject_dn_legacy().unwrap()
     }
 
     pub fn cert_verified(&self) -> String {
-        self.inner.cert_verified()
+        self.inner.cert_verified().unwrap()
     }
 
     pub fn cert_not_after(&self) -> String {
-        self.inner.cert_not_after()
+        self.inner.cert_not_after().unwrap()
     }
 
     pub fn cert_subject_dn(&self) -> String {
-        self.inner.cert_subject_dn()
+        self.inner.cert_subject_dn().unwrap()
     }
 
     pub fn cert_fingerprint_sha1(&self) -> String {
-        self.inner.cert_fingerprint_sha1()
+        self.inner.cert_fingerprint_sha1().unwrap()
+    }
+
+    pub fn cert_fingerprint_sha256(&self) -> String {
+        self.inner.cert_fingerprint_sha256().unwrap()
     }
 
     pub fn cert_not_before(&self) -> String {
-        self.inner.cert_not_before()
+        self.inner.cert_not_before().unwrap()
     }
 
     pub fn cert_serial(&self) -> String {
-        self.inner.cert_serial()
+        self.inner.cert_serial().unwrap()
     }
 
     pub fn cert_presented(&self) -> String {
-        self.inner.cert_presented()
+        self.inner.cert_presented().unwrap()
     }
 
     pub fn cert_subject_dn_rfc2253(&self) -> String {
-        self.inner.cert_subject_dn_rfc2253()
+        self.inner.cert_subject_dn_rfc2253().unwrap()
     }
 }
 
@@ -232,3 +273,19 @@ impl From<worker_sys::TlsClientAuth> for TlsClientAuth {
         Self { inner }
     }
 }
+
+#[derive(Clone, Debug)]
+pub struct CfResponseProperties(pub(crate) js_sys::Object);
+
+impl CfResponseProperties {
+    pub fn into_raw(self) -> js_sys::Object {
+        self.0
+    }
+
+    pub fn try_into<T: DeserializeOwned>(self) -> crate::Result<T> {
+        Ok(serde_wasm_bindgen::from_value(self.0.unchecked_into())?)
+    }
+}
+
+unsafe impl Send for CfResponseProperties {}
+unsafe impl Sync for CfResponseProperties {}

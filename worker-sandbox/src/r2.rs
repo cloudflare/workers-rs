@@ -1,25 +1,24 @@
-use std::{collections::HashMap, sync::Mutex};
-
 use futures_util::StreamExt;
+use std::{
+    collections::HashMap,
+    convert::TryFrom,
+    sync::atomic::{AtomicBool, Ordering},
+};
 use worker::{
-    Bucket, Conditional, Data, Date, FixedLengthStream, HttpMetadata, Include, Request, Response,
-    Result, RouteContext,
+    Bucket, Conditional, Data, Date, Env, FixedLengthStream, HttpMetadata, Include, Request,
+    Response, Result,
 };
 
 use crate::SomeSharedData;
 
-static SEEDED: Mutex<bool> = Mutex::new(false);
+static SEEDED: AtomicBool = AtomicBool::new(false);
 
 pub async fn seed_bucket(bucket: &Bucket) -> Result<()> {
-    {
-        let mut seeded = SEEDED.lock().unwrap();
-
-        if *seeded {
-            return Ok(());
-        }
-
-        *seeded = true;
+    if SEEDED.load(Ordering::Acquire) {
+        return Ok(());
     }
+
+    SEEDED.store(true, Ordering::Release);
 
     bucket.put("no-props", "text".to_string()).execute().await?;
     bucket
@@ -32,8 +31,9 @@ pub async fn seed_bucket(bucket: &Bucket) -> Result<()> {
     Ok(())
 }
 
-pub async fn list_empty(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    let bucket = ctx.bucket("EMPTY_BUCKET")?;
+#[worker::send]
+pub async fn list_empty(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let bucket = env.bucket("EMPTY_BUCKET")?;
 
     let objects = bucket.list().execute().await?;
     assert_eq!(objects.objects().len(), 0);
@@ -43,8 +43,9 @@ pub async fn list_empty(_req: Request, ctx: RouteContext<SomeSharedData>) -> Res
     Response::ok("ok")
 }
 
-pub async fn list(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    let bucket = ctx.bucket("SEEDED_BUCKET")?;
+#[worker::send]
+pub async fn list(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let bucket = env.bucket("SEEDED_BUCKET")?;
     seed_bucket(&bucket).await?;
 
     let objects = bucket.list().execute().await?;
@@ -76,8 +77,7 @@ pub async fn list(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Re
         .filter(|obj| {
             obj.custom_metadata()
                 .ok()
-                .map(|map| !map.is_empty())
-                .unwrap_or(false)
+                .is_some_and(|map| !map.is_empty())
         })
         .count();
     assert_eq!(count, 1);
@@ -96,8 +96,9 @@ pub async fn list(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Re
     Response::ok("ok")
 }
 
-pub async fn get_empty(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    let bucket = ctx.bucket("EMPTY_BUCKET")?;
+#[worker::send]
+pub async fn get_empty(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let bucket = env.bucket("EMPTY_BUCKET")?;
 
     let object = bucket.get("doesnt-exist").execute().await?;
     assert!(object.is_none());
@@ -118,8 +119,9 @@ pub async fn get_empty(_req: Request, ctx: RouteContext<SomeSharedData>) -> Resu
     Response::ok("ok")
 }
 
-pub async fn get(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    let bucket = ctx.bucket("SEEDED_BUCKET")?;
+#[worker::send]
+pub async fn get(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let bucket = env.bucket("SEEDED_BUCKET")?;
     seed_bucket(&bucket).await?;
 
     let item = bucket.get("no-props").execute().await?.unwrap();
@@ -139,8 +141,9 @@ pub async fn get(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Res
     Response::ok("ok")
 }
 
-pub async fn put(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    let bucket = ctx.bucket("PUT_BUCKET")?;
+#[worker::send]
+pub async fn put(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let bucket = env.bucket("PUT_BUCKET")?;
 
     // R2 requires that we use a fixed-length-stream for the body.
     let stream = futures_util::stream::repeat_with(|| Ok(vec![0u8; 16])).take(16);
@@ -166,14 +169,15 @@ pub async fn put(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Res
     // a body property. But in workerd it will only return an object without a body property in the
     // event that a condition failed
     if let Some(body) = empty_obj.body() {
-        assert_eq!(body.bytes().await?.len(), 0)
+        assert_eq!(body.bytes().await?.len(), 0);
     }
 
     Response::ok("ok")
 }
 
-pub async fn put_properties(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    let bucket = ctx.bucket("PUT_BUCKET")?;
+#[worker::send]
+pub async fn put_properties(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let bucket = env.bucket("PUT_BUCKET")?;
     let (http_metadata, custom_metadata, object_with_props) =
         put_full_properties("with_props", &bucket).await?;
 
@@ -185,11 +189,13 @@ pub async fn put_properties(_req: Request, ctx: RouteContext<SomeSharedData>) ->
     Response::ok("ok")
 }
 
-pub async fn put_multipart(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
+#[allow(clippy::large_stack_arrays)]
+#[worker::send]
+pub async fn put_multipart(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     const R2_MULTIPART_CHUNK_MIN_SIZE: usize = 5 * 1_024 * 1_024; // 5MiB.
                                                                   // const TEST_CHUNK_COUNT: usize = 3;
 
-    let bucket = ctx.bucket("PUT_BUCKET")?;
+    let bucket = env.bucket("PUT_BUCKET")?;
 
     let upload = bucket
         .create_multipart_upload("multipart_upload")
@@ -204,8 +210,12 @@ pub async fn put_multipart(_req: Request, ctx: RouteContext<SomeSharedData>) -> 
     ];
     let mut uploaded_parts = vec![];
     for (chunk_index, chunk_size) in chunk_sizes.iter().copied().enumerate() {
-        let chunk = vec![chunk_index as u8; chunk_size];
-        uploaded_parts.push(upload.upload_part(chunk_index as u16, chunk).await?);
+        let chunk = vec![u8::try_from(chunk_index).unwrap(); chunk_size];
+        uploaded_parts.push(
+            upload
+                .upload_part(u16::try_from(chunk_index).unwrap(), chunk)
+                .await?,
+        );
     }
     upload.complete(uploaded_parts).await?;
 
@@ -236,8 +246,9 @@ pub async fn put_multipart(_req: Request, ctx: RouteContext<SomeSharedData>) -> 
     Response::ok("ok")
 }
 
-pub async fn delete(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<Response> {
-    let bucket = ctx.bucket("DELETE_BUCKET")?;
+#[worker::send]
+pub async fn delete(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let bucket = env.bucket("DELETE_BUCKET")?;
 
     bucket.put("key", Data::Empty).execute().await?;
 
@@ -246,6 +257,14 @@ pub async fn delete(_req: Request, ctx: RouteContext<SomeSharedData>) -> Result<
 
     bucket.delete("key").await?;
 
+    let keys: Vec<String> = (0..1000).map(|i| format!("key_{i}")).collect();
+    for key in &keys {
+        bucket.put(key, Data::Empty).execute().await?;
+    }
+    let objects = bucket.list().execute().await?;
+    assert_eq!(objects.objects().len(), keys.len());
+
+    bucket.delete_multiple(keys).await?;
     let objects = bucket.list().execute().await?;
     assert_eq!(objects.objects().len(), 0);
 

@@ -5,6 +5,7 @@ use crate::types::{DurableObject, DurableObjectId};
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(extends=js_sys::Object)]
+    #[derive(Debug, Clone)]
     pub type DurableObjectNamespace;
 
     #[wasm_bindgen(method, catch, js_name=idFromName)]
@@ -32,5 +33,12 @@ extern "C" {
     pub fn get(
         this: &DurableObjectNamespace,
         id: &DurableObjectId,
+    ) -> Result<DurableObject, JsValue>;
+
+    #[wasm_bindgen(method, catch, js_name=get)]
+    pub fn get_with_options(
+        this: &DurableObjectNamespace,
+        id: &DurableObjectId,
+        options: &JsValue,
     ) -> Result<DurableObject, JsValue>;
 }

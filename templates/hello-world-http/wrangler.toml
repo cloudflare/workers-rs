@@ -1,0 +1,6 @@
+name = "{{project-name}}"
+main = "build/worker/shim.mjs"
+compatibility_date = "{{ "now" | date: "%Y-%m-%d" }}"
+
+[build]
+command = "cargo install -q worker-build && worker-build --release"

@@ -1,3 +1,16 @@
+use std::fmt::Display;
+
+#[cfg(feature = "http")]
+pub mod body;
+#[cfg(feature = "http")]
+mod header;
+#[cfg(feature = "http")]
+mod redirect;
+#[cfg(feature = "http")]
+pub mod request;
+#[cfg(feature = "http")]
+pub mod response;
+
 /// A [`Method`](https://developer.mozilla.org/en-US/docs/Web/API/Request/method) representation
 /// used on Request objects.
 #[derive(Default, Debug, Clone, PartialEq, Hash, Eq)]
@@ -12,6 +25,7 @@ pub enum Method {
     Options,
     Connect,
     Trace,
+    Report,
 }
 
 impl Method {
@@ -26,6 +40,7 @@ impl Method {
             Method::Options,
             Method::Connect,
             Method::Trace,
+            Method::Report,
         ]
     }
 }
@@ -41,6 +56,7 @@ impl From<String> for Method {
             "OPTIONS" => Method::Options,
             "CONNECT" => Method::Connect,
             "TRACE" => Method::Trace,
+            "REPORT" => Method::Report,
             _ => Method::Get,
         }
     }
@@ -64,12 +80,14 @@ impl AsRef<str> for Method {
             Method::Connect => "CONNECT",
             Method::Trace => "TRACE",
             Method::Get => "GET",
+            Method::Report => "REPORT",
         }
     }
 }
 
-impl ToString for Method {
-    fn to_string(&self) -> String {
-        (*self).clone().into()
+impl Display for Method {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+        let s: String = (*self).clone().into();
+        write!(f, "{s}")
     }
 }

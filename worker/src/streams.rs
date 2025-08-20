@@ -47,6 +47,15 @@ pub struct FixedLengthStream {
     inner: Pin<Box<dyn Stream<Item = Result<Vec<u8>>> + 'static>>,
 }
 
+impl core::fmt::Debug for FixedLengthStream {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("FixedLengthStream")
+            .field("length", &self.length)
+            .field("bytes_read", &self.bytes_read)
+            .finish()
+    }
+}
+
 impl FixedLengthStream {
     pub fn wrap(stream: impl Stream<Item = Result<Vec<u8>>> + 'static, length: u64) -> Self {
         Self {
@@ -96,9 +105,9 @@ impl Stream for FixedLengthStream {
 impl From<FixedLengthStream> for FixedLengthStreamSys {
     fn from(stream: FixedLengthStream) -> Self {
         let raw = if stream.length < u32::MAX as u64 {
-            FixedLengthStreamSys::new(stream.length as u32)
+            FixedLengthStreamSys::new(stream.length as u32).unwrap()
         } else {
-            FixedLengthStreamSys::new_big_int(BigInt::from(stream.length))
+            FixedLengthStreamSys::new_big_int(BigInt::from(stream.length)).unwrap()
         };
 
         let js_stream = stream

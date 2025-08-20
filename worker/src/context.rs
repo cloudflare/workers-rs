@@ -11,6 +11,9 @@ pub struct Context {
     inner: JsContext,
 }
 
+unsafe impl Send for Context {}
+unsafe impl Sync for Context {}
+
 impl Context {
     /// Constructs a context from an underlying JavaScript context object.
     pub fn new(inner: JsContext) -> Self {
@@ -30,17 +33,19 @@ impl Context {
     where
         F: Future<Output = ()> + 'static,
     {
-        self.inner.wait_until(&future_to_promise(async {
-            future.await;
-            Ok(JsValue::UNDEFINED)
-        }))
+        self.inner
+            .wait_until(&future_to_promise(async {
+                future.await;
+                Ok(JsValue::UNDEFINED)
+            }))
+            .unwrap()
     }
 
     /// Prevents a runtime error response when the Worker script throws an unhandled exception.
     /// Instead, the script will "fail open", which will proxy the request to the origin server
     /// as though the Worker was never invoked.
     pub fn pass_through_on_exception(&self) {
-        self.inner.pass_through_on_exception()
+        self.inner.pass_through_on_exception().unwrap()
     }
 }
 

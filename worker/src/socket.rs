@@ -1,16 +1,17 @@
 use std::{
-    io::ErrorKind,
+    convert::TryFrom,
     pin::Pin,
     task::{Context, Poll},
 };
 
-use crate::r2::js_object;
 use crate::Result;
+use crate::{r2::js_object, Error};
 use futures_util::FutureExt;
 use js_sys::{
     Boolean as JsBoolean, Error as JsError, JsString, Number as JsNumber, Object as JsObject,
     Reflect, Uint8Array,
 };
+use std::convert::TryInto;
 use std::io::Error as IoError;
 use std::io::Result as IoResult;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
@@ -20,41 +21,49 @@ use web_sys::{
     ReadableStream, ReadableStreamDefaultReader, WritableStream, WritableStreamDefaultWriter,
 };
 
+#[derive(Debug)]
+pub struct SocketInfo {
+    pub remote_address: Option<String>,
+    pub local_address: Option<String>,
+}
+
+impl TryFrom<JsValue> for SocketInfo {
+    type Error = Error;
+    fn try_from(value: JsValue) -> Result<Self> {
+        let remote_address_value =
+            js_sys::Reflect::get(&value, &JsValue::from_str("remoteAddress"))?;
+        let local_address_value = js_sys::Reflect::get(&value, &JsValue::from_str("localAddress"))?;
+        Ok(Self {
+            remote_address: remote_address_value.as_string(),
+            local_address: local_address_value.as_string(),
+        })
+    }
+}
+
+#[derive(Debug, Default)]
 enum Reading {
+    #[default]
     None,
     Pending(JsFuture, ReadableStreamDefaultReader),
     Ready(Vec<u8>),
 }
 
-impl Default for Reading {
-    fn default() -> Self {
-        Self::None
-    }
-}
-
+#[derive(Debug, Default)]
 enum Writing {
     Pending(JsFuture, WritableStreamDefaultWriter, usize),
+    #[default]
     None,
 }
 
-impl Default for Writing {
-    fn default() -> Self {
-        Self::None
-    }
-}
-
+#[derive(Debug, Default)]
 enum Closing {
     Pending(JsFuture),
+    #[default]
     None,
-}
-
-impl Default for Closing {
-    fn default() -> Self {
-        Self::None
-    }
 }
 
 /// Represents an outbound TCP connection from your Worker.
+#[derive(Debug)]
 pub struct Socket {
     inner: worker_sys::Socket,
     writable: WritableStream,
@@ -70,8 +79,8 @@ unsafe impl Sync for Socket {}
 
 impl Socket {
     fn new(inner: worker_sys::Socket) -> Self {
-        let writable = inner.writable();
-        let readable = inner.readable();
+        let writable = inner.writable().unwrap();
+        let readable = inner.readable().unwrap();
         Socket {
             inner,
             writable,
@@ -84,15 +93,20 @@ impl Socket {
 
     /// Closes the TCP socket. Both the readable and writable streams are forcibly closed.
     pub async fn close(&mut self) -> Result<()> {
-        JsFuture::from(self.inner.close()).await?;
+        JsFuture::from(self.inner.close()?).await?;
         Ok(())
     }
 
     /// This Future is resolved when the socket is closed
     /// and is rejected if the socket encounters an error.
     pub async fn closed(&self) -> Result<()> {
-        JsFuture::from(self.inner.closed()).await?;
+        JsFuture::from(self.inner.closed()?).await?;
         Ok(())
+    }
+
+    pub async fn opened(&self) -> Result<SocketInfo> {
+        let value = JsFuture::from(self.inner.opened()?).await?;
+        value.try_into()
     }
 
     /// Upgrades an insecure socket to a secure one that uses TLS,
@@ -101,7 +115,7 @@ impl Socket {
     /// to [`StartTls`](SecureTransport::StartTls) when initially
     /// calling [`connect`](connect) to create the socket.
     pub fn start_tls(self) -> Socket {
-        let inner = self.inner.start_tls();
+        let inner = self.inner.start_tls().unwrap();
         Socket::new(inner)
     }
 
@@ -134,9 +148,9 @@ fn js_value_to_std_io_error(value: JsValue) -> IoError {
     } else if let Some(value) = value.dyn_ref::<JsError>() {
         value.to_string().into()
     } else {
-        format!("Error interpreting JsError: {:?}", value)
+        format!("Error interpreting JsError: {value:?}")
     };
-    IoError::new(ErrorKind::Other, s)
+    IoError::other(s)
 }
 impl AsyncRead for Socket {
     fn poll_read(
@@ -158,11 +172,8 @@ impl AsyncRead for Socket {
                         let done: JsBoolean = match Reflect::get(&value, &JsValue::from("done")) {
                             Ok(value) => value.into(),
                             Err(error) => {
-                                let msg = format!("Unable to interpret field 'done' in ReadableStreamDefaultReader.read(): {:?}", error);
-                                return (
-                                    Reading::None,
-                                    Poll::Ready(Err(IoError::new(ErrorKind::Other, msg))),
-                                );
+                                let msg = format!("Unable to interpret field 'done' in ReadableStreamDefaultReader.read(): {error:?}");
+                                return (Reading::None, Poll::Ready(Err(IoError::other(msg))));
                             }
                         };
                         if done.is_truthy() {
@@ -174,11 +185,8 @@ impl AsyncRead for Socket {
                             ) {
                                 Ok(value) => value.into(),
                                 Err(error) => {
-                                    let msg = format!("Unable to interpret field 'value' in ReadableStreamDefaultReader.read(): {:?}", error);
-                                    return (
-                                        Reading::None,
-                                        Poll::Ready(Err(IoError::new(ErrorKind::Other, msg))),
-                                    );
+                                    let msg = format!("Unable to interpret field 'value' in ReadableStreamDefaultReader.read(): {error:?}");
+                                    return (Reading::None, Poll::Ready(Err(IoError::other(msg))));
                                 }
                             };
                             let data = arr.to_vec();
@@ -197,10 +205,9 @@ impl AsyncRead for Socket {
                         Ok(reader) => reader,
                         Err(error) => {
                             let msg = format!(
-                                "Unable to cast JsObject to ReadableStreamDefaultReader: {:?}",
-                                error
+                                "Unable to cast JsObject to ReadableStreamDefaultReader: {error:?}"
                             );
-                            return Poll::Ready(Err(IoError::new(ErrorKind::Other, msg)));
+                            return Poll::Ready(Err(IoError::other(msg)));
                         }
                     };
 
@@ -226,8 +233,8 @@ impl AsyncWrite for Socket {
                 let writer: WritableStreamDefaultWriter = match self.writable.get_writer() {
                     Ok(writer) => writer,
                     Err(error) => {
-                        let msg = format!("Could not retrieve Writer: {:?}", error);
-                        return Poll::Ready(Err(IoError::new(ErrorKind::Other, msg)));
+                        let msg = format!("Could not retrieve Writer: {error:?}");
+                        return Poll::Ready(Err(IoError::other(msg)));
                     }
                 };
                 Self::handle_write_future(
@@ -277,6 +284,7 @@ impl AsyncWrite for Socket {
 }
 
 /// Secure transport options for outbound TCP connections.
+#[derive(Debug, Clone)]
 pub enum SecureTransport {
     /// Do not use TLS.
     Off,
@@ -288,6 +296,7 @@ pub enum SecureTransport {
 }
 
 /// Used to configure outbound TCP connections.
+#[derive(Debug, Clone)]
 pub struct SocketOptions {
     /// Specifies whether or not to use TLS when creating the TCP socket.
     pub secure_transport: SecureTransport,
@@ -308,6 +317,7 @@ impl Default for SocketOptions {
 }
 
 /// The host and port that you wish to connect to.
+#[derive(Debug, Clone)]
 pub struct SocketAddress {
     /// The hostname to connect to. Example: `cloudflare.com`.
     pub hostname: String,
@@ -315,7 +325,7 @@ pub struct SocketAddress {
     pub port: u16,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug, Clone)]
 pub struct ConnectionBuilder {
     options: SocketOptions,
 }
@@ -359,7 +369,7 @@ impl ConnectionBuilder {
         )
         .into();
 
-        let inner = worker_sys::connect(address, options);
+        let inner = worker_sys::connect(address, options)?;
         Ok(Socket::new(inner))
     }
 }
@@ -397,6 +407,7 @@ pub mod postgres_tls {
     ///     .connect("database_url", 5432)?;
     /// let _ = config.connect_raw(socket, PassthroughTls).await?;
     /// ```
+    #[derive(Debug, Clone, Default)]
     pub struct PassthroughTls;
 
     #[derive(Debug)]

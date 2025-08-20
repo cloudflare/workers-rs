@@ -1,8 +1,8 @@
 {
   "dependencies": {
     "@changesets/changelog-github": "^0.4.8",
-    "@changesets/cli": "^2.26.2",
-    "@cloudflare/workers-types": "^4.20230807.0"
+    "@changesets/cli": "^2.29.4",
+    "@cloudflare/workers-types": "^4.20250724.0"
   },
   "name": "workers-rs",
   "version": "0.0.12",
@@ -14,15 +14,18 @@
   },
   "homepage": "https://github.com/cloudflare/workers-rs#readme",
   "devDependencies": {
-    "@types/node": "^20.4.8",
-    "@types/uuid": "^9.0.2",
-    "miniflare": "^3.20230922.0",
-    "typescript": "^5.1.6",
-    "undici": "^5.25.3",
-    "uuid": "^9.0.0",
-    "vitest": "^0.32.4"
+    "@types/node": "^24.0.1",
+    "miniflare": "^4.20250712.2",
+    "typescript": "^5.8.3",
+    "undici": "^7.12.0",
+    "uuid": "^11.1.0",
+    "vitest": "^3.2.4"
   },
   "scripts": {
-    "test": "cd worker-sandbox && vitest"
+    "install": "cargo install --path ./worker-build --force --debug",
+    "test": "cd worker-sandbox && NO_MINIFY=1 worker-build --dev && NODE_OPTIONS=--experimental-vm-modules npx vitest run",
+    "test-http": "cd worker-sandbox && NO_MINIFY=1 worker-build --dev --features http && NODE_OPTIONS=--experimental-vm-modules npx vitest run",
+    "lint": "cargo clippy --features d1,queue --all-targets --workspace -- -D warnings",
+    "lint:fix": "cargo fmt && cargo clippy --features d1,queue --all-targets --workspace --fix -- -D warnings"
   }
 }

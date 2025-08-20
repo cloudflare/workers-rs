@@ -1,13 +1,13 @@
 import { describe, test, expect } from "vitest";
-import { mf } from "./mf";
+import { mf, mfUrl } from "./mf";
 
 describe("cache", () => {
   test("cache example", async () => {
-    const resp = await mf.dispatchFetch("https://fake.host/cache-example");
+    const resp = await mf.dispatchFetch(`${mfUrl}cache-example`);
     const { timestamp } = (await resp.json()) as { timestamp: unknown };
 
     for (let i = 0; i < 5; i++) {
-      const resp = await mf.dispatchFetch("https://fake.host/cache-example");
+      const resp = await mf.dispatchFetch(`${mfUrl}cache-example`);
       const data = (await resp.json()) as { timestamp: unknown };
 
       expect(data.timestamp).toBe(timestamp);
@@ -15,11 +15,11 @@ describe("cache", () => {
   });
 
   test("cache stream", async () => {
-    const resp = await mf.dispatchFetch("https://fake.host/cache-stream");
+    const resp = await mf.dispatchFetch(`${mfUrl}cache-stream`);
     const body = await resp.text();
 
     for (let i = 0; i < 5; i++) {
-      const resp = await mf.dispatchFetch("https://fake.host/cache-stream");
+      const resp = await mf.dispatchFetch(`${mfUrl}cache-stream`);
       const cachedBody = await resp.text();
 
       expect(cachedBody).toBe(body);
@@ -28,9 +28,9 @@ describe("cache", () => {
 
   test("cache api", async () => {
     const key = "example.org";
-    const getEndpoint = `https://fake.host/cache-api/get/${key}`;
-    const putEndpoint = `https://fake.host/cache-api/put/${key}`;
-    const deleteEndpoint = `https://fake.host/cache-api/delete/${key}`;
+    const getEndpoint = `${mfUrl}cache-api/get/${key}`;
+    const putEndpoint = `${mfUrl}cache-api/put/${key}`;
+    const deleteEndpoint = `${mfUrl}cache-api/delete/${key}`;
 
     // First time should result in cache miss
     let resp = await mf.dispatchFetch(getEndpoint);

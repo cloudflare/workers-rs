@@ -1,18 +1,24 @@
-use crate::{Error, Fetch, Method, Request, Result};
+use crate::{Error, Method, Request, Result};
 use futures_channel::mpsc::UnboundedReceiver;
 use futures_util::Stream;
+use js_sys::Uint8Array;
 use serde::Serialize;
 use url::Url;
 use worker_sys::ext::WebSocketExt;
 
+#[cfg(not(feature = "http"))]
+use crate::Fetch;
 use std::pin::Pin;
 use std::rc::Rc;
 use std::task::{Context, Poll};
 use wasm_bindgen::convert::FromWasmAbi;
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
+#[cfg(feature = "http")]
+use wasm_bindgen_futures::JsFuture;
 
 pub use crate::ws_events::*;
+pub use worker_sys::WebSocketRequestResponsePair;
 
 /// Struct holding the values for a JavaScript `WebSocketPair`
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -21,10 +27,13 @@ pub struct WebSocketPair {
     pub server: WebSocket,
 }
 
+unsafe impl Send for WebSocketPair {}
+unsafe impl Sync for WebSocketPair {}
+
 impl WebSocketPair {
     /// Creates a new `WebSocketPair`.
     pub fn new() -> Result<Self> {
-        let mut pair = worker_sys::WebSocketPair::new();
+        let mut pair = worker_sys::WebSocketPair::new()?;
         let client = pair.client()?.into();
         let server = pair.server()?.into();
         Ok(Self { client, server })
@@ -36,6 +45,9 @@ impl WebSocketPair {
 pub struct WebSocket {
     socket: web_sys::WebSocket,
 }
+
+unsafe impl Send for WebSocket {}
+unsafe impl Sync for WebSocket {}
 
 impl WebSocket {
     /// Attempts to establish a [`WebSocket`] connection to the provided [`Url`].
@@ -99,7 +111,10 @@ impl WebSocket {
             }
         }
 
+        #[cfg(not(feature = "http"))]
         let res = Fetch::Request(req).send().await?;
+        #[cfg(feature = "http")]
+        let res: crate::Response = fetch_with_request_raw(req).await?.into();
 
         match res.websocket() {
             Some(ws) => Ok(ws),
@@ -127,8 +142,13 @@ impl WebSocket {
 
     /// Sends raw binary data through the `WebSocket`.
     pub fn send_with_bytes<D: AsRef<[u8]>>(&self, bytes: D) -> Result<()> {
-        let slice = bytes.as_ref();
-        self.socket.send_with_u8_array(slice).map_err(Error::from)
+        // This clone to Uint8Array must happen, because workerd
+        // will not clone the supplied buffer and will send it asynchronously.
+        // Rust believes that the lifetime ends when `send` returns, and frees
+        // the memory, causing corruption.
+        let uint8_array = Uint8Array::from(bytes.as_ref());
+        self.socket.send_with_array_buffer(&uint8_array.buffer())?;
+        Ok(())
     }
 
     /// Closes this channel.
@@ -267,6 +287,7 @@ type EvCallback<T> = Closure<dyn FnMut(T)>;
 /// });
 /// ```
 #[pin_project::pin_project(PinnedDrop)]
+#[derive(Debug)]
 pub struct EventStream<'ws> {
     ws: &'ws WebSocket,
     #[pin]
@@ -281,7 +302,7 @@ pub struct EventStream<'ws> {
     )>,
 }
 
-impl<'ws> Stream for EventStream<'ws> {
+impl Stream for EventStream<'_> {
     type Item = Result<WebsocketEvent>;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
@@ -433,4 +454,16 @@ pub mod ws_events {
             &self.event
         }
     }
+}
+
+/// TODO: Convert WebSocket to use `http` types and `reqwest`.
+#[cfg(feature = "http")]
+async fn fetch_with_request_raw(request: crate::Request) -> Result<web_sys::Response> {
+    let req = request.inner();
+    let fut = {
+        let worker: web_sys::WorkerGlobalScope = js_sys::global().unchecked_into();
+        crate::send::SendFuture::new(JsFuture::from(worker.fetch_with_request(req)))
+    };
+    let resp = fut.await?;
+    Ok(resp.dyn_into()?)
 }

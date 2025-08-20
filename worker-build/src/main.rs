@@ -1,10 +1,9 @@
 //! Arguments are forwarded directly to wasm-pack
 
 use std::{
-    convert::TryInto,
     env::{self, VarError},
-    ffi::OsStr,
-    fs::{self, File},
+    fmt::Write as _,
+    fs::{self, read_to_string, File},
     io::{Read, Write},
     path::{Path, PathBuf},
     process::{Command, Stdio},
@@ -12,32 +11,21 @@ use std::{
 
 use anyhow::Result;
 
+use clap::Parser;
+use wasm_pack::command::build::{Build, BuildOptions};
+
 const OUT_DIR: &str = "build";
 const OUT_NAME: &str = "index";
 const WORKER_SUBDIR: &str = "worker";
 
-const WASM_IMPORT: &str = r#"let wasm;
-export function __wbg_set_wasm(val) {
-    wasm = val;
-}
-
-"#;
-
-const WASM_IMPORT_REPLACEMENT: &str = r#"
-import wasm from './glue.js';
-
-export function getMemory() {
-    return wasm.memory;
-}
-"#;
+const SHIM_TEMPLATE: &str = include_str!("./js/shim.js");
 
 mod install;
 
 pub fn main() -> Result<()> {
     // Our tests build the bundle ourselves.
     if !cfg!(test) {
-        install::ensure_wasm_pack()?;
-        wasm_pack_build(env::args_os().skip(1))?;
+        wasm_pack_build(env::args().skip(1))?;
     }
 
     let with_coredump = env::var("COREDUMP").is_ok();
@@ -50,10 +38,80 @@ pub fn main() -> Result<()> {
 
     create_worker_dir()?;
     copy_generated_code_to_worker_dir()?;
-    use_glue_import()?;
 
-    write_string_to_file(worker_path("glue.js"), include_str!("./js/glue.js"))?;
-    write_string_to_file(worker_path("shim.js"), include_str!("./js/shim.js"))?;
+    let shim_template = match env::var("CUSTOM_SHIM") {
+        Ok(path) => {
+            let path = Path::new(&path).to_owned();
+            println!("Using custom shim from {}", path.display());
+            // NOTE: we fail in case that file doesnt exist or something else happens
+            read_to_string(path)?
+        }
+        Err(_) => SHIM_TEMPLATE.to_owned(),
+    };
+
+    let wait_until_response = if env::var("RUN_TO_COMPLETION").is_ok() {
+        "this.ctx.waitUntil(response);"
+    } else {
+        ""
+    };
+
+    let snippets_dir = worker_path("snippets");
+    let mut snippets = Vec::new();
+    let mut counter = 0;
+
+    // wasm-bindgen outputs snippets (https://rustwasm.github.io/wasm-bindgen/reference/js-snippets.html)
+    // into the snippets folder, so we recursively read what files were written here and set these up as
+    // explicit imports for Wasm instantiation.
+    fn get_snippets(
+        path: &Path,
+        path_string: String,
+        counter: &mut i32,
+        snippets: &mut Vec<(String, String)>,
+    ) -> Result<()> {
+        if path.is_dir() {
+            for entry in fs::read_dir(path)? {
+                let entry = entry?;
+                get_snippets(
+                    &entry.path(),
+                    format!("{}/{}", path_string, &entry.file_name().to_string_lossy()),
+                    counter,
+                    snippets,
+                )?;
+            }
+        } else if path.is_file() {
+            snippets.push((format!("snippets_{counter}"), path_string));
+            *counter += 1;
+        }
+        Ok(())
+    }
+
+    get_snippets(
+        &snippets_dir,
+        "./snippets".to_string(),
+        &mut counter,
+        &mut snippets,
+    )?;
+
+    let js_imports = snippets
+        .iter()
+        .fold(String::new(), |mut output, (name, path)| {
+            let _ = writeln!(output, "import * as {name} from \"{path}\";");
+            output
+        });
+
+    let wasm_imports = snippets
+        .into_iter()
+        .fold(String::new(), |mut output, (name, path)| {
+            let _ = writeln!(output, "\"{path}\": {name},");
+            output
+        });
+
+    let shim = shim_template
+        .replace("$WAIT_UNTIL_RESPONSE", wait_until_response)
+        .replace("$SNIPPET_JS_IMPORTS", &js_imports)
+        .replace("$SNIPPET_WASM_IMPORTS", &wasm_imports);
+
+    write_string_to_file(worker_path("shim.js"), shim)?;
 
     bundle(&esbuild_path)?;
 
@@ -127,25 +185,44 @@ fn wasm_coredump() -> Result<()> {
     }
 }
 
-fn wasm_pack_build<I, S>(args: I) -> Result<()>
-where
-    I: IntoIterator<Item = S>,
-    S: AsRef<OsStr>,
-{
-    let exit_status = Command::new("wasm-pack")
-        .arg("build")
-        .arg("--no-typescript")
-        .args(["--target", "bundler"])
-        .args(["--out-dir", OUT_DIR])
-        .args(["--out-name", OUT_NAME])
-        .args(args)
-        .spawn()?
-        .wait()?;
+#[derive(Parser)]
+struct BuildArgs {
+    #[clap(flatten)]
+    pub build_options: BuildOptions,
+}
 
-    match exit_status.success() {
-        true => Ok(()),
-        false => anyhow::bail!("wasm-pack exited with status {}", exit_status),
-    }
+fn parse_wasm_pack_opts<I>(args: I) -> Result<BuildOptions>
+where
+    I: IntoIterator<Item = String>,
+{
+    // This is done instead of explicitly constructing
+    // BuildOptions to preserve the behavior of appending
+    // arbitrary arguments in `args`.
+    let mut build_args = vec![
+        "--no-typescript".to_owned(),
+        "--target".to_owned(),
+        "bundler".to_owned(),
+        "--out-dir".to_owned(),
+        OUT_DIR.to_owned(),
+        "--out-name".to_owned(),
+        OUT_NAME.to_owned(),
+    ];
+
+    build_args.extend(args);
+
+    let command = BuildArgs::try_parse_from(build_args)?;
+    Ok(command.build_options)
+}
+
+fn wasm_pack_build<I>(args: I) -> Result<()>
+where
+    I: IntoIterator<Item = String>,
+{
+    let opts = parse_wasm_pack_opts(args)?;
+
+    let mut build = Build::try_from_opts(opts)?;
+
+    build.run()
 }
 
 fn create_worker_dir() -> Result<()> {
@@ -192,15 +269,6 @@ fn copy_generated_code_to_worker_dir() -> Result<()> {
     Ok(())
 }
 
-// Replaces the wasm import with an import that instantiates the WASM modules itself.
-fn use_glue_import() -> Result<()> {
-    let bindgen_glue_path = worker_path(format!("{OUT_NAME}_bg.js"));
-    let old_bindgen_glue = read_file_to_string(&bindgen_glue_path)?;
-    let fixed_bindgen_glue = old_bindgen_glue.replace(WASM_IMPORT, WASM_IMPORT_REPLACEMENT);
-    write_string_to_file(bindgen_glue_path, fixed_bindgen_glue)?;
-    Ok(())
-}
-
 // Bundles the snippets and worker-related code into a single file.
 fn bundle(esbuild_path: &Path) -> Result<()> {
     let no_minify = !matches!(env::var("NO_MINIFY"), Err(VarError::NotPresent));
@@ -210,6 +278,7 @@ fn bundle(esbuild_path: &Path) -> Result<()> {
     command.args([
         "--external:./index.wasm",
         "--external:cloudflare:sockets",
+        "--external:cloudflare:workers",
         "--format=esm",
         "--bundle",
         "./shim.js",
@@ -237,23 +306,10 @@ fn remove_unused_js() -> Result<()> {
         std::fs::remove_dir_all(&snippets_dir)?;
     }
 
-    for to_remove in [
-        format!("{OUT_NAME}_bg.js"),
-        "shim.js".into(),
-        "glue.js".into(),
-    ] {
-        std::fs::remove_file(worker_path(to_remove))?;
-    }
+    std::fs::remove_file(worker_path(format!("{OUT_NAME}_bg.js")))?;
+    std::fs::remove_file(worker_path("shim.js"))?;
 
     Ok(())
-}
-
-fn read_file_to_string<P: AsRef<Path>>(path: P) -> Result<String> {
-    let file_size = path.as_ref().metadata()?.len().try_into()?;
-    let mut file = File::open(path)?;
-    let mut buf = Vec::with_capacity(file_size);
-    file.read_to_end(&mut buf)?;
-    String::from_utf8(buf).map_err(anyhow::Error::from)
 }
 
 fn write_string_to_file<P: AsRef<Path>>(path: P, contents: impl AsRef<str>) -> Result<()> {
@@ -271,4 +327,23 @@ pub fn worker_path(name: impl AsRef<str>) -> PathBuf {
 
 pub fn output_path(name: impl AsRef<str>) -> PathBuf {
     PathBuf::from(OUT_DIR).join(name.as_ref())
+}
+
+#[cfg(test)]
+mod test {
+    use super::parse_wasm_pack_opts;
+    #[test]
+    fn test_wasm_pack_args_build_arg() {
+        let args = vec!["--release".to_owned()];
+        let result = parse_wasm_pack_opts(args);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_wasm_pack_args_additional_arg() {
+        let args = vec!["--weak-refs".to_owned()];
+        let result = parse_wasm_pack_opts(args).unwrap();
+
+        assert!(result.weak_refs);
+    }
 }

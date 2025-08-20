@@ -103,8 +103,8 @@ impl Cache {
         key: K,
         ignore_method: bool,
     ) -> Result<Option<Response>> {
-        let mut options = web_sys::CacheQueryOptions::new();
-        options.ignore_method(ignore_method);
+        let options = web_sys::CacheQueryOptions::new();
+        options.set_ignore_method(ignore_method);
 
         let promise = match key.into() {
             CacheKey::Url(url) => self
@@ -136,8 +136,8 @@ impl Cache {
         key: K,
         ignore_method: bool,
     ) -> Result<CacheDeletionOutcome> {
-        let mut options = web_sys::CacheQueryOptions::new();
-        options.ignore_method(ignore_method);
+        let options = web_sys::CacheQueryOptions::new();
+        options.set_ignore_method(ignore_method);
 
         let promise = match key.into() {
             CacheKey::Url(url) => self
@@ -160,6 +160,7 @@ impl Cache {
 }
 
 /// The `String` or `Request` object used as the lookup key. `String`s are interpreted as the URL for a new `Request` object.
+#[derive(Debug)]
 pub enum CacheKey<'a> {
     Url(String),
     Request(&'a Request),
@@ -190,7 +191,7 @@ impl<'a> From<&'a Request> for CacheKey<'a> {
 }
 
 /// Successful outcomes when attempting to delete a `Response` from the cache
-#[derive(Serialize)]
+#[derive(Serialize, Debug, Clone)]
 pub enum CacheDeletionOutcome {
     /// The response was cached but is now deleted
     Success,

@@ -1,25 +1,25 @@
 import { expect, test } from "vitest";
 import { FormData } from "miniflare";
 
-import { mf } from "./mf";
+import { mf, mfUrl } from "./mf";
 
 test("basic sync request", async () => {
-  const resp = await mf.dispatchFetch("https://fake.host/request");
+  const resp = await mf.dispatchFetch(`${mfUrl}request`);
   expect(resp.status).toBe(200);
 });
 
 test("basic async request", async () => {
-  const resp = await mf.dispatchFetch("https://fake.host/async-request");
+  const resp = await mf.dispatchFetch(`${mfUrl}async-request`);
   expect(resp.status).toBe(200);
 });
 
 test("test data", async () => {
-  const resp = await mf.dispatchFetch("https://fake.host/test-data");
+  const resp = await mf.dispatchFetch(`${mfUrl}test-data`);
   expect(await resp.text()).toBe("data ok");
 });
 
 test("headers", async () => {
-  const resp = await mf.dispatchFetch("https://fake.host/headers", {
+  const resp = await mf.dispatchFetch(`${mfUrl}headers`, {
     method: "POST",
     headers: {
       A: "B",
@@ -33,7 +33,7 @@ test("secret", async () => {
   const formData = new FormData();
   formData.append("secret", "EXAMPLE_SECRET");
 
-  const resp = await mf.dispatchFetch("https://fake.host/is-secret", {
+  const resp = await mf.dispatchFetch(`${mfUrl}is-secret`, {
     method: "POST",
     body: formData,
   });
@@ -45,7 +45,7 @@ test("form data", async () => {
   const formData = new FormData();
   formData.append("file", new Blob(["workers-rs is cool"]), "file");
 
-  let resp = await mf.dispatchFetch("https://fake.host/formdata-file-size", {
+  let resp = await mf.dispatchFetch(`${mfUrl}formdata-file-size`, {
     method: "POST",
     body: formData,
   });
@@ -54,24 +54,24 @@ test("form data", async () => {
   const hashes = (await resp.json()) as { name: string }[];
 
   resp = await mf.dispatchFetch(
-    `https://fake.host/formdata-file-size/${hashes[0].name}`
+    `${mfUrl}formdata-file-size/${hashes[0].name}`
   );
   expect(resp.status).toBe(200);
 });
 
 test("user id", async () => {
-  const resp = await mf.dispatchFetch("https://fake.host/user/example/test");
+  const resp = await mf.dispatchFetch(`${mfUrl}user/example/test`);
   expect(await resp.text()).toBe("TEST user id: example");
 });
 
 test("user", async () => {
-  const resp = await mf.dispatchFetch("https://fake.host/user/example");
+  const resp = await mf.dispatchFetch(`${mfUrl}user/example`);
   expect(await resp.json()).toMatchObject({ id: "example" });
 });
 
 test("post account id zones", async () => {
   const resp = await mf.dispatchFetch(
-    "https://fake.host/account/example/zones",
+    `${mfUrl}account/example/zones`,
     {
       method: "POST",
     }
@@ -81,7 +81,7 @@ test("post account id zones", async () => {
 
 test("get account id zones", async () => {
   const resp = await mf.dispatchFetch(
-    "https://fake.host/account/example/zones"
+    `${mfUrl}account/example/zones`
   );
   expect(await resp.text()).toBe(
     "Account id: example..... You get a zone, you get a zone!"
@@ -89,7 +89,7 @@ test("get account id zones", async () => {
 });
 
 test("async text echo", async () => {
-  const resp = await mf.dispatchFetch("https://fake.host/async-text-echo", {
+  const resp = await mf.dispatchFetch(`${mfUrl}async-text-echo`, {
     method: "POST",
     body: "Example text!",
   });
@@ -97,34 +97,44 @@ test("async text echo", async () => {
 });
 
 test("fetch", async () => {
-  const resp = await mf.dispatchFetch("https://fake.host/fetch");
+  const resp = await mf.dispatchFetch(`${mfUrl}fetch`);
   expect(resp.status).toBe(200);
 });
 
 test("fetch json", async () => {
-  const resp = await mf.dispatchFetch("https://fake.host/fetch_json");
+  const resp = await mf.dispatchFetch(`${mfUrl}fetch_json`);
   expect(resp.status).toBe(200);
 });
 
 test("proxy request", async () => {
   const resp = await mf.dispatchFetch(
-    "https://fake.host/proxy_request/https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding/contributors.txt"
+    `${mfUrl}proxy_request/https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Encoding/contributors.txt`
   );
   expect(resp.status).toBe(200);
 });
 
 test("durable id", async () => {
-  const resp = await mf.dispatchFetch("https://fake.host/durable/example");
+  const resp = await mf.dispatchFetch(`${mfUrl}durable/example`);
   expect(await resp.text()).toContain("[durable_object]");
 });
 
 test("some secret", async () => {
-  const resp = await mf.dispatchFetch("https://fake.host/secret");
+  const resp = await mf.dispatchFetch(`${mfUrl}secret`);
   expect(await resp.text()).toBe("secret!");
 });
 
+test("some var", async () => {
+  const resp = await mf.dispatchFetch(`${mfUrl}var`);
+  expect(await resp.text()).toBe("some value");
+});
+
+test("some object var", async () => {
+  const resp = await mf.dispatchFetch(`${mfUrl}object-var`);
+  expect(await resp.json()).toStrictEqual({ foo: 42, bar: "string" });
+});
+
 test("kv key value", async () => {
-  const resp = await mf.dispatchFetch("https://fake.host/kv/a/b", {
+  const resp = await mf.dispatchFetch(`${mfUrl}kv/a/b`, {
     method: "POST",
   });
 
@@ -133,7 +143,7 @@ test("kv key value", async () => {
 });
 
 test("bytes", async () => {
-  const resp = await mf.dispatchFetch("https://fake.host/bytes");
+  const resp = await mf.dispatchFetch(`${mfUrl}bytes`);
   expect(await resp.arrayBuffer()).toStrictEqual(
     new Uint8Array([1, 2, 3, 4, 5, 6, 7]).buffer
   );
@@ -141,7 +151,7 @@ test("bytes", async () => {
 
 test("api data", async () => {
   const data = { userId: 0, title: "Hi!", completed: true };
-  const resp = await mf.dispatchFetch("https://fake.host/api-data", {
+  const resp = await mf.dispatchFetch(`${mfUrl}api-data`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -156,7 +166,7 @@ test("api data", async () => {
 });
 
 test("nonsense repeat", async () => {
-  const resp = await mf.dispatchFetch("https://fake.host/nonsense-repeat", {
+  const resp = await mf.dispatchFetch(`${mfUrl}nonsense-repeat`, {
     method: "POST",
   });
 
@@ -164,12 +174,12 @@ test("nonsense repeat", async () => {
 });
 
 test("status code", async () => {
-  const resp = await mf.dispatchFetch("https://fake.host/status/418");
+  const resp = await mf.dispatchFetch(`${mfUrl}status/418`);
   expect(resp.status).toBe(418);
 });
 
 test("root", async () => {
-  const resp = await mf.dispatchFetch("https://fake.host/", {
+  const resp = await mf.dispatchFetch(mfUrl, {
     method: "PUT",
   });
 
@@ -177,7 +187,7 @@ test("root", async () => {
 });
 
 test("async", async () => {
-  const resp = await mf.dispatchFetch("https://fake.host/async", {
+  const resp = await mf.dispatchFetch(`${mfUrl}async`, {
     method: "PUT",
   });
 
@@ -185,22 +195,22 @@ test("async", async () => {
 });
 
 test("catchall", async () => {
-  const resp = await mf.dispatchFetch("https://fake.host/hello-world", {
+  const resp = await mf.dispatchFetch(`${mfUrl}hello-world`, {
     method: "OPTIONS",
   });
 
-  expect(await resp.text()).toBe("hello-world");
+  expect(await resp.text()).toBe("/hello-world");
 });
 
 test("redirect default", async () => {
-  const resp = await mf.dispatchFetch("https://fake.host/redirect-default", {
+  const resp = await mf.dispatchFetch(`${mfUrl}redirect-default`, {
     redirect: "manual",
   });
   expect(resp.headers.get("location")).toBe("https://example.com/");
 });
 
 test("redirect 307", async () => {
-  const resp = await mf.dispatchFetch("https://fake.host/redirect-307", {
+  const resp = await mf.dispatchFetch(`${mfUrl}redirect-307`, {
     redirect: "manual",
   });
   expect(resp.headers.get("location")).toBe("https://example.com/");
@@ -208,26 +218,26 @@ test("redirect 307", async () => {
 });
 
 test("now", async () => {
-  const resp = await mf.dispatchFetch("https://fake.host/now");
+  const resp = await mf.dispatchFetch(`${mfUrl}now`);
   expect(resp.status).toBe(200);
 });
 
 test("wait", async () => {
   const then = Date.now();
-  const resp = await mf.dispatchFetch("https://fake.host/wait/100");
+  const resp = await mf.dispatchFetch(`${mfUrl}wait/100`);
   expect(resp.status).toBe(200);
   expect(Date.now() - then).toBeGreaterThan(100);
 });
 
 test("custom response body", async () => {
   const then = Date.now();
-  const resp = await mf.dispatchFetch("https://fake.host/wait/100");
+  const resp = await mf.dispatchFetch(`${mfUrl}wait/100`);
   expect(resp.status).toBe(200);
   expect(Date.now() - then).toBeGreaterThan(100);
 });
 
 test("init called", async () => {
-  const resp = await mf.dispatchFetch("https://fake.host/init-called");
+  const resp = await mf.dispatchFetch(`${mfUrl}init-called`);
   expect(await resp.text()).toBe("true");
 });
 
@@ -238,7 +248,7 @@ test("xor", async () => {
     }
   }
 
-  const resp = await mf.dispatchFetch("https://fake.host/xor/10", {
+  const resp = await mf.dispatchFetch(`${mfUrl}xor/10`, {
     method: "POST",
     body: generator(),
     duplex: "half",
