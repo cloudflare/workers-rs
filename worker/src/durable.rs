@@ -138,6 +138,31 @@ impl ObjectNamespace {
                 namespace: Some(self),
             })
     }
+
+    /// Get a Durable Object stub directly by name. This combines the functionality of
+    /// `id_from_name()` and `get_stub()` into a single method call.
+    pub fn get_by_name(&self, name: &str) -> Result<Stub> {
+        self.inner
+            .get_by_name(name)
+            .map_err(Error::from)
+            .map(|stub| Stub { inner: stub })
+    }
+
+    /// Get a Durable Object stub directly by name with options (such as location hints).
+    /// This combines the functionality of `id_from_name()` and `get_stub_with_location_hint()`
+    /// into a single method call.
+    pub fn get_by_name_with_location_hint(&self, name: &str, location_hint: &str) -> Result<Stub> {
+        let options = Object::new();
+        js_sys::Reflect::set(
+            &options,
+            &JsValue::from("locationHint"),
+            &location_hint.into(),
+        )?;
+        self.inner
+            .get_by_name_with_options(name, &options)
+            .map_err(Error::from)
+            .map(|stub| Stub { inner: stub })
+    }
 }
 
 /// An ObjectId is used to identify, locate, and access a Durable Object via interaction with its
