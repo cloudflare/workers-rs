@@ -43,4 +43,18 @@ describe("durable", () => {
     // await new Promise(resolve => setTimeout(resolve, 1000));
     // expect(calledClose).toBe(true);
   });
+
+  test("get-by-name", async () => {
+    const resp = await mf.dispatchFetch(`${mfUrl}durable/get-by-name`);
+    expect(resp.status).toBe(200);
+    const text = await resp.text();
+    expect(text).toBe("Hello from my-durable-object!");
+  });
+
+  test("get-by-name-with-location-hint", async () => {
+    const resp = await mf.dispatchFetch(`${mfUrl}durable/get-by-name-with-location-hint`);
+    expect(resp.status).toBe(200);
+    const text = await resp.text();
+    expect(text).toBe("Hello from my-durable-object!");
+  });
 });
