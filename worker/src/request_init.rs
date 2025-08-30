@@ -5,7 +5,7 @@ use crate::http::Method;
 
 use js_sys::{self, Object};
 use serde::Serialize;
-use wasm_bindgen::{prelude::*, JsValue};
+use wasm_bindgen::JsValue;
 
 /// Optional options struct that contains settings to apply to the `Request`.
 #[derive(Debug)]
@@ -205,7 +205,10 @@ impl From<&CfProperties> for JsValue {
         set_prop(
             &obj,
             &JsValue::from("minify"),
-            &JsValue::from(props.minify.unwrap_or(defaults.minify.unwrap_or_default())),
+            &serde_wasm_bindgen::to_value(
+                &props.minify.unwrap_or(defaults.minify.unwrap_or_default()),
+            )
+            .unwrap(),
         );
 
         set_prop(
@@ -214,11 +217,12 @@ impl From<&CfProperties> for JsValue {
             &JsValue::from(props.mirage.unwrap_or(defaults.mirage.unwrap_or_default())),
         );
 
-        let polish_val: &str = props
-            .polish
-            .unwrap_or(defaults.polish.unwrap_or_default())
-            .into();
-        set_prop(&obj, &JsValue::from("polish"), &JsValue::from(polish_val));
+        let polish_val = props.polish.unwrap_or(defaults.polish.unwrap_or_default());
+        set_prop(
+            &obj,
+            &JsValue::from("polish"),
+            &serde_wasm_bindgen::to_value(&polish_val).unwrap(),
+        );
 
         set_prop(
             &obj,
@@ -241,24 +245,11 @@ impl From<&CfProperties> for JsValue {
             ),
         );
 
-        // TODO shouldn't the above calls to set_prop also use a pattern like the one below,
-        //      such as to avoid needless work when those properties are not actually set in Rust
-        //      code and thus should also not be passed on to the JS side;
-        //      there may also not be a clear default for each (sub-)property, but even if there
-        //      officially is, there may be discrepancies between official docs, official JS and
-        //      Rust libraries introduced because they behave differently -- I'm assuming here
-        //      that the JS library / API will simply not set default values for all fields
-        //      that are simply not provided by the user, thus allowing the underlying runtime
-        //      to set the true defaults, whether or not the docs agree what those are
-        //      side benefit being that a lot less work needs to be done, such as constructing
-        //      defaults, cloning & copying, calls across the wasm/JS bridge
         if let Some(image) = &props.image {
             set_prop(
                 &obj,
                 &JsValue::from("image"),
-                &JsValue::from(
-                    image.clone(),
-                ),
+                &serde_wasm_bindgen::to_value(&image).unwrap(),
             );
         }
 
@@ -301,8 +292,8 @@ impl Default for CfProperties {
 
 /// Configuration options for Cloudflare's minification features:
 /// <https://www.cloudflare.com/website-optimization/>
-#[wasm_bindgen]
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Clone, Copy, Debug, Default, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct MinifyConfig {
     pub js: bool,
     pub html: bool,
@@ -311,72 +302,65 @@ pub struct MinifyConfig {
 
 /// Configuration options for Cloudflare's image optimization feature:
 /// <https://blog.cloudflare.com/introducing-polish-automatic-image-optimizati/>
-#[wasm_bindgen]
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy, Debug, Default, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum PolishConfig {
+    #[default]
     Off,
     Lossy,
     Lossless,
 }
 
-impl Default for PolishConfig {
-    fn default() -> Self {
-        Self::Off
-    }
-}
-
-impl From<PolishConfig> for &str {
-    fn from(conf: PolishConfig) -> Self {
-        match conf {
-            PolishConfig::Off => "off",
-            PolishConfig::Lossy => "lossy",
-            PolishConfig::Lossless => "lossless",
-        }
-    }
+#[derive(Clone, Debug, serde::Serialize)]
+#[serde(untagged)]
+pub enum ResizeBorder {
+    Uniform {
+        color: String,
+        width: usize,
+    },
+    Varying {
+        color: String,
+        top: usize,
+        right: usize,
+        bottom: usize,
+        left: usize,
+    },
 }
 
 /// Configuration options for Cloudflare's image resizing feature:
 /// <https://developers.cloudflare.com/images/image-resizing/>
-#[wasm_bindgen]
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default, Serialize)]
 pub struct ResizeConfig {
     pub anim: Option<bool>,
-    #[wasm_bindgen(skip)]
     pub background: Option<String>,
-    #[wasm_bindgen(skip)]
-    pub blur: Option<String>,
+    pub blur: Option<u8>,
+    pub border: Option<ResizeBorder>,
     pub brightness: Option<f64>,
+    pub compression: Option<ResizeCompression>,
     pub contrast: Option<f64>,
     pub dpr: Option<f64>,
     pub fit: Option<ResizeFit>,
     pub format: Option<ResizeFormat>,
     pub gamma: Option<f64>,
-    // TODO
-    // #[wasm_bindgen(skip)]
-    // pub gravity: Option<ResizeGravity>,
+    pub gravity: Option<ResizeGravity>,
     pub height: Option<usize>,
     pub metadata: Option<ResizeMetadata>,
     pub onerror: Option<ResizeOnerror>,
     pub quality: Option<usize>,
+    pub rotate: Option<usize>,
     pub sharpen: Option<usize>,
     pub trim: Option<ResizeTrim>,
     pub width: Option<usize>,
 }
 
-#[wasm_bindgen]
-impl ResizeConfig {
-    #[wasm_bindgen(getter)]
-    pub fn background(&self) -> Option<String> {
-        self.background.clone()
-    }
-    #[wasm_bindgen(getter)]
-    pub fn blur(&self) -> Option<String> {
-        self.blur.clone()
-    }
+#[derive(Clone, Copy, Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ResizeCompression {
+    Fast,
 }
 
-#[wasm_bindgen]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum ResizeFit {
     ScaleDown,
     Contain,
@@ -385,8 +369,8 @@ pub enum ResizeFit {
     Pad,
 }
 
-#[wasm_bindgen]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum ResizeFormat {
     Auto,
     Avif,
@@ -394,56 +378,56 @@ pub enum ResizeFormat {
     Json,
 }
 
-// TODO implement in a wbg-compatible way
-// #[wasm_bindgen]
-// #[derive(Clone)]
-// pub enum ResizeGravity {
-//     Auto,
-//     // TODO maybe enum top/left/bottom/right?
-//     Side(String),
-//     Coords(f64, f64),
-// }
+#[derive(Clone, Copy, Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ResizeGravitySide {
+    Auto,
+    Left,
+    Right,
+    Top,
+    Bottom,
+}
 
-#[wasm_bindgen]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
+#[serde(untagged)]
+pub enum ResizeGravity {
+    Side(ResizeGravitySide),
+    Coords { x: f64, y: f64 },
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum ResizeMetadata {
     Keep,
     Copyright,
     None,
 }
 
-#[wasm_bindgen]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum ResizeOnerror {
     Redirect,
 }
 
-#[wasm_bindgen]
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct ResizeTrim {
     pub top: usize,
     pub bottom: usize,
     pub left: usize,
     pub right: usize,
+    pub width: usize,
+    pub height: usize,
 }
 
-#[wasm_bindgen]
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Clone, Copy, Debug, Default, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum RequestRedirect {
     Error,
     #[default]
     Follow,
     Manual,
-}
-
-impl From<RequestRedirect> for &str {
-    fn from(redirect: RequestRedirect) -> Self {
-        match redirect {
-            RequestRedirect::Error => "error",
-            RequestRedirect::Follow => "follow",
-            RequestRedirect::Manual => "manual",
-        }
-    }
 }
 
 impl From<RequestRedirect> for web_sys::RequestRedirect {
