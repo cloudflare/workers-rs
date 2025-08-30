@@ -111,7 +111,7 @@ describe("sql iterator durable object", () => {
     expect(resp.status).toBe(200);
 
     const text = await resp.text();
-    expect(text).toBe("SQL Iterator Test - try /next, /raw, or /next-invalid endpoints");
+    expect(text).toBe("SQL Iterator Test - try /next, /raw, /next-invalid, /blob-next, /blob-raw, or /blob-roundtrip endpoints");
   });
 
   test("data consistency between next() and raw() methods", async () => {
@@ -139,5 +139,136 @@ describe("sql iterator durable object", () => {
     const rowMatches = rawText.match(/Row: \[/g);
     expect(rowMatches).toBeTruthy();
     expect(rowMatches!.length).toBe(5);
+  });
+
+  describe("BLOB handling", () => {
+    test("blob-next() iterator returns BLOB data correctly", async () => {
+      const resp = await mf.dispatchFetch(
+        `${mfUrl}sql-iterator/blob-test/blob-next`,
+      );
+      expect(resp.status).toBe(200);
+
+      const text = await resp.text();
+      expect(text).toContain("blob-next() iterator results:");
+
+      // Check for various BLOB test cases
+      expect(text).toContain("binary_data"); // Binary data test case
+      expect(text).toContain("empty_blob"); // Empty blob test case
+      expect(text).toContain("text_as_blob"); // Text converted to blob
+      expect(text).toContain("large_blob"); // Large blob test case
+
+      // Check that binary data is displayed correctly
+      expect(text).toContain("[0, 1, 2, 3, 255, 254]");
+      
+      // Check empty blob handling
+      expect(text).toContain("data: []");
+      
+      // Check large blob truncation
+      expect(text).toContain("[1000 bytes total]");
+    });
+
+    test("blob-raw() iterator returns raw BLOB values", async () => {
+      const resp = await mf.dispatchFetch(
+        `${mfUrl}sql-iterator/blob-test/blob-raw`,
+      );
+      expect(resp.status).toBe(200);
+
+      const text = await resp.text();
+      expect(text).toContain("blob-raw() iterator results:");
+
+      // Check column names are included
+      expect(text).toContain("Columns: id, name, data");
+
+      // Check BLOB data in raw format
+      expect(text).toContain("Blob([0, 1, 2, 3, 255, 254])");
+      expect(text).toContain("Blob([])"); // Empty blob
+      expect(text).toContain("Blob([72, 101, 108, 108, 111"); // "Hello" bytes
+      
+      // Check large blob truncation in raw format
+      expect(text).toMatch(/Blob\(\[0, 1, 2, 3, 4, 5, 6, 7, 8, 9\]\.\.\..*1000 bytes/);
+    });
+
+    test("blob roundtrip test verifies data integrity", async () => {
+      const resp = await mf.dispatchFetch(
+        `${mfUrl}sql-iterator/roundtrip-test/blob-roundtrip`,
+      );
+      expect(resp.status).toBe(200);
+
+      const text = await resp.text();
+      expect(text).toContain("blob-roundtrip test results:");
+
+      // Check that original data is shown
+      expect(text).toContain("Original data: [222, 173, 190, 239, 0, 255]");
+
+      // Check that both next() and raw() methods return matching data
+      expect(text).toContain("next() result: [222, 173, 190, 239, 0, 255], matches_original: true");
+      expect(text).toContain("raw() result: [222, 173, 190, 239, 0, 255], matches_original: true");
+    });
+
+    test("BLOB data consistency between next() and raw() methods", async () => {
+      // Get data from blob-next() method
+      const nextResp = await mf.dispatchFetch(
+        `${mfUrl}sql-iterator/consistency-blob-test/blob-next`,
+      );
+      expect(nextResp.status).toBe(200);
+      const nextText = await nextResp.text();
+
+      // Get data from blob-raw() method
+      const rawResp = await mf.dispatchFetch(
+        `${mfUrl}sql-iterator/consistency-blob-test/blob-raw`,
+      );
+      expect(rawResp.status).toBe(200);
+      const rawText = await rawResp.text();
+
+      // Both should contain the same BLOB test data
+      const blobNames = ["binary_data", "empty_blob", "text_as_blob", "large_blob"];
+      for (const name of blobNames) {
+        expect(nextText).toContain(name);
+        expect(rawText).toContain(name);
+      }
+
+      // Both should show 4 BLOB data rows
+      const nextRows = nextText.match(/BlobData \d+:/g);
+      const rawRows = rawText.match(/Row: \[/g);
+      expect(nextRows).toBeTruthy();
+      expect(rawRows).toBeTruthy();
+      expect(nextRows!.length).toBe(4);
+      expect(rawRows!.length).toBe(4);
+    });
+
+    test("empty BLOB handling", async () => {
+      const resp = await mf.dispatchFetch(
+        `${mfUrl}sql-iterator/empty-blob-test/blob-next`,
+      );
+      expect(resp.status).toBe(200);
+
+      const text = await resp.text();
+      expect(text).toContain("empty_blob");
+      expect(text).toContain("data: []");
+    });
+
+    test("large BLOB handling", async () => {
+      const resp = await mf.dispatchFetch(
+        `${mfUrl}sql-iterator/large-blob-test/blob-raw`,
+      );
+      expect(resp.status).toBe(200);
+
+      const text = await resp.text();
+      expect(text).toContain("large_blob");
+      // Large blob should be truncated for display
+      expect(text).toMatch(/Blob\(\[.*\]\.\.\..*1000 bytes/);
+    });
+
+    test("binary data with null bytes handling", async () => {
+      const resp = await mf.dispatchFetch(
+        `${mfUrl}sql-iterator/binary-test/blob-next`,
+      );
+      expect(resp.status).toBe(200);
+
+      const text = await resp.text();
+      expect(text).toContain("binary_data");
+      // Should handle null bytes (0x00) and high bytes (0xFF) correctly
+      expect(text).toContain("[0, 1, 2, 3, 255, 254]");
+    });
   });
 });
