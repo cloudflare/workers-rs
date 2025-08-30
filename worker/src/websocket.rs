@@ -208,7 +208,7 @@ impl WebSocket {
 
     /// Gets an implementation [`Stream`](futures::Stream) that yields events from the inner
     /// WebSocket.
-    pub fn events(&self) -> Result<EventStream> {
+    pub fn events(&self) -> Result<EventStream<'_>> {
         let (tx, rx) = futures_channel::mpsc::unbounded::<Result<WebsocketEvent>>();
         let tx = Rc::new(tx);
 
