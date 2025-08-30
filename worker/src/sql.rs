@@ -154,6 +154,12 @@ impl TryFrom<JsValue> for SqlStorageValue {
             let mut bytes = vec![0u8; uint8_array.length() as usize];
             uint8_array.copy_to(&mut bytes);
             Ok(SqlStorageValue::Blob(bytes))
+        } else if js_val.is_instance_of::<js_sys::ArrayBuffer>() {
+            let array_buffer = js_sys::ArrayBuffer::from(js_val);
+            let uint8_array = js_sys::Uint8Array::new(&array_buffer);
+            let mut bytes = vec![0u8; uint8_array.length() as usize];
+            uint8_array.copy_to(&mut bytes);
+            Ok(SqlStorageValue::Blob(bytes))
         } else {
             Err(Error::from("Unsupported JavaScript value type"))
         }
