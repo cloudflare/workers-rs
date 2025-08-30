@@ -327,9 +327,16 @@ pub enum ResizeBorder {
     },
 }
 
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ResizeOriginAuth {
+    SharePublicly,
+}
+
 /// Configuration options for Cloudflare's image resizing feature:
 /// <https://developers.cloudflare.com/images/image-resizing/>
 #[derive(Clone, Debug, Default, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct ResizeConfig {
     pub anim: Option<bool>,
     pub background: Option<String>,
@@ -339,16 +346,20 @@ pub struct ResizeConfig {
     pub compression: Option<ResizeCompression>,
     pub contrast: Option<f64>,
     pub dpr: Option<f64>,
+    pub draw: Option<ResizeDraw>,
     pub fit: Option<ResizeFit>,
+    pub flip: Option<ResizeFlip>,
     pub format: Option<ResizeFormat>,
     pub gamma: Option<f64>,
     pub gravity: Option<ResizeGravity>,
     pub height: Option<usize>,
     pub metadata: Option<ResizeMetadata>,
+    pub origin_auth: Option<ResizeOriginAuth>,
     pub onerror: Option<ResizeOnerror>,
-    pub quality: Option<usize>,
+    pub quality: Option<ResizeQuality>,
     pub rotate: Option<usize>,
-    pub sharpen: Option<usize>,
+    pub saturation: Option<f64>,
+    pub sharpen: Option<f64>,
     pub trim: Option<ResizeTrim>,
     pub width: Option<usize>,
 }
@@ -357,6 +368,25 @@ pub struct ResizeConfig {
 #[serde(rename_all = "kebab-case")]
 pub enum ResizeCompression {
     Fast,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(untagged)]
+pub enum ResizeDrawRepeat {
+    Uniform(bool),
+    Axis(String),
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct ResizeDraw {
+    url: String,
+    opacity: Option<f64>,
+    repeat: Option<ResizeDrawRepeat>,
+    top: Option<usize>,
+    bottom: Option<usize>,
+    left: Option<usize>,
+    right: Option<usize>,
 }
 
 #[derive(Clone, Copy, Debug, Serialize)]
@@ -370,12 +400,26 @@ pub enum ResizeFit {
 }
 
 #[derive(Clone, Copy, Debug, Serialize)]
+pub enum ResizeFlip {
+    #[serde(rename = "h")]
+    Horizontally,
+    #[serde(rename = "v")]
+    Vertically,
+    #[serde(rename = "hv")]
+    Both,
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ResizeFormat {
-    Auto,
     Avif,
     Webp,
     Json,
+    Jpeg,
+    Png,
+    BaselineJpeg,
+    PngForce,
+    Svg,
 }
 
 #[derive(Clone, Copy, Debug, Serialize)]
@@ -394,6 +438,23 @@ pub enum ResizeGravitySide {
 pub enum ResizeGravity {
     Side(ResizeGravitySide),
     Coords { x: f64, y: f64 },
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ResizeQualityLiteral {
+    Low,
+    MediumLow,
+    MediumHigh,
+    High,
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
+#[serde(untagged)]
+pub enum ResizeQuality {
+    Literal(ResizeQualityLiteral),
+    Specific { value: usize },
 }
 
 #[derive(Clone, Copy, Debug, Serialize)]
@@ -434,6 +495,16 @@ pub enum RequestRedirect {
     #[default]
     Follow,
     Manual,
+}
+
+impl From<RequestRedirect> for &str {
+    fn from(redirect: RequestRedirect) -> Self {
+        match redirect {
+            RequestRedirect::Error => "error",
+            RequestRedirect::Follow => "follow",
+            RequestRedirect::Manual => "manual",
+        }
+    }
 }
 
 impl From<RequestRedirect> for web_sys::RequestRedirect {
