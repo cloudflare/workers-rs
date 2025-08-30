@@ -413,12 +413,18 @@ pub enum ResizeOnerror {
 #[derive(Clone, Copy, Debug, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ResizeTrim {
-    pub top: usize,
-    pub bottom: usize,
-    pub left: usize,
-    pub right: usize,
-    pub width: usize,
-    pub height: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub top: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bottom: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub left: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub right: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub width: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub height: Option<usize>,
 }
 
 #[derive(Clone, Copy, Debug, Default, Serialize)]
