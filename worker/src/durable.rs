@@ -77,7 +77,7 @@ unsafe impl Sync for ObjectNamespace {}
 impl ObjectNamespace {
     /// This method derives a unique object ID from the given name string. It will always return the
     /// same ID when given the same name as input.
-    pub fn id_from_name(&self, name: &str) -> Result<ObjectId> {
+    pub fn id_from_name(&self, name: &str) -> Result<ObjectId<'_>> {
         self.inner
             .id_from_name(name)
             .map_err(Error::from)
@@ -95,7 +95,7 @@ impl ObjectNamespace {
     /// numbers are valid IDs. This method will throw if it is passed an ID that was not originally
     /// created by newUniqueId() or idFromName(). It will also throw if the ID was originally
     /// created for a different namespace.
-    pub fn id_from_string(&self, hex_id: &str) -> Result<ObjectId> {
+    pub fn id_from_string(&self, hex_id: &str) -> Result<ObjectId<'_>> {
         self.inner
             .id_from_string(hex_id)
             .map_err(Error::from)
@@ -108,7 +108,7 @@ impl ObjectNamespace {
     /// Creates a new object ID randomly. This method will never return the same ID twice, and thus
     /// it is guaranteed that the object does not yet exist and has never existed at the time the
     /// method returns.
-    pub fn unique_id(&self) -> Result<ObjectId> {
+    pub fn unique_id(&self) -> Result<ObjectId<'_>> {
         self.inner
             .new_unique_id()
             .map_err(Error::from)
@@ -127,7 +127,7 @@ impl ObjectNamespace {
     ///
     /// See supported jurisdictions and more documentation at:
     /// <https://developers.cloudflare.com/durable-objects/reference/data-location/#restrict-durable-objects-to-a-jurisdiction>
-    pub fn unique_id_with_jurisdiction(&self, jd: &str) -> Result<ObjectId> {
+    pub fn unique_id_with_jurisdiction(&self, jd: &str) -> Result<ObjectId<'_>> {
         let options = Object::new();
         js_sys::Reflect::set(&options, &JsValue::from("jurisdiction"), &jd.into())?;
         self.inner
