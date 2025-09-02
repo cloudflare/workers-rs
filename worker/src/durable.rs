@@ -13,6 +13,7 @@
 use std::{fmt::Display, ops::Deref, time::Duration};
 
 use crate::{
+    container::Container,
     date::Date,
     env::{Env, EnvBinding},
     error::Error,
@@ -253,6 +254,10 @@ impl State {
         Storage {
             inner: self.inner.storage().unwrap(),
         }
+    }
+
+    pub fn container(&self) -> Option<Container> {
+        self.inner.container().map(|inner| Container { inner })
     }
 
     pub fn wait_until<F>(&self, future: F)
