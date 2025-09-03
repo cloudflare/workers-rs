@@ -42,7 +42,7 @@ impl Bucket {
     /// Retrieves the [Object] for the given key containing object metadata and the object body if
     /// the key exists. In the event that a precondition specified in options fails, get() returns
     /// an [Object] with no body.
-    pub fn get(&self, key: impl Into<String>) -> GetOptionsBuilder {
+    pub fn get(&self, key: impl Into<String>) -> GetOptionsBuilder<'_> {
         GetOptionsBuilder {
             edge_bucket: &self.inner,
             key: key.into(),
@@ -56,7 +56,7 @@ impl Bucket {
     ///
     /// R2 writes are strongly consistent. Once the future resolves, all subsequent read operations
     /// will see this key value pair globally.
-    pub fn put(&self, key: impl Into<String>, value: impl Into<Data>) -> PutOptionsBuilder {
+    pub fn put(&self, key: impl Into<String>, value: impl Into<Data>) -> PutOptionsBuilder<'_> {
         PutOptionsBuilder {
             edge_bucket: &self.inner,
             key: key.into(),
@@ -98,7 +98,7 @@ impl Bucket {
 
     /// Returns an [Objects] containing a list of [Objects]s contained within the bucket. By
     /// default, returns the first 1000 entries.
-    pub fn list(&self) -> ListOptionsBuilder {
+    pub fn list(&self) -> ListOptionsBuilder<'_> {
         ListOptionsBuilder {
             edge_bucket: &self.inner,
             limit: None,
@@ -117,7 +117,7 @@ impl Bucket {
     pub fn create_multipart_upload(
         &self,
         key: impl Into<String>,
-    ) -> CreateMultipartUploadOptionsBuilder {
+    ) -> CreateMultipartUploadOptionsBuilder<'_> {
         CreateMultipartUploadOptionsBuilder {
             edge_bucket: &self.inner,
             key: key.into(),
@@ -270,7 +270,7 @@ impl Object {
         .try_into()
     }
 
-    pub fn body(&self) -> Option<ObjectBody> {
+    pub fn body(&self) -> Option<ObjectBody<'_>> {
         match &self.inner {
             ObjectInner::NoBody(_) => None,
             ObjectInner::Body(body) => Some(ObjectBody { inner: body }),
