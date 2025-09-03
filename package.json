@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "@changesets/changelog-github": "^0.4.8",
-    "@changesets/cli": "^2.29.4",
+    "@changesets/cli": "^2.29.6",
     "@cloudflare/workers-types": "^4.20250724.0"
   },
   "name": "workers-rs",
