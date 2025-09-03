@@ -286,12 +286,12 @@ pub async fn handle_get_by_name(
 ) -> Result<Response> {
     let namespace = env.durable_object("MY_CLASS")?;
     let name = "my-durable-object";
-    
+
     // Using the new get_by_name method - this is equivalent to:
     // let id = namespace.id_from_name(name)?;
     // let stub = id.get_stub()?;
     let stub = namespace.get_by_name(name)?;
-    
+
     stub.fetch_with_str(&format!("https://fake-host/hello?name={name}"))
         .await
 }
@@ -304,10 +304,10 @@ pub async fn handle_get_by_name_with_location_hint(
 ) -> Result<Response> {
     let namespace = env.durable_object("MY_CLASS")?;
     let name = "my-durable-object";
-    
+
     // Using the new get_by_name_with_location_hint method
     let stub = namespace.get_by_name_with_location_hint(name, "enam")?;
-    
+
     stub.fetch_with_str(&format!("https://fake-host/hello?name={name}"))
         .await
 }
