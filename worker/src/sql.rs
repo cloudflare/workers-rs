@@ -149,19 +149,25 @@ impl TryFrom<JsValue> for SqlStorageValue {
             } else {
                 Ok(SqlStorageValue::Float(num_val))
             }
-        } else if js_val.is_instance_of::<js_sys::Uint8Array>() {
-            let uint8_array = js_sys::Uint8Array::from(js_val);
-            let mut bytes = vec![0u8; uint8_array.length() as usize];
-            uint8_array.copy_to(&mut bytes);
-            Ok(SqlStorageValue::Blob(bytes))
-        } else if js_val.is_instance_of::<js_sys::ArrayBuffer>() {
-            let array_buffer = js_sys::ArrayBuffer::from(js_val);
-            let uint8_array = js_sys::Uint8Array::new(&array_buffer);
-            let mut bytes = vec![0u8; uint8_array.length() as usize];
-            uint8_array.copy_to(&mut bytes);
-            Ok(SqlStorageValue::Blob(bytes))
         } else {
-            Err(Error::from("Unsupported JavaScript value type"))
+            js_val
+                .dyn_into::<js_sys::Uint8Array>()
+                .map(|uint8_array| {
+                    let mut bytes = vec![0u8; uint8_array.length() as usize];
+                    uint8_array.copy_to(&mut bytes);
+                    SqlStorageValue::Blob(bytes)
+                })
+                .or_else(|js_val| {
+                    js_val
+                        .dyn_into::<js_sys::ArrayBuffer>()
+                        .map(|array_buffer| {
+                            let uint8_array = js_sys::Uint8Array::new(&array_buffer);
+                            let mut bytes = vec![0u8; uint8_array.length() as usize];
+                            uint8_array.copy_to(&mut bytes);
+                            SqlStorageValue::Blob(bytes)
+                        })
+                })
+                .map_err(|_| Error::from("Unsupported JavaScript value type"))
         }
     }
 }
