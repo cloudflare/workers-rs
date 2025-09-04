@@ -57,9 +57,5 @@ pub fn find_wasm_opt(cache: &Cache, install_permitted: bool) -> Result<Option<Pa
             PBAR.info("Skipping wasm-opt as no downloading was requested");
             Ok(None)
         }
-        install::Status::PlatformNotSupported => {
-            PBAR.info("Skipping wasm-opt because it is not supported on this platform");
-            Ok(None)
-        }
     }
 }

@@ -56,19 +56,9 @@ impl ProgressOutput {
         self.quiet.load(Ordering::SeqCst)
     }
 
-    /// Causes it to silence stdout
-    pub fn set_quiet(&self, quiet: bool) {
-        self.quiet.store(quiet, Ordering::SeqCst);
-    }
-
     /// Returns whether the specified log level is enabled or not
     pub fn is_log_enabled(&self, level: LogLevel) -> bool {
         (level as u8) <= self.log_level.load(Ordering::SeqCst)
-    }
-
-    /// Sets the log level for wasm-pack
-    pub fn set_log_level(&self, log_level: LogLevel) {
-        self.log_level.store(log_level as u8, Ordering::SeqCst);
     }
 
     /// Add an informational message.
@@ -89,19 +79,6 @@ impl ProgressOutput {
                 message
             );
             self.message(&warn);
-        }
-    }
-
-    /// Add an error message.
-    pub fn error(&self, message: &str) {
-        if self.is_log_enabled(LogLevel::Error) {
-            let err = format!(
-                "{}: {} {}",
-                style("[ERR]").bold().dim(),
-                emoji::ERROR,
-                message
-            );
-            self.message(&err);
         }
     }
 }

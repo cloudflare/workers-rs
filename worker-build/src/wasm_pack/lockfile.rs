@@ -52,11 +52,6 @@ impl Lockfile {
         })
     }
 
-    /// Get the version of `wasm-bindgen` dependency used in the `Cargo.lock`.
-    pub fn wasm_bindgen_test_version(&self) -> Option<&str> {
-        self.get_package_version("wasm-bindgen-test")
-    }
-
     fn get_package_version(&self, package: &str) -> Option<&str> {
         self.package
             .iter()

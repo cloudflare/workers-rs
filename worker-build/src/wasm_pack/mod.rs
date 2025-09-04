@@ -12,49 +12,23 @@ extern crate serde;
 extern crate strsim;
 extern crate which;
 
-pub mod bindgen;
-pub mod build;
-pub mod cache;
-pub mod child;
-pub mod command;
-pub mod emoji;
-pub mod generate;
-pub mod install;
-pub mod license;
-pub mod lockfile;
-pub mod manifest;
-pub mod npm;
-pub mod progressbar;
-pub mod readme;
-pub mod stamps;
-pub mod target;
-pub mod test;
-pub mod wasm_opt;
+pub(crate) mod bindgen;
+pub(crate) mod build;
+pub(crate) mod cache;
+pub(crate) mod child;
+pub(crate) mod command;
+pub(crate) mod emoji;
+pub(crate) mod install;
+pub(crate) mod license;
+pub(crate) mod lockfile;
+pub(crate) mod manifest;
+pub(crate) mod progressbar;
+pub(crate) mod readme;
+pub(crate) mod target;
+pub(crate) mod wasm_opt;
+pub(crate) mod utils;
 
-use crate::wasm_pack::progressbar::{LogLevel, ProgressOutput};
-use clap::builder::ArgAction;
-use clap::Parser;
+use crate::wasm_pack::progressbar::ProgressOutput;
 
 /// The global progress bar and user-facing message output.
-pub static PBAR: ProgressOutput = ProgressOutput::new();
-
-/// 📦 ✨  pack and publish your wasm!
-#[derive(Debug, Parser)]
-#[command(version)]
-pub struct Cli {
-    /// The subcommand to run.
-    #[clap(subcommand)] // Note that we mark a field as a subcommand
-    pub cmd: command::Command,
-
-    /// Log verbosity is based off the number of v used
-    #[clap(long = "verbose", short = 'v', action = ArgAction::Count)]
-    pub verbosity: u8,
-
-    #[clap(long = "quiet", short = 'q')]
-    /// No output printed to stdout
-    pub quiet: bool,
-
-    #[clap(long = "log-level", default_value = "info")]
-    /// The maximum level of messages that should be logged by wasm-pack. [possible values: info, warn, error]
-    pub log_level: LogLevel,
-}
+pub(crate) static PBAR: ProgressOutput = ProgressOutput::new();

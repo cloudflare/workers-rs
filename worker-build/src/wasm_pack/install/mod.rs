@@ -3,7 +3,6 @@
 use self::krate::Krate;
 use crate::wasm_pack::child;
 use crate::wasm_pack::emoji;
-use crate::wasm_pack::install;
 use crate::wasm_pack::PBAR;
 use anyhow::{anyhow, bail, Context, Result};
 use binary_install::{Cache, Download};
@@ -29,8 +28,6 @@ pub use self::tool::Tool;
 pub enum Status {
     /// Couldn't install tool because downloads are forbidden by user
     CannotInstall,
-    /// The current platform doesn't support precompiled binaries for this tool
-    PlatformNotSupported,
     /// We found the tool at the specified path
     Found(Download),
 }
@@ -40,9 +37,6 @@ pub fn get_tool_path(status: &Status, tool: Tool) -> Result<&Download> {
     match status {
         Status::Found(download) => Ok(download),
         Status::CannotInstall => bail!("Not able to find or install a local {}.", tool),
-        install::Status::PlatformNotSupported => {
-            bail!("{} does not currently support your platform.", tool)
-        }
     }
 }
 
@@ -140,13 +134,6 @@ pub fn download_prebuilt(
                 None => bail!("wasm-bindgen v{} is not installed!", version),
             }
         }
-        Tool::CargoGenerate => {
-            let binaries = &["cargo-generate"];
-            match cache.download(install_permitted, "cargo-generate", binaries, &url)? {
-                Some(download) => Ok(Status::Found(download)),
-                None => bail!("cargo-generate v{} is not installed!", version),
-            }
-        }
         Tool::WasmOpt => {
             let binaries: &[&str] = match Os::get()? {
                 Os::MacOS => &["bin/wasm-opt", "lib/libbinaryen.dylib"],
@@ -179,7 +166,6 @@ pub fn prebuilt_url_for(tool: &Tool, version: &str, arch: &Arch, os: &Os) -> Res
         (Os::Linux, Arch::X86_64, _) => "x86_64-unknown-linux-musl",
         (Os::MacOS, Arch::X86_64, Tool::WasmOpt) => "x86_64-macos",
         (Os::MacOS, Arch::X86_64, _) => "x86_64-apple-darwin",
-        (Os::MacOS, Arch::AArch64, Tool::CargoGenerate) => "aarch64-apple-darwin",
         (Os::MacOS, Arch::AArch64, Tool::WasmOpt) => "arm64-macos",
         (Os::Windows, Arch::X86_64, Tool::WasmOpt) => "x86_64-windows",
         (Os::Windows, Arch::X86_64, _) => "x86_64-pc-windows-msvc",
@@ -190,13 +176,6 @@ pub fn prebuilt_url_for(tool: &Tool, version: &str, arch: &Arch, os: &Os) -> Res
             Ok(format!(
                 "https://github.com/rustwasm/wasm-bindgen/releases/download/{0}/wasm-bindgen-{0}-{1}.tar.gz",
                 version,
-                target
-            ))
-        },
-        Tool::CargoGenerate => {
-            Ok(format!(
-                "https://github.com/cargo-generate/cargo-generate/releases/download/v{0}/cargo-generate-v{0}-{1}.tar.gz",
-                "0.18.2",
                 target
             ))
         },
@@ -274,7 +253,6 @@ pub fn cargo_install(
     // little renaming here.
     let binaries: Result<Vec<&str>> = match tool {
         Tool::WasmBindgen => Ok(vec!["wasm-bindgen", "wasm-bindgen-test-runner"]),
-        Tool::CargoGenerate => Ok(vec!["cargo-generate"]),
         Tool::WasmOpt => bail!("Cannot install wasm-opt with cargo."),
     };
 

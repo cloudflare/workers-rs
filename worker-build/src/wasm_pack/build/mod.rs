@@ -3,7 +3,6 @@
 use crate::wasm_pack::child;
 use crate::wasm_pack::command::build::BuildProfile;
 use crate::wasm_pack::emoji;
-use crate::wasm_pack::manifest::Crate;
 use crate::wasm_pack::PBAR;
 use anyhow::{anyhow, bail, Context, Result};
 use std::path::Path;
@@ -11,16 +10,6 @@ use std::process::Command;
 use std::str;
 
 pub mod wasm_target;
-
-/// Used when comparing the currently installed
-/// wasm-pack version with the latest on crates.io.
-pub struct WasmPackVersion {
-    /// The currently installed wasm-pack version.
-    pub local: String,
-    /// The latest version of wasm-pack that's released at
-    /// crates.io.
-    pub latest: String,
-}
 
 /// Ensure that `rustc` is present and that it is >= 1.30.0
 pub fn check_rustc_version() -> Result<String> {
@@ -57,19 +46,6 @@ fn rustc_minor_version() -> Option<u32> {
         return None;
     }
     otry!(pieces.next()).parse().ok()
-}
-
-/// Checks and returns local and latest versions of wasm-pack
-pub fn check_wasm_pack_versions() -> Result<WasmPackVersion> {
-    match wasm_pack_local_version() {
-        Some(local) => Ok(WasmPackVersion {local, latest: Crate::return_wasm_pack_latest_version()?.unwrap_or_else(|| "".to_string())}),
-        None => bail!("We can't figure out what your wasm-pack version is, make sure the installation path is correct.")
-    }
-}
-
-fn wasm_pack_local_version() -> Option<String> {
-    let output = env!("CARGO_PKG_VERSION");
-    Some(output.to_string())
 }
 
 /// Run `cargo build` targetting `wasm32-unknown-unknown`.
@@ -133,39 +109,5 @@ pub fn cargo_build_wasm(
     cmd.args(extra_options_with_absolute_paths);
 
     child::run(cmd, "cargo build").context("Compiling your crate to WebAssembly failed")?;
-    Ok(())
-}
-
-/// Runs `cargo build --tests` targeting `wasm32-unknown-unknown`.
-///
-/// This generates the `Cargo.lock` file that we use in order to know which version of
-/// wasm-bindgen-cli to use when running tests.
-///
-/// Note that the command to build tests and the command to run tests must use the same parameters, i.e. features to be
-/// disabled / enabled must be consistent for both `cargo build` and `cargo test`.
-///
-/// # Parameters
-///
-/// * `path`: Path to the crate directory to build tests.
-/// * `debug`: Whether to build tests in `debug` mode.
-/// * `extra_options`: Additional parameters to pass to `cargo` when building tests.
-pub fn cargo_build_wasm_tests(path: &Path, debug: bool, extra_options: &[String]) -> Result<()> {
-    let mut cmd = Command::new("cargo");
-
-    cmd.current_dir(path).arg("build").arg("--tests");
-
-    if PBAR.quiet() {
-        cmd.arg("--quiet");
-    }
-
-    if !debug {
-        cmd.arg("--release");
-    }
-
-    cmd.arg("--target").arg("wasm32-unknown-unknown");
-
-    cmd.args(extra_options);
-
-    child::run(cmd, "cargo build").context("Compilation of your program failed")?;
     Ok(())
 }

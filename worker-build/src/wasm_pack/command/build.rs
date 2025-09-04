@@ -3,7 +3,7 @@
 use crate::wasm_pack::bindgen;
 use crate::wasm_pack::build;
 use crate::wasm_pack::cache;
-use crate::wasm_pack::command::utils::{create_pkg_dir, get_crate_path};
+use crate::wasm_pack::utils::{create_pkg_dir, get_crate_path};
 use crate::wasm_pack::emoji;
 use crate::wasm_pack::install::{self, InstallMode, Tool};
 use crate::wasm_pack::license;
@@ -263,11 +263,6 @@ impl Build {
         })
     }
 
-    /// Configures the global binary cache used for this build
-    pub fn set_cache(&mut self, cache: Cache) {
-        self.cache = cache;
-    }
-
     /// Execute this `Build` command.
     pub fn run(&mut self) -> Result<()> {
         let process_steps = Build::get_process_steps(self.mode, self.no_pack, self.no_opt);
@@ -278,7 +273,7 @@ impl Build {
             process_step(self)?;
         }
 
-        let duration = crate::wasm_pack::command::utils::elapsed(started.elapsed());
+        let duration = crate::wasm_pack::utils::elapsed(started.elapsed());
         info!("Done in {}.", &duration);
         info!(
             "Your wasm pkg is ready to publish at {}.",
