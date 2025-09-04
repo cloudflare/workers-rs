@@ -56,6 +56,7 @@ worker.workspace = true
 rand = "0.9.1"
 uuid = { version = "1.17", features = ["v4", "serde", "js"] }
 serde-wasm-bindgen.workspace = true
+wasm-bindgen.workspace = true
 md5 = "0.7.0"
 tokio-stream = "0.1"
 tokio = { version = "1.45", default-features = false, features = ['io-util'] }
