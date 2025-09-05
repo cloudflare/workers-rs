@@ -3,13 +3,13 @@
 use crate::wasm_pack::bindgen;
 use crate::wasm_pack::build;
 use crate::wasm_pack::cache;
-use crate::wasm_pack::utils::{create_pkg_dir, get_crate_path};
 use crate::wasm_pack::emoji;
 use crate::wasm_pack::install::{self, InstallMode, Tool};
 use crate::wasm_pack::license;
 use crate::wasm_pack::lockfile::Lockfile;
 use crate::wasm_pack::manifest;
 use crate::wasm_pack::readme;
+use crate::wasm_pack::utils::{create_pkg_dir, get_crate_path};
 use crate::wasm_pack::wasm_opt;
 use crate::wasm_pack::PBAR;
 use anyhow::{anyhow, bail, Error, Result};

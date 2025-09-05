@@ -25,8 +25,8 @@ pub(crate) mod manifest;
 pub(crate) mod progressbar;
 pub(crate) mod readme;
 pub(crate) mod target;
-pub(crate) mod wasm_opt;
 pub(crate) mod utils;
+pub(crate) mod wasm_opt;
 
 use crate::wasm_pack::progressbar::ProgressOutput;
 

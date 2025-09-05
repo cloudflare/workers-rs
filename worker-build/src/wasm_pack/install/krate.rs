@@ -22,7 +22,8 @@ impl Krate {
             config = config.proxy(Some(proxy));
         }
         let agent = config.build().new_agent();
-        let mut res = agent.get(&krate_address)
+        let mut res = agent
+            .get(&krate_address)
             .header(
                 "user-agent",
                 &format!("wasm-pack/{}", VERSION.unwrap_or("unknown")),

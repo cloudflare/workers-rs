@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use serde::Serialize;
+
 use crate::wasm_pack::manifest::npm::repository::Repository;
 
 #[derive(Serialize)]

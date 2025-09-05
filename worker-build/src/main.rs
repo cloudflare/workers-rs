@@ -19,19 +19,8 @@ const WORKER_SUBDIR: &str = "worker";
 
 const SHIM_TEMPLATE: &str = include_str!("./js/shim.js");
 
-#[macro_use]
-extern crate serde_derive;
-extern crate binary_install;
-extern crate chrono;
-extern crate dialoguer;
-extern crate log;
-extern crate serde_ignored;
-extern crate serde_json;
-extern crate toml;
-extern crate walkdir;
-
-mod wasm_pack;
 mod install;
+mod wasm_pack;
 
 use wasm_pack::command::build::{Build, BuildOptions};
 

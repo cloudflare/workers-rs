@@ -17,7 +17,7 @@ use self::npm::{
 };
 use crate::wasm_pack::command::build::{BuildProfile, Target};
 use crate::wasm_pack::PBAR;
-use cargo_metadata::Metadata;
+use cargo_metadata::{CrateType, Metadata, TargetKind};
 use serde::{self, Deserialize};
 use serde_json;
 use std::collections::BTreeSet;
@@ -320,7 +320,7 @@ impl CrateData {
             .packages
             .iter()
             .position(|pkg| {
-                pkg.name == manifest.package.name
+                pkg.name.as_ref() == manifest.package.name
                     && CrateData::is_same_path(pkg.manifest_path.as_std_path(), &manifest_path)
             })
             .ok_or_else(|| anyhow!("failed to find package in metadata"))?;
@@ -352,7 +352,7 @@ impl CrateData {
     pub fn parse_crate_data(manifest_path: &Path) -> Result<ManifestAndUnsedKeys> {
         let manifest = fs::read_to_string(&manifest_path)
             .with_context(|| anyhow!("failed to read: {}", manifest_path.display()))?;
-        let manifest = toml::Deserializer::new(&manifest);
+        let manifest = toml::Deserializer::parse(&manifest)?;
 
         let mut unused_keys = BTreeSet::new();
         let levenshtein_threshold = 1;
@@ -407,8 +407,8 @@ impl CrateData {
         let any_cdylib = pkg
             .targets
             .iter()
-            .filter(|target| target.kind.iter().any(|k| k == "cdylib"))
-            .any(|target| target.crate_types.iter().any(|s| s == "cdylib"));
+            .filter(|target| target.kind.iter().any(|k| *k == TargetKind::CDyLib))
+            .any(|target| target.crate_types.iter().any(|s| *s == CrateType::CDyLib));
         if any_cdylib {
             return Ok(());
         }
@@ -430,7 +430,7 @@ impl CrateData {
         match pkg
             .targets
             .iter()
-            .find(|t| t.kind.iter().any(|k| k == "cdylib"))
+            .find(|t| t.kind.iter().any(|k| *k == TargetKind::CDyLib))
         {
             Some(lib) => lib.name.replace("-", "_"),
             None => pkg.name.replace("-", "_"),
@@ -533,7 +533,7 @@ impl CrateData {
         let pkg = &self.data.packages[self.current_idx];
         let npm_name = match scope {
             Some(s) => format!("@{}/{}", s, pkg.name),
-            None => pkg.name.clone(),
+            None => pkg.name.clone().as_ref().to_owned(),
         };
 
         let dts_file = if !disable_dts {
