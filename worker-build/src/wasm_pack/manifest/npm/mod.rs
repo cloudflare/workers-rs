@@ -11,6 +11,7 @@ pub use self::nomodules::NoModulesPackage;
 
 #[derive(Serialize)]
 #[serde(untagged)]
+#[allow(clippy::enum_variant_names)]
 pub enum NpmPackage {
     CommonJSPackage(CommonJSPackage),
     ESModulesPackage(ESModulesPackage),

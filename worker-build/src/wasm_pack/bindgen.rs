@@ -5,12 +5,12 @@ use crate::wasm_pack::command::build::{BuildProfile, Target};
 use crate::wasm_pack::install::{self, Tool};
 use crate::wasm_pack::manifest::CrateData;
 use anyhow::{bail, Context, Result};
-use semver;
 use std::path::Path;
 use std::process::Command;
 
 /// Run the `wasm-bindgen` CLI to generate bindings for the current crate's
 /// `.wasm`.
+#[allow(clippy::too_many_arguments)]
 pub fn wasm_bindgen_build(
     data: &CrateData,
     install_status: &install::Status,
@@ -21,7 +21,7 @@ pub fn wasm_bindgen_build(
     reference_types: bool,
     target: Target,
     profile: BuildProfile,
-    extra_options: &Vec<String>,
+    extra_options: &[String],
 ) -> Result<()> {
     let profile_name = match profile.clone() {
         BuildProfile::Release | BuildProfile::Profiling => "release",

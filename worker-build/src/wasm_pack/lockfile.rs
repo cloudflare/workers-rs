@@ -9,7 +9,6 @@ use crate::wasm_pack::manifest::CrateData;
 use anyhow::{anyhow, bail, Context, Result};
 use console::style;
 use serde::Deserialize;
-use toml;
 
 /// This struct represents the contents of `Cargo.lock`.
 #[derive(Clone, Debug, Deserialize)]

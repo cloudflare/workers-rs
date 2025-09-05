@@ -19,10 +19,8 @@ use crate::wasm_pack::command::build::{BuildProfile, Target};
 use crate::wasm_pack::PBAR;
 use cargo_metadata::{CrateType, Metadata, TargetKind};
 use serde::{self, Deserialize};
-use serde_json;
 use std::collections::BTreeSet;
 use strsim::levenshtein;
-use toml;
 
 const WASM_PACK_METADATA_KEY: &str = "package.metadata.wasm-pack";
 
@@ -334,8 +332,8 @@ impl CrateData {
     }
 
     fn is_same_path(path1: &Path, path2: &Path) -> bool {
-        if let Ok(path1) = fs::canonicalize(&path1) {
-            if let Ok(path2) = fs::canonicalize(&path2) {
+        if let Ok(path1) = fs::canonicalize(path1) {
+            if let Ok(path2) = fs::canonicalize(path2) {
                 return path1 == path2;
             }
         }
@@ -350,7 +348,7 @@ impl CrateData {
     /// Will return Err if the file (manifest_path) couldn't be read or
     /// if deserialize to `CargoManifest` fails.
     pub fn parse_crate_data(manifest_path: &Path) -> Result<ManifestAndUnsedKeys> {
-        let manifest = fs::read_to_string(&manifest_path)
+        let manifest = fs::read_to_string(manifest_path)
             .with_context(|| anyhow!("failed to read: {}", manifest_path.display()))?;
         let manifest = toml::Deserializer::parse(&manifest)?;
 
@@ -407,8 +405,8 @@ impl CrateData {
         let any_cdylib = pkg
             .targets
             .iter()
-            .filter(|target| target.kind.iter().any(|k| *k == TargetKind::CDyLib))
-            .any(|target| target.crate_types.iter().any(|s| *s == CrateType::CDyLib));
+            .filter(|target| target.kind.contains(&TargetKind::CDyLib))
+            .any(|target| target.crate_types.contains(&CrateType::CDyLib));
         if any_cdylib {
             return Ok(());
         }
@@ -430,7 +428,7 @@ impl CrateData {
         match pkg
             .targets
             .iter()
-            .find(|t| t.kind.iter().any(|k| *k == TargetKind::CDyLib))
+            .find(|t| t.kind.contains(&TargetKind::CDyLib))
         {
             Some(lib) => lib.name.replace("-", "_"),
             None => pkg.name.replace("-", "_"),
@@ -544,7 +542,7 @@ impl CrateData {
             None
         };
 
-        let keywords = if pkg.keywords.len() > 0 {
+        let keywords = if !pkg.keywords.is_empty() {
             Some(pkg.keywords.clone())
         } else {
             None
