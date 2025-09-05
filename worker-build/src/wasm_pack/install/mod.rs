@@ -57,15 +57,21 @@ pub fn download_prebuilt_or_cargo_install(
         if let Ok(custom_path) = env::var("WASM_BINDGEN_PATH") {
             let path = Path::new(&custom_path);
             if path.exists() {
-                info!("Using custom wasm-bindgen from WASM_BINDGEN_PATH: {}", custom_path);
+                info!(
+                    "Using custom wasm-bindgen from WASM_BINDGEN_PATH: {}",
+                    custom_path
+                );
                 let download = Download::at(path.parent().unwrap_or(path));
                 return Ok(Status::Found(download));
             } else {
-                warn!("WASM_BINDGEN_PATH set but path doesn't exist: {}", custom_path);
+                warn!(
+                    "WASM_BINDGEN_PATH set but path doesn't exist: {}",
+                    custom_path
+                );
             }
         }
     }
-    
+
     // If the tool is installed globally and it has the right version, use
     // that. Assume that other tools are installed next to it.
     //
