@@ -119,7 +119,7 @@ pub struct CfProperties {
     /// zero and negative integers. A value of 0 indicates that the cache asset expires immediately.
     /// Any negative value instructs Cloudflare not to cache at all.
     pub cache_ttl_by_status: Option<HashMap<String, i32>>,
-    // TODO docs
+    /// Enables Image Resizing for this request.
     pub image: Option<ResizeConfig>,
     /// Enables or disables AutoMinify for various file types.
     /// For example: `{ javascript: true, css: true, html: false }`.
@@ -336,29 +336,53 @@ pub enum ResizeOriginAuth {
 #[derive(Clone, Debug, Default, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct ResizeConfig {
+    /// Whether to preserve animation frames from input files. Default is `true`. Setting it to `false` reduces animations to still images.
     pub anim: Option<bool>,
+    /// Background color to add underneath the image. Applies to images with transparency (for example, PNG) and images resized with `fit=pad`.
     pub background: Option<String>,
+    /// Blur radius between `1` (slight blur) and `250` (maximum). Be aware that you cannot use this option to reliably obscure image content.
     pub blur: Option<u8>,
+    /// Adds a border around the image. The border is added after resizing.
     pub border: Option<ResizeBorder>,
+    /// Increase brightness by a factor. A value of `1.0` equals no change, a value of `0.5` equals half brightness, and a value of `2.0` equals twice as bright.
     pub brightness: Option<f64>,
+    /// Slightly reduces latency on a cache miss by selecting a quickest-to-compress file format, at a cost of increased file size and lower image quality.
     pub compression: Option<ResizeCompression>,
+    /// Increase contrast by a factor. A value of `1.0` equals no change, a value of `0.5` equals low contrast, and a value of `2.0` equals high contrast.
     pub contrast: Option<f64>,
+    /// Device Pixel Ratio. Default is `1`. Multiplier for `width`/`height` that makes it easier to specify higher-DPI sizes in `<img srcset>`.
     pub dpr: Option<f64>,
+    /// Drawing operations to overlay on the image.
     pub draw: Option<ResizeDraw>,
+    /// Affects interpretation of `width` and `height`. All resizing modes preserve aspect ratio.
     pub fit: Option<ResizeFit>,
+    /// Flips the image horizontally, vertically, or both. Can be used with the `rotate` parameter to set the orientation of an image.
     pub flip: Option<ResizeFlip>,
+    /// The `auto` option will serve the WebP or AVIF format to browsers that support it. If this option is not specified, a standard format like JPEG or PNG will be used.
     pub format: Option<ResizeFormat>,
+    /// Increase exposure by a factor. A value of `1.0` equals no change, a value of `0.5` darkens the image, and a value of `2.0` lightens the image.
     pub gamma: Option<f64>,
+    /// Specifies how an image should be cropped when used with `fit=cover` and `fit=crop`. Available options are `auto`, `face`, a side (`left`, `right`, `top`, `bottom`), and relative coordinates (`XxY` with a valid range of `0.0` to `1.0`).
     pub gravity: Option<ResizeGravity>,
+    /// Specifies maximum height of the image in pixels. Exact behavior depends on the `fit` mode (described below).
     pub height: Option<usize>,
+    /// Controls amount of invisible metadata (EXIF data) that should be preserved. Color profiles and EXIF rotation are applied to the image even if the metadata is discarded.
     pub metadata: Option<ResizeMetadata>,
+    /// Authentication method for accessing the origin image.
     pub origin_auth: Option<ResizeOriginAuth>,
+    /// In case of a fatal error that prevents the image from being resized, redirects to the unresized source image URL. This may be useful in case some images require user authentication and cannot be fetched anonymously via Worker.
     pub onerror: Option<ResizeOnerror>,
+    /// Specifies quality for images in JPEG, WebP, and AVIF formats. The quality is in a 1-100 scale, but useful values are between `50` (low quality, small file size) and `90` (high quality, large file size).
     pub quality: Option<ResizeQuality>,
+    /// Number of degrees (`90`, `180`, or `270`) to rotate the image by. `width` and `height` options refer to axes after rotation.
     pub rotate: Option<usize>,
+    /// Increases saturation by a factor. A value of `1.0` equals no change, a value of `0.5` equals half saturation, and a value of `2.0` equals twice as saturated.
     pub saturation: Option<f64>,
+    /// Specifies strength of sharpening filter to apply to the image. The value is a floating-point number between `0` (no sharpening, default) and `10` (maximum).
     pub sharpen: Option<f64>,
+    /// Specifies a number of pixels to cut off on each side. Allows removal of borders or cutting out a specific fragment of an image.
     pub trim: Option<ResizeTrim>,
+    /// Specifies maximum width of the image. Exact behavior depends on the `fit` mode; use the `fit=scale-down` option to ensure that the image will not be enlarged unnecessarily.
     pub width: Option<usize>,
 }
 
