@@ -5,7 +5,7 @@ use crate::http::Method;
 
 use js_sys::{self, Object};
 use serde::Serialize;
-use wasm_bindgen::JsValue;
+use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 /// Optional options struct that contains settings to apply to the `Request`.
 #[derive(Debug)]
@@ -205,10 +205,7 @@ impl From<&CfProperties> for JsValue {
         set_prop(
             &obj,
             &JsValue::from("minify"),
-            &serde_wasm_bindgen::to_value(
-                &props.minify.unwrap_or(defaults.minify.unwrap_or_default()),
-            )
-            .unwrap(),
+            &JsValue::from(props.minify.unwrap_or(defaults.minify.unwrap_or_default())),
         );
 
         set_prop(
@@ -292,6 +289,7 @@ impl Default for CfProperties {
 
 /// Configuration options for Cloudflare's minification features:
 /// <https://www.cloudflare.com/website-optimization/>
+#[wasm_bindgen]
 #[derive(Clone, Copy, Debug, Default, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub struct MinifyConfig {
