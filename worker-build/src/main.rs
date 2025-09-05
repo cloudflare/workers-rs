@@ -12,7 +12,6 @@ use std::{
 use anyhow::Result;
 
 use clap::Parser;
-use wasm_pack::command::build::{Build, BuildOptions};
 
 const OUT_DIR: &str = "build";
 const OUT_NAME: &str = "index";
@@ -21,6 +20,9 @@ const WORKER_SUBDIR: &str = "worker";
 const SHIM_TEMPLATE: &str = include_str!("./js/shim.js");
 
 mod install;
+mod wasm_pack;
+
+use wasm_pack::command::build::{Build, BuildOptions};
 
 pub fn main() -> Result<()> {
     // Our tests build the bundle ourselves.
