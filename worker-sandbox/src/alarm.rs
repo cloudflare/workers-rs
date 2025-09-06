@@ -40,7 +40,6 @@ impl DurableObject for AlarmObject {
     }
 }
 
-#[worker::send]
 pub async fn handle_alarm(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let namespace = env.durable_object("ALARM")?;
     let stub = namespace.id_from_name("alarm")?.get_stub()?;
