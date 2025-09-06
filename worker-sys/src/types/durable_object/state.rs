@@ -1,6 +1,8 @@
 use wasm_bindgen::prelude::*;
 
-use crate::types::{DurableObjectId, DurableObjectStorage, WebSocketRequestResponsePair};
+use crate::types::{
+    Container, DurableObjectId, DurableObjectStorage, WebSocketRequestResponsePair,
+};
 
 #[wasm_bindgen]
 extern "C" {
@@ -12,6 +14,9 @@ extern "C" {
 
     #[wasm_bindgen(method, catch, getter)]
     pub fn storage(this: &DurableObjectState) -> Result<DurableObjectStorage, JsValue>;
+
+    #[wasm_bindgen(method, getter)]
+    pub fn container(this: &DurableObjectState) -> Option<Container>;
 
     #[wasm_bindgen(method, catch, js_name=waitUntil)]
     pub fn wait_until(this: &DurableObjectState, promise: &js_sys::Promise) -> Result<(), JsValue>;
