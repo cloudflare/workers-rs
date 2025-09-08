@@ -1,10 +1,10 @@
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, test } from "vitest";
 import { MessageEvent } from "miniflare";
-import { mf } from "./mf";
+import { mf, mfUrl } from "./mf";
 
 describe("websocket", () => {
   test("to echo", async () => {
-    const resp = await mf.dispatchFetch("http://fake.host/websocket", {
+    const resp = await mf.dispatchFetch(`${mfUrl}websocket`, {
       headers: {
         upgrade: "websocket",
       },
@@ -14,23 +14,23 @@ describe("websocket", () => {
     const socket = resp.webSocket!;
     socket.accept();
 
-    const handlers = {
-      messageHandler: (event: MessageEvent) =>
-        expect(event.data).toBe("Hello, world!"),
-      close(event: CloseEvent) {},
-    };
-
-    const messageHandlerWrapper = vi.spyOn(handlers, "messageHandler");
-    const closeHandlerWrapper = vi.spyOn(handlers, "messageHandler");
-    socket.addEventListener("message", handlers.messageHandler);
-    socket.addEventListener("close", handlers.close);
+    let cnt = 0;
+    socket.addEventListener("message", function (_event: MessageEvent) {
+      cnt++;
+    });
+    let calledClose = false;
+    socket.addEventListener("close", function (_event: CloseEvent) {
+      calledClose = true;
+    });
 
     socket.send("Hello, world!");
 
     await new Promise((resolve) => setTimeout(resolve, 500));
 
-    expect(messageHandlerWrapper).toBeCalled();
+    expect(cnt).toBe(1);
     socket.close();
-    expect(closeHandlerWrapper).toBeCalled();
+
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    expect(calledClose).toBe(true);
   });
 });

@@ -8,6 +8,7 @@ use serde::Serialize;
 use wasm_bindgen::{prelude::*, JsValue};
 
 /// Optional options struct that contains settings to apply to the `Request`.
+#[derive(Debug)]
 pub struct RequestInit {
     /// Currently requires a manual conversion from your data into a [`wasm_bindgen::JsValue`].
     pub body: Option<JsValue>,
@@ -94,6 +95,7 @@ impl Default for RequestInit {
 }
 
 /// <https://developers.cloudflare.com/workers/runtime-apis/request#requestinitcfproperties>
+#[derive(Debug)]
 pub struct CfProperties {
     /// Whether Cloudflare Apps should be enabled for this request. Defaults to `true`.
     pub apps: Option<bool>,
@@ -276,7 +278,7 @@ impl Default for CfProperties {
 /// Configuration options for Cloudflare's minification features:
 /// <https://www.cloudflare.com/website-optimization/>
 #[wasm_bindgen]
-#[derive(Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct MinifyConfig {
     pub js: bool,
     pub html: bool,
@@ -286,7 +288,7 @@ pub struct MinifyConfig {
 /// Configuration options for Cloudflare's image optimization feature:
 /// <https://blog.cloudflare.com/introducing-polish-automatic-image-optimizati/>
 #[wasm_bindgen]
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum PolishConfig {
     Off,
     Lossy,
@@ -310,7 +312,7 @@ impl From<PolishConfig> for &str {
 }
 
 #[wasm_bindgen]
-#[derive(Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy)]
 pub enum RequestRedirect {
     Error,
     #[default]

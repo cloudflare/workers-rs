@@ -35,6 +35,7 @@ use worker_sys::{
 use wasm_bindgen_futures::{future_to_promise, JsFuture};
 
 /// A Durable Object stub is a client object used to send requests to a remote Durable Object.
+#[derive(Debug)]
 pub struct Stub {
     inner: EdgeDurableObject,
 }
@@ -65,7 +66,7 @@ impl Stub {
 /// Use an ObjectNamespace to get access to Stubs for communication with a Durable Object instance.
 /// A given namespace can support essentially unlimited Durable Objects, with each Object having
 /// access to a transactional, key-value storage API.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct ObjectNamespace {
     inner: EdgeObjectNamespace,
 }
@@ -141,6 +142,7 @@ impl ObjectNamespace {
 
 /// An ObjectId is used to identify, locate, and access a Durable Object via interaction with its
 /// Stub.
+#[derive(Debug)]
 pub struct ObjectId<'a> {
     inner: DurableObjectId,
     namespace: Option<&'a ObjectNamespace>,
@@ -205,6 +207,7 @@ impl Display for ObjectId<'_> {
 
 /// Passed from the runtime to provide access to the Durable Object's storage as well as various
 /// metadata about the Object.
+#[derive(Debug)]
 pub struct State {
     inner: DurableObjectState,
 }
@@ -299,6 +302,12 @@ impl From<DurableObjectState> for State {
 /// accessing multiple key-value pairs.
 pub struct Storage {
     inner: DurableObjectStorage,
+}
+
+impl core::fmt::Debug for Storage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Storage").finish()
+    }
 }
 
 impl Storage {
@@ -530,6 +539,7 @@ impl Storage {
     }
 }
 
+#[derive(Debug)]
 pub struct Transaction {
     inner: DurableObjectTransaction,
 }
@@ -632,7 +642,7 @@ impl Transaction {
     }
 }
 
-#[derive(Default, Serialize)]
+#[derive(Default, Serialize, Debug)]
 pub struct ListOptions<'a> {
     /// Key at which the list results should start, inclusive.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -689,7 +699,7 @@ impl<'a> ListOptions<'a> {
         self
     }
 }
-
+#[derive(Debug)]
 enum ScheduledTimeInit {
     Date(js_sys::Date),
     Offset(f64),
@@ -704,6 +714,7 @@ enum ScheduledTimeInit {
 ///
 /// When an offset is used, the time at which `set_alarm()` or `set_alarm_with_options()` is called
 /// is used to compute the scheduled time. [`Date::now`] is used as the current time.
+#[derive(Debug)]
 pub struct ScheduledTime {
     init: ScheduledTimeInit,
 }
@@ -796,6 +807,7 @@ impl AsRef<JsValue> for ObjectNamespace {
     }
 }
 
+#[derive(Debug)]
 pub enum WebSocketIncomingMessage {
     String(String),
     Binary(Vec<u8>),

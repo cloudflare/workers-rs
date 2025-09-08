@@ -4,7 +4,7 @@ use wasm_bindgen::JsValue;
 #[wasm_bindgen::prelude::wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(extends=js_sys::Object)]
-    #[derive(Clone, PartialEq, Eq)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
     pub type RateLimiter;
 
     #[wasm_bindgen(method, catch)]

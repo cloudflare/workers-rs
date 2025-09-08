@@ -8,7 +8,7 @@ use wasm_bindgen_futures::JsFuture;
 use crate::{HttpRequest, HttpResponse};
 use crate::{Request, Response};
 /// A struct for invoking fetch events to other Workers.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Fetcher(worker_sys::Fetcher);
 
 #[cfg(not(feature = "http"))]
