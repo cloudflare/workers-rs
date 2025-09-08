@@ -95,7 +95,7 @@ fn expand_from_impl(struct_name: &Ident, from_type: &syn::Type) -> anyhow::Resul
     let impl_raw = quote!(
         impl From<#from_type> for #struct_name {
             fn from(fetcher: #from_type) -> Self {
-                Self(::worker::send::SendWrapper::new(fetcher.into_rpc()))
+                Self(unsafe { ::worker::send::SendWrapper::new(fetcher.into_rpc()) })
             }
         }
     );
