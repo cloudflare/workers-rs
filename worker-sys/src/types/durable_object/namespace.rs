@@ -41,4 +41,15 @@ extern "C" {
         id: &DurableObjectId,
         options: &JsValue,
     ) -> Result<DurableObject, JsValue>;
+
+    #[wasm_bindgen(method, catch, js_name=getByName)]
+    pub fn get_by_name(this: &DurableObjectNamespace, name: &str)
+        -> Result<DurableObject, JsValue>;
+
+    #[wasm_bindgen(method, catch, js_name=getByName)]
+    pub fn get_by_name_with_options(
+        this: &DurableObjectNamespace,
+        name: &str,
+        options: &JsValue,
+    ) -> Result<DurableObject, JsValue>;
 }

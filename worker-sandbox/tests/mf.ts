@@ -60,6 +60,7 @@ const mf_instance = new Miniflare({
         COUNTER: "Counter",
         PUT_RAW_TEST_OBJECT: "PutRawTestObject",
         AUTO: "AutoResponseObject",
+        MY_CLASS: "MyClass",
         SQL_COUNTER: {
           className: "SqlCounter",
           useSQLite: true,

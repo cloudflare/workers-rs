@@ -221,6 +221,8 @@ macro_rules! add_routes (
     add_route!($obj, get, "/durable/hello-unique", durable::handle_hello_unique);
     add_route!($obj, get, "/durable/storage", durable::handle_storage);
     add_route!($obj, get, "/durable/handle-basic-test", durable::handle_basic_test);
+    add_route!($obj, get, "/durable/get-by-name", durable::handle_get_by_name);
+    add_route!($obj, get, "/durable/get-by-name-with-location-hint", durable::handle_get_by_name_with_location_hint);
     add_route!($obj, get, "/js_snippets/now", js_snippets::performance_now);
     add_route!($obj, get, "/js_snippets/log", js_snippets::console_log);
     add_route!($obj, get, format_route!("/sql-counter/{}", "*path"), sql_counter::handle_sql_counter);

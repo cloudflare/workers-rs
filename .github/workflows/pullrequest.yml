@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -42,6 +44,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -79,6 +83,9 @@ jobs:
       - name: Install wasmpack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
+      - name: Build wasm-bindgen
+        run: cd wasm-bindgen && cargo build --release --package wasm-bindgen-cli --bin wasm-bindgen
+
       - name: Build local worker-build
         run: cargo install --path ./worker-build --force --debug
 
@@ -86,7 +93,7 @@ jobs:
         run: npm ci
 
       - name: Run tests
-        run: npm run test
+        run: WASM_BINDGEN_PATH=./wasm-bindgen/target/release/wasm-bindgen npm run test
 
       - name: Run tests (http)
-        run: npm run test-http
+        run: WASM_BINDGEN_PATH=./wasm-bindgen/target/release/wasm-bindgen npm run test-http
