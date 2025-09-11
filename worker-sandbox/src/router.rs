@@ -224,6 +224,7 @@ macro_rules! add_routes (
     add_route!($obj, get, format_route!("/sql-iterator/{}", "*path"), sql_iterator::handle_sql_iterator);
     add_route!($obj, get, "/get-from-secret-store", secret_store::get_from_secret_store);
     add_route!($obj, get, "/get-from-secret-store-missing", secret_store::get_from_secret_store_missing);
+    add_route!($obj, get, sync, "/test-panic", handle_test_panic);
 });
 
 #[cfg(feature = "http")]
@@ -296,4 +297,8 @@ async fn handle_options_catchall(
 async fn handle_init_called(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     let init_called = GLOBAL_STATE.load(Ordering::SeqCst);
     Response::ok(init_called.to_string())
+}
+
+fn handle_test_panic(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
+    panic!("Intentional panic for testing context abort functionality");
 }

@@ -206,6 +206,7 @@ mod cf;
 mod context;
 mod cors;
 pub mod crypto;
+pub mod panic_abort;
 // Require pub module for macro export
 #[cfg(feature = "d1")]
 /// **Requires** `d1` feature.

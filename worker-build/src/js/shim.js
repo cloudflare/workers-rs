@@ -1,55 +1,40 @@
-import * as imports from "./index_bg.js";
-export * from "./index_bg.js";
-import wasmModule from "./index.wasm";
 import { WorkerEntrypoint } from "cloudflare:workers";
-$SNIPPET_JS_IMPORTS
+import * as exports from "./index.js";
+export * from "./index.js";
 
-const instance = new WebAssembly.Instance(wasmModule, {
-	"./index_bg.js": imports,
-	$SNIPPET_WASM_IMPORTS
+let panicError = null;
+Error.stackTraceLimit = 100;
+
+exports.setPanicHook(function (message) {
+  panicError = new Error("Critical Rust panic: " + message);
+  console.error(panicError);
 });
 
-imports.__wbg_set_wasm(instance.exports);
-
-// Run the worker's initialization function.
-instance.exports.__wbindgen_start?.();
-
-export { wasmModule };
-
-class Entrypoint extends WorkerEntrypoint {
-	async fetch(request) {
-		let response = imports.fetch(request, this.env, this.ctx);
-		$WAIT_UNTIL_RESPONSE;
-		return await response;
-	}
-
-	async queue(batch) {
-		return await imports.queue(batch, this.env, this.ctx);
-	}
-
-	async scheduled(event) {
-		return await imports.scheduled(event, this.env, this.ctx);
-	}
+function checkReinitialize() {
+  if (panicError) {
+    console.log("Reinitializing Wasm application");
+    exports.__wbg_reset_state();
+    panicError = null;
+  }
 }
 
-const EXCLUDE_EXPORT = [
-	"IntoUnderlyingByteSource",
-	"IntoUnderlyingSink",
-	"IntoUnderlyingSource",
-	"MinifyConfig",
-	"PolishConfig",
-	"R2Range",
-	"RequestRedirect",
-	"fetch",
-	"queue",
-	"scheduled",
-	"getMemory",
-];
+class Entrypoint extends WorkerEntrypoint {
+  async fetch(request) {
+    checkReinitialize();
+    let response = exports.fetch(request, this.env, this.ctx);
+    $WAIT_UNTIL_RESPONSE;
+    return await response;
+  }
 
-Object.keys(imports).map((k) => {
-	if (!(EXCLUDE_EXPORT.includes(k) | k.startsWith("__"))) {
-		Entrypoint.prototype[k] = imports[k];
-	}
-});
+  async queue(batch) {
+    checkReinitialize();
+    return await exports.queue(batch, this.env, this.ctx);
+  }
+
+  async scheduled(event) {
+    checkReinitialize();
+    return await exports.scheduled(event, this.env, this.ctx);
+  }
+}
 
 export default Entrypoint;

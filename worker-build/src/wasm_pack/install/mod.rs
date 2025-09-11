@@ -194,7 +194,7 @@ pub fn prebuilt_url_for(tool: &Tool, version: &str, arch: &Arch, os: &Os) -> Res
     match tool {
         Tool::WasmBindgen => {
             Ok(format!(
-                "https://github.com/rustwasm/wasm-bindgen/releases/download/{0}/wasm-bindgen-{0}-{1}.tar.gz",
+                "https://github.com/wasm-bindgen/wasm-bindgen/releases/download/{0}/wasm-bindgen-{0}-{1}.tar.gz",
                 version,
                 target
             ))

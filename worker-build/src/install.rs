@@ -31,7 +31,7 @@ pub fn is_installed(name: &str) -> Result<Option<PathBuf>> {
     Ok(None)
 }
 
-const ESBUILD_VERSION: &str = "0.14.47";
+const ESBUILD_VERSION: &str = "0.25.9";
 const BINARY_EXTENSION: &str = if cfg!(windows) { ".exe" } else { "" };
 
 pub fn ensure_esbuild() -> Result<PathBuf> {

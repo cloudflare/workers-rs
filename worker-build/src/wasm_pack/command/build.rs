@@ -64,6 +64,9 @@ pub enum Target {
     /// Correspond to `--target deno` where the output is natively usable as
     /// a Deno module loaded with `import`.
     Deno,
+    /// Correspond to `--target module` where the output uses ES module syntax
+    /// with source phase imports for WebAssembly modules.
+    Module,
 }
 
 impl fmt::Display for Target {
@@ -74,6 +77,7 @@ impl fmt::Display for Target {
             Target::Nodejs => "nodejs",
             Target::NoModules => "no-modules",
             Target::Deno => "deno",
+            Target::Module => "module",
         };
         write!(f, "{}", s)
     }
@@ -88,6 +92,7 @@ impl FromStr for Target {
             "nodejs" => Ok(Target::Nodejs),
             "no-modules" => Ok(Target::NoModules),
             "deno" => Ok(Target::Deno),
+            "module" => Ok(Target::Module),
             _ => bail!("Unknown target: {}", s),
         }
     }
@@ -137,7 +142,7 @@ pub struct BuildOptions {
     pub reference_types: bool,
 
     #[clap(long = "target", short = 't', default_value = "bundler")]
-    /// Sets the target environment. [possible values: bundler, nodejs, web, no-modules, deno]
+    /// Sets the target environment. [possible values: bundler, nodejs, web, no-modules, deno, module]
     pub target: Target,
 
     #[clap(long = "debug")]
