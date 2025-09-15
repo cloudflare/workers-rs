@@ -1,6 +1,6 @@
 use crate::{
-    alarm, analytics_engine, assets, auto_response, cache, counter, d1, durable, fetch, form,
-    js_snippets, kv, put_raw, queue, r2, request, secret_store, service, socket, sql_counter,
+    alarm, analytics_engine, assets, auto_response, cache, container, counter, d1, durable, fetch,
+    form, js_snippets, kv, put_raw, queue, r2, request, secret_store, service, socket, sql_counter,
     sql_iterator, user, ws, SomeSharedData, GLOBAL_STATE,
 };
 #[cfg(feature = "http")]
@@ -225,6 +225,8 @@ macro_rules! add_routes (
     add_route!($obj, get, "/get-from-secret-store", secret_store::get_from_secret_store);
     add_route!($obj, get, "/get-from-secret-store-missing", secret_store::get_from_secret_store_missing);
     add_route!($obj, get, sync, "/test-panic", handle_test_panic);
+    add_route!($obj, post, "/container/echo", container::handle_container);
+    add_route!($obj, get, "/container/ws", container::handle_container);
 });
 
 #[cfg(feature = "http")]

@@ -30,6 +30,7 @@ bindings = [
     { name = "SQL_COUNTER", class_name = "SqlCounter" },
     { name = "SQL_ITERATOR", class_name = "SqlIterator" },
     { name = "MY_CLASS", class_name = "MyClass" },
+    { name = "ECHO_CONTAINER", class_name = "EchoContainer" },
 ]
 
 [[analytics_engine_datasets]]
@@ -73,9 +74,14 @@ command = "../target/debug/worker-build --release"
 
 [[migrations]]
 tag = "v1"
-new_sqlite_classes = ["SqlCounter", "SqlIterator"]
+new_sqlite_classes = ["SqlCounter", "SqlIterator", "EchoContainer"]
 
 [[secrets_store_secrets]]
 binding = "SECRETS"
 store_id = "SECRET_STORE"
 secret_name = "secret-name"
+
+[[containers]]
+class_name = "EchoContainer"
+image = "./container-echo/Dockerfile"
+max_instances = 1
