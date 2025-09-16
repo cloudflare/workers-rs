@@ -47,7 +47,10 @@ fn update_package_json() -> Result<()> {
 }
 
 pub fn main() -> Result<()> {
-    fs::remove_dir_all(output_path(""))?;
+    let out_path = output_path("");
+    if out_path.exists() {
+        fs::remove_dir_all(out_path)?;
+    }
 
     // Our tests build the bundle ourselves.
     if !cfg!(test) {
