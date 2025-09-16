@@ -55,6 +55,7 @@ pub fn download_prebuilt_or_cargo_install(
     // Check for custom wasm-bindgen path via environment variable
     if matches!(tool, Tool::WasmBindgen) {
         if let Ok(custom_path) = env::var("WASM_BINDGEN_PATH") {
+            eprintln!("Using custom wasm-bindgen path: {custom_path}");
             let path = Path::new(&custom_path);
             if path.exists() {
                 info!(
@@ -69,6 +70,8 @@ pub fn download_prebuilt_or_cargo_install(
                     custom_path
                 );
             }
+        } else {
+            eprintln!("Using global wasm-bindgen");
         }
     }
 

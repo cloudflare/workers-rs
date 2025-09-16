@@ -80,9 +80,6 @@ jobs:
           sudo apt clean
           sudo apt install -y build-essential libssl-dev netcat-traditional libc++-dev
 
-      - name: Install wasmpack
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-
       - name: Build wasm-bindgen
         run: cd wasm-bindgen && cargo build --release --package wasm-bindgen-cli --bin wasm-bindgen
 
@@ -93,7 +90,7 @@ jobs:
         run: npm ci
 
       - name: Run tests
-        run: WASM_BINDGEN_PATH=./wasm-bindgen/target/release/wasm-bindgen npm run test
+        run: npm run test
 
       - name: Run tests (http)
-        run: WASM_BINDGEN_PATH=./wasm-bindgen/target/release/wasm-bindgen npm run test-http
+        run: npm run test-http
