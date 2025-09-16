@@ -3,7 +3,7 @@ members = [
     "worker",
     "worker-build",
     "worker-macros",
-    "worker-sandbox",
+    "test",
     "worker-sys",
     "worker-kv",
     "examples/*",
