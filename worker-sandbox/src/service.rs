@@ -3,7 +3,6 @@ use super::SomeSharedData;
 use std::convert::TryInto;
 use worker::{Env, Method, Request, RequestInit, Response, Result};
 
-#[worker::send]
 pub async fn handle_remote_by_request(
     req: Request,
     env: Env,
@@ -26,7 +25,6 @@ pub async fn handle_remote_by_request(
     result
 }
 
-#[worker::send]
 pub async fn handle_remote_by_path(
     req: Request,
     env: Env,

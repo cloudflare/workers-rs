@@ -33,7 +33,6 @@ impl DurableObject for AutoResponseObject {
 }
 
 // Route handler to exercise the Durable Object from tests.
-#[worker::send]
 pub async fn handle_auto_response(
     _req: Request,
     env: Env,
