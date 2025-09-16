@@ -3,7 +3,7 @@ members = [
     "worker",
     "worker-build",
     "worker-macros",
-    "worker-sandbox",
+    "test",
     "worker-sys",
     "worker-kv",
     "examples/*",
@@ -23,11 +23,11 @@ js-sys = { version = "0.3.78", path = "./wasm-bindgen/crates/js-sys" }
 serde = { version = "1.0.164", features = ["derive"] }
 serde_json = "1.0.140"
 serde-wasm-bindgen = "0.6.5"
-wasm-bindgen = { version = "0.2.101", path = "./wasm-bindgen" }
-wasm-bindgen-cli-support = { version = "0.2.101", path = "./wasm-bindgen/crates/cli-support" }
+wasm-bindgen = { version = "0.2.102", path = "./wasm-bindgen" }
+wasm-bindgen-cli-support = { version = "0.2.102", path = "./wasm-bindgen/crates/cli-support" }
 wasm-bindgen-futures = { version = "0.4.51", path = "./wasm-bindgen/crates/futures" }
-wasm-bindgen-macro-support = { version = "0.2.101", path = "./wasm-bindgen/crates/macro-support" }
-wasm-bindgen-shared = { version = "0.2.101", path = "./wasm-bindgen/crates/shared" }
+wasm-bindgen-macro-support = { version = "0.2.102", path = "./wasm-bindgen/crates/macro-support" }
+wasm-bindgen-shared = { version = "0.2.102", path = "./wasm-bindgen/crates/shared" }
 wasm-bindgen-test = { version = "0.3.51", path = "./wasm-bindgen/crates/test" }
 web-sys = { version = "0.3.78", path = "./wasm-bindgen/crates/web-sys" }
 worker = { path = "worker", version = "0.6.1", features = ["queue", "d1", "axum", "timezone"] }
@@ -62,10 +62,10 @@ opt-level = "z"
 
 [patch.crates-io]
 js-sys = { version = "0.3.78", path = './wasm-bindgen/crates/js-sys' }
-wasm-bindgen = { version = "0.2.101", path = './wasm-bindgen' }
-wasm-bindgen-cli-support = { version = "0.2.101", path = "./wasm-bindgen/crates/cli-support" }
+wasm-bindgen = { version = "0.2.102", path = './wasm-bindgen' }
+wasm-bindgen-cli-support = { version = "0.2.102", path = "./wasm-bindgen/crates/cli-support" }
 wasm-bindgen-futures = { version = "0.4.51", path = './wasm-bindgen/crates/futures' }
-wasm-bindgen-macro-support = { version = "0.2.101", path = "./wasm-bindgen/crates/macro-support" }
-wasm-bindgen-shared = { version = "0.2.101", path = "./wasm-bindgen/crates/shared" }
+wasm-bindgen-macro-support = { version = "0.2.102", path = "./wasm-bindgen/crates/macro-support" }
+wasm-bindgen-shared = { version = "0.2.102", path = "./wasm-bindgen/crates/shared" }
 wasm-bindgen-test = { version = "0.3.51", path = "./wasm-bindgen/crates/test" }
 web-sys = { version = "0.3.78", path = './wasm-bindgen/crates/web-sys' }
