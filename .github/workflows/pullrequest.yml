@@ -80,14 +80,11 @@ jobs:
           sudo apt clean
           sudo apt install -y build-essential libssl-dev netcat-traditional libc++-dev
 
-      - name: Build wasm-bindgen
-        run: cd wasm-bindgen && cargo build --release --package wasm-bindgen-cli --bin wasm-bindgen
-
-      - name: Build local worker-build
-        run: cargo install --path ./worker-build --force --debug
-
       - name: Install npm dependencies
         run: npm ci
+
+      - name: Build
+        run: npm run build
 
       - name: Run tests
         run: npm run test
