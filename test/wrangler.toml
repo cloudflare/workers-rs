@@ -69,7 +69,7 @@ bucket_name = 'delete-bucket'
 preview_bucket_name = 'delete-bucket'
 
 [build]
-command = "worker-build --release"
+command = "../target/debug/worker-build --release"
 
 [[migrations]]
 tag = "v1"

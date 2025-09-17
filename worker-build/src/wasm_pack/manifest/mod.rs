@@ -499,6 +499,7 @@ impl CrateData {
             Target::NoModules => self.to_nomodules(scope, disable_dts, existing_deps, out_dir),
             Target::Bundler => self.to_esmodules(scope, disable_dts, existing_deps, out_dir),
             Target::Web => self.to_web(scope, disable_dts, existing_deps, out_dir),
+            Target::Module => self.to_esmodules(scope, disable_dts, existing_deps, out_dir),
             // Deno does not need package.json
             Target::Deno => return Ok(()),
         };

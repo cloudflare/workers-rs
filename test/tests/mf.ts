@@ -39,7 +39,7 @@ const mf_instance = new Miniflare({
   cachePersist: false,
   workers: [
     {
-      scriptPath: "./build/worker/shim.mjs",
+      scriptPath: "./build/index.js",
       compatibilityDate: "2025-07-24",
       cache: true,
       d1Databases: ["DB"],

@@ -55,6 +55,7 @@ pub fn download_prebuilt_or_cargo_install(
     // Check for custom wasm-bindgen path via environment variable
     if matches!(tool, Tool::WasmBindgen) {
         if let Ok(custom_path) = env::var("WASM_BINDGEN_PATH") {
+            eprintln!("Using custom wasm-bindgen path: {custom_path}");
             let path = Path::new(&custom_path);
             if path.exists() {
                 info!(
@@ -69,6 +70,8 @@ pub fn download_prebuilt_or_cargo_install(
                     custom_path
                 );
             }
+        } else {
+            eprintln!("Using global wasm-bindgen");
         }
     }
 
@@ -194,7 +197,7 @@ pub fn prebuilt_url_for(tool: &Tool, version: &str, arch: &Arch, os: &Os) -> Res
     match tool {
         Tool::WasmBindgen => {
             Ok(format!(
-                "https://github.com/rustwasm/wasm-bindgen/releases/download/{0}/wasm-bindgen-{0}-{1}.tar.gz",
+                "https://github.com/wasm-bindgen/wasm-bindgen/releases/download/{0}/wasm-bindgen-{0}-{1}.tar.gz",
                 version,
                 target
             ))

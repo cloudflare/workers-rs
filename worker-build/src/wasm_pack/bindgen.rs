@@ -96,6 +96,9 @@ pub fn wasm_bindgen_build(
         cmd.arg("--split-linked-modules");
     }
 
+    // Enable reset state function for panic recovery
+    cmd.arg("--experimental-reset-state-function");
+
     child::run(cmd, "wasm-bindgen").context("Running the wasm-bindgen CLI")?;
     Ok(())
 }
@@ -142,6 +145,9 @@ fn build_target_arg_legacy(target: Target, cli_path: &Path) -> Result<String> {
         }
         Target::Bundler => "--browser",
         Target::Deno => "--deno",
+        Target::Module => {
+            bail!("The 'module' target requires wasm-bindgen version >= 0.2.40. Please update your wasm-bindgen dependency.")
+        }
     };
     Ok(target_arg.to_string())
 }
