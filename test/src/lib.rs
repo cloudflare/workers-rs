@@ -17,6 +17,7 @@ mod analytics_engine;
 mod assets;
 mod auto_response;
 mod cache;
+mod container;
 mod counter;
 mod d1;
 mod durable;
