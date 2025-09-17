@@ -65,7 +65,7 @@ const mf_instance = new Miniflare({
           className: "EchoContainer",
           useSQLite: true,
           container: {
-            imageName: "cloudflare-dev/echocontainer:69ea212d",
+            imageName: "worker-dev/echocontainer:latest",
           }
         },
         SQL_COUNTER: {
