@@ -497,7 +497,7 @@ checksum = "7c74b8349d32d297c9134b8c88677813a227df8f779daa29bfc29c183fe3dca6"
 
 [[package]]
 name = "container-echo"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "axum",
  "tokio",
@@ -810,7 +810,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.0",
 ]
 
 [[package]]
@@ -2257,7 +2257,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.11.0",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.0",
 ]
 
 [[package]]
@@ -2698,7 +2698,7 @@ dependencies = [
  "getrandom 0.3.3",
  "once_cell",
  "rustix 1.1.2",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.0",
 ]
 
 [[package]]
@@ -2884,9 +2884,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-rustls"
-version = "0.26.2"
+version = "0.26.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e727b36a1a0e8b74c376ac2211e40c2c8af09fb4013c60d910495810f008e9b"
+checksum = "05f63835928ca123f1bef57abbcd23bb2ba0ac9ae1235f1e65bda0d06e7786bd"
 dependencies = [
  "rustls",
  "tokio",
@@ -3659,7 +3659,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.61.0",
 ]
 
 [[package]]
@@ -4034,7 +4034,7 @@ dependencies = [
 
 [[package]]
 name = "worker"
-version = "0.6.2"
+version = "0.6.3"
 dependencies = [
  "async-trait",
  "axum",
@@ -4127,7 +4127,7 @@ dependencies = [
 
 [[package]]
 name = "worker-macros"
-version = "0.6.2"
+version = "0.6.3"
 dependencies = [
  "async-trait",
  "proc-macro2",
@@ -4176,7 +4176,7 @@ dependencies = [
 
 [[package]]
 name = "worker-sys"
-version = "0.6.2"
+version = "0.6.3"
 dependencies = [
  "cfg-if",
  "js-sys",
