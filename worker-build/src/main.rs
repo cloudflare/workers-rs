@@ -15,9 +15,12 @@ const OUT_DIR: &str = "build";
 const SHIM_FILE: &str = include_str!("./js/shim.js");
 
 mod install;
+mod main_legacy;
 mod wasm_pack;
 
 use wasm_pack::command::build::{Build, BuildOptions};
+
+use crate::wasm_pack::command::build::Target;
 
 fn fix_wasm_import() -> Result<()> {
     let index_path = output_path("index.js");
@@ -52,12 +55,23 @@ pub fn main() -> Result<()> {
         fs::remove_dir_all(out_path)?;
     }
 
-    // Our tests build the bundle ourselves.
-    if !cfg!(test) {
-        wasm_pack_build(env::args().skip(1))?;
-    }
+    let wasm_pack_opts = parse_wasm_pack_opts(env::args().skip(1))?;
+    let mut wasm_pack_build = Build::try_from_opts(wasm_pack_opts)?;
 
-    update_package_json()?;
+    wasm_pack_build.init()?;
+
+    let supports_module_and_reset_state =
+        wasm_pack_build.supports_target_module_and_reset_state()?;
+    if supports_module_and_reset_state {
+        wasm_pack_build
+            .extra_args
+            .push("--experimental-reset-state-function".to_string());
+        wasm_pack_build.run()?;
+    } else {
+        eprintln!("A newer version of wasm-bindgen is available. Update to use the latest workers-rs features.");
+        wasm_pack_build.target = Target::Bundler;
+        wasm_pack_build.run()?;
+    }
 
     let with_coredump = env::var("COREDUMP").is_ok();
     if with_coredump {
@@ -65,35 +79,42 @@ pub fn main() -> Result<()> {
         wasm_coredump()?;
     }
 
-    let esbuild_path = install::ensure_esbuild()?;
+    if supports_module_and_reset_state {
+        update_package_json()?;
 
-    let shim_template = match env::var("CUSTOM_SHIM") {
-        Ok(path) => {
-            let path = Path::new(&path).to_owned();
-            println!("Using custom shim from {}", path.display());
-            // NOTE: we fail in case that file doesnt exist or something else happens
-            fs::read_to_string(path)?
-        }
-        Err(_) => SHIM_FILE.to_owned(),
-    };
+        let esbuild_path = install::ensure_esbuild()?;
 
-    let wait_until_response = if env::var("RUN_TO_COMPLETION").is_ok() {
-        "this.ctx.waitUntil(response);"
+        let shim_template = match env::var("CUSTOM_SHIM") {
+            Ok(path) => {
+                let path = Path::new(&path).to_owned();
+                println!("Using custom shim from {}", path.display());
+                // NOTE: we fail in case that file doesnt exist or something else happens
+                fs::read_to_string(path)?
+            }
+            Err(_) => SHIM_FILE.to_owned(),
+        };
+
+        let wait_until_response = if env::var("RUN_TO_COMPLETION").is_ok() {
+            "this.ctx.waitUntil(response);"
+        } else {
+            ""
+        };
+
+        let shim = shim_template.replace("$WAIT_UNTIL_RESPONSE", wait_until_response);
+
+        fs::write(output_path("shim.js"), shim)?;
+
+        bundle(&esbuild_path)?;
+
+        fix_wasm_import()?;
+
+        remove_unused_files()?;
+
+        create_wrapper_alias(false)?;
     } else {
-        ""
-    };
-
-    let shim = shim_template.replace("$WAIT_UNTIL_RESPONSE", wait_until_response);
-
-    fs::write(output_path("shim.js"), shim)?;
-
-    bundle(&esbuild_path)?;
-
-    fix_wasm_import()?;
-
-    remove_unused_files()?;
-
-    create_shim_mjs()?;
+        main_legacy::process()?;
+        create_wrapper_alias(true)?;
+    }
 
     Ok(())
 }
@@ -163,15 +184,31 @@ fn wasm_coredump() -> Result<()> {
     }
 }
 
-fn create_shim_mjs() -> Result<()> {
-    let shim_content = r#"// Use index.js directly, this file provided for backwards compat
+fn create_wrapper_alias(legacy: bool) -> Result<()> {
+    let msg = if !legacy {
+        "// Use index.js directly, this file provided for backwards compat
 // with former shim.mjs only.
-export * from '../index.js'
-export { default } from '../index.js'
-"#;
+"
+    } else {
+        ""
+    };
+    let path = if !legacy {
+        "../index.js"
+    } else {
+        "./worker/shim.mjs"
+    };
+    let shim_content = format!(
+        "{msg}export * from '{path}';
+export {{ default }} from '{path}';
+"
+    );
 
-    fs::create_dir(output_path("worker"))?;
-    fs::write(output_path("worker/shim.mjs"), shim_content)?;
+    if !legacy {
+        fs::create_dir(output_path("worker"))?;
+        fs::write(output_path("worker/shim.mjs"), shim_content)?;
+    } else {
+        fs::write(output_path("index.js"), shim_content)?;
+    }
     Ok(())
 }
 
@@ -202,17 +239,6 @@ where
 
     let command = BuildArgs::try_parse_from(build_args)?;
     Ok(command.build_options)
-}
-
-fn wasm_pack_build<I>(args: I) -> Result<()>
-where
-    I: IntoIterator<Item = String>,
-{
-    let opts = parse_wasm_pack_opts(args)?;
-
-    let mut build = Build::try_from_opts(opts)?;
-
-    build.run()
 }
 
 // Bundles the snippets and worker-related code into a single file.
@@ -270,6 +296,8 @@ mod test {
         let args = vec!["--weak-refs".to_owned()];
         let result = parse_wasm_pack_opts(args).unwrap();
 
-        assert!(result.weak_refs);
+        #[allow(deprecated)]
+        let weak_refs = result.weak_refs;
+        assert!(weak_refs);
     }
 }

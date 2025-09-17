@@ -29,8 +29,6 @@ pub struct Build {
     pub crate_data: manifest::CrateData,
     pub scope: Option<String>,
     pub disable_dts: bool,
-    pub weak_refs: bool,
-    pub reference_types: bool,
     pub target: Target,
     pub no_pack: bool,
     pub no_opt: bool,
@@ -40,6 +38,7 @@ pub struct Build {
     pub out_name: Option<String>,
     pub bindgen: Option<install::Status>,
     pub cache: Cache,
+    pub extra_args: Vec<String>,
     pub extra_options: Vec<String>,
 }
 
@@ -133,14 +132,6 @@ pub struct BuildOptions {
     /// this flag will disable generating this TypeScript file.
     pub disable_dts: bool,
 
-    #[clap(long = "weak-refs")]
-    /// Enable usage of the JS weak references proposal.
-    pub weak_refs: bool,
-
-    #[clap(long = "reference-types")]
-    /// Enable usage of WebAssembly reference types.
-    pub reference_types: bool,
-
     #[clap(long = "target", short = 't', default_value = "bundler")]
     /// Sets the target environment. [possible values: bundler, nodejs, web, no-modules, deno, module]
     pub target: Target,
@@ -184,6 +175,17 @@ pub struct BuildOptions {
 
     /// List of extra options to pass to `cargo build`
     pub extra_options: Vec<String>,
+
+    #[deprecated(note = "runtime-detected")]
+    #[allow(dead_code)]
+    #[clap(long = "weak-refs", hide = true)]
+    /// Enable usage of the JS weak references proposal.
+    pub weak_refs: bool,
+
+    #[deprecated(note = "automatically inferred from the Wasm features")]
+    #[clap(long = "reference-types", hide = true)]
+    /// Enable usage of WebAssembly reference types.
+    pub reference_types: bool,
 }
 
 type BuildStep = fn(&mut Build) -> Result<()>;
@@ -224,8 +226,6 @@ impl Build {
             crate_data,
             scope: build_opts.scope,
             disable_dts: build_opts.disable_dts,
-            weak_refs: build_opts.weak_refs,
-            reference_types: build_opts.reference_types,
             target: build_opts.target,
             no_pack: build_opts.no_pack,
             no_opt: build_opts.no_opt,
@@ -235,13 +235,23 @@ impl Build {
             out_name: build_opts.out_name,
             bindgen: None,
             cache: cache::get_wasm_pack_cache()?,
+            extra_args: Vec::new(),
             extra_options: build_opts.extra_options,
         })
     }
 
+    /// Prepare this `Build` command.
+    pub fn init(&mut self) -> Result<()> {
+        let process_steps = Build::get_preprocess_steps(self.mode);
+        for (_, process_step) in process_steps {
+            process_step(self)?;
+        }
+        Ok(())
+    }
+
     /// Execute this `Build` command.
     pub fn run(&mut self) -> Result<()> {
-        let process_steps = Build::get_process_steps(self.mode, self.no_pack, self.no_opt);
+        let process_steps = Build::get_process_steps(self.no_pack, self.no_opt);
 
         let started = Instant::now();
 
@@ -267,11 +277,7 @@ impl Build {
     }
 
     #[allow(clippy::vec_init_then_push)]
-    fn get_process_steps(
-        mode: InstallMode,
-        no_pack: bool,
-        no_opt: bool,
-    ) -> Vec<(&'static str, BuildStep)> {
+    fn get_preprocess_steps(mode: InstallMode) -> Vec<(&'static str, BuildStep)> {
         macro_rules! steps {
             ($($name:ident),+) => {
                 {
@@ -294,10 +300,26 @@ impl Build {
             }
         }
 
+        steps.extend(steps![step_install_wasm_bindgen]);
+        steps
+    }
+
+    #[allow(clippy::vec_init_then_push)]
+    fn get_process_steps(no_pack: bool, no_opt: bool) -> Vec<(&'static str, BuildStep)> {
+        macro_rules! steps {
+            ($($name:ident),+) => {
+                {
+                let mut steps: Vec<(&'static str, BuildStep)> = Vec::new();
+                    $(steps.push((stringify!($name), Build::$name));)*
+                        steps
+                    }
+                };
+            ($($name:ident,)*) => (steps![$($name),*])
+        }
+        let mut steps = Vec::new();
         steps.extend(steps![
             step_build_wasm,
             step_create_dir,
-            step_install_wasm_bindgen,
             step_run_wasm_bindgen,
         ]);
 
@@ -412,10 +434,9 @@ impl Build {
             &self.out_dir,
             &self.out_name,
             self.disable_dts,
-            self.weak_refs,
-            self.reference_types,
             self.target,
             self.profile.clone(),
+            &self.extra_args,
             &self.extra_options,
         )?;
         info!("wasm bindings were built at {:#?}.", &self.out_dir);
@@ -431,9 +452,7 @@ impl Build {
             Some(args) => args,
             None => return Ok(()),
         };
-        if self.reference_types {
-            args.push("--enable-reference-types".into());
-        }
+        args.push("--enable-reference-types".into());
         info!("executing wasm-opt with {:?}", args);
         wasm_opt::run(
             &self.cache,
@@ -445,5 +464,17 @@ impl Build {
                 "{}\nTo disable `wasm-opt`, add `wasm-opt = false` to your package metadata in your `Cargo.toml`.", e
             )
         })
+    }
+
+    pub fn supports_target_module_and_reset_state(&self) -> Result<bool> {
+        let bindgen_path =
+            install::get_tool_path(self.bindgen.as_ref().unwrap(), Tool::WasmBindgen)?
+                .binary(&Tool::WasmBindgen.to_string())?;
+        let cli_version = semver::Version::parse(&install::get_cli_version(
+            &install::Tool::WasmBindgen,
+            &bindgen_path,
+        )?)?;
+        let expected_version = semver::Version::parse("0.2.102")?;
+        Ok(cli_version >= expected_version)
     }
 }
