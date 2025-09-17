@@ -3,7 +3,13 @@ import { mf, mfUrl } from "./mf";
 import { MessageEvent } from "miniflare";
 
 describe("container", () => {
-  test("post-echo", async () => {
+  let testContainer = true;
+  if (!process.env.TEST_CONTAINER_NAME) {
+    console.log('No container specified, skipping container test');
+    testContainer = false;
+  }
+
+  (testContainer ? test : test.skip)("post-echo", async () => {
     const test_text = "Hello container!";
     const resp = await mf.dispatchFetch(`${mfUrl}container/echo`, {
       method: "POST",
@@ -12,7 +18,7 @@ describe("container", () => {
     expect(await resp.text()).toBe(test_text);
   });
 
-  test("websocket-to-container", async () => {
+  (testContainer ? test : test.skip)("websocket-to-container", async () => {
     const resp = await mf.dispatchFetch(`${mfUrl}container/ws`, {
       headers: {
         upgrade: "websocket",

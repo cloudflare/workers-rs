@@ -98,6 +98,8 @@ jobs:
           tags: worker-dev/echocontainer:latest
 
       - name: Run tests
+        env:
+          TEST_CONTAINER_NAME: worker-dev/echocontainer:latest
         run: npm run test
 
       - name: Run tests (http)
