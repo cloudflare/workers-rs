@@ -23,8 +23,9 @@ pub fn set_panic_hook(_callback: ()) {
     // No-op on non-wasm targets
 }
 
+#[allow(deprecated)]
 #[cfg(target_arch = "wasm32")]
-fn hook_impl(info: &panic::PanicHookInfo) {
+fn hook_impl(info: &panic::PanicInfo) {
     let message = info.to_string();
 
     PANIC_CALLBACK.with(|f| {
@@ -38,16 +39,15 @@ fn hook_impl(info: &panic::PanicHookInfo) {
     });
 }
 
+#[allow(deprecated)]
 #[cfg(not(target_arch = "wasm32"))]
-fn hook_impl(_info: &panic::PanicHookInfo) {
+fn hook_impl(_info: &panic::PanicInfo) {
     // On non-wasm targets, we don't have contexts to abort
     // This is a no-op, but maintains the same interface
 }
 
 /// Set the WASM reinitialization panic hook the first time this is called.
 /// Subsequent invocations do nothing.
-///
-/// This should be called after console_error_panic_hook::set_once() to chain the hooks properly.
 #[allow(dead_code)]
 #[inline]
 fn set_once() {

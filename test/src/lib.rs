@@ -39,15 +39,6 @@ mod user;
 mod ws;
 
 #[derive(Deserialize, Serialize)]
-struct MyData {
-    message: String,
-    #[serde(default)]
-    is: bool,
-    #[serde(default)]
-    data: Vec<u8>,
-}
-
-#[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ApiData {
     user_id: i32,
