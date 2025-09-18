@@ -25,7 +25,7 @@ mod bindgen_methods {
 
     pub fn core() -> TokenStream {
         quote! {
-            #[wasm_bindgen(constructor)]
+            #[wasm_bindgen(constructor, wasm_bindgen=wasm_bindgen)]
             pub fn new(
                 state: ::worker::worker_sys::DurableObjectState,
                 env:   ::worker::Env
@@ -36,7 +36,7 @@ mod bindgen_methods {
                 )
             }
 
-            #[wasm_bindgen(js_name = fetch)]
+            #[wasm_bindgen(js_name = fetch, wasm_bindgen=wasm_bindgen)]
             pub fn fetch(
                 &self,
                 req: ::worker::worker_sys::web_sys::Request
@@ -59,7 +59,7 @@ mod bindgen_methods {
 
     pub fn alarm() -> TokenStream {
         quote! {
-            #[wasm_bindgen(js_name = alarm)]
+            #[wasm_bindgen(js_name = alarm, wasm_bindgen=wasm_bindgen)]
             pub fn alarm(&self) -> ::worker::js_sys::Promise {
                 // SAFETY:
                 // Durable Object will never be destroyed while there is still
@@ -79,7 +79,7 @@ mod bindgen_methods {
 
     pub fn websocket() -> TokenStream {
         quote! {
-            #[wasm_bindgen(js_name = webSocketMessage)]
+            #[wasm_bindgen(js_name = webSocketMessage, wasm_bindgen=wasm_bindgen)]
             pub fn websocket_message(
                 &self,
                 ws: ::worker::worker_sys::web_sys::WebSocket,
@@ -105,7 +105,7 @@ mod bindgen_methods {
                 })
             }
 
-            #[wasm_bindgen(js_name = webSocketClose)]
+            #[wasm_bindgen(js_name = webSocketClose, wasm_bindgen=wasm_bindgen)]
             pub fn websocket_close(
                 &self,
                 ws: ::worker::worker_sys::web_sys::WebSocket,
@@ -126,7 +126,7 @@ mod bindgen_methods {
                 })
             }
 
-            #[wasm_bindgen(js_name = webSocketError)]
+            #[wasm_bindgen(js_name = webSocketError, wasm_bindgen=wasm_bindgen)]
             pub fn websocket_error(
                 &self,
                 ws: ::worker::worker_sys::web_sys::WebSocket,
@@ -196,7 +196,7 @@ pub fn expand_macro(attr: TokenStream, tokens: TokenStream) -> syn::Result<Token
             #[::worker::consume]
             #target
 
-            #[wasm_bindgen]
+            #[wasm_bindgen(wasm_bindgen=wasm_bindgen)]
             impl #target_name {
                 #(#bindgen_methods)*
             }
