@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use flate2::read::GzDecoder;
 
 fn cache_path(name: &str) -> Result<PathBuf> {
@@ -81,7 +81,9 @@ fn download_esbuild(writer: &mut impl Write) -> Result<()> {
         platform()
     );
 
-    let mut res = ureq::get(&esbuild_url).call()?;
+    let mut res = ureq::get(&esbuild_url)
+        .call()
+        .with_context(|| format!("Failed to fetch URL {esbuild_url}"))?;
     let body = res.body_mut().as_reader();
     let deflater = GzDecoder::new(body);
     let mut archive = tar::Archive::new(deflater);
