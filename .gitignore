@@ -3,6 +3,8 @@
 **/worker/generated/*
 worker-sandbox/build
 
+examples/**/*.package-lock.json
+
 #### Node
 # Logs
 logs
