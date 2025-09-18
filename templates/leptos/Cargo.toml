@@ -15,7 +15,6 @@ crate-type = ["cdylib"]
 
 [dependencies]
 axum = { version = "0.8", default-features = false, optional = true }
-console_error_panic_hook = "0.1"
 getrandom = { version = "0.3", features = ["wasm_js"]}
 leptos = { version = "0.8"{% if use_nightly %}, features = ["nightly"]{% endif %} }
 leptos_axum = { version = "0.8", default-features = false, features = ["wasm"], optional = true }

@@ -8,6 +8,5 @@ async fn main(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
 
 #[wasm_bindgen]
 pub async fn add(a: u32, b: u32) -> u32 {
-    console_error_panic_hook::set_once();
     a + b
 }

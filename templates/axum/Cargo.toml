@@ -15,4 +15,3 @@ worker = { version = "0.6", features = ['http', 'axum'] }
 worker-macros = { version = "0.6", features = ['http'] }
 axum = { version = "0.8", default-features = false }
 tower-service = "0.3.3"
-console_error_panic_hook = { version = "0.1.7" }

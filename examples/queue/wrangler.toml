@@ -1,10 +1,8 @@
 name = "queue-on-workers"
-main = "build/worker/shim.mjs"
-compatibility_date = "2024-03-26"
-
+main = "build/index.js"
 
 [build]
-command = "cargo install --path ../../worker-build && worker-build --release"
+command = "worker-build --release"
 
 [[queues.consumers]]
 queue = "mymessages"

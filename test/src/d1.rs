@@ -144,8 +144,6 @@ pub async fn jsvalue_null_is_null(
     _env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    console_error_panic_hook::set_once();
-
     assert!(wasm_bindgen::JsValue::NULL.is_null());
 
     Response::ok("ok")
@@ -157,7 +155,6 @@ pub async fn serialize_optional_none(
     _env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    console_error_panic_hook::set_once();
     let serializer = serde_wasm_bindgen::Serializer::new().serialize_missing_as_null(true);
 
     let none: Option<String> = None;
@@ -173,7 +170,6 @@ pub async fn serialize_optional_some(
     _env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    console_error_panic_hook::set_once();
     let serializer = serde_wasm_bindgen::Serializer::new().serialize_missing_as_null(true);
 
     let some: Option<String> = Some("Hello".to_string());
@@ -189,8 +185,6 @@ pub async fn deserialize_optional_none(
     _env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    console_error_panic_hook::set_once();
-
     let js_value = Object::new();
     Reflect::set(&js_value, &JsValue::from_str("id"), &JsValue::from_f64(1.0)).unwrap();
     Reflect::set(&js_value, &JsValue::from_str("name"), &JsValue::NULL).unwrap();

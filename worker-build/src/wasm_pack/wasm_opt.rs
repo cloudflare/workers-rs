@@ -45,11 +45,12 @@ pub fn run(cache: &Cache, out_dir: &Path, args: &[String], install_permitted: bo
 /// have precompiled binaries. Returns an error if we failed to download the
 /// binary.
 pub fn find_wasm_opt(cache: &Cache, install_permitted: bool) -> Result<Option<PathBuf>> {
+    // We always ensure the guaranteed wasm-opt version instead of relying on PATH.
     // First attempt to look up in PATH. If found assume it works.
-    if let Ok(path) = which::which("wasm-opt") {
-        PBAR.info(&format!("found wasm-opt at {:?}", path));
-        return Ok(Some(path));
-    }
+    // if let Ok(path) = which::which("wasm-opt") {
+    //     PBAR.info(&format!("found wasm-opt at {:?}", path));
+    //     return Ok(Some(path));
+    // }
 
     match install::download_prebuilt(&install::Tool::WasmOpt, cache, "latest", install_permitted)? {
         install::Status::Found(download) => Ok(Some(download.binary("bin/wasm-opt")?)),

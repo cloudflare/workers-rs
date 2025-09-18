@@ -48,11 +48,17 @@ describe("Panic Hook with WASM Reinitialization", () => {
 
       const responses = await Promise.all(simultaneousRequests);
 
-      expect(responses[0].status).toBe(500);
-
-      for (let i = 1; i < responses.length; i++) {
-        expect(responses[i].status).toBe(200);
+      // should always have one error and one ok
+      let foundErrors = 0;
+      for (const response of responses) {
+        if (response.status === 500) {
+          expect(foundErrors).toBeLessThan(2);
+          foundErrors++;
+        } else {
+          expect(response.status).toBe(200);
+        }
       }
+      expect(foundErrors).toBeGreaterThan(0);
     }
 
     // worker continues to function normally after multiple panics

@@ -452,7 +452,9 @@ impl Build {
             Some(args) => args,
             None => return Ok(()),
         };
-        args.push("--enable-reference-types".into());
+        args.push("--all-features".into());
+        // Keep the Wasm names section
+        args.push("--debuginfo".into());
         info!("executing wasm-opt with {:?}", args);
         wasm_opt::run(
             &self.cache,
