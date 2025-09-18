@@ -49,7 +49,7 @@ mod bindgen_methods {
 
                 ::worker::wasm_bindgen_futures::future_to_promise(async move {
                     <Self as ::worker::DurableObject>::fetch(static_self, req.into()).await
-                        .map(worker::worker_sys::web_sys::Response::from)
+                        .map(::worker::worker_sys::web_sys::Response::from)
                         .map(::worker::wasm_bindgen::JsValue::from)
                         .map_err(::worker::wasm_bindgen::JsValue::from)
                 })
@@ -190,13 +190,13 @@ pub fn expand_macro(attr: TokenStream, tokens: TokenStream) -> syn::Result<Token
         impl ::worker::has_durable_object_attribute for #target_name {}
 
         const _: () = {
-            use ::worker::wasm_bindgen;
+            use ::worker::wasm_bindgen::prelude::*;
 
-            #[::worker::wasm_bindgen::prelude::wasm_bindgen]
+            #[wasm_bindgen(wasm_bindgen=wasm_bindgen)]
             #[::worker::consume]
             #target
 
-            #[::worker::wasm_bindgen::prelude::wasm_bindgen]
+            #[wasm_bindgen]
             impl #target_name {
                 #(#bindgen_methods)*
             }
