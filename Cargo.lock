@@ -497,7 +497,7 @@ checksum = "7c74b8349d32d297c9134b8c88677813a227df8f779daa29bfc29c183fe3dca6"
 
 [[package]]
 name = "container-echo"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "axum",
  "tokio",
@@ -4034,7 +4034,7 @@ dependencies = [
 
 [[package]]
 name = "worker"
-version = "0.6.3"
+version = "0.6.4"
 dependencies = [
  "async-trait",
  "axum",
@@ -4066,7 +4066,7 @@ dependencies = [
 
 [[package]]
 name = "worker-build"
-version = "0.1.6"
+version = "0.1.7"
 dependencies = [
  "anyhow",
  "binary-install",
@@ -4127,7 +4127,7 @@ dependencies = [
 
 [[package]]
 name = "worker-macros"
-version = "0.6.3"
+version = "0.6.4"
 dependencies = [
  "async-trait",
  "proc-macro2",
@@ -4176,7 +4176,7 @@ dependencies = [
 
 [[package]]
 name = "worker-sys"
-version = "0.6.3"
+version = "0.6.4"
 dependencies = [
  "cfg-if",
  "js-sys",

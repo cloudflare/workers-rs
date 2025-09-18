@@ -31,12 +31,11 @@ wasm-bindgen-macro-support = { version = "0.2.103", path = "./wasm-bindgen/crate
 wasm-bindgen-shared = { version = "0.2.103", path = "./wasm-bindgen/crates/shared" }
 wasm-bindgen-test = { version = "0.3.51", path = "./wasm-bindgen/crates/test" }
 web-sys = { version = "0.3.79", path = "./wasm-bindgen/crates/web-sys" }
-worker = { path = "worker", version = "0.6.3", features = ["queue", "d1", "axum", "timezone"] }
-worker-build = { path = "worker-build", version = "0.1.4" }
+worker = { path = "worker", version = "0.6.4", features = ["queue", "d1", "axum", "timezone"] }
 worker-codegen = { path = "worker-codegen", version = "0.2.0" }
 worker-kv = { path = "worker-kv", version = "0.9.0" }
-worker-macros = { path = "worker-macros", version = "0.6.3", features = ["queue"] }
-worker-sys = { path = "worker-sys", version = "0.6.3", features = ["d1", "queue"] }
+worker-macros = { path = "worker-macros", version = "0.6.4", features = ["queue"] }
+worker-sys = { path = "worker-sys", version = "0.6.4", features = ["d1", "queue"] }
 
 [profile.release]
 # rustc supports two "optimize for size" levels:  opt-level = "s" and "z".
