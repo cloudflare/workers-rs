@@ -1,61 +1,68 @@
-use std::{fs::OpenOptions, io::Write, path::PathBuf};
+use std::{
+    fs::{create_dir_all, read_dir, remove_file, OpenOptions},
+    io::Write,
+    path::{Path, PathBuf},
+};
 
 use anyhow::Result;
 use flate2::read::GzDecoder;
 
-/// Checks if a binary with the specified name is on the user's path.
-pub fn is_installed(name: &str) -> Result<Option<PathBuf>> {
-    let path = std::env::var_os("PATH").expect("could not read PATH environment variable");
-    let path_directories = std::env::split_paths(&path).filter_map(|path| {
-        std::fs::metadata(&path)
-            .ok()
-            .map(|meta| meta.is_dir())
-            .unwrap_or(false)
-            .then_some(path)
-    });
+fn cache_path(name: &str) -> Result<PathBuf> {
+    let path = dirs_next::cache_dir()
+        .unwrap_or_else(std::env::temp_dir)
+        .join("worker-build")
+        .join(name);
+    let parent = path.parent().unwrap();
+    if !parent.exists() {
+        create_dir_all(parent)?;
+    }
+    Ok(path)
+}
 
-    for dir in path_directories {
-        for entry in dir.read_dir()? {
-            let entry = entry?;
-            let file_type = entry.file_type()?;
-            let is_file_or_symlink = file_type.is_symlink() || file_type.is_file();
+fn remove_files_with_prefix(path: &Path) -> Result<usize> {
+    let dir = path.parent().unwrap_or(Path::new("."));
+    let prefix = path.file_name().unwrap().to_str().unwrap();
 
-            if is_file_or_symlink
-                && entry.file_name() == format!("{name}{BINARY_EXTENSION}").as_str()
-            {
-                return Ok(Some(entry.path()));
+    let mut deleted_count = 0;
+
+    for entry in read_dir(dir)? {
+        let entry = entry?;
+        let file_name = entry.file_name();
+
+        if let Some(name_str) = file_name.to_str() {
+            if name_str.starts_with(prefix) {
+                remove_file(entry.path())?;
+                deleted_count += 1;
             }
         }
     }
 
-    Ok(None)
+    Ok(deleted_count)
 }
 
-const ESBUILD_VERSION: &str = "0.25.9";
+const ESBUILD_VERSION: &str = "0.25.10";
 const BINARY_EXTENSION: &str = if cfg!(windows) { ".exe" } else { "" };
 
 pub fn ensure_esbuild() -> Result<PathBuf> {
-    // If we already have it we can skip the download.
-    if let Some(path) = is_installed("esbuild")? {
-        return Ok(path);
-    };
+    let esbuild_prefix = format!("esbuild-{}{BINARY_EXTENSION}", platform());
 
-    let esbuild_binary = format!("esbuild-{}{BINARY_EXTENSION}", platform());
-    let esbuild_bin_path = dirs_next::cache_dir()
-        .unwrap_or_else(std::env::temp_dir)
-        .join(esbuild_binary);
+    let esbuild_binary = format!("{esbuild_prefix}-{ESBUILD_VERSION}");
+
+    let esbuild_bin_path = cache_path(&esbuild_binary)?;
 
     if esbuild_bin_path.exists() {
         return Ok(esbuild_bin_path);
     }
 
-    let mut options = &mut std::fs::OpenOptions::new();
+    // Clear old versions cache
+    remove_files_with_prefix(&cache_path(&esbuild_prefix)?)?;
 
+    let mut options = &mut std::fs::OpenOptions::new();
     options = fix_permissions(options);
 
     let mut file = options.create(true).write(true).open(&esbuild_bin_path)?;
 
-    println!("Installing esbuild...");
+    println!("Installing esbuild {ESBUILD_VERSION}...");
 
     if let Err(e) = download_esbuild(&mut file) {
         // Make sure we close the file before we remove it.
@@ -70,7 +77,7 @@ pub fn ensure_esbuild() -> Result<PathBuf> {
 
 fn download_esbuild(writer: &mut impl Write) -> Result<()> {
     let esbuild_url = format!(
-        "https://registry.npmjs.org/esbuild-{0}/-/esbuild-{0}-{ESBUILD_VERSION}.tgz",
+        "https://registry.npmjs.org/@esbuild/{0}/-/{0}-{ESBUILD_VERSION}.tgz",
         platform()
     );
 
