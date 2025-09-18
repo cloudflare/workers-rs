@@ -44,7 +44,7 @@ const ESBUILD_VERSION: &str = "0.25.10";
 const BINARY_EXTENSION: &str = if cfg!(windows) { ".exe" } else { "" };
 
 pub fn ensure_esbuild() -> Result<PathBuf> {
-    let esbuild_prefix = format!("esbuild-{}{BINARY_EXTENSION}", platform());
+    let esbuild_prefix = format!("esbuild-{}{BINARY_EXTENSION}", esbuild_platform_pkg());
 
     let esbuild_binary = format!("{esbuild_prefix}-{ESBUILD_VERSION}");
 
@@ -78,7 +78,7 @@ pub fn ensure_esbuild() -> Result<PathBuf> {
 fn download_esbuild(writer: &mut impl Write) -> Result<()> {
     let esbuild_url = format!(
         "https://registry.npmjs.org/@esbuild/{0}/-/{0}-{ESBUILD_VERSION}.tgz",
-        platform()
+        esbuild_platform_pkg()
     );
 
     let mut res = ureq::get(&esbuild_url)
@@ -118,17 +118,29 @@ fn fix_permissions(options: &mut OpenOptions) -> &mut OpenOptions {
 
 /// Converts the user's platform from their Rust representation to their esbuild representation.
 /// https://esbuild.github.io/getting-started/#download-a-build
-pub fn platform() -> &'static str {
+pub fn esbuild_platform_pkg() -> &'static str {
     match (std::env::consts::OS, std::env::consts::ARCH) {
-        ("macos", "x86_64") => "darwin-64",
+        ("android", "arm") => "android-arm",
+        ("android", "aarch64") => "android-arm64",
+        ("android", "x86_64") => "android-x64",
         ("macos", "aarch64") => "darwin-arm64",
-        ("linux", "x86") => "linux-32",
-        ("linux", "x86_64") => "linux-64",
+        ("macos", "x86_64") => "darwin-x64",
+        ("freebsd", "aarch64") => "freebsd-arm64",
+        ("freebsd", "x86_64") => "freebsd-x64",
         ("linux", "arm") => "linux-arm",
         ("linux", "aarch64") => "linux-arm64",
-        ("windows", "x86") => "windows-32",
-        ("windows", "x86_64") => "windows-64",
-        ("windows", "aarch64") => "windows-arm64",
+        ("linux", "x86") => "linux-ia32",
+        ("linux", "powerpc64") => "linux-ppc64",
+        ("linux", "s390x") => "linux-s390x",
+        ("linux", "x86_64") => "linux-x64",
+        ("netbsd", "aarch64") => "netbsd-arm64",
+        ("netbsd", "x86_64") => "netbsd-x64",
+        ("openbsd", "aarch64") => "openbsd-arm64",
+        ("openbsd", "x86_64") => "openbsd-x64",
+        ("solaris", "x86_64") => "sunos-x64",
+        ("windows", "aarch64") => "win32-arm64",
+        ("windows", "x86") => "win32-ia32",
+        ("windows", "x86_64") => "win32-x64",
         _ => panic!("Platform unsupported by esbuild."),
     }
 }
