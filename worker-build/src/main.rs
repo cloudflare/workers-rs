@@ -22,14 +22,20 @@ use wasm_pack::command::build::{Build, BuildOptions};
 
 use crate::wasm_pack::command::build::Target;
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 fn fix_wasm_import() -> Result<()> {
     let index_path = output_path("index.js");
-    if !index_path.exists() {
-        return Ok(());
-    }
-
     let content = fs::read_to_string(&index_path)?;
-    let updated_content = content.replace("import source wasmModule", "import wasmModule");
+    let updated_content = content.replace("import source ", "import ");
+    fs::write(&index_path, updated_content)?;
+    Ok(())
+}
+
+fn fix_heap_assignment() -> Result<()> {
+    let index_path = output_path("index.js");
+    let content = fs::read_to_string(&index_path)?;
+    let updated_content = content.replace("const heap =", "let heap =");
     fs::write(&index_path, updated_content)?;
     Ok(())
 }
@@ -50,6 +56,12 @@ fn update_package_json() -> Result<()> {
 }
 
 pub fn main() -> Result<()> {
+    let first_arg = env::args().nth(1);
+    if matches!(first_arg.as_deref(), Some("--version") | Some("-v")) {
+        println!("{}", VERSION);
+        return Ok(());
+    }
+
     let out_path = output_path("");
     if out_path.exists() {
         fs::remove_dir_all(out_path)?;
@@ -104,6 +116,10 @@ pub fn main() -> Result<()> {
 
         fs::write(output_path("shim.js"), shim)?;
 
+        fix_heap_assignment()?;
+
+        add_exported_class_wrappers(detect_exported_class_names()?)?;
+
         bundle(&esbuild_path)?;
 
         fix_wasm_import()?;
@@ -116,6 +132,37 @@ pub fn main() -> Result<()> {
         create_wrapper_alias(true)?;
     }
 
+    Ok(())
+}
+
+fn detect_exported_class_names() -> Result<Vec<String>> {
+    let index_path = output_path("index.js");
+    let content = fs::read_to_string(&index_path)?;
+
+    let mut class_names = Vec::new();
+    for line in content.lines() {
+        if !line.contains("export class") {
+            continue;
+        }
+        if let Some(rest) = line.strip_prefix("export class ") {
+            if let Some(brace_pos) = rest.find("{") {
+                let class_name = rest[..brace_pos].trim();
+                class_names.push(class_name.to_string());
+            }
+        }
+    }
+    Ok(class_names)
+}
+
+fn add_exported_class_wrappers(class_names: Vec<String>) -> Result<()> {
+    let shim_path = output_path("shim.js");
+    let mut output = fs::read_to_string(&shim_path)?;
+    for class_name in class_names {
+        output.push_str(&format!(
+            "export const {class_name} = new Proxy(exports.{class_name}, classProxyHooks);\n"
+        ));
+    }
+    fs::write(&shim_path, output)?;
     Ok(())
 }
 

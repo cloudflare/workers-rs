@@ -36,17 +36,7 @@ mod socket;
 mod sql_counter;
 mod sql_iterator;
 mod user;
-mod utils;
 mod ws;
-
-#[derive(Deserialize, Serialize)]
-struct MyData {
-    message: String,
-    #[serde(default)]
-    is: bool,
-    #[serde(default)]
-    data: Vec<u8>,
-}
 
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -72,8 +62,6 @@ static DATA_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\d{4}-\d{2}-
 // only called once for the entire lifetime of the worker.
 #[event(start)]
 pub fn start() {
-    utils::set_panic_hook();
-
     // Change some global state so we know that we ran our setup function.
     GLOBAL_STATE.store(true, Ordering::SeqCst);
 }
