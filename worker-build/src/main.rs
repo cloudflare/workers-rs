@@ -273,7 +273,10 @@ fn bundle(esbuild_path: &Path) -> Result<()> {
 fn remove_unused_files() -> Result<()> {
     std::fs::remove_file(output_path("index_bg.wasm.d.ts"))?;
     std::fs::remove_file(output_path("shim.js"))?;
-    std::fs::remove_dir_all(output_path("snippets"))?;
+    let snippets_path = output_path("snippets");
+    if snippets_path.exists() {
+        std::fs::remove_dir_all(snippets_path)?;
+    }
     Ok(())
 }
 
