@@ -6,10 +6,14 @@ use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use worker_sys::Ai as AiSys;
 
+/// Enables access to Workers AI functionality.
 #[derive(Debug)]
 pub struct Ai(AiSys);
 
 impl Ai {
+    /// Execute a Workers AI operation using the specified model.
+    /// Various forms of the input are documented in the Workers
+    /// AI documentation.
     pub async fn run<T: Serialize, U: DeserializeOwned>(
         &self,
         model: impl AsRef<str>,
