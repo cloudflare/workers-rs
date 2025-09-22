@@ -1,8 +1,8 @@
 name: Pull Request
 
 on:
-- pull_request
-- workflow_dispatch
+  - pull_request
+  - workflow_dispatch
 
 jobs:
   rustfmt:
@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -42,6 +44,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -64,7 +68,7 @@ jobs:
 
       - name: Run builder tests
         run: cargo test --manifest-path worker-build/Cargo.toml
-          
+
       - name: Setup node
         uses: actions/setup-node@v4
         with:
@@ -76,16 +80,26 @@ jobs:
           sudo apt clean
           sudo apt install -y build-essential libssl-dev netcat-traditional libc++-dev
 
-      - name: Install wasmpack
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-
-      - name: Build local worker-build
-        run: cargo install --path ./worker-build --force --debug
-
       - name: Install npm dependencies
         run: npm ci
 
+      - name: Build
+        run: npm run build
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Container
+        uses: docker/build-push-action@v6
+        with:
+          context: ./test/container-echo
+          push: false
+          load: true
+          tags: worker-dev/echocontainer:latest
+
       - name: Run tests
+        env:
+          TEST_CONTAINER_NAME: worker-dev/echocontainer:latest
         run: npm run test
 
       - name: Run tests (http)

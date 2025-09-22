@@ -167,6 +167,7 @@ pub use crate::abort::*;
 pub use crate::ai::*;
 pub use crate::analytics_engine::*;
 pub use crate::cache::{Cache, CacheDeletionOutcome, CacheKey};
+pub use crate::container::*;
 pub use crate::context::Context;
 pub use crate::cors::Cors;
 #[cfg(feature = "d1")]
@@ -203,9 +204,11 @@ mod ai;
 mod analytics_engine;
 mod cache;
 mod cf;
+mod container;
 mod context;
 mod cors;
 pub mod crypto;
+pub mod panic_abort;
 // Require pub module for macro export
 #[cfg(feature = "d1")]
 /// **Requires** `d1` feature.
