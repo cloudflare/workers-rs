@@ -3,10 +3,6 @@ name = "fetcher-on-workers"
 version = "0.0.1"
 edition = "2021"
 
-# https://github.com/rustwasm/wasm-pack/issues/1247
-[package.metadata.wasm-pack.profile.release]
-wasm-opt = false
-
 [lib]
 crate-type = ["cdylib"]
 
