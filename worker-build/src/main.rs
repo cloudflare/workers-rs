@@ -92,9 +92,8 @@ pub fn main() -> Result<()> {
     }
 
     if supports_module_and_reset_state {
-        update_package_json()?;
-
-        let esbuild_path = install::ensure_esbuild()?;
+        let (has_fetch_handler, has_queue_handler, has_scheduled_handler) =
+            detect_exported_handlers()?;
 
         let shim_template = match env::var("CUSTOM_SHIM") {
             Ok(path) => {
@@ -106,13 +105,39 @@ pub fn main() -> Result<()> {
             Err(_) => SHIM_FILE.to_owned(),
         };
 
-        let wait_until_response = if env::var("RUN_TO_COMPLETION").is_ok() {
-            "this.ctx.waitUntil(response);"
-        } else {
-            ""
-        };
+        let mut handlers = String::new();
+        if has_fetch_handler {
+            let wait_until_response = if env::var("RUN_TO_COMPLETION").is_ok() {
+                "this.ctx.waitUntil(response);"
+            } else {
+                ""
+            };
+            handlers += &format!(
+                "  async fetch(request) {{
+    checkReinitialize();
+    let response = exports.fetch(request, this.env, this.ctx);
+    {wait_until_response}
+    return await response;
+  }}
+"
+            )
+        }
+        if has_queue_handler {
+            handlers += "  async queue(batch) {
+    checkReinitialize();
+    return await exports.queue(batch, this.env, this.ctx);
+  }
+"
+        }
+        if has_scheduled_handler {
+            handlers += "  async scheduled(event) {
+    checkReinitialize();
+    return await exports.scheduled(event, this.env, this.ctx);
+  }
+"
+        }
 
-        let shim = shim_template.replace("$WAIT_UNTIL_RESPONSE", wait_until_response);
+        let shim = shim_template.replace("$HANDLERS", &handlers);
 
         fs::write(output_path("shim.js"), shim)?;
 
@@ -120,6 +145,9 @@ pub fn main() -> Result<()> {
 
         add_exported_class_wrappers(detect_exported_class_names()?)?;
 
+        update_package_json()?;
+
+        let esbuild_path = install::ensure_esbuild()?;
         bundle(&esbuild_path)?;
 
         fix_wasm_import()?;
@@ -133,6 +161,32 @@ pub fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn detect_exported_handlers() -> Result<(bool, bool, bool)> {
+    let index_path = output_path("index.js");
+    let content = fs::read_to_string(&index_path)?;
+
+    let mut has_fetch_handler = false;
+    let mut has_queue_handler = false;
+    let mut has_scheduled_handler = false;
+    for line in content.lines() {
+        if !line.contains("export function") {
+            continue;
+        }
+        if let Some(rest) = line.strip_prefix("export function") {
+            if let Some(bracket_pos) = rest.find("(") {
+                let func_name = rest[..bracket_pos].trim();
+                match func_name {
+                    "fetch" => has_fetch_handler = true,
+                    "queue" => has_queue_handler = true,
+                    "scheduled" => has_scheduled_handler = true,
+                    _ => {}
+                }
+            }
+        }
+    }
+    Ok((has_fetch_handler, has_queue_handler, has_scheduled_handler))
 }
 
 fn detect_exported_class_names() -> Result<Vec<String>> {
