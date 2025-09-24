@@ -95,16 +95,6 @@ pub fn main() -> Result<()> {
         let (has_fetch_handler, has_queue_handler, has_scheduled_handler) =
             detect_exported_handlers()?;
 
-        let shim_template = match env::var("CUSTOM_SHIM") {
-            Ok(path) => {
-                let path = Path::new(&path).to_owned();
-                println!("Using custom shim from {}", path.display());
-                // NOTE: we fail in case that file doesnt exist or something else happens
-                fs::read_to_string(path)?
-            }
-            Err(_) => SHIM_FILE.to_owned(),
-        };
-
         let mut handlers = String::new();
         if has_fetch_handler {
             let wait_until_response = if env::var("RUN_TO_COMPLETION").is_ok() {
@@ -137,7 +127,7 @@ pub fn main() -> Result<()> {
 "
         }
 
-        let shim = shim_template.replace("$HANDLERS", &handlers);
+        let shim = SHIM_FILE.replace("$HANDLERS", &handlers);
 
         fs::write(output_path("shim.js"), shim)?;
 
@@ -167,25 +157,41 @@ fn detect_exported_handlers() -> Result<(bool, bool, bool)> {
     let index_path = output_path("index.js");
     let content = fs::read_to_string(&index_path)?;
 
-    let mut has_fetch_handler = false;
-    let mut has_queue_handler = false;
-    let mut has_scheduled_handler = false;
+    // Extract ESM function exports from the wasm-bindgen generated output.
+    // This code is specialized to what wasm-bindgen outputs for ESM and is therefore
+    // brittle to upstream changes. It is comprehensive to current output patterns though.
+    // TODO: Convert this to Wasm binary exports analysis for entry point detection instead.
+    let mut func_names = Vec::new();
     for line in content.lines() {
-        if !line.contains("export function") {
-            continue;
-        }
         if let Some(rest) = line.strip_prefix("export function") {
             if let Some(bracket_pos) = rest.find("(") {
                 let func_name = rest[..bracket_pos].trim();
-                match func_name {
-                    "fetch" => has_fetch_handler = true,
-                    "queue" => has_queue_handler = true,
-                    "scheduled" => has_scheduled_handler = true,
-                    _ => {}
+                func_names.push(func_name);
+            }
+        } else if let Some(rest) = line.strip_prefix("export {") {
+            if let Some(as_pos) = rest.find(" as ") {
+                let rest = &rest[as_pos + 4..];
+                if let Some(brace_pos) = rest.find("}") {
+                    let func_name = rest[..brace_pos].trim();
+                    func_names.push(func_name);
                 }
             }
         }
     }
+
+    let mut has_fetch_handler = false;
+    let mut has_queue_handler = false;
+    let mut has_scheduled_handler = false;
+
+    for func_name in func_names {
+        match func_name {
+            "fetch" => has_fetch_handler = true,
+            "queue" => has_queue_handler = true,
+            "scheduled" => has_scheduled_handler = true,
+            _ => {}
+        }
+    }
+
     Ok((has_fetch_handler, has_queue_handler, has_scheduled_handler))
 }
 
