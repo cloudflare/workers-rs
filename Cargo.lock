@@ -4062,7 +4062,7 @@ dependencies = [
 
 [[package]]
 name = "worker-build"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "anyhow",
  "binary-install",
