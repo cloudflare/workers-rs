@@ -61,7 +61,7 @@ jobs:
               cargo generate --path $template --name "$template_name" --define project-name="$template_name" --define authors="Anon" --destination ./generated --force
               cd "$template"
               echo "Building $template_name"
-              ../target/debug/worker-build
+              ../../target/debug/worker-build
               cd ../..
           done
 
@@ -83,7 +83,7 @@ jobs:
               example_name=$(basename "$example")
               echo "Building $example_name"
               cd "$example"
-              ../target/debug/worker-build
+              ../../target/debug/worker-build
               cd ../..
           done
 
