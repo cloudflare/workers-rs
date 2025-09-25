@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: actions/checkout@v4
       - uses: cargo-bins/cargo-binstall@main
       - name: Install cargo-generate
         run: cargo binstall cargo-generate
