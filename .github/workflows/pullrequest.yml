@@ -21,7 +21,7 @@ jobs:
         with:
           path: ~/.cargo/registry ~/.cargo/git target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo
+          restore-keys: ${{ runner.os }}-cargo-
       - run: cargo test -p worker-build
       - run: cargo build -p worker-build
       - uses: actions/upload-artifact@v4
@@ -44,7 +44,7 @@ jobs:
         with:
           path: ~/.cargo/registry ~/.cargo/git target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo
+          restore-keys: ${{ runner.os }}-cargo-
 
       - uses: actions/download-artifact@v4
         with:
@@ -90,7 +90,7 @@ jobs:
         with:
           path: ~/.cargo/registry ~/.cargo/git target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo
+          restore-keys: ${{ runner.os }}-cargo-
 
       - uses: actions/download-artifact@v4
         with:
@@ -105,7 +105,7 @@ jobs:
           sed -i 's/, "examples\/axum"//g' Cargo.toml
           for example in examples/*/; do
               example_name=$(basename "$example")
-              if [ "$template_name" = "coredump" ]; then
+              if [ "$example_name" = "coredump" ]; then
                 echo "Skipping coredump example"
                 continue
               fi
@@ -126,13 +126,9 @@ jobs:
       - name: Cache Rust dependencies
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
+          path: ~/.cargo/registry ~/.cargo/git target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
+          restore-keys: ${{ runner.os }}-cargo-
 
       - name: Check Formatting
         run: cargo fmt --all -- --check
@@ -169,7 +165,7 @@ jobs:
         with:
           path: ~/.cargo/registry ~/.cargo/git target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo
+          restore-keys: ${{ runner.os }}-cargo-
 
       - name: Install packages
         run: |
