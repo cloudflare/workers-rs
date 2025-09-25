@@ -17,11 +17,9 @@ jobs:
         run: |
           for template in templates/*/; do
             template_name=$(basename "$template")
-            echo "=== Generating template: $template_name ==="
-            cargo generate --git . --path "$template" --name "$template_name" --destination ./"$template_name" --batch
-            
-            echo "=== Building $template_name with Wrangler ==="
-            (cd "$template_name" && npx wrangler build) || echo "Build failed for $template_name"
+            cargo generate --git . --path "$template" --name "$template_name" --destination ./"$template_name" --force
+            cd "$template_name"
+            npx wrangler build || echo "Build failed for $template_name"
           done
   rustfmt:
     name: Formatter
