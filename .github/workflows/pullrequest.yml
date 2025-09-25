@@ -58,7 +58,7 @@ jobs:
                 continue
               fi
               echo "Generating $template_name"
-              cargo generate --path $template --name "$template_name" --destination ./generated --force
+              cargo generate --path $template --name "$template_name" --define project-name="$template_name" --define authors="Anon" --destination ./generated --force
               cd "$template"
               ./target/debug/worker-build || echo "Build failed for template $template_name"
               cd ../..
