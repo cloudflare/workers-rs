@@ -19,13 +19,9 @@ jobs:
       - name: Cache Rust dependencies
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
+          path: ~/.cargo/registry ~/.cargo/git target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
+          restore-keys: ${{ runner.os }}-cargo
       - name: Run builder tests
         run: cargo test --manifest-path worker-build/Cargo.toml
       - run: cargo build -p worker-build
@@ -41,15 +37,29 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry ~/.cargo/git target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo
+
       - uses: actions/download-artifact@v4
         with:
           name: worker-build
           path: ./target/debug
+
       - name: Make worker-build executable
         run: chmod +x ./target/debug/worker-build
+
       - uses: cargo-bins/cargo-binstall@main
+
       - name: Install cargo-generate
         run: cargo binstall cargo-generate
+
       - name: Generate and build all templates
         run: |
           mkdir -p generated
@@ -73,12 +83,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry ~/.cargo/git target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo
+
       - uses: actions/download-artifact@v4
         with:
           name: worker-build
           path: ./target/debug
+
       - name: Make worker-build executable
         run: chmod +x ./target/debug/worker-build
+
       - name: Build all examples
         run: |
           for example in examples/*/; do
@@ -141,13 +163,9 @@ jobs:
       - name: Cache Rust dependencies
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
+          path: ~/.cargo/registry ~/.cargo/git target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
+          restore-keys: ${{ runner.os }}-cargo
 
       - name: Install packages
         run: |
