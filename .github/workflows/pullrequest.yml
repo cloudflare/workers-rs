@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   worker-build:
-    name: Build worker-build
+    name: Test & Build worker-build
     runs-on: ubuntu-latest
 
     steps:
@@ -26,6 +26,8 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
+      - name: Run builder tests
+        run: cargo test --manifest-path worker-build/Cargo.toml
       - run: cargo build -p worker-build
       - uses: actions/upload-artifact@v4
         with:
@@ -115,6 +117,9 @@ jobs:
       - name: Check for idiomatic code (http)
         run: cargo clippy --all-features --package worker-sandbox --all-targets -- -D warnings
 
+      - name: Check for errors
+        run: cargo check
+
   test:
     name: Test
     needs: worker-build
@@ -143,17 +148,6 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
-
-      - name: Check for errors
-        run: cargo check
-
-      - name: Run builder tests
-        run: cargo test --manifest-path worker-build/Cargo.toml
-
-      - name: Setup node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
 
       - name: Install packages
         run: |
