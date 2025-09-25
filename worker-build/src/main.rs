@@ -1,6 +1,7 @@
 use std::{
+    cell::LazyCell,
     env::{self, VarError},
-    fs::{self, File},
+    fs::{self, read_to_string, File},
     io::{Read, Write},
     path::{Path, PathBuf},
     process::{Command, Stdio},
@@ -12,7 +13,16 @@ use clap::Parser;
 
 const OUT_DIR: &str = "build";
 
-const SHIM_FILE: &str = include_str!("./js/shim.js");
+#[allow(clippy::declare_interior_mutable_const)]
+const SHIM_FILE: LazyCell<String> = LazyCell::new(|| match env::var("CUSTOM_SHIM") {
+    Ok(path) => {
+        let path = Path::new(&path).to_owned();
+        println!("Using custom shim from {}", path.display());
+        // NOTE: we fail in case that file doesnt exist or something else happens
+        read_to_string(path).unwrap()
+    }
+    Err(_) => include_str!("./js/shim.js").to_owned(),
+});
 
 mod install;
 mod main_legacy;
