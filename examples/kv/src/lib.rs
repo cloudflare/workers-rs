@@ -1,4 +1,4 @@
-use worker::{event, Env, Request, Result, Response};
+use worker::{event, Env, Request, Response, Result};
 use worker_kv::KvError;
 
 #[event(fetch)]
