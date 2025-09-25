@@ -72,9 +72,9 @@ pub fn main() -> Result<()> {
 
     wasm_pack_build.init()?;
 
-    let supports_module_and_reset_state =
-        wasm_pack_build.supports_target_module_and_reset_state()?;
-    if supports_module_and_reset_state {
+    let module_target = wasm_pack_build.supports_target_module_and_reset_state()?
+        || env::var("CUSTOM_SHIM").is_ok();
+    if module_target {
         wasm_pack_build
             .extra_args
             .push("--experimental-reset-state-function".to_string());
@@ -91,7 +91,7 @@ pub fn main() -> Result<()> {
         wasm_coredump()?;
     }
 
-    if supports_module_and_reset_state {
+    if module_target {
         let (has_fetch_handler, has_queue_handler, has_scheduled_handler) =
             detect_exported_handlers()?;
 
