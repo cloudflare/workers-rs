@@ -60,7 +60,8 @@ jobs:
               echo "Generating $template_name"
               cargo generate --path $template --name "$template_name" --define project-name="$template_name" --define authors="Anon" --destination ./generated --force
               cd "$template"
-              ./target/debug/worker-build || echo "Build failed for template $template_name"
+              echo "Building $template_name"
+              ./target/debug/worker-build
               cd ../..
           done
 
@@ -70,12 +71,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: true
       - uses: actions/download-artifact@v4
         with:
           name: worker-build
-          path: ./bin
+          path: ./target/debug
       - name: Make worker-build executable
         run: chmod +x ./target/debug/worker-build
       - name: Build all examples
