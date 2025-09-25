@@ -10,6 +10,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: cargo-bins/cargo-binstall@main
+      - name: Install cargo-generate
+        run: cargo binstall cargo-generate
       - name: Generate and build all templates
         run: |
           for template in templates/*/; do
