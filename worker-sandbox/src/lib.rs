@@ -38,6 +38,7 @@ mod user;
 mod utils;
 mod ws;
 
+#[allow(dead_code)]
 #[derive(Deserialize, Serialize)]
 struct MyData {
     message: String,

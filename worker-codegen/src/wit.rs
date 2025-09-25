@@ -144,7 +144,7 @@ fn expand_rpc_impl(
         let method_raw = quote!(
             async fn #ident(&self) -> ::worker::Result<#ret_type> {
                 let promise = #invocation_item?;
-                let fut = ::worker::send::SendFuture::new(::worker::wasm_bindgen_futures::JsFuture::from(promise));
+                let fut = unsafe { ::worker::send::SendFuture::new(::worker::wasm_bindgen_futures::JsFuture::from(promise)) };
                 let output = fut.await?;
                 Ok(::serde_wasm_bindgen::from_value(output)?)
             }

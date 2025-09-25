@@ -274,7 +274,6 @@ pub async fn handle_basic_test(
     Response::ok("ok")
 }
 
-#[worker::send]
 pub async fn handle_get_by_name(
     _req: Request,
     env: Env,
@@ -292,7 +291,6 @@ pub async fn handle_get_by_name(
         .await
 }
 
-#[worker::send]
 pub async fn handle_get_by_name_with_location_hint(
     _req: Request,
     env: Env,
