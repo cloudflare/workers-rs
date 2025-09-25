@@ -10,4 +10,4 @@ release = false
 crate-type = ["cdylib"]
 
 [dependencies]
-worker = { path = "../../worker" }
+worker.workspace = true

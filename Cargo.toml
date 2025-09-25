@@ -9,7 +9,7 @@ members = [
     "examples/*",
     "test/container-echo"
 ]
-exclude = ["examples/coredump", "examples/axum", "templates/*", "wasm-bindgen"]
+exclude = ["examples/coredump", "examples/axum", "templates/*", "wasm-bindgen", "generated"]
 resolver = "2"
 
 [workspace.dependencies]

@@ -4,7 +4,117 @@ on:
   - pull_request
   - workflow_dispatch
 
+permissions:
+  contents: read
+
 jobs:
+  worker-build:
+    name: Test & Build worker-build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry ~/.cargo/git target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+      - run: cargo test -p worker-build
+      - run: cargo build -p worker-build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: worker-build
+          path: target/debug/worker-build
+
+  build-templates:
+    name: Build Templates
+    needs: worker-build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry ~/.cargo/git target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: worker-build
+          path: ./target/debug
+
+      - name: Make worker-build executable
+        run: chmod +x ./target/debug/worker-build
+
+      - uses: cargo-bins/cargo-binstall@main
+
+      - name: Install cargo-generate
+        run: cargo binstall cargo-generate
+
+      - name: Generate and build all templates
+        run: |
+          mkdir -p generated
+          for template in templates/*/; do
+              template_name=$(basename "$template")
+              if [ "$template_name" = "leptos" ]; then
+                echo "Skipping leptos template"
+                continue
+              fi
+              echo "Generating $template_name"
+              cargo generate --path $template --name "$template_name" --destination ./generated --force
+              cd "generated/$template_name"
+              echo "Building $template_name"
+              ../../target/debug/worker-build
+              cd ../..
+          done
+
+  build-examples:
+    name: Build Examples
+    needs: worker-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry ~/.cargo/git target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: worker-build
+          path: ./target/debug
+
+      - name: Make worker-build executable
+        run: chmod +x ./target/debug/worker-build
+
+      - name: Build all examples
+        run: |
+          sed -i 's/, "examples\/axum"//g' Cargo.toml
+          for example in examples/*/; do
+              example_name=$(basename "$example")
+              if [ "$example_name" = "coredump" ]; then
+                echo "Skipping coredump example"
+                continue
+              fi
+              echo "Building $example_name"
+              cd "$example"
+              ../../target/debug/worker-build
+              cd ../..
+          done
+
   rustfmt:
     name: Formatter
     runs-on: ubuntu-latest
@@ -13,22 +123,12 @@ jobs:
         with:
           submodules: true
 
-      - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy, rustfmt
-          targets: wasm32-unknown-unknown
-
       - name: Cache Rust dependencies
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
+          path: ~/.cargo/registry ~/.cargo/git target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
+          restore-keys: ${{ runner.os }}-cargo-
 
       - name: Check Formatting
         run: cargo fmt --all -- --check
@@ -38,8 +138,13 @@ jobs:
 
       - name: Check for idiomatic code (http)
         run: cargo clippy --all-features --package worker-sandbox --all-targets -- -D warnings
+
+      - name: Check for errors
+        run: cargo check
+
   test:
     name: Test
+    needs: worker-build
     runs-on: ubuntu-latest
 
     steps:
@@ -47,32 +152,20 @@ jobs:
         with:
           submodules: true
 
-      - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - uses: actions/download-artifact@v4
         with:
-          targets: wasm32-unknown-unknown
+          name: worker-build
+          path: ./target/debug
+
+      - name: Make worker-build executable
+        run: chmod +x ./target/debug/worker-build
 
       - name: Cache Rust dependencies
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
+          path: ~/.cargo/registry ~/.cargo/git target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
-
-      - name: Check for errors
-        run: cargo check
-
-      - name: Run builder tests
-        run: cargo test --manifest-path worker-build/Cargo.toml
-
-      - name: Setup node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
+          restore-keys: ${{ runner.os }}-cargo-
 
       - name: Install packages
         run: |
@@ -83,8 +176,8 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
-      - name: Build
-        run: npm run build
+      - name: Build Wasm Bindgen
+        run: cd wasm-bindgen && cargo build -p wasm-bindgen-cli --bin wasm-bindgen
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
