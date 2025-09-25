@@ -11,9 +11,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
       - uses: cargo-bins/cargo-binstall@main
       - name: Install cargo-generate
         run: cargo binstall cargo-generate
+      - name: Install local worker build
+        run: cargo install --path worker-build
       - name: Generate and build all templates
         run: |
           mkdir -p generated
@@ -22,7 +26,8 @@ jobs:
               echo "Generating $template_name"
               cargo generate --path $template --name "$template_name" --destination ./generated --force
               cd "generated/$template_name"
-              npx wrangler build || echo "Build failed for $template_name"
+              worker-build || echo "Build failed for $template_name"
+              cd ../..
           done
 
   rustfmt:
