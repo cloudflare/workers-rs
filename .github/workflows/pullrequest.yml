@@ -16,7 +16,8 @@ jobs:
         run: cargo binstall cargo-generate
       - name: Generate and build all templates
         run: |
-          for template in templates/*/; do
+          for template_name in $(ls templates/); do
+            echo "$template_name"
             template_name=$(basename "$template")
             cargo generate --path "$template" --name "$template_name" --destination ./"$template_name" --force
             cd "$template_name"
