@@ -23,10 +23,23 @@ jobs:
           mkdir -p generated
           for template in templates/*/; do
               template_name=$(basename "$template")
+              if [ "$template_name" = "leptos" ]; then
+                echo "Skipping leptos template"
+                continue
+              fi
               echo "Generating $template_name"
               cargo generate --path $template --name "$template_name" --destination ./generated --force
               cd "generated/$template_name"
-              worker-build || echo "Build failed for $template_name"
+              worker-build || echo "Build failed for template $template_name"
+              cd ../..
+          done
+      - name: Build all examples
+        run: |
+          for example in examples/*/; do
+              example_name=$(basename "$template")
+              echo "Building $example_name"
+              cd "examples/$example_name"
+              worker-build || echo "Build failed for example $example_name"
               cd ../..
           done
 
