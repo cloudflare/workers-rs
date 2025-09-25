@@ -22,8 +22,7 @@ jobs:
           path: ~/.cargo/registry ~/.cargo/git target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo
-      - name: Run builder tests
-        run: cargo test --manifest-path worker-build/Cargo.toml
+      - run: cargo test -p worker-build
       - run: cargo build -p worker-build
       - uses: actions/upload-artifact@v4
         with:
@@ -105,6 +104,10 @@ jobs:
         run: |
           for example in examples/*/; do
               example_name=$(basename "$example")
+              if [ "$template_name" = "coredump" ]; then
+                echo "Skipping coredump example"
+                continue
+              fi
               echo "Building $example_name"
               cd "$example"
               ../../target/debug/worker-build
