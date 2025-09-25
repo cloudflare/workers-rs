@@ -4,20 +4,50 @@ on:
   - pull_request
   - workflow_dispatch
 
+permissions:
+  contents: read
+
 jobs:
-  build-templates:
-    name: Build Templates
+  worker-build:
+    name: Build worker-build
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: true
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+      - run: cargo build -p worker-build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: worker-build
+          path: target/debug/worker-build
+
+  build-templates:
+    name: Build Templates
+    needs: worker-build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: worker-build
+          path: ./target/debug
+      - name: Make worker-build executable
+        run: chmod +x ./target/debug/worker-build
       - uses: cargo-bins/cargo-binstall@main
       - name: Install cargo-generate
         run: cargo binstall cargo-generate
-      - name: Install local worker build
-        run: cargo install --path worker-build
       - name: Generate and build all templates
         run: |
           mkdir -p generated
@@ -30,27 +60,31 @@ jobs:
               echo "Generating $template_name"
               cargo generate --path $template --name "$template_name" --destination ./generated --force
               cd "$template"
-              worker-build || echo "Build failed for template $template_name"
+              ./target/debug/worker-build || echo "Build failed for template $template_name"
               cd ../..
           done
 
   build-examples:
     name: Build Examples
+    needs: worker-build
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: true
-      - name: Install local worker build
-        run: cargo install --path worker-build
+      - uses: actions/download-artifact@v4
+        with:
+          name: worker-build
+          path: ./bin
+      - name: Make worker-build executable
+        run: chmod +x ./target/debug/worker-build
       - name: Build all examples
         run: |
           for example in examples/*/; do
               example_name=$(basename "$example")
               echo "Building $example_name"
               cd "$example"
-              worker-build || echo "Build failed for example $example_name"
+              ./target/debug/worker-build || echo "Build failed for example $example_name"
               cd ../..
           done
 
@@ -61,12 +95,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: true
-
-      - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy, rustfmt
-          targets: wasm32-unknown-unknown
 
       - name: Cache Rust dependencies
         uses: actions/cache@v4
@@ -87,8 +115,10 @@ jobs:
 
       - name: Check for idiomatic code (http)
         run: cargo clippy --all-features --package worker-sandbox --all-targets -- -D warnings
+
   test:
     name: Test
+    needs: worker-build
     runs-on: ubuntu-latest
 
     steps:
@@ -96,10 +126,13 @@ jobs:
         with:
           submodules: true
 
-      - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - uses: actions/download-artifact@v4
         with:
-          targets: wasm32-unknown-unknown
+          name: worker-build
+          path: ./target/debug
+
+      - name: Make worker-build executable
+        run: chmod +x ./target/debug/worker-build
 
       - name: Cache Rust dependencies
         uses: actions/cache@v4
@@ -132,8 +165,8 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
-      - name: Build
-        run: npm run build
+      - name: Build Wasm Bindgen
+        run: cd wasm-bindgen && cargo build -p wasm-bindgen-cli --bin wasm-bindgen
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
