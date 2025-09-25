@@ -35,7 +35,6 @@ url = "2.4.0"
 serde-wasm-bindgen.workspace = true
 serde_urlencoded = "0.7"
 wasm-streams = "0.4"
-worker-kv.workspace = true
 worker-macros.workspace = true
 worker-sys.workspace = true
 chrono-tz = { version = "0.10.3", optional = true, default-features = false }

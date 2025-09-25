@@ -155,7 +155,6 @@ pub use url::Url;
 pub use wasm_bindgen;
 #[doc(hidden)]
 pub use wasm_bindgen_futures;
-pub use worker_kv as kv;
 
 pub use cf::{Cf, CfResponseProperties, TlsClientAuth};
 pub use worker_macros::{consume, durable_object, event, send};
@@ -184,6 +183,7 @@ pub use crate::global::Fetch;
 pub use crate::headers::Headers;
 pub use crate::http::Method;
 pub use crate::hyperdrive::*;
+pub use crate::kv::{KvError, KvStore};
 #[cfg(feature = "queue")]
 pub use crate::queue::*;
 pub use crate::r2::*;
@@ -225,6 +225,7 @@ mod global;
 mod headers;
 mod http;
 mod hyperdrive;
+pub mod kv;
 #[cfg(feature = "queue")]
 mod queue;
 mod r2;

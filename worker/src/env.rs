@@ -3,17 +3,16 @@ use std::fmt::Display;
 use crate::analytics_engine::AnalyticsEngineDataset;
 #[cfg(feature = "d1")]
 use crate::d1::D1Database;
+use crate::kv::KvStore;
+use crate::Ai;
 #[cfg(feature = "queue")]
 use crate::Queue;
 use crate::{durable::ObjectNamespace, Bucket, DynamicDispatcher, Fetcher, Result, SecretStore};
 use crate::{error::Error, hyperdrive::Hyperdrive};
 
-use crate::Ai;
-
 use js_sys::Object;
 use serde::de::DeserializeOwned;
 use wasm_bindgen::{prelude::*, JsCast, JsValue};
-use worker_kv::KvStore;
 
 #[wasm_bindgen]
 extern "C" {

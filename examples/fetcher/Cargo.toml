@@ -1,7 +1,10 @@
 [package]
 name = "fetcher-on-workers"
-version = "0.0.2"
+version = "0.1.0"
 edition = "2021"
+
+[package.metadata.release]
+release = false
 
 [lib]
 crate-type = ["cdylib"]
