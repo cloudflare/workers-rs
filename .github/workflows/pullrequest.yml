@@ -189,6 +189,8 @@ jobs:
           push: false
           load: true
           tags: worker-dev/echocontainer:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Run tests
         env:
