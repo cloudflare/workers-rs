@@ -2,7 +2,6 @@ use std::{collections::HashMap, future::Future, rc::Rc};
 
 use futures_util::future::LocalBoxFuture;
 use matchit::{Match, Router as MatchItRouter};
-use worker_kv::KvStore;
 
 use crate::{
     durable::ObjectNamespace,
@@ -10,7 +9,7 @@ use crate::{
     http::Method,
     request::Request,
     response::Response,
-    Bucket, Fetcher, Result,
+    Bucket, Fetcher, KvStore, Result,
 };
 
 type HandlerFn<D> = fn(Request, RouteContext<D>) -> Result<Response>;

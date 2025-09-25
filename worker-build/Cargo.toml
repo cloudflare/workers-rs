@@ -8,9 +8,6 @@ repository = "https://github.com/cloudflare/workers-rs/tree/main/worker-build"
 readme = "README.md"
 description = "This is a tool to be used as a custom build command for a Cloudflare Workers `workers-rs` project."
 
-[package.metadata.release]
-release = false
-
 [dependencies]
 anyhow = "1.0.98"
 binary-install = "0.4.1"
