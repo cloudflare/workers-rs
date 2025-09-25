@@ -4,7 +4,7 @@ use crate::wasm_pack::child;
 use crate::wasm_pack::command::build::{BuildProfile, Target};
 use crate::wasm_pack::install::{self, Tool};
 use crate::wasm_pack::manifest::CrateData;
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result};
 use std::path::Path;
 use std::process::Command;
 
@@ -17,10 +17,9 @@ pub fn wasm_bindgen_build(
     out_dir: &Path,
     out_name: &Option<String>,
     disable_dts: bool,
-    weak_refs: bool,
-    reference_types: bool,
     target: Target,
     profile: BuildProfile,
+    extra_args: &[String],
     extra_options: &[String],
 ) -> Result<()> {
     let profile_name = match profile.clone() {
@@ -60,20 +59,7 @@ pub fn wasm_bindgen_build(
         .arg(out_dir)
         .arg(dts_arg);
 
-    if weak_refs {
-        cmd.arg("--weak-refs");
-    }
-
-    if reference_types {
-        cmd.arg("--reference-types");
-    }
-
-    let target_arg = build_target_arg(target, &bindgen_path)?;
-    if supports_dash_dash_target(&bindgen_path)? {
-        cmd.arg("--target").arg(target_arg);
-    } else {
-        cmd.arg(target_arg);
-    }
+    cmd.arg("--target").arg(target.to_string());
 
     if let Some(value) = out_name {
         cmd.arg("--out-name").arg(value);
@@ -96,52 +82,10 @@ pub fn wasm_bindgen_build(
         cmd.arg("--split-linked-modules");
     }
 
+    for arg in extra_args {
+        cmd.arg(arg);
+    }
+
     child::run(cmd, "wasm-bindgen").context("Running the wasm-bindgen CLI")?;
     Ok(())
-}
-
-/// Check if the `wasm-bindgen` dependency is locally satisfied for the web target
-fn supports_web_target(cli_path: &Path) -> Result<bool> {
-    let cli_version = semver::Version::parse(&install::get_cli_version(
-        &install::Tool::WasmBindgen,
-        cli_path,
-    )?)?;
-    let expected_version = semver::Version::parse("0.2.39")?;
-    Ok(cli_version >= expected_version)
-}
-
-/// Check if the `wasm-bindgen` dependency is locally satisfied for the --target flag
-fn supports_dash_dash_target(cli_path: &Path) -> Result<bool> {
-    let cli_version = semver::Version::parse(&install::get_cli_version(
-        &install::Tool::WasmBindgen,
-        cli_path,
-    )?)?;
-    let expected_version = semver::Version::parse("0.2.40")?;
-    Ok(cli_version >= expected_version)
-}
-
-fn build_target_arg(target: Target, cli_path: &Path) -> Result<String> {
-    if !supports_dash_dash_target(cli_path)? {
-        Ok(build_target_arg_legacy(target, cli_path)?)
-    } else {
-        Ok(target.to_string())
-    }
-}
-
-fn build_target_arg_legacy(target: Target, cli_path: &Path) -> Result<String> {
-    log::info!("Your version of wasm-bindgen is out of date. You should consider updating your Cargo.toml to a version >= 0.2.40.");
-    let target_arg = match target {
-        Target::Nodejs => "--nodejs",
-        Target::NoModules => "--no-modules",
-        Target::Web => {
-            if supports_web_target(cli_path)? {
-                "--web"
-            } else {
-                bail!("Your current version of wasm-bindgen does not support the 'web' target. Please update your project to wasm-bindgen version >= 0.2.39.")
-            }
-        }
-        Target::Bundler => "--browser",
-        Target::Deno => "--deno",
-    };
-    Ok(target_arg.to_string())
 }

@@ -39,7 +39,7 @@ const mf_instance = new Miniflare({
   cachePersist: false,
   workers: [
     {
-      scriptPath: "./build/worker/shim.mjs",
+      scriptPath: "./build/index.js",
       compatibilityDate: "2025-07-24",
       cache: true,
       d1Databases: ["DB"],
@@ -61,6 +61,13 @@ const mf_instance = new Miniflare({
         PUT_RAW_TEST_OBJECT: "PutRawTestObject",
         AUTO: "AutoResponseObject",
         MY_CLASS: "MyClass",
+        ECHO_CONTAINER: {
+          className: "EchoContainer",
+          useSQLite: true,
+          container: {
+            imageName: "worker-dev/echocontainer:latest",
+          }
+        },
         SQL_COUNTER: {
           className: "SqlCounter",
           useSQLite: true,

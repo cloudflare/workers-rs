@@ -17,7 +17,9 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
       - uses: chainguard-dev/actions/setup-gitsign@main
       - uses: cargo-bins/cargo-binstall@main
       - name: Install cargo-release

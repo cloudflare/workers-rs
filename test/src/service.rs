@@ -10,12 +10,7 @@ pub async fn handle_remote_by_request(
 ) -> Result<Response> {
     let fetcher = env.service("remote")?;
 
-    #[cfg(feature = "http")]
-    let http_request = req.try_into()?;
-    #[cfg(not(feature = "http"))]
-    let http_request = req;
-
-    let response = fetcher.fetch_request(http_request).await?;
+    let response = fetcher.fetch_request(req).await?;
 
     #[cfg(feature = "http")]
     let result = Ok(TryInto::<worker::Response>::try_into(response)?);

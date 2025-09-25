@@ -2,6 +2,9 @@
 .DS_Store
 **/worker/generated/*
 worker-sandbox/build
+generated
+
+examples/**/*.package-lock.json
 
 #### Node
 # Logs

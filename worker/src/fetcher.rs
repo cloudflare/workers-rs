@@ -1,11 +1,10 @@
 use crate::{env::EnvBinding, RequestInit, Result};
-#[cfg(feature = "http")]
 use std::convert::TryInto;
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 
 #[cfg(feature = "http")]
-use crate::{HttpRequest, HttpResponse};
+use crate::HttpResponse;
 use crate::{Request, Response};
 /// A struct for invoking fetch events to other Workers.
 #[derive(Debug, Clone)]
@@ -15,11 +14,6 @@ pub struct Fetcher(worker_sys::Fetcher);
 type FetchResponseType = Response;
 #[cfg(feature = "http")]
 type FetchResponseType = HttpResponse;
-
-#[cfg(not(feature = "http"))]
-type FetchRequestType = Request;
-#[cfg(feature = "http")]
-type FetchRequestType = HttpRequest;
 
 impl Fetcher {
     /// Invoke a fetch event in a worker with a url and optionally a [RequestInit].
@@ -47,16 +41,16 @@ impl Fetcher {
 
     /// Invoke a fetch event with an existing [Request].
     ///
-    /// Argument type is [`Request`](crate::Request) unless `http` feature is enabled
-    /// and then it is [`http::Request<worker::Body>`].
+    /// Argument type is [`Request`](crate::Request) or [`http::Request<worker::Body>`].
     ///
     /// Return type is [`Response`](crate::Response) unless `http` feature is enabled
     /// and then it is [`http::Response<worker::Body>`].
-    pub async fn fetch_request(&self, request: FetchRequestType) -> Result<FetchResponseType> {
-        #[cfg(feature = "http")]
-        let req = TryInto::<Request>::try_into(request)?;
-        #[cfg(not(feature = "http"))]
-        let req = request;
+    pub async fn fetch_request<T, E>(&self, request: T) -> Result<FetchResponseType>
+    where
+        T: TryInto<Request, Error = E>,
+        crate::Error: From<E>,
+    {
+        let req = request.try_into()?;
         let promise = self.0.fetch(req.inner())?;
         let resp_sys: web_sys::Response = JsFuture::from(promise).await?.dyn_into()?;
         let response = Response::from(resp_sys);

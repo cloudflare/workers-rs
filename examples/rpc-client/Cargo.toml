@@ -6,16 +6,11 @@ edition = "2021"
 [package.metadata.release]
 release = false
 
-# https://github.com/rustwasm/wasm-pack/issues/1247
-[package.metadata.wasm-pack.profile.release]
-wasm-opt = false
-
 [lib]
 crate-type = ["cdylib"]
 
 [dependencies]
-worker = { path = "../../worker" }
-console_error_panic_hook = { version = "0.1.7" }
+worker.workspace = true
 
 # TODO: Remove the need for these
 async-trait = "0.1"
@@ -23,4 +18,4 @@ wasm-bindgen = "0.2"
 serde-wasm-bindgen = "0.6"
 
 [build-dependencies]
-worker-codegen = { path = "../../worker-codegen" }
+worker-codegen.workspace = true

@@ -6,16 +6,12 @@ edition = "2021"
 [package.metadata.release]
 release = false
 
-# https://github.com/rustwasm/wasm-pack/issues/1247
-[package.metadata.wasm-pack.profile.release]
-wasm-opt = false
-
 [lib]
 crate-type = ["cdylib"]
 
 [dependencies]
 serde = "1"
-worker = { workspace = true }
+worker.workspace = true
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }

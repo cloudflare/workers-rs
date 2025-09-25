@@ -10,7 +10,7 @@ export const server = createServer(function (socket) {
 }).listen(8080);
 
 export const mf = new Miniflare({
-  scriptPath: "./build/worker/shim.mjs",
+  scriptPath: "./build/index.js",
   compatibilityDate: "2024-12-05",
   modules: true,
   modulesRules: [
