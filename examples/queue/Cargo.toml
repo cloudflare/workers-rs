@@ -12,4 +12,4 @@ crate-type = ["cdylib"]
 [dependencies]
 serde = "1"
 worker = { workspace = true, features = ["queue"] }
-js-sys = { workspace = true }
+js-sys.workspace = true
