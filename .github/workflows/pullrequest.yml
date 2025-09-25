@@ -6,7 +6,7 @@ on:
 
 jobs:
   build-templates:
-    name: Build templates
+    name: Build Templates
     runs-on: ubuntu-latest
 
     steps:
@@ -29,16 +29,27 @@ jobs:
               fi
               echo "Generating $template_name"
               cargo generate --path $template --name "$template_name" --destination ./generated --force
-              cd "generated/$template_name"
+              cd "$template"
               worker-build || echo "Build failed for template $template_name"
               cd ../..
           done
+
+  build-examples:
+    name: Build Examples
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Install local worker build
+        run: cargo install --path worker-build
       - name: Build all examples
         run: |
           for example in examples/*/; do
-              example_name=$(basename "$template")
+              example_name=$(basename "$example")
               echo "Building $example_name"
-              cd "examples/$example_name"
+              cd "$example"
               worker-build || echo "Build failed for example $example_name"
               cd ../..
           done
