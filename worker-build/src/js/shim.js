@@ -36,14 +36,13 @@ const classProxyHooks = {
     instances.get(ctor)?.free();
     const instance = Reflect.construct(ctor, args, newTarget);
     instances.set(ctor, instance);
-    const target = {
+    return new Proxy({
       instance,
       reinitId,
       ctor,
       args,
       newTarget
-    };
-    return new Proxy(target, {
+    }, {
       get(target, prop, receiver) {
         if (target.reinitId !== reinitId) {
           instances.set(target.ctor, target.instance = Reflect.construct(target.ctor, target.args, target.newTarget));
