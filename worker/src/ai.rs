@@ -14,10 +14,14 @@ use wasm_bindgen_futures::JsFuture;
 use wasm_streams::readable::IntoAsyncRead;
 use worker_sys::Ai as AiSys;
 
+/// Enables access to Workers AI functionality.
 #[derive(Debug)]
 pub struct Ai(AiSys);
 
 impl Ai {
+    /// Execute a Workers AI operation using the specified model.
+    /// Various forms of the input are documented in the Workers
+    /// AI documentation.
     pub async fn run<M: Model>(&self, input: M::Input) -> Result<M::Output> {
         let fut = SendFuture::new(JsFuture::from(
             self.0
