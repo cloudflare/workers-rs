@@ -1,7 +1,7 @@
 use crate::{
-    alarm, analytics_engine, assets, auto_response, cache, container, counter, d1, durable, fetch,
-    form, js_snippets, kv, put_raw, queue, r2, request, secret_store, service, socket, sql_counter,
-    sql_iterator, user, ws, SomeSharedData, GLOBAL_STATE,
+    ai, alarm, analytics_engine, assets, auto_response, cache, container, counter, d1, durable,
+    fetch, form, js_snippets, kv, put_raw, queue, r2, request, secret_store, service, socket,
+    sql_counter, sql_iterator, user, ws, SomeSharedData, GLOBAL_STATE,
 };
 #[cfg(feature = "http")]
 use std::convert::TryInto;
@@ -112,6 +112,8 @@ macro_rules! add_route (
 
 macro_rules! add_routes (
     ($obj:ident) => {
+    add_route!($obj, get, "/ai", ai::simple_ai_text_generation);
+    add_route!($obj, get, "/ai/streaming", ai::streaming_ai_text_generation);
     add_route!($obj, get, sync, "/request", request::handle_a_request);
     add_route!($obj, get, "/analytics-engine", analytics_engine::handle_analytics_event);
     add_route!($obj, get, "/async-request", request::handle_async_request);
