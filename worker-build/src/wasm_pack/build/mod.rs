@@ -19,7 +19,7 @@ pub fn check_rustc_version() -> Result<String> {
             if mv < 30 {
                 bail!(
                     "Your version of Rust, '1.{}', is not supported. Please install Rust version 1.30.0 or higher.",
-                    mv.to_string()
+                    mv
                 )
             } else {
                 Ok(mv.to_string())

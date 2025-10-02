@@ -10,7 +10,7 @@ release = false
 crate-type = ["cdylib"]
 
 [dependencies]
-worker = { workspace = true }
+worker.workspace = true
 
 # TODO: Remove the need for these
 async-trait = "0.1"
@@ -18,4 +18,4 @@ wasm-bindgen = "0.2"
 serde-wasm-bindgen = "0.6"
 
 [build-dependencies]
-worker-codegen = { path = "../../worker-codegen" }
+worker-codegen.workspace = true

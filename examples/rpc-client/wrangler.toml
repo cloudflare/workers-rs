@@ -7,4 +7,4 @@ services = [
 ]
 
 [build]
-command = "cargo install --path ../../worker-build && worker-build --release"
+command = "cargo install worker-build && worker-build --release"

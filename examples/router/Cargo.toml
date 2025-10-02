@@ -11,7 +11,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 serde = "1"
-worker = { workspace = true }
+worker.workspace = true
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }

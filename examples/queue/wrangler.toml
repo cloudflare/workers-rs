@@ -2,7 +2,7 @@ name = "queue-on-workers"
 main = "build/index.js"
 
 [build]
-command = "worker-build --release"
+command = "cargo install worker-build && worker-build --release"
 
 [[queues.consumers]]
 queue = "mymessages"

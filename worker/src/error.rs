@@ -1,3 +1,4 @@
+use crate::kv::KvError;
 use wasm_bindgen::{JsCast, JsValue};
 
 /// All possible Error variants that might be encountered while working with a Worker.
@@ -26,6 +27,7 @@ pub enum Error {
     Utf8Error(std::str::Utf8Error),
     #[cfg(feature = "timezone")]
     TimezoneError,
+    KvError(KvError),
 }
 
 unsafe impl Sync for Error {}
@@ -78,10 +80,9 @@ impl From<core::convert::Infallible> for Error {
     }
 }
 
-impl From<worker_kv::KvError> for Error {
-    fn from(e: worker_kv::KvError) -> Self {
-        let val: JsValue = e.into();
-        val.into()
+impl From<KvError> for Error {
+    fn from(e: KvError) -> Self {
+        Self::KvError(e)
     }
 }
 
@@ -137,6 +138,11 @@ impl std::fmt::Display for Error {
             Error::Utf8Error(e) => write!(f, "{e}"),
             #[cfg(feature = "timezone")]
             Error::TimezoneError => write!(f, "Timezone Error"),
+            Error::KvError(KvError::JavaScript(s)) => write!(f, "js error: {s:?}"),
+            Error::KvError(KvError::Serialization(s)) => {
+                write!(f, "unable to serialize/deserialize: {s}")
+            }
+            Error::KvError(KvError::InvalidKvStore(s)) => write!(f, "invalid kv store: {s}"),
         }
     }
 }
