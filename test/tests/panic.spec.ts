@@ -1,32 +1,33 @@
 import { describe, test, expect } from "vitest";
-import { mf } from "./mf";
+import { mf, mfUrl } from "./mf";
 
 describe("Panic Hook with WASM Reinitialization", () => {
   test("panic recovery tests", async () => {
     // basic panic recovery
     {
-      const panicResp = await mf.dispatchFetch("http://fake.host/test-panic");
+      await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
+      const resp = await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
+      expect(await resp.text()).toContain("unstored_count: 2");
+
+      const panicResp = await mf.dispatchFetch(`${mfUrl}test-panic`);
       expect(panicResp.status).toBe(500);
 
       const panicText = await panicResp.text();
       expect(panicText).toContain("Workers runtime canceled");
 
-      const normalResp = await mf.dispatchFetch("http://fake.host/durable/hello");
-      expect(normalResp.status).toBe(200);
-
-      const normalText = await normalResp.text();
-      expect(normalText).toContain("Hello from my-durable-object!");
+      const normalResp = await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
+      expect(await normalResp.text()).toContain("unstored_count: 1");
     }
 
     // multiple requests after panic all succeed
     {
-      const panicResp = await mf.dispatchFetch("http://fake.host/test-panic");
+      const panicResp = await mf.dispatchFetch(`${mfUrl}test-panic`);
       expect(panicResp.status).toBe(500);
 
       const requests = [
-        mf.dispatchFetch("http://fake.host/durable/hello"),
-        mf.dispatchFetch("http://fake.host/durable/hello"),
-        mf.dispatchFetch("http://fake.host/durable/hello"),
+        mf.dispatchFetch(`${mfUrl}durable/hello`),
+        mf.dispatchFetch(`${mfUrl}durable/hello`),
+        mf.dispatchFetch(`${mfUrl}durable/hello`),
       ];
 
       const responses = await Promise.all(requests);
@@ -41,9 +42,9 @@ describe("Panic Hook with WASM Reinitialization", () => {
     // simultaneous requests during panic handling
     {
       const simultaneousRequests = [
-        mf.dispatchFetch("http://fake.host/test-panic"), // This will panic
-        mf.dispatchFetch("http://fake.host/durable/hello"), // This should succeed after reinitialization
-        mf.dispatchFetch("http://fake.host/durable/hello"),
+        mf.dispatchFetch(`${mfUrl}test-panic`), // This will panic
+        mf.dispatchFetch(`${mfUrl}durable/hello`), // This should succeed after reinitialization
+        mf.dispatchFetch(`${mfUrl}durable/hello`),
       ];
 
       const responses = await Promise.all(simultaneousRequests);
@@ -64,12 +65,10 @@ describe("Panic Hook with WASM Reinitialization", () => {
     // worker continues to function normally after multiple panics
     {
       for (let cycle = 1; cycle <= 3; cycle++) {
-        const panicResp = await mf.dispatchFetch("http://fake.host/test-panic");
+        const panicResp = await mf.dispatchFetch(`${mfUrl}test-panic`);
         expect(panicResp.status).toBe(500);
 
-        const recoveryResp = await mf.dispatchFetch(
-          "http://fake.host/durable/hello"
-        );
+        const recoveryResp = await mf.dispatchFetch(`${mfUrl}durable/hello`);
         expect(recoveryResp.status).toBe(200);
       }
     }
