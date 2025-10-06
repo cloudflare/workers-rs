@@ -14,6 +14,8 @@ use wasm_bindgen_futures::JsFuture;
 use wasm_streams::readable::IntoAsyncRead;
 use worker_sys::Ai as AiSys;
 
+pub mod models;
+
 /// Enables access to Workers AI functionality.
 #[derive(Debug)]
 pub struct Ai(AiSys);
