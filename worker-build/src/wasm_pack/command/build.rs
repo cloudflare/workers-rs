@@ -176,6 +176,10 @@ pub struct BuildOptions {
     /// List of extra options to pass to `cargo build`
     pub extra_options: Vec<String>,
 
+    #[clap(long, hide = true)]
+    /// Pass-through for --no-panic-recovery
+    pub no_panic_recovery: bool,
+
     #[deprecated(note = "runtime-detected")]
     #[allow(dead_code)]
     #[clap(long = "weak-refs", hide = true)]

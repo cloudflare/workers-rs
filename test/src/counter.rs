@@ -11,6 +11,7 @@ use crate::SomeSharedData;
 #[durable_object]
 pub struct Counter {
     count: RefCell<usize>,
+    unstored_count: RefCell<usize>,
     state: State,
     initialized: RefCell<bool>,
     env: Env,
@@ -20,6 +21,7 @@ impl DurableObject for Counter {
     fn new(state: State, env: Env) -> Self {
         Self {
             count: RefCell::new(0),
+            unstored_count: RefCell::new(0),
             initialized: RefCell::new(false),
             state,
             env,
@@ -47,13 +49,15 @@ impl DurableObject for Counter {
                 .empty());
         }
 
+        *self.unstored_count.borrow_mut() += 1;
         *self.count.borrow_mut() += 10;
         let count = *self.count.borrow();
         self.state.storage().put("count", count).await?;
 
         Response::ok(format!(
-            "[durable_object]: self.count: {}, secret value: {}",
+            "[durable_object]: self.count: {}, self.unstored_count: {}, secret value: {}",
             self.count.borrow(),
+            self.unstored_count.borrow(),
             self.env.secret("SOME_SECRET")?
         ))
     }
