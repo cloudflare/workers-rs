@@ -56,11 +56,15 @@ fn update_package_json() -> Result<()> {
 }
 
 pub fn main() -> Result<()> {
-    let first_arg = env::args().nth(1);
-    if matches!(first_arg.as_deref(), Some("--version") | Some("-v")) {
+    let args: Vec<_> = env::args().collect();
+    if matches!(
+        args.first().map(String::as_str),
+        Some("--version") | Some("-v")
+    ) {
         println!("{}", VERSION);
         return Ok(());
     }
+    let no_panic_recovery = args.iter().any(|a| a == "--no-panic-recovery");
 
     let out_path = output_path("");
     if out_path.exists() {
@@ -72,15 +76,21 @@ pub fn main() -> Result<()> {
 
     wasm_pack_build.init()?;
 
-    let module_target = wasm_pack_build.supports_target_module_and_reset_state()?
-        || env::var("CUSTOM_SHIM").is_ok();
+    let supports_reset_state = wasm_pack_build.supports_target_module_and_reset_state()?;
+    let module_target =
+        supports_reset_state && !no_panic_recovery && env::var("CUSTOM_SHIM").is_err();
     if module_target {
         wasm_pack_build
             .extra_args
             .push("--experimental-reset-state-function".to_string());
         wasm_pack_build.run()?;
     } else {
-        eprintln!("A newer version of wasm-bindgen is available. Update to use the latest workers-rs features.");
+        if supports_reset_state {
+            // Enable once we have DO bindings to offer an alternative
+            // eprintln!("Using CUSTOM_SHIM will be deprecated in a future release.");
+        } else {
+            eprintln!("A newer version of wasm-bindgen is available. Update to use the latest workers-rs features.");
+        }
         wasm_pack_build.target = Target::Bundler;
         wasm_pack_build.run()?;
     }
