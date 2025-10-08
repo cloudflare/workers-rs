@@ -1,8 +1,8 @@
-use crate::{
-    models::{AiTextGenerationInput, AiTextGenerationOutput},
-    Model, StreamableModel,
-};
+use worker_sys::{AiTextGenerationInput, AiTextGenerationOutput};
 
+use crate::{Model, StreamableModel};
+
+#[derive(Debug)]
 pub struct Llama4Scout17b16eInstruct;
 
 impl Model for Llama4Scout17b16eInstruct {

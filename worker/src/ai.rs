@@ -7,8 +7,8 @@ use crate::{Error, Result};
 use futures_util::io::{BufReader, Lines};
 use futures_util::{ready, AsyncBufReadExt as _, Stream, StreamExt as _};
 use js_sys::Reflect;
+use js_sys::JSON::parse;
 use pin_project::pin_project;
-use serde::{de::DeserializeOwned, Serialize};
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use wasm_streams::readable::IntoAsyncRead;
@@ -25,18 +25,15 @@ impl Ai {
     /// Various forms of the input are documented in the Workers
     /// AI documentation.
     pub async fn run<M: Model>(&self, input: M::Input) -> Result<M::Output> {
-        let fut = SendFuture::new(JsFuture::from(
-            self.0
-                .run(M::MODEL_NAME, serde_wasm_bindgen::to_value(&input)?),
-        ));
+        let fut = SendFuture::new(JsFuture::from(self.0.run(M::MODEL_NAME, input.into())));
         match fut.await {
-            Ok(output) => Ok(serde_wasm_bindgen::from_value(output)?),
+            Ok(output) => Ok(output.into()),
             Err(err) => Err(Error::from(err)),
         }
     }
 
     pub async fn run_streaming<M: StreamableModel>(&self, input: M::Input) -> Result<AiStream<M>> {
-        let input = serde_wasm_bindgen::to_value(&input)?;
+        let input = input.into();
         Reflect::set(&input, &JsValue::from_str("stream"), &JsValue::TRUE)?;
 
         let fut = SendFuture::new(JsFuture::from(self.0.run(M::MODEL_NAME, input)));
@@ -102,8 +99,8 @@ impl EnvBinding for Ai {
 
 pub trait Model: 'static {
     const MODEL_NAME: &str;
-    type Input: Serialize;
-    type Output: DeserializeOwned;
+    type Input: Into<JsValue>;
+    type Output: From<JsValue>;
 }
 
 pub trait StreamableModel: Model {}
@@ -168,6 +165,6 @@ impl<T: StreamableModel> Stream for AiStream<T> {
             return Poll::Ready(None);
         }
 
-        Poll::Ready(Some(Ok(serde_json::from_str(string)?)))
+        Poll::Ready(Some(Ok(parse(string)?.into())))
     }
 }
