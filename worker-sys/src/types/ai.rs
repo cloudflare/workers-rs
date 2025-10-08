@@ -1,5 +1,9 @@
-use js_sys::Promise;
+use std::iter::FromIterator;
+
+use js_sys::{Array, Promise};
 use wasm_bindgen::prelude::*;
+
+use crate::scoped_chat::RoleScopedChatInput;
 
 #[wasm_bindgen]
 extern "C" {
@@ -9,6 +13,80 @@ extern "C" {
 
     #[wasm_bindgen(structural, method, js_class=Ai, js_name=run)]
     pub fn run(this: &Ai, model: &str, input: JsValue) -> Promise;
+}
+
+pub mod scoped_chat {
+    use wasm_bindgen::prelude::wasm_bindgen;
+
+    #[wasm_bindgen]
+    extern "C" {
+        # [wasm_bindgen (extends = :: js_sys :: Object)]
+        #[derive(Debug, Clone, PartialEq, Eq)]
+        pub type RoleScopedChatInput;
+
+        #[wasm_bindgen(constructor, js_class = Object)]
+        fn new() -> RoleScopedChatInput;
+
+        #[wasm_bindgen(method, setter = "role")]
+        fn set_role_inner(this: &RoleScopedChatInput, role: &str);
+        #[wasm_bindgen(method, getter = "role")]
+        fn get_role_inner(this: &RoleScopedChatInput) -> Option<String>;
+
+        #[wasm_bindgen(method, setter = "content")]
+        fn set_content_inner(this: &RoleScopedChatInput, content: &str);
+        #[wasm_bindgen(method, getter = "content")]
+        fn get_content_inner(this: &RoleScopedChatInput) -> Option<String>;
+    }
+
+    #[derive(Default, Debug)]
+    pub enum Role {
+        #[default]
+        User,
+        Assistant,
+        System,
+        Tool,
+        Any(String),
+    }
+
+    impl RoleScopedChatInput {
+        pub fn get_role(&self) -> Role {
+            match self.get_role_inner().as_deref() {
+                Some("user") => Role::User,
+                Some("assistant") => Role::Assistant,
+                Some("system") => Role::System,
+                Some("tool") => Role::Tool,
+                Some(any) => Role::Any(any.to_owned()),
+                None => Role::default(),
+            }
+        }
+
+        pub fn get_content(&self) -> String {
+            self.get_content_inner().unwrap_or_default()
+        }
+    }
+
+    pub fn custom_role(role: &str, content: &str) -> RoleScopedChatInput {
+        let message = RoleScopedChatInput::new();
+        message.set_role_inner(role);
+        message.set_content_inner(content);
+        message
+    }
+
+    pub fn user(content: &str) -> RoleScopedChatInput {
+        custom_role("user", content)
+    }
+
+    pub fn assistant(content: &str) -> RoleScopedChatInput {
+        custom_role("assistant", content)
+    }
+
+    pub fn system(content: &str) -> RoleScopedChatInput {
+        custom_role("system", content)
+    }
+
+    pub fn tool(content: &str) -> RoleScopedChatInput {
+        custom_role("tool", content)
+    }
 }
 
 #[wasm_bindgen]
@@ -69,6 +147,12 @@ extern "C" {
     fn set_presence_penalty_inner(this: &AiTextGenerationInput, presence_penalty: f32);
     #[wasm_bindgen(method, getter = "presence_penalty")]
     pub fn get_presence_penalty(this: &AiTextGenerationInput) -> Option<f32>;
+
+    #[wasm_bindgen(method, setter = "messages")]
+    fn set_messages_inner(this: &AiTextGenerationInput, messages: Array);
+    #[wasm_bindgen(method, getter = "messages")]
+    pub fn get_messages(this: &AiTextGenerationInput) -> Option<Vec<RoleScopedChatInput>>;
+
 }
 
 impl AiTextGenerationInput {
@@ -119,6 +203,11 @@ impl AiTextGenerationInput {
 
     pub fn set_presence_penalty(self, presence_penalty: f32) -> Self {
         self.set_presence_penalty_inner(presence_penalty);
+        self
+    }
+
+    pub fn set_messages(self, messages: &[RoleScopedChatInput]) -> Self {
+        self.set_messages_inner(Array::from_iter(messages));
         self
     }
 }
