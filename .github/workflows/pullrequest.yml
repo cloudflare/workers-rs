@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: dtolnay/rust-toolchain@1.82
       - uses: actions/checkout@v4
         with:
           submodules: true
@@ -35,6 +36,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: dtolnay/rust-toolchain@1.82
+
       - uses: actions/checkout@v4
         with:
           submodules: true
@@ -81,6 +84,7 @@ jobs:
     needs: worker-build
     runs-on: ubuntu-latest
     steps:
+      - uses: dtolnay/rust-toolchain@1.82
       - uses: actions/checkout@v4
         with:
           submodules: true
@@ -119,6 +123,7 @@ jobs:
     name: Formatter
     runs-on: ubuntu-latest
     steps:
+      - uses: dtolnay/rust-toolchain@1.82
       - uses: actions/checkout@v4
         with:
           submodules: true
@@ -148,6 +153,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: dtolnay/rust-toolchain@1.82
       - uses: actions/checkout@v4
         with:
           submodules: true
