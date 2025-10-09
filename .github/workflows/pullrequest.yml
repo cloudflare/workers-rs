@@ -124,6 +124,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: dtolnay/rust-toolchain@1.82
+        with:
+          components: rustfmt, clippy
+
       - uses: actions/checkout@v4
         with:
           submodules: true
