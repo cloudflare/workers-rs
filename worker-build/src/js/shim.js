@@ -15,14 +15,14 @@ function registerPanicHook() {
 
 registerPanicHook();
 
-let instanceId = 0;
+let reinitId = 0;
 function checkReinitialize() {
   if (panicError) {
     console.log("Reinitializing Wasm application");
     exports.__wbg_reset_state();
     panicError = null;
     registerPanicHook();
-    instanceId++;
+    reinitId++;
   }
 }
 
@@ -30,20 +30,23 @@ export default class Entrypoint extends WorkerEntrypoint {
 $HANDLERS
 }
 
+const instances = new Map();
 const classProxyHooks = {
   construct(ctor, args, newTarget) {
-    const instance = {
-      instance: Reflect.construct(ctor, args, newTarget),
-      instanceId,
+    instances.get(ctor)?.free();
+    const instance = Reflect.construct(ctor, args, newTarget);
+    instances.set(ctor, instance);
+    return new Proxy({
+      instance,
+      reinitId,
       ctor,
       args,
       newTarget
-    };
-    return new Proxy(instance, {
+    }, {
       get(target, prop, receiver) {
-        if (target.instanceId !== instanceId) {
-          target.instance = Reflect.construct(target.ctor, target.args, target.newTarget);
-          target.instanceId = instanceId;
+        if (target.reinitId !== reinitId) {
+          instances.set(target.ctor, target.instance = Reflect.construct(target.ctor, target.args, target.newTarget));
+          target.reinitId = reinitId;
         }
         return Reflect.get(target.instance, prop, receiver);
       }
