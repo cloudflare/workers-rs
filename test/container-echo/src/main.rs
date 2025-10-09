@@ -1,11 +1,11 @@
 use std::io;
 
 use axum::{
-    Router,
     body::Body,
     extract::ws::{WebSocket, WebSocketUpgrade},
     response::Response,
     routing::{get, post},
+    Router,
 };
 use tokio::net::TcpListener;
 
