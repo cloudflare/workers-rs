@@ -184,6 +184,11 @@ impl Cf {
         }
         .map_err(crate::Error::from)
     }
+
+    /// The client's accepted encoding preferences
+    pub fn client_accept_encoding(&self) -> Option<String> {
+        self.inner.client_accept_encoding().unwrap()
+    }
 }
 
 /// Browser-requested prioritization information.
