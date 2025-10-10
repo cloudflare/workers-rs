@@ -1,7 +1,9 @@
 use std::future::Future;
 
 use crate::worker_sys::Context as JsContext;
+use crate::Result;
 
+use serde::de::DeserializeOwned;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::future_to_promise;
 
@@ -46,6 +48,38 @@ impl Context {
     /// as though the Worker was never invoked.
     pub fn pass_through_on_exception(&self) {
         self.inner.pass_through_on_exception().unwrap()
+    }
+
+    /// Get the props passed to this worker execution context.
+    ///
+    /// Props provide a way to pass additional configuration to a worker based on the context
+    /// in which it was invoked. For example, when your Worker is called by another Worker via
+    /// a Service Binding, props can provide information about the calling worker.
+    ///
+    /// Props are configured in your wrangler.toml when setting up Service Bindings:
+    /// ```toml
+    /// [[services]]
+    /// binding = "MY_SERVICE"
+    /// service = "my-worker"
+    /// props = { clientId = "frontend", permissions = ["read", "write"] }
+    /// ```
+    ///
+    /// Then deserialize them to your custom type:
+    /// ```no_run
+    /// use serde::Deserialize;
+    ///
+    /// #[derive(Deserialize)]
+    /// struct MyProps {
+    ///     clientId: String,
+    ///     permissions: Vec<String>,
+    /// }
+    ///
+    /// let props = ctx.props::<MyProps>()?;
+    /// ```
+    ///
+    /// See: <https://developers.cloudflare.com/workers/runtime-apis/context/#props>
+    pub fn props<T: DeserializeOwned>(&self) -> Result<T> {
+        Ok(serde_wasm_bindgen::from_value(self.inner.props())?)
     }
 }
 
