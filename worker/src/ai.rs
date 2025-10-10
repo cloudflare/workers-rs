@@ -1,10 +1,20 @@
+use std::marker::PhantomData;
+use std::pin::Pin;
+use std::task::{self, Poll};
+
 use crate::{env::EnvBinding, send::SendFuture};
 use crate::{Error, Result};
-use serde::de::DeserializeOwned;
-use serde::Serialize;
+use futures_util::io::{BufReader, Lines};
+use futures_util::{ready, AsyncBufReadExt as _, Stream, StreamExt as _};
+use js_sys::Reflect;
+use js_sys::JSON::parse;
+use pin_project::pin_project;
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
+use wasm_streams::readable::IntoAsyncRead;
 use worker_sys::Ai as AiSys;
+
+pub mod models;
 
 /// Enables access to Workers AI functionality.
 #[derive(Debug)]
@@ -14,19 +24,23 @@ impl Ai {
     /// Execute a Workers AI operation using the specified model.
     /// Various forms of the input are documented in the Workers
     /// AI documentation.
-    pub async fn run<T: Serialize, U: DeserializeOwned>(
-        &self,
-        model: impl AsRef<str>,
-        input: T,
-    ) -> Result<U> {
-        let fut = SendFuture::new(JsFuture::from(
-            self.0
-                .run(model.as_ref(), serde_wasm_bindgen::to_value(&input)?),
-        ));
+    pub async fn run<M: Model>(&self, input: M::Input) -> Result<M::Output> {
+        let fut = SendFuture::new(JsFuture::from(self.0.run(M::MODEL_NAME, input.into())));
         match fut.await {
-            Ok(output) => Ok(serde_wasm_bindgen::from_value(output)?),
+            Ok(output) => Ok(output.into()),
             Err(err) => Err(Error::from(err)),
         }
+    }
+
+    pub async fn run_streaming<M: StreamableModel>(&self, input: M::Input) -> Result<AiStream<M>> {
+        let input = input.into();
+        Reflect::set(&input, &JsValue::from_str("stream"), &JsValue::TRUE)?;
+
+        let fut = SendFuture::new(JsFuture::from(self.0.run(M::MODEL_NAME, input)));
+        let raw_stream = fut.await?.dyn_into::<web_sys::ReadableStream>()?;
+        let stream = wasm_streams::ReadableStream::from_raw(raw_stream).into_async_read();
+
+        Ok(AiStream::new(stream))
     }
 }
 
@@ -80,5 +94,77 @@ impl EnvBinding for Ai {
             )
             .into())
         }
+    }
+}
+
+pub trait Model: 'static {
+    const MODEL_NAME: &str;
+    type Input: Into<JsValue>;
+    type Output: From<JsValue>;
+}
+
+pub trait StreamableModel: Model {}
+
+#[derive(Debug)]
+#[pin_project]
+pub struct AiStream<T: StreamableModel> {
+    #[pin]
+    inner: Lines<BufReader<IntoAsyncRead<'static>>>,
+    phantom: PhantomData<T>,
+}
+
+impl<T: StreamableModel> AiStream<T> {
+    pub fn new(stream: IntoAsyncRead<'static>) -> Self {
+        Self {
+            inner: BufReader::new(stream).lines(),
+            phantom: PhantomData,
+        }
+    }
+}
+
+impl<T: StreamableModel> Stream for AiStream<T> {
+    type Item = Result<T::Output>;
+
+    fn poll_next(self: Pin<&mut Self>, cx: &mut task::Context<'_>) -> Poll<Option<Self::Item>> {
+        let mut this = self.project();
+        let string = match ready!(this.inner.poll_next_unpin(cx)) {
+            Some(item) => match item {
+                Ok(item) => {
+                    if item.is_empty() {
+                        match ready!(this.inner.poll_next_unpin(cx)) {
+                            Some(item) => match item {
+                                Ok(item) => item,
+                                Err(err) => {
+                                    return Poll::Ready(Some(Err(err.into())));
+                                }
+                            },
+                            None => {
+                                return Poll::Ready(None);
+                            }
+                        }
+                    } else {
+                        item
+                    }
+                }
+                Err(err) => {
+                    return Poll::Ready(Some(Err(err.into())));
+                }
+            },
+            None => {
+                return Poll::Ready(None);
+            }
+        };
+
+        let string = if let Some(string) = string.strip_prefix("data: ") {
+            string
+        } else {
+            string.as_str()
+        };
+
+        if string == "[DONE]" {
+            return Poll::Ready(None);
+        }
+
+        Poll::Ready(Some(Ok(parse(string)?.into())))
     }
 }
