@@ -69,4 +69,7 @@ extern "C" {
 
     #[wasm_bindgen(method, catch, getter, js_name=isEUCountry)]
     pub fn is_eu_country(this: &IncomingRequestCfProperties) -> Result<Option<String>, JsValue>;
+
+    #[wasm_bindgen(method, catch, getter, js_name=clientAcceptEncoding)]
+    pub fn client_accept_encoding(this: &IncomingRequestCfProperties) -> Result<Option<String>, JsValue>;
 }
