@@ -6,10 +6,11 @@ Error.stackTraceLimit = 100;
 
 let panicError = null;
 function registerPanicHook() {
-  exports.setPanicHook(function (message) {
-    panicError = new Error("Critical Rust panic: " + message);
-    console.error(panicError);
-  });
+  if (exports.setPanicHook)
+    exports.setPanicHook(function (message) {
+      panicError = new Error("Critical Rust panic: " + message);
+      console.error(panicError);
+    });
 }
 
 registerPanicHook();

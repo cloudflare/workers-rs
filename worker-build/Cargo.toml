@@ -2,19 +2,16 @@
 authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
 edition = "2018"
 name = "worker-build"
-version = "0.1.10"
+version = "0.1.11"
 license = "Apache-2.0"
 repository = "https://github.com/cloudflare/workers-rs/tree/main/worker-build"
 readme = "README.md"
 description = "This is a tool to be used as a custom build command for a Cloudflare Workers `workers-rs` project."
 
-[package.metadata.release]
-release = false
-
 [dependencies]
 anyhow = "1.0.98"
 binary-install = "0.4.1"
-cargo_metadata = "0.22.0"
+cargo_metadata = "0.20.0"
 clap = { version = "4.5", features = ['derive'] }
 console = "0.16.0"
 dirs-next = "2.0"

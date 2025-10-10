@@ -1,7 +1,7 @@
 [package]
 name = "container-echo"
 version = "0.1.4"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
 axum = { version = "0.8.4", features = ["ws"] }

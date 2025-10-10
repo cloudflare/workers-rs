@@ -3,4 +3,4 @@ main = "build/index.js"
 compatibility_date = "2024-04-05"
 
 [build]
-command = "cargo install --path ../../worker-build && worker-build --release"
+command = "cargo install worker-build && worker-build --release"
