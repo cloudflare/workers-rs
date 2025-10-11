@@ -11,4 +11,7 @@ extern "C" {
 
     #[wasm_bindgen(method, catch, js_name=passThroughOnException)]
     pub fn pass_through_on_exception(this: &Context) -> Result<(), JsValue>;
+
+    #[wasm_bindgen(method, getter)]
+    pub fn props(this: &Context) -> JsValue;
 }

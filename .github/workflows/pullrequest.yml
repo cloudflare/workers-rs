@@ -186,7 +186,12 @@ jobs:
         run: npm ci
 
       - name: Build Wasm Bindgen
-        run: cd wasm-bindgen && cargo build -p wasm-bindgen-cli --bin wasm-bindgen
+        run: cd wasm-bindgen && cargo build -p wasm-bindgen-cli --bin wasm-bindgen --bin wasm-bindgen-test-runner
+
+      - name: Run wasm-bindgen tests
+        env:
+          CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER: ${{ github.workspace }}/wasm-bindgen/target/debug/wasm-bindgen-test-runner
+        run: cargo test -p worker --target wasm32-unknown-unknown
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
