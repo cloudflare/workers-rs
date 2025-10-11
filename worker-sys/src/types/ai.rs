@@ -18,6 +18,40 @@ extern "C" {
 pub mod scoped_chat {
     use wasm_bindgen::prelude::wasm_bindgen;
 
+    use crate::typed_array;
+
+    typed_array!(RoleScopedChatInputArray, RoleScopedChatInput);
+
+    impl RoleScopedChatInputArray {
+        pub fn custom_role(&self, role: &str, content: &str) -> &Self {
+            let message = RoleScopedChatInput::new();
+            message.set_role_inner(role);
+            message.set_content_inner(content);
+            self.push(&message);
+            self
+        }
+
+        pub fn user(&self, content: &str) -> &Self {
+            self.custom_role("user", content);
+            self
+        }
+
+        pub fn assistant(&self, content: &str) -> &Self {
+            self.custom_role("assistant", content);
+            self
+        }
+
+        pub fn system(&self, content: &str) -> &Self {
+            self.custom_role("system", content);
+            self
+        }
+
+        pub fn tool(&self, content: &str) -> &Self {
+            self.custom_role("tool", content);
+            self
+        }
+    }
+
     #[wasm_bindgen]
     extern "C" {
         # [wasm_bindgen (extends = :: js_sys :: Object)]
@@ -63,29 +97,6 @@ pub mod scoped_chat {
         pub fn get_content(&self) -> String {
             self.get_content_inner().unwrap_or_default()
         }
-    }
-
-    pub fn custom_role(role: &str, content: &str) -> RoleScopedChatInput {
-        let message = RoleScopedChatInput::new();
-        message.set_role_inner(role);
-        message.set_content_inner(content);
-        message
-    }
-
-    pub fn user(content: &str) -> RoleScopedChatInput {
-        custom_role("user", content)
-    }
-
-    pub fn assistant(content: &str) -> RoleScopedChatInput {
-        custom_role("assistant", content)
-    }
-
-    pub fn system(content: &str) -> RoleScopedChatInput {
-        custom_role("system", content)
-    }
-
-    pub fn tool(content: &str) -> RoleScopedChatInput {
-        custom_role("tool", content)
     }
 }
 
