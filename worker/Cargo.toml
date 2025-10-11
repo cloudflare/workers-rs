@@ -50,3 +50,6 @@ d1 = ["worker-sys/d1"]
 http = ["worker-macros/http"]
 axum = ["dep:axum"]
 timezone = ["dep:chrono-tz"]
+
+[dev-dependencies]
+wasm-bindgen-test.workspace = true

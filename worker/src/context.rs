@@ -88,3 +88,64 @@ impl AsRef<JsContext> for Context {
         &self.inner
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde::Deserialize;
+    use wasm_bindgen::JsCast;
+    use wasm_bindgen_test::*;
+
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct TestProps {
+        #[serde(rename = "clientId")]
+        client_id: String,
+        permissions: Vec<String>,
+    }
+
+    #[wasm_bindgen_test]
+    fn test_props_deserialization() {
+        // Create a mock ExecutionContext with props
+        let obj = js_sys::Object::new();
+
+        // Add props to the object
+        let props = js_sys::Object::new();
+        js_sys::Reflect::set(&props, &"clientId".into(), &"frontend-worker".into()).unwrap();
+
+        let permissions = js_sys::Array::new();
+        permissions.push(&"read".into());
+        permissions.push(&"write".into());
+        js_sys::Reflect::set(&props, &"permissions".into(), &permissions.into()).unwrap();
+
+        js_sys::Reflect::set(&obj, &"props".into(), &props.into()).unwrap();
+
+        // Create a Context from the mock object
+        let js_context: JsContext = obj.unchecked_into();
+        let context = Context::new(js_context);
+
+        // Test that props can be deserialized
+        let result: Result<TestProps> = context.props();
+        assert!(result.is_ok());
+
+        let props = result.unwrap();
+        assert_eq!(props.client_id, "frontend-worker");
+        assert_eq!(props.permissions, vec!["read", "write"]);
+    }
+
+    #[wasm_bindgen_test]
+    fn test_props_empty_object() {
+        // Create a mock ExecutionContext with empty props
+        let obj = js_sys::Object::new();
+        let props = js_sys::Object::new();
+        js_sys::Reflect::set(&obj, &"props".into(), &props.into()).unwrap();
+
+        let js_context: JsContext = obj.unchecked_into();
+        let context = Context::new(js_context);
+
+        #[derive(Debug, Deserialize, PartialEq)]
+        struct EmptyProps {}
+
+        let result: Result<EmptyProps> = context.props();
+        assert!(result.is_ok());
+    }
+}
