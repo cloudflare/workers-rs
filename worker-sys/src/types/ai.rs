@@ -26,22 +26,22 @@ impl RoleScopedChatInputArray {
         self
     }
 
-    pub fn user(&self, content: &str) -> &Self {
+    pub fn user(self, content: &str) -> Self {
         self.custom_role("user", content);
         self
     }
 
-    pub fn assistant(&self, content: &str) -> &Self {
+    pub fn assistant(self, content: &str) -> Self {
         self.custom_role("assistant", content);
         self
     }
 
-    pub fn system(&self, content: &str) -> &Self {
+    pub fn system(self, content: &str) -> Self {
         self.custom_role("system", content);
         self
     }
 
-    pub fn tool(&self, content: &str) -> &Self {
+    pub fn tool(self, content: &str) -> Self {
         self.custom_role("tool", content);
         self
     }
