@@ -32,14 +32,6 @@ fn fix_wasm_import() -> Result<()> {
     Ok(())
 }
 
-fn fix_heap_assignment() -> Result<()> {
-    let index_path = output_path("index.js");
-    let content = fs::read_to_string(&index_path)?;
-    let updated_content = content.replace("const heap =", "let heap =");
-    fs::write(&index_path, updated_content)?;
-    Ok(())
-}
-
 fn update_package_json() -> Result<()> {
     let package_json_path = output_path("package.json");
 
@@ -102,48 +94,10 @@ pub fn main() -> Result<()> {
     }
 
     if module_target {
-        let (has_fetch_handler, has_queue_handler, has_scheduled_handler) =
-            detect_exported_handlers()?;
-
-        let mut handlers = String::new();
-        if has_fetch_handler {
-            let wait_until_response = if env::var("RUN_TO_COMPLETION").is_ok() {
-                "this.ctx.waitUntil(response);"
-            } else {
-                ""
-            };
-            handlers += &format!(
-                "  async fetch(request) {{
-    checkReinitialize();
-    let response = exports.fetch(request, this.env, this.ctx);
-    {wait_until_response}
-    return await response;
-  }}
-"
-            )
-        }
-        if has_queue_handler {
-            handlers += "  async queue(batch) {
-    checkReinitialize();
-    return await exports.queue(batch, this.env, this.ctx);
-  }
-"
-        }
-        if has_scheduled_handler {
-            handlers += "  async scheduled(event) {
-    checkReinitialize();
-    return await exports.scheduled(event, this.env, this.ctx);
-  }
-"
-        }
-
-        let shim = SHIM_FILE.replace("$HANDLERS", &handlers);
-
+        let shim = SHIM_FILE.replace("$HANDLERS", &generate_handlers()?);
         fs::write(output_path("shim.js"), shim)?;
 
-        fix_heap_assignment()?;
-
-        add_exported_class_wrappers(detect_exported_class_names()?)?;
+        add_export_wrappers()?;
 
         update_package_json()?;
 
@@ -163,7 +117,7 @@ pub fn main() -> Result<()> {
     Ok(())
 }
 
-fn detect_exported_handlers() -> Result<(bool, bool, bool)> {
+fn generate_handlers() -> Result<String> {
     let index_path = output_path("index.js");
     let content = fs::read_to_string(&index_path)?;
 
@@ -176,44 +130,62 @@ fn detect_exported_handlers() -> Result<(bool, bool, bool)> {
         if let Some(rest) = line.strip_prefix("export function") {
             if let Some(bracket_pos) = rest.find("(") {
                 let func_name = rest[..bracket_pos].trim();
-                func_names.push(func_name);
+                if !SYSTEM_FNS.contains(&func_name) {
+                    func_names.push(func_name);
+                }
             }
         } else if let Some(rest) = line.strip_prefix("export {") {
             if let Some(as_pos) = rest.find(" as ") {
                 let rest = &rest[as_pos + 4..];
                 if let Some(brace_pos) = rest.find("}") {
                     let func_name = rest[..brace_pos].trim();
-                    func_names.push(func_name);
+                    if !SYSTEM_FNS.contains(&func_name) {
+                        func_names.push(func_name);
+                    }
                 }
             }
         }
     }
 
-    let mut has_fetch_handler = false;
-    let mut has_queue_handler = false;
-    let mut has_scheduled_handler = false;
-
+    let mut handlers = String::new();
     for func_name in func_names {
-        match func_name {
-            "fetch" => has_fetch_handler = true,
-            "queue" => has_queue_handler = true,
-            "scheduled" => has_scheduled_handler = true,
-            _ => {}
+        if func_name == "fetch" {
+            let wait_until_response = if env::var("RUN_TO_COMPLETION").is_ok() {
+                "this.ctx.waitUntil(response);"
+            } else {
+                ""
+            };
+            handlers += &format!(
+                "  async fetch(request) {{
+    checkReinitialize();
+    let response = exports.fetch(request, this.env, this.ctx);
+    {wait_until_response}
+    return await response;
+  }}
+"
+            )
+        } else {
+            handlers += &format!(
+                "  {func_name}(...args) {{
+    checkReinitialize();
+    return exports.{func_name}(...args, this.env, this.ctx);
+  }}
+"
+            )
         }
     }
 
-    Ok((has_fetch_handler, has_queue_handler, has_scheduled_handler))
+    Ok(handlers)
 }
 
-fn detect_exported_class_names() -> Result<Vec<String>> {
+static SYSTEM_FNS: &[&str] = &["__wbg_reset_state", "setPanicHook"];
+
+fn add_export_wrappers() -> Result<()> {
     let index_path = output_path("index.js");
     let content = fs::read_to_string(&index_path)?;
 
     let mut class_names = Vec::new();
     for line in content.lines() {
-        if !line.contains("export class") {
-            continue;
-        }
         if let Some(rest) = line.strip_prefix("export class ") {
             if let Some(brace_pos) = rest.find("{") {
                 let class_name = rest[..brace_pos].trim();
@@ -221,10 +193,7 @@ fn detect_exported_class_names() -> Result<Vec<String>> {
             }
         }
     }
-    Ok(class_names)
-}
 
-fn add_exported_class_wrappers(class_names: Vec<String>) -> Result<()> {
     let shim_path = output_path("shim.js");
     let mut output = fs::read_to_string(&shim_path)?;
     for class_name in class_names {
