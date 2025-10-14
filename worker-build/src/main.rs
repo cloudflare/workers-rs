@@ -151,25 +151,27 @@ fn generate_handlers() -> Result<String> {
     for func_name in func_names {
         if func_name == "fetch" {
             let wait_until_response = if env::var("RUN_TO_COMPLETION").is_ok() {
-                        "this.ctx.waitUntil(response);"
-                    } else {
-                        ""
-                    };
-                    handlers += &format!(
-                        "  async fetch(request) {{
+                "this.ctx.waitUntil(response);"
+            } else {
+                ""
+            };
+            handlers += &format!(
+                "  async fetch(request) {{
     checkReinitialize();
     let response = exports.fetch(request, this.env, this.ctx);
     {wait_until_response}
     return await response;
   }}
 "
-                    )
+            )
         } else {
-            handlers += &format!("  {func_name}(...args) {{
+            handlers += &format!(
+                "  {func_name}(...args) {{
     checkReinitialize();
     return exports.{func_name}(...args, this.env, this.ctx);
   }}
-")
+"
+            )
         }
     }
 
