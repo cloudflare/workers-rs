@@ -12,6 +12,7 @@ use worker::{console_log, event, js_sys, wasm_bindgen, Env, Result};
 #[cfg(not(feature = "http"))]
 use worker::{Request, Response};
 
+mod ai;
 mod alarm;
 mod analytics_engine;
 mod assets;
