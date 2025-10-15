@@ -45,6 +45,7 @@ impl<D> Clone for Handler<'_, D> {
 pub struct Router<'a, D> {
     handlers: HashMap<Method, MatchItRouter<Handler<'a, D>>>,
     or_else_any_method: MatchItRouter<Handler<'a, D>>,
+    fallback: Option<Handler<'a, D>>,
     data: D,
 }
 
@@ -135,6 +136,7 @@ impl<'a, D: 'a> Router<'a, D> {
             handlers: HashMap::new(),
             or_else_any_method: MatchItRouter::new(),
             data,
+            fallback: None,
         }
     }
 
@@ -198,6 +200,12 @@ impl<'a, D: 'a> Router<'a, D> {
         self.or_else_any_method
             .insert(pattern, Handler::Sync(func))
             .unwrap_or_else(|e| panic!("failed to register route for {} pattern: {}", pattern, e));
+        self
+    }
+
+    /// Register an HTTP handler that will respond to all requests that don't match any other handlers.
+    pub fn fallback(mut self, func: HandlerFn<D>) -> Self {
+        self.fallback = Some(Handler::Sync(func));
         self
     }
 
@@ -364,6 +372,18 @@ impl<'a, D: 'a> Router<'a, D> {
         self
     }
 
+    /// Register an HTTP handler that will respond to all requests that don't match any other
+    /// handlers. Enables the use of `async/await` syntax in the callback.
+    pub fn fallback_async<T>(mut self, func: impl Fn(Request, RouteContext<D>) -> T + 'a) -> Self
+    where
+        T: Future<Output = Result<Response>> + 'a,
+    {
+        self.fallback = Some(Handler::Async(Rc::new(move |req, route| {
+            Box::pin(func(req, route))
+        })));
+        self
+    }
+
     fn add_handler(&mut self, pattern: &str, func: Handler<'a, D>, methods: Vec<Method>) {
         for method in methods {
             self.handlers
@@ -381,7 +401,7 @@ impl<'a, D: 'a> Router<'a, D> {
 
     /// Handle the request provided to the `Router` and return a `Future`.
     pub async fn run(self, req: Request, env: Env) -> Result<Response> {
-        let (handlers, data, or_else_any_method_handler) = self.split();
+        let (handlers, data, or_else_any_method_handler, fallback) = self.split();
 
         if let Some(handlers) = handlers.get(&req.method()) {
             if let Ok(Match { value, params }) = handlers.at(&req.path()) {
@@ -420,6 +440,18 @@ impl<'a, D: 'a> Router<'a, D> {
             };
         }
 
+        if let Some(handler) = fallback {
+            let route_info = RouteContext {
+                data,
+                env,
+                params: RouteParams(HashMap::new()),
+            };
+            return match handler {
+                Handler::Sync(func) => (func)(req, route_info),
+                Handler::Async(func) => (func)(req, route_info).await,
+            };
+        }
+
         Response::error("Not Found", 404)
     }
 }
@@ -433,8 +465,14 @@ impl<'a, D: 'a> Router<'a, D> {
         HashMap<Method, NodeWithHandlers<'a, D>>,
         D,
         NodeWithHandlers<'a, D>,
+        Option<Handler<'a, D>>,
     ) {
-        (self.handlers, self.data, self.or_else_any_method)
+        (
+            self.handlers,
+            self.data,
+            self.or_else_any_method,
+            self.fallback,
+        )
     }
 }
 
