@@ -4,6 +4,7 @@ use crate::analytics_engine::AnalyticsEngineDataset;
 #[cfg(feature = "d1")]
 use crate::d1::D1Database;
 use crate::kv::KvStore;
+use crate::rate_limit::RateLimiter;
 use crate::Ai;
 #[cfg(feature = "queue")]
 use crate::Queue;
@@ -120,6 +121,11 @@ impl Env {
 
     /// Access a Secret Store by the binding name configured in your wrangler.toml file.
     pub fn secret_store(&self, binding: &str) -> Result<SecretStore> {
+        self.get_binding(binding)
+    }
+
+    /// Access a Rate Limiter by the binding name configured in your wrangler.toml file.
+    pub fn rate_limiter(&self, binding: &str) -> Result<RateLimiter> {
         self.get_binding(binding)
     }
 }

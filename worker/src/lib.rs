@@ -187,7 +187,7 @@ pub use crate::kv::{KvError, KvStore};
 #[cfg(feature = "queue")]
 pub use crate::queue::*;
 pub use crate::r2::*;
-pub use crate::rate_limit::RateLimiter;
+pub use crate::rate_limit::{RateLimitOutcome, RateLimiter};
 pub use crate::request::{FromRequest, Request};
 pub use crate::request_init::*;
 pub use crate::response::{EncodeBody, IntoResponse, Response, ResponseBody, ResponseBuilder};

@@ -1,7 +1,7 @@
 use crate::{
     alarm, analytics_engine, assets, auto_response, cache, container, counter, d1, durable, fetch,
-    form, js_snippets, kv, put_raw, queue, r2, request, secret_store, service, socket, sql_counter,
-    sql_iterator, user, ws, SomeSharedData, GLOBAL_STATE,
+    form, js_snippets, kv, put_raw, queue, r2, rate_limit, request, secret_store, service, socket,
+    sql_counter, sql_iterator, user, ws, SomeSharedData, GLOBAL_STATE,
 };
 #[cfg(feature = "http")]
 use std::convert::TryInto;
@@ -227,6 +227,10 @@ macro_rules! add_routes (
     add_route!($obj, get, sync, "/test-panic", handle_test_panic);
     add_route!($obj, post, "/container/echo", container::handle_container);
     add_route!($obj, get, "/container/ws", container::handle_container);
+    add_route!($obj, get, "/rate-limit/check", rate_limit::handle_rate_limit_check);
+    add_route!($obj, get, format_route!("/rate-limit/key/{}", "key"), rate_limit::handle_rate_limit_with_key);
+    add_route!($obj, get, "/rate-limit/bulk-test", rate_limit::handle_rate_limit_bulk_test);
+    add_route!($obj, get, "/rate-limit/reset", rate_limit::handle_rate_limit_reset);
 });
 
 #[cfg(feature = "http")]

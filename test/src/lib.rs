@@ -28,6 +28,7 @@ mod kv;
 mod put_raw;
 mod queue;
 mod r2;
+mod rate_limit;
 mod request;
 mod router;
 mod secret_store;
