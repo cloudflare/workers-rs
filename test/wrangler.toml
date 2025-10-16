@@ -84,3 +84,8 @@ secret_name = "secret-name"
 class_name = "EchoContainer"
 image = "./container-echo/Dockerfile"
 max_instances = 1
+
+[[ratelimits]]
+name = "TEST_RATE_LIMITER"
+namespace_id = "1"
+simple = { limit = 10, period = 60 }

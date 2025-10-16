@@ -7,6 +7,7 @@ use crate::{
     durable::ObjectNamespace,
     env::{Env, Secret, Var},
     http::Method,
+    rate_limit::RateLimiter,
     request::Request,
     response::Response,
     Bucket, Fetcher, KvStore, Result,
@@ -117,6 +118,11 @@ impl<D> RouteContext<D> {
     #[cfg(feature = "d1")]
     pub fn d1(&self, binding: &str) -> Result<crate::D1Database> {
         self.env.d1(binding)
+    }
+
+    /// Access a Rate Limiter by the binding name configured in your wrangler.toml file.
+    pub fn rate_limiter(&self, binding: &str) -> Result<RateLimiter> {
+        self.env.rate_limiter(binding)
     }
 }
 

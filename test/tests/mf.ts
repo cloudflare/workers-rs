@@ -112,6 +112,14 @@ const mf_instance = new Miniflare({
         HTTP_ANALYTICS: {
           scriptName: "mini-analytics-engine" // mock out analytics engine binding to the "mini-analytics-engine" worker
         }
+      },
+      ratelimits: {
+        TEST_RATE_LIMITER: {
+          simple: {
+            limit: 10,
+            period: 60,
+          }
+        }
       }
     },
     {
