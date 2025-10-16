@@ -412,7 +412,6 @@ impl SqlIterator {
     }
 }
 
-#[worker::send]
 /// Route handler for the SQL iterator test Durable Object.
 pub async fn handle_sql_iterator(
     req: Request,

@@ -46,7 +46,7 @@ impl From<wasm_bindgen::JsValue> for SecretStore {
 
 impl From<Fetcher> for SecretStore {
     fn from(fetcher: Fetcher) -> Self {
-        Self(SendWrapper::new(fetcher.into_rpc()))
+        Self(unsafe { SendWrapper::new(fetcher.into_rpc()) })
     }
 }
 
@@ -66,7 +66,7 @@ impl SecretStore {
             Err(_) => return Ok(None), // Secret not found
         };
 
-        let fut = SendFuture::new(JsFuture::from(promise));
+        let fut = unsafe { SendFuture::new(JsFuture::from(promise)) };
 
         let output = match fut.await {
             Ok(val) => val,

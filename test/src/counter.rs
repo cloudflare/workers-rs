@@ -95,7 +95,6 @@ impl DurableObject for Counter {
     }
 }
 
-#[worker::send]
 pub async fn handle_id(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let durable_object_name = if req.path().contains("shared") {
         "SHARED_COUNTER"
@@ -110,7 +109,6 @@ pub async fn handle_id(req: Request, env: Env, _data: SomeSharedData) -> Result<
     stub.fetch_with_str("https://fake-host/").await
 }
 
-#[worker::send]
 pub async fn handle_websocket(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let durable_object_name = if req.path().contains("shared") {
         "SHARED_COUNTER"
