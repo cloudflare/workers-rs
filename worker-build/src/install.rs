@@ -2,6 +2,7 @@ use std::{
     fs::{create_dir_all, read_dir, remove_file, OpenOptions},
     io::Write,
     path::{Path, PathBuf},
+    process::Command,
 };
 
 use anyhow::{Context, Result};
@@ -143,4 +144,79 @@ pub fn esbuild_platform_pkg() -> &'static str {
         ("windows", "x86_64") => "win32-x64",
         _ => panic!("Platform unsupported by esbuild."),
     }
+}
+
+/// Verifies that esbuild is available in PATH and returns the executable name.
+/// Returns an error if esbuild is not found or not executable.
+pub fn verify_esbuild_in_path() -> Result<PathBuf> {
+    let esbuild_name = format!("esbuild{BINARY_EXTENSION}");
+
+    // Try to run 'esbuild --version' to verify it exists and is executable
+    let output = Command::new(&esbuild_name)
+        .arg("--version")
+        .output()
+        .with_context(|| format!("Failed to find '{}' in PATH. Please ensure esbuild is installed and available in your PATH when using --mode no-install", esbuild_name))?;
+
+    if !output.status.success() {
+        anyhow::bail!("Found '{}' in PATH but it failed to execute. Exit code: {}", esbuild_name, output.status);
+    }
+
+    // Parse the version and compare with expected version
+    let version_output = String::from_utf8_lossy(&output.stdout);
+    let found_version = version_output.trim();
+
+    if let Err(e) = check_version_warning(found_version, ESBUILD_VERSION) {
+        eprintln!("Warning: {}", e);
+    }
+
+    // Return just the executable name - the system will find it in PATH when executed
+    Ok(PathBuf::from(&esbuild_name))
+}
+
+/// Checks if the found version is lower than the expected version and returns a warning message.
+fn check_version_warning(found_version: &str, expected_version: &str) -> Result<()> {
+    match compare_versions(found_version, expected_version) {
+        Ok(std::cmp::Ordering::Less) => {
+            anyhow::bail!(
+                "esbuild version {} found in PATH is lower than the expected version {}. \
+                Consider upgrading to avoid potential compatibility issues.",
+                found_version,
+                expected_version
+            )
+        }
+        Ok(_) => Ok(()),
+        Err(_) => {
+            // If we can't parse the version, just warn but don't fail
+            eprintln!(
+                "Warning: Could not parse esbuild version '{}'. Expected version is {}.",
+                found_version,
+                expected_version
+            );
+            Ok(())
+        }
+    }
+}
+
+/// Compares two semantic versions (e.g., "0.25.10" vs "0.25.9").
+/// Returns Ok(Ordering) if versions can be compared, Err if parsing fails.
+fn compare_versions(v1: &str, v2: &str) -> Result<std::cmp::Ordering> {
+    let parse_version = |v: &str| -> Result<Vec<u32>> {
+        v.split('.')
+            .map(|s| s.parse::<u32>().map_err(|e| anyhow::anyhow!("Invalid version component: {}", e)))
+            .collect()
+    };
+
+    let v1_parts = parse_version(v1)?;
+    let v2_parts = parse_version(v2)?;
+
+    // Compare version parts (major, minor, patch, etc.)
+    for (a, b) in v1_parts.iter().zip(v2_parts.iter()) {
+        match a.cmp(b) {
+            std::cmp::Ordering::Equal => continue,
+            other => return Ok(other),
+        }
+    }
+
+    // If all compared parts are equal, the version with fewer parts is considered lower
+    Ok(v1_parts.len().cmp(&v2_parts.len()))
 }

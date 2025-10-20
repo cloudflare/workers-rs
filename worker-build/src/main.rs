@@ -58,6 +58,11 @@ pub fn main() -> Result<()> {
     }
     let no_panic_recovery = args.iter().any(|a| a == "--no-panic-recovery");
 
+    // Check for --mode no-install flag
+    let no_install_mode = args.windows(2).any(|w| {
+        w[0] == "--mode" && w[1] == "no-install"
+    });
+
     let out_path = output_path("");
     if out_path.exists() {
         fs::remove_dir_all(out_path)?;
@@ -101,7 +106,11 @@ pub fn main() -> Result<()> {
 
         update_package_json()?;
 
-        let esbuild_path = install::ensure_esbuild()?;
+        let esbuild_path = if no_install_mode {
+            install::verify_esbuild_in_path()?
+        } else {
+            install::ensure_esbuild()?
+        };
         bundle(&esbuild_path)?;
 
         fix_wasm_import()?;
