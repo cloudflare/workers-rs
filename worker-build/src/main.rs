@@ -130,6 +130,7 @@ fn generate_handlers() -> Result<String> {
         if let Some(rest) = line.strip_prefix("export function") {
             if let Some(bracket_pos) = rest.find("(") {
                 let func_name = rest[..bracket_pos].trim();
+                // strip the exported function (we re-wrap all handlers)
                 if !SYSTEM_FNS.contains(&func_name) {
                     func_names.push(func_name);
                 }
@@ -158,17 +159,27 @@ fn generate_handlers() -> Result<String> {
             handlers += &format!(
                 "  async fetch(request) {{
     checkReinitialize();
-    let response = exports.fetch(request, this.env, this.ctx);
-    {wait_until_response}
-    return await response;
+    try {{
+      let response = exports.fetch(request, this.env, this.ctx);
+      {wait_until_response}
+      return await response;
+    }} catch (e) {{
+      handleMaybeCritical(e);
+      throw e;
+    }}
   }}
 "
             )
         } else {
             handlers += &format!(
-                "  {func_name}(...args) {{
-    checkReinitialize();
-    return exports.{func_name}(...args, this.env, this.ctx);
+                "  async {func_name}(...args) {{
+    try {{
+      checkReinitialize();
+      return await exports.{func_name}(...args, this.env, this.ctx);
+    }} catch (e) {{
+      handleMaybeCritical(e);
+      throw e;
+    }}
   }}
 "
             )
