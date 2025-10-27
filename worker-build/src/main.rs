@@ -152,7 +152,7 @@ fn generate_handlers() -> Result<String> {
     for func_name in func_names {
         if func_name == "fetch" {
             handlers += &format!(
-                "EntryPoint.prototype.fetch = async function fetch(request) {{
+                "Entrypoint.prototype.fetch = async function fetch(request) {{
     try {{
       let response = exports.fetch(request, this.env, this.ctx);
       {}
@@ -169,7 +169,7 @@ fn generate_handlers() -> Result<String> {
                 }
             )
         } else {
-            handlers += &format!("EntryPoint.prototype.{func_name} = exports.{func_name};\n")
+            handlers += &format!("Entrypoint.prototype.{func_name} = exports.{func_name};\n")
         }
     }
 

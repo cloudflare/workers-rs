@@ -37,7 +37,7 @@ function handleMaybeCritical(e) {
   }
 }
 
-class EntryPoint extends WorkerEntrypoint {}
+class Entrypoint extends WorkerEntrypoint {}
 
 $HANDLERS
 
@@ -108,4 +108,4 @@ const classProxyHooks = {
   }
 };
 
-export default new Proxy(EntryPoint, classProxyHooks);
+export default new Proxy(Entrypoint, classProxyHooks);
