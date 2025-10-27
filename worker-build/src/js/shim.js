@@ -37,9 +37,9 @@ function handleMaybeCritical(e) {
   }
 }
 
-class Entrypoint extends WorkerEntrypoint {
+class Entrypoint extends WorkerEntrypoint {}
+
 $HANDLERS
-}
 
 const instanceProxyHooks = {
   set: (target, prop, value, receiver) => Reflect.set(target.instance, prop, value, receiver),
@@ -58,23 +58,55 @@ const instanceProxyHooks = {
 
 const classProxyHooks = {
   construct(ctor, args, newTarget) {
-    const instance = {
-      instance: Reflect.construct(ctor, args, newTarget),
-      instanceId,
-      ctor,
-      args,
-      newTarget
-    };
-    return new Proxy(instance, {
-      ...instanceProxyHooks,
-      get(target, prop, receiver) {
-        if (target.instanceId !== instanceId) {
-          target.instance = Reflect.construct(target.ctor, target.args, target.newTarget);
-          target.instanceId = instanceId;
+    try {
+      checkReinitialize();
+      const instance = {
+        instance: Reflect.construct(ctor, args, newTarget),
+        instanceId,
+        ctor,
+        args,
+        newTarget
+      };
+      return new Proxy(instance, {
+        ...instanceProxyHooks,
+        get(target, prop, receiver) {
+          if (target.instanceId !== instanceId) {
+            target.instance = Reflect.construct(target.ctor, target.args, target.newTarget);
+            target.instanceId = instanceId;
+          }
+          const original = Reflect.get(target.instance, prop, receiver);
+          if (typeof original !== 'function') return original;
+          if (original.constructor === Function) {
+            return new Proxy(original, {
+              apply(target, thisArg, argArray) {
+                checkReinitialize();
+                try {
+                  return target.apply(thisArg, argArray);
+                } catch (e) {
+                  handleMaybeCritical(e);
+                  throw e;
+                }
+              }
+            });
+          } else {
+            return new Proxy(original, {
+              async apply(target, thisArg, argArray) {
+                checkReinitialize();
+                try {
+                  return await target.apply(thisArg, argArray);
+                } catch (e) {
+                  handleMaybeCritical(e);
+                  throw e;
+                }
+              }
+            });
+          }
         }
-        return Reflect.get(target.instance, prop, receiver);
-      }
-    });
+      });
+    } catch (e) {
+      criticalError = true;
+      throw e;
+    }
   }
 };
 

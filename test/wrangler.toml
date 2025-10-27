@@ -80,7 +80,7 @@ binding = "SECRETS"
 store_id = "SECRET_STORE"
 secret_name = "secret-name"
 
-[[containers]]
+[[env.test.containers]]
 class_name = "EchoContainer"
 image = "./container-echo/Dockerfile"
 max_instances = 1

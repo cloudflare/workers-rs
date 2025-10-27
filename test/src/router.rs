@@ -323,8 +323,8 @@ fn handle_test_abort(_req: Request, _env: Env, _data: SomeSharedData) -> Result<
 
 fn handle_test_oom(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     // Attempt to allocate excessive memory to trigger OOM
-    let mut vec = Vec::new();
+    let mut vecs = Vec::new();
     loop {
-        vec.push(vec![0u8; 1024 * 1024]); // Allocate 1MB chunks
+        vecs.push(vec![0u8; 1024 * 1024 * 1024]); // 1GB chunks
     }
 }
