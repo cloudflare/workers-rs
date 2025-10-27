@@ -225,6 +225,9 @@ macro_rules! add_routes (
     add_route!($obj, get, "/get-from-secret-store", secret_store::get_from_secret_store);
     add_route!($obj, get, "/get-from-secret-store-missing", secret_store::get_from_secret_store_missing);
     add_route!($obj, get, sync, "/test-panic", handle_test_panic);
+    add_route!($obj, get, sync, "/test-abort", handle_test_abort);
+    add_route!($obj, get, sync, "/test-oom", handle_test_oom);
+    add_route!($obj, get, sync, "/test-js-error", js_snippets::throw_js_error);
     add_route!($obj, post, "/container/echo", container::handle_container);
     add_route!($obj, get, "/container/ws", container::handle_container);
     add_route!($obj, get, "/rate-limit/check", rate_limit::handle_rate_limit_check);
@@ -307,4 +310,21 @@ async fn handle_init_called(_req: Request, _env: Env, _data: SomeSharedData) -> 
 
 fn handle_test_panic(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     panic!("Intentional panic for testing context abort functionality");
+}
+
+fn handle_test_abort(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
+    // Explicitly call abort() to verify raw aborts are also recoverable
+    #[cfg(target_arch = "wasm32")]
+    core::arch::wasm32::unreachable();
+
+    #[cfg(not(target_arch = "wasm32"))]
+    std::process::abort();
+}
+
+fn handle_test_oom(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
+    // Attempt to allocate excessive memory to trigger OOM
+    let mut vec = Vec::new();
+    loop {
+        vec.push(vec![0u8; 1024 * 1024]); // Allocate 1MB chunks
+    }
 }
