@@ -26,10 +26,6 @@ function checkReinitialize() {
   }
 }
 
-addEventListener('unhandledRejection', (e) => {
-  handleMaybeCritical(e.error);
-});
-
 addEventListener('error', (e) => {
   handleMaybeCritical(e.error);
 });
