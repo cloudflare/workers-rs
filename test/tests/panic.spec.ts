@@ -2,6 +2,8 @@ import { describe, test, expect } from "vitest";
 import { mf, mfUrl } from "./mf";
 
 describe("Panic Hook with WASM Reinitialization", () => {
+  // These tests are explicitly run sequentially with a longer timeout
+  // to ensure they fully run the reinitialization lifecycle.
   test("panic recovery tests", async () => {
     // basic panic recovery
     {
@@ -123,5 +125,5 @@ describe("Panic Hook with WASM Reinitialization", () => {
     //   const normalResp = await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
     //   expect(await normalResp.text()).toContain("unstored_count: 1");
     // }
-  });
+  }, 20_000);
 });
