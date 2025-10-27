@@ -3,8 +3,6 @@ workers_dev = true
 compatibility_date = "2025-09-23"                     # required
 main = "build/worker/shim.mjs"
 
-
-
 kv_namespaces = [
     { binding = "SOME_NAMESPACE", id = "SOME_NAMESPACE", preview_id = "SOME_NAMESPACE" },
     { binding = "FILE_SIZES", id = "FILE_SIZES", preview_id = "FILE_SIZES" },
