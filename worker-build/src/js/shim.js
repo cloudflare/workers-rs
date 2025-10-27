@@ -79,6 +79,7 @@ const classProxyHooks = {
           if (original.constructor === Function) {
             return new Proxy(original, {
               apply(target, thisArg, argArray) {
+                checkReinitialize();
                 try {
                   return target.apply(thisArg, argArray);
                 } catch (e) {
@@ -90,6 +91,7 @@ const classProxyHooks = {
           } else {
             return new Proxy(original, {
               async apply(target, thisArg, argArray) {
+                checkReinitialize();
                 try {
                   return await target.apply(thisArg, argArray);
                 } catch (e) {
