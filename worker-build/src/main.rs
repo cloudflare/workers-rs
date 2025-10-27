@@ -151,38 +151,25 @@ fn generate_handlers() -> Result<String> {
     let mut handlers = String::new();
     for func_name in func_names {
         if func_name == "fetch" {
-            let wait_until_response = if env::var("RUN_TO_COMPLETION").is_ok() {
-                "this.ctx.waitUntil(response);"
-            } else {
-                ""
-            };
             handlers += &format!(
-                "  async fetch(request) {{
-    checkReinitialize();
+                "EntryPoint.prototype.fetch = async function fetch(request) {{
     try {{
       let response = exports.fetch(request, this.env, this.ctx);
-      {wait_until_response}
-      return await response;
+      {}
     }} catch (e) {{
       handleMaybeCritical(e);
       throw e;
     }}
   }}
-"
+",
+                if env::var("RUN_TO_COMPLETION").is_ok() {
+                    "this.ctx.waitUntil(response);\n      return response;"
+                } else {
+                    "return response;"
+                }
             )
         } else {
-            handlers += &format!(
-                "  async {func_name}(...args) {{
-    try {{
-      checkReinitialize();
-      return await exports.{func_name}(...args, this.env, this.ctx);
-    }} catch (e) {{
-      handleMaybeCritical(e);
-      throw e;
-    }}
-  }}
-"
-            )
+            handlers += &format!("EntryPoint.prototype.{func_name} = exports.{func_name};\n")
         }
     }
 
