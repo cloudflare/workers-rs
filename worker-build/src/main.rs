@@ -150,26 +150,30 @@ fn generate_handlers() -> Result<String> {
 
     let mut handlers = String::new();
     for func_name in func_names {
-        if func_name == "fetch" {
+        if func_name == "fetch" && env::var("RUN_TO_COMPLETION").is_ok() {
             handlers += &format!(
                 "Entrypoint.prototype.fetch = async function fetch(request) {{
-    try {{
-      let response = exports.fetch(request, this.env, this.ctx);
-      {}
-    }} catch (e) {{
-      handleMaybeCritical(e);
-      throw e;
-    }}
-  }}
+  let response = exports.fetch(request, this.env, this.ctx);
+  {}
+}}
 ",
                 if env::var("RUN_TO_COMPLETION").is_ok() {
-                    "this.ctx.waitUntil(response);\n      return response;"
+                    "this.ctx.waitUntil(response);\n  return response;"
                 } else {
                     "return response;"
                 }
-            )
+            );
+        } else if func_name == "fetch" || func_name == "queue" || func_name == "scheduled" {
+            // TODO: Switch these over to https://github.com/wasm-bindgen/wasm-bindgen/pull/4757
+            // once that lands.
+            handlers += &format!(
+                "Entrypoint.prototype.{func_name} = function {func_name} (arg) {{
+  return exports.{func_name}.call(this, arg, this.env, this.ctx);
+}}
+"
+            );
         } else {
-            handlers += &format!("Entrypoint.prototype.{func_name} = exports.{func_name};\n")
+            handlers += &format!("Entrypoint.prototype.{func_name} = exports.{func_name};\n");
         }
     }
 
