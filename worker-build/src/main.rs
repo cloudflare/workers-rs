@@ -151,12 +151,12 @@ fn generate_handlers() -> Result<String> {
     let mut handlers = String::new();
     for func_name in func_names {
         if func_name == "fetch" && env::var("RUN_TO_COMPLETION").is_ok() {
-            handlers += "Entrypoint.prototype.fetch = async function fetch(request) {{
+            handlers += "Entrypoint.prototype.fetch = async function fetch(request) {
   let response = exports.fetch(request, this.env, this.ctx);
   this.ctx.waitUntil(response);
   return response;
-}}
-"
+}
+";
         } else if func_name == "fetch" || func_name == "queue" || func_name == "scheduled" {
             // TODO: Switch these over to https://github.com/wasm-bindgen/wasm-bindgen/pull/4757
             // once that lands.
