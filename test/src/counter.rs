@@ -31,7 +31,7 @@ impl DurableObject for Counter {
     async fn fetch(&self, req: Request) -> Result<Response> {
         if !*self.initialized.borrow() {
             *self.initialized.borrow_mut() = true;
-            *self.count.borrow_mut() = self.state.storage().get_maybe("count").await?.unwrap_or(0);
+            *self.count.borrow_mut() = self.state.storage().get("count").await?.unwrap_or(0);
         }
 
         if req.path().eq("/ws") {
@@ -71,7 +71,7 @@ impl DurableObject for Counter {
             .deserialize_attachment()?
             .expect("websockets should have an attachment");
         // get and increment storage by 10
-        let mut count: usize = self.state.storage().get_maybe("count").await?.unwrap_or(0);
+        let mut count: usize = self.state.storage().get("count").await?.unwrap_or(0);
         count += 10;
         self.state.storage().put("count", count).await?;
         // send value to client

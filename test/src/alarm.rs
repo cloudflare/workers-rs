@@ -23,12 +23,7 @@ impl DurableObject for AlarmObject {
             .storage()
             .set_alarm(Duration::from_millis(100))
             .await?;
-        let alarmed: bool = self
-            .state
-            .storage()
-            .get_maybe("alarmed")
-            .await?
-            .unwrap_or(false);
+        let alarmed: bool = self.state.storage().get("alarmed").await?.unwrap_or(false);
         Response::ok(alarmed.to_string())
     }
 

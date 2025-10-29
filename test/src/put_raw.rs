@@ -18,7 +18,7 @@ impl PutRawTestObject {
         bytes.copy_from(b"123");
         storage.put_raw("bytes", bytes).await?;
         let bytes = storage
-            .get_maybe::<Vec<u8>>("bytes")
+            .get::<Vec<u8>>("bytes")
             .await?
             .expect("get after put yielded nothing");
         storage.delete("bytes").await?;
@@ -40,7 +40,7 @@ impl PutRawTestObject {
 
         assert_eq!(
             storage
-                .get_maybe::<Vec<u8>>("foo")
+                .get::<Vec<u8>>("foo")
                 .await?
                 .expect("get('foo') yielded nothing"),
             BAR,

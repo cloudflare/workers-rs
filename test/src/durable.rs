@@ -96,7 +96,7 @@ impl DurableObject for MyClass {
                         bytes.copy_from(b"123");
                         storage.put_raw("bytes", bytes).await?;
                         let bytes = storage
-                            .get_maybe::<Vec<u8>>("bytes")
+                            .get::<Vec<u8>>("bytes")
                             .await?
                             .expect("get after put yielded nothing");
                         storage.delete("bytes").await?;
@@ -121,7 +121,7 @@ impl DurableObject for MyClass {
 
                     assert_eq!(
                         storage
-                            .get_maybe::<String>("thing")
+                            .get::<String>("thing")
                             .await?
                             .expect("get('thing') yielded nothing"),
                         "Hello there",
@@ -129,7 +129,7 @@ impl DurableObject for MyClass {
                     );
                     assert_eq!(
                         storage
-                            .get_maybe::<i32>("other")
+                            .get::<i32>("other")
                             .await?
                             .expect("get('other') yielded nothing"),
                         56,
@@ -147,7 +147,7 @@ impl DurableObject for MyClass {
                         storage.put_multiple_raw(obj).await?;
                         assert_eq!(
                             storage
-                                .get_maybe::<Vec<u8>>("foo")
+                                .get::<Vec<u8>>("foo")
                                 .await?
                                 .expect("get('foo') yielded nothing"),
                             BAR,
@@ -155,7 +155,7 @@ impl DurableObject for MyClass {
                         );
                     }
 
-                    *self.number.borrow_mut() = storage.get_maybe("count").await?.unwrap_or(0) + 1;
+                    *self.number.borrow_mut() = storage.get("count").await?.unwrap_or(0) + 1;
 
                     storage.delete_all().await?;
 
