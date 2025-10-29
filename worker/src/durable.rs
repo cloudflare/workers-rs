@@ -344,7 +344,20 @@ impl Storage {
     /// Retrieves the value associated with the given key. The type of the returned value will be
     /// whatever was previously written for the key.
     ///
-    /// Returns [Err] if the key does not exist.
+    /// Returns `Error::JsError(JsValue::from("No such value in storage."))` if the key does not
+    /// exist. You can convert the return value into a `Result<Option<T>>` (with `Ok(None)`
+    /// indicating nonexistent key) with the following code:
+    /// ```rust,ignore
+    /// let res: Result<Option<_>> = storage.get(key).await {
+    ///     Ok(val) => Ok(Some(val)),
+    ///     Err(Error::JsError(ref e)) if e == "No such value in storage." => Ok(None),
+    ///     Err(e) => Err(e),
+    /// };
+    /// ```
+    #[deprecated(
+        since = "0.7.0",
+        note = "Nonexistent keys are not handled well. Use `Storage::get_maybe` instead."
+    )]
     pub async fn get<T: serde::de::DeserializeOwned>(&self, key: &str) -> Result<T> {
         JsFuture::from(self.inner.get(key)?)
             .await
@@ -356,6 +369,25 @@ impl Storage {
                 }
             })
             .map_err(Error::from)
+    }
+
+    /// Retrieves the value associated with the given key. The type of the returned value will be
+    /// whatever was previously written for the key.
+    ///
+    /// Returns `Ok(None)` if the key does not exist.
+    pub async fn get_maybe<T: DeserializeOwned>(&self, key: &str) -> Result<Option<T>> {
+        let res = match JsFuture::from(self.inner.get(key)?).await {
+            // If we successfully retrived `undefined`, that means the key doesn't exist
+            Ok(val) if val.is_undefined() => Ok(None),
+            // Otherwise deserialize whatever we successfully received
+            Ok(val) => {
+                serde_wasm_bindgen::from_value(val).map_err(|e| JsValue::from(e.to_string()))
+            }
+            // Forward any error, rewrap to make the typechecker happy
+            Err(e) => Err(e),
+        };
+
+        res.map_err(Error::from)
     }
 
     /// Retrieves the values associated with each of the provided keys.
