@@ -17,7 +17,10 @@ impl PutRawTestObject {
         let bytes = Uint8Array::new_with_length(3);
         bytes.copy_from(b"123");
         storage.put_raw("bytes", bytes).await?;
-        let bytes = storage.get::<Vec<u8>>("bytes").await?;
+        let bytes = storage
+            .get_maybe::<Vec<u8>>("bytes")
+            .await?
+            .expect("get after put yielded nothing");
         storage.delete("bytes").await?;
         assert_eq!(
             bytes, b"123",
@@ -36,7 +39,10 @@ impl PutRawTestObject {
         storage.put_multiple_raw(obj).await?;
 
         assert_eq!(
-            storage.get::<Vec<u8>>("foo").await?,
+            storage
+                .get_maybe::<Vec<u8>>("foo")
+                .await?
+                .expect("get('foo') yielded nothing"),
             BAR,
             "Didn't get the right thing with put_multiple_raw"
         );
