@@ -1,5 +1,6 @@
 use std::convert::TryInto;
 
+use crate::send::SendFuture;
 use serde::Serialize;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
@@ -55,7 +56,7 @@ impl Cache {
 
         // unwrap is safe because this promise never rejects
         // https://developer.mozilla.org/en-US/docs/Web/API/CacheStorage/open
-        let inner = JsFuture::from(cache).await.unwrap().into();
+        let inner = SendFuture::new(JsFuture::from(cache)).await.unwrap().into();
 
         Self { inner }
     }
@@ -80,7 +81,7 @@ impl Cache {
                 .inner
                 .put_with_request(&request.try_into()?, &response.into()),
         };
-        let _ = JsFuture::from(promise).await?;
+        let _ = SendFuture::new(JsFuture::from(promise)).await?;
         Ok(())
     }
 
@@ -116,7 +117,7 @@ impl Cache {
         };
 
         // `match` returns either a response or undefined
-        let result = JsFuture::from(promise).await?;
+        let result = SendFuture::new(JsFuture::from(promise)).await?;
         if result.is_undefined() {
             Ok(None)
         } else {
@@ -147,7 +148,7 @@ impl Cache {
                 .inner
                 .delete_with_request_and_options(&request.try_into()?, &options),
         };
-        let result = JsFuture::from(promise).await?;
+        let result = SendFuture::new(JsFuture::from(promise)).await?;
 
         // Unwrap is safe because we know this is a boolean
         // https://developers.cloudflare.com/workers/runtime-apis/cache#delete

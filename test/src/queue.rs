@@ -26,7 +26,6 @@ pub async fn queue(message_batch: MessageBatch<QueueBody>, _env: Env, _ctx: Cont
     Ok(())
 }
 
-#[worker::send]
 pub async fn handle_queue_send(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let uri = req.url()?;
     let mut segments = uri.path_segments().unwrap();
@@ -54,7 +53,6 @@ pub async fn handle_queue_send(req: Request, env: Env, _data: SomeSharedData) ->
     }
 }
 
-#[worker::send]
 pub async fn handle_batch_send(mut req: Request, env: Env, _: SomeSharedData) -> Result<Response> {
     let messages: Vec<QueueBody> = match req.json().await {
         Ok(messages) => messages,
@@ -81,4 +79,13 @@ pub async fn handle_queue(_req: Request, _env: Env, _data: SomeSharedData) -> Re
     let guard = GLOBAL_QUEUE_STATE.lock().unwrap();
     let messages: Vec<QueueBody> = guard.clone();
     Response::from_json(&messages)
+}
+
+// Compile-time assertion: public async Queue methods return Send futures.
+#[allow(dead_code, unused)]
+fn _assert_send() {
+    fn require_send<T: Send>(_t: T) {}
+    fn queue(q: worker::Queue) {
+        require_send(q.send("msg"));
+    }
 }

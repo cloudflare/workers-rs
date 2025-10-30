@@ -1,7 +1,7 @@
-//! This module provides utilities for working with JavaScript types
-//! which do not implement `Send`, in contexts where `Send` is required.
+//! This module provides utilities for wrapping `!Send` futures
+//! in contexts where `Send` is required.
 //! Workers is guaranteed to be single-threaded, so it is safe to
-//! wrap any type with `Send` and `Sync` traits.
+//! wrap any future with `Send`.
 
 use futures_util::future::Future;
 use pin_project::pin_project;
@@ -65,23 +65,27 @@ where
     }
 }
 
-/// Wrap any type to make it `Send`.
-///
-/// ```rust
-/// // js_sys::Promise is !Send
-/// let send_promise = SendWrapper::new(promise);
-/// ```
+/// Deprecated: `JsValue` types are now `Send` in `wasm-bindgen`, so `SendWrapper` is no longer
+/// needed. Simply use the inner type directly.
+#[deprecated(
+    since = "0.8.0",
+    note = "JsValue types are now Send in wasm-bindgen. Use the inner type directly."
+)]
 pub struct SendWrapper<T>(pub T);
 
+#[allow(deprecated)]
 unsafe impl<T> Send for SendWrapper<T> {}
+#[allow(deprecated)]
 unsafe impl<T> Sync for SendWrapper<T> {}
 
+#[allow(deprecated)]
 impl<T> SendWrapper<T> {
     pub fn new(inner: T) -> Self {
         Self(inner)
     }
 }
 
+#[allow(deprecated)]
 impl<T> std::ops::Deref for SendWrapper<T> {
     type Target = T;
 
@@ -90,30 +94,35 @@ impl<T> std::ops::Deref for SendWrapper<T> {
     }
 }
 
+#[allow(deprecated)]
 impl<T> std::ops::DerefMut for SendWrapper<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
+#[allow(deprecated)]
 impl<T: Debug> Debug for SendWrapper<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "SendWrapper({:?})", self.0)
     }
 }
 
+#[allow(deprecated)]
 impl<T: Clone> Clone for SendWrapper<T> {
     fn clone(&self) -> Self {
         Self(self.0.clone())
     }
 }
 
+#[allow(deprecated)]
 impl<T: Default> Default for SendWrapper<T> {
     fn default() -> Self {
         Self(T::default())
     }
 }
 
+#[allow(deprecated)]
 impl<T: Display> Display for SendWrapper<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "SendWrapper({})", self.0)

@@ -12,7 +12,6 @@ fn key(req: &Request) -> Result<Option<String>> {
     Ok(segments.nth(2).map(ToOwned::to_owned))
 }
 
-#[worker::send]
 pub async fn handle_cache_example(
     req: Request,
     _env: Env,
@@ -36,7 +35,6 @@ pub async fn handle_cache_example(
     }
 }
 
-#[worker::send]
 pub async fn handle_cache_api_get(
     req: Request,
     _env: Env,
@@ -52,7 +50,6 @@ pub async fn handle_cache_api_get(
     Response::error("key missing", 400)
 }
 
-#[worker::send]
 pub async fn handle_cache_api_put(
     req: Request,
     _env: Env,
@@ -71,7 +68,6 @@ pub async fn handle_cache_api_put(
     Response::error("key missing", 400)
 }
 
-#[worker::send]
 pub async fn handle_cache_api_delete(
     req: Request,
     _env: Env,
@@ -86,7 +82,6 @@ pub async fn handle_cache_api_delete(
     Response::error("key missing", 400)
 }
 
-#[worker::send]
 pub async fn handle_cache_stream(
     req: Request,
     _env: Env,
@@ -100,8 +95,10 @@ pub async fn handle_cache_stream(
         Ok(resp)
     } else {
         console_log!("Cache MISS!");
-        let mut rng = rand::rng();
-        let count = rng.random_range(0..10);
+        let count = {
+            let mut rng = rand::rng();
+            rng.random_range(0..10)
+        };
         let stream = futures_util::stream::repeat("Hello, world!\n")
             .take(count)
             .then(|text| async move {
@@ -117,5 +114,16 @@ pub async fn handle_cache_stream(
         console_log!("resp = {:?}", resp);
         cache.put(key, resp.cloned()?).await?;
         Ok(resp)
+    }
+}
+
+// Compile-time assertion: public async Cache methods return Send futures.
+#[allow(dead_code, unused)]
+fn _assert_send() {
+    fn require_send<T: Send>(_t: T) {}
+    fn cache(c: worker::Cache) {
+        require_send(c.put("k", worker::Response::empty().unwrap()));
+        require_send(c.get("k", false));
+        require_send(c.delete("k", false));
     }
 }

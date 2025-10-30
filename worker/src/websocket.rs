@@ -302,6 +302,10 @@ pub struct EventStream<'ws> {
     )>,
 }
 
+// SAFETY: Workers runtime is single-threaded. EventStream contains Closure<dyn FnMut(T)>
+// which is !Send due to the trait object, but this is safe in a single-threaded context.
+unsafe impl Send for EventStream<'_> {}
+
 impl Stream for EventStream<'_> {
     type Item = Result<WebsocketEvent>;
 

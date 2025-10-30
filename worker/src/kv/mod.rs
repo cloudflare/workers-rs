@@ -20,6 +20,7 @@ mod builder;
 
 pub use builder::*;
 
+use crate::send::SendFuture;
 use js_sys::{global, Function, Object, Promise, Reflect, Uint8Array};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -137,7 +138,7 @@ impl KvStore {
     pub async fn delete(&self, name: &str) -> Result<(), KvError> {
         let name = JsValue::from(name);
         let promise: Promise = self.delete_function.call1(&self.this, &name)?.into();
-        JsFuture::from(promise).await?;
+        SendFuture::new(JsFuture::from(promise)).await?;
         Ok(())
     }
 }

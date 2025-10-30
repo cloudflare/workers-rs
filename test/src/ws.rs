@@ -40,7 +40,6 @@ pub async fn handle_websocket(_req: Request, env: Env, _data: SomeSharedData) ->
     Response::from_websocket(pair.client)
 }
 
-#[worker::send]
 pub async fn handle_websocket_client(
     _req: Request,
     _env: Env,

@@ -3,7 +3,6 @@ use super::SomeSharedData;
 use std::convert::TryInto;
 use worker::{Env, Method, Request, RequestInit, Response, Result};
 
-#[worker::send]
 pub async fn handle_remote_by_request(
     req: Request,
     env: Env,
@@ -21,7 +20,6 @@ pub async fn handle_remote_by_request(
     result
 }
 
-#[worker::send]
 pub async fn handle_remote_by_path(
     req: Request,
     env: Env,
@@ -38,4 +36,16 @@ pub async fn handle_remote_by_path(
     let result = Ok(response);
 
     result
+}
+
+// Compile-time assertion: public async Fetcher methods return Send futures.
+#[allow(dead_code, unused)]
+fn _assert_send() {
+    fn require_send<T: Send>(_t: T) {}
+    fn fetcher(f: worker::Fetcher) {
+        require_send(f.fetch("https://example.com", None));
+        require_send(f.fetch_request(
+            worker::Request::new("https://example.com", worker::Method::Get).unwrap(),
+        ));
+    }
 }

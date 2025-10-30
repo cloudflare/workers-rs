@@ -1,5 +1,6 @@
 use std::{collections::HashMap, convert::TryFrom};
 
+use crate::send::SendFuture;
 use js_sys::{Array, Date as JsDate, JsString, Object as JsObject, Uint8Array};
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
@@ -48,7 +49,7 @@ impl GetOptionsBuilder<'_> {
             .into(),
         )?;
 
-        let value = JsFuture::from(get_promise).await?;
+        let value = SendFuture::new(JsFuture::from(get_promise)).await?;
 
         if value.is_null() {
             return Ok(None);
@@ -248,7 +249,7 @@ impl PutOptionsBuilder<'_> {
             }
             .into(),
         )?;
-        let res: EdgeR2Object = JsFuture::from(put_promise).await?.into();
+        let res: EdgeR2Object = SendFuture::new(JsFuture::from(put_promise)).await?.into();
         let inner = if JsString::from("bodyUsed").js_in(&res) {
             ObjectInner::Body(res.unchecked_into())
         } else {
@@ -302,9 +303,10 @@ impl CreateMultipartUploadOptionsBuilder<'_> {
             }
             .into(),
         )?;
-        let inner: EdgeR2MultipartUpload = JsFuture::from(create_multipart_upload_promise)
-            .await?
-            .into();
+        let inner: EdgeR2MultipartUpload =
+            SendFuture::new(JsFuture::from(create_multipart_upload_promise))
+                .await?
+                .into();
 
         Ok(MultipartUpload { inner })
     }
@@ -437,7 +439,7 @@ impl ListOptionsBuilder<'_> {
             }
             .into(),
         )?;
-        let inner = JsFuture::from(list_promise).await?.into();
+        let inner = SendFuture::new(JsFuture::from(list_promise)).await?.into();
         Ok(Objects { inner })
     }
 }

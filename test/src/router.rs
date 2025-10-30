@@ -266,7 +266,6 @@ async fn respond_async(req: Request, _env: Env, _data: SomeSharedData) -> Result
         .ok(format!("Ok (async): {}", String::from(req.method())))
 }
 
-#[worker::send]
 async fn handle_close_event(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let some_namespace_kv = env.kv("SOME_NAMESPACE")?;
     let got_close_event = some_namespace_kv
@@ -279,7 +278,6 @@ async fn handle_close_event(_req: Request, env: Env, _data: SomeSharedData) -> R
     Response::ok(got_close_event)
 }
 
-#[worker::send]
 async fn catchall(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     let uri = req.url()?;
     let path = uri.path();
