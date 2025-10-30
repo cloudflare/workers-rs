@@ -11,11 +11,9 @@ pub async fn handle_socket_failed(
     let socket = ConnectionBuilder::new().connect("127.0.0.1", 25000)?;
 
     match socket.opened().await {
-        Ok(_) => {
-            return Err(Error::RustError(
-                "Socket should have failed to open.".to_owned(),
-            ))
-        }
+        Ok(_) => Err(Error::RustError(
+            "Socket should have failed to open.".to_owned(),
+        )),
         Err(e) => Response::ok(format!("{e:?}")),
     }
 }

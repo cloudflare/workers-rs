@@ -30,5 +30,5 @@ pub async fn handle_analytics_event(
         .add_double(200)
         .write_to(&dataset)?;
 
-    return Response::ok("Events sent");
+    Response::ok("Events sent")
 }
