@@ -52,6 +52,9 @@ pub struct SomeSharedData {
     regex: &'static Regex,
 }
 
+unsafe impl Send for SomeSharedData {}
+unsafe impl Sync for SomeSharedData {}
+
 static GLOBAL_STATE: AtomicBool = AtomicBool::new(false);
 
 static GLOBAL_QUEUE_STATE: Mutex<Vec<queue::QueueBody>> = Mutex::new(Vec::new());

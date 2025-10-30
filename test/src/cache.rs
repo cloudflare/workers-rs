@@ -93,8 +93,10 @@ pub async fn handle_cache_stream(
         Ok(resp)
     } else {
         console_log!("Cache MISS!");
-        let mut rng = rand::rng();
-        let count = rng.random_range(0..10);
+        let count = {
+            let mut rng = rand::rng();
+            rng.random_range(0..10)
+        };
         let stream = futures_util::stream::repeat("Hello, world!\n")
             .take(count)
             .then(|text| async move {
