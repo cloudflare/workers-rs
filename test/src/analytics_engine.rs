@@ -2,7 +2,6 @@ use super::SomeSharedData;
 use uuid::Uuid;
 use worker::{AnalyticsEngineDataPointBuilder, Env, Request, Response, Result};
 
-#[worker::send]
 pub async fn handle_analytics_event(
     req: Request,
     env: Env,

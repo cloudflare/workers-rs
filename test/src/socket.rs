@@ -3,7 +3,6 @@ use tokio::io::AsyncReadExt;
 use tokio::io::AsyncWriteExt;
 use worker::{ConnectionBuilder, Env, Error, Request, Response, Result};
 
-#[worker::send]
 pub async fn handle_socket_failed(
     _req: Request,
     _env: Env,
@@ -21,7 +20,6 @@ pub async fn handle_socket_failed(
     }
 }
 
-#[worker::send]
 pub async fn handle_socket_read(
     _req: Request,
     _env: Env,

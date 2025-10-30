@@ -81,7 +81,6 @@ impl DurableObject for EchoContainer {
 
 const CONTAINER_NAME: &str = "my-container";
 
-#[worker::send]
 pub async fn handle_container(
     mut req: Request,
     env: Env,
