@@ -12,7 +12,7 @@ async fn main(_req: Request, env: Env, _ctx: Context) -> Result<Response> {
 
     let service: rpc::CalculatorService = env.service("SERVER")?.into();
 
-    let num = service.add(1, 2).await?;
+    let num = service.add(vec![1, 2]).await?;
 
     Response::ok(format!("{num:?}"))
 }
