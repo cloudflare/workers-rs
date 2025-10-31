@@ -17,8 +17,8 @@ pub trait GetBinary: BinaryDep {
         let target = self.target();
         let version = self.version();
 
-        // 1. First check NAME_BIN env override
-        let check_env_var = name.to_shouty_snake_case() + "_BIN";
+        // 1. First check {BIN_NAME}_BIN env override
+        let check_env_var = bin_name.unwrap_or(name).to_shouty_snake_case() + "_BIN";
         if let Ok(custom_bin) = env::var(&check_env_var) {
             match which::which(&custom_bin) {
                 Ok(resolved) => {
