@@ -4021,6 +4021,7 @@ dependencies = [
  "dirs-next",
  "flate2",
  "glob",
+ "heck",
  "log",
  "parking_lot",
  "path-clean",

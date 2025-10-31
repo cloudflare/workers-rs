@@ -17,5 +17,6 @@ pub static TARGET: Emoji = Emoji("🎯  ", "");
 pub static CYCLONE: Emoji = Emoji("🌀  ", "");
 pub static DOWN_ARROW: Emoji = Emoji("⬇️  ", "");
 pub static SPARKLE: Emoji = Emoji("✨  ", ":-)");
+pub static CONFIG: Emoji = Emoji("⚙️. ", "");
 pub static PACKAGE: Emoji = Emoji("📦  ", ":-)");
 pub static WARN: Emoji = Emoji("⚠️  ", ":-)");

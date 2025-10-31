@@ -7,20 +7,23 @@ use std::{
 };
 
 use anyhow::Result;
-
 use clap::Parser;
 
 const OUT_DIR: &str = "build";
 
 const SHIM_FILE: &str = include_str!("./js/shim.js");
 
-mod install;
+mod binary;
+mod emoji;
 mod main_legacy;
 mod wasm_pack;
 
 use wasm_pack::command::build::{Build, BuildOptions};
 
-use crate::wasm_pack::command::build::Target;
+use crate::{
+    binary::{Esbuild, GetBinary},
+    wasm_pack::command::build::Target,
+};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -101,7 +104,7 @@ pub fn main() -> Result<()> {
 
         update_package_json()?;
 
-        let esbuild_path = install::ensure_esbuild()?;
+        let esbuild_path = Esbuild.get_binary(None)?;
         bundle(&esbuild_path)?;
 
         fix_wasm_import()?;

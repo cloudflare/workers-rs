@@ -1,6 +1,6 @@
 //! Fancy progress bar functionality.
 
-use crate::wasm_pack::emoji;
+use crate::emoji;
 use anyhow::{bail, Error, Result};
 use console::style;
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
