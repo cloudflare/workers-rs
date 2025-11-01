@@ -1,4 +1,4 @@
-use crate::{send::SendFuture, EnvBinding, Result};
+use crate::{EnvBinding, Result};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
@@ -17,9 +17,6 @@ pub struct RateLimitOutcome {
     pub success: bool,
 }
 
-unsafe impl Send for RateLimiter {}
-unsafe impl Sync for RateLimiter {}
-
 impl EnvBinding for RateLimiter {
     const TYPE_NAME: &'static str = "Ratelimit";
 }
@@ -27,7 +24,7 @@ impl RateLimiter {
     pub async fn limit(&self, key: String) -> Result<RateLimitOutcome> {
         let arg = serde_wasm_bindgen::to_value(&RateLimitOptions { key })?;
         let promise = self.0.limit(arg.into())?;
-        let fut = SendFuture::new(JsFuture::from(promise));
+        let fut = JsFuture::from(promise);
         let result = fut.await?;
         let outcome = serde_wasm_bindgen::from_value(result)?;
         Ok(outcome)

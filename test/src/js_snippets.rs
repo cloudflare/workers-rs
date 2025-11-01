@@ -22,12 +22,10 @@ extern "C" {
     fn js_throw_error();
 }
 
-#[worker::send]
 pub async fn performance_now(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     Response::ok(format!("now: {}", js_performance_now()))
 }
 
-#[worker::send]
 pub async fn console_log(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     js_console_log("test".to_owned());
     Response::ok("OK")
