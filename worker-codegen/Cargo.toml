@@ -21,6 +21,6 @@ syn = { version = "2.0.17", features = ['extra-traits'] }
 proc-macro2 = "1.0.60"
 quote = "1.0.28"
 prettyplease = { version = "0.2" }
-wit-parser = { version = "0.205" }
+wit-parser = "0.240.0"
 convert_case = { version = "0.6" }
 anyhow = { version = "1" }

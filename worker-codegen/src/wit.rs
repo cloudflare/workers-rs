@@ -10,30 +10,56 @@ fn path_type(name: &str) -> anyhow::Result<syn::Type> {
     Ok(syn::Type::Path(ty))
 }
 
-fn wit_type_to_syn(ty: &wit_parser::Type) -> anyhow::Result<syn::Type> {
-    path_type(&wit_type_to_str(ty)?)
-}
-
-fn wit_type_to_str(ty: &wit_parser::Type) -> anyhow::Result<String> {
+fn wit_type_to_syn(
+    resolve: &wit_parser::Resolve,
+    ty: &wit_parser::Type,
+) -> anyhow::Result<syn::Type> {
     Ok(match ty {
-        wit_parser::Type::Bool => "bool".to_string(),
-        wit_parser::Type::U8 => "u8".to_string(),
-        wit_parser::Type::U16 => "u16".to_string(),
-        wit_parser::Type::U32 => "u32".to_string(),
-        wit_parser::Type::U64 => "u64".to_string(),
-        wit_parser::Type::S8 => "i8".to_string(),
-        wit_parser::Type::S16 => "i16".to_string(),
-        wit_parser::Type::S32 => "i32".to_string(),
-        wit_parser::Type::S64 => "i64".to_string(),
-        wit_parser::Type::F32 => "f32".to_string(),
-        wit_parser::Type::F64 => "f64".to_string(),
-        wit_parser::Type::Char => "char".to_string(),
-        wit_parser::Type::String => "String".to_string(),
-        wit_parser::Type::Id(t) => anyhow::bail!("Unsupported type: '{t:?}'"),
+        wit_parser::Type::Bool => path_type("bool")?,
+        wit_parser::Type::U8 => path_type("u8")?,
+        wit_parser::Type::U16 => path_type("u16")?,
+        wit_parser::Type::U32 => path_type("u32")?,
+        wit_parser::Type::U64 => path_type("u64")?,
+        wit_parser::Type::S8 => path_type("i8")?,
+        wit_parser::Type::S16 => path_type("i16")?,
+        wit_parser::Type::S32 => path_type("i32")?,
+        wit_parser::Type::S64 => path_type("i64")?,
+        wit_parser::Type::F32 => path_type("f32")?,
+        wit_parser::Type::F64 => path_type("f64")?,
+        wit_parser::Type::Char => path_type("char")?,
+        wit_parser::Type::String => path_type("String")?,
+        wit_parser::Type::ErrorContext => {
+            anyhow::bail!("Unsupported type: 'ErrorContext'")
+        }
+        wit_parser::Type::Id(type_id) => {
+            let type_def = resolve
+                .types
+                .get(*type_id)
+                .ok_or_else(|| anyhow::anyhow!("Unknown type id: {:?}", type_id))?;
+            match &type_def.kind {
+                wit_parser::TypeDefKind::List(inner) => {
+                    let inner_ty = wit_type_to_syn(resolve, inner)?;
+                    #[allow(clippy::match_single_binding)]
+                    match inner {
+                        // Should this be a special case like so?
+                        // https://component-model.bytecodealliance.org/design/wit.html#lists
+                        // wit_parser::Type::U8 => {
+                        //     syn::parse2::<syn::Type>(quote!(::worker::js_sys::Uint8Array))?
+                        // }
+                        _ => syn::parse2::<syn::Type>(quote!(::std::vec::Vec<#inner_ty>))?,
+                    }
+                }
+                wit_parser::TypeDefKind::Type(inner) => wit_type_to_syn(resolve, inner)?,
+                other => anyhow::bail!("Unsupported type: '{other:?}'"),
+            }
+        }
     })
 }
 
-fn expand_args(method: &wit_parser::Function) -> anyhow::Result<Vec<syn::FnArg>> {
+fn expand_args(
+    resolve: &wit_parser::Resolve,
+    method: &wit_parser::Function,
+) -> anyhow::Result<Vec<syn::FnArg>> {
     let mut args = Vec::with_capacity(method.params.len());
     for (arg_name, arg) in &method.params {
         let param = syn::FnArg::Typed(syn::PatType {
@@ -46,14 +72,29 @@ fn expand_args(method: &wit_parser::Function) -> anyhow::Result<Vec<syn::FnArg>>
                 subpat: None,
             })),
             colon_token: Default::default(),
-            ty: Box::new(wit_type_to_syn(arg)?),
+            ty: Box::new(wit_type_to_syn(resolve, arg)?),
         });
         args.push(param);
     }
     Ok(args)
 }
 
-fn expand_trait(interface: &Interface, interface_name: &Ident) -> anyhow::Result<syn::ItemTrait> {
+fn method_result_type(
+    resolve: &wit_parser::Resolve,
+    method: &wit_parser::Function,
+) -> anyhow::Result<syn::Type> {
+    if let Some(ty) = &method.result {
+        wit_type_to_syn(resolve, ty)
+    } else {
+        anyhow::bail!("Unsupported return type: '{:?}'", method.result);
+    }
+}
+
+fn expand_trait(
+    resolve: &wit_parser::Resolve,
+    interface: &Interface,
+    interface_name: &Ident,
+) -> anyhow::Result<syn::ItemTrait> {
     let trait_raw = quote!(
         #[async_trait::async_trait]
         pub trait #interface_name {
@@ -63,11 +104,7 @@ fn expand_trait(interface: &Interface, interface_name: &Ident) -> anyhow::Result
 
     for (name, method) in &interface.functions {
         let ident = format_ident!("{}", name.to_case(Case::Snake));
-        let ret_type = if let wit_parser::Results::Anon(ty) = &method.results {
-            format_ident!("{}", wit_type_to_str(ty)?)
-        } else {
-            anyhow::bail!("Unsupported return type: '{:?}'", method.results);
-        };
+        let ret_type = method_result_type(resolve, method)?;
 
         let method_raw = quote!(
             // TODO: docs
@@ -76,7 +113,7 @@ fn expand_trait(interface: &Interface, interface_name: &Ident) -> anyhow::Result
 
         let mut method_item: syn::TraitItemFn = syn::parse2(method_raw)?;
 
-        method_item.sig.inputs.extend(expand_args(method)?);
+        method_item.sig.inputs.extend(expand_args(resolve, method)?);
         trait_item.items.push(syn::TraitItem::Fn(method_item));
     }
 
@@ -104,6 +141,7 @@ fn expand_from_impl(struct_name: &Ident, from_type: &syn::Type) -> anyhow::Resul
 }
 
 fn expand_rpc_impl(
+    resolve: &wit_parser::Resolve,
     interface: &Interface,
     interface_name: &Ident,
     struct_name: &Ident,
@@ -135,11 +173,7 @@ fn expand_rpc_impl(
             }));
         }
 
-        let ret_type = if let wit_parser::Results::Anon(ty) = &method.results {
-            format_ident!("{}", wit_type_to_str(ty)?)
-        } else {
-            anyhow::bail!("Unsupported return type: '{:?}'", method.results);
-        };
+        let ret_type = method_result_type(resolve, method)?;
 
         let method_raw = quote!(
             async fn #ident(&self) -> ::worker::Result<#ret_type> {
@@ -151,13 +185,17 @@ fn expand_rpc_impl(
         );
 
         let mut method_item: syn::ImplItemFn = syn::parse2(method_raw)?;
-        method_item.sig.inputs.extend(expand_args(method)?);
+        method_item.sig.inputs.extend(expand_args(resolve, method)?);
         impl_item.items.push(syn::ImplItem::Fn(method_item));
     }
     Ok(impl_item)
 }
 
-fn expand_sys_module(interface: &Interface, sys_name: &Ident) -> anyhow::Result<syn::ItemMod> {
+fn expand_sys_module(
+    resolve: &wit_parser::Resolve,
+    interface: &Interface,
+    sys_name: &Ident,
+) -> anyhow::Result<syn::ItemMod> {
     let f_mod_raw = quote!(
         #[wasm_bindgen]
         extern "C" {
@@ -178,7 +216,7 @@ fn expand_sys_module(interface: &Interface, sys_name: &Ident) -> anyhow::Result<
             ) -> std::result::Result<::worker::js_sys::Promise, ::worker::wasm_bindgen::JsValue>;
         );
         let mut method_item: syn::ForeignItemFn = syn::parse2(method_raw)?;
-        method_item.sig.inputs.extend(expand_args(method)?);
+        method_item.sig.inputs.extend(expand_args(resolve, method)?);
         f_mod_item.items.push(syn::ForeignItem::Fn(method_item));
     }
 
@@ -202,7 +240,7 @@ fn expand_wit(path: &str) -> anyhow::Result<syn::File> {
     // Items: Trait, Struct, Trait Impl, From Impl, Sys Module
     let mut items = Vec::with_capacity(resolver.interfaces.len() * 5);
 
-    for (_, interface) in resolver.interfaces {
+    for (_, interface) in resolver.interfaces.iter() {
         let name = interface.name.clone().unwrap();
         println!("Found Interface: '{name}'");
         let interface_name = format_ident!("{}", name.to_case(Case::Pascal));
@@ -211,14 +249,21 @@ fn expand_wit(path: &str) -> anyhow::Result<syn::File> {
         let sys_name = format_ident!("{}Sys", interface_name);
 
         // Sys Module
-        items.push(syn::Item::Mod(expand_sys_module(&interface, &sys_name)?));
+        items.push(syn::Item::Mod(expand_sys_module(
+            &resolver, interface, &sys_name,
+        )?));
         //  Trait
-        items.push(syn::Item::Trait(expand_trait(&interface, &interface_name)?));
+        items.push(syn::Item::Trait(expand_trait(
+            &resolver,
+            interface,
+            &interface_name,
+        )?));
         // Struct
         items.push(syn::Item::Struct(expand_struct(&struct_name, &sys_name)?));
         // Trait Impl
         items.push(syn::Item::Impl(expand_rpc_impl(
-            &interface,
+            &resolver,
+            interface,
             &interface_name,
             &struct_name,
         )?));
