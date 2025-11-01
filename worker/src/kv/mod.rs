@@ -14,6 +14,10 @@
 //! // NOTE: kv changes can take a minute to become visible to other workers.
 //! // Get that same metadata.
 //! let (value, metadata) = kv.get("example_key").text_with_metadata::<Vec<usize>>().await?;
+//!
+//! // Batch get multiple keys at once (returns HashMap)
+//! let keys = vec!["key1", "key2", "key3"];
+//! let values: HashMap<String, Option<MyData>> = kv.get(&keys[..]).json().await?;
 //! ```
 #[forbid(missing_docs)]
 mod builder;
@@ -82,12 +86,15 @@ impl KvStore {
     }
 
     /// Fetches the value from the kv store by name.
-    pub fn get(&self, name: &str) -> GetOptionsBuilder {
+    pub fn get<'a, T>(&self, name: T) -> GetOptionsBuilder<T::ValueType>
+    where
+        T: IntoGetRequest<'a>,
+    {
         GetOptionsBuilder {
             this: self.this.clone(),
             get_function: self.get_function.clone(),
             get_with_meta_function: self.get_with_meta_function.clone(),
-            name: JsValue::from(name),
+            name: name.into_js_value(),
             cache_ttl: None,
             value_type: None,
         }
