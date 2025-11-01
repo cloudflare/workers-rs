@@ -1,8 +1,8 @@
 //! Building a Rust crate into a `.wasm` binary.
 
+use crate::emoji;
 use crate::wasm_pack::child;
 use crate::wasm_pack::command::build::BuildProfile;
-use crate::wasm_pack::emoji;
 use crate::wasm_pack::PBAR;
 use anyhow::{anyhow, bail, Context, Result};
 use std::path::Path;

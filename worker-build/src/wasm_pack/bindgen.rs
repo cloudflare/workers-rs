@@ -2,7 +2,6 @@
 
 use crate::wasm_pack::child;
 use crate::wasm_pack::command::build::{BuildProfile, Target};
-use crate::wasm_pack::install::{self, Tool};
 use crate::wasm_pack::manifest::CrateData;
 use anyhow::{Context, Result};
 use std::path::Path;
@@ -13,7 +12,7 @@ use std::process::Command;
 #[allow(clippy::too_many_arguments)]
 pub fn wasm_bindgen_build(
     data: &CrateData,
-    install_status: &install::Status,
+    bindgen_path: &Path,
     out_dir: &Path,
     out_name: &Option<String>,
     disable_dts: bool,
@@ -50,10 +49,8 @@ pub fn wasm_bindgen_build(
     } else {
         "--typescript"
     };
-    let bindgen_path = install::get_tool_path(install_status, Tool::WasmBindgen)?
-        .binary(&Tool::WasmBindgen.to_string())?;
 
-    let mut cmd = Command::new(&bindgen_path);
+    let mut cmd = Command::new(bindgen_path);
     cmd.arg(&wasm_path)
         .arg("--out-dir")
         .arg(out_dir)

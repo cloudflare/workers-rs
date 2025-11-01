@@ -17,10 +17,10 @@ const WORKER_SUBDIR: &str = "worker";
 
 const SHIM_TEMPLATE: &str = include_str!("./js/shim-legacy.js");
 
-use crate::install;
+use crate::binary::{Esbuild, GetBinary};
 
 pub fn process() -> Result<()> {
-    let esbuild_path = install::ensure_esbuild()?;
+    let esbuild_path = Esbuild.get_binary(None)?;
 
     create_worker_dir()?;
     copy_generated_code_to_worker_dir()?;

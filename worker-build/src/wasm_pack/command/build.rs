@@ -1,10 +1,11 @@
 //! Implementation of the `wasm-pack build` command.
 
+use crate::emoji;
 use crate::wasm_pack::bindgen;
 use crate::wasm_pack::build;
 use crate::wasm_pack::cache;
-use crate::wasm_pack::emoji;
-use crate::wasm_pack::install::{self, InstallMode, Tool};
+use crate::wasm_pack::install;
+use crate::wasm_pack::install::InstallMode;
 use crate::wasm_pack::license;
 use crate::wasm_pack::lockfile::Lockfile;
 use crate::wasm_pack::manifest;
@@ -36,7 +37,7 @@ pub struct Build {
     pub mode: InstallMode,
     pub out_dir: PathBuf,
     pub out_name: Option<String>,
-    pub bindgen: Option<install::Status>,
+    pub bindgen: Option<PathBuf>,
     pub cache: Cache,
     pub extra_args: Vec<String>,
     pub extra_options: Vec<String>,
@@ -270,7 +271,7 @@ impl Build {
             self.out_dir.display()
         );
 
-        PBAR.info(&format!("{} Done in {}", emoji::SPARKLE, &duration));
+        PBAR.info(&format!("{}Done in {}", emoji::SPARKLE, &duration));
 
         PBAR.info(&format!(
             "{} Your wasm pkg is ready to publish at {}.",
@@ -416,15 +417,11 @@ impl Build {
 
     fn step_install_wasm_bindgen(&mut self) -> Result<()> {
         info!("Identifying wasm-bindgen dependency...");
-        let lockfile = Lockfile::new(&self.crate_data)?;
-        let bindgen_version = lockfile.require_wasm_bindgen()?;
+        let _lockfile = Lockfile::new(&self.crate_data)?;
+        let _bindgen_version = _lockfile.require_wasm_bindgen()?;
         info!("Installing wasm-bindgen-cli...");
-        let bindgen = install::download_prebuilt_or_cargo_install(
-            Tool::WasmBindgen,
-            &self.cache,
-            bindgen_version,
-            self.mode.install_permitted(),
-        )?;
+        use crate::binary::{GetBinary, WasmBindgen};
+        let bindgen = WasmBindgen.get_binary(None)?;
         self.bindgen = Some(bindgen);
         info!("Installing wasm-bindgen-cli was successful.");
         Ok(())
@@ -473,13 +470,9 @@ impl Build {
     }
 
     pub fn supports_target_module_and_reset_state(&self) -> Result<bool> {
-        let bindgen_path =
-            install::get_tool_path(self.bindgen.as_ref().unwrap(), Tool::WasmBindgen)?
-                .binary(&Tool::WasmBindgen.to_string())?;
-        let cli_version = semver::Version::parse(&install::get_cli_version(
-            &install::Tool::WasmBindgen,
-            &bindgen_path,
-        )?)?;
+        let bindgen_path = self.bindgen.as_ref().unwrap();
+        let cli_version =
+            semver::Version::parse(&install::get_cli_version("wasm-bindgen", bindgen_path)?)?;
         let expected_version = semver::Version::parse("0.2.102")?;
         Ok(cli_version >= expected_version)
     }

@@ -17,14 +17,12 @@ pub(crate) mod build;
 pub(crate) mod cache;
 pub(crate) mod child;
 pub(crate) mod command;
-pub(crate) mod emoji;
 pub(crate) mod install;
 pub(crate) mod license;
 pub(crate) mod lockfile;
 pub(crate) mod manifest;
 pub(crate) mod progressbar;
 pub(crate) mod readme;
-pub(crate) mod target;
 pub(crate) mod utils;
 pub(crate) mod wasm_opt;
 

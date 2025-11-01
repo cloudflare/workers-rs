@@ -1,7 +1,7 @@
 //! Checking for the wasm32 target
 
+use crate::emoji;
 use crate::wasm_pack::child;
-use crate::wasm_pack::emoji;
 use crate::wasm_pack::PBAR;
 use anyhow::{anyhow, bail, Context, Result};
 use log::error;
