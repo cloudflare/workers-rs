@@ -5,6 +5,8 @@ use wasm_bindgen::prelude::*;
 
 use crate::typed_array;
 
+use super::utils::typed_array::TypedArrayBuilder;
+
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(extends=::js_sys::Object, js_name=Ai)]
@@ -16,36 +18,6 @@ extern "C" {
 }
 
 typed_array!(RoleScopedChatInputArray, RoleScopedChatInput);
-
-impl RoleScopedChatInputArray {
-    pub fn custom_role(&self, role: &str, content: &str) -> &Self {
-        let message = RoleScopedChatInput::new();
-        message.set_role_inner(role);
-        message.set_content_inner(content);
-        self.push(&message);
-        self
-    }
-
-    pub fn user(self, content: &str) -> Self {
-        self.custom_role("user", content);
-        self
-    }
-
-    pub fn assistant(self, content: &str) -> Self {
-        self.custom_role("assistant", content);
-        self
-    }
-
-    pub fn system(self, content: &str) -> Self {
-        self.custom_role("system", content);
-        self
-    }
-
-    pub fn tool(self, content: &str) -> Self {
-        self.custom_role("tool", content);
-        self
-    }
-}
 
 #[wasm_bindgen]
 extern "C" {
@@ -91,6 +63,34 @@ impl RoleScopedChatInput {
 
     pub fn get_content(&self) -> String {
         self.get_content_inner().unwrap_or_default()
+    }
+
+    pub fn custom_role(role: &str, content: &str) -> Self {
+        let message = RoleScopedChatInput::new();
+        message.set_role_inner(role);
+        message.set_content_inner(content);
+        message
+    }
+
+    pub fn user(content: &str) -> Self {
+        Self::custom_role("user", content)
+    }
+
+    pub fn assistant(content: &str) -> Self {
+        Self::custom_role("assistant", content)
+    }
+
+    pub fn system(content: &str) -> Self {
+        Self::custom_role("system", content)
+    }
+
+    pub fn tool(content: &str) -> Self {
+        Self::custom_role("tool", content)
+    }
+
+    pub fn builder<'a>() -> TypedArrayBuilder<'a, RoleScopedChatInputArray::RoleScopedChatInputArray>
+    {
+        TypedArrayBuilder::new()
     }
 }
 

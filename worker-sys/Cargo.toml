@@ -10,34 +10,35 @@ description = "Low-level extern definitions / FFI bindings to the Cloudflare Wor
 [dependencies]
 js-sys.workspace = true
 wasm-bindgen.workspace = true
+
 cfg-if = "1.0.1"
 
 [dependencies.web-sys]
 version = "0.3.70"
 features = [
-    "ReadableStream",
-    "WritableStream",
-    "RequestRedirect",
-    "RequestInit",
-    "FormData",
-    "Blob",
-    "BinaryType",
-    "ErrorEvent",
-    "MessageEvent",
-    "CloseEvent",
-    "ProgressEvent",
-    "WebSocket",
-    "TransformStream",
-    "AbortController",
-    "console",
-    "ResponseInit",
-    "Cache",
-    "CacheStorage",
-    "CacheQueryOptions",
-    "AbortSignal",
-    "Headers",
-    "Request",
-    "Response",
+  "ReadableStream",
+  "WritableStream",
+  "RequestRedirect",
+  "RequestInit",
+  "FormData",
+  "Blob",
+  "BinaryType",
+  "ErrorEvent",
+  "MessageEvent",
+  "CloseEvent",
+  "ProgressEvent",
+  "WebSocket",
+  "TransformStream",
+  "AbortController",
+  "console",
+  "ResponseInit",
+  "Cache",
+  "CacheStorage",
+  "CacheQueryOptions",
+  "AbortSignal",
+  "Headers",
+  "Request",
+  "Response",
 ]
 
 [features]
