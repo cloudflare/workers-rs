@@ -22,9 +22,8 @@ async fn handle_stream() -> Result<Response> {
     let chunk = vec![b'x'; chunk_size];
 
     // Create a stream that yields the data
-    let data_stream = stream::iter((0..num_chunks).map(move |_| {
-        Ok::<Vec<u8>, worker::Error>(chunk.clone())
-    }));
+    let data_stream =
+        stream::iter((0..num_chunks).map(move |_| Ok::<Vec<u8>, worker::Error>(chunk.clone())));
 
     Response::from_stream(data_stream)
 }
@@ -32,7 +31,11 @@ async fn handle_stream() -> Result<Response> {
 /// Main benchmark handler that makes 10 parallel sub-requests
 async fn handle_benchmark(url: &Url) -> Result<Response> {
     // Get the base URL from the request
-    let base_url = format!("{}://{}", url.scheme(), url.host_str().unwrap_or("localhost"));
+    let base_url = format!(
+        "{}://{}",
+        url.scheme(),
+        url.host_str().unwrap_or("localhost")
+    );
     let stream_url = format!("{}/stream", base_url);
 
     // Create 10 parallel sub-requests
@@ -50,7 +53,9 @@ async fn handle_benchmark(url: &Url) -> Result<Response> {
                 .map_err(|e| format!("Fetch error on request {}: {:?}", i, e))?;
 
             // Consume the stream to ensure all data is read
-            let body = response.bytes().await
+            let body = response
+                .bytes()
+                .await
                 .map_err(|e| format!("Body read error on request {}: {:?}", i, e))?;
 
             let total_bytes = body.len() as u64;
