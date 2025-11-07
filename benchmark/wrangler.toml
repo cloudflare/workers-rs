@@ -1,0 +1,6 @@
+name = "workers-rs-benchmark"
+main = "build/worker/shim.mjs"
+compatibility_date = "2025-09-09"
+
+[build]
+command = "cargo install -q worker-build && worker-build --release"

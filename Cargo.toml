@@ -7,7 +7,8 @@ members = [
     "worker-sys",
     "worker-kv",
     "examples/*",
-    "test/container-echo"
+    "test/container-echo",
+    "benchmark"
 ]
 exclude = ["examples/coredump", "examples/axum", "templates/*", "wasm-bindgen", "generated"]
 resolver = "2"
