@@ -11,3 +11,4 @@ crate-type = ["cdylib"]
 worker = { version = "0.6", features = ['http'] }
 worker-macros = { version = "0.6", features = ['http'] }
 http = "1.3"
+wasm-bindgen = "0.2"

@@ -12,3 +12,4 @@ worker = { version = "0.6", features = ['http', 'axum'] }
 worker-macros = { version = "0.6", features = ['http'] }
 axum = { version = "0.8", default-features = false }
 tower-service = "0.3.3"
+wasm-bindgen = "0.2"
