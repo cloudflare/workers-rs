@@ -4,6 +4,7 @@ use crate::build::utils;
 use crate::build::BuildProfile;
 use crate::build::PBAR;
 use crate::emoji;
+use crate::versions::MIN_RUSTC_VERSION;
 use anyhow::{anyhow, bail, Context, Result};
 use core::str;
 use log::error;
@@ -28,7 +29,7 @@ impl fmt::Display for Wasm32Check {
             let rustup_string = if self.is_rustup {
                 "It looks like Rustup is being used.".to_owned()
             } else {
-                format!("It looks like Rustup is not being used. For non-Rustup setups, the {} target needs to be installed manually. See https://rustwasm.github.io/wasm-pack/book/prerequisites/non-rustup-setups.html on how to do this.", target)
+                format!("It looks like Rustup is not being used. For non-Rustup setups, the {} target needs to be installed manually.", target)
             };
 
             writeln!(
@@ -178,10 +179,11 @@ pub fn check_rustc_version() -> Result<String> {
     let local_minor_version = rustc_minor_version();
     match local_minor_version {
         Some(mv) => {
-            if mv < 30 {
+            if mv < MIN_RUSTC_VERSION.minor as u32 {
                 bail!(
-                    "Your version of Rust, '1.{}', is not supported. Please install Rust version 1.30.0 or higher.",
-                    mv
+                    "Your version of Rust, '1.{}', is not supported. Please install Rust version {} or higher.",
+                    mv,
+                    *MIN_RUSTC_VERSION
                 )
             } else {
                 Ok(mv.to_string())

@@ -53,7 +53,7 @@ const WASM_PACK_METADATA_KEY: &str = "package.metadata.wasm-pack";
 
 /// Store for metadata learned about a crate
 pub struct CrateData {
-    data: Metadata,
+    pub data: Metadata,
     current_idx: usize,
     manifest: CargoManifest,
     out_name: Option<String>,
@@ -124,7 +124,7 @@ impl Default for CargoWasmPackProfiles {
 }
 
 /// This is where configuration goes for wasm-bindgen, wasm-opt, wasm-snip, or
-/// anything else that wasm-pack runs.
+/// anything else being run.
 #[derive(Default, Deserialize)]
 pub struct CargoWasmPackProfile {
     #[serde(default, rename = "wasm-bindgen")]
@@ -487,11 +487,6 @@ impl CrateData {
     /// located after a cargo build.
     pub fn target_directory(&self) -> &Path {
         Path::new(&self.data.target_directory)
-    }
-
-    /// Returns the path to this project's root cargo workspace directory
-    pub fn workspace_root(&self) -> &Path {
-        Path::new(&self.data.workspace_root)
     }
 
     /// Generate a package.json file inside in `./pkg`.

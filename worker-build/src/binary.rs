@@ -1,5 +1,6 @@
 use crate::build::PBAR;
 use crate::emoji::{CONFIG, DOWN_ARROW};
+use crate::versions::{CUR_ESBUILD_VERSION, CUR_WASM_BINDGEN_VERSION, CUR_WASM_OPT_VERSION};
 use anyhow::{bail, Context, Result};
 use flate2::read::GzDecoder;
 use heck::ToShoutySnakeCase;
@@ -11,7 +12,8 @@ use std::{
 
 pub trait GetBinary: BinaryDep {
     /// Get the given binary path for a binary dependency
-    fn get_binary(&self, bin_name: Option<&str>) -> Result<PathBuf> {
+    /// Returns both the path and a boolean indicating if user provided an override
+    fn get_binary(&self, bin_name: Option<&str>) -> Result<(PathBuf, bool)> {
         let full_name = self.full_name();
         let name = self.name();
         let target = self.target();
@@ -26,7 +28,7 @@ pub trait GetBinary: BinaryDep {
                         "{CONFIG}Using custom {full_name} from {check_env_var}: {}",
                         resolved.display()
                     ));
-                    return Ok(resolved);
+                    return Ok((resolved, true));
                 }
                 Err(_) => {
                     PBAR.warn(&format!("{check_env_var}={custom_bin} not found, falling back to internal {full_name} implementation"));
@@ -35,10 +37,10 @@ pub trait GetBinary: BinaryDep {
         }
 
         // 2. Then check the cache path
-        let cache_path = cache_path(name, version, target)?;
+        let cache_path = cache_path(name, &version, target)?;
         let bin_path = cache_path.join(self.bin_path(bin_name)?);
         if bin_path.exists() {
-            return Ok(bin_path);
+            return Ok((bin_path, false));
         }
 
         // 3. Finally perform a download, clearing cache for this name and target first
@@ -52,7 +54,7 @@ pub trait GetBinary: BinaryDep {
                 bin_path.to_string_lossy()
             );
         }
-        Ok(bin_path)
+        Ok((bin_path, false))
     }
 }
 
@@ -67,7 +69,7 @@ pub trait BinaryDep: Sized {
     fn target(&self) -> &'static str;
 
     /// Returns the latest current version of the binary
-    fn version(&self) -> &'static str;
+    fn version(&self) -> String;
 
     /// Returns the URL for the binary to be downloaded
     /// as well as the path string within the archive to use
@@ -174,8 +176,8 @@ impl BinaryDep for Esbuild {
     fn name(&self) -> &'static str {
         "esbuild"
     }
-    fn version(&self) -> &'static str {
-        "0.25.11"
+    fn version(&self) -> String {
+        CUR_ESBUILD_VERSION.to_string()
     }
     fn target(&self) -> &'static str {
         match (std::env::consts::OS, std::env::consts::ARCH) {
@@ -225,8 +227,8 @@ impl BinaryDep for WasmOpt {
     fn name(&self) -> &'static str {
         "wasm-opt"
     }
-    fn version(&self) -> &'static str {
-        "124"
+    fn version(&self) -> String {
+        CUR_WASM_OPT_VERSION.to_owned()
     }
     fn target(&self) -> &'static str {
         match (std::env::consts::OS, std::env::consts::ARCH) {
@@ -261,8 +263,8 @@ impl BinaryDep for WasmBindgen {
     fn name(&self) -> &'static str {
         "wasm-bindgen"
     }
-    fn version(&self) -> &'static str {
-        "0.2.105"
+    fn version(&self) -> String {
+        CUR_WASM_BINDGEN_VERSION.to_string()
     }
     fn target(&self) -> &'static str {
         match (std::env::consts::OS, std::env::consts::ARCH) {
