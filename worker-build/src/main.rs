@@ -13,10 +13,10 @@ const OUT_DIR: &str = "build";
 
 const SHIM_FILE: &str = include_str!("./js/shim.js");
 
+pub(crate) mod binary;
+mod build;
 mod emoji;
 mod main_legacy;
-mod build;
-pub(crate) mod binary;
 
 use build::{Build, BuildOptions};
 

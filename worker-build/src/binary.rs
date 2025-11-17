@@ -1,5 +1,5 @@
-use crate::emoji::{CONFIG, DOWN_ARROW};
 use crate::build::PBAR;
+use crate::emoji::{CONFIG, DOWN_ARROW};
 use anyhow::{bail, Context, Result};
 use flate2::read::GzDecoder;
 use heck::ToShoutySnakeCase;
