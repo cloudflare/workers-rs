@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
-use worker::DurableObject;
 use std::convert::TryFrom;
 use std::{cell::RefCell, collections::HashMap};
+use worker::DurableObject;
 
 use worker::{
     durable_object,
@@ -179,6 +179,7 @@ impl DurableObject for MyClass {
 // Second durable object for testing multiple durable objects in the same file
 #[durable_object]
 pub struct AnotherClass {
+    #[allow(unused)]
     state: State,
     counter: RefCell<i32>,
 }

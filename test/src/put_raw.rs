@@ -1,6 +1,9 @@
 use std::convert::TryFrom;
 use worker::{
-    DurableObject, Env, Request, Response, Result, State, durable_object, js_sys::{self, Uint8Array}, wasm_bindgen::{self, JsValue}
+    durable_object,
+    js_sys::{self, Uint8Array},
+    wasm_bindgen::{self, JsValue},
+    DurableObject, Env, Request, Response, Result, State,
 };
 
 use crate::SomeSharedData;

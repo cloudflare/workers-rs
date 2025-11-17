@@ -1,6 +1,7 @@
 use serde::Deserialize;
 use worker::{
-    DurableObject, Env, Request, Response, Result, SqlStorage, SqlStorageValue, State, durable_object, wasm_bindgen
+    durable_object, wasm_bindgen, DurableObject, Env, Request, Response, Result, SqlStorage,
+    SqlStorageValue, State,
 };
 
 /// A Durable Object that demonstrates SQL cursor iterator methods.
