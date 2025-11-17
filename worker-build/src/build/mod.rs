@@ -1,27 +1,33 @@
 //! Implementation of the `wasm-pack build` command.
 
+use crate::binary::{GetBinary, WasmOpt};
 use crate::emoji;
-use crate::wasm_pack::bindgen;
-use crate::wasm_pack::build;
-use crate::wasm_pack::cache;
-use crate::wasm_pack::install;
-use crate::wasm_pack::install::InstallMode;
-use crate::wasm_pack::license;
-use crate::wasm_pack::lockfile::Lockfile;
-use crate::wasm_pack::manifest;
-use crate::wasm_pack::readme;
-use crate::wasm_pack::utils::{create_pkg_dir, get_crate_path};
-use crate::wasm_pack::wasm_opt;
-use crate::wasm_pack::PBAR;
-use anyhow::{anyhow, bail, Error, Result};
-use binary_install::Cache;
+
+mod lockfile;
+mod manifest;
+mod progressbar;
+mod target;
+mod utils;
+
+use progressbar::ProgressOutput;
+
+/// The global progress bar and user-facing message output.
+pub(crate) static PBAR: ProgressOutput = ProgressOutput::new();
+
+use anyhow::{anyhow, bail, Context, Error, Result};
 use clap::Args;
+use lockfile::Lockfile;
 use log::info;
+use manifest::CrateData;
 use path_clean::PathClean;
 use std::fmt;
+use std::path::Path;
 use std::path::PathBuf;
+use std::process::Command;
 use std::str::FromStr;
 use std::time::Instant;
+use utils::run_capture_stdout;
+use utils::{create_pkg_dir, get_crate_path};
 
 /// Everything required to configure and run the `wasm-pack build` command.
 #[allow(missing_docs)]
@@ -34,11 +40,9 @@ pub struct Build {
     pub no_pack: bool,
     pub no_opt: bool,
     pub profile: BuildProfile,
-    pub mode: InstallMode,
     pub out_dir: PathBuf,
     pub out_name: Option<String>,
     pub bindgen: Option<PathBuf>,
-    pub cache: Cache,
     pub extra_args: Vec<String>,
     pub extra_options: Vec<String>,
 }
@@ -51,19 +55,6 @@ pub enum Target {
     /// used with a bundle in a later step.
     #[default]
     Bundler,
-    /// Correspond to `--target web` where the output is natively usable as an
-    /// ES module in a browser and the wasm is manually instantiated.
-    Web,
-    /// Correspond to `--target nodejs` where the output is natively usable as
-    /// a Node.js module loaded with `require`.
-    Nodejs,
-    /// Correspond to `--target no-modules` where the output is natively usable
-    /// in a browser but pollutes the global namespace and must be manually
-    /// instantiated.
-    NoModules,
-    /// Correspond to `--target deno` where the output is natively usable as
-    /// a Deno module loaded with `import`.
-    Deno,
     /// Correspond to `--target module` where the output uses ES module syntax
     /// with source phase imports for WebAssembly modules.
     Module,
@@ -73,10 +64,6 @@ impl fmt::Display for Target {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let s = match self {
             Target::Bundler => "bundler",
-            Target::Web => "web",
-            Target::Nodejs => "nodejs",
-            Target::NoModules => "no-modules",
-            Target::Deno => "deno",
             Target::Module => "module",
         };
         write!(f, "{}", s)
@@ -88,10 +75,6 @@ impl FromStr for Target {
     fn from_str(s: &str) -> Result<Self> {
         match s {
             "bundler" | "browser" => Ok(Target::Bundler),
-            "web" => Ok(Target::Web),
-            "nodejs" => Ok(Target::Nodejs),
-            "no-modules" => Ok(Target::NoModules),
-            "deno" => Ok(Target::Deno),
             "module" => Ok(Target::Module),
             _ => bail!("Unknown target: {}", s),
         }
@@ -123,10 +106,6 @@ pub struct BuildOptions {
     /// The npm scope to use in package.json, if any.
     #[clap(long = "scope", short = 's')]
     pub scope: Option<String>,
-
-    #[clap(long = "mode", short = 'm', default_value = "normal")]
-    /// Sets steps to be run. [possible values: no-install, normal, force]
-    pub mode: InstallMode,
 
     #[clap(long = "no-typescript")]
     /// By default a *.d.ts file is generated for the generated JS file, but
@@ -235,11 +214,9 @@ impl Build {
             no_pack: build_opts.no_pack,
             no_opt: build_opts.no_opt,
             profile,
-            mode: build_opts.mode,
             out_dir,
             out_name: build_opts.out_name,
             bindgen: None,
-            cache: cache::get_wasm_pack_cache()?,
             extra_args: Vec::new(),
             extra_options: build_opts.extra_options,
         })
@@ -247,7 +224,7 @@ impl Build {
 
     /// Prepare this `Build` command.
     pub fn init(&mut self) -> Result<()> {
-        let process_steps = Build::get_preprocess_steps(self.mode);
+        let process_steps = Build::get_preprocess_steps();
         for (_, process_step) in process_steps {
             process_step(self)?;
         }
@@ -264,7 +241,7 @@ impl Build {
             process_step(self)?;
         }
 
-        let duration = crate::wasm_pack::utils::elapsed(started.elapsed());
+        let duration = utils::elapsed(started.elapsed());
         info!("Done in {}.", &duration);
         info!(
             "Your wasm pkg is ready to publish at {}.",
@@ -282,7 +259,7 @@ impl Build {
     }
 
     #[allow(clippy::vec_init_then_push)]
-    fn get_preprocess_steps(mode: InstallMode) -> Vec<(&'static str, BuildStep)> {
+    fn get_preprocess_steps() -> Vec<(&'static str, BuildStep)> {
         macro_rules! steps {
             ($($name:ident),+) => {
                 {
@@ -294,17 +271,11 @@ impl Build {
             ($($name:ident,)*) => (steps![$($name),*])
         }
         let mut steps = Vec::new();
-        match &mode {
-            InstallMode::Force => {}
-            _ => {
-                steps.extend(steps![
-                    step_check_rustc_version,
-                    step_check_crate_config,
-                    step_check_for_wasm_target,
-                ]);
-            }
-        }
-
+        steps.extend(steps![
+            step_check_rustc_version,
+            step_check_crate_config,
+            step_check_for_wasm_target,
+        ]);
         steps.extend(steps![step_install_wasm_bindgen]);
         steps
     }
@@ -333,11 +304,7 @@ impl Build {
         }
 
         if !no_pack {
-            steps.extend(steps![
-                step_create_json,
-                step_copy_readme,
-                step_copy_license,
-            ]);
+            steps.extend(steps![step_create_json,]);
         }
 
         steps
@@ -345,7 +312,7 @@ impl Build {
 
     fn step_check_rustc_version(&mut self) -> Result<()> {
         info!("Checking rustc version...");
-        let version = build::check_rustc_version()?;
+        let version = target::check_rustc_version()?;
         let msg = format!("rustc version is {}.", version);
         info!("{}", &msg);
         Ok(())
@@ -360,14 +327,14 @@ impl Build {
 
     fn step_check_for_wasm_target(&mut self) -> Result<()> {
         info!("Checking for wasm-target...");
-        build::wasm_target::check_for_wasm32_target()?;
+        target::check_for_wasm32_target()?;
         info!("Checking for wasm-target was successful.");
         Ok(())
     }
 
     fn step_build_wasm(&mut self) -> Result<()> {
         info!("Building wasm...");
-        build::cargo_build_wasm(&self.crate_path, self.profile.clone(), &self.extra_options)?;
+        target::cargo_build_wasm(&self.crate_path, self.profile.clone(), &self.extra_options)?;
 
         info!(
             "wasm built at {:#?}.",
@@ -388,30 +355,12 @@ impl Build {
     }
 
     fn step_create_json(&mut self) -> Result<()> {
-        self.crate_data.write_package_json(
-            &self.out_dir,
-            &self.scope,
-            self.disable_dts,
-            self.target,
-        )?;
+        self.crate_data
+            .write_package_json(&self.out_dir, &self.scope, self.disable_dts)?;
         info!(
             "Wrote a package.json at {:#?}.",
             &self.out_dir.join("package.json")
         );
-        Ok(())
-    }
-
-    fn step_copy_readme(&mut self) -> Result<()> {
-        info!("Copying readme from crate...");
-        readme::copy_from_crate(&self.crate_data, &self.crate_path, &self.out_dir)?;
-        info!("Copied readme from crate to {:#?}.", &self.out_dir);
-        Ok(())
-    }
-
-    fn step_copy_license(&mut self) -> Result<()> {
-        info!("Copying license from crate...");
-        license::copy_from_crate(&self.crate_data, &self.crate_path, &self.out_dir)?;
-        info!("Copied license from crate to {:#?}.", &self.out_dir);
         Ok(())
     }
 
@@ -429,7 +378,7 @@ impl Build {
 
     fn step_run_wasm_bindgen(&mut self) -> Result<()> {
         info!("Building the wasm bindings...");
-        bindgen::wasm_bindgen_build(
+        wasm_bindgen_build(
             &self.crate_data,
             self.bindgen.as_ref().unwrap(),
             &self.out_dir,
@@ -457,12 +406,7 @@ impl Build {
         // Keep the Wasm names section
         args.push("--debuginfo".into());
         info!("executing wasm-opt with {:?}", args);
-        wasm_opt::run(
-            &self.cache,
-            &self.out_dir,
-            &args,
-            self.mode.install_permitted(),
-        ).map_err(|e| {
+        wasm_opt_run(&self.out_dir, &args).map_err(|e| {
             anyhow!(
                 "{}\nTo disable `wasm-opt`, add `wasm-opt = false` to your package metadata in your `Cargo.toml`.", e
             )
@@ -471,9 +415,124 @@ impl Build {
 
     pub fn supports_target_module_and_reset_state(&self) -> Result<bool> {
         let bindgen_path = self.bindgen.as_ref().unwrap();
-        let cli_version =
-            semver::Version::parse(&install::get_cli_version("wasm-bindgen", bindgen_path)?)?;
+        let cli_version = semver::Version::parse(&get_cli_version("wasm-bindgen", bindgen_path)?)?;
         let expected_version = semver::Version::parse("0.2.102")?;
         Ok(cli_version >= expected_version)
     }
+}
+
+/// Fetches the version of a CLI tool
+pub fn get_cli_version(tool: &str, path: &Path) -> Result<String> {
+    let mut cmd = Command::new(path);
+    cmd.arg("--version");
+    let stdout = run_capture_stdout(cmd, tool)?;
+    let version = stdout.split_whitespace().nth(1);
+    match version {
+        Some(v) => Ok(v.to_string()),
+        None => bail!("Something went wrong! We couldn't determine your version of the wasm-bindgen CLI. We were supposed to set that up for you, so it's likely not your fault! You should file an issue: https://github.com/rustwasm/wasm-pack/issues/new?template=bug_report.md.")
+    }
+}
+
+/// Run the `wasm-bindgen` CLI to generate bindings for the current crate's
+/// `.wasm`.
+#[allow(clippy::too_many_arguments)]
+pub fn wasm_bindgen_build(
+    data: &CrateData,
+    bindgen_path: &Path,
+    out_dir: &Path,
+    out_name: &Option<String>,
+    disable_dts: bool,
+    target: Target,
+    profile: BuildProfile,
+    extra_args: &[String],
+    extra_options: &[String],
+) -> Result<()> {
+    let profile_name = match profile.clone() {
+        BuildProfile::Release | BuildProfile::Profiling => "release",
+        BuildProfile::Dev => "debug",
+        BuildProfile::Custom(profile_name) => &profile_name.clone(),
+    };
+
+    let out_dir = out_dir.to_str().unwrap();
+
+    let target_directory = {
+        let mut has_target_dir_iter = extra_options.iter();
+        has_target_dir_iter
+            .find(|&it| it == "--target-dir")
+            .and_then(|_| has_target_dir_iter.next())
+            .map(Path::new)
+            .unwrap_or(data.target_directory())
+    };
+
+    let wasm_path = target_directory
+        .join("wasm32-unknown-unknown")
+        .join(profile_name)
+        .join(data.crate_name())
+        .with_extension("wasm");
+
+    let dts_arg = if disable_dts {
+        "--no-typescript"
+    } else {
+        "--typescript"
+    };
+
+    let mut cmd = Command::new(bindgen_path);
+    cmd.arg(&wasm_path)
+        .arg("--out-dir")
+        .arg(out_dir)
+        .arg(dts_arg);
+
+    cmd.arg("--target").arg(target.to_string());
+
+    if let Some(value) = out_name {
+        cmd.arg("--out-name").arg(value);
+    }
+
+    let profile = data.configured_profile(profile);
+    if profile.wasm_bindgen_debug_js_glue() {
+        cmd.arg("--debug");
+    }
+    if !profile.wasm_bindgen_demangle_name_section() {
+        cmd.arg("--no-demangle");
+    }
+    if profile.wasm_bindgen_dwarf_debug_info() {
+        cmd.arg("--keep-debug");
+    }
+    if profile.wasm_bindgen_omit_default_module_path() {
+        cmd.arg("--omit-default-module-path");
+    }
+    if profile.wasm_bindgen_split_linked_modules() {
+        cmd.arg("--split-linked-modules");
+    }
+
+    for arg in extra_args {
+        cmd.arg(arg);
+    }
+
+    utils::run(cmd, "wasm-bindgen").context("Running the wasm-bindgen CLI")?;
+    Ok(())
+}
+
+/// Execute `wasm-opt` over wasm binaries found in `out_dir`, downloading if
+/// necessary into `cache`. Passes `args` to each invocation of `wasm-opt`.
+pub fn wasm_opt_run(out_dir: &Path, args: &[String]) -> Result<()> {
+    let wasm_opt_path = WasmOpt.get_binary(None)?;
+
+    PBAR.info("Optimizing wasm binaries with `wasm-opt`...");
+
+    for file in out_dir.read_dir()? {
+        let file = file?;
+        let path = file.path();
+        if path.extension().and_then(|s| s.to_str()) != Some("wasm") {
+            continue;
+        }
+
+        let tmp = path.with_extension("wasm-opt.wasm");
+        let mut cmd = Command::new(&wasm_opt_path);
+        cmd.arg(&path).arg("-o").arg(&tmp).args(args);
+        utils::run(cmd, "wasm-opt")?;
+        std::fs::rename(&tmp, &path)?;
+    }
+
+    Ok(())
 }

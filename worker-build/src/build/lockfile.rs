@@ -5,7 +5,7 @@
 use std::fs;
 use std::path::PathBuf;
 
-use crate::wasm_pack::manifest::CrateData;
+use crate::build::manifest::CrateData;
 use anyhow::{anyhow, bail, Context, Result};
 use console::style;
 use serde::Deserialize;
