@@ -1,0 +1,14 @@
+{
+  "name": "workers-rs-benchmark",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Performance benchmark suite for workers-rs",
+  "private": true,
+  "scripts": {
+    "build": "WASM_BINDGEN_BIN=../wasm-bindgen/target/debug/wasm-bindgen ../target/debug/worker-build --release",
+    "bench": "npm run build && node run.js"
+  },
+  "dependencies": {
+    "miniflare": "^4.20250923.0"
+  }
+}
