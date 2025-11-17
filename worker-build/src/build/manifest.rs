@@ -14,6 +14,13 @@ use strsim::levenshtein;
 use serde::Serialize;
 
 #[derive(Serialize)]
+pub struct Repository {
+    #[serde(rename = "type")]
+    pub ty: String,
+    pub url: String,
+}
+
+#[derive(Serialize)]
 pub struct ESModulesPackage {
     pub name: String,
     #[serde(rename = "type")]
@@ -25,6 +32,8 @@ pub struct ESModulesPackage {
     pub version: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub license: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub repository: Option<Repository>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub files: Vec<String>,
     pub main: String,
@@ -599,6 +608,10 @@ impl CrateData {
             description: self.pkg().description.clone(),
             version: pkg.version.to_string(),
             license: self.license(),
+            repository: self.pkg().repository.clone().map(|repo_url| Repository {
+                ty: "git".to_string(),
+                url: repo_url,
+            }),
             files: data.files,
             main: data.main.clone(),
             homepage: data.homepage,
