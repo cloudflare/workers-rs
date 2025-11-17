@@ -1,6 +1,7 @@
 target
 .DS_Store
-build
+test/build
+examples/**/build
 generated
 package-lock.json
 .wrangler
