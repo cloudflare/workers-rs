@@ -13,16 +13,16 @@ const OUT_DIR: &str = "build";
 
 const SHIM_FILE: &str = include_str!("./js/shim.js");
 
-mod binary;
 mod emoji;
 mod main_legacy;
-mod wasm_pack;
+mod build;
+pub(crate) mod binary;
 
-use wasm_pack::command::build::{Build, BuildOptions};
+use build::{Build, BuildOptions};
 
 use crate::{
     binary::{Esbuild, GetBinary},
-    wasm_pack::command::build::Target,
+    build::Target,
 };
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
