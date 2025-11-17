@@ -1,4 +1,4 @@
-use crate::{env::EnvBinding, send::SendFuture};
+use crate::env::EnvBinding;
 use crate::{Error, Result};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -19,10 +19,10 @@ impl Ai {
         model: impl AsRef<str>,
         input: T,
     ) -> Result<U> {
-        let fut = SendFuture::new(JsFuture::from(
+        let fut = JsFuture::from(
             self.0
                 .run(model.as_ref(), serde_wasm_bindgen::to_value(&input)?),
-        ));
+        );
         match fut.await {
             Ok(output) => Ok(serde_wasm_bindgen::from_value(output)?),
             Err(err) => Err(Error::from(err)),

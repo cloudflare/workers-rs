@@ -1,8 +1,5 @@
 use js_sys::{ArrayBuffer, Uint8Array};
-use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
-
-use crate::send::SendFuture;
 
 /// A Rust-friendly wrapper around the non-standard [crypto.DigestStream](https://developers.cloudflare.com/workers/runtime-apis/web-crypto/#constructors) API
 ///
@@ -36,8 +33,8 @@ impl DigestStream {
     }
 
     pub async fn digest(&self) -> Result<Uint8Array, crate::Error> {
-        let fut = SendFuture::new(JsFuture::from(self.inner.digest()));
-        let buffer: ArrayBuffer = fut.await?.unchecked_into();
+        let fut = JsFuture::from(self.inner.digest());
+        let buffer: ArrayBuffer = fut.await?.into();
         Ok(Uint8Array::new(&buffer))
     }
 

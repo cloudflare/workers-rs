@@ -1,13 +1,10 @@
-use crate::{
-    send::{SendFuture, SendWrapper},
-    EnvBinding, Fetcher, Result,
-};
+use crate::{EnvBinding, Fetcher, Result};
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 
 /// A binding to a Cloudflare Secret Store.
 #[derive(Debug, Clone)]
-pub struct SecretStore(SendWrapper<worker_sys::SecretStoreSys>);
+pub struct SecretStore(worker_sys::SecretStoreSys);
 
 // Allows for attachment to axum router, as Workers will never allow multithreading.
 unsafe impl Send for SecretStore {}
@@ -46,7 +43,7 @@ impl From<wasm_bindgen::JsValue> for SecretStore {
 
 impl From<Fetcher> for SecretStore {
     fn from(fetcher: Fetcher) -> Self {
-        Self(SendWrapper::new(fetcher.into_rpc()))
+        Self(fetcher.into_rpc())
     }
 }
 
@@ -66,7 +63,7 @@ impl SecretStore {
             Err(_) => return Ok(None), // Secret not found
         };
 
-        let fut = SendFuture::new(JsFuture::from(promise));
+        let fut = JsFuture::from(promise);
 
         let output = match fut.await {
             Ok(val) => val,

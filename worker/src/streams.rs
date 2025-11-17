@@ -102,6 +102,11 @@ impl Stream for FixedLengthStream {
     }
 }
 
+/// SAFETY: Cloudflare Workers runtime is single-threaded, so it's safe to mark FixedLengthStream
+/// as Send and Sync even though it contains a trait object that may not be Send/Sync.
+unsafe impl Send for FixedLengthStream {}
+unsafe impl Sync for FixedLengthStream {}
+
 impl From<FixedLengthStream> for FixedLengthStreamSys {
     fn from(stream: FixedLengthStream) -> Self {
         let raw = if stream.length < u32::MAX as u64 {

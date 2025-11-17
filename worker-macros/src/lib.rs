@@ -125,8 +125,7 @@ pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// expect the handler to be `Send`, such as `axum`.
 ///
 /// ```rust
-/// #[worker::send]
-/// async fn foo() {
+/// /// async fn foo() {
 ///     // JsFuture is !Send
 ///     let fut = JsFuture::from(promise);
 ///     fut.await

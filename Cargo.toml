@@ -24,9 +24,9 @@ js-sys = { version = "0.3.82", path = "./wasm-bindgen/crates/js-sys" }
 serde = { version = "1.0.164", features = ["derive"] }
 serde_json = "1.0.140"
 serde-wasm-bindgen = "0.6.5"
-wasm-bindgen = { version = "0.2.105", path = "./wasm-bindgen" }
+wasm-bindgen = { version = "0.2.105", path = "./wasm-bindgen", features = ["unsafe-single-threaded-traits"] }
 wasm-bindgen-cli-support = { version = "0.2.105", path = "./wasm-bindgen/crates/cli-support" }
-wasm-bindgen-futures = { version = "0.4.54", path = "./wasm-bindgen/crates/futures" }
+wasm-bindgen-futures = { version = "0.4.54", path = "./wasm-bindgen/crates/futures", features = ["unsafe-single-threaded-traits"] }
 wasm-bindgen-macro-support = { version = "0.2.105", path = "./wasm-bindgen/crates/macro-support" }
 wasm-bindgen-shared = { version = "0.2.105", path = "./wasm-bindgen/crates/shared" }
 wasm-bindgen-test = { version = "0.3.50", path = "./wasm-bindgen/crates/test" }

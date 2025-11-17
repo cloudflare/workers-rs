@@ -91,8 +91,7 @@
 //!
 //! ```rust
 //! // This macro makes the whole function (i.e. the `Future` it returns) `Send`.
-//! #[worker::send]
-//! async fn handler(Extension(env): Extension<Env>) -> Response<String> {
+//! //! async fn handler(Extension(env): Extension<Env>) -> Response<String> {
 //!     let kv = env.kv("FOO").unwrap()?;
 //!     // Holding `kv`, which is not `Send` across `await` boundary would mark this function as `!Send`
 //!     let value = kv.get("foo").text().await?;
@@ -234,7 +233,6 @@ mod response;
 mod router;
 mod schedule;
 mod secret_store;
-pub mod send;
 mod socket;
 mod sql;
 mod streams;
