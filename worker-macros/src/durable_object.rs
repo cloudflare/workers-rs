@@ -184,13 +184,12 @@ pub fn expand_macro(attr: TokenStream, tokens: TokenStream) -> syn::Result<Token
     Ok(quote! {
         #target
 
-        #[allow(unused_imports)]
-        use ::worker::DurableObject;
-
         impl ::worker::has_durable_object_attribute for #target_name {}
 
         const _: () = {
             use ::worker::wasm_bindgen::prelude::*;
+            #[allow(unused_imports)]
+            use ::worker::DurableObject;
 
             #[wasm_bindgen(wasm_bindgen=::worker::wasm_bindgen)]
             #[::worker::consume]

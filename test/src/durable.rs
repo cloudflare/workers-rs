@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::{cell::RefCell, collections::HashMap};
+use worker::DurableObject;
 
 use worker::{
     durable_object,
@@ -172,6 +173,28 @@ impl DurableObject for MyClass {
         handler
             .await
             .or_else(|err| Response::error(err.to_string(), 500))
+    }
+}
+
+// Second durable object for testing multiple durable objects in the same file
+#[durable_object]
+pub struct AnotherClass {
+    #[allow(unused)]
+    state: State,
+    counter: RefCell<i32>,
+}
+
+impl DurableObject for AnotherClass {
+    fn new(state: State, _env: Env) -> Self {
+        Self {
+            state,
+            counter: RefCell::new(0),
+        }
+    }
+
+    async fn fetch(&self, _req: Request) -> Result<Response> {
+        *self.counter.borrow_mut() += 1;
+        Response::ok(format!("Counter: {}", self.counter.borrow()))
     }
 }
 
