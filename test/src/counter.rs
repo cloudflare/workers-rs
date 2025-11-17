@@ -1,9 +1,7 @@
 use std::cell::RefCell;
 use tokio_stream::{StreamExt, StreamMap};
 use worker::{
-    durable_object, wasm_bindgen, wasm_bindgen_futures, Env, Error, Method, Request, Response,
-    ResponseBuilder, Result, State, WebSocket, WebSocketIncomingMessage, WebSocketPair,
-    WebsocketEvent,
+    DurableObject, Env, Error, Method, Request, Response, ResponseBuilder, Result, State, WebSocket, WebSocketIncomingMessage, WebSocketPair, WebsocketEvent, durable_object, wasm_bindgen, wasm_bindgen_futures
 };
 
 use crate::SomeSharedData;
