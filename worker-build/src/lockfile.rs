@@ -39,7 +39,7 @@ impl Lockfile {
     }
 
     /// Obtains and verifies the given library matches the given semver version
-    /// Min version is used for semver comparison
+    /// Min version is used for the semver comparison check
     /// Cur version is only used for help text
     pub fn require_lib(
         &self,

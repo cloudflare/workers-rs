@@ -594,8 +594,6 @@ impl CrateData {
         let data = self.npm_data(scope, true, disable_dts, out_dir);
         let pkg = &self.data.packages[self.current_idx];
 
-        self.check_optional_fields();
-
         ESModulesPackage {
             name: data.name,
             ty: "module".into(),
@@ -615,25 +613,5 @@ impl CrateData {
             keywords: data.keywords,
             dependencies,
         }
-    }
-
-    fn check_optional_fields(&self) {
-        let mut messages = vec![];
-        if self.pkg().description.is_none() {
-            messages.push("description");
-        }
-        if self.pkg().repository.is_none() {
-            messages.push("repository");
-        }
-        if self.pkg().license.is_none() && self.pkg().license_file.is_none() {
-            messages.push("license");
-        }
-
-        match messages.len() {
-            1 => PBAR.info(&format!("Optional field missing from Cargo.toml: '{}'. This is not necessary, but recommended", messages[0])),
-            2 => PBAR.info(&format!("Optional fields missing from Cargo.toml: '{}', '{}'. These are not necessary, but recommended", messages[0], messages[1])),
-            3 => PBAR.info(&format!("Optional fields missing from Cargo.toml: '{}', '{}', and '{}'. These are not necessary, but recommended", messages[0], messages[1], messages[2])),
-            _ => ()
-        };
     }
 }
