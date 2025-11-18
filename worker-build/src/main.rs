@@ -16,7 +16,9 @@ const SHIM_FILE: &str = include_str!("./js/shim.js");
 pub(crate) mod binary;
 mod build;
 mod emoji;
+mod lockfile;
 mod main_legacy;
+mod versions;
 
 use build::{Build, BuildOptions};
 
@@ -51,6 +53,8 @@ fn update_package_json() -> Result<()> {
 }
 
 pub fn main() -> Result<()> {
+    env_logger::init();
+
     let args: Vec<_> = env::args().collect();
     if matches!(
         args.first().map(String::as_str),
@@ -67,18 +71,18 @@ pub fn main() -> Result<()> {
     }
 
     let wasm_pack_opts = parse_wasm_pack_opts(env::args().skip(1))?;
-    let mut wasm_pack_build = Build::try_from_opts(wasm_pack_opts)?;
+    let mut builder = Build::try_from_opts(wasm_pack_opts)?;
 
-    wasm_pack_build.init()?;
+    builder.init()?;
 
-    let supports_reset_state = wasm_pack_build.supports_target_module_and_reset_state()?;
+    let supports_reset_state = builder.supports_target_module_and_reset_state()?;
     let module_target =
         supports_reset_state && !no_panic_recovery && env::var("CUSTOM_SHIM").is_err();
     if module_target {
-        wasm_pack_build
+        builder
             .extra_args
             .push("--experimental-reset-state-function".to_string());
-        wasm_pack_build.run()?;
+        builder.run()?;
     } else {
         if supports_reset_state {
             // Enable once we have DO bindings to offer an alternative
@@ -86,8 +90,8 @@ pub fn main() -> Result<()> {
         } else {
             eprintln!("A newer version of wasm-bindgen is available. Update to use the latest workers-rs features.");
         }
-        wasm_pack_build.target = Target::Bundler;
-        wasm_pack_build.run()?;
+        builder.target = Target::Bundler;
+        builder.run()?;
     }
 
     let with_coredump = env::var("COREDUMP").is_ok();
@@ -104,7 +108,7 @@ pub fn main() -> Result<()> {
 
         update_package_json()?;
 
-        let esbuild_path = Esbuild.get_binary(None)?;
+        let esbuild_path = Esbuild.get_binary(None)?.0;
         bundle(&esbuild_path)?;
 
         fix_wasm_import()?;

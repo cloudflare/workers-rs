@@ -1,9 +1,11 @@
-//! Implementation of the `wasm-pack build` command.
-
 use crate::binary::{GetBinary, WasmOpt};
 use crate::emoji;
+use crate::lockfile::Lockfile;
+use crate::versions::{
+    CUR_WASM_BINDGEN_VERSION, CUR_WORKER_VERSION, MIN_WASM_BINDGEN_LIB_VERSION,
+    MIN_WORKER_LIB_VERSION,
+};
 
-mod lockfile;
 mod manifest;
 mod progressbar;
 mod target;
@@ -16,7 +18,6 @@ pub(crate) static PBAR: ProgressOutput = ProgressOutput::new();
 
 use anyhow::{anyhow, bail, Context, Error, Result};
 use clap::Args;
-use lockfile::Lockfile;
 use log::info;
 use manifest::CrateData;
 use path_clean::PathClean;
@@ -29,7 +30,7 @@ use std::time::Instant;
 use utils::run_capture_stdout;
 use utils::{create_pkg_dir, get_crate_path};
 
-/// Everything required to configure and run the `wasm-pack build` command.
+/// Everything required to configure and run the `worker build` command.
 #[allow(missing_docs)]
 pub struct Build {
     pub crate_path: PathBuf,
@@ -37,12 +38,12 @@ pub struct Build {
     pub scope: Option<String>,
     pub disable_dts: bool,
     pub target: Target,
-    pub no_pack: bool,
     pub no_opt: bool,
     pub profile: BuildProfile,
     pub out_dir: PathBuf,
     pub out_name: Option<String>,
     pub bindgen: Option<PathBuf>,
+    pub bindgen_override: bool,
     pub extra_args: Vec<String>,
     pub extra_options: Vec<String>,
 }
@@ -95,7 +96,7 @@ pub enum BuildProfile {
     Custom(String),
 }
 
-/// Everything required to configure and run the `wasm-pack build` command.
+/// Everything required to configure and run the `worker build` command.
 #[derive(Debug, Args, Default)]
 #[command(allow_hyphen_values = true, trailing_var_arg = true)]
 pub struct BuildOptions {
@@ -144,10 +145,6 @@ pub struct BuildOptions {
     #[clap(long = "out-name")]
     /// Sets the output file names. Defaults to package name.
     pub out_name: Option<String>,
-
-    #[clap(long = "no-pack", alias = "no-package")]
-    /// Option to not generate a package.json
-    pub no_pack: bool,
 
     #[clap(long = "no-opt", alias = "no-optimization")]
     /// Option to skip optimization with wasm-opt
@@ -211,12 +208,12 @@ impl Build {
             scope: build_opts.scope,
             disable_dts: build_opts.disable_dts,
             target: build_opts.target,
-            no_pack: build_opts.no_pack,
             no_opt: build_opts.no_opt,
             profile,
             out_dir,
             out_name: build_opts.out_name,
             bindgen: None,
+            bindgen_override: false,
             extra_args: Vec::new(),
             extra_options: build_opts.extra_options,
         })
@@ -233,7 +230,7 @@ impl Build {
 
     /// Execute this `Build` command.
     pub fn run(&mut self) -> Result<()> {
-        let process_steps = Build::get_process_steps(self.no_pack, self.no_opt);
+        let process_steps = Build::get_process_steps(self.no_opt);
 
         let started = Instant::now();
 
@@ -270,18 +267,17 @@ impl Build {
                 };
             ($($name:ident,)*) => (steps![$($name),*])
         }
-        let mut steps = Vec::new();
-        steps.extend(steps![
+        steps![
             step_check_rustc_version,
             step_check_crate_config,
             step_check_for_wasm_target,
-        ]);
-        steps.extend(steps![step_install_wasm_bindgen]);
-        steps
+            step_check_lib_versions,
+            step_install_wasm_bindgen,
+        ]
     }
 
     #[allow(clippy::vec_init_then_push)]
-    fn get_process_steps(no_pack: bool, no_opt: bool) -> Vec<(&'static str, BuildStep)> {
+    fn get_process_steps(no_opt: bool) -> Vec<(&'static str, BuildStep)> {
         macro_rules! steps {
             ($($name:ident),+) => {
                 {
@@ -303,10 +299,7 @@ impl Build {
             steps.extend(steps![step_run_wasm_opt]);
         }
 
-        if !no_pack {
-            steps.extend(steps![step_create_json,]);
-        }
-
+        steps.extend(steps![step_create_json,]);
         steps
     }
 
@@ -364,14 +357,23 @@ impl Build {
         Ok(())
     }
 
+    fn step_check_lib_versions(&mut self) -> Result<()> {
+        let lockfile = Lockfile::new(&self.crate_data.data)?;
+        lockfile.require_lib("worker", &MIN_WORKER_LIB_VERSION, &CUR_WORKER_VERSION)?;
+        lockfile.require_lib(
+            "wasm-bindgen",
+            &MIN_WASM_BINDGEN_LIB_VERSION,
+            &CUR_WASM_BINDGEN_VERSION,
+        )?;
+        Ok(())
+    }
+
     fn step_install_wasm_bindgen(&mut self) -> Result<()> {
-        info!("Identifying wasm-bindgen dependency...");
-        let _lockfile = Lockfile::new(&self.crate_data)?;
-        let _bindgen_version = _lockfile.require_wasm_bindgen()?;
         info!("Installing wasm-bindgen-cli...");
         use crate::binary::{GetBinary, WasmBindgen};
-        let bindgen = WasmBindgen.get_binary(None)?;
+        let (bindgen, bindgen_override) = WasmBindgen.get_binary(None)?;
         self.bindgen = Some(bindgen);
+        self.bindgen_override = bindgen_override;
         info!("Installing wasm-bindgen-cli was successful.");
         Ok(())
     }
@@ -414,22 +416,27 @@ impl Build {
     }
 
     pub fn supports_target_module_and_reset_state(&self) -> Result<bool> {
+        // using internal wasm bindgen version, we know it supports it
+        if !self.bindgen_override {
+            return Ok(true);
+        }
+        // User override the wasm bindgen version -> must feature detect
         let bindgen_path = self.bindgen.as_ref().unwrap();
-        let cli_version = semver::Version::parse(&get_cli_version("wasm-bindgen", bindgen_path)?)?;
+
+        let mut cmd = Command::new(bindgen_path);
+        cmd.arg("--version");
+        let stdout = run_capture_stdout(cmd, "wasm-bindgen")?;
+        let version = stdout.split_whitespace().nth(1);
+        let cli_version = match version {
+            Some(v) => semver::Version::parse(v),
+            None => bail!(
+                "Unable to determine the wasm-bindgen version via \"{} --version\"",
+                bindgen_path.to_string_lossy()
+            ),
+        }?;
+        // The first CLI version reset state was added (note this only applies to overrides)
         let expected_version = semver::Version::parse("0.2.102")?;
         Ok(cli_version >= expected_version)
-    }
-}
-
-/// Fetches the version of a CLI tool
-pub fn get_cli_version(tool: &str, path: &Path) -> Result<String> {
-    let mut cmd = Command::new(path);
-    cmd.arg("--version");
-    let stdout = run_capture_stdout(cmd, tool)?;
-    let version = stdout.split_whitespace().nth(1);
-    match version {
-        Some(v) => Ok(v.to_string()),
-        None => bail!("Something went wrong! We couldn't determine your version of the wasm-bindgen CLI. We were supposed to set that up for you, so it's likely not your fault! You should file an issue: https://github.com/rustwasm/wasm-pack/issues/new?template=bug_report.md.")
     }
 }
 
@@ -516,7 +523,7 @@ pub fn wasm_bindgen_build(
 /// Execute `wasm-opt` over wasm binaries found in `out_dir`, downloading if
 /// necessary into `cache`. Passes `args` to each invocation of `wasm-opt`.
 pub fn wasm_opt_run(out_dir: &Path, args: &[String]) -> Result<()> {
-    let wasm_opt_path = WasmOpt.get_binary(None)?;
+    let wasm_opt_path = WasmOpt.get_binary(None)?.0;
 
     PBAR.info("Optimizing wasm binaries with `wasm-opt`...");
 

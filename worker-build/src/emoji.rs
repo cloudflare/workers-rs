@@ -1,4 +1,4 @@
-//! Emoji constants used by `wasm-pack`.
+//! Emoji constants used by `worker-build`.
 //!
 //! For the woefully unfamiliar:
 //!

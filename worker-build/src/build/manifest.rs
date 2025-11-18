@@ -53,7 +53,7 @@ const WASM_PACK_METADATA_KEY: &str = "package.metadata.wasm-pack";
 
 /// Store for metadata learned about a crate
 pub struct CrateData {
-    data: Metadata,
+    pub data: Metadata,
     current_idx: usize,
     manifest: CargoManifest,
     out_name: Option<String>,
@@ -124,7 +124,7 @@ impl Default for CargoWasmPackProfiles {
 }
 
 /// This is where configuration goes for wasm-bindgen, wasm-opt, wasm-snip, or
-/// anything else that wasm-pack runs.
+/// anything else being run.
 #[derive(Default, Deserialize)]
 pub struct CargoWasmPackProfile {
     #[serde(default, rename = "wasm-bindgen")]
@@ -489,11 +489,6 @@ impl CrateData {
         Path::new(&self.data.target_directory)
     }
 
-    /// Returns the path to this project's root cargo workspace directory
-    pub fn workspace_root(&self) -> &Path {
-        Path::new(&self.data.workspace_root)
-    }
-
     /// Generate a package.json file inside in `./pkg`.
     pub fn write_package_json(
         &self,
@@ -599,8 +594,6 @@ impl CrateData {
         let data = self.npm_data(scope, true, disable_dts, out_dir);
         let pkg = &self.data.packages[self.current_idx];
 
-        self.check_optional_fields();
-
         ESModulesPackage {
             name: data.name,
             ty: "module".into(),
@@ -620,25 +613,5 @@ impl CrateData {
             keywords: data.keywords,
             dependencies,
         }
-    }
-
-    fn check_optional_fields(&self) {
-        let mut messages = vec![];
-        if self.pkg().description.is_none() {
-            messages.push("description");
-        }
-        if self.pkg().repository.is_none() {
-            messages.push("repository");
-        }
-        if self.pkg().license.is_none() && self.pkg().license_file.is_none() {
-            messages.push("license");
-        }
-
-        match messages.len() {
-            1 => PBAR.info(&format!("Optional field missing from Cargo.toml: '{}'. This is not necessary, but recommended", messages[0])),
-            2 => PBAR.info(&format!("Optional fields missing from Cargo.toml: '{}', '{}'. These are not necessary, but recommended", messages[0], messages[1])),
-            3 => PBAR.info(&format!("Optional fields missing from Cargo.toml: '{}', '{}', and '{}'. These are not necessary, but recommended", messages[0], messages[1], messages[2])),
-            _ => ()
-        };
     }
 }

@@ -7,13 +7,23 @@ members = [
     "worker-sys",
     "worker-kv",
     "examples/*",
-    "test/container-echo"
+    "test/container-echo",
 ]
-exclude = ["examples/coredump", "examples/axum", "templates/*", "wasm-bindgen", "generated"]
+exclude = [
+    "examples/coredump",
+    "examples/axum",
+    "templates/*",
+    "wasm-bindgen",
+    "generated",
+]
 resolver = "2"
+
+[workspace.package]
+version = "0.6.7"
 
 [workspace.dependencies]
 async-trait = "0.1.88"
+cfg-if = "1.0.1"
 chrono = { version = "0.4.41", default-features = false, features = [
     "wasmbind",
 ] }
@@ -24,23 +34,49 @@ js-sys = { version = "0.3.82", path = "./wasm-bindgen/crates/js-sys" }
 serde = { version = "1.0.164", features = ["derive"] }
 serde_json = "1.0.140"
 serde-wasm-bindgen = "0.6.5"
-wasm-bindgen = { version = "0.2.105", path = "./wasm-bindgen" }
+syn = "2.0.17"
+proc-macro2 = "1.0.60"
+quote = "1.0.28"
+wasm-bindgen = { version = "0.2.100", path = "./wasm-bindgen" }
 wasm-bindgen-cli-support = { version = "0.2.105", path = "./wasm-bindgen/crates/cli-support" }
 wasm-bindgen-futures = { version = "0.4.54", path = "./wasm-bindgen/crates/futures" }
 wasm-bindgen-macro-support = { version = "0.2.105", path = "./wasm-bindgen/crates/macro-support" }
 wasm-bindgen-shared = { version = "0.2.105", path = "./wasm-bindgen/crates/shared" }
 wasm-bindgen-test = { version = "0.3.50", path = "./wasm-bindgen/crates/test" }
 web-sys = { version = "0.3.82", features = [
+    "AbortController",
+    "AbortSignal",
+    "BinaryType",
+    "Blob",
+    "Cache",
+    "CacheQueryOptions",
+    "CacheStorage",
+    "CloseEvent",
+    "console",
+    "ErrorEvent",
     "File",
+    "FormData",
+    "Headers",
+    "MessageEvent",
+    "ProgressEvent",
+    "ReadableStream",
     "ReadableStreamDefaultReader",
+    "Request",
+    "RequestInit",
+    "RequestRedirect",
+    "Response",
+    "ResponseInit",
+    "TransformStream",
+    "WebSocket",
     "WorkerGlobalScope",
+    "WritableStream",
     "WritableStreamDefaultWriter",
 ] }
-worker = { path = "worker", version = "0.6.7", features = ["queue", "d1", "axum", "timezone"] }
+worker = { path = "worker", features = ["queue", "d1", "axum", "timezone"] }
 worker-codegen = { path = "worker-codegen", version = "0.2.0" }
 worker-kv = { path = "worker-kv", version = "0.9.1" }
-worker-macros = { path = "worker-macros", version = "0.6.7", features = ["queue"] }
-worker-sys = { path = "worker-sys", version = "0.6.7", features = ["d1", "queue"] }
+worker-macros = { path = "worker-macros", features = ["queue"] }
+worker-sys = { path = "worker-sys", features = ["d1", "queue"] }
 
 [profile.release]
 # rustc supports two "optimize for size" levels:  opt-level = "s" and "z".
