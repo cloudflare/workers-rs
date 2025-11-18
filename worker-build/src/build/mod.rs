@@ -2,7 +2,7 @@ use crate::binary::{GetBinary, WasmOpt};
 use crate::emoji;
 use crate::lockfile::Lockfile;
 use crate::versions::{
-    CUR_WASM_BINDGEN_VERSION, CUR_WORKER_LIB_VERSION, MIN_WASM_BINDGEN_LIB_VERSION,
+    CUR_WASM_BINDGEN_VERSION, CUR_WORKER_VERSION, MIN_WASM_BINDGEN_LIB_VERSION,
     MIN_WORKER_LIB_VERSION,
 };
 
@@ -359,7 +359,7 @@ impl Build {
 
     fn step_check_lib_versions(&mut self) -> Result<()> {
         let lockfile = Lockfile::new(&self.crate_data.data)?;
-        lockfile.require_lib("worker", &MIN_WORKER_LIB_VERSION, &CUR_WORKER_LIB_VERSION)?;
+        lockfile.require_lib("worker", &MIN_WORKER_LIB_VERSION, &CUR_WORKER_VERSION)?;
         lockfile.require_lib(
             "wasm-bindgen",
             &MIN_WASM_BINDGEN_LIB_VERSION,

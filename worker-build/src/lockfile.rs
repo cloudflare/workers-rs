@@ -5,6 +5,7 @@
 use std::fs;
 use std::path::PathBuf;
 
+use crate::versions::CUR_WORKER_VERSION;
 use anyhow::{anyhow, bail, Context, Result};
 use cargo_metadata::Metadata;
 use console::style;
@@ -51,9 +52,10 @@ impl Lockfile {
         if let Some(version) = self.get_package_version(lib_name)? {
             if !req.matches(&version) {
                 anyhow::bail!(
-                    "Unsupported version {}, you must ensure {}\n\nAlternatively, use a different version of worker-build that supports this {lib_name} version.",
+                    "Unsupported version {}, you must ensure {}\n\nAlternatively, use a different version of worker-build (currently running {}) that supports this {lib_name} version.",
                     style(format!("{lib_name}@{version}")).bold().red(),
-                    cargo_dep_error(lib_name, cur_version)
+                    cargo_dep_error(lib_name, cur_version),
+                    *CUR_WORKER_VERSION
                 );
             }
         } else {
@@ -99,10 +101,14 @@ fn cargo_dep_error(lib_name: &str, cur_version: &Version) -> String {
     format!(
         "{} in your Cargo.toml file:\n\n\
          [dependencies]\n\
-         {lib_name} = \"{}.{}\"",
-        style(format!("{lib_name}@{cur_version}")).bold().green(),
-        cur_version.major,
-        cur_version.minor,
+         {lib_name} = \"{}\"",
+        style(format!(
+            "{lib_name}@{}.{}",
+            cur_version.major, cur_version.minor
+        ))
+        .bold()
+        .green(),
+        *cur_version,
     )
 }
 

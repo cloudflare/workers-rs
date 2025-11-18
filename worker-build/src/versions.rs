@@ -25,5 +25,5 @@ pub(crate) static MIN_WORKER_LIB_VERSION: LazyLock<semver::Version> = version!(&
         .1
         .join(".")
 ));
-pub(crate) static CUR_WORKER_LIB_VERSION: LazyLock<semver::Version> =
+pub(crate) static CUR_WORKER_VERSION: LazyLock<semver::Version> =
     version!(env!("CARGO_PKG_VERSION"));
