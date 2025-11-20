@@ -1,44 +1,17 @@
 [package]
 name = "worker-sys"
 authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
-edition = "2018"
-version = "0.6.6"
+edition = "2021"
+version.workspace = true
 license = "Apache-2.0"
 repository = "https://github.com/cloudflare/workers-rs/tree/main/worker-sys"
 description = "Low-level extern definitions / FFI bindings to the Cloudflare Workers JS Runtime."
 
 [dependencies]
+cfg-if.workspace = true
 js-sys.workspace = true
 wasm-bindgen.workspace = true
-cfg-if = "1.0.1"
-
-[dependencies.web-sys]
-version = "0.3.70"
-features = [
-    "ReadableStream",
-    "WritableStream",
-    "RequestRedirect",
-    "RequestInit",
-    "FormData",
-    "Blob",
-    "BinaryType",
-    "ErrorEvent",
-    "MessageEvent",
-    "CloseEvent",
-    "ProgressEvent",
-    "WebSocket",
-    "TransformStream",
-    "AbortController",
-    "console",
-    "ResponseInit",
-    "Cache",
-    "CacheStorage",
-    "CacheQueryOptions",
-    "AbortSignal",
-    "Headers",
-    "Request",
-    "Response",
-]
+web-sys.workspace = true
 
 [features]
 d1 = []

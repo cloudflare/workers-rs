@@ -7,20 +7,25 @@ use std::{
 };
 
 use anyhow::Result;
-
 use clap::Parser;
 
 const OUT_DIR: &str = "build";
 
 const SHIM_FILE: &str = include_str!("./js/shim.js");
 
-mod install;
+pub(crate) mod binary;
+mod build;
+mod emoji;
+mod lockfile;
 mod main_legacy;
-mod wasm_pack;
+mod versions;
 
-use wasm_pack::command::build::{Build, BuildOptions};
+use build::{Build, BuildOptions};
 
-use crate::wasm_pack::command::build::Target;
+use crate::{
+    binary::{Esbuild, GetBinary},
+    build::Target,
+};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -48,6 +53,8 @@ fn update_package_json() -> Result<()> {
 }
 
 pub fn main() -> Result<()> {
+    env_logger::init();
+
     let args: Vec<_> = env::args().collect();
     if matches!(
         args.first().map(String::as_str),
@@ -64,18 +71,18 @@ pub fn main() -> Result<()> {
     }
 
     let wasm_pack_opts = parse_wasm_pack_opts(env::args().skip(1))?;
-    let mut wasm_pack_build = Build::try_from_opts(wasm_pack_opts)?;
+    let mut builder = Build::try_from_opts(wasm_pack_opts)?;
 
-    wasm_pack_build.init()?;
+    builder.init()?;
 
-    let supports_reset_state = wasm_pack_build.supports_target_module_and_reset_state()?;
+    let supports_reset_state = builder.supports_target_module_and_reset_state()?;
     let module_target =
         supports_reset_state && !no_panic_recovery && env::var("CUSTOM_SHIM").is_err();
     if module_target {
-        wasm_pack_build
+        builder
             .extra_args
             .push("--experimental-reset-state-function".to_string());
-        wasm_pack_build.run()?;
+        builder.run()?;
     } else {
         if supports_reset_state {
             // Enable once we have DO bindings to offer an alternative
@@ -83,8 +90,8 @@ pub fn main() -> Result<()> {
         } else {
             eprintln!("A newer version of wasm-bindgen is available. Update to use the latest workers-rs features.");
         }
-        wasm_pack_build.target = Target::Bundler;
-        wasm_pack_build.run()?;
+        builder.target = Target::Bundler;
+        builder.run()?;
     }
 
     let with_coredump = env::var("COREDUMP").is_ok();
@@ -101,7 +108,7 @@ pub fn main() -> Result<()> {
 
         update_package_json()?;
 
-        let esbuild_path = install::ensure_esbuild()?;
+        let esbuild_path = Esbuild.get_binary(None)?.0;
         bundle(&esbuild_path)?;
 
         fix_wasm_import()?;
@@ -130,6 +137,7 @@ fn generate_handlers() -> Result<String> {
         if let Some(rest) = line.strip_prefix("export function") {
             if let Some(bracket_pos) = rest.find("(") {
                 let func_name = rest[..bracket_pos].trim();
+                // strip the exported function (we re-wrap all handlers)
                 if !SYSTEM_FNS.contains(&func_name) {
                     func_names.push(func_name);
                 }
@@ -149,29 +157,24 @@ fn generate_handlers() -> Result<String> {
 
     let mut handlers = String::new();
     for func_name in func_names {
-        if func_name == "fetch" {
-            let wait_until_response = if env::var("RUN_TO_COMPLETION").is_ok() {
-                "this.ctx.waitUntil(response);"
-            } else {
-                ""
-            };
+        if func_name == "fetch" && env::var("RUN_TO_COMPLETION").is_ok() {
+            handlers += "Entrypoint.prototype.fetch = async function fetch(request) {
+  let response = exports.fetch(request, this.env, this.ctx);
+  this.ctx.waitUntil(response);
+  return response;
+}
+";
+        } else if func_name == "fetch" || func_name == "queue" || func_name == "scheduled" {
+            // TODO: Switch these over to https://github.com/wasm-bindgen/wasm-bindgen/pull/4757
+            // once that lands.
             handlers += &format!(
-                "  async fetch(request) {{
-    checkReinitialize();
-    let response = exports.fetch(request, this.env, this.ctx);
-    {wait_until_response}
-    return await response;
-  }}
+                "Entrypoint.prototype.{func_name} = function {func_name} (arg) {{
+  return exports.{func_name}.call(this, arg, this.env, this.ctx);
+}}
 "
-            )
+            );
         } else {
-            handlers += &format!(
-                "  {func_name}(...args) {{
-    checkReinitialize();
-    return exports.{func_name}(...args, this.env, this.ctx);
-  }}
-"
-            )
+            handlers += &format!("Entrypoint.prototype.{func_name} = exports.{func_name};\n");
         }
     }
 

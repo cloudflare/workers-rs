@@ -1,9 +1,11 @@
 //! Utility functions for commands.
 #![allow(clippy::redundant_closure)]
 
-use anyhow::Result;
+use anyhow::{bail, Result};
+use log::info;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
 use std::time::Duration;
 
 /// If an explicit path is given, then use it, otherwise assume the current
@@ -50,5 +52,44 @@ pub fn elapsed(duration: Duration) -> String {
         format!("{}m {:02}s", secs / 60, secs % 60)
     } else {
         format!("{}.{:02}s", secs, duration.subsec_nanos() / 10_000_000)
+    }
+}
+
+/// Run the given command and return on success.
+pub fn run(mut command: Command, command_name: &str) -> Result<()> {
+    info!("Running {:?}", command);
+
+    let status = command.status()?;
+
+    if status.success() {
+        Ok(())
+    } else {
+        bail!(
+            "failed to execute `{}`: exited with {}\n  full command: {:?}",
+            command_name,
+            status,
+            command,
+        )
+    }
+}
+
+/// Run the given command and return its stdout.
+pub fn run_capture_stdout(mut command: Command, command_name: &str) -> Result<String> {
+    info!("Running {:?}", command);
+
+    let output = command
+        .stderr(Stdio::inherit())
+        .stdin(Stdio::inherit())
+        .output()?;
+
+    if output.status.success() {
+        Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+    } else {
+        bail!(
+            "failed to execute `{}`: exited with {}\n  full command: {:?}",
+            command_name,
+            output.status,
+            command,
+        )
     }
 }

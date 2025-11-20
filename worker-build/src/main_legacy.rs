@@ -1,5 +1,3 @@
-//! Arguments are forwarded directly to wasm-pack
-
 use std::{
     env::{self, VarError},
     fmt::Write as _,
@@ -17,10 +15,10 @@ const WORKER_SUBDIR: &str = "worker";
 
 const SHIM_TEMPLATE: &str = include_str!("./js/shim-legacy.js");
 
-use crate::install;
+use crate::binary::{Esbuild, GetBinary};
 
 pub fn process() -> Result<()> {
-    let esbuild_path = install::ensure_esbuild()?;
+    let esbuild_path = Esbuild.get_binary(None)?.0;
 
     create_worker_dir()?;
     copy_generated_code_to_worker_dir()?;

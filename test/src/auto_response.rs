@@ -1,4 +1,7 @@
-use worker::{durable_object, Env, Request, Response, Result, State, WebSocketRequestResponsePair};
+use worker::{
+    durable_object, DurableObject, Env, Request, Response, Result, State,
+    WebSocketRequestResponsePair,
+};
 
 #[durable_object]
 pub struct AutoResponseObject {

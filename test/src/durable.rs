@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::{cell::RefCell, collections::HashMap};
+use worker::DurableObject;
 
 use worker::{
     durable_object,
@@ -95,7 +96,10 @@ impl DurableObject for MyClass {
                         let bytes = Uint8Array::new_with_length(3);
                         bytes.copy_from(b"123");
                         storage.put_raw("bytes", bytes).await?;
-                        let bytes = storage.get::<Vec<u8>>("bytes").await?;
+                        let bytes = storage
+                            .get::<Vec<u8>>("bytes")
+                            .await?
+                            .expect("get after put yielded nothing");
                         storage.delete("bytes").await?;
                         assert_eq!(
                             bytes, b"123",
@@ -117,12 +121,18 @@ impl DurableObject for MyClass {
                         .await?;
 
                     assert_eq!(
-                        storage.get::<String>("thing").await?,
+                        storage
+                            .get::<String>("thing")
+                            .await?
+                            .expect("get('thing') yielded nothing"),
                         "Hello there",
                         "Didn't put the right thing with put_multiple"
                     );
                     assert_eq!(
-                        storage.get::<i32>("other").await?,
+                        storage
+                            .get::<i32>("other")
+                            .await?
+                            .expect("get('other') yielded nothing"),
                         56,
                         "Didn't put the right thing with put_multiple"
                     );
@@ -137,13 +147,16 @@ impl DurableObject for MyClass {
                         js_sys::Reflect::set(&obj, &JsValue::from_str("foo"), &value.into())?;
                         storage.put_multiple_raw(obj).await?;
                         assert_eq!(
-                            storage.get::<Vec<u8>>("foo").await?,
+                            storage
+                                .get::<Vec<u8>>("foo")
+                                .await?
+                                .expect("get('foo') yielded nothing"),
                             BAR,
                             "Didn't the right thing with put_multiple_raw"
                         );
                     }
 
-                    *self.number.borrow_mut() = storage.get("count").await.unwrap_or(0) + 1;
+                    *self.number.borrow_mut() = storage.get("count").await?.unwrap_or(0) + 1;
 
                     storage.delete_all().await?;
 
@@ -160,6 +173,28 @@ impl DurableObject for MyClass {
         handler
             .await
             .or_else(|err| Response::error(err.to_string(), 500))
+    }
+}
+
+// Second durable object for testing multiple durable objects in the same file
+#[durable_object]
+pub struct AnotherClass {
+    #[allow(unused)]
+    state: State,
+    counter: RefCell<i32>,
+}
+
+impl DurableObject for AnotherClass {
+    fn new(state: State, _env: Env) -> Self {
+        Self {
+            state,
+            counter: RefCell::new(0),
+        }
+    }
+
+    async fn fetch(&self, _req: Request) -> Result<Response> {
+        *self.counter.borrow_mut() += 1;
+        Response::ok(format!("Counter: {}", self.counter.borrow()))
     }
 }
 
