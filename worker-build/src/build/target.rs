@@ -1,12 +1,16 @@
 //! Checking for the wasm32 target
 
-use crate::wasm_pack::child;
-use crate::wasm_pack::emoji;
-use crate::wasm_pack::PBAR;
+use crate::build::utils;
+use crate::build::BuildProfile;
+use crate::build::PBAR;
+use crate::emoji;
+use crate::versions::MIN_RUSTC_VERSION;
 use anyhow::{anyhow, bail, Context, Result};
+use core::str;
 use log::error;
 use log::info;
 use std::fmt;
+use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -25,7 +29,7 @@ impl fmt::Display for Wasm32Check {
             let rustup_string = if self.is_rustup {
                 "It looks like Rustup is being used.".to_owned()
             } else {
-                format!("It looks like Rustup is not being used. For non-Rustup setups, the {} target needs to be installed manually. See https://rustwasm.github.io/wasm-pack/book/prerequisites/non-rustup-setups.html on how to do this.", target)
+                format!("It looks like Rustup is not being used. For non-Rustup setups, the {} target needs to be installed manually.", target)
             };
 
             writeln!(
@@ -165,7 +169,109 @@ fn check_wasm32_target() -> Result<Wasm32Check> {
 fn rustup_add_wasm_target() -> Result<()> {
     let mut cmd = Command::new("rustup");
     cmd.arg("target").arg("add").arg("wasm32-unknown-unknown");
-    child::run(cmd, "rustup").context("Adding the wasm32-unknown-unknown target with rustup")?;
+    utils::run(cmd, "rustup").context("Adding the wasm32-unknown-unknown target with rustup")?;
 
+    Ok(())
+}
+
+/// Ensure that `rustc` is present and that it is >= 1.30.0
+pub fn check_rustc_version() -> Result<String> {
+    let local_minor_version = rustc_minor_version();
+    match local_minor_version {
+        Some(mv) => {
+            if mv < MIN_RUSTC_VERSION.minor as u32 {
+                bail!(
+                    "Your version of Rust, '1.{}', is not supported. Please install Rust version {} or higher.",
+                    mv,
+                    *MIN_RUSTC_VERSION
+                )
+            } else {
+                Ok(mv.to_string())
+            }
+        }
+        None => bail!("We can't figure out what your Rust version is- which means you might not have Rust installed. Please install Rust version 1.30.0 or higher."),
+    }
+}
+
+// from https://github.com/alexcrichton/proc-macro2/blob/79e40a113b51836f33214c6d00228934b41bd4ad/build.rs#L44-L61
+fn rustc_minor_version() -> Option<u32> {
+    macro_rules! otry {
+        ($e:expr) => {
+            match $e {
+                Some(e) => e,
+                None => return None,
+            }
+        };
+    }
+    let output = otry!(Command::new("rustc").arg("--version").output().ok());
+    let version = otry!(str::from_utf8(&output.stdout).ok());
+    let mut pieces = version.split('.');
+    if pieces.next() != Some("rustc 1") {
+        return None;
+    }
+    otry!(pieces.next()).parse().ok()
+}
+
+/// Run `cargo build` targetting `wasm32-unknown-unknown`.
+pub fn cargo_build_wasm(
+    path: &Path,
+    profile: BuildProfile,
+    extra_options: &[String],
+) -> Result<()> {
+    let msg = format!("{}Compiling to Wasm...", emoji::CYCLONE);
+    PBAR.info(&msg);
+
+    let mut cmd = Command::new("cargo");
+    cmd.current_dir(path).arg("build").arg("--lib");
+
+    if PBAR.quiet() {
+        cmd.arg("--quiet");
+    }
+
+    match profile {
+        BuildProfile::Profiling => {
+            // Once there are DWARF debug info consumers, force enable debug
+            // info, because builds that use the release cargo profile disables
+            // debug info.
+            //
+            // cmd.env("RUSTFLAGS", "-g");
+            cmd.arg("--release");
+        }
+        BuildProfile::Release => {
+            cmd.arg("--release");
+        }
+        BuildProfile::Dev => {
+            // Plain cargo builds use the dev cargo profile, which includes
+            // debug info by default.
+        }
+        BuildProfile::Custom(arg) => {
+            cmd.arg("--profile").arg(arg);
+        }
+    }
+
+    cmd.arg("--target").arg("wasm32-unknown-unknown");
+
+    // The `cargo` command is executed inside the directory at `path`, so relative paths set via extra options won't work.
+    // To remedy the situation, all detected paths are converted to absolute paths.
+    let mut handle_path = false;
+    let extra_options_with_absolute_paths = extra_options
+        .iter()
+        .map(|option| -> Result<String> {
+            let value = if handle_path && Path::new(option).is_relative() {
+                std::env::current_dir()?
+                    .join(option)
+                    .to_str()
+                    .ok_or_else(|| anyhow!("path contains non-UTF-8 characters"))?
+                    .to_string()
+            } else {
+                option.to_string()
+            };
+            handle_path = matches!(&**option, "--target-dir" | "--out-dir" | "--manifest-path");
+            Ok(value)
+        })
+        .collect::<Result<Vec<_>>>()?;
+    cmd.args(extra_options_with_absolute_paths);
+
+    utils::run(cmd, "cargo build").context("Compiling your crate to WebAssembly failed")?;
     Ok(())
 }

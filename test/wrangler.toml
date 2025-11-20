@@ -69,7 +69,7 @@ bucket_name = 'delete-bucket'
 preview_bucket_name = 'delete-bucket'
 
 [build]
-command = "WASM_BINDGEN_PATH=../wasm-bindgen/target/debug/wasm-bindgen ../target/debug/worker-build --release"
+command = "WASM_BINDGEN_BIN=../wasm-bindgen/target/debug/wasm-bindgen ../target/debug/worker-build --release"
 
 [[migrations]]
 tag = "v1"
@@ -80,7 +80,12 @@ binding = "SECRETS"
 store_id = "SECRET_STORE"
 secret_name = "secret-name"
 
-[[containers]]
+[[env.test.containers]]
 class_name = "EchoContainer"
 image = "./container-echo/Dockerfile"
 max_instances = 1
+
+[[ratelimits]]
+name = "TEST_RATE_LIMITER"
+namespace_id = "1"
+simple = { limit = 10, period = 60 }

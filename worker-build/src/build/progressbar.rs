@@ -1,13 +1,13 @@
 //! Fancy progress bar functionality.
 
-use crate::wasm_pack::emoji;
+use crate::emoji;
 use anyhow::{bail, Error, Result};
 use console::style;
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy)]
-/// The maximum log level for wasm-pack
+/// The maximum log level
 // The ordering is important: the least verbose must be at
 // the top and the most verbose at the bottom
 pub enum LogLevel {

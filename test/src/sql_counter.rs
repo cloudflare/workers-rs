@@ -1,4 +1,6 @@
-use worker::{durable_object, wasm_bindgen, Env, Request, Response, Result, SqlStorage, State};
+use worker::{
+    durable_object, wasm_bindgen, DurableObject, Env, Request, Response, Result, SqlStorage, State,
+};
 
 /// A simple SQLite-backed counter stored in Durable Object storage.
 ///

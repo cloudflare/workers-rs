@@ -148,13 +148,11 @@ use std::result::Result as StdResult;
 
 #[doc(hidden)]
 pub use async_trait;
-#[doc(hidden)]
 pub use js_sys;
 pub use url::Url;
-#[doc(hidden)]
 pub use wasm_bindgen;
-#[doc(hidden)]
 pub use wasm_bindgen_futures;
+pub use web_sys;
 
 pub use cf::{Cf, CfResponseProperties, TlsClientAuth};
 pub use worker_macros::{consume, durable_object, event, send};
@@ -187,7 +185,7 @@ pub use crate::kv::{KvError, KvStore};
 #[cfg(feature = "queue")]
 pub use crate::queue::*;
 pub use crate::r2::*;
-pub use crate::rate_limit::RateLimiter;
+pub use crate::rate_limit::{RateLimitOutcome, RateLimiter};
 pub use crate::request::{FromRequest, Request};
 pub use crate::request_init::*;
 pub use crate::response::{EncodeBody, IntoResponse, Response, ResponseBody, ResponseBuilder};
