@@ -4,6 +4,7 @@ use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use worker_sys::RateLimiter as RateLimiterSys;
 
+#[derive(Debug)]
 pub struct RateLimiter(RateLimiterSys);
 
 #[derive(Serialize, Deserialize)]
@@ -11,7 +12,7 @@ struct RateLimitOptions {
     key: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RateLimitOutcome {
     pub success: bool,
 }
@@ -20,7 +21,7 @@ unsafe impl Send for RateLimiter {}
 unsafe impl Sync for RateLimiter {}
 
 impl EnvBinding for RateLimiter {
-    const TYPE_NAME: &'static str = "RateLimiter";
+    const TYPE_NAME: &'static str = "Ratelimit";
 }
 impl RateLimiter {
     pub async fn limit(&self, key: String) -> Result<RateLimitOutcome> {

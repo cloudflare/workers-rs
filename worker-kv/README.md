@@ -32,7 +32,7 @@ kv.put("example_key", "example_value")?
 let (value, metadata) = kv.get("example_key").text_with_metadata::<Vec<usize>>().await?;
 ```
 
-For a more complete example check out the full [example](example).
+For a more complete example check out the full [example](../examples/kv).
 
 ## How do I use futures in WebAssembly?
 

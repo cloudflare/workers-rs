@@ -33,12 +33,12 @@ impl Cf {
     }
 
     /// The Autonomous System Number (ASN) of the request, e.g. `395747`
-    pub fn asn(&self) -> u32 {
+    pub fn asn(&self) -> Option<u32> {
         self.inner.asn().unwrap()
     }
 
     /// The Autonomous System organization name of the request, e.g. `Cloudflare, Inc.`
-    pub fn as_organization(&self) -> String {
+    pub fn as_organization(&self) -> Option<String> {
         self.inner.as_organization().unwrap()
     }
 
@@ -274,7 +274,7 @@ impl From<worker_sys::TlsClientAuth> for TlsClientAuth {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct CfResponseProperties(pub(crate) js_sys::Object);
 
 impl CfResponseProperties {

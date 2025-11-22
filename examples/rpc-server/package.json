@@ -3,10 +3,10 @@
     "version": "0.0.0",
     "private": true,
     "scripts": {
-      "deploy": "wrangler deploy",
+      "deploy": "cargo install worker-build ; wrangler deploy",
       "dev": "wrangler dev"
     },
     "devDependencies": {
-      "wrangler": "^3.0.0"
+      "wrangler": "^4.20.0"
     }
   }

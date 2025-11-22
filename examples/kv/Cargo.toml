@@ -11,8 +11,6 @@ release = false
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-js-sys = { workspace = true }
-serde_json = "1.0.64"
-wasm-bindgen = { workspace = true }
-wasm-bindgen-futures = { workspace = true }
-worker-kv = { path = "../../worker-kv" }
+serde_json.workspace = true
+worker.workspace = true
+worker-kv.workspace = true

@@ -2,15 +2,15 @@ use std::{collections::HashMap, future::Future, rc::Rc};
 
 use futures_util::future::LocalBoxFuture;
 use matchit::{Match, Router as MatchItRouter};
-use worker_kv::KvStore;
 
 use crate::{
     durable::ObjectNamespace,
     env::{Env, Secret, Var},
     http::Method,
+    rate_limit::RateLimiter,
     request::Request,
     response::Response,
-    Bucket, Fetcher, Result,
+    Bucket, Fetcher, KvStore, Result,
 };
 
 type HandlerFn<D> = fn(Request, RouteContext<D>) -> Result<Response>;
@@ -19,6 +19,7 @@ type AsyncHandlerFn<'a, D> =
 
 /// Represents the URL parameters parsed from the path, e.g. a route with "/user/:id" pattern would
 /// contain a single "id" key.
+#[derive(Debug)]
 pub struct RouteParams(HashMap<String, String>);
 
 impl RouteParams {
@@ -48,8 +49,15 @@ pub struct Router<'a, D> {
     data: D,
 }
 
+impl core::fmt::Debug for Router<'_, ()> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("Router").finish()
+    }
+}
+
 /// Container for a route's parsed parameters, data, and environment bindings from the Runtime (such
 /// as KV Stores, Durable Objects, Variables, and Secrets).
+#[derive(Debug)]
 pub struct RouteContext<D> {
     pub data: D,
     pub env: Env,
@@ -111,9 +119,14 @@ impl<D> RouteContext<D> {
     pub fn d1(&self, binding: &str) -> Result<crate::D1Database> {
         self.env.d1(binding)
     }
+
+    /// Access a Rate Limiter by the binding name configured in your wrangler.toml file.
+    pub fn rate_limiter(&self, binding: &str) -> Result<RateLimiter> {
+        self.env.rate_limiter(binding)
+    }
 }
 
-impl<'a> Router<'a, ()> {
+impl Router<'_, ()> {
     /// Construct a new `Router`. Or, call `Router::with_data(D)` to add arbitrary data that will be
     /// available to your various routes.
     pub fn new() -> Self {
@@ -170,6 +183,12 @@ impl<'a, D: 'a> Router<'a, D> {
     /// Register an HTTP handler that will exclusively respond to OPTIONS requests.
     pub fn options(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
         self.add_handler(pattern, Handler::Sync(func), vec![Method::Options]);
+        self
+    }
+
+    /// Register an HTTP handler that will exclusively respond to REPORT requests.
+    pub fn report(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
+        self.add_handler(pattern, Handler::Sync(func), vec![Method::Report]);
         self
     }
 

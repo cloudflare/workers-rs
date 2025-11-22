@@ -1,0 +1,15 @@
+[package]
+name = "fetcher-on-workers"
+version = "0.1.0"
+edition = "2021"
+
+[package.metadata.release]
+release = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+worker = { workspace = true }
+serde = "1.0.188"
+serde_json = "1.0.108"

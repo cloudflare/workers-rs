@@ -1,3 +1,4 @@
+use crate::kv::KvError;
 use wasm_bindgen::{JsCast, JsValue};
 
 /// All possible Error variants that might be encountered while working with a Worker.
@@ -24,6 +25,9 @@ pub enum Error {
     #[cfg(feature = "d1")]
     D1(crate::d1::D1Error),
     Utf8Error(std::str::Utf8Error),
+    #[cfg(feature = "timezone")]
+    TimezoneError,
+    KvError(KvError),
 }
 
 unsafe impl Sync for Error {}
@@ -46,14 +50,21 @@ impl From<http::status::InvalidStatusCode> for Error {
 #[cfg(feature = "http")]
 impl From<http::header::InvalidHeaderName> for Error {
     fn from(value: http::header::InvalidHeaderName) -> Self {
-        Self::RustError(format!("Invalid header name: {:?}", value))
+        Self::RustError(format!("Invalid header name: {value:?}"))
     }
 }
 
 #[cfg(feature = "http")]
 impl From<http::header::InvalidHeaderValue> for Error {
     fn from(value: http::header::InvalidHeaderValue) -> Self {
-        Self::RustError(format!("Invalid header value: {:?}", value))
+        Self::RustError(format!("Invalid header value: {value:?}"))
+    }
+}
+
+#[cfg(feature = "timezone")]
+impl From<chrono_tz::ParseError> for Error {
+    fn from(_value: chrono_tz::ParseError) -> Self {
+        Self::RustError("Invalid timezone".to_string())
     }
 }
 
@@ -69,10 +80,9 @@ impl From<core::convert::Infallible> for Error {
     }
 }
 
-impl From<worker_kv::KvError> for Error {
-    fn from(e: worker_kv::KvError) -> Self {
-        let val: JsValue = e.into();
-        val.into()
+impl From<KvError> for Error {
+    fn from(e: KvError) -> Self {
+        Self::KvError(e)
     }
 }
 
@@ -126,6 +136,13 @@ impl std::fmt::Display for Error {
             #[cfg(feature = "d1")]
             Error::D1(e) => write!(f, "D1: {e:#?}"),
             Error::Utf8Error(e) => write!(f, "{e}"),
+            #[cfg(feature = "timezone")]
+            Error::TimezoneError => write!(f, "Timezone Error"),
+            Error::KvError(KvError::JavaScript(s)) => write!(f, "js error: {s:?}"),
+            Error::KvError(KvError::Serialization(s)) => {
+                write!(f, "unable to serialize/deserialize: {s}")
+            }
+            Error::KvError(KvError::InvalidKvStore(s)) => write!(f, "invalid kv store: {s}"),
         }
     }
 }

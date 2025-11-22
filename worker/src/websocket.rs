@@ -18,6 +18,7 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 
 pub use crate::ws_events::*;
+pub use worker_sys::WebSocketRequestResponsePair;
 
 /// Struct holding the values for a JavaScript `WebSocketPair`
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -207,7 +208,7 @@ impl WebSocket {
 
     /// Gets an implementation [`Stream`](futures::Stream) that yields events from the inner
     /// WebSocket.
-    pub fn events(&self) -> Result<EventStream> {
+    pub fn events(&self) -> Result<EventStream<'_>> {
         let (tx, rx) = futures_channel::mpsc::unbounded::<Result<WebsocketEvent>>();
         let tx = Rc::new(tx);
 
@@ -286,6 +287,7 @@ type EvCallback<T> = Closure<dyn FnMut(T)>;
 /// });
 /// ```
 #[pin_project::pin_project(PinnedDrop)]
+#[derive(Debug)]
 pub struct EventStream<'ws> {
     ws: &'ws WebSocket,
     #[pin]
@@ -300,7 +302,7 @@ pub struct EventStream<'ws> {
     )>,
 }
 
-impl<'ws> Stream for EventStream<'ws> {
+impl Stream for EventStream<'_> {
     type Item = Result<WebsocketEvent>;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {

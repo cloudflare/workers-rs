@@ -29,7 +29,7 @@ fn wit_type_to_str(ty: &wit_parser::Type) -> anyhow::Result<String> {
         wit_parser::Type::F64 => "f64".to_string(),
         wit_parser::Type::Char => "char".to_string(),
         wit_parser::Type::String => "String".to_string(),
-        wit_parser::Type::Id(t) => anyhow::bail!("Unsupported type: '{:?}'", t),
+        wit_parser::Type::Id(t) => anyhow::bail!("Unsupported type: '{t:?}'"),
     })
 }
 
@@ -91,10 +91,10 @@ fn expand_struct(struct_name: &Ident, sys_name: &Ident) -> anyhow::Result<syn::I
     Ok(struct_item)
 }
 
-fn expand_from_impl(struct_name: &Ident) -> anyhow::Result<syn::ItemImpl> {
+fn expand_from_impl(struct_name: &Ident, from_type: &syn::Type) -> anyhow::Result<syn::ItemImpl> {
     let impl_raw = quote!(
-        impl From<::worker::Fetcher> for #struct_name {
-            fn from(fetcher: ::worker::Fetcher) -> Self {
+        impl From<#from_type> for #struct_name {
+            fn from(fetcher: #from_type) -> Self {
                 Self(::worker::send::SendWrapper::new(fetcher.into_rpc()))
             }
         }
@@ -115,9 +115,9 @@ fn expand_rpc_impl(
     let mut impl_item: syn::ItemImpl = syn::parse2(impl_raw)?;
 
     for (name, method) in &interface.functions {
-        println!("\tFound method: '{}'.", name);
+        println!("\tFound method: '{name}'.");
         let ident = format_ident!("{}", name.to_case(Case::Snake));
-        let invocation_raw = quote!(self.0.add());
+        let invocation_raw = quote!(self.0.#ident());
         let mut invocation_item: syn::ExprMethodCall = syn::parse2(invocation_raw)?;
         for (arg_name, _) in &method.params {
             let mut segments = syn::punctuated::Punctuated::new();
@@ -204,9 +204,9 @@ fn expand_wit(path: &str) -> anyhow::Result<syn::File> {
 
     for (_, interface) in resolver.interfaces {
         let name = interface.name.clone().unwrap();
-        println!("Found Interface: '{}'", name);
+        println!("Found Interface: '{name}'");
         let interface_name = format_ident!("{}", name.to_case(Case::Pascal));
-        println!("Generating Trait '{}'", interface_name);
+        println!("Generating Trait '{interface_name}'");
         let struct_name = format_ident!("{}Service", interface_name);
         let sys_name = format_ident!("{}Sys", interface_name);
 
@@ -222,8 +222,15 @@ fn expand_wit(path: &str) -> anyhow::Result<syn::File> {
             &interface_name,
             &struct_name,
         )?));
-        // From Impl
-        items.push(syn::Item::Impl(expand_from_impl(&struct_name)?));
+        // From Impl for Fetcher and Stub
+        items.push(syn::Item::Impl(expand_from_impl(
+            &struct_name,
+            &syn::parse_str("::worker::Fetcher")?,
+        )?));
+        items.push(syn::Item::Impl(expand_from_impl(
+            &struct_name,
+            &syn::parse_str("::worker::Stub")?,
+        )?));
     }
 
     let rust_file = syn::File {

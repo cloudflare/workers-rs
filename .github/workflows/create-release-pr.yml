@@ -17,14 +17,13 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: chainguard-dev/actions/setup-gitsign@main
-      - name: Install cargo-release
-        uses: taiki-e/install-action@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
         with:
-          tool: cargo-release
+          submodules: true
+      - uses: chainguard-dev/actions/setup-gitsign@main
+      - uses: cargo-bins/cargo-binstall@main
+      - name: Install cargo-release
+        run: cargo binstall cargo-release -y
       - name: Update versions
         id: update_versions
         run: |

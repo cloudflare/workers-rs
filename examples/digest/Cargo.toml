@@ -6,13 +6,9 @@ edition = "2021"
 [package.metadata.release]
 release = false
 
-# https://github.com/rustwasm/wasm-pack/issues/1247
-[package.metadata.wasm-pack.profile.release]
-wasm-opt = false
-
 [lib]
 crate-type = ["cdylib"]
 
 [dependencies]
-worker = { workspace=true }
-hex = "0.4.3"
+worker = { workspace = true }
+hex = "0.4"

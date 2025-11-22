@@ -13,6 +13,7 @@
 use std::{fmt::Display, ops::Deref, time::Duration};
 
 use crate::{
+    container::Container,
     date::Date,
     env::{Env, EnvBinding},
     error::Error,
@@ -21,7 +22,6 @@ use crate::{
     Result, WebSocket,
 };
 
-use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use futures_util::Future;
 use js_sys::{Map, Number, Object};
@@ -36,6 +36,7 @@ use worker_sys::{
 use wasm_bindgen_futures::{future_to_promise, JsFuture};
 
 /// A Durable Object stub is a client object used to send requests to a remote Durable Object.
+#[derive(Debug)]
 pub struct Stub {
     inner: EdgeDurableObject,
 }
@@ -57,12 +58,16 @@ impl Stub {
         let response = JsFuture::from(promise).await?;
         Ok(response.dyn_into::<web_sys::Response>()?.into())
     }
+
+    pub fn into_rpc<T: JsCast>(self) -> T {
+        self.inner.unchecked_into()
+    }
 }
 
 /// Use an ObjectNamespace to get access to Stubs for communication with a Durable Object instance.
 /// A given namespace can support essentially unlimited Durable Objects, with each Object having
 /// access to a transactional, key-value storage API.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct ObjectNamespace {
     inner: EdgeObjectNamespace,
 }
@@ -73,7 +78,7 @@ unsafe impl Sync for ObjectNamespace {}
 impl ObjectNamespace {
     /// This method derives a unique object ID from the given name string. It will always return the
     /// same ID when given the same name as input.
-    pub fn id_from_name(&self, name: &str) -> Result<ObjectId> {
+    pub fn id_from_name(&self, name: &str) -> Result<ObjectId<'_>> {
         self.inner
             .id_from_name(name)
             .map_err(Error::from)
@@ -91,7 +96,7 @@ impl ObjectNamespace {
     /// numbers are valid IDs. This method will throw if it is passed an ID that was not originally
     /// created by newUniqueId() or idFromName(). It will also throw if the ID was originally
     /// created for a different namespace.
-    pub fn id_from_string(&self, hex_id: &str) -> Result<ObjectId> {
+    pub fn id_from_string(&self, hex_id: &str) -> Result<ObjectId<'_>> {
         self.inner
             .id_from_string(hex_id)
             .map_err(Error::from)
@@ -104,7 +109,7 @@ impl ObjectNamespace {
     /// Creates a new object ID randomly. This method will never return the same ID twice, and thus
     /// it is guaranteed that the object does not yet exist and has never existed at the time the
     /// method returns.
-    pub fn unique_id(&self) -> Result<ObjectId> {
+    pub fn unique_id(&self) -> Result<ObjectId<'_>> {
         self.inner
             .new_unique_id()
             .map_err(Error::from)
@@ -123,7 +128,7 @@ impl ObjectNamespace {
     ///
     /// See supported jurisdictions and more documentation at:
     /// <https://developers.cloudflare.com/durable-objects/reference/data-location/#restrict-durable-objects-to-a-jurisdiction>
-    pub fn unique_id_with_jurisdiction(&self, jd: &str) -> Result<ObjectId> {
+    pub fn unique_id_with_jurisdiction(&self, jd: &str) -> Result<ObjectId<'_>> {
         let options = Object::new();
         js_sys::Reflect::set(&options, &JsValue::from("jurisdiction"), &jd.into())?;
         self.inner
@@ -134,10 +139,36 @@ impl ObjectNamespace {
                 namespace: Some(self),
             })
     }
+
+    /// Get a Durable Object stub directly by name. This combines the functionality of
+    /// `id_from_name()` and `get_stub()` into a single method call.
+    pub fn get_by_name(&self, name: &str) -> Result<Stub> {
+        self.inner
+            .get_by_name(name)
+            .map_err(Error::from)
+            .map(|stub| Stub { inner: stub })
+    }
+
+    /// Get a Durable Object stub directly by name with options (such as location hints).
+    /// This combines the functionality of `id_from_name()` and `get_stub_with_location_hint()`
+    /// into a single method call.
+    pub fn get_by_name_with_location_hint(&self, name: &str, location_hint: &str) -> Result<Stub> {
+        let options = Object::new();
+        js_sys::Reflect::set(
+            &options,
+            &JsValue::from("locationHint"),
+            &location_hint.into(),
+        )?;
+        self.inner
+            .get_by_name_with_options(name, &options)
+            .map_err(Error::from)
+            .map(|stub| Stub { inner: stub })
+    }
 }
 
 /// An ObjectId is used to identify, locate, and access a Durable Object via interaction with its
 /// Stub.
+#[derive(Debug)]
 pub struct ObjectId<'a> {
     inner: DurableObjectId,
     namespace: Option<&'a ObjectNamespace>,
@@ -173,6 +204,21 @@ impl ObjectId<'_> {
             })
             .map_err(Error::from)
     }
+
+    /// The name that was used to create the `ObjectId` via [`id_from_name`](https://developers.cloudflare.com/durable-objects/api/namespace/#idfromname).
+    /// `None` is returned if the `ObjectId` was constructed using [`unique_id`](https://developers.cloudflare.com/durable-objects/api/namespace/#newuniqueid).
+    /// `None` is also returned within the Durable Object constructor, as the `name` property is not accessible there (see <https://github.com/cloudflare/workerd/issues/2240>).
+    pub fn name(&self) -> Option<String> {
+        self.inner.name()
+    }
+}
+
+impl PartialEq for ObjectId<'_> {
+    /// Compare equality between two ObjectIds using [`equals`](<https://developers.cloudflare.com/durable-objects/api/id/#equals>).
+    /// <div class="warning">The equality check ignores the namespace.</div>
+    fn eq(&self, other: &Self) -> bool {
+        self.inner.equals(&other.inner)
+    }
 }
 
 impl Display for ObjectId<'_> {
@@ -187,6 +233,7 @@ impl Display for ObjectId<'_> {
 
 /// Passed from the runtime to provide access to the Durable Object's storage as well as various
 /// metadata about the Object.
+#[derive(Debug)]
 pub struct State {
     inner: DurableObjectState,
 }
@@ -209,6 +256,10 @@ impl State {
         }
     }
 
+    pub fn container(&self) -> Option<Container> {
+        self.inner.container().map(|inner| Container { inner })
+    }
+
     pub fn wait_until<F>(&self, future: F)
     where
         F: Future<Output = ()> + 'static,
@@ -221,7 +272,7 @@ impl State {
             .unwrap()
     }
 
-    // needs to be accessed by the `durable_object` macro in a conversion step
+    // needs to be accessed by the `#[durable_object]` macro in a conversion step
     pub fn _inner(self) -> DurableObjectState {
         self.inner
     }
@@ -260,6 +311,14 @@ impl State {
     pub fn get_tags(&self, websocket: &WebSocket) -> Vec<String> {
         self.inner.get_tags(websocket.as_ref()).unwrap()
     }
+
+    pub fn set_websocket_auto_response(&self, pair: &worker_sys::WebSocketRequestResponsePair) {
+        self.inner.set_websocket_auto_response(pair).unwrap();
+    }
+
+    pub fn get_websocket_auto_response(&self) -> Option<worker_sys::WebSocketRequestResponsePair> {
+        self.inner.get_websocket_auto_response().unwrap()
+    }
 }
 
 impl From<DurableObjectState> for State {
@@ -275,22 +334,30 @@ pub struct Storage {
     inner: DurableObjectStorage,
 }
 
+impl core::fmt::Debug for Storage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Storage").finish()
+    }
+}
+
 impl Storage {
     /// Retrieves the value associated with the given key. The type of the returned value will be
     /// whatever was previously written for the key.
     ///
-    /// Returns [Err] if the key does not exist.
-    pub async fn get<T: serde::de::DeserializeOwned>(&self, key: &str) -> Result<T> {
-        JsFuture::from(self.inner.get(key)?)
-            .await
-            .and_then(|val| {
-                if val.is_undefined() {
-                    Err(JsValue::from("No such value in storage."))
-                } else {
-                    serde_wasm_bindgen::from_value(val).map_err(|e| JsValue::from(e.to_string()))
-                }
-            })
-            .map_err(Error::from)
+    /// Returns `Ok(None)` if the key does not exist.
+    pub async fn get<T: DeserializeOwned>(&self, key: &str) -> Result<Option<T>> {
+        let res = match JsFuture::from(self.inner.get(key)?).await {
+            // If we successfully retrived `undefined`, that means the key doesn't exist
+            Ok(val) if val.is_undefined() => Ok(None),
+            // Otherwise deserialize whatever we successfully received
+            Ok(val) => {
+                serde_wasm_bindgen::from_value(val).map_err(|e| JsValue::from(e.to_string()))
+            }
+            // Forward any error, rewrap to make the typechecker happy
+            Err(e) => Err(e),
+        };
+
+        res.map_err(Error::from)
     }
 
     /// Retrieves the values associated with each of the provided keys.
@@ -305,12 +372,12 @@ impl Storage {
     }
 
     /// Stores the value and associates it with the given key.
-    pub async fn put<T: Serialize>(&mut self, key: &str, value: T) -> Result<()> {
+    pub async fn put<T: Serialize>(&self, key: &str, value: T) -> Result<()> {
         self.put_raw(key, serde_wasm_bindgen::to_value(&value)?)
             .await
     }
 
-    pub async fn put_raw(&mut self, key: &str, value: impl Into<JsValue>) -> Result<()> {
+    pub async fn put_raw(&self, key: &str, value: impl Into<JsValue>) -> Result<()> {
         JsFuture::from(self.inner.put(key, value.into())?)
             .await
             .map_err(Error::from)
@@ -318,7 +385,7 @@ impl Storage {
     }
 
     /// Takes a serializable struct and stores each of its keys and values to storage.
-    pub async fn put_multiple<T: Serialize>(&mut self, values: T) -> Result<()> {
+    pub async fn put_multiple<T: Serialize>(&self, values: T) -> Result<()> {
         let values = serde_wasm_bindgen::to_value(&values)?;
         if !values.is_object() {
             return Err("Must pass in a struct type".to_string().into());
@@ -339,7 +406,7 @@ impl Storage {
     ///
     /// storage.put_multiple_raw(obj);
     /// ```
-    pub async fn put_multiple_raw(&mut self, values: Object) -> Result<()> {
+    pub async fn put_multiple_raw(&self, values: Object) -> Result<()> {
         JsFuture::from(self.inner.put_multiple(values.into())?)
             .await
             .map_err(Error::from)
@@ -347,7 +414,7 @@ impl Storage {
     }
 
     /// Deletes the key and associated value. Returns true if the key existed or false if it didn't.
-    pub async fn delete(&mut self, key: &str) -> Result<bool> {
+    pub async fn delete(&self, key: &str) -> Result<bool> {
         let fut: JsFuture = self.inner.delete(key)?.into();
         fut.await
             .and_then(|jsv| {
@@ -359,7 +426,7 @@ impl Storage {
 
     /// Deletes the provided keys and their associated values. Returns a count of the number of
     /// key-value pairs deleted.
-    pub async fn delete_multiple(&mut self, keys: Vec<impl Deref<Target = str>>) -> Result<usize> {
+    pub async fn delete_multiple(&self, keys: Vec<impl Deref<Target = str>>) -> Result<usize> {
         let fut: JsFuture = self
             .inner
             .delete_multiple(
@@ -380,7 +447,7 @@ impl Storage {
     /// Deletes all keys and associated values, effectively deallocating all storage used by the
     /// Durable Object. In the event of a failure while the operation is still in flight, it may be
     /// that only a subset of the data is properly deleted.
-    pub async fn delete_all(&mut self) -> Result<()> {
+    pub async fn delete_all(&self) -> Result<()> {
         let fut: JsFuture = self.inner.delete_all()?.into();
         fut.await.map(|_| ()).map_err(Error::from)
     }
@@ -477,12 +544,12 @@ impl Storage {
         fut.await.map(|_| ()).map_err(Error::from)
     }
 
-    pub async fn transaction<F, Fut>(&mut self, mut closure: F) -> Result<()>
+    pub async fn transaction<F, Fut>(&self, closure: F) -> Result<()>
     where
-        F: FnMut(Transaction) -> Fut + Copy + 'static,
+        F: FnOnce(Transaction) -> Fut + 'static,
         Fut: Future<Output = Result<()>> + 'static,
     {
-        let inner: Box<dyn FnMut(DurableObjectTransaction) -> js_sys::Promise> =
+        let inner: Box<dyn FnOnce(DurableObjectTransaction) -> js_sys::Promise> =
             Box::new(move |t: DurableObjectTransaction| -> js_sys::Promise {
                 future_to_promise(async move {
                     closure(Transaction { inner: t })
@@ -491,14 +558,20 @@ impl Storage {
                         .map(|_| JsValue::NULL)
                 })
             });
-        let clos = wasm_bindgen::closure::Closure::wrap(inner);
+        let clos = wasm_bindgen::closure::Closure::once(inner);
         JsFuture::from(self.inner.transaction(&clos)?)
             .await
             .map_err(Error::from)
             .map(|_| ())
     }
+
+    // Add new method to access SQLite APIs
+    pub fn sql(&self) -> crate::sql::SqlStorage {
+        crate::sql::SqlStorage::new(self.inner.sql())
+    }
 }
 
+#[derive(Debug)]
 pub struct Transaction {
     inner: DurableObjectTransaction,
 }
@@ -527,7 +600,7 @@ impl Transaction {
         keys.dyn_into::<Map>().map_err(Error::from)
     }
 
-    pub async fn put<T: Serialize>(&mut self, key: &str, value: T) -> Result<()> {
+    pub async fn put<T: Serialize>(&self, key: &str, value: T) -> Result<()> {
         JsFuture::from(self.inner.put(key, serde_wasm_bindgen::to_value(&value)?)?)
             .await
             .map_err(Error::from)
@@ -535,7 +608,7 @@ impl Transaction {
     }
 
     // Each key-value pair in the serialized object will be added to the storage
-    pub async fn put_multiple<T: Serialize>(&mut self, values: T) -> Result<()> {
+    pub async fn put_multiple<T: Serialize>(&self, values: T) -> Result<()> {
         let values = serde_wasm_bindgen::to_value(&values)?;
         if !values.is_object() {
             return Err("Must pass in a struct type".to_string().into());
@@ -546,7 +619,7 @@ impl Transaction {
             .map(|_| ())
     }
 
-    pub async fn delete(&mut self, key: &str) -> Result<bool> {
+    pub async fn delete(&self, key: &str) -> Result<bool> {
         let fut: JsFuture = self.inner.delete(key)?.into();
         fut.await
             .and_then(|jsv| {
@@ -556,7 +629,7 @@ impl Transaction {
             .map_err(Error::from)
     }
 
-    pub async fn delete_multiple(&mut self, keys: Vec<impl Deref<Target = str>>) -> Result<usize> {
+    pub async fn delete_multiple(&self, keys: Vec<impl Deref<Target = str>>) -> Result<usize> {
         let fut: JsFuture = self
             .inner
             .delete_multiple(
@@ -574,7 +647,7 @@ impl Transaction {
             .map_err(Error::from)
     }
 
-    pub async fn delete_all(&mut self) -> Result<()> {
+    pub async fn delete_all(&self) -> Result<()> {
         let fut: JsFuture = self.inner.delete_all()?.into();
         fut.await.map(|_| ()).map_err(Error::from)
     }
@@ -596,12 +669,12 @@ impl Transaction {
             .map_err(Error::from)
     }
 
-    pub fn rollback(&mut self) -> Result<()> {
+    pub fn rollback(&self) -> Result<()> {
         self.inner.rollback().map_err(Error::from)
     }
 }
 
-#[derive(Default, Serialize)]
+#[derive(Default, Serialize, Debug)]
 pub struct ListOptions<'a> {
     /// Key at which the list results should start, inclusive.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -658,7 +731,7 @@ impl<'a> ListOptions<'a> {
         self
     }
 }
-
+#[derive(Debug)]
 enum ScheduledTimeInit {
     Date(js_sys::Date),
     Offset(f64),
@@ -673,6 +746,7 @@ enum ScheduledTimeInit {
 ///
 /// When an offset is used, the time at which `set_alarm()` or `set_alarm_with_options()` is called
 /// is used to compute the scheduled time. [`Date::now`] is used as the current time.
+#[derive(Debug)]
 pub struct ScheduledTime {
     init: ScheduledTimeInit,
 }
@@ -687,18 +761,18 @@ impl ScheduledTime {
     fn schedule(self) -> js_sys::Date {
         match self.init {
             ScheduledTimeInit::Date(date) => date,
-            ScheduledTimeInit::Offset(offset) => {
+            ScheduledTimeInit::Offset(offset_ms) => {
                 let now = Date::now().as_millis() as f64;
-                js_sys::Date::new(&Number::from(now + offset))
+                js_sys::Date::new(&Number::from(now + offset_ms))
             }
         }
     }
 }
 
 impl From<i64> for ScheduledTime {
-    fn from(offset: i64) -> Self {
+    fn from(offset_ms: i64) -> Self {
         ScheduledTime {
-            init: ScheduledTimeInit::Offset(offset as f64),
+            init: ScheduledTimeInit::Offset(offset_ms as f64),
         }
     }
 }
@@ -765,6 +839,7 @@ impl AsRef<JsValue> for ObjectNamespace {
     }
 }
 
+#[derive(Debug)]
 pub enum WebSocketIncomingMessage {
     String(String),
     Binary(Vec<u8>),
@@ -773,7 +848,7 @@ pub enum WebSocketIncomingMessage {
 /**
 **Note:** Implement this trait with a standard `impl DurableObject for YourType` block, but in order to
 integrate them with the Workers Runtime, you must also add the **`#[durable_object]`** attribute
-macro to both the impl block and the struct type definition.
+to the struct.
 
 ## Example
 ```no_run
@@ -787,7 +862,6 @@ pub struct Chatroom {
     env: Env, // access `Env` across requests, use inside `fetch`
 }
 
-#[durable_object]
 impl DurableObject for Chatroom {
     fn new(state: State, env: Env) -> Self {
         Self {
@@ -798,47 +872,54 @@ impl DurableObject for Chatroom {
         }
     }
 
-    async fn fetch(&mut self, _req: Request) -> Result<Response> {
+    async fn fetch(&self, _req: Request) -> Result<Response> {
         // do some work when a worker makes a request to this DO
         Response::ok(&format!("{} active users.", self.users.len()))
     }
 }
 ```
 */
-
-#[async_trait(?Send)]
-pub trait DurableObject {
+#[allow(async_fn_in_trait)] // Send is not needed
+pub trait DurableObject: has_durable_object_attribute {
     fn new(state: State, env: Env) -> Self;
 
-    async fn fetch(&mut self, req: Request) -> Result<Response>;
+    async fn fetch(&self, req: Request) -> Result<Response>;
 
     #[allow(clippy::diverging_sub_expression)]
-    async fn alarm(&mut self) -> Result<Response> {
-        unimplemented!("alarm() handler not implemented")
+    async fn alarm(&self) -> Result<Response> {
+        worker_sys::console_error!("alarm() handler not implemented");
+        unimplemented!("alarm() handler")
     }
 
     #[allow(unused_variables, clippy::diverging_sub_expression)]
     async fn websocket_message(
-        &mut self,
+        &self,
         ws: WebSocket,
         message: WebSocketIncomingMessage,
     ) -> Result<()> {
-        unimplemented!("websocket_message() handler not implemented")
+        worker_sys::console_error!("websocket_message() handler not implemented");
+        unimplemented!("websocket_message() handler")
     }
 
     #[allow(unused_variables, clippy::diverging_sub_expression)]
     async fn websocket_close(
-        &mut self,
+        &self,
         ws: WebSocket,
         code: usize,
         reason: String,
         was_clean: bool,
     ) -> Result<()> {
-        unimplemented!("websocket_close() handler not implemented")
+        worker_sys::console_error!("websocket_close() handler not implemented");
+        unimplemented!("websocket_close() handler")
     }
 
     #[allow(unused_variables, clippy::diverging_sub_expression)]
-    async fn websocket_error(&mut self, ws: WebSocket, error: Error) -> Result<()> {
-        unimplemented!("websocket_error() handler not implemented")
+    async fn websocket_error(&self, ws: WebSocket, error: Error) -> Result<()> {
+        worker_sys::console_error!("websocket_error() handler not implemented");
+        unimplemented!("websocket_error() handler")
     }
 }
+
+#[doc(hidden)]
+#[allow(non_camel_case_types)]
+pub trait has_durable_object_attribute {}

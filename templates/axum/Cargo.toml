@@ -2,21 +2,13 @@
 name = "{{project-name}}"
 version = "0.1.0"
 edition = "2021"
-authors = [ "{{authors}}" ]
-
-[package.metadata.release]
-release = false
-
-# https://github.com/rustwasm/wasm-pack/issues/1247
-[package.metadata.wasm-pack.profile.release]
-wasm-opt = false
+authors = ["{{authors}}"]
 
 [lib]
 crate-type = ["cdylib"]
 
 [dependencies]
-worker = { version="0.4.2", features=['http', 'axum'] }
-worker-macros = { version="0.4.2", features=['http'] }
-axum  = { version = "0.7", default-features = false }
-tower-service = "0.3.2"
-console_error_panic_hook = { version = "0.1.1" }
+worker = { version = "0.6", features = ['http', 'axum'] }
+worker-macros = { version = "0.6", features = ['http'] }
+axum = { version = "0.8", default-features = false }
+tower-service = "0.3.3"

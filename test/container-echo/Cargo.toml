@@ -1,0 +1,8 @@
+[package]
+name = "container-echo"
+version = "0.1.5"
+edition = "2021"
+
+[dependencies]
+axum = { version = "0.8.4", features = ["ws"] }
+tokio = { version = "1.47.1", features = ["rt-multi-thread", "net"] }

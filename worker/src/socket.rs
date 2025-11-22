@@ -1,6 +1,5 @@
 use std::{
     convert::TryFrom,
-    io::ErrorKind,
     pin::Pin,
     task::{Context, Poll},
 };
@@ -41,7 +40,7 @@ impl TryFrom<JsValue> for SocketInfo {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 enum Reading {
     #[default]
     None,
@@ -49,14 +48,14 @@ enum Reading {
     Ready(Vec<u8>),
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 enum Writing {
     Pending(JsFuture, WritableStreamDefaultWriter, usize),
     #[default]
     None,
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 enum Closing {
     Pending(JsFuture),
     #[default]
@@ -64,6 +63,7 @@ enum Closing {
 }
 
 /// Represents an outbound TCP connection from your Worker.
+#[derive(Debug)]
 pub struct Socket {
     inner: worker_sys::Socket,
     writable: WritableStream,
@@ -148,9 +148,9 @@ fn js_value_to_std_io_error(value: JsValue) -> IoError {
     } else if let Some(value) = value.dyn_ref::<JsError>() {
         value.to_string().into()
     } else {
-        format!("Error interpreting JsError: {:?}", value)
+        format!("Error interpreting JsError: {value:?}")
     };
-    IoError::new(ErrorKind::Other, s)
+    IoError::other(s)
 }
 impl AsyncRead for Socket {
     fn poll_read(
@@ -172,11 +172,8 @@ impl AsyncRead for Socket {
                         let done: JsBoolean = match Reflect::get(&value, &JsValue::from("done")) {
                             Ok(value) => value.into(),
                             Err(error) => {
-                                let msg = format!("Unable to interpret field 'done' in ReadableStreamDefaultReader.read(): {:?}", error);
-                                return (
-                                    Reading::None,
-                                    Poll::Ready(Err(IoError::new(ErrorKind::Other, msg))),
-                                );
+                                let msg = format!("Unable to interpret field 'done' in ReadableStreamDefaultReader.read(): {error:?}");
+                                return (Reading::None, Poll::Ready(Err(IoError::other(msg))));
                             }
                         };
                         if done.is_truthy() {
@@ -188,11 +185,8 @@ impl AsyncRead for Socket {
                             ) {
                                 Ok(value) => value.into(),
                                 Err(error) => {
-                                    let msg = format!("Unable to interpret field 'value' in ReadableStreamDefaultReader.read(): {:?}", error);
-                                    return (
-                                        Reading::None,
-                                        Poll::Ready(Err(IoError::new(ErrorKind::Other, msg))),
-                                    );
+                                    let msg = format!("Unable to interpret field 'value' in ReadableStreamDefaultReader.read(): {error:?}");
+                                    return (Reading::None, Poll::Ready(Err(IoError::other(msg))));
                                 }
                             };
                             let data = arr.to_vec();
@@ -211,10 +205,9 @@ impl AsyncRead for Socket {
                         Ok(reader) => reader,
                         Err(error) => {
                             let msg = format!(
-                                "Unable to cast JsObject to ReadableStreamDefaultReader: {:?}",
-                                error
+                                "Unable to cast JsObject to ReadableStreamDefaultReader: {error:?}"
                             );
-                            return Poll::Ready(Err(IoError::new(ErrorKind::Other, msg)));
+                            return Poll::Ready(Err(IoError::other(msg)));
                         }
                     };
 
@@ -240,8 +233,8 @@ impl AsyncWrite for Socket {
                 let writer: WritableStreamDefaultWriter = match self.writable.get_writer() {
                     Ok(writer) => writer,
                     Err(error) => {
-                        let msg = format!("Could not retrieve Writer: {:?}", error);
-                        return Poll::Ready(Err(IoError::new(ErrorKind::Other, msg)));
+                        let msg = format!("Could not retrieve Writer: {error:?}");
+                        return Poll::Ready(Err(IoError::other(msg)));
                     }
                 };
                 Self::handle_write_future(
@@ -291,6 +284,7 @@ impl AsyncWrite for Socket {
 }
 
 /// Secure transport options for outbound TCP connections.
+#[derive(Debug, Clone)]
 pub enum SecureTransport {
     /// Do not use TLS.
     Off,
@@ -302,6 +296,7 @@ pub enum SecureTransport {
 }
 
 /// Used to configure outbound TCP connections.
+#[derive(Debug, Clone)]
 pub struct SocketOptions {
     /// Specifies whether or not to use TLS when creating the TCP socket.
     pub secure_transport: SecureTransport,
@@ -322,6 +317,7 @@ impl Default for SocketOptions {
 }
 
 /// The host and port that you wish to connect to.
+#[derive(Debug, Clone)]
 pub struct SocketAddress {
     /// The hostname to connect to. Example: `cloudflare.com`.
     pub hostname: String,
@@ -329,7 +325,7 @@ pub struct SocketAddress {
     pub port: u16,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug, Clone)]
 pub struct ConnectionBuilder {
     options: SocketOptions,
 }
@@ -411,6 +407,7 @@ pub mod postgres_tls {
     ///     .connect("database_url", 5432)?;
     /// let _ = config.connect_raw(socket, PassthroughTls).await?;
     /// ```
+    #[derive(Debug, Clone, Default)]
     pub struct PassthroughTls;
 
     #[derive(Debug)]

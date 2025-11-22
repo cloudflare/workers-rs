@@ -1,4 +1,4 @@
-use std::{collections::HashMap, convert::TryInto};
+use std::{collections::HashMap, convert::TryInto, ops::Deref};
 
 pub use builder::*;
 
@@ -19,7 +19,7 @@ use crate::{
 mod builder;
 
 /// An instance of the R2 bucket binding.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Bucket {
     inner: EdgeR2Bucket,
 }
@@ -42,7 +42,7 @@ impl Bucket {
     /// Retrieves the [Object] for the given key containing object metadata and the object body if
     /// the key exists. In the event that a precondition specified in options fails, get() returns
     /// an [Object] with no body.
-    pub fn get(&self, key: impl Into<String>) -> GetOptionsBuilder {
+    pub fn get(&self, key: impl Into<String>) -> GetOptionsBuilder<'_> {
         GetOptionsBuilder {
             edge_bucket: &self.inner,
             key: key.into(),
@@ -56,7 +56,7 @@ impl Bucket {
     ///
     /// R2 writes are strongly consistent. Once the future resolves, all subsequent read operations
     /// will see this key value pair globally.
-    pub fn put(&self, key: impl Into<String>, value: impl Into<Data>) -> PutOptionsBuilder {
+    pub fn put(&self, key: impl Into<String>, value: impl Into<Data>) -> PutOptionsBuilder<'_> {
         PutOptionsBuilder {
             edge_bucket: &self.inner,
             key: key.into(),
@@ -79,9 +79,26 @@ impl Bucket {
         Ok(())
     }
 
+    /// Deletes the given values and metadata under the associated keys. Once
+    /// the delete succeeds, returns void.
+    ///
+    /// R2 deletes are strongly consistent. Once the Promise resolves, all
+    /// subsequent read operations will no longer see the provided key value
+    /// pairs globally.
+    ///
+    /// Up to 1000 keys may be deleted per call.
+    pub async fn delete_multiple(&self, keys: Vec<impl Deref<Target = str>>) -> Result<()> {
+        let fut: JsFuture = self
+            .inner
+            .delete_multiple(keys.into_iter().map(|key| JsValue::from(&*key)).collect())?
+            .into();
+        fut.await?;
+        Ok(())
+    }
+
     /// Returns an [Objects] containing a list of [Objects]s contained within the bucket. By
     /// default, returns the first 1000 entries.
-    pub fn list(&self) -> ListOptionsBuilder {
+    pub fn list(&self) -> ListOptionsBuilder<'_> {
         ListOptionsBuilder {
             edge_bucket: &self.inner,
             limit: None,
@@ -100,7 +117,7 @@ impl Bucket {
     pub fn create_multipart_upload(
         &self,
         key: impl Into<String>,
-    ) -> CreateMultipartUploadOptionsBuilder {
+    ) -> CreateMultipartUploadOptionsBuilder<'_> {
         CreateMultipartUploadOptionsBuilder {
             edge_bucket: &self.inner,
             key: key.into(),
@@ -161,6 +178,7 @@ impl AsRef<JsValue> for Bucket {
 /// [Object] is created when you [put](Bucket::put) an object into a [Bucket]. [Object] represents
 /// the metadata of an object based on the information provided by the uploader. Every object that
 /// you [put](Bucket::put) into a [Bucket] will have an [Object] created.
+#[derive(Debug)]
 pub struct Object {
     inner: ObjectInner,
 }
@@ -252,7 +270,7 @@ impl Object {
         .try_into()
     }
 
-    pub fn body(&self) -> Option<ObjectBody> {
+    pub fn body(&self) -> Option<ObjectBody<'_>> {
         match &self.inner {
             ObjectInner::NoBody(_) => None,
             ObjectInner::Body(body) => Some(ObjectBody { inner: body }),
@@ -277,11 +295,12 @@ impl Object {
 }
 
 /// The data contained within an [Object].
+#[derive(Debug)]
 pub struct ObjectBody<'body> {
     inner: &'body EdgeR2ObjectBody,
 }
 
-impl<'body> ObjectBody<'body> {
+impl ObjectBody<'_> {
     /// Reads the data in the [Object] via a [ByteStream].
     pub fn stream(self) -> Result<ByteStream> {
         if self.inner.body_used()? {
@@ -325,6 +344,7 @@ impl<'body> ObjectBody<'body> {
 /// [UploadedPart] represents a part that has been uploaded.
 /// [UploadedPart] objects are returned from [upload_part](MultipartUpload::upload_part) operations
 /// and must be passed to the [complete](MultipartUpload::complete) operation.
+#[derive(Debug)]
 pub struct UploadedPart {
     inner: EdgeR2UploadedPart,
 }
@@ -353,6 +373,7 @@ impl UploadedPart {
     }
 }
 
+#[derive(Debug)]
 pub struct MultipartUpload {
     inner: EdgeR2MultipartUpload,
 }
@@ -415,6 +436,7 @@ impl MultipartUpload {
 }
 
 /// A series of [Object]s returned by [list](Bucket::list).
+#[derive(Debug)]
 pub struct Objects {
     inner: EdgeR2Objects,
 }
@@ -460,12 +482,13 @@ impl Objects {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub(crate) enum ObjectInner {
     NoBody(EdgeR2Object),
     Body(EdgeR2ObjectBody),
 }
 
+#[derive(Debug)]
 pub enum Data {
     ReadableStream(web_sys::ReadableStream),
     Stream(FixedLengthStream),

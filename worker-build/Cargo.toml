@@ -1,29 +1,40 @@
 [package]
 authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
-edition = "2018"
+edition = "2021"
 name = "worker-build"
-version = "0.1.1"
+version.workspace = true
 license = "Apache-2.0"
 repository = "https://github.com/cloudflare/workers-rs/tree/main/worker-build"
 readme = "README.md"
 description = "This is a tool to be used as a custom build command for a Cloudflare Workers `workers-rs` project."
 
-[package.metadata.release]
-release = false
-
 [dependencies]
-anyhow = "1.0.71"
-dirs-next = "2.0.0"
-flate2 = "1.0.26"
-tar = "0.4.38"
-ureq = { version = "2.6.2", features = ["tls", "gzip"] }
-clap= { version="4.5", features=['derive'] }
-worker-codegen = { path="../worker-codegen", version="0.1.0" }
-wasm-pack = "0.13"
+anyhow = "1.0.98"
+binary-install = "0.4.1"
+cargo_metadata = "0.20.0"
+clap = { version = "4.5", features = ['derive'] }
+console = "0.16.0"
+dirs-next = "2.0"
+env_logger = "0.11.8"
+flate2 = "1.1"
+glob = "0.3.1"
+heck = "0.5.0"
+log = "0.4.17"
+parking_lot = "0.12.1"
+path-clean = "1.0.1"
+semver = "1.0.26"
+serde = "1.0.219"
+serde_ignored = "0.1.12"
+serde_json = "1.0.143"
+strsim = "0.11.1"
+tar = "0.4"
+toml = "0.9.5"
+ureq = { version = "3.1", features = ["gzip", "json"] }
+which = "8.0.0"
+worker-codegen.workspace = true
 
 [dev-dependencies]
 wasm-bindgen-cli-support.workspace = true
 
-
 [[bin]]
-name="worker-codegen"
+name = "worker-codegen"

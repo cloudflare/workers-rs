@@ -23,6 +23,7 @@ use crate::send::SendFuture;
 ///
 /// let bytes:Vec<u8> = digest_stream.digest().await.unwrap().to_vec();
 /// ```
+#[derive(Debug)]
 pub struct DigestStream {
     inner: worker_sys::DigestStream,
 }

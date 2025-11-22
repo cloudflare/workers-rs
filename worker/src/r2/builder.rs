@@ -13,6 +13,7 @@ use crate::{Date, Error, MultipartUpload, ObjectInner, Objects, Result};
 use super::{Data, Object};
 
 /// Options for configuring the [get](crate::r2::Bucket::get) operation.
+#[derive(Debug)]
 pub struct GetOptionsBuilder<'bucket> {
     pub(crate) edge_bucket: &'bucket EdgeR2Bucket,
     pub(crate) key: String,
@@ -20,7 +21,7 @@ pub struct GetOptionsBuilder<'bucket> {
     pub(crate) range: Option<Range>,
 }
 
-impl<'bucket> GetOptionsBuilder<'bucket> {
+impl GetOptionsBuilder<'_> {
     /// Specifies that the object should only be returned given satisfaction of certain conditions
     /// in the [R2Conditional]. Refer to [Conditional operations](https://developers.cloudflare.com/r2/runtime-apis/#conditional-operations).
     pub fn only_if(mut self, only_if: Conditional) -> Self {
@@ -164,6 +165,7 @@ impl TryFrom<R2RangeSys> for Range {
 }
 
 /// Options for configuring the [put](crate::r2::Bucket::put) operation.
+#[derive(Debug)]
 pub struct PutOptionsBuilder<'bucket> {
     pub(crate) edge_bucket: &'bucket EdgeR2Bucket,
     pub(crate) key: String,
@@ -174,7 +176,7 @@ pub struct PutOptionsBuilder<'bucket> {
     pub(crate) checksum_algorithm: String,
 }
 
-impl<'bucket> PutOptionsBuilder<'bucket> {
+impl PutOptionsBuilder<'_> {
     /// Various HTTP headers associated with the object. Refer to [HttpMetadata].
     pub fn http_metadata(mut self, metadata: HttpMetadata) -> Self {
         self.http_metadata = Some(metadata);
@@ -258,6 +260,7 @@ impl<'bucket> PutOptionsBuilder<'bucket> {
 }
 
 /// Options for configuring the [create_multipart_upload](crate::r2::Bucket::create_multipart_upload) operation.
+#[derive(Debug)]
 pub struct CreateMultipartUploadOptionsBuilder<'bucket> {
     pub(crate) edge_bucket: &'bucket EdgeR2Bucket,
     pub(crate) key: String,
@@ -265,7 +268,7 @@ pub struct CreateMultipartUploadOptionsBuilder<'bucket> {
     pub(crate) custom_metadata: Option<HashMap<String, String>>,
 }
 
-impl<'bucket> CreateMultipartUploadOptionsBuilder<'bucket> {
+impl CreateMultipartUploadOptionsBuilder<'_> {
     /// Various HTTP headers associated with the object. Refer to [HttpMetadata].
     pub fn http_metadata(mut self, metadata: HttpMetadata) -> Self {
         self.http_metadata = Some(metadata);
@@ -353,6 +356,7 @@ impl From<R2HttpMetadataSys> for HttpMetadata {
 }
 
 /// Options for configuring the [list](crate::r2::Bucket::list) operation.
+#[derive(Debug)]
 pub struct ListOptionsBuilder<'bucket> {
     pub(crate) edge_bucket: &'bucket EdgeR2Bucket,
     pub(crate) limit: Option<u32>,
@@ -362,7 +366,7 @@ pub struct ListOptionsBuilder<'bucket> {
     pub(crate) include: Option<Vec<Include>>,
 }
 
-impl<'bucket> ListOptionsBuilder<'bucket> {
+impl ListOptionsBuilder<'_> {
     /// The number of results to return. Defaults to 1000, with a maximum of 1000.
     pub fn limit(mut self, limit: u32) -> Self {
         self.limit = Some(limit);

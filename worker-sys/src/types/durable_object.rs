@@ -1,13 +1,17 @@
 use wasm_bindgen::prelude::*;
 
+mod container;
 mod id;
 mod namespace;
+mod sql_storage;
 mod state;
 mod storage;
 mod transaction;
 
+pub use container::*;
 pub use id::*;
 pub use namespace::*;
+pub use sql_storage::*;
 pub use state::*;
 pub use storage::*;
 pub use transaction::*;
@@ -15,7 +19,7 @@ pub use transaction::*;
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(extends=js_sys::Object)]
-    #[derive(Clone)]
+    #[derive(Clone, Debug)]
     pub type DurableObject;
 
     #[wasm_bindgen(method, catch, js_name=fetch)]
