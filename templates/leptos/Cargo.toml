@@ -34,6 +34,12 @@ ssr = [
   "leptos_router/ssr",
 ]
 
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
+[package.metadata.wasm-pack.profile.dev]
+wasm-opt = false
+
 [package.metadata.leptos]
 wasm-validation = false
 # The name used by wasm-bindgen/cargo-leptos for the JS/WASM bundle. Defaults to the crate name

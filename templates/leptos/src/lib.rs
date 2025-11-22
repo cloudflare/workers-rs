@@ -6,6 +6,26 @@ use crate::app::*;
 pub mod app;
 mod components;
 
+
+#[cfg(feature = "ssr")]
+#[cfg(target_family = "wasm")]
+mod wasm_workaround {
+    unsafe extern "C" {
+        pub(super) fn __wasm_call_ctors();
+    }
+}
+
+#[cfg(feature = "ssr")]
+#[wasm_bindgen::prelude::wasm_bindgen(start)]
+fn start() {
+    // Fix for 'Read a negative address value from the stack. Did we run out of memory?'.
+    // See: https://github.com/cloudflare/workers-rs/issues/772
+    #[cfg(target_family = "wasm")]
+    unsafe {
+        wasm_workaround::__wasm_call_ctors()
+    };
+}
+
 #[cfg(feature = "ssr")]
 pub fn register_server_functions() {
     use leptos::server_fn::axum::register_explicit;
