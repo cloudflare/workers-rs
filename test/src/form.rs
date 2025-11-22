@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use worker::{kv, Env, FormEntry, Request, Response, Result};
 
-#[worker::send]
 pub async fn handle_formdata_name(
     mut req: Request,
     _env: Env,
@@ -48,7 +47,6 @@ struct FileSize {
     size: u32,
 }
 
-#[worker::send]
 pub async fn handle_formdata_file_size(
     mut req: Request,
     env: Env,
@@ -88,7 +86,6 @@ pub async fn handle_formdata_file_size(
     Response::error("Bad Request", 400)
 }
 
-#[worker::send]
 pub async fn handle_formdata_file_size_hash(
     req: Request,
     env: Env,
@@ -108,7 +105,6 @@ pub async fn handle_formdata_file_size_hash(
     Response::error("Bad Request", 400)
 }
 
-#[worker::send]
 pub async fn handle_is_secret(
     mut req: Request,
     env: Env,

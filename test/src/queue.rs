@@ -26,7 +26,6 @@ pub async fn queue(message_batch: MessageBatch<QueueBody>, _env: Env, _ctx: Cont
     Ok(())
 }
 
-#[worker::send]
 pub async fn handle_queue_send(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let uri = req.url()?;
     let mut segments = uri.path_segments().unwrap();
@@ -54,7 +53,6 @@ pub async fn handle_queue_send(req: Request, env: Env, _data: SomeSharedData) ->
     }
 }
 
-#[worker::send]
 pub async fn handle_batch_send(mut req: Request, env: Env, _: SomeSharedData) -> Result<Response> {
     let messages: Vec<QueueBody> = match req.json().await {
         Ok(messages) => messages,
