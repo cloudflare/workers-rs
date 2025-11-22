@@ -173,6 +173,21 @@ pub enum KvError {
     InvalidKvStore(String),
 }
 
+unsafe impl Send for KvError {}
+unsafe impl Sync for KvError {}
+
+impl std::fmt::Display for KvError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            KvError::JavaScript(value) => write!(f, "js error: {value:?}"),
+            KvError::Serialization(e) => write!(f, "unable to serialize/deserialize: {e}"),
+            KvError::InvalidKvStore(binding) => write!(f, "invalid kv store: {binding}"),
+        }
+    }
+}
+
+impl std::error::Error for KvError {}
+
 impl From<KvError> for JsValue {
     fn from(val: KvError) -> Self {
         match val {
