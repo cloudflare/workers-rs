@@ -17,9 +17,6 @@ exclude = [
 ]
 resolver = "2"
 
-[workspace.package]
-version = "0.7.0"
-
 [workspace.dependencies]
 async-trait = "0.1.88"
 cfg-if = "1.0.1"

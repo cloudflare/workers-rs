@@ -2,7 +2,7 @@
 name = "worker-sys"
 authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
 edition = "2021"
-version.workspace = true
+version = "0.7.0"
 license = "Apache-2.0"
 repository = "https://github.com/cloudflare/workers-rs/tree/main/worker-sys"
 description = "Low-level extern definitions / FFI bindings to the Cloudflare Workers JS Runtime."
