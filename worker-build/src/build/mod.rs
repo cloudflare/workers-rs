@@ -355,7 +355,7 @@ impl Build {
                 anyhow!(
                     "{msg}\n\nEither upgrade to worker@{}, or use an older worker-build toolchain (e.g. by updating wrangler.toml to use `{}`).",
                     *MIN_WORKER_LIB_VERSION,
-                    style(format!("cargo install worker-build@{}",
+                    style(format!("cargo install worker-build@^{}",
                     // Prior to worker@0.6 toolchain was 0.1 with no lock
                     if version.major == 0 && version.minor <= 6 {
                         "0.1".to_string()

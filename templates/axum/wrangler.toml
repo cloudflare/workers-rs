@@ -3,4 +3,4 @@ main = "build/index.js"
 compatibility_date = "{{ "now" | date: "%Y-%m-%d" }}"
 
 [build]
-command = "cargo install -q worker-build@0.7 && worker-build --release"
+command = "cargo install worker-build@^0.7 && worker-build --release"

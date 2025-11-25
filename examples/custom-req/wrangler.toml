@@ -2,4 +2,4 @@ name = "custom-req-workers"
 main = "build/index.js"
 
 [build]
-command = "cargo install worker-build@0.7 && worker-build --release"
+command = "cargo install worker-build@^0.7 && worker-build --release"
