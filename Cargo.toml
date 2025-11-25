@@ -19,7 +19,7 @@ exclude = [
 resolver = "2"
 
 [workspace.package]
-version = "0.6.7"
+version = "0.7.0"
 
 [workspace.dependencies]
 async-trait = "0.1.88"
@@ -74,7 +74,7 @@ web-sys = { version = "0.3.82", features = [
 ] }
 worker = { path = "worker", features = ["queue", "d1", "axum", "timezone"] }
 worker-codegen = { path = "worker-codegen", version = "0.2.0" }
-worker-kv = { path = "worker-kv", version = "0.9.1" }
+worker-kv = { path = "worker-kv", version = "0.10.0" }
 worker-macros = { path = "worker-macros", features = ["queue"] }
 worker-sys = { path = "worker-sys", features = ["d1", "queue"] }
 
