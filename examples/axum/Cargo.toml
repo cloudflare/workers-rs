@@ -10,8 +10,8 @@ release = false
 crate-type = ["cdylib"]
 
 [dependencies]
-worker = { version = "0.6.7", features = ['http', 'axum'] }
-worker-macros = { version = "0.6.7", features = ['http'] }
+worker = { version = "0.7", features = ['http', 'axum'] }
+worker-macros = { version = "0.7", features = ['http'] }
 axum = { version = "0.8", default-features = false }
 tower-service = "0.3.3"
 wasm-bindgen-futures = "0.4"

@@ -5,7 +5,6 @@
 use std::fs;
 use std::path::PathBuf;
 
-use crate::versions::CUR_WORKER_VERSION;
 use anyhow::{anyhow, bail, Context, Result};
 use cargo_metadata::Metadata;
 use console::style;
@@ -27,6 +26,11 @@ struct Package {
     dependencies: Option<Vec<String>>,
 }
 
+pub(crate) enum DepCheckError {
+    VersionError(String, Option<Version>),
+    Error(anyhow::Error),
+}
+
 impl Lockfile {
     /// Read the `Cargo.lock` file for the crate at the given path.
     pub fn new(crate_data: &Metadata) -> Result<Lockfile> {
@@ -42,27 +46,36 @@ impl Lockfile {
     /// Obtains and verifies the given library matches the given semver version
     /// Min version is used for the semver comparison check
     /// Cur version is only used for help text
+    /// Errors with the wrong version if incorrect.
     pub fn require_lib(
         &self,
         lib_name: &str,
         min_version: &Version,
         cur_version: &Version,
-    ) -> Result<()> {
-        let req = VersionReq::parse(&format!("^{min_version}"))?;
-        if let Some(version) = self.get_package_version(lib_name)? {
+    ) -> Result<(), DepCheckError> {
+        let req = VersionReq::parse(&format!("^{min_version}")).unwrap();
+        if let Some(version) = self
+            .get_package_version(lib_name)
+            .map_err(|e| DepCheckError::Error(e))?
+        {
             if !req.matches(&version) {
-                anyhow::bail!(
-                    "Unsupported version {}, you must ensure {}\n\nAlternatively, use a different version of worker-build (currently running {}) that supports this {lib_name} version.",
-                    style(format!("{lib_name}@{version}")).bold().red(),
-                    cargo_dep_error(lib_name, cur_version),
-                    *CUR_WORKER_VERSION
-                );
+                return Err(DepCheckError::VersionError(
+                    format!(
+                        "Unsupported version {}, expected {}.",
+                        style(format!("{lib_name}@{version}")).bold().red(),
+                        cargo_dep_error(lib_name, cur_version)
+                    ),
+                    Some(version),
+                ));
             }
         } else {
-            anyhow::bail!(
-                "Ensure that you have dependency {}",
-                cargo_dep_error(lib_name, cur_version)
-            );
+            return Err(DepCheckError::VersionError(
+                format!(
+                    "Ensure that you have dependency {}",
+                    cargo_dep_error(lib_name, cur_version)
+                ),
+                None,
+            ));
         }
         Ok(())
     }

@@ -56,10 +56,7 @@ pub fn main() -> Result<()> {
     env_logger::init();
 
     let args: Vec<_> = env::args().collect();
-    if matches!(
-        args.first().map(String::as_str),
-        Some("--version") | Some("-v")
-    ) {
+    if args.len() > 1 && (args[1].as_str() == "--version" || args[1].as_str() == "-v") {
         println!("{}", VERSION);
         return Ok(());
     }

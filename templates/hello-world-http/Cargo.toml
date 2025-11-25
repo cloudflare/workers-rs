@@ -8,6 +8,6 @@ authors = ["{{authors}}"]
 crate-type = ["cdylib"]
 
 [dependencies]
-worker = { version = "0.6", features = ['http'] }
-worker-macros = { version = "0.6", features = ['http'] }
+worker = { version = "0.7", features = ['http'] }
+worker-macros = { version = "0.7", features = ['http'] }
 http = "1.3"

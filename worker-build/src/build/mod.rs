@@ -1,6 +1,6 @@
 use crate::binary::{GetBinary, WasmOpt};
 use crate::emoji;
-use crate::lockfile::Lockfile;
+use crate::lockfile::{DepCheckError, Lockfile};
 use crate::versions::{
     CUR_WASM_BINDGEN_VERSION, CUR_WORKER_VERSION, MIN_WASM_BINDGEN_LIB_VERSION,
     MIN_WORKER_LIB_VERSION,
@@ -11,6 +11,7 @@ mod progressbar;
 mod target;
 mod utils;
 
+use console::style;
 use progressbar::ProgressOutput;
 
 /// The global progress bar and user-facing message output.
@@ -359,12 +360,39 @@ impl Build {
 
     fn step_check_lib_versions(&mut self) -> Result<()> {
         let lockfile = Lockfile::new(&self.crate_data.data)?;
-        lockfile.require_lib("worker", &MIN_WORKER_LIB_VERSION, &CUR_WORKER_VERSION)?;
-        lockfile.require_lib(
-            "wasm-bindgen",
-            &MIN_WASM_BINDGEN_LIB_VERSION,
-            &CUR_WASM_BINDGEN_VERSION,
-        )?;
+
+        lockfile.require_lib("worker", &MIN_WORKER_LIB_VERSION, &CUR_WORKER_VERSION).map_err(|err| match err {
+            DepCheckError::VersionError(msg, Some(version)) => {
+                anyhow!(
+                    "{msg}\n\nEither upgrade to worker@{}, or use an older worker-build toolchain (e.g. by updating wrangler.toml to use `{}`).",
+                    *MIN_WORKER_LIB_VERSION,
+                    style(format!("cargo install worker-build@{}",
+                    // Prior to worker@0.6 toolchain was 0.1 with no lock
+                    if version.major == 0 && version.minor <= 6 {
+                        "0.1".to_string()
+                    // 0.x semver lock
+                    } else if version.major == 0 {
+                        format!("{}.{}", version.major, version.minor)
+                    // N.x semver lock
+                    } else {
+                        version.major.to_string()
+                    })).bold()
+                )
+            },
+            DepCheckError::VersionError(msg, None) => anyhow!(msg),
+            DepCheckError::Error(err) => err,
+        })?;
+
+        lockfile
+            .require_lib(
+                "wasm-bindgen",
+                &MIN_WASM_BINDGEN_LIB_VERSION,
+                &CUR_WASM_BINDGEN_VERSION,
+            )
+            .map_err(|err| match err {
+                DepCheckError::VersionError(msg, _) => anyhow!(msg),
+                DepCheckError::Error(err) => anyhow!(err),
+            })?;
         Ok(())
     }
 
