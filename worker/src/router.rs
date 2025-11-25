@@ -65,19 +65,6 @@ pub struct RouteContext<D> {
 }
 
 impl<D> RouteContext<D> {
-    /// Get a reference to the generic associated data provided to the `Router`.
-    #[deprecated(since = "0.0.8", note = "please use the `data` field directly")]
-    pub fn data(&self) -> &D {
-        &self.data
-    }
-
-    /// Get the `Env` for this Worker. Typically users should opt for the `secret`, `var`, `kv` and
-    /// `durable_object` methods on the `RouteContext` instead.
-    #[deprecated(since = "0.0.8", note = "please use the `env` field directly")]
-    pub fn get_env(self) -> Env {
-        self.env
-    }
-
     /// Get a Secret value associated with this Worker, should one exist.
     pub fn secret(&self, binding: &str) -> Result<Secret> {
         self.env.secret(binding)

@@ -157,17 +157,6 @@ pub struct BuildOptions {
     #[clap(long, hide = true)]
     /// Pass-through for --no-panic-recovery
     pub no_panic_recovery: bool,
-
-    #[deprecated(note = "runtime-detected")]
-    #[allow(dead_code)]
-    #[clap(long = "weak-refs", hide = true)]
-    /// Enable usage of the JS weak references proposal.
-    pub weak_refs: bool,
-
-    #[deprecated(note = "automatically inferred from the Wasm features")]
-    #[clap(long = "reference-types", hide = true)]
-    /// Enable usage of WebAssembly reference types.
-    pub reference_types: bool,
 }
 
 type BuildStep = fn(&mut Build) -> Result<()>;
