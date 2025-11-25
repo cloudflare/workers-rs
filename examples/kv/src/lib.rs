@@ -1,5 +1,5 @@
-use worker::{event, Env, Request, Response, Result};
 use worker::kv::KvError;
+use worker::{event, Env, Request, Response, Result};
 
 #[event(fetch)]
 async fn main(_req: Request, env: Env, _: worker::Context) -> Result<Response> {

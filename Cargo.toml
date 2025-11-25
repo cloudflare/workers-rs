@@ -5,7 +5,6 @@ members = [
     "worker-macros",
     "test",
     "worker-sys",
-    "worker-kv",
     "examples/*",
     "test/container-echo",
 ]
@@ -74,7 +73,6 @@ web-sys = { version = "0.3.82", features = [
 ] }
 worker = { path = "worker", features = ["queue", "d1", "axum", "timezone"] }
 worker-codegen = { path = "worker-codegen", version = "0.2.0" }
-worker-kv = { path = "worker-kv", version = "0.10.0" }
 worker-macros = { path = "worker-macros", features = ["queue"] }
 worker-sys = { path = "worker-sys", features = ["d1", "queue"] }
 
@@ -101,6 +99,8 @@ lto = true
 codegen-units = 1
 opt-level = "z"
 
+# These are local patches we use to test against local wasm bindgen
+# We always align on the exact stable wasm bindgen version for releases
 [patch.crates-io]
 js-sys = { version = "0.3.82", path = './wasm-bindgen/crates/js-sys' }
 wasm-bindgen = { version = "0.2.105", path = './wasm-bindgen' }

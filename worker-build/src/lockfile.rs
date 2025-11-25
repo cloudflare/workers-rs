@@ -56,7 +56,7 @@ impl Lockfile {
         let req = VersionReq::parse(&format!("^{min_version}")).unwrap();
         if let Some(version) = self
             .get_package_version(lib_name)
-            .map_err(|e| DepCheckError::Error(e))?
+            .map_err(DepCheckError::Error)?
         {
             if !req.matches(&version) {
                 return Err(DepCheckError::VersionError(
