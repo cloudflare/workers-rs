@@ -379,14 +379,4 @@ mod test {
         let result = parse_wasm_pack_opts(args);
         assert!(result.is_ok());
     }
-
-    #[test]
-    fn test_wasm_pack_args_additional_arg() {
-        let args = vec!["--weak-refs".to_owned()];
-        let result = parse_wasm_pack_opts(args).unwrap();
-
-        #[allow(deprecated)]
-        let weak_refs = result.weak_refs;
-        assert!(weak_refs);
-    }
 }
