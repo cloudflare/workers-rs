@@ -17,7 +17,6 @@ pub async fn handle_asset(
 }
 
 #[cfg(feature = "http")]
-#[worker::send]
 pub async fn handle_asset(
     req: worker::Request,
     env: worker::Env,

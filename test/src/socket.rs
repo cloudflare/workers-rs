@@ -3,7 +3,6 @@ use tokio::io::AsyncReadExt;
 use tokio::io::AsyncWriteExt;
 use worker::{ConnectionBuilder, Env, Error, Request, Response, Result};
 
-#[worker::send]
 pub async fn handle_socket_failed(
     _req: Request,
     _env: Env,
@@ -12,16 +11,13 @@ pub async fn handle_socket_failed(
     let socket = ConnectionBuilder::new().connect("127.0.0.1", 25000)?;
 
     match socket.opened().await {
-        Ok(_) => {
-            return Err(Error::RustError(
-                "Socket should have failed to open.".to_owned(),
-            ))
-        }
+        Ok(_) => Err(Error::RustError(
+            "Socket should have failed to open.".to_owned(),
+        )),
         Err(e) => Response::ok(format!("{e:?}")),
     }
 }
 
-#[worker::send]
 pub async fn handle_socket_read(
     _req: Request,
     _env: Env,
