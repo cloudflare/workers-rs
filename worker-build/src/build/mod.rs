@@ -379,11 +379,7 @@ impl Build {
                 &CUR_WASM_BINDGEN_VERSION,
             )
             .map_err(|err| match err {
-                DepCheckError::VersionError(msg, Some(_)) => anyhow!(
-                    "{msg}\n\nEither upgrade to wasm-bindgen@{}, or use an older worker-build toolchain.",
-                    *MIN_WORKER_LIB_VERSION
-                ),
-                DepCheckError::VersionError(msg, None) => anyhow!(msg),
+                DepCheckError::VersionError(msg, _) => anyhow!(msg),
                 DepCheckError::Error(err) => anyhow!(err),
             })?;
         Ok(())
