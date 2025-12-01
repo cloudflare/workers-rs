@@ -95,7 +95,7 @@ fn expand_from_impl(struct_name: &Ident, from_type: &syn::Type) -> anyhow::Resul
     let impl_raw = quote!(
         impl From<#from_type> for #struct_name {
             fn from(fetcher: #from_type) -> Self {
-                Self(::worker::send::SendWrapper::new(fetcher.into_rpc()))
+                Self(unsafe { ::worker::send::SendWrapper::new(fetcher.into_rpc()) })
             }
         }
     );
@@ -144,7 +144,7 @@ fn expand_rpc_impl(
         let method_raw = quote!(
             async fn #ident(&self) -> ::worker::Result<#ret_type> {
                 let promise = #invocation_item?;
-                let fut = ::worker::send::SendFuture::new(::worker::wasm_bindgen_futures::JsFuture::from(promise));
+                let fut = unsafe { ::worker::send::SendFuture::new(::worker::wasm_bindgen_futures::JsFuture::from(promise)) };
                 let output = fut.await?;
                 Ok(::serde_wasm_bindgen::from_value(output)?)
             }
