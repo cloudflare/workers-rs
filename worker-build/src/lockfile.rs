@@ -115,9 +115,7 @@ fn cargo_dep_error(lib_name: &str, cur_version: &Version) -> String {
         "{} in the Cargo.toml file:\n\n\
          [dependencies]\n\
          {lib_name} = \"{}\"",
-        style(format!("{lib_name}@{}", cur_version))
-        .bold()
-        .green(),
+        style(format!("{lib_name}@{}", cur_version)).bold().green(),
         *cur_version,
     )
 }
