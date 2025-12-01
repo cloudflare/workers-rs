@@ -61,7 +61,7 @@ impl Lockfile {
             if !req.matches(&version) {
                 return Err(DepCheckError::VersionError(
                     format!(
-                        "Unsupported version {}, expected the latest {}.",
+                        "Unsupported version {}, expected at least {}",
                         style(format!("{lib_name}@{version}")).bold().red(),
                         cargo_dep_error(lib_name, cur_version)
                     ),
@@ -115,10 +115,7 @@ fn cargo_dep_error(lib_name: &str, cur_version: &Version) -> String {
         "{} in the Cargo.toml file:\n\n\
          [dependencies]\n\
          {lib_name} = \"{}\"",
-        style(format!(
-            "{lib_name}@{}.{}",
-            cur_version.major, cur_version.minor
-        ))
+        style(format!("{lib_name}@{}", cur_version))
         .bold()
         .green(),
         *cur_version,
