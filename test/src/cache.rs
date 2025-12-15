@@ -2,7 +2,9 @@ use super::SomeSharedData;
 use futures_util::stream::StreamExt;
 use rand::Rng;
 use std::{borrow::ToOwned, time::Duration};
-use worker::{console_log, Cache, Date, Delay, Env, Request, Response, ResponseBuilder, Result};
+use worker::{
+    console_log, ok, Cache, Date, Delay, Env, Request, Response, ResponseBuilder, Result,
+};
 
 fn key(req: &Request) -> Result<Option<String>> {
     let uri = req.url()?;
@@ -104,7 +106,7 @@ pub async fn handle_cache_stream(
             .take(count)
             .then(|text| async move {
                 Delay::from(Duration::from_millis(50)).await;
-                Result::Ok(text.as_bytes().to_vec())
+                ok::Ok(text.as_bytes().to_vec())
             });
 
         // Cache API respects Cache-Control headers. Setting s-max-age to 10
