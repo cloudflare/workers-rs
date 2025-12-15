@@ -212,7 +212,13 @@ impl BinaryDep for Esbuild {
     }
     fn bin_path(&self, name: Option<&str>) -> Result<String> {
         Ok(match name {
-            None | Some("esbuild") => format!("bin/esbuild{MAYBE_EXE}"),
+            None | Some("esbuild") => {
+                if cfg!(windows) {
+                    format!("esbuild{MAYBE_EXE}")
+                } else {
+                    format!("bin/esbuild{MAYBE_EXE}")
+                }
+            }
             Some(name) => bail!("Unknown binary {name} in {}", self.full_name()),
         })
     }
