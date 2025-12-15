@@ -241,7 +241,23 @@ mod streams;
 mod version;
 mod websocket;
 
-pub type Result<T> = StdResult<T, error::Error>;
+/// A `Result` alias defaulting to [`Error`].
+pub type Result<T, E = error::Error> = StdResult<T, E>;
+
+// This module exists because we can't re-export a standalone `Ok` function at
+// the crate root. Doing so would shadow the built-in `Ok` pattern, breaking
+// `match` arms like `Ok(x) => ...` when users write `use worker::*`.
+/// Use `ok::Ok(value)` as a shorthand for `Result::<_, Error>::Ok(value)`.
+pub mod ok {
+    use super::*;
+
+    #[allow(non_snake_case)]
+    /// Returns `Result::Ok(value)` with `worker::Error` as the error type.
+    /// Use as `ok::Ok(value)` rather than importing this function directly.
+    pub fn Ok<T>(value: T) -> Result<T> {
+        Result::Ok(value)
+    }
+}
 
 #[cfg(feature = "http")]
 /// **Requires** `http` feature. A convenience Body type which wraps [`web_sys::ReadableStream`](web_sys::ReadableStream)

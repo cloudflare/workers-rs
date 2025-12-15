@@ -7,7 +7,9 @@ use serde::Deserialize;
 use serde::Serialize;
 use std::time::Duration;
 use worker::Env;
-use worker::{console_log, Date, Delay, Request, Response, ResponseBody, ResponseBuilder, Result};
+use worker::{
+    console_log, ok, Date, Delay, Request, Response, ResponseBody, ResponseBuilder, Result,
+};
 
 #[allow(clippy::needless_pass_by_value)]
 pub fn handle_a_request(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
@@ -204,7 +206,7 @@ pub async fn handle_cloned_stream(
             .enumerate()
             .then(|(index, ())| async move {
                 Delay::from(Duration::from_millis(100)).await;
-                Result::Ok(index.to_string().into_bytes())
+                ok::Ok(index.to_string().into_bytes())
             });
 
     let mut resp = Response::from_stream(stream)?;
