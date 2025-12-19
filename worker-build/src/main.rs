@@ -9,6 +9,10 @@ use std::{
 use anyhow::Result;
 use clap::Parser;
 
+/// Default output dir passed to the internal build pipeline.
+///
+/// Note: all filesystem access must be relative to the crate root discovered by
+/// `Build::try_from_opts` (i.e. `Build::out_dir`), NOT the process current-dir.
 const OUT_DIR: &str = "build";
 
 const SHIM_FILE: &str = include_str!("./js/shim.js");
@@ -29,16 +33,16 @@ use crate::{
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-fn fix_wasm_import() -> Result<()> {
-    let index_path = output_path("index.js");
+fn fix_wasm_import(out_dir: &Path) -> Result<()> {
+    let index_path = output_path(out_dir, "index.js");
     let content = fs::read_to_string(&index_path)?;
     let updated_content = content.replace("import source ", "import ");
     fs::write(&index_path, updated_content)?;
     Ok(())
 }
 
-fn update_package_json() -> Result<()> {
-    let package_json_path = output_path("package.json");
+fn update_package_json(out_dir: &Path) -> Result<()> {
+    let package_json_path = output_path(out_dir, "package.json");
 
     let original_content = fs::read_to_string(&package_json_path)?;
     let mut package_json: serde_json::Value = serde_json::from_str(&original_content)?;
@@ -62,13 +66,18 @@ pub fn main() -> Result<()> {
     }
     let no_panic_recovery = args.iter().any(|a| a == "--no-panic-recovery");
 
-    let out_path = output_path("");
-    if out_path.exists() {
-        fs::remove_dir_all(out_path)?;
-    }
-
     let wasm_pack_opts = parse_wasm_pack_opts(env::args().skip(1))?;
     let mut builder = Build::try_from_opts(wasm_pack_opts)?;
+
+    // IMPORTANT: Build output is always relative to the crate root discovered by
+    // `Build::try_from_opts`, not the process current working directory.
+    let out_dir = builder.out_dir.clone();
+
+    if out_dir.is_dir() {
+        fs::remove_dir_all(&out_dir)?;
+    } else if out_dir.exists() {
+        fs::remove_file(&out_dir)?;
+    }
 
     builder.init()?;
 
@@ -94,35 +103,35 @@ pub fn main() -> Result<()> {
     let with_coredump = env::var("COREDUMP").is_ok();
     if with_coredump {
         println!("Adding wasm coredump");
-        wasm_coredump()?;
+        wasm_coredump(&out_dir)?;
     }
 
     if module_target {
-        let shim = SHIM_FILE.replace("$HANDLERS", &generate_handlers()?);
-        fs::write(output_path("shim.js"), shim)?;
+        let shim = SHIM_FILE.replace("$HANDLERS", &generate_handlers(&out_dir)?);
+        fs::write(output_path(&out_dir, "shim.js"), shim)?;
 
-        add_export_wrappers()?;
+        add_export_wrappers(&out_dir)?;
 
-        update_package_json()?;
+        update_package_json(&out_dir)?;
 
         let esbuild_path = Esbuild.get_binary(None)?.0;
-        bundle(&esbuild_path)?;
+        bundle(&out_dir, &esbuild_path)?;
 
-        fix_wasm_import()?;
+        fix_wasm_import(&out_dir)?;
 
-        remove_unused_files()?;
+        remove_unused_files(&out_dir)?;
 
-        create_wrapper_alias(false)?;
+        create_wrapper_alias(&out_dir, false)?;
     } else {
-        main_legacy::process()?;
-        create_wrapper_alias(true)?;
+        main_legacy::process(&out_dir)?;
+        create_wrapper_alias(&out_dir, true)?;
     }
 
     Ok(())
 }
 
-fn generate_handlers() -> Result<String> {
-    let index_path = output_path("index.js");
+fn generate_handlers(out_dir: &Path) -> Result<String> {
+    let index_path = output_path(out_dir, "index.js");
     let content = fs::read_to_string(&index_path)?;
 
     // Extract ESM function exports from the wasm-bindgen generated output.
@@ -180,8 +189,8 @@ fn generate_handlers() -> Result<String> {
 
 static SYSTEM_FNS: &[&str] = &["__wbg_reset_state", "setPanicHook"];
 
-fn add_export_wrappers() -> Result<()> {
-    let index_path = output_path("index.js");
+fn add_export_wrappers(out_dir: &Path) -> Result<()> {
+    let index_path = output_path(out_dir, "index.js");
     let content = fs::read_to_string(&index_path)?;
 
     let mut class_names = Vec::new();
@@ -194,7 +203,7 @@ fn add_export_wrappers() -> Result<()> {
         }
     }
 
-    let shim_path = output_path("shim.js");
+    let shim_path = output_path(out_dir, "shim.js");
     let mut output = fs::read_to_string(&shim_path)?;
     for class_name in class_names {
         output.push_str(&format!(
@@ -207,7 +216,7 @@ fn add_export_wrappers() -> Result<()> {
 
 const INSTALL_HELP: &str = "In case you are missing the binary, you can install it using: `cargo install wasm-coredump-rewriter`";
 
-fn wasm_coredump() -> Result<()> {
+fn wasm_coredump(out_dir: &Path) -> Result<()> {
     let coredump_flags = env::var("COREDUMP_FLAGS");
     let coredump_flags: Vec<&str> = if let Ok(flags) = &coredump_flags {
         flags.split(' ').collect()
@@ -224,7 +233,7 @@ fn wasm_coredump() -> Result<()> {
             anyhow::anyhow!("failed to spawn wasm-coredump-rewriter: {err}\n\n{INSTALL_HELP}.")
         })?;
 
-    let input_filename = output_path("index.wasm");
+    let input_filename = output_path(out_dir, "index.wasm");
 
     let input_bytes = {
         let mut input = File::open(input_filename.clone())
@@ -270,7 +279,7 @@ fn wasm_coredump() -> Result<()> {
     }
 }
 
-fn create_wrapper_alias(legacy: bool) -> Result<()> {
+fn create_wrapper_alias(out_dir: &Path, legacy: bool) -> Result<()> {
     let msg = if !legacy {
         "// Use index.js directly, this file provided for backwards compat
 // with former shim.mjs only.
@@ -290,10 +299,10 @@ export {{ default }} from '{path}';
     );
 
     if !legacy {
-        fs::create_dir(output_path("worker"))?;
-        fs::write(output_path("worker/shim.mjs"), shim_content)?;
+        fs::create_dir_all(output_path(out_dir, "worker"))?;
+        fs::write(output_path(out_dir, "worker/shim.mjs"), shim_content)?;
     } else {
-        fs::write(output_path("index.js"), shim_content)?;
+        fs::write(output_path(out_dir, "index.js"), shim_content)?;
     }
     Ok(())
 }
@@ -328,9 +337,9 @@ where
 }
 
 // Bundles the snippets and worker-related code into a single file.
-fn bundle(esbuild_path: &Path) -> Result<()> {
+fn bundle(out_dir: &Path, esbuild_path: &Path) -> Result<()> {
     let no_minify = !matches!(env::var("NO_MINIFY"), Err(VarError::NotPresent));
-    let path = PathBuf::from(OUT_DIR).canonicalize()?;
+    let path = out_dir.canonicalize()?;
     let esbuild_path = esbuild_path.canonicalize()?;
     let mut command = Command::new(esbuild_path);
     command.args([
@@ -356,18 +365,18 @@ fn bundle(esbuild_path: &Path) -> Result<()> {
     }
 }
 
-fn remove_unused_files() -> Result<()> {
-    std::fs::remove_file(output_path("index_bg.wasm.d.ts"))?;
-    std::fs::remove_file(output_path("shim.js"))?;
-    let snippets_path = output_path("snippets");
+fn remove_unused_files(out_dir: &Path) -> Result<()> {
+    std::fs::remove_file(output_path(out_dir, "index_bg.wasm.d.ts"))?;
+    std::fs::remove_file(output_path(out_dir, "shim.js"))?;
+    let snippets_path = output_path(out_dir, "snippets");
     if snippets_path.exists() {
         std::fs::remove_dir_all(snippets_path)?;
     }
     Ok(())
 }
 
-pub fn output_path(name: impl AsRef<str>) -> PathBuf {
-    PathBuf::from(OUT_DIR).join(name.as_ref())
+pub fn output_path(out_dir: &Path, name: impl AsRef<str>) -> PathBuf {
+    out_dir.join(name.as_ref())
 }
 
 #[cfg(test)]

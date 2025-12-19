@@ -9,7 +9,6 @@ use std::{
 
 use anyhow::Result;
 
-const OUT_DIR: &str = "build";
 const OUT_NAME: &str = "index";
 const WORKER_SUBDIR: &str = "worker";
 
@@ -17,11 +16,11 @@ const SHIM_TEMPLATE: &str = include_str!("./js/shim-legacy.js");
 
 use crate::binary::{Esbuild, GetBinary};
 
-pub fn process() -> Result<()> {
+pub fn process(out_dir: &Path) -> Result<()> {
     let esbuild_path = Esbuild.get_binary(None)?.0;
 
-    create_worker_dir()?;
-    copy_generated_code_to_worker_dir()?;
+    create_worker_dir(out_dir)?;
+    copy_generated_code_to_worker_dir(out_dir)?;
 
     let shim_template = match env::var("CUSTOM_SHIM") {
         Ok(path) => {
@@ -39,7 +38,7 @@ pub fn process() -> Result<()> {
         ""
     };
 
-    let snippets_dir = worker_path("snippets");
+    let snippets_dir = worker_path(out_dir, "snippets");
     let mut snippets = Vec::new();
     let mut counter = 0;
 
@@ -95,18 +94,18 @@ pub fn process() -> Result<()> {
         .replace("$SNIPPET_JS_IMPORTS", &js_imports)
         .replace("$SNIPPET_WASM_IMPORTS", &wasm_imports);
 
-    write_string_to_file(worker_path("shim.js"), shim)?;
+    write_string_to_file(worker_path(out_dir, "shim.js"), shim)?;
 
-    bundle(&esbuild_path)?;
+    bundle(out_dir, &esbuild_path)?;
 
-    remove_unused_js()?;
+    remove_unused_js(out_dir)?;
 
     Ok(())
 }
 
-fn create_worker_dir() -> Result<()> {
+fn create_worker_dir(out_dir: &Path) -> Result<()> {
     // create a directory for our worker to live in
-    let worker_dir = PathBuf::from(OUT_DIR).join(WORKER_SUBDIR);
+    let worker_dir = out_dir.join(WORKER_SUBDIR);
 
     // remove anything that already exists
     if worker_dir.is_dir() {
@@ -116,22 +115,22 @@ fn create_worker_dir() -> Result<()> {
     };
 
     // create an output dir
-    fs::create_dir(worker_dir)?;
+    fs::create_dir_all(worker_dir)?;
 
     Ok(())
 }
 
-fn copy_generated_code_to_worker_dir() -> Result<()> {
-    let glue_src = output_path(format!("{OUT_NAME}_bg.js"));
-    let glue_dest = worker_path(format!("{OUT_NAME}_bg.js"));
+fn copy_generated_code_to_worker_dir(out_dir: &Path) -> Result<()> {
+    let glue_src = output_path(out_dir, format!("{OUT_NAME}_bg.js"));
+    let glue_dest = worker_path(out_dir, format!("{OUT_NAME}_bg.js"));
 
-    let wasm_src = output_path(format!("{OUT_NAME}_bg.wasm"));
-    let wasm_dest = worker_path(format!("{OUT_NAME}.wasm"));
+    let wasm_src = output_path(out_dir, format!("{OUT_NAME}_bg.wasm"));
+    let wasm_dest = worker_path(out_dir, format!("{OUT_NAME}.wasm"));
 
     // wasm-bindgen supports adding arbitrary JavaScript for a library, so we need to move that as well.
     // https://rustwasm.github.io/wasm-bindgen/reference/js-snippets.html
-    let snippets_src = output_path("snippets");
-    let snippets_dest = worker_path("snippets");
+    let snippets_src = output_path(out_dir, "snippets");
+    let snippets_dest = worker_path(out_dir, "snippets");
 
     for (src, dest) in [
         (glue_src, glue_dest),
@@ -149,9 +148,9 @@ fn copy_generated_code_to_worker_dir() -> Result<()> {
 }
 
 // Bundles the snippets and worker-related code into a single file.
-fn bundle(esbuild_path: &Path) -> Result<()> {
+fn bundle(out_dir: &Path, esbuild_path: &Path) -> Result<()> {
     let no_minify = !matches!(env::var("NO_MINIFY"), Err(VarError::NotPresent));
-    let path = PathBuf::from(OUT_DIR).join(WORKER_SUBDIR).canonicalize()?;
+    let path = out_dir.join(WORKER_SUBDIR).canonicalize()?;
     let esbuild_path = esbuild_path.canonicalize()?;
     let mut command = Command::new(esbuild_path);
     command.args([
@@ -178,16 +177,16 @@ fn bundle(esbuild_path: &Path) -> Result<()> {
 
 // After bundling there's no reason why we'd want to upload our now un-used JavaScript so we'll
 // delete it.
-fn remove_unused_js() -> Result<()> {
-    let snippets_dir = worker_path("snippets");
+fn remove_unused_js(out_dir: &Path) -> Result<()> {
+    let snippets_dir = worker_path(out_dir, "snippets");
 
     if snippets_dir.exists() {
         std::fs::remove_dir_all(&snippets_dir)?;
     }
 
-    std::fs::remove_file(worker_path(format!("{OUT_NAME}_bg.js")))?;
-    std::fs::remove_file(worker_path("shim.js"))?;
-    std::fs::remove_file(output_path("index.js"))?;
+    std::fs::remove_file(worker_path(out_dir, format!("{OUT_NAME}_bg.js")))?;
+    std::fs::remove_file(worker_path(out_dir, "shim.js"))?;
+    std::fs::remove_file(output_path(out_dir, "index.js"))?;
 
     Ok(())
 }
@@ -199,12 +198,10 @@ fn write_string_to_file<P: AsRef<Path>>(path: P, contents: impl AsRef<str>) -> R
     Ok(())
 }
 
-pub fn worker_path(name: impl AsRef<str>) -> PathBuf {
-    PathBuf::from(OUT_DIR)
-        .join(WORKER_SUBDIR)
-        .join(name.as_ref())
+fn worker_path(out_dir: &Path, name: impl AsRef<str>) -> PathBuf {
+    out_dir.join(WORKER_SUBDIR).join(name.as_ref())
 }
 
-pub fn output_path(name: impl AsRef<str>) -> PathBuf {
-    PathBuf::from(OUT_DIR).join(name.as_ref())
+fn output_path(out_dir: &Path, name: impl AsRef<str>) -> PathBuf {
+    out_dir.join(name.as_ref())
 }
