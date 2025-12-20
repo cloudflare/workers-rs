@@ -299,3 +299,51 @@ pub async fn retrive_first_none(
 
     Response::ok("ok")
 }
+
+/// Test for GitHub issue #893: D1 .bind() WASM crash with INSERT statements
+/// This test verifies that direct bind() with JsValue works for INSERT/UPDATE/DELETE
+#[worker::send]
+pub async fn insert_with_raw_bind(
+    _req: Request,
+    env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
+    let db = env.d1("DB")?;
+
+    // Test INSERT with direct bind() using JsValue (the failing pattern from issue #893)
+    let stmt = db.prepare("INSERT INTO people (id, name, age) VALUES (?1, ?2, ?3)");
+    let query = stmt.bind(&[
+        JsValue::from_f64(1000.0),
+        JsValue::from_str("Test User"),
+        JsValue::from_f64(25.0),
+    ])?;
+    query.run().await?;
+
+    // Verify the insert worked
+    let verify_stmt = worker::query!(&db, "SELECT * FROM people WHERE id = 1000");
+    let person = verify_stmt.first::<Person>(None).await?.unwrap();
+    assert_eq!(person.id, 1000);
+    assert_eq!(person.name, "Test User");
+    assert_eq!(person.age, 25);
+
+    // Test UPDATE with direct bind()
+    let update_stmt = db.prepare("UPDATE people SET age = ?1 WHERE id = ?2");
+    let update_query = update_stmt.bind(&[JsValue::from_f64(30.0), JsValue::from_f64(1000.0)])?;
+    update_query.run().await?;
+
+    // Verify the update worked
+    let verify_stmt2 = worker::query!(&db, "SELECT * FROM people WHERE id = 1000");
+    let person2 = verify_stmt2.first::<Person>(None).await?.unwrap();
+    assert_eq!(person2.age, 30);
+
+    // Test DELETE with direct bind()
+    let delete_stmt = db.prepare("DELETE FROM people WHERE id = ?1");
+    let delete_query = delete_stmt.bind(&[JsValue::from_f64(1000.0)])?;
+    delete_query.run().await?;
+
+    // Verify the delete worked
+    let verify_stmt3 = worker::query!(&db, "SELECT * FROM people WHERE id = 1000");
+    assert!(verify_stmt3.first::<Person>(None).await?.is_none());
+
+    Response::ok("ok")
+}

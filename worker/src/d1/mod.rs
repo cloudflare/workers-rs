@@ -239,10 +239,22 @@ impl D1PreparedStatement {
     pub fn bind(self, values: &[JsValue]) -> Result<Self> {
         let array: Array = values.iter().collect::<Array>();
 
-        match self.0.bind(array) {
-            Ok(stmt) => Ok(D1PreparedStatement(stmt)),
-            Err(err) => Err(Error::from(err)),
-        }
+        // Use Function.apply to properly spread arguments to the D1 bind method.
+        // This avoids issues with wasm-bindgen's variadic attribute handling.
+        let bind_fn = js_sys::Reflect::get(&self.0, &JsValue::from_str("bind"))
+            .map_err(Error::from)?
+            .dyn_into::<js_sys::Function>()
+            .map_err(|_| Error::RustError("bind is not a function".to_string()))?;
+
+        let result = bind_fn
+            .apply(&self.0, &array)
+            .map_err(Error::from)?;
+
+        // Use unchecked_into since D1's bind() always returns a D1PreparedStatement
+        // and the type checking from dyn_into may fail due to wasm-bindgen limitations
+        let stmt: D1PreparedStatementSys = result.unchecked_into();
+
+        Ok(D1PreparedStatement(stmt))
     }
 
     /// Bind one or more parameters to the statement.
@@ -253,10 +265,22 @@ impl D1PreparedStatement {
     ) -> Result<Self> {
         let array: Array = values.into_iter().map(|t| t.js_value()).collect::<Array>();
 
-        match self.0.bind(array) {
-            Ok(stmt) => Ok(D1PreparedStatement(stmt)),
-            Err(err) => Err(Error::from(err)),
-        }
+        // Use Function.apply to properly spread arguments to the D1 bind method.
+        // This avoids issues with wasm-bindgen's variadic attribute handling.
+        let bind_fn = js_sys::Reflect::get(&self.0, &JsValue::from_str("bind"))
+            .map_err(Error::from)?
+            .dyn_into::<js_sys::Function>()
+            .map_err(|_| Error::RustError("bind is not a function".to_string()))?;
+
+        let result = bind_fn
+            .apply(&self.0, &array)
+            .map_err(Error::from)?;
+
+        // Use unchecked_into since D1's bind() always returns a D1PreparedStatement
+        // and the type checking from dyn_into may fail due to wasm-bindgen limitations
+        let stmt: D1PreparedStatementSys = result.unchecked_into();
+
+        Ok(D1PreparedStatement(stmt))
     }
 
     /// Bind a batch of parameter values, returning a batch of prepared statements.

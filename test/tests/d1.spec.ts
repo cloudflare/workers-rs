@@ -131,4 +131,11 @@ describe("d1", () => {
     expect(await resp.text()).toBe("ok");
     expect(resp.status).toBe(200);
   });
+
+  // Test for GitHub issue #893: D1 .bind() WASM crash with INSERT statements
+  test("insert_with_raw_bind", async () => {
+    const resp = await mf.dispatchFetch(`${mfUrl}d1/insert_with_raw_bind`);
+    expect(await resp.text()).toBe("ok");
+    expect(resp.status).toBe(200);
+  });
 });

@@ -194,6 +194,7 @@ macro_rules! add_routes (
     add_route!($obj, get, "/d1/retrieve_optional_none", d1::retrieve_optional_none);
     add_route!($obj, get, "/d1/retrieve_optional_some", d1::retrieve_optional_some);
     add_route!($obj, get, "/d1/retrive_first_none", d1::retrive_first_none);
+    add_route!($obj, get, "/d1/insert_with_raw_bind", d1::insert_with_raw_bind);
     add_route!($obj, get, "/kv/get", kv::get);
     add_route!($obj, get, "/kv/get-not-found", kv::get_not_found);
     add_route!($obj, get, "/kv/list-keys", kv::list_keys);
