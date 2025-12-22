@@ -114,7 +114,7 @@ fn remove_all_versions(name: &str, target: &str) -> Result<usize> {
 
 /// Cache path for this binary instance
 fn cache_path(name: &str, version: &str, target: &str) -> Result<PathBuf> {
-    let path_name = format!("{name}-{target}-{version}{MAYBE_EXE}");
+    let path_name = format!("{name}-{target}-{version}");
     let path = dirs_next::cache_dir()
         .unwrap_or_else(std::env::temp_dir)
         .join("worker-build")
