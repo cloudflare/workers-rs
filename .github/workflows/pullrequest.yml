@@ -9,8 +9,12 @@ permissions:
 
 jobs:
   worker-build:
+    strategy:
+      matrix:
+        platform: ['ubuntu-latest', 'windows-latest']
+
     name: Test & Build worker-build
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.platform }}
 
     steps:
       - uses: dtolnay/rust-toolchain@1.83.0
