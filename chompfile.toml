@@ -1,0 +1,65 @@
+version = 0.1
+
+[[task]]
+name = 'build:wasm-bindgen'
+cwd = 'wasm-bindgen'
+run = 'cargo build -p wasm-bindgen-cli --bin wasm-bindgen'
+
+[[task]]
+name = 'build:wasm-bindgen-test-runner'
+cwd = 'wasm-bindgen'
+run = 'cargo build -p wasm-bindgen-cli --bin wasm-bindgen-test-runner'
+
+[[task]]
+name = 'build:worker-build'
+run = 'cargo build -p worker-build'
+
+[[task]]
+name = 'build'
+deps = ['build:wasm-bindgen', 'build:worker-build']
+
+[[task]]
+name = 'lint'
+run = 'cargo clippy --features d1,queue --all-targets --workspace -- -D warnings'
+
+[[task]]
+name = 'fmt'
+run = 'cargo fmt'
+
+[[task]]
+name = 'lint:fix'
+dep = 'fmt'
+run = 'cargo clippy --features d1,queue --all-targets --workspace --fix -- -D warnings'
+
+[[task]]
+name = 'test:unit'
+deps = ['build', 'build:wasm-bindgen-test-runner']
+env.CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER = 'wasm-bindgen/target/debug/wasm-bindgen-test-runner'
+run = 'cargo test -p worker --target wasm32-unknown-unknown'
+
+[[task]]
+name = 'test'
+dep = 'build'
+cwd = 'test'
+env.NO_MINIFY = '1'
+env.WASM_BINDGEN_BIN = '../wasm-bindgen/target/debug/wasm-bindgen'
+run = '''
+../target/debug/worker-build --dev
+npx vitest run --testTimeout 25000
+'''
+
+[[task]]
+name = 'test-http'
+dep = 'build'
+cwd = 'test'
+env.NO_MINIFY = '1'
+env.WASM_BINDGEN_BIN = '../wasm-bindgen/target/debug/wasm-bindgen'
+run = '''
+../target/debug/worker-build --release --features http
+npx vitest run --testTimeout 25000
+'''
+
+[[task]]
+name = 'test-mem'
+cwd = 'test'
+run = 'npx wrangler dev --enable-containers=false'
