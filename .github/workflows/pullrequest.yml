@@ -161,6 +161,8 @@ jobs:
       matrix:
         platform: ['ubuntu-latest', 'windows-latest']
 
+    runs-on: ${{ matrix.platform }}
+
     steps:
       - uses: dtolnay/rust-toolchain@1.83.0
       - uses: actions/checkout@v4
