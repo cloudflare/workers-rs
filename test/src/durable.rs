@@ -199,7 +199,6 @@ impl DurableObject for AnotherClass {
 }
 
 // Route handlers to exercise the Durable Object from tests.
-#[worker::send]
 pub async fn handle_hello(
     _req: Request,
     env: Env,
@@ -213,7 +212,6 @@ pub async fn handle_hello(
         .await
 }
 
-#[worker::send]
 pub async fn handle_hello_unique(
     _req: Request,
     env: Env,
@@ -227,7 +225,6 @@ pub async fn handle_hello_unique(
         .await
 }
 
-#[worker::send]
 pub async fn handle_storage(
     _req: Request,
     env: Env,
@@ -238,7 +235,6 @@ pub async fn handle_storage(
     stub.fetch_with_str("https://fake-host/storage").await
 }
 
-#[worker::send]
 pub async fn handle_basic_test(
     _req: Request,
     env: Env,
@@ -313,7 +309,6 @@ pub async fn handle_basic_test(
     Response::ok("ok")
 }
 
-#[worker::send]
 pub async fn handle_get_by_name(
     _req: Request,
     env: Env,
@@ -331,7 +326,6 @@ pub async fn handle_get_by_name(
         .await
 }
 
-#[worker::send]
 pub async fn handle_get_by_name_with_location_hint(
     _req: Request,
     env: Env,
