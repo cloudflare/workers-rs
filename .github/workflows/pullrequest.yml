@@ -215,7 +215,7 @@ jobs:
 
       - name: Run tests
         env:
-          TEST_CONTAINER_NAME: ${{ matrix.platform == 'ubuntu-latest' && 'worker-dev/echocontainer:latest' || '' }
+          TEST_CONTAINER_NAME: ${{ matrix.platform == 'ubuntu-latest' && 'worker-dev/echocontainer:latest' || '' }}
         run: chomp test
 
       - name: Run tests (http)
