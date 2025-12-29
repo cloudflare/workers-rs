@@ -184,11 +184,11 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-
 
-      - name: Install packages
-        run: |
-          sudo apt update
-          sudo apt clean
-          sudo apt install -y build-essential libssl-dev netcat-traditional libc++-dev
+      # - name: Install packages
+      #   run: |
+      #     sudo apt update
+      #     sudo apt clean
+      #     sudo apt install -y build-essential libssl-dev netcat-traditional libc++-dev
 
       - name: Install npm dependencies
         run: npm ci
