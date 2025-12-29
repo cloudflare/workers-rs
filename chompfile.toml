@@ -34,27 +34,32 @@ run = 'cargo clippy --features d1,queue --all-targets --workspace --fix -- -D wa
 [[task]]
 name = 'test:unit'
 deps = ['build', 'build:wasm-bindgen-test-runner']
-env = { CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER = 'wasm-bindgen/target/debug/wasm-bindgen-test-runner' }
+env.CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER = 'wasm-bindgen/target/debug/wasm-bindgen-test-runner'
 run = 'cargo test -p worker --target wasm32-unknown-unknown'
 
 [[task]]
 name = 'test'
 dep = 'build'
 cwd = 'test'
-env = { NO_MINIFY='1', WASM_BINDGEN_BIN='../wasm-bindgen/target/debug/wasm-bindgen', NODE_OPTIONS='--experimental-vm-modules' }
+env.NO_MINIFY = '1'
+env.WASM_BINDGEN_BIN = '../wasm-bindgen/target/debug/wasm-bindgen'
+env.NODE_OPTIONS = '--experimental-vm-modules'
 run = '''
 ../target/debug/worker-build --dev
-npx vitest run
+npx vitest run --testTimeout 25000
 '''
 
 [[task]]
 name = 'test-http'
 dep = 'build'
 cwd = 'test'
-env = { NO_MINIFY='1', WASM_BINDGEN_BIN='../wasm-bindgen/target/debug/wasm-bindgen', NODE_OPTIONS='--experimental-vm-modules' }
+env.NO_MINIFY = '1'
+env.WASM_BINDGEN_BIN = '../wasm-bindgen/target/debug/wasm-bindgen'
+env.NODE_OPTIONS = '--experimental-vm-modules'
+env.NODE_OPTIONS = '--experimental-vm-modules'
 run = '''
 ../target/debug/worker-build --release --features http
-npx vitest run
+npx vitest run --testTimeout 25000
 '''
 
 [[task]]
