@@ -13,7 +13,7 @@ jobs:
       matrix:
         platform: ['ubuntu-latest', 'windows-latest']
 
-    name: Test & Build worker-build
+    name: Build worker-build
     runs-on: ${{ matrix.platform }}
 
     steps:
@@ -35,7 +35,7 @@ jobs:
           path: target/debug/worker-build
 
   build-templates:
-    name: Build Templates
+    name: Templates
     needs: worker-build
     runs-on: ubuntu-latest
 
@@ -84,7 +84,7 @@ jobs:
           done
 
   build-examples:
-    name: Build Examples
+    name: Examples
     needs: worker-build
     runs-on: ubuntu-latest
     steps:
@@ -188,6 +188,9 @@ jobs:
           path: ~/.cargo/registry ~/.cargo/git target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Install npm dependencies
+        run: npm ci
 
       - name: Install wasm32 target
         run: rustup target add wasm32-unknown-unknown
