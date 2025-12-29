@@ -169,6 +169,11 @@ jobs:
         with:
           submodules: true
 
+      - name: Setup Chomp
+        uses: guybedford/chomp-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: actions/download-artifact@v4
         with:
           name: worker-build
@@ -184,25 +189,11 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-
 
-      # - name: Install packages
-      #   run: |
-      #     sudo apt update
-      #     sudo apt clean
-      #     sudo apt install -y build-essential libssl-dev netcat-traditional libc++-dev
-
-      - name: Install npm dependencies
-        run: npm ci
-
-      - name: Build Wasm Bindgen
-        run: cd wasm-bindgen && cargo build -p wasm-bindgen-cli --bin wasm-bindgen --bin wasm-bindgen-test-runner
-
       - name: Install wasm32 target
         run: rustup target add wasm32-unknown-unknown
 
-      - name: Run wasm-bindgen tests
-        env:
-          CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER: ${{ github.workspace }}/wasm-bindgen/target/debug/wasm-bindgen-test-runner
-        run: cargo test -p worker --target wasm32-unknown-unknown
+      - name: Run unit tests
+        run: chomp test:unit
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -220,7 +211,7 @@ jobs:
       - name: Run tests
         env:
           TEST_CONTAINER_NAME: worker-dev/echocontainer:latest
-        run: npm run test
+        run: chomp test
 
       - name: Run tests (http)
-        run: npm run test-http
+        run: chomp test-http
