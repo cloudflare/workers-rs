@@ -157,7 +157,9 @@ jobs:
   test:
     name: Test
     needs: worker-build
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: ['ubuntu-latest', 'windows-latest']
 
     steps:
       - uses: dtolnay/rust-toolchain@1.83.0
