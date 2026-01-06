@@ -2,18 +2,23 @@ use axum::{routing::get, Router};
 use tower_service::Service;
 use worker::*;
 
+pub mod resources;
+
+use crate::resources::foo::service::FooService;
+
 struct AppState {
-    kv: KvStore
+    foo_service: FooService
 }
 
 fn router() -> Router {
     let kv = env.kv("EXAMPLE")?;
-    let foo_service =
+    let foo_service = FooService::new(kv);
 
     let app_state = AppState {
-        kv
+        foo_service
     };
-    Router::new().route("/", get(root).route("/foo", get(foo_api))).with_state(app_state)
+
+    Router::new().route("/", get(root).route("/foo", get(foos::api::get))).with_state(app_state)
 }
 
 #[event(fetch)]
@@ -27,27 +32,4 @@ async fn fetch(
 
 pub async fn root() -> &'static str {
     "Hello Axum!"
-}
-
-#[derive(Serialize)]
-struct Foo {
-    id: String
-    msg: String
-}
-
-pub async fn foo_api(State(state): State<App>, Path(foo_id): Path(String)) -> Result<axum::http::Response<Foo>> {
-    let foo = state.foo_service.get(foo_id).await
-}
-
-struct FooService {
-    kv: KvStore
-}
-
-impl FooService {
-    pub async fn get(foo_id: String) -> Option<Foo> {
-        if let Some(q) = self.cache.get::<Foo>(&foo_id).await? {
-            return Ok(q);
-        }
-        None
-    }
 }
