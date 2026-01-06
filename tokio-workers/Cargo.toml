@@ -1,0 +1,28 @@
+[package]
+name = "tokio-workers"
+version = "0.1.0"
+authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
+edition = "2021"
+license = "Apache-2.0"
+description = "Tokio compatibility shim for Cloudflare Workers"
+repository = "https://github.com/cloudflare/workers-rs"
+keywords = ["tokio", "wasm", "workers", "cloudflare", "async"]
+rust-version = "1.75"
+
+[dependencies]
+wasm-bindgen.workspace = true
+wasm-bindgen-futures.workspace = true
+js-sys.workspace = true
+web-sys.workspace = true
+futures-util = { version = "0.3.31", default-features = false, features = ["alloc", "async-await", "async-await-macro"] }
+tokio = { version = "1.28", default-features = false, features = ["sync"] }
+pin-project = "1"
+
+[features]
+default = []
+# spawn_blocking behavior - if neither is set, defaults to panic
+spawn-blocking-panic = []
+spawn-blocking-sync = []
+
+[dev-dependencies]
+wasm-bindgen-test.workspace = true

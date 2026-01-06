@@ -1,0 +1,6 @@
+name = "tokio-workers-demo"
+main = "build/index.js"
+compatibility_date = "2024-01-01"
+
+[build]
+command = "cargo install worker-build@^0.7 && worker-build --release"

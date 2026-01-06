@@ -5,6 +5,7 @@ members = [
     "worker-macros",
     "test",
     "worker-sys",
+    "tokio-workers",
     "examples/*",
     "test/container-echo",
 ]

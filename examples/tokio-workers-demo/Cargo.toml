@@ -1,0 +1,17 @@
+[package]
+name = "tokio-workers-demo"
+version = "0.1.0"
+edition = "2021"
+
+[package.metadata.release]
+release = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+worker.workspace = true
+tokio-workers = { path = "../../tokio-workers", features = ["spawn-blocking-sync"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+js-sys.workspace = true
