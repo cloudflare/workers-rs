@@ -1,5 +1,7 @@
+use crate::resources::foos::model::Foo;
+use worker::{Result, KvStore, KvError};
 
-struct FooService {
+pub struct FooService {
     kv: KvStore
 }
 
@@ -10,10 +12,8 @@ impl FooService {
         }
     }
 
-    pub async fn get(foo_id: String) -> Option<Foo> {
-        if let Some(q) = self.cache.get::<Foo>(&foo_id).await? {
-            return Ok(q);
-        }
-        None
+    pub async fn get(&self, foo_id: String) -> Result<Option<Foo>, KvError> {
+        let maybe_foo = self.kv.get(&foo_id);
+        maybe_foo.json::<Foo>().await
     }
 }

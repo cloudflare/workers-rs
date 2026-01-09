@@ -1,7 +1,7 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Serialize)]
-struct Foo {
-    id: String
-    msg: String
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Foo {
+    pub id: String,
+    pub msg: String,
 }
