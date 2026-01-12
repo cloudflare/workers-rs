@@ -66,7 +66,6 @@ impl DurableObject for PutRawTestObject {
     }
 }
 
-#[worker::send]
 pub(crate) async fn handle_put_raw(
     req: Request,
     env: Env,
