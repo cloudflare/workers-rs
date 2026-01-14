@@ -23,6 +23,8 @@ pub struct RequestInit {
     /// follow. Note, however, that the incoming Request property of a FetchEvent will have redirect
     /// mode manual.
     pub redirect: RequestRedirect,
+    /// The cache mode for the request. `None` means use the default behavior.
+    pub cache: Option<CacheMode>,
 }
 
 impl RequestInit {
@@ -45,6 +47,11 @@ impl RequestInit {
         self
     }
 
+    pub fn with_cache(&mut self, cache: CacheMode) -> &mut Self {
+        self.cache = Some(cache);
+        self
+    }
+
     pub fn with_body(&mut self, body: Option<JsValue>) -> &mut Self {
         self.body = body;
         self
@@ -62,6 +69,9 @@ impl From<&RequestInit> for web_sys::RequestInit {
         inner.set_headers(req.headers.as_ref());
         inner.set_method(req.method.as_ref());
         inner.set_redirect(req.redirect.into());
+        if let Some(cache) = req.cache {
+            inner.set_cache(cache.into());
+        }
         if let Some(body) = req.body.as_ref() {
             inner.set_body(body);
         }
@@ -90,6 +100,7 @@ impl Default for RequestInit {
             cf: CfProperties::default(),
             method: Method::Get,
             redirect: RequestRedirect::default(),
+            cache: None,
         }
     }
 }
@@ -535,6 +546,36 @@ impl From<RequestRedirect> for web_sys::RequestRedirect {
             RequestRedirect::Error => web_sys::RequestRedirect::Error,
             RequestRedirect::Follow => web_sys::RequestRedirect::Follow,
             RequestRedirect::Manual => web_sys::RequestRedirect::Manual,
+        }
+    }
+}
+
+/// Cache mode for controlling how requests interact with the cache.
+/// Corresponds to JavaScript's `RequestInit.cache` property.
+#[derive(Clone, Copy, Debug, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum CacheMode {
+    NoStore,
+    NoCache,
+    Reload,
+}
+
+impl From<CacheMode> for &str {
+    fn from(mode: CacheMode) -> Self {
+        match mode {
+            CacheMode::NoStore => "no-store",
+            CacheMode::NoCache => "no-cache",
+            CacheMode::Reload => "reload",
+        }
+    }
+}
+
+impl From<CacheMode> for web_sys::RequestCache {
+    fn from(mode: CacheMode) -> Self {
+        match mode {
+            CacheMode::NoStore => web_sys::RequestCache::NoStore,
+            CacheMode::NoCache => web_sys::RequestCache::NoCache,
+            CacheMode::Reload => web_sys::RequestCache::Reload,
         }
     }
 }
