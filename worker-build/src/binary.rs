@@ -262,7 +262,7 @@ impl BinaryDep for WasmOpt {
 
 pub struct WasmBindgen<'a>(pub &'a str);
 
-impl<'a> BinaryDep for WasmBindgen<'a> {
+impl BinaryDep for WasmBindgen<'_> {
     fn full_name(&self) -> &'static str {
         "Wasm Bindgen"
     }

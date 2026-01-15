@@ -394,7 +394,7 @@ impl Build {
         info!("Installing wasm-bindgen-cli...");
         use crate::binary::{GetBinary, WasmBindgen};
         let (bindgen, bindgen_override) =
-            WasmBindgen(&self.wasm_bindgen_version.as_ref().unwrap()).get_binary(None)?;
+            WasmBindgen(self.wasm_bindgen_version.as_ref().unwrap()).get_binary(None)?;
         self.bindgen = Some(bindgen);
         self.bindgen_override = bindgen_override;
         info!("Installing wasm-bindgen-cli was successful.");

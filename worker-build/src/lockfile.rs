@@ -15,7 +15,7 @@ use serde::Deserialize;
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct Lockfile {
     package: Vec<Package>,
-    root_package_name: Option<String>
+    root_package_name: Option<String>,
 }
 
 /// This struct represents a single package entry in `Cargo.lock`
@@ -70,13 +70,13 @@ impl Lockfile {
             }
             Ok(version)
         } else {
-            return Err(DepCheckError::VersionError(
+            Err(DepCheckError::VersionError(
                 format!(
                     "Ensure that you have dependency {}",
                     cargo_dep_error(lib_name, cur_version)
                 ),
                 None,
-            ));
+            ))
         }
     }
 
