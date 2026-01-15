@@ -33,11 +33,11 @@ serde-wasm-bindgen = "0.6.5"
 syn = "2.0.17"
 proc-macro2 = "1.0.60"
 quote = "1.0.28"
-wasm-bindgen = { version = "0.2.108" }
-wasm-bindgen-cli-support = { version = "0.2.108" }
-wasm-bindgen-futures = { version = "0.4.57" }
-wasm-bindgen-macro-support = { version = "0.2.108" }
-wasm-bindgen-shared = { version = "0.2.108" }
+wasm-bindgen = { version = "0.2.106" }
+wasm-bindgen-cli-support = { version = "0.2.106" }
+wasm-bindgen-futures = { version = "0.4.56" }
+wasm-bindgen-macro-support = { version = "0.2.106" }
+wasm-bindgen-shared = { version = "0.2.106" }
 wasm-bindgen-test = { version = "0.3.58" }
 web-sys = { version = "0.3.85", features = [
     "AbortController",

@@ -1,6 +1,6 @@
 use crate::build::PBAR;
 use crate::emoji::{CONFIG, DOWN_ARROW};
-use crate::versions::{CUR_ESBUILD_VERSION, CUR_WASM_BINDGEN_VERSION, CUR_WASM_OPT_VERSION};
+use crate::versions::{CUR_ESBUILD_VERSION, CUR_WASM_OPT_VERSION};
 use anyhow::{bail, Context, Result};
 use flate2::read::GzDecoder;
 use heck::ToShoutySnakeCase;
@@ -260,9 +260,9 @@ impl BinaryDep for WasmOpt {
     }
 }
 
-pub struct WasmBindgen;
+pub struct WasmBindgen<'a>(pub &'a str);
 
-impl BinaryDep for WasmBindgen {
+impl<'a> BinaryDep for WasmBindgen<'a> {
     fn full_name(&self) -> &'static str {
         "Wasm Bindgen"
     }
@@ -270,7 +270,7 @@ impl BinaryDep for WasmBindgen {
         "wasm-bindgen"
     }
     fn version(&self) -> String {
-        CUR_WASM_BINDGEN_VERSION.to_string()
+        self.0.to_owned()
     }
     fn target(&self) -> &'static str {
         match (std::env::consts::OS, std::env::consts::ARCH) {

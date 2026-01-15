@@ -15,7 +15,7 @@ use serde::Deserialize;
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct Lockfile {
     package: Vec<Package>,
-    root_package_name: Option<String>,
+    root_package_name: Option<String>
 }
 
 /// This struct represents a single package entry in `Cargo.lock`
@@ -52,7 +52,7 @@ impl Lockfile {
         lib_name: &str,
         min_version: &Version,
         cur_version: &Version,
-    ) -> Result<(), DepCheckError> {
+    ) -> Result<Version, DepCheckError> {
         let req = VersionReq::parse(&format!("^{min_version}")).unwrap();
         if let Some(version) = self
             .get_package_version(lib_name)
@@ -68,6 +68,7 @@ impl Lockfile {
                     Some(version),
                 ));
             }
+            Ok(version)
         } else {
             return Err(DepCheckError::VersionError(
                 format!(
@@ -77,7 +78,6 @@ impl Lockfile {
                 None,
             ));
         }
-        Ok(())
     }
 
     /// Obtains the package version for the given package

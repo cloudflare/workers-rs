@@ -2,7 +2,7 @@ use crate::binary::{GetBinary, WasmOpt};
 use crate::emoji;
 use crate::lockfile::{DepCheckError, Lockfile};
 use crate::versions::{
-    CUR_WASM_BINDGEN_VERSION, CUR_WORKER_VERSION, MIN_WASM_BINDGEN_LIB_VERSION,
+    CUR_WORKER_VERSION, LATEST_WASM_BINDGEN_VERSION, MIN_WASM_BINDGEN_LIB_VERSION,
     MIN_WORKER_LIB_VERSION,
 };
 
@@ -47,6 +47,7 @@ pub struct Build {
     pub bindgen_override: bool,
     pub extra_args: Vec<String>,
     pub extra_options: Vec<String>,
+    pub wasm_bindgen_version: Option<String>,
 }
 
 /// What sort of output we're going to be generating and flags we're invoking
@@ -206,6 +207,7 @@ impl Build {
             bindgen_override: false,
             extra_args: Vec::new(),
             extra_options: build_opts.extra_options,
+            wasm_bindgen_version: None,
         })
     }
 
@@ -372,23 +374,27 @@ impl Build {
             DepCheckError::Error(err) => err,
         })?;
 
-        lockfile
-            .require_lib(
-                "wasm-bindgen",
-                &MIN_WASM_BINDGEN_LIB_VERSION,
-                &CUR_WASM_BINDGEN_VERSION,
-            )
-            .map_err(|err| match err {
-                DepCheckError::VersionError(msg, _) => anyhow!(msg),
-                DepCheckError::Error(err) => anyhow!(err),
-            })?;
+        self.wasm_bindgen_version = Some(
+            lockfile
+                .require_lib(
+                    "wasm-bindgen",
+                    &MIN_WASM_BINDGEN_LIB_VERSION,
+                    &LATEST_WASM_BINDGEN_VERSION,
+                )
+                .map_err(|err| match err {
+                    DepCheckError::VersionError(msg, _) => anyhow!(msg),
+                    DepCheckError::Error(err) => anyhow!(err),
+                })?
+                .to_string(),
+        );
         Ok(())
     }
 
     fn step_install_wasm_bindgen(&mut self) -> Result<()> {
         info!("Installing wasm-bindgen-cli...");
         use crate::binary::{GetBinary, WasmBindgen};
-        let (bindgen, bindgen_override) = WasmBindgen.get_binary(None)?;
+        let (bindgen, bindgen_override) =
+            WasmBindgen(&self.wasm_bindgen_version.as_ref().unwrap()).get_binary(None)?;
         self.bindgen = Some(bindgen);
         self.bindgen_override = bindgen_override;
         info!("Installing wasm-bindgen-cli was successful.");
