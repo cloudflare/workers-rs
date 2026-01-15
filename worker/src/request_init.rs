@@ -122,7 +122,7 @@ pub struct CfProperties {
     /// headers are seen on the response. This is equivalent to setting two page rules: “Edge Cache
     /// TTL” and “Cache Level” (to “Cache Everything”). The value must be zero or a positive number.
     /// A value of 0 indicates that the cache asset expires immediately.
-    pub cache_ttl: Option<u32>,
+    pub cache_ttl: Option<i32>,
     /// This option is a version of the cacheTtl feature which chooses a TTL based on the response’s
     /// status code. If the response to this request has a status code that matches, Cloudflare will
     /// cache for the instructed time, and override cache directives sent by the origin. For
