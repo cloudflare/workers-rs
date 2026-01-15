@@ -552,22 +552,11 @@ impl From<RequestRedirect> for web_sys::RequestRedirect {
 
 /// Cache mode for controlling how requests interact with the cache.
 /// Corresponds to JavaScript's `RequestInit.cache` property.
-#[derive(Clone, Copy, Debug, Serialize)]
-#[serde(rename_all = "kebab-case")]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CacheMode {
     NoStore,
     NoCache,
     Reload,
-}
-
-impl From<CacheMode> for &str {
-    fn from(mode: CacheMode) -> Self {
-        match mode {
-            CacheMode::NoStore => "no-store",
-            CacheMode::NoCache => "no-cache",
-            CacheMode::Reload => "reload",
-        }
-    }
 }
 
 impl From<CacheMode> for web_sys::RequestCache {
