@@ -135,6 +135,7 @@ macro_rules! add_routes (
     add_route!($obj, get, "/fetch",fetch::handle_fetch);
     add_route!($obj, get, "/fetch_json",fetch::handle_fetch_json);
     add_route!($obj, get, format_route!("/proxy_request/{}", "*url") ,fetch::handle_proxy_request);
+    add_route!($obj, get, "/fetch-cache-ttl-negative", fetch::handle_fetch_with_cache_ttl_negative);
     add_route!($obj, get, "/durable/alarm", alarm::handle_alarm);
     add_route!($obj, get, format_route!("/durable/{}", "id"), counter::handle_id);
     add_route!($obj, get, "/durable/put-raw", put_raw::handle_put_raw);

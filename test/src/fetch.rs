@@ -3,8 +3,8 @@ use futures_util::future::Either;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use worker::{
-    wasm_bindgen_futures, AbortController, Delay, EncodeBody, Env, Fetch, Method, Request,
-    RequestInit, Response, Result,
+    wasm_bindgen_futures, AbortController, CacheMode, CfProperties, Delay, EncodeBody, Env, Fetch,
+    Method, Request, RequestInit, Response, Result,
 };
 
 #[worker::send]
@@ -208,4 +208,29 @@ pub async fn handle_cloned_response_attributes(
     assert_eq!(cf, cf1);
 
     Response::ok("true")
+}
+
+#[worker::send]
+pub async fn handle_fetch_with_cache_ttl_negative(
+    _req: Request,
+    _env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
+    // Test that cache_ttl: Some(-1) works with CacheMode::NoStore
+    // According to Cloudflare docs, a negative cache_ttl instructs Cloudflare not to cache at all
+    let mut cf_props = CfProperties::new();
+    cf_props.cache_ttl = Some(-1);
+
+    let mut init = RequestInit::new();
+    init.with_cf_properties(cf_props);
+    init.with_cache(CacheMode::NoStore);
+
+    let resp = Fetch::Request(Request::new_with_init("https://www.google.com", &init)?)
+        .send()
+        .await?;
+
+    Response::ok(format!(
+        "fetch with cache_ttl=-1 and CacheMode::NoStore succeeded with status {}",
+        resp.status_code()
+    ))
 }

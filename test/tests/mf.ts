@@ -32,6 +32,11 @@ mockAgent
     }
   );
 
+mockAgent
+  .get("https://www.google.com")
+  .intercept({ path: "/" })
+  .reply(200, "<!doctype html><html><head><title>Google</title></head><body>Mock Google</body></html>");
+
 const mf_instance = new Miniflare({
   d1Persist: false,
   kvPersist: false,
