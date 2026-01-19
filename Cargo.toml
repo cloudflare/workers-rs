@@ -109,5 +109,5 @@ wasm-bindgen-futures = { version = "0.4.57", path = './wasm-bindgen/crates/futur
 wasm-bindgen-macro-support = { version = "0.2.108", path = "./wasm-bindgen/crates/macro-support" }
 wasm-bindgen-shared = { version = "0.2.108", path = "./wasm-bindgen/crates/shared" }
 wasm-bindgen-test = { version = "0.3.58", path = "./wasm-bindgen/crates/test" }
-wasm-streams = { version = "0.4.2", path = "../wasm-streams" }
+wasm-streams = { version = "0.4.2", path = "./wasm-streams" }
 web-sys = { version = "0.3.85", path = './wasm-bindgen/crates/web-sys' }
