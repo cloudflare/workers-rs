@@ -9,7 +9,7 @@ function registerPanicHook() {
     exports.setPanicHook(function (message) {
       const panicError = new Error("Rust panic: " + message);
       console.error('Critical', panicError);
-      criticalError = true;
+      $PANIC_CRITICAL_ERROR
     });
 }
 

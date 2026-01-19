@@ -1,4 +1,5 @@
 use std::future::Future;
+use std::panic::AssertUnwindSafe;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::future_to_promise;
 use worker_sys::{ScheduleContext as EdgeScheduleContext, ScheduledEvent as EdgeScheduledEvent};
@@ -55,10 +56,10 @@ impl ScheduleContext {
         T: Future<Output = ()> + 'static,
     {
         self.edge
-            .wait_until(future_to_promise(async {
+            .wait_until(future_to_promise(AssertUnwindSafe(async {
                 handler.await;
                 Ok(JsValue::null())
-            }))
+            })))
             .unwrap()
     }
 }

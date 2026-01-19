@@ -1,4 +1,5 @@
 use std::future::Future;
+use std::panic::AssertUnwindSafe;
 
 use crate::worker_sys::Context as JsContext;
 use crate::Result;
@@ -36,10 +37,10 @@ impl Context {
         F: Future<Output = ()> + 'static,
     {
         self.inner
-            .wait_until(&future_to_promise(async {
+            .wait_until(&future_to_promise(AssertUnwindSafe(async {
                 future.await;
                 Ok(JsValue::UNDEFINED)
-            }))
+            })))
             .unwrap()
     }
 

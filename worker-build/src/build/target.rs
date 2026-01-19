@@ -217,11 +217,22 @@ pub fn cargo_build_wasm(
     path: &Path,
     profile: BuildProfile,
     extra_options: &[String],
+    panic_unwind: bool,
 ) -> Result<()> {
-    let msg = format!("{}Compiling to Wasm...", emoji::CYCLONE);
+    let msg = if panic_unwind {
+        format!("{}Compiling to Wasm (with panic=unwind)...", emoji::CYCLONE)
+    } else {
+        format!("{}Compiling to Wasm...", emoji::CYCLONE)
+    };
     PBAR.info(&msg);
 
     let mut cmd = Command::new("cargo");
+
+    // When panic_unwind is enabled, use nightly toolchain
+    if panic_unwind {
+        cmd.arg("+nightly");
+    }
+
     cmd.current_dir(path).arg("build").arg("--lib");
 
     if PBAR.quiet() {
@@ -250,6 +261,20 @@ pub fn cargo_build_wasm(
     }
 
     cmd.arg("--target").arg("wasm32-unknown-unknown");
+
+    // When panic_unwind is enabled, we need to rebuild std with panic=unwind support
+    if panic_unwind {
+        cmd.arg("-Z").arg("build-std=panic_abort,std");
+
+        // Get existing RUSTFLAGS and append panic=unwind
+        let existing_rustflags = std::env::var("RUSTFLAGS").unwrap_or_default();
+        let new_rustflags = if existing_rustflags.is_empty() {
+            "-Cpanic=unwind".to_string()
+        } else {
+            format!("{} -Cpanic=unwind", existing_rustflags)
+        };
+        cmd.env("RUSTFLAGS", new_rustflags);
+    }
 
     // The `cargo` command is executed inside the directory at `path`, so relative paths set via extra options won't work.
     // To remedy the situation, all detected paths are converted to absolute paths.

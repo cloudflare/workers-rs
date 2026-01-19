@@ -10,7 +10,7 @@
 //! [Learn more](https://developers.cloudflare.com/workers/learning/using-durable-objects) about
 //! using Durable Objects.
 
-use std::{fmt::Display, ops::Deref, time::Duration};
+use std::{fmt::Display, ops::Deref, panic::AssertUnwindSafe, time::Duration};
 
 use crate::{
     container::Container,
@@ -265,10 +265,10 @@ impl State {
         F: Future<Output = ()> + 'static,
     {
         self.inner
-            .wait_until(&future_to_promise(async {
+            .wait_until(&future_to_promise(AssertUnwindSafe(async {
                 future.await;
                 Ok(JsValue::UNDEFINED)
-            }))
+            })))
             .unwrap()
     }
 
@@ -551,12 +551,12 @@ impl Storage {
     {
         let inner: Box<dyn FnOnce(DurableObjectTransaction) -> js_sys::Promise> =
             Box::new(move |t: DurableObjectTransaction| -> js_sys::Promise {
-                future_to_promise(async move {
+                future_to_promise(AssertUnwindSafe(async move {
                     closure(Transaction { inner: t })
                         .await
                         .map_err(JsValue::from)
                         .map(|_| JsValue::NULL)
-                })
+                }))
             });
         let clos = wasm_bindgen::closure::Closure::once(inner);
         JsFuture::from(self.inner.transaction(&clos)?)

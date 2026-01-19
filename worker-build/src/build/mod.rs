@@ -48,6 +48,7 @@ pub struct Build {
     pub extra_args: Vec<String>,
     pub extra_options: Vec<String>,
     pub wasm_bindgen_version: Option<String>,
+    pub panic_unwind: bool,
 }
 
 /// What sort of output we're going to be generating and flags we're invoking
@@ -158,6 +159,12 @@ pub struct BuildOptions {
     #[clap(long, hide = true)]
     /// Pass-through for --no-panic-recovery
     pub no_panic_recovery: bool,
+
+    #[clap(long = "panic-unwind")]
+    /// Enable panic=unwind support. This uses nightly Rust and rebuilds std
+    /// with panic=unwind, allowing panics to be caught and converted to
+    /// JavaScript errors instead of aborting the Worker.
+    pub panic_unwind: bool,
 }
 
 type BuildStep = fn(&mut Build) -> Result<()>;
@@ -221,6 +228,7 @@ impl Build {
             extra_args: Vec::new(),
             extra_options: build_opts.extra_options,
             wasm_bindgen_version: None,
+            panic_unwind: build_opts.panic_unwind,
         })
     }
 
@@ -332,7 +340,12 @@ impl Build {
 
     fn step_build_wasm(&mut self) -> Result<()> {
         info!("Building wasm...");
-        target::cargo_build_wasm(&self.crate_path, self.profile.clone(), &self.extra_options)?;
+        target::cargo_build_wasm(
+            &self.crate_path,
+            self.profile.clone(),
+            &self.extra_options,
+            self.panic_unwind,
+        )?;
 
         info!(
             "wasm built at {:#?}.",

@@ -107,7 +107,16 @@ pub fn main() -> Result<()> {
     }
 
     if module_target {
-        let shim = SHIM_FILE.replace("$HANDLERS", &generate_handlers(&out_dir)?);
+        let shim = SHIM_FILE
+            .replace("$HANDLERS", &generate_handlers(&out_dir)?)
+            .replace(
+                "$PANIC_CRITICAL_ERROR",
+                if builder.panic_unwind {
+                    ""
+                } else {
+                    "criticalError = true;"
+                },
+            );
         fs::write(output_path(&out_dir, "shim.js"), shim)?;
 
         add_export_wrappers(&out_dir)?;
