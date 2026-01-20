@@ -83,16 +83,16 @@ impl From<&RequestInit> for web_sys::RequestInit {
         // set the Cloudflare-specific `cf` property on FFI RequestInit
         if !req.cf.is_default() {
             let r = ::js_sys::Reflect::set(
-            inner.as_ref(),
-            &JsValue::from("cf"),
-            &JsValue::from(&req.cf),
-        );
-        debug_assert!(
-            r.is_ok(),
-            "setting properties should never fail on our dictionary objects"
-        );
-        let _ = r;
-    }
+                inner.as_ref(),
+                &JsValue::from("cf"),
+                &JsValue::from(&req.cf),
+            );
+            debug_assert!(
+                r.is_ok(),
+                "setting properties should never fail on our dictionary objects"
+            );
+            let _ = r;
+        }
 
         inner
     }
@@ -597,8 +597,5 @@ fn request_init_no_invalid_options() {
 
     let js_init: web_sys::RequestInit = (&init).into();
 
-    let _ = web_sys::Request::new_with_str_and_init(
-        "https://httpbin.org/post",
-        &js_init,
-    ).unwrap();
+    let _ = web_sys::Request::new_with_str_and_init("https://httpbin.org/post", &js_init).unwrap();
 }
