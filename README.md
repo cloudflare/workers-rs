@@ -182,8 +182,6 @@ use worker::*;
 
 #[event(fetch, respond_with_errors)]
 pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
-    utils::set_panic_hook();
-
     let router = Router::new();
 
     router
@@ -553,8 +551,7 @@ So give it a try, leave some feedback, and star the repo to encourage us to dedi
 resources to this kind of project.
 
 If this is interesting to you and you want to help out, we’d be happy to get outside contributors
-started. We know there are improvements to be made such as compatibility with popular Rust HTTP
-ecosystem types (we have an example conversion for [Headers](https://github.com/cloudflare/workers-rs/blob/3d5876a1aca0a649209152d1ffd52dae7bccda87/libworker/src/headers.rs#L131-L167) if you want to make one), implementing additional Web APIs, utility crates,
+started. We know there are improvements to be made such as implementing additional APIs, utility crates,
 and more. In fact, we’re always on the lookout for great engineers, and hiring for many open roles -
 please [take a look](https://www.cloudflare.com/careers/).
 
@@ -575,18 +572,6 @@ please [take a look](https://www.cloudflare.com/careers/).
 - We're working on solutions here, but in the meantime you'll need to minimize the number of crates
   your code depends on, or strip as much from the `.wasm` binary as possible. Here are some extra
   steps you can try: https://rustwasm.github.io/book/reference/code-size.html#optimizing-builds-for-code-size
-
-### ⚠️ Caveats
-
-1. Upgrading worker package to version `0.0.18` and higher
-
-- While upgrading your worker to version `0.0.18` an error "error[E0432]: unresolved import `crate::sys::IoSourceState`" can appear.
-  In this case, upgrade `package.edition` to `edition = "2021"` in `wrangler.toml`
-
-```toml
-[package]
-edition = "2021"
-```
 
 # Releasing
 
