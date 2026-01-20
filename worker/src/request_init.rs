@@ -66,7 +66,11 @@ impl RequestInit {
 impl From<&RequestInit> for web_sys::RequestInit {
     fn from(req: &RequestInit) -> Self {
         let inner = web_sys::RequestInit::new();
-        inner.set_headers(req.headers.as_ref());
+
+        if !req.headers.is_empty() {
+            inner.set_headers(req.headers.as_ref());
+        }
+
         inner.set_method(req.method.as_ref());
         inner.set_redirect(req.redirect.into());
         if let Some(cache) = req.cache {
@@ -77,7 +81,8 @@ impl From<&RequestInit> for web_sys::RequestInit {
         }
 
         // set the Cloudflare-specific `cf` property on FFI RequestInit
-        let r = ::js_sys::Reflect::set(
+        if !req.cf.is_default() {
+            let r = ::js_sys::Reflect::set(
             inner.as_ref(),
             &JsValue::from("cf"),
             &JsValue::from(&req.cf),
@@ -87,6 +92,7 @@ impl From<&RequestInit> for web_sys::RequestInit {
             "setting properties should never fail on our dictionary objects"
         );
         let _ = r;
+    }
 
         inner
     }
@@ -278,6 +284,21 @@ impl CfProperties {
     pub fn new() -> Self {
         Default::default()
     }
+
+    pub fn is_default(&self) -> bool {
+        let de = CfProperties::default();
+        self.apps == de.apps
+            && self.cache_everything == de.cache_everything
+            && self.cache_key == de.cache_key
+            && self.cache_ttl == de.cache_ttl
+            && self.cache_ttl_by_status == de.cache_ttl_by_status
+            && self.minify == de.minify
+            && self.mirage == de.mirage
+            && self.image.is_none()
+            && self.polish == de.polish
+            && self.resolve_override == de.resolve_override
+            && self.scrape_shield == de.scrape_shield
+    }
 }
 
 impl Default for CfProperties {
@@ -301,7 +322,7 @@ impl Default for CfProperties {
 /// Configuration options for Cloudflare's minification features:
 /// <https://www.cloudflare.com/website-optimization/>
 #[wasm_bindgen]
-#[derive(Clone, Copy, Debug, Default, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Serialize, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub struct MinifyConfig {
     pub js: bool,
@@ -311,7 +332,7 @@ pub struct MinifyConfig {
 
 /// Configuration options for Cloudflare's image optimization feature:
 /// <https://blog.cloudflare.com/introducing-polish-automatic-image-optimizati/>
-#[derive(Clone, Copy, Debug, Default, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Serialize, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub enum PolishConfig {
     #[default]
@@ -567,4 +588,17 @@ impl From<CacheMode> for web_sys::RequestCache {
             CacheMode::Reload => web_sys::RequestCache::Reload,
         }
     }
+}
+
+#[test]
+fn request_init_no_invalid_options() {
+    let mut init = RequestInit::new();
+    init.method = Method::Post;
+
+    let js_init: web_sys::RequestInit = (&init).into();
+
+    let _ = web_sys::Request::new_with_str_and_init(
+        "https://httpbin.org/post",
+        &js_init,
+    ).unwrap();
 }
