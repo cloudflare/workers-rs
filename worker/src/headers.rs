@@ -37,6 +37,11 @@ impl Headers {
         self.0.get(name).map_err(Error::from)
     }
 
+    /// Returns true if the headers object has no entries.
+    pub fn is_empty(&self) -> bool {
+        self.keys().next().is_none()
+    }
+
     /// Returns a boolean stating whether a `Headers` object contains a certain header.
     /// Returns an error if the name is invalid (e.g. contains spaces)
     pub fn has(&self, name: &str) -> Result<bool> {
