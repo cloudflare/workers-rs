@@ -174,6 +174,19 @@ impl Build {
             }
         }
         let crate_path = get_crate_path(build_opts.path)?;
+        let manifest_path = crate_path.join("Cargo.toml");
+        if !manifest_path.is_file() {
+            bail!(
+                "Cannot build project {}:\n\
+                 worker-build must be run from a Rust crate directory containing Cargo.toml.\n\
+                 \n\
+                 Try:\n\
+                   cd <your-crate> && worker-build\n\
+                 Or:\n\
+                   worker-build --path <crate-directory>",
+                crate_path.display()
+            )
+        }
         let crate_data = manifest::CrateData::new(&crate_path, build_opts.out_name.clone())?;
         let out_dir = crate_path.join(PathBuf::from(build_opts.out_dir)).clean();
 
