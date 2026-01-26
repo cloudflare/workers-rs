@@ -84,6 +84,9 @@ pub fn main() -> Result<()> {
     let supports_reset_state = builder.supports_target_module_and_reset_state()?;
     let module_target =
         supports_reset_state && !no_panic_recovery && env::var("CUSTOM_SHIM").is_err();
+    builder
+        .extra_args
+        .push("--abort-reinit".to_string());
     if module_target {
         builder
             .extra_args

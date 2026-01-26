@@ -19,10 +19,10 @@ let instanceId = 0;
 function checkReinitialize() {
   if (criticalError) {
     console.log("Reinitializing Wasm application");
-    exports.__wbg_reset_state();
-    criticalError = false;
-    registerPanicHook();
-    instanceId++;
+    // exports.__wbg_reset_state();
+    // criticalError = false;
+    // registerPanicHook();
+    // instanceId++;
   }
 }
 
