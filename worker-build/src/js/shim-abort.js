@@ -9,7 +9,7 @@ function registerPanicHook() {
     exports.setPanicHook(function (message) {
       const panicError = new Error("Rust panic: " + message);
       console.error('Critical', panicError);
-      $PANIC_CRITICAL_ERROR
+      criticalError = true;
     });
 }
 
@@ -19,10 +19,10 @@ let instanceId = 0;
 function checkReinitialize() {
   if (criticalError) {
     console.log("Reinitializing Wasm application");
-    // exports.__wbg_reset_state();
-    // criticalError = false;
-    // registerPanicHook();
-    // instanceId++;
+    exports.__wbg_reset_state();
+    criticalError = false;
+    registerPanicHook();
+    instanceId++;
   }
 }
 

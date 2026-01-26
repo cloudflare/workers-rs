@@ -15,7 +15,8 @@ use clap::Parser;
 /// `Build::try_from_opts` (i.e. `Build::out_dir`), NOT the process current-dir.
 const OUT_DIR: &str = "build";
 
-const SHIM_FILE: &str = include_str!("./js/shim.js");
+const SHIM_ABORT_FILE: &str = include_str!("./js/shim-abort.js");
+const SHIM_UNWIND_FILE: &str = include_str!("./js/shim-unwind.js");
 
 pub(crate) mod binary;
 mod build;
@@ -84,9 +85,7 @@ pub fn main() -> Result<()> {
     let supports_reset_state = builder.supports_target_module_and_reset_state()?;
     let module_target =
         supports_reset_state && !no_panic_recovery && env::var("CUSTOM_SHIM").is_err();
-    builder
-        .extra_args
-        .push("--abort-reinit".to_string());
+    builder.extra_args.push("--abort-reinit".to_string());
     if module_target {
         builder
             .extra_args
@@ -110,19 +109,18 @@ pub fn main() -> Result<()> {
     }
 
     if module_target {
-        let shim = SHIM_FILE
-            .replace("$HANDLERS", &generate_handlers(&out_dir)?)
-            .replace(
-                "$PANIC_CRITICAL_ERROR",
-                if builder.panic_unwind {
-                    ""
-                } else {
-                    "criticalError = true;"
-                },
-            );
+        let shim = if builder.panic_unwind {
+            SHIM_UNWIND_FILE.replace("$HANDLERS", &generate_handlers(&out_dir)?)
+        } else {
+            SHIM_ABORT_FILE.replace("$HANDLERS", &generate_handlers(&out_dir)?)
+        };
         fs::write(output_path(&out_dir, "shim.js"), shim)?;
 
-        add_export_wrappers(&out_dir)?;
+        if builder.panic_unwind {
+            add_direct_class_exports(&out_dir)?;
+        } else {
+            add_export_wrappers(&out_dir)?;
+        }
 
         update_package_json(&out_dir)?;
 
@@ -221,6 +219,29 @@ fn add_export_wrappers(out_dir: &Path) -> Result<()> {
         output.push_str(&format!(
             "export const {class_name} = new Proxy(exports.{class_name}, classProxyHooks);\n"
         ));
+    }
+    fs::write(&shim_path, output)?;
+    Ok(())
+}
+
+fn add_direct_class_exports(out_dir: &Path) -> Result<()> {
+    let index_path = output_path(out_dir, "index.js");
+    let content = fs::read_to_string(&index_path)?;
+
+    let mut class_names = Vec::new();
+    for line in content.lines() {
+        if let Some(rest) = line.strip_prefix("export class ") {
+            if let Some(brace_pos) = rest.find("{") {
+                let class_name = rest[..brace_pos].trim();
+                class_names.push(class_name.to_string());
+            }
+        }
+    }
+
+    let shim_path = output_path(out_dir, "shim.js");
+    let mut output = fs::read_to_string(&shim_path)?;
+    for class_name in class_names {
+        output.push_str(&format!("export {{ {class_name} }} from './index.js';\n"));
     }
     fs::write(&shim_path, output)?;
     Ok(())
