@@ -65,6 +65,7 @@ impl Bucket {
             custom_metadata: None,
             checksum: None,
             checksum_algorithm: "md5".into(),
+            only_if: None,
         }
     }
 
@@ -103,6 +104,7 @@ impl Bucket {
             edge_bucket: &self.inner,
             limit: None,
             prefix: None,
+            start_after: None,
             cursor: None,
             delimiter: None,
             include: None,
