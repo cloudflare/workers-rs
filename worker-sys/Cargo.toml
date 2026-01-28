@@ -16,3 +16,4 @@ web-sys.workspace = true
 [features]
 d1 = []
 queue = []
+workflow = []

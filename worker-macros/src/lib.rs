@@ -1,6 +1,8 @@
 mod durable_object;
 mod event;
 mod send;
+#[cfg(feature = "workflow")]
+mod workflow;
 
 use proc_macro::TokenStream;
 
@@ -140,4 +142,37 @@ pub fn send(attr: TokenStream, stream: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn consume(_: TokenStream, _: TokenStream) -> TokenStream {
     TokenStream::new()
+}
+
+/// Integrate the struct with the Workers Runtime as a Workflow Entrypoint.
+/// Requires the `WorkflowEntrypoint` trait with the workflow attribute macro on the struct.
+///
+/// ## Example
+///
+/// ```rust,ignore
+/// #[workflow]
+/// pub struct MyWorkflow {
+///     env: Env,
+/// }
+///
+/// impl WorkflowEntrypoint for MyWorkflow {
+///     fn new(ctx: Context, env: Env) -> Self {
+///         Self { env }
+///     }
+///
+///     async fn run(&self, event: WorkflowEvent<serde_json::Value>, step: WorkflowStep) -> Result<serde_json::Value> {
+///         let result = step.do_("my step", || async {
+///             Ok(serde_json::json!({"data": "value"}))
+///         }).await?;
+///
+///         Ok(result)
+///     }
+/// }
+/// ```
+#[cfg(feature = "workflow")]
+#[proc_macro_attribute]
+pub fn workflow(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    workflow::expand_macro(item.into())
+        .unwrap_or_else(syn::Error::into_compile_error)
+        .into()
 }

@@ -119,7 +119,7 @@ pub fn main() -> Result<()> {
             );
         fs::write(output_path(&out_dir, "shim.js"), shim)?;
 
-        add_export_wrappers(&out_dir)?;
+        let has_workflows = add_export_wrappers(&out_dir)?;
 
         update_package_json(&out_dir)?;
 
@@ -130,7 +130,9 @@ pub fn main() -> Result<()> {
 
         remove_unused_files(&out_dir)?;
 
-        create_wrapper_alias(&out_dir, false)?;
+        if !has_workflows {
+            create_wrapper_alias(&out_dir, false)?;
+        }
     } else {
         main_legacy::process(&out_dir)?;
         create_wrapper_alias(&out_dir, true)?;
@@ -198,28 +200,83 @@ fn generate_handlers(out_dir: &Path) -> Result<String> {
 
 static SYSTEM_FNS: &[&str] = &["__wbg_reset_state", "setPanicHook"];
 
-fn add_export_wrappers(out_dir: &Path) -> Result<()> {
+/// Returns true if workflow classes were detected and a wrapper was generated
+fn add_export_wrappers(out_dir: &Path) -> Result<bool> {
     let index_path = output_path(out_dir, "index.js");
     let content = fs::read_to_string(&index_path)?;
 
     let mut class_names = Vec::new();
+    let mut workflow_classes = Vec::new();
     for line in content.lines() {
         if let Some(rest) = line.strip_prefix("export class ") {
             if let Some(brace_pos) = rest.find("{") {
-                let class_name = rest[..brace_pos].trim();
-                class_names.push(class_name.to_string());
+                class_names.push(rest[..brace_pos].trim().to_string());
+            }
+        } else if let Some(rest) = line.strip_prefix("export function __wf_") {
+            if let Some(paren_pos) = rest.find('(') {
+                workflow_classes.push(rest[..paren_pos].trim().to_string());
+            }
+        } else if let Some(rest) = line.strip_prefix("export { __wf_") {
+            if let Some(as_pos) = rest.find(" as ") {
+                workflow_classes.push(rest[..as_pos].trim().to_string());
             }
         }
     }
 
     let shim_path = output_path(out_dir, "shim.js");
     let mut output = fs::read_to_string(&shim_path)?;
-    for class_name in class_names {
-        output.push_str(&format!(
-            "export const {class_name} = new Proxy(exports.{class_name}, classProxyHooks);\n"
-        ));
+
+    for class_name in &class_names {
+        if workflow_classes.contains(class_name) {
+            output.push_str(&format!(
+                "export const {class_name} = exports.{class_name};\n"
+            ));
+        } else {
+            output.push_str(&format!(
+                "export const {class_name} = new Proxy(exports.{class_name}, classProxyHooks);\n"
+            ));
+        }
     }
     fs::write(&shim_path, output)?;
+
+    // Workflows need a JS wrapper that extends WorkflowEntrypoint from cloudflare:workers
+    let has_workflows = !workflow_classes.is_empty();
+    if has_workflows {
+        generate_workflow_wrapper(out_dir, &workflow_classes)?;
+    }
+
+    Ok(has_workflows)
+}
+
+fn generate_workflow_wrapper(out_dir: &Path, workflow_classes: &[String]) -> Result<()> {
+    let mut wrapper = String::from(
+        r#"import { WorkflowEntrypoint } from "cloudflare:workers";
+import * as wasm from "../index.js";
+export * from "../index.js";
+export { default } from "../index.js";
+
+"#,
+    );
+
+    for class_name in workflow_classes {
+        wrapper.push_str(&format!(
+            r#"export class {class_name} extends WorkflowEntrypoint {{
+  constructor(ctx, env) {{
+    super(ctx, env);
+    this.inner = new wasm.{class_name}(ctx, env);
+  }}
+  async run(event, step) {{
+    return await this.inner.run(event, step);
+  }}
+}}
+
+"#
+        ));
+    }
+
+    fs::create_dir_all(output_path(out_dir, "worker"))?;
+    fs::write(output_path(out_dir, "worker/shim.mjs"), wrapper)?;
+
     Ok(())
 }
 
@@ -289,29 +346,14 @@ fn wasm_coredump(out_dir: &Path) -> Result<()> {
 }
 
 fn create_wrapper_alias(out_dir: &Path, legacy: bool) -> Result<()> {
-    let msg = if !legacy {
-        "// Use index.js directly, this file provided for backwards compat
-// with former shim.mjs only.
-"
+    if legacy {
+        let shim_content =
+            "export * from './worker/shim.mjs';\nexport { default } from './worker/shim.mjs';\n";
+        fs::write(output_path(out_dir, "index.js"), shim_content)?;
     } else {
-        ""
-    };
-    let path = if !legacy {
-        "../index.js"
-    } else {
-        "./worker/shim.mjs"
-    };
-    let shim_content = format!(
-        "{msg}export * from '{path}';
-export {{ default }} from '{path}';
-"
-    );
-
-    if !legacy {
+        let shim_content = "// Use index.js directly, this file provided for backwards compat\n// with former shim.mjs only.\nexport * from '../index.js';\nexport { default } from '../index.js';\n";
         fs::create_dir_all(output_path(out_dir, "worker"))?;
         fs::write(output_path(out_dir, "worker/shim.mjs"), shim_content)?;
-    } else {
-        fs::write(output_path(out_dir, "index.js"), shim_content)?;
     }
     Ok(())
 }
