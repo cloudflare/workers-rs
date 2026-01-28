@@ -13,7 +13,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
     let target = syn::parse2::<ItemStruct>(tokens)?;
     let target_name = &target.ident;
     let marker_fn_name = format_ident!("__wf_{}", target_name);
-    let marker_js_name = format!("__wf_{}", target_name);
+    let marker_js_name = format!("__wf_{target_name}");
     let target_name_str = target_name.to_string();
 
     Ok(quote! {
