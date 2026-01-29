@@ -1,0 +1,15 @@
+[package]
+name = "ai-image-on-workers"
+version = "0.1.0"
+edition = "2021"
+
+[package.metadata.release]
+release = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+futures-util = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+worker = { path = "../../worker" }

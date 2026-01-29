@@ -20,6 +20,14 @@ pub struct ByteStream {
     pub(crate) inner: IntoStream<'static>,
 }
 
+impl From<ReadableStream> for ByteStream {
+    fn from(stream: ReadableStream) -> Self {
+        Self {
+            inner: wasm_streams::ReadableStream::from_raw(stream.unchecked_into()).into_stream(),
+        }
+    }
+}
+
 impl Stream for ByteStream {
     type Item = Result<Vec<u8>>;
 

@@ -1,0 +1,9 @@
+name = "ai-image-worker"
+main = "build/worker/shim.mjs"
+compatibility_date = "2026-01-01"
+
+[build]
+command = "cargo install worker-build@^0.7 && worker-build --release"
+
+[ai]
+binding = "AI"
