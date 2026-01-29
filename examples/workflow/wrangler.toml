@@ -1,0 +1,13 @@
+name = "workflow-example"
+main = "build/worker/shim.mjs"
+compatibility_date = "2024-10-22"
+
+[build]
+# For development: use local worker-build binary
+# For production: command = "cargo install -q worker-build && worker-build --release"
+command = "RUSTFLAGS='--cfg=web_sys_unstable_apis' ../../target/release/worker-build --release"
+
+[[workflows]]
+name = "my-workflow"
+binding = "MY_WORKFLOW"
+class_name = "MyWorkflow"

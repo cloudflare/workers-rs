@@ -37,6 +37,7 @@ const mf_instance = new Miniflare({
   kvPersist: false,
   r2Persist: false,
   cachePersist: false,
+  workflowsPersist: false,
   workers: [
     {
       scriptPath: "./build/index.js",
@@ -113,6 +114,15 @@ const mf_instance = new Miniflare({
           scriptName: "mini-analytics-engine" // mock out analytics engine binding to the "mini-analytics-engine" worker
         }
       },
+      // Workflow binding requires a separate worker via scriptName in
+      // the Miniflare JS API (wrangler dev handles this automatically).
+      workflows: {
+        TEST_WORKFLOW: {
+          name: "test-workflow",
+          className: "TestWorkflow",
+          scriptName: "workflow-worker",
+        },
+      },
       ratelimits: {
         TEST_RATE_LIMITER: {
           simple: {
@@ -121,6 +131,17 @@ const mf_instance = new Miniflare({
           }
         }
       }
+    },
+    {
+      // Dedicated worker for TestWorkflow; uses the generated JS class wrapper.
+      name: "workflow-worker",
+      scriptPath: "./build/worker/shim.mjs",
+      modules: true,
+      modulesRules: [
+        { type: "ESModule", include: ["**/*.js"], fallthrough: true },
+        { type: "CompiledWasm", include: ["**/*.wasm"], fallthrough: true },
+      ],
+      compatibilityDate: "2025-07-24",
     },
     {
       name: "mini-analytics-engine",

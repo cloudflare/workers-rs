@@ -28,7 +28,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             "respond_with_errors" => {
                 respond_with_errors = true;
             }
-            _ => panic!("Invalid attribute: {}", attr),
+            _ => panic!("Invalid attribute: {attr}"),
         }
     }
     let handler_type = handler_type.expect(

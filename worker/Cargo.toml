@@ -47,6 +47,7 @@ axum = { version = "0.8", optional = true, default-features = false }
 [features]
 queue = ["worker-macros/queue", "worker-sys/queue"]
 d1 = ["worker-sys/d1"]
+workflow = ["worker-macros/workflow", "worker-sys/workflow"]
 http = ["worker-macros/http"]
 axum = ["dep:axum"]
 timezone = ["dep:chrono-tz"]

@@ -85,6 +85,11 @@ class_name = "EchoContainer"
 image = "./container-echo/Dockerfile"
 max_instances = 1
 
+[[workflows]]
+name = "test-workflow"
+binding = "TEST_WORKFLOW"
+class_name = "TestWorkflow"
+
 [[ratelimits]]
 name = "TEST_RATE_LIMITER"
 namespace_id = "1"
