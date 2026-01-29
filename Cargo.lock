@@ -29,6 +29,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ai-image-on-workers"
+version = "0.1.0"
+dependencies = [
+ "futures-util",
+ "serde",
+ "worker 0.7.4",
+]
+
+[[package]]
 name = "android_system_properties"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
