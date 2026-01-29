@@ -13,6 +13,7 @@ use worker_sys::types::WorkflowInstanceSys;
 use worker_sys::types::WorkflowStep as WorkflowStepSys;
 
 use crate::env::EnvBinding;
+use crate::send::SendFuture;
 use crate::Result;
 
 #[doc(hidden)]
@@ -55,7 +56,7 @@ impl Workflow {
     /// Get a handle to an existing workflow instance by ID.
     pub async fn get(&self, id: &str) -> Result<WorkflowInstance> {
         let promise = self.inner.get(id)?;
-        let result = JsFuture::from(promise).await?;
+        let result = SendFuture::new(JsFuture::from(promise)).await?;
         Ok(WorkflowInstance::from_js(result))
     }
 
@@ -69,7 +70,7 @@ impl Workflow {
             None => JsValue::UNDEFINED,
         };
         let promise = self.inner.create(js_options)?;
-        let result = JsFuture::from(promise).await?;
+        let result = SendFuture::new(JsFuture::from(promise)).await?;
         Ok(WorkflowInstance::from_js(result))
     }
 
@@ -83,7 +84,7 @@ impl Workflow {
             js_array.push(&serde_wasm_bindgen::to_value(&opts)?);
         }
         let promise = self.inner.create_batch(&js_array)?;
-        let result = JsFuture::from(promise).await?;
+        let result = SendFuture::new(JsFuture::from(promise)).await?;
         let result_array: js_sys::Array = result.unchecked_into();
 
         let mut instances = Vec::with_capacity(result_array.length() as usize);
@@ -201,31 +202,36 @@ impl WorkflowInstance {
 
     /// Pause the workflow instance.
     pub async fn pause(&self) -> Result<()> {
-        JsFuture::from(self.inner.pause()?).await?;
+        let promise = self.inner.pause()?;
+        SendFuture::new(JsFuture::from(promise)).await?;
         Ok(())
     }
 
     /// Resume a paused workflow instance.
     pub async fn resume(&self) -> Result<()> {
-        JsFuture::from(self.inner.resume()?).await?;
+        let promise = self.inner.resume()?;
+        SendFuture::new(JsFuture::from(promise)).await?;
         Ok(())
     }
 
     /// Terminate the workflow instance.
     pub async fn terminate(&self) -> Result<()> {
-        JsFuture::from(self.inner.terminate()?).await?;
+        let promise = self.inner.terminate()?;
+        SendFuture::new(JsFuture::from(promise)).await?;
         Ok(())
     }
 
     /// Restart the workflow instance.
     pub async fn restart(&self) -> Result<()> {
-        JsFuture::from(self.inner.restart()?).await?;
+        let promise = self.inner.restart()?;
+        SendFuture::new(JsFuture::from(promise)).await?;
         Ok(())
     }
 
     /// Get the current status of the workflow instance.
     pub async fn status(&self) -> Result<InstanceStatus> {
-        let result = JsFuture::from(self.inner.status()?).await?;
+        let promise = self.inner.status()?;
+        let result = SendFuture::new(JsFuture::from(promise)).await?;
         Ok(serde_wasm_bindgen::from_value(result)?)
     }
 
@@ -238,7 +244,8 @@ impl WorkflowInstance {
             &"payload".into(),
             &serde_wasm_bindgen::to_value(&payload)?,
         )?;
-        JsFuture::from(self.inner.send_event(event.into())?).await?;
+        let promise = self.inner.send_event(event.into())?;
+        SendFuture::new(JsFuture::from(promise)).await?;
         Ok(())
     }
 }
@@ -311,7 +318,7 @@ impl WorkflowStep {
         let closure = Self::wrap_callback(callback);
         let js_fn = closure.as_ref().unchecked_ref::<js_sys::Function>();
         let promise = self.0.do_(name, js_fn)?;
-        let result = JsFuture::from(promise).await?;
+        let result = SendFuture::new(JsFuture::from(promise)).await?;
         Ok(serde_wasm_bindgen::from_value(result)?)
     }
 
@@ -331,14 +338,15 @@ impl WorkflowStep {
         let closure = Self::wrap_callback(callback);
         let js_fn = closure.as_ref().unchecked_ref::<js_sys::Function>();
         let promise = self.0.do_with_config(name, config_js, js_fn)?;
-        let result = JsFuture::from(promise).await?;
+        let result = SendFuture::new(JsFuture::from(promise)).await?;
         Ok(serde_wasm_bindgen::from_value(result)?)
     }
 
     /// Sleep for a specified duration (e.g., "1 minute", "5 seconds").
     pub async fn sleep(&self, name: &str, duration: impl Into<WorkflowDuration>) -> Result<()> {
         let duration_js = duration.into().to_js_value();
-        JsFuture::from(self.0.sleep(name, duration_js)?).await?;
+        let promise = self.0.sleep(name, duration_js)?;
+        SendFuture::new(JsFuture::from(promise)).await?;
         Ok(())
     }
 
@@ -346,7 +354,8 @@ impl WorkflowStep {
     pub async fn sleep_until(&self, name: &str, timestamp: impl Into<crate::Date>) -> Result<()> {
         let date: crate::Date = timestamp.into();
         let ts_ms = date.as_millis() as f64;
-        JsFuture::from(self.0.sleep_until(name, ts_ms.into())?).await?;
+        let promise = self.0.sleep_until(name, ts_ms.into())?;
+        SendFuture::new(JsFuture::from(promise)).await?;
         Ok(())
     }
 
@@ -357,7 +366,8 @@ impl WorkflowStep {
         options: WaitForEventOptions,
     ) -> Result<WorkflowStepEvent<T>> {
         let options_js = serde_wasm_bindgen::to_value(&options)?;
-        let result = JsFuture::from(self.0.wait_for_event(name, options_js)?).await?;
+        let promise = self.0.wait_for_event(name, options_js)?;
+        let result = SendFuture::new(JsFuture::from(promise)).await?;
         WorkflowStepEvent::from_js(result)
     }
 }
