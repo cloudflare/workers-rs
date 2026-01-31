@@ -1,12 +1,16 @@
 use wasm_bindgen::prelude::*;
 
 use crate::types::TlsClientAuth;
+use crate::types::BotManagement;
 
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(extends=js_sys::Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type IncomingRequestCfProperties;
+
+    #[wasm_bindgen(method, catch, getter, js_name=botManagement)]
+    pub fn bot_management(this: &IncomingRequestCfProperties) -> Result<Option<BotManagement>, JsValue>;
 
     #[wasm_bindgen(method, catch, getter)]
     pub fn colo(this: &IncomingRequestCfProperties) -> Result<String, JsValue>;
