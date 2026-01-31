@@ -26,6 +26,15 @@ impl Cf {
         &self.inner
     }
 
+    /// Information about bot management.
+    pub fn bot_management(&self) -> Option<BotManagement> {
+        self.inner.bot_management().unwrap().map(Into::into)
+    }
+
+    pub fn verified_bot_category(&self) -> String {
+        self.inner.verified_bot_category().unwrap()
+    }
+
     /// The three-letter airport code (e.g. `ATX`, `LUX`) representing
     /// the colocation which processed the request
     pub fn colo(&self) -> String {
@@ -270,6 +279,64 @@ impl TlsClientAuth {
 
 impl From<worker_sys::TlsClientAuth> for TlsClientAuth {
     fn from(inner: worker_sys::TlsClientAuth) -> Self {
+        Self { inner }
+    }
+}
+
+#[derive(Debug)]
+pub struct BotManagement {
+    inner: worker_sys::BotManagement,
+}
+
+impl BotManagement {
+    pub fn score(&self) -> usize {
+        self.inner.score().unwrap()
+    }
+
+    pub fn verified_bot(&self) -> bool {
+        self.inner.verified_bot().unwrap()
+    }
+
+    pub fn static_resource(&self) -> bool {
+        self.inner.static_resource().unwrap()
+    }
+
+    pub fn ja3_hash(&self) -> String {
+        self.inner.ja3_hash().unwrap()
+    }
+
+    pub fn ja4(&self) -> String {
+        self.inner.ja4().unwrap()
+    }
+
+    pub fn js_detection(&self) -> JsDetection {
+        self.inner.js_detection().map(Into::into).unwrap()
+    }
+
+    pub fn detection_ids(&self) -> Vec<usize> {
+        self.inner.detection_ids().unwrap()
+    }
+}
+
+impl From<worker_sys::BotManagement> for BotManagement {
+    fn from(inner: worker_sys::BotManagement) -> Self {
+        Self { inner }
+    }
+}
+
+#[derive(Debug)]
+pub struct JsDetection {
+    inner: worker_sys::JsDetection,
+}
+
+impl JsDetection {
+    pub fn passed(&self) -> bool {
+        self.inner.passed().unwrap()
+    }
+}
+
+impl From<worker_sys::JsDetection> for JsDetection {
+    fn from(inner: worker_sys::JsDetection) -> Self {
         Self { inner }
     }
 }
