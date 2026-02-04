@@ -27,7 +27,7 @@ impl RateLimiter {
     pub async fn limit(&self, key: String) -> Result<RateLimitOutcome> {
         let arg = serde_wasm_bindgen::to_value(&RateLimitOptions { key })?;
         let promise = self.0.limit(arg.into())?;
-        let fut = SendFuture::new(JsFuture::from(promise));
+        let fut = SendFuture::new_unchecked(JsFuture::from(promise));
         let result = fut.await?;
         let outcome = serde_wasm_bindgen::from_value(result)?;
         Ok(outcome)

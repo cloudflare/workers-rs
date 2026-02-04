@@ -25,7 +25,20 @@ pub struct SendFuture<F> {
 }
 
 impl<F> SendFuture<F> {
-    pub fn new(inner: F) -> Self {
+    /// # SAFETY
+    /// If the future is used in the context
+    ///  of cloudflare workers it is always safe to
+    /// construct as a worker is forced to be single threaded
+    ///
+    /// # WARNING
+    /// using this outside of a single threaded context
+    /// will cause undefined behavior and could lead
+    /// to programs crashing
+    pub unsafe fn new(inner: F) -> Self {
+        Self { inner }
+    }
+
+    pub(crate) fn new_unchecked(inner: F) -> Self {
         Self { inner }
     }
 }
@@ -77,7 +90,16 @@ unsafe impl<T> Send for SendWrapper<T> {}
 unsafe impl<T> Sync for SendWrapper<T> {}
 
 impl<T> SendWrapper<T> {
-    pub fn new(inner: T) -> Self {
+    /// # SAFETY
+    /// If the future is used in the context
+    /// of cloudflare workers it is always safe to
+    /// construct as a worker is forced to be single threaded
+    ///
+    /// WARNING
+    /// using this outside of a single threaded context
+    /// will cause undefined behavior and could lead
+    /// to programs crashing
+    pub unsafe fn new(inner: T) -> Self {
         Self(inner)
     }
 }

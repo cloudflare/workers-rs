@@ -1,7 +1,6 @@
 use crate::SomeSharedData;
 use worker::{Env, Request, Response, Result};
 
-#[worker::send]
 pub async fn get_from_secret_store(
     _req: Request,
     env: Env,
@@ -16,7 +15,6 @@ pub async fn get_from_secret_store(
     }
 }
 
-#[worker::send]
 pub async fn get_from_secret_store_missing(
     _req: Request,
     env: Env,

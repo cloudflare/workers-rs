@@ -462,7 +462,7 @@ async fn fetch_with_request_raw(request: crate::Request) -> Result<web_sys::Resp
     let req = request.inner();
     let fut = {
         let worker: web_sys::WorkerGlobalScope = js_sys::global().unchecked_into();
-        crate::send::SendFuture::new(JsFuture::from(worker.fetch_with_request(req)))
+        crate::send::SendFuture::new_unchecked(JsFuture::from(worker.fetch_with_request(req)))
     };
     let resp = fut.await?;
     Ok(resp.dyn_into()?)

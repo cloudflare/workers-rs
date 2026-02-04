@@ -39,6 +39,7 @@ mod sql_iterator;
 mod user;
 mod ws;
 
+#[allow(dead_code)]
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ApiData {
