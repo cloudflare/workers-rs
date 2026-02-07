@@ -29,7 +29,7 @@ serde_json = "1.0.143"
 strsim = "0.11.1"
 tar = "0.4"
 toml = "0.9.5"
-ureq = { version = "3.1", features = ["gzip", "json"] }
+ureq = { version = "3.1", features = ["gzip", "json", "native-tls"] }
 which = "8.0.0"
 worker-codegen.workspace = true
 
