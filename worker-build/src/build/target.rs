@@ -29,7 +29,7 @@ impl fmt::Display for Wasm32Check {
             let rustup_string = if self.is_rustup {
                 "It looks like Rustup is being used.".to_owned()
             } else {
-                format!("It looks like Rustup is not being used. For non-Rustup setups, the {} target needs to be installed manually.", target)
+                format!("It looks like Rustup is not being used. For non-Rustup setups, the {target} target needs to be installed manually.")
             };
 
             writeln!(
@@ -44,7 +44,7 @@ impl fmt::Display for Wasm32Check {
                     self.rustc_path
                 )
             })
-            .and_then(|_| writeln!(f, "{}", rustup_string))
+            .and_then(|_| writeln!(f, "{rustup_string}"))
         } else {
             write!(
                 f,
@@ -64,7 +64,7 @@ pub fn check_for_wasm32_target() -> Result<()> {
     // Check if wasm32 target is present, otherwise bail.
     match check_wasm32_target() {
         Ok(ref wasm32_check) if wasm32_check.found => Ok(()),
-        Ok(wasm32_check) => bail!("{}", wasm32_check),
+        Ok(wasm32_check) => bail!("{wasm32_check}"),
         Err(err) => Err(err),
     }
 }
@@ -112,16 +112,10 @@ fn does_wasm32_target_libdir_exist() -> bool {
     match result {
         Ok(wasm32_target_libdir_path) => {
             if wasm32_target_libdir_path.exists() {
-                info!(
-                    "Found wasm32-unknown-unknown in {:?}",
-                    wasm32_target_libdir_path
-                );
+                info!("Found wasm32-unknown-unknown in {wasm32_target_libdir_path:?}");
                 true
             } else {
-                info!(
-                    "Failed to find wasm32-unknown-unknown in {:?}",
-                    wasm32_target_libdir_path
-                );
+                info!("Failed to find wasm32-unknown-unknown in {wasm32_target_libdir_path:?}");
                 false
             }
         }
@@ -271,7 +265,7 @@ pub fn cargo_build_wasm(
         let new_rustflags = if existing_rustflags.is_empty() {
             "-Cpanic=unwind".to_string()
         } else {
-            format!("{} -Cpanic=unwind", existing_rustflags)
+            format!("{existing_rustflags} -Cpanic=unwind")
         };
         cmd.env("RUSTFLAGS", new_rustflags);
     }

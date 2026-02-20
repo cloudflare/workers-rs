@@ -305,7 +305,7 @@ impl SqlIterator {
                             match value {
                                 SqlStorageValue::Blob(bytes) => {
                                     if bytes.len() <= 10 {
-                                        row_str.push(format!("Blob({:?})", bytes));
+                                        row_str.push(format!("Blob({bytes:?})"));
                                     } else {
                                         row_str.push(format!(
                                             "Blob({:?}...[{} bytes])",
@@ -314,10 +314,10 @@ impl SqlIterator {
                                         ));
                                     }
                                 }
-                                _ => row_str.push(format!("{:?}", value)),
+                                _ => row_str.push(format!("{value:?}")),
                             }
                         } else {
-                            row_str.push(format!("{:?}", value));
+                            row_str.push(format!("{value:?}"));
                         }
                     }
                     results.push(format!("Row: [{}]", row_str.join(", ")));
@@ -356,7 +356,7 @@ impl SqlIterator {
         )?;
 
         let mut results = Vec::new();
-        results.push(format!("Original data: {:?}", test_data));
+        results.push(format!("Original data: {test_data:?}"));
 
         // Test "next()" style result by converting raw data to BlobData struct
         let next_raw_iterator = cursor_next.raw();
@@ -387,8 +387,7 @@ impl SqlIterator {
                     if let Some(SqlStorageValue::Blob(data)) = row.get(2) {
                         let matches = data == &test_data;
                         results.push(format!(
-                            "raw() result: {:?}, matches_original: {}",
-                            data, matches
+                            "raw() result: {data:?}, matches_original: {matches}"
                         ));
                     } else {
                         results.push("raw() error: data column is not a blob".to_string());
