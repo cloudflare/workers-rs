@@ -171,7 +171,7 @@ fn bundle(out_dir: &Path, esbuild_path: &Path) -> Result<()> {
 
     match exit_status.success() {
         true => Ok(()),
-        false => anyhow::bail!("esbuild exited with status {}", exit_status),
+        false => anyhow::bail!("esbuild exited with status {exit_status}"),
     }
 }
 
