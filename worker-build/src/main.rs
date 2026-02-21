@@ -61,7 +61,7 @@ pub fn main() -> Result<()> {
 
     let args: Vec<_> = env::args().collect();
     if args.len() > 1 && (args[1].as_str() == "--version" || args[1].as_str() == "-v") {
-        println!("{}", VERSION);
+        println!("{VERSION}");
         return Ok(());
     }
     let no_panic_recovery = args.iter().any(|a| a == "--no-panic-recovery");
@@ -107,7 +107,16 @@ pub fn main() -> Result<()> {
     }
 
     if module_target {
-        let shim = SHIM_FILE.replace("$HANDLERS", &generate_handlers(&out_dir)?);
+        let shim = SHIM_FILE
+            .replace("$HANDLERS", &generate_handlers(&out_dir)?)
+            .replace(
+                "$PANIC_CRITICAL_ERROR",
+                if builder.panic_unwind {
+                    ""
+                } else {
+                    "criticalError = true;"
+                },
+            );
         fs::write(output_path(&out_dir, "shim.js"), shim)?;
 
         add_export_wrappers(&out_dir)?;
@@ -361,7 +370,7 @@ fn bundle(out_dir: &Path, esbuild_path: &Path) -> Result<()> {
 
     match exit_status.success() {
         true => Ok(()),
-        false => anyhow::bail!("esbuild exited with status {}", exit_status),
+        false => anyhow::bail!("esbuild exited with status {exit_status}"),
     }
 }
 

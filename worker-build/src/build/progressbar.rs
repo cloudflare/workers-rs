@@ -26,7 +26,7 @@ impl std::str::FromStr for LogLevel {
             "error" => Ok(LogLevel::Error),
             "warn" => Ok(LogLevel::Warn),
             "info" => Ok(LogLevel::Info),
-            _ => bail!("Unknown log-level: {}", s),
+            _ => bail!("Unknown log-level: {s}"),
         }
     }
 }
@@ -48,7 +48,7 @@ impl ProgressOutput {
 
     /// Print the given message.
     fn message(&self, message: &str) {
-        eprintln!("{}", message);
+        eprintln!("{message}");
     }
 
     /// Returns whether it should silence stdout or not

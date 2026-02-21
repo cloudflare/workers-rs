@@ -29,7 +29,7 @@ impl fmt::Display for Wasm32Check {
             let rustup_string = if self.is_rustup {
                 "It looks like Rustup is being used.".to_owned()
             } else {
-                format!("It looks like Rustup is not being used. For non-Rustup setups, the {} target needs to be installed manually.", target)
+                format!("It looks like Rustup is not being used. For non-Rustup setups, the {target} target needs to be installed manually.")
             };
 
             writeln!(
@@ -44,7 +44,7 @@ impl fmt::Display for Wasm32Check {
                     self.rustc_path
                 )
             })
-            .and_then(|_| writeln!(f, "{}", rustup_string))
+            .and_then(|_| writeln!(f, "{rustup_string}"))
         } else {
             write!(
                 f,
@@ -64,7 +64,7 @@ pub fn check_for_wasm32_target() -> Result<()> {
     // Check if wasm32 target is present, otherwise bail.
     match check_wasm32_target() {
         Ok(ref wasm32_check) if wasm32_check.found => Ok(()),
-        Ok(wasm32_check) => bail!("{}", wasm32_check),
+        Ok(wasm32_check) => bail!("{wasm32_check}"),
         Err(err) => Err(err),
     }
 }
@@ -112,16 +112,10 @@ fn does_wasm32_target_libdir_exist() -> bool {
     match result {
         Ok(wasm32_target_libdir_path) => {
             if wasm32_target_libdir_path.exists() {
-                info!(
-                    "Found wasm32-unknown-unknown in {:?}",
-                    wasm32_target_libdir_path
-                );
+                info!("Found wasm32-unknown-unknown in {wasm32_target_libdir_path:?}");
                 true
             } else {
-                info!(
-                    "Failed to find wasm32-unknown-unknown in {:?}",
-                    wasm32_target_libdir_path
-                );
+                info!("Failed to find wasm32-unknown-unknown in {wasm32_target_libdir_path:?}");
                 false
             }
         }
@@ -217,11 +211,22 @@ pub fn cargo_build_wasm(
     path: &Path,
     profile: BuildProfile,
     extra_options: &[String],
+    panic_unwind: bool,
 ) -> Result<()> {
-    let msg = format!("{}Compiling to Wasm...", emoji::CYCLONE);
+    let msg = if panic_unwind {
+        format!("{}Compiling to Wasm (with panic=unwind)...", emoji::CYCLONE)
+    } else {
+        format!("{}Compiling to Wasm...", emoji::CYCLONE)
+    };
     PBAR.info(&msg);
 
     let mut cmd = Command::new("cargo");
+
+    // When panic_unwind is enabled, use nightly toolchain
+    if panic_unwind {
+        cmd.arg("+nightly");
+    }
+
     cmd.current_dir(path).arg("build").arg("--lib");
 
     if PBAR.quiet() {
@@ -250,6 +255,20 @@ pub fn cargo_build_wasm(
     }
 
     cmd.arg("--target").arg("wasm32-unknown-unknown");
+
+    // When panic_unwind is enabled, we need to rebuild std with panic=unwind support
+    if panic_unwind {
+        cmd.arg("-Z").arg("build-std=std,panic_unwind");
+
+        // Get existing RUSTFLAGS and append panic=unwind
+        let existing_rustflags = std::env::var("RUSTFLAGS").unwrap_or_default();
+        let new_rustflags = if existing_rustflags.is_empty() {
+            "-Cpanic=unwind".to_string()
+        } else {
+            format!("{existing_rustflags} -Cpanic=unwind")
+        };
+        cmd.env("RUSTFLAGS", new_rustflags);
+    }
 
     // The `cargo` command is executed inside the directory at `path`, so relative paths set via extra options won't work.
     // To remedy the situation, all detected paths are converted to absolute paths.

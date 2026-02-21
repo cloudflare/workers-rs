@@ -28,7 +28,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             "respond_with_errors" => {
                 respond_with_errors = true;
             }
-            _ => panic!("Invalid attribute: {}", attr),
+            _ => panic!("Invalid attribute: {attr}"),
         }
     }
     let handler_type = handler_type.expect(
@@ -57,42 +57,47 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             };
 
             // create a new "main" function that takes the worker_sys::Request, and calls the
-            // original attributed function, passing in a converted worker::Request
+            // original attributed function, passing in a converted worker::Request.
+            // We use a synchronous wrapper that returns a Promise via future_to_promise
+            // with AssertUnwindSafe to support panic=unwind.
             let wrapper_fn = quote! {
-                pub async fn #wrapper_fn_ident(
+                pub fn #wrapper_fn_ident(
                     req: ::worker::worker_sys::web_sys::Request,
                     env: ::worker::Env,
                     ctx: ::worker::worker_sys::Context
-                ) -> ::worker::worker_sys::web_sys::Response {
-                    let ctx = worker::Context::new(ctx);
-                    match ::worker::FromRequest::from_raw(req) {
-                        Ok(req) => {
-                            let result = #input_fn_ident(req, env, ctx).await;
-                            // get the worker::Result<worker::Response> by calling the original fn
-                            match result {
-                                Ok(raw_res) => {
-                                    match ::worker::IntoResponse::into_raw(raw_res) {
-                                        Ok(res) => res,
-                                        Err(err) => {
-                                            let e: Box<dyn std::error::Error> = err.into();
-                                            ::worker::console_error!("Error converting response: {}", &e);
-                                            #error_handling
+                ) -> ::worker::js_sys::Promise {
+                    ::worker::wasm_bindgen_futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
+                        let ctx = worker::Context::new(ctx);
+                        let response: ::worker::worker_sys::web_sys::Response = match ::worker::FromRequest::from_raw(req) {
+                            Ok(req) => {
+                                let result = #input_fn_ident(req, env, ctx).await;
+                                // get the worker::Result<worker::Response> by calling the original fn
+                                match result {
+                                    Ok(raw_res) => {
+                                        match ::worker::IntoResponse::into_raw(raw_res) {
+                                            Ok(res) => res,
+                                            Err(err) => {
+                                                let e: Box<dyn std::error::Error> = err.into();
+                                                ::worker::console_error!("Error converting response: {}", &e);
+                                                #error_handling
+                                            }
                                         }
+                                    },
+                                    Err(err) => {
+                                        let e: Box<dyn std::error::Error> = err.into();
+                                        ::worker::console_error!("{}", &e);
+                                        #error_handling
                                     }
-                                },
-                                Err(err) => {
-                                    let e: Box<dyn std::error::Error> = err.into();
-                                    ::worker::console_error!("{}", &e);
-                                    #error_handling
                                 }
+                            },
+                            Err(err) => {
+                                let e: Box<dyn std::error::Error> = err.into();
+                                ::worker::console_error!("Error converting request: {}", &e);
+                                #error_handling
                             }
-                        },
-                        Err(err) => {
-                            let e: Box<dyn std::error::Error> = err.into();
-                            ::worker::console_error!("Error converting request: {}", &e);
-                            #error_handling
-                        }
-                    }
+                        };
+                        Ok(::worker::wasm_bindgen::JsValue::from(response))
+                    }))
                 }
             };
             let wasm_bindgen_code =
@@ -121,10 +126,15 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             // rename the original attributed fn
             input_fn.sig.ident = input_fn_ident.clone();
 
+            // Use a synchronous wrapper that returns a Promise via future_to_promise
+            // with AssertUnwindSafe to support panic=unwind.
             let wrapper_fn = quote! {
-                pub async fn #wrapper_fn_ident(event: ::worker::worker_sys::ScheduledEvent, env: ::worker::Env, ctx: ::worker::worker_sys::ScheduleContext) {
-                    // call the original fn
-                    #input_fn_ident(::worker::ScheduledEvent::from(event), env, ::worker::ScheduleContext::from(ctx)).await
+                pub fn #wrapper_fn_ident(event: ::worker::worker_sys::ScheduledEvent, env: ::worker::Env, ctx: ::worker::worker_sys::ScheduleContext) -> ::worker::js_sys::Promise {
+                    ::worker::wasm_bindgen_futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
+                        // call the original fn
+                        #input_fn_ident(::worker::ScheduledEvent::from(event), env, ::worker::ScheduleContext::from(ctx)).await;
+                        Ok(::worker::wasm_bindgen::JsValue::UNDEFINED)
+                    }))
                 }
             };
             let wasm_bindgen_code =
@@ -154,17 +164,22 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             // rename the original attributed fn
             input_fn.sig.ident = input_fn_ident.clone();
 
+            // Use a synchronous wrapper that returns a Promise via future_to_promise
+            // with AssertUnwindSafe to support panic=unwind.
             let wrapper_fn = quote! {
-                pub async fn #wrapper_fn_ident(event: ::worker::worker_sys::MessageBatch, env: ::worker::Env, ctx: ::worker::worker_sys::Context) {
-                    // call the original fn
-                    let ctx = worker::Context::new(ctx);
-                    match #input_fn_ident(::worker::MessageBatch::from(event), env, ctx).await {
-                        Ok(()) => {},
-                        Err(e) => {
-                            ::worker::console_log!("{}", &e);
-                            panic!("{}", e);
+                pub fn #wrapper_fn_ident(event: ::worker::worker_sys::MessageBatch, env: ::worker::Env, ctx: ::worker::worker_sys::Context) -> ::worker::js_sys::Promise {
+                    ::worker::wasm_bindgen_futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
+                        // call the original fn
+                        let ctx = worker::Context::new(ctx);
+                        match #input_fn_ident(::worker::MessageBatch::from(event), env, ctx).await {
+                            Ok(()) => {},
+                            Err(e) => {
+                                ::worker::console_log!("{}", &e);
+                                panic!("{}", e);
+                            }
                         }
-                    }
+                        Ok(::worker::wasm_bindgen::JsValue::UNDEFINED)
+                    }))
                 }
             };
             let wasm_bindgen_code =

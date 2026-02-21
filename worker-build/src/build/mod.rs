@@ -48,6 +48,7 @@ pub struct Build {
     pub extra_args: Vec<String>,
     pub extra_options: Vec<String>,
     pub wasm_bindgen_version: Option<String>,
+    pub panic_unwind: bool,
 }
 
 /// What sort of output we're going to be generating and flags we're invoking
@@ -69,7 +70,7 @@ impl fmt::Display for Target {
             Target::Bundler => "bundler",
             Target::Module => "module",
         };
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
 }
 
@@ -79,7 +80,7 @@ impl FromStr for Target {
         match s {
             "bundler" | "browser" => Ok(Target::Bundler),
             "module" => Ok(Target::Module),
-            _ => bail!("Unknown target: {}", s),
+            _ => bail!("Unknown target: {s}"),
         }
     }
 }
@@ -158,6 +159,12 @@ pub struct BuildOptions {
     #[clap(long, hide = true)]
     /// Pass-through for --no-panic-recovery
     pub no_panic_recovery: bool,
+
+    #[clap(long = "panic-unwind")]
+    /// Enable panic=unwind support. This uses nightly Rust and rebuilds std
+    /// with panic=unwind, allowing panics to be caught and converted to
+    /// JavaScript errors instead of aborting the Worker.
+    pub panic_unwind: bool,
 }
 
 type BuildStep = fn(&mut Build) -> Result<()>;
@@ -174,6 +181,19 @@ impl Build {
             }
         }
         let crate_path = get_crate_path(build_opts.path)?;
+        let manifest_path = crate_path.join("Cargo.toml");
+        if !manifest_path.is_file() {
+            bail!(
+                "Cannot build project {}:\n\
+                 worker-build must be run from a Rust crate directory containing Cargo.toml.\n\
+                 \n\
+                 Try:\n\
+                   cd <your-crate> && worker-build\n\
+                 Or:\n\
+                   worker-build --path <crate-directory>",
+                crate_path.display()
+            )
+        }
         let crate_data = manifest::CrateData::new(&crate_path, build_opts.out_name.clone())?;
         let out_dir = crate_path.join(PathBuf::from(build_opts.out_dir)).clean();
 
@@ -208,6 +228,7 @@ impl Build {
             extra_args: Vec::new(),
             extra_options: build_opts.extra_options,
             wasm_bindgen_version: None,
+            panic_unwind: build_opts.panic_unwind,
         })
     }
 
@@ -298,7 +319,7 @@ impl Build {
     fn step_check_rustc_version(&mut self) -> Result<()> {
         info!("Checking rustc version...");
         let version = target::check_rustc_version()?;
-        let msg = format!("rustc version is {}.", version);
+        let msg = format!("rustc version is {version}.");
         info!("{}", &msg);
         Ok(())
     }
@@ -319,7 +340,12 @@ impl Build {
 
     fn step_build_wasm(&mut self) -> Result<()> {
         info!("Building wasm...");
-        target::cargo_build_wasm(&self.crate_path, self.profile.clone(), &self.extra_options)?;
+        target::cargo_build_wasm(
+            &self.crate_path,
+            self.profile.clone(),
+            &self.extra_options,
+            self.panic_unwind,
+        )?;
 
         info!(
             "wasm built at {:#?}.",
@@ -430,10 +456,10 @@ impl Build {
         args.push("--all-features".into());
         // Keep the Wasm names section
         args.push("--debuginfo".into());
-        info!("executing wasm-opt with {:?}", args);
+        info!("executing wasm-opt with {args:?}");
         wasm_opt_run(&self.out_dir, &args).map_err(|e| {
             anyhow!(
-                "{}\nTo disable `wasm-opt`, add `wasm-opt = false` to your package metadata in your `Cargo.toml`.", e
+                "{e}\nTo disable `wasm-opt`, add `wasm-opt = false` to your package metadata in your `Cargo.toml`."
             )
         })
     }
