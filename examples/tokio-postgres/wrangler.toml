@@ -6,4 +6,4 @@ binding = "DB"
 id = ""
 
 [build]
-command = "cargo install worker-build@^0.7 && worker-build --release"
+command = "cargo install \"worker-build@^0.7\" && worker-build --release"
