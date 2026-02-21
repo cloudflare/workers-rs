@@ -558,7 +558,7 @@ impl Storage {
                         .map(|_| JsValue::NULL)
                 }))
             });
-        let clos = wasm_bindgen::closure::Closure::once_wrap(inner);
+        let clos = wasm_bindgen::closure::Closure::once_assert_unwind_safe(inner);
         JsFuture::from(self.inner.transaction(&clos)?)
             .await
             .map_err(Error::from)

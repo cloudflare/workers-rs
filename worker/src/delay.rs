@@ -46,7 +46,7 @@ impl Future for Delay {
                         awoken.set(true);
                     });
 
-                    Closure::wrap(wake as _)
+                    Closure::wrap_assert_unwind_safe(wake as _)
                 });
 
                 // Then get that closure back and pass it to setTimeout so we can get woken up later.
