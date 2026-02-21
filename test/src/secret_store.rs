@@ -11,7 +11,7 @@ pub async fn get_from_secret_store(
     let secret_value = secrets.get().await?;
 
     match secret_value {
-        Some(_value) => Response::ok("secret value"),
+        Some(value) => Response::ok(value),
         None => Response::error("Secret not found", 404),
     }
 }
