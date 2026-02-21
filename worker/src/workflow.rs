@@ -299,7 +299,9 @@ impl WorkflowStep {
         F: FnOnce() -> Fut + 'static,
         Fut: Future<Output = Result<T>> + 'static,
     {
+        let callback = AssertUnwindSafe(callback);
         wasm_bindgen::closure::Closure::once(move || -> js_sys::Promise {
+            let callback = callback.0;
             future_to_promise(AssertUnwindSafe(async move {
                 let result = callback().await.map_err(JsValue::from)?;
                 serialize_as_object(&result).map_err(|e| JsValue::from_str(&e.to_string()))
