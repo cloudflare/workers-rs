@@ -57,7 +57,7 @@ pub fn elapsed(duration: Duration) -> String {
 
 /// Run the given command and return on success.
 pub fn run(mut command: Command, command_name: &str) -> Result<()> {
-    info!("Running {:?}", command);
+    info!("Running {command:?}");
 
     let status = command.status()?;
 
@@ -65,17 +65,14 @@ pub fn run(mut command: Command, command_name: &str) -> Result<()> {
         Ok(())
     } else {
         bail!(
-            "failed to execute `{}`: exited with {}\n  full command: {:?}",
-            command_name,
-            status,
-            command,
+            "failed to execute `{command_name}`: exited with {status}\n  full command: {command:?}",
         )
     }
 }
 
 /// Run the given command and return its stdout.
 pub fn run_capture_stdout(mut command: Command, command_name: &str) -> Result<String> {
-    info!("Running {:?}", command);
+    info!("Running {command:?}");
 
     let output = command
         .stderr(Stdio::inherit())

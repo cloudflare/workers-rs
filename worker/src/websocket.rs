@@ -185,7 +185,7 @@ impl WebSocket {
         r#type: &str,
         fun: F,
     ) -> Result<Closure<dyn FnMut(T)>> {
-        let js_callback = Closure::wrap(Box::new(fun) as Box<dyn FnMut(T)>);
+        let js_callback = Closure::wrap_assert_unwind_safe(Box::new(fun) as Box<dyn FnMut(T)>);
         self.socket
             .add_event_listener_with_callback(r#type, js_callback.as_ref().unchecked_ref())
             .map_err(Error::from)?;
