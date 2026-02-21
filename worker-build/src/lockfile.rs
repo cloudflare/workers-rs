@@ -115,7 +115,7 @@ fn cargo_dep_error(lib_name: &str, cur_version: &Version) -> String {
         "{} in the Cargo.toml file:\n\n\
          [dependencies]\n\
          {lib_name} = \"{}\"",
-        style(format!("{lib_name}@{}", cur_version)).bold().green(),
+        style(format!("{lib_name}@{cur_version}")).bold().green(),
         *cur_version,
     )
 }
@@ -127,7 +127,7 @@ fn get_lockfile_path(crate_data: &Metadata) -> Result<PathBuf> {
     // if it cannot, otherwise return the path buffer.
     let lockfile_path = crate_data.workspace_root.join("Cargo.lock");
     if !lockfile_path.is_file() {
-        bail!("Could not find lockfile at {:?}", lockfile_path)
+        bail!("Could not find lockfile at {lockfile_path:?}")
     } else {
         Ok(lockfile_path.into())
     }
