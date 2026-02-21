@@ -405,8 +405,7 @@ impl CrateData {
     pub fn warn_for_unused_keys(manifest_and_keys: &ManifestAndUnsedKeys) {
         manifest_and_keys.unused_keys.iter().for_each(|path| {
             PBAR.warn(&format!(
-                "\"{}\" is an unknown key and will be ignored. Please check your Cargo.toml.",
-                path
+                "\"{path}\" is an unknown key and will be ignored. Please check your Cargo.toml."
             ));
         });
     }
@@ -523,13 +522,13 @@ impl CrateData {
         out_dir: &Path,
     ) -> NpmData {
         let name_prefix = self.name_prefix();
-        let wasm_file = format!("{}_bg.wasm", name_prefix);
-        let js_file = format!("{}.js", name_prefix);
+        let wasm_file = format!("{name_prefix}_bg.wasm");
+        let js_file = format!("{name_prefix}.js");
         let mut files = vec![wasm_file];
 
         files.push(js_file.clone());
         if add_js_bg_to_package_json {
-            let js_bg_file = format!("{}_bg.js", name_prefix);
+            let js_bg_file = format!("{name_prefix}_bg.js");
             files.push(js_bg_file);
         }
 
@@ -540,7 +539,7 @@ impl CrateData {
         };
 
         let dts_file = if !disable_dts {
-            let file = format!("{}.d.ts", name_prefix);
+            let file = format!("{name_prefix}.d.ts");
             files.push(file.to_string());
             Some(file)
         } else {
@@ -579,7 +578,7 @@ impl CrateData {
         self.crate_license().clone().or_else(|| {
             self.crate_license_file().clone().map(|file| {
                 // When license is written in file: https://docs.npmjs.com/files/package.json#license
-                format!("SEE LICENSE IN {}", file)
+                format!("SEE LICENSE IN {file}")
             })
         })
     }
