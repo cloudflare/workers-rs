@@ -70,7 +70,7 @@ impl fmt::Display for Target {
             Target::Bundler => "bundler",
             Target::Module => "module",
         };
-        write!(f, "{}", s)
+        write!(f, "{s}")
     }
 }
 
@@ -80,7 +80,7 @@ impl FromStr for Target {
         match s {
             "bundler" | "browser" => Ok(Target::Bundler),
             "module" => Ok(Target::Module),
-            _ => bail!("Unknown target: {}", s),
+            _ => bail!("Unknown target: {s}"),
         }
     }
 }
@@ -319,7 +319,7 @@ impl Build {
     fn step_check_rustc_version(&mut self) -> Result<()> {
         info!("Checking rustc version...");
         let version = target::check_rustc_version()?;
-        let msg = format!("rustc version is {}.", version);
+        let msg = format!("rustc version is {version}.");
         info!("{}", &msg);
         Ok(())
     }
@@ -456,10 +456,10 @@ impl Build {
         args.push("--all-features".into());
         // Keep the Wasm names section
         args.push("--debuginfo".into());
-        info!("executing wasm-opt with {:?}", args);
+        info!("executing wasm-opt with {args:?}");
         wasm_opt_run(&self.out_dir, &args).map_err(|e| {
             anyhow!(
-                "{}\nTo disable `wasm-opt`, add `wasm-opt = false` to your package metadata in your `Cargo.toml`.", e
+                "{e}\nTo disable `wasm-opt`, add `wasm-opt = false` to your package metadata in your `Cargo.toml`."
             )
         })
     }

@@ -53,7 +53,7 @@ impl DurableObject for EchoContainer {
                         Delay::from(Duration::from_millis(300)).await;
                         continue;
                     }
-                    Err(e) => throw_str(&format!("failed to fetch ping: {}", e)),
+                    Err(e) => throw_str(&format!("failed to fetch ping: {e}")),
                 }
             }
             throw_str("failed to fetch ping");
