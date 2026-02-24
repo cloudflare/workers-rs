@@ -159,6 +159,7 @@ pub use worker_macros::{consume, durable_object, event, send};
 #[doc(hidden)]
 pub use worker_sys;
 pub use worker_sys::{console_debug, console_error, console_log, console_warn};
+pub use worker_sys::{BotManagement, JsDetection};
 
 pub use crate::abort::*;
 pub use crate::ai::*;
