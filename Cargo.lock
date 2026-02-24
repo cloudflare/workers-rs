@@ -3927,6 +3927,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "workers-rs-benchmark"
+version = "0.1.0"
+dependencies = [
+ "futures-util",
+ "serde",
+ "serde_json",
+ "web-sys",
+ "worker 0.7.4",
+]
+
+[[package]]
 name = "writeable"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
