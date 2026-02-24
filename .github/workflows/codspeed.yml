@@ -1,0 +1,62 @@
+name: CodSpeed Benchmarks
+
+on:
+  push:
+    branches:
+      - "main"
+  pull_request:
+  # `workflow_dispatch` allows CodSpeed to trigger backtest
+  # performance analysis in order to generate initial data.
+  workflow_dispatch:
+
+env:
+  BENCH_RESULT: /tmp/benchmark_results.json
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  benchmarks:
+    name: Run benchmarks
+    runs-on: codspeed-macro
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - uses: dtolnay/rust-toolchain@1.87.0
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: cargo-bench-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build wasm-bindgen and worker-build
+        run: npm run build
+
+      - name: Install benchmark dependencies
+        working-directory: benchmark
+        run: npm install
+
+      - name: Build and run benchmarks
+        working-directory: benchmark
+        run: |
+          node --run build
+          node run.js
+
+      - name: Convert results to CodSpeed format
+        working-directory: benchmark
+        run: node codspeed-convert.js $BENCH_RESULT
+
+      - name: Upload benchmark results
+        uses: CodSpeedHQ/action@v4
+        with:
+          mode: walltime
+          run: echo "Results already generated"

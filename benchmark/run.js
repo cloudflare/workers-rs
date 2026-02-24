@@ -9,6 +9,7 @@
  */
 
 import { Miniflare } from 'miniflare';
+import { writeFileSync } from 'node:fs';
 
 async function runBenchmark() {
   console.log('🚀 Starting workers-rs benchmark suite\n');
@@ -116,6 +117,13 @@ async function runBenchmark() {
   const throughputMbps = (totalBytes * 8 / (avgWorker / 1000)) / (1024 * 1024);
   console.log(`🚀 Average throughput: ${throughputMbps.toFixed(2)} Mbps`);
   console.log('━'.repeat(60));
+
+  // Write results JSON if BENCH_RESULT env is set
+  const resultPath = process.env.BENCH_RESULT;
+  if (resultPath) {
+    writeFileSync(resultPath, JSON.stringify(results, null, 2));
+    console.log(`\n📁 Results written to ${resultPath}`);
+  }
 
   // Cleanup
   await mf.dispose();
