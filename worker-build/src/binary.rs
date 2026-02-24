@@ -138,7 +138,17 @@ fn fix_permissions(options: &mut OpenOptions) -> &mut OpenOptions {
 
 /// Download this binary instance into its cache path
 fn download(url: &str, bin_dir: &Path) -> Result<()> {
-    let mut res = ureq::get(url)
+    let agent = ureq::Agent::config_builder()
+        .tls_config(
+            ureq::tls::TlsConfig::builder()
+                .provider(ureq::tls::TlsProvider::NativeTls)
+                .root_certs(ureq::tls::RootCerts::PlatformVerifier)
+                .build(),
+        )
+        .build()
+        .new_agent();
+    let mut res = agent
+        .get(url)
         .call()
         .with_context(|| format!("Failed to fetch URL {url}"))?;
     let body = res.body_mut().as_reader();
