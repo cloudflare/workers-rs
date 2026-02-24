@@ -37,7 +37,7 @@ async fn handle_benchmark(url: &Url) -> Result<Response> {
         url.scheme(),
         url.host_str().unwrap_or("localhost")
     );
-    let stream_url = format!("{}/stream", base_url);
+    let stream_url = format!("{base_url}/stream");
 
     // Create 10 parallel sub-requests
     let mut tasks = Vec::new();
@@ -51,13 +51,13 @@ async fn handle_benchmark(url: &Url) -> Result<Response> {
             let mut response = Fetch::Url(stream_url.parse().unwrap())
                 .send()
                 .await
-                .map_err(|e| format!("Fetch error on request {}: {:?}", i, e))?;
+                .map_err(|e| format!("Fetch error on request {i}: {e:?}"))?;
 
             // Consume the stream to ensure all data is read
             let body = response
                 .bytes()
                 .await
-                .map_err(|e| format!("Body read error on request {}: {:?}", i, e))?;
+                .map_err(|e| format!("Body read error on request {i}: {e:?}"))?;
 
             let total_bytes = body.len() as u64;
 
@@ -84,7 +84,7 @@ async fn handle_benchmark(url: &Url) -> Result<Response> {
     for (i, result) in results.iter().enumerate() {
         match result {
             Ok(bytes) => total_bytes += bytes,
-            Err(e) => errors.push(format!("Request {}: {}", i, e)),
+            Err(e) => errors.push(format!("Request {i}: {e}")),
         }
     }
 
