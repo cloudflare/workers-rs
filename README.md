@@ -1,6 +1,7 @@
 ![workers-rs](.github/logo.png)
 [![crates.io](https://img.shields.io/crates/v/worker)](https://crates.io/crates/worker)
 [![docs.rs](https://img.shields.io/docsrs/worker)](https://docs.rs/worker)
+[![CodSpeed](https://img.shields.io/endpoint?url=https://codspeed.io/badge.json)](https://codspeed.io/cloudflare/workers-rs?utm_source=badge)
 
 **Work-in-progress** ergonomic Rust bindings to Cloudflare Workers environment. Write your entire worker in Rust!
 
@@ -124,7 +125,7 @@ pub async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Respo
     #[derive(Deserialize, Serialize)]
     struct Account {
         id: u64,
-        // ...
+        // ..
     }
     router
         .get_async("/account/:id", |_req, ctx| async move {
@@ -536,23 +537,23 @@ pub async fn main(request: Request, env: Env, _ctx: Context) -> Result<Response>
 
 It is exciting to see how much is possible with a framework like this, by expanding the options
 developers have when building on top of the Workers platform. However, there is still much to be
-done. Expect a few rough edges, some unimplemented APIs, and maybe a bug or two here and there. It’s
+done. Expect a few rough edges, some unimplemented APIs, and maybe a bug or two here and there. It's
 worth calling out here that some things that may have worked in your Rust code might not work here -
-it’s all WebAssembly at the end of the day, and if your code or third-party libraries don’t target
-`wasm32-unknown-unknown`, they can’t be used on Workers. Additionally, you’ve got to leave your
+it's all WebAssembly at the end of the day, and if your code or third-party libraries don't target
+`wasm32-unknown-unknown`, they can't be used on Workers. Additionally, you've got to leave your
 threaded async runtimes at home; meaning no Tokio or async_std support. However, async/await syntax
 is still available and supported out of the box when you use the `worker` crate.
 
 We fully intend to support this crate and continue to build out its missing features, but your help
-and feedback is a must. We don’t like to build in a vacuum, and we’re in an incredibly fortunate
+and feedback is a must. We don't like to build in a vacuum, and we're in an incredibly fortunate
 position to have brilliant customers like you who can help steer us towards an even better product.
 
 So give it a try, leave some feedback, and star the repo to encourage us to dedicate more time and
 resources to this kind of project.
 
-If this is interesting to you and you want to help out, we’d be happy to get outside contributors
+If this is interesting to you and you want to help out, we'd be happy to get outside contributors
 started. We know there are improvements to be made such as implementing additional APIs, utility crates,
-and more. In fact, we’re always on the lookout for great engineers, and hiring for many open roles -
+and more. In fact, we're always on the lookout for great engineers, and hiring for many open roles -
 please [take a look](https://www.cloudflare.com/careers/).
 
 ### FAQ

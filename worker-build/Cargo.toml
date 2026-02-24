@@ -34,7 +34,12 @@ which = "8.0.0"
 worker-codegen.workspace = true
 
 [dev-dependencies]
+divan = { version = "4.3.0", package = "codspeed-divan-compat" }
 wasm-bindgen-cli-support.workspace = true
 
 [[bin]]
 name = "worker-codegen"
+
+[[bench]]
+name = "worker_build"
+harness = false
