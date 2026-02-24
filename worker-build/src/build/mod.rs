@@ -99,32 +99,11 @@ pub enum BuildProfile {
     Custom(String),
 }
 
-/// Everything required to configure and run the `worker build` command.
+/// Mutually exclusive build profile flags.
 #[derive(Debug, Args, Default)]
-#[command(allow_hyphen_values = true, trailing_var_arg = true)]
-pub struct BuildOptions {
-    /// The path to the Rust crate. If not set, searches up the path from the current directory.
-    #[clap()]
-    pub path: Option<PathBuf>,
-
-    /// The npm scope to use in package.json, if any.
-    #[clap(long = "scope", short = 's')]
-    pub scope: Option<String>,
-
-    #[clap(long = "no-typescript")]
-    /// By default a *.d.ts file is generated for the generated JS file, but
-    /// this flag will disable generating this TypeScript file.
-    pub disable_dts: bool,
-
-    #[clap(long = "target", short = 't', default_value = "bundler")]
-    /// Sets the target environment. [possible values: bundler, nodejs, web, no-modules, deno, module]
-    pub target: Target,
-
-    #[clap(long = "debug")]
-    /// Deprecated. Renamed to `--dev`.
-    pub debug: bool,
-
-    #[clap(long = "dev")]
+#[group(required = false, multiple = false)]
+pub struct ProfileOptions {
+    #[clap(long = "dev", alias = "debug")]
     /// Create a development build. Enable debug info, and disable
     /// optimizations.
     pub dev: bool,
@@ -138,14 +117,39 @@ pub struct BuildOptions {
     pub profiling: bool,
 
     #[clap(long = "profile")]
-    /// User-defined profile with --profile flag
+    /// User-defined profile with --profile flag.
     pub profile: Option<String>,
+}
 
-    #[clap(long = "out-dir", short = 'd', default_value = "pkg")]
+/// Everything required to configure and run the `worker build` command.
+#[derive(Debug, Args, Default)]
+#[command(allow_hyphen_values = true, trailing_var_arg = true)]
+pub struct BuildOptions {
+    /// The path to the Rust crate. If not set, searches up the path from the current directory.
+    #[clap()]
+    pub path: Option<PathBuf>,
+
+    /// The npm scope to use in package.json, if any.
+    #[clap(long = "scope", short = 's')]
+    pub scope: Option<String>,
+
+    #[clap(long = "no-typescript", hide = true)]
+    /// By default a *.d.ts file is generated for the generated JS file, but
+    /// this flag will disable generating this TypeScript file.
+    pub disable_dts: bool,
+
+    #[clap(long = "target", short = 't', default_value = "bundler", hide = true)]
+    /// Sets the target environment. [possible values: bundler, nodejs, web, no-modules, deno, module]
+    pub target: Target,
+
+    #[command(flatten)]
+    pub profile: ProfileOptions,
+
+    #[clap(long = "out-dir", short = 'd', default_value = "pkg", hide = true)]
     /// Sets the output directory with a relative path.
     pub out_dir: String,
 
-    #[clap(long = "out-name")]
+    #[clap(long = "out-name", hide = true)]
     /// Sets the output file names. Defaults to package name.
     pub out_name: Option<String>,
 
@@ -197,20 +201,14 @@ impl Build {
         let crate_data = manifest::CrateData::new(&crate_path, build_opts.out_name.clone())?;
         let out_dir = crate_path.join(PathBuf::from(build_opts.out_dir)).clean();
 
-        let dev = build_opts.dev || build_opts.debug;
-        let profile = match (
-            dev,
-            build_opts.release,
-            build_opts.profiling,
-            build_opts.profile,
-        ) {
-            (false, false, false, None) | (false, true, false, None) => BuildProfile::Release,
-            (true, false, false, None) => BuildProfile::Dev,
-            (false, false, true, None) => BuildProfile::Profiling,
-            (false, false, false, Some(profile)) => BuildProfile::Custom(profile),
-            // Unfortunately, `clap` doesn't expose clap's `conflicts_with`
-            // functionality yet, so we have to implement it ourselves.
-            _ => bail!("Can only supply one of the --dev, --release, --profiling, or --profile 'name' flags"),
+        let profile = if build_opts.profile.dev {
+            BuildProfile::Dev
+        } else if build_opts.profile.profiling {
+            BuildProfile::Profiling
+        } else if let Some(name) = build_opts.profile.profile {
+            BuildProfile::Custom(name)
+        } else {
+            BuildProfile::Release
         };
 
         Ok(Build {

@@ -330,6 +330,7 @@ where
     // BuildOptions to preserve the behavior of appending
     // arbitrary arguments in `args`.
     let mut build_args = vec![
+        env!("CARGO_BIN_NAME").to_owned(),
         "--no-typescript".to_owned(),
         "--target".to_owned(),
         "module".to_owned(),
@@ -375,7 +376,6 @@ fn bundle(out_dir: &Path, esbuild_path: &Path) -> Result<()> {
 }
 
 fn remove_unused_files(out_dir: &Path) -> Result<()> {
-    std::fs::remove_file(output_path(out_dir, "index_bg.wasm.d.ts"))?;
     std::fs::remove_file(output_path(out_dir, "shim.js"))?;
     let snippets_path = output_path(out_dir, "snippets");
     if snippets_path.exists() {
