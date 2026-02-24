@@ -258,7 +258,7 @@ pub fn cargo_build_wasm(
 
     // When panic_unwind is enabled, we need to rebuild std with panic=unwind support
     if panic_unwind {
-        cmd.arg("-Z").arg("build-std=panic_abort,std");
+        cmd.arg("-Z").arg("build-std=std,panic_unwind");
 
         // Get existing RUSTFLAGS and append panic=unwind
         let existing_rustflags = std::env::var("RUSTFLAGS").unwrap_or_default();
