@@ -3,6 +3,7 @@ use crate::Result;
 
 use serde::de::DeserializeOwned;
 use wasm_bindgen::JsCast;
+use worker_sys::BotManagement;
 
 /// In addition to the methods on the `Request` struct, the `Cf` struct on an inbound Request contains information about the request provided by Cloudflare’s edge.
 ///
@@ -27,12 +28,14 @@ impl Cf {
     }
 
     /// Information about bot management.
+    /// Only set when using Cloudflare Bot Management.
     pub fn bot_management(&self) -> Option<BotManagement> {
-        self.inner.bot_management().unwrap().map(Into::into)
+        self.inner.bot_management()
     }
 
-    pub fn verified_bot_category(&self) -> String {
-        self.inner.verified_bot_category().unwrap()
+    /// The verified bot category for the request, if applicable.
+    pub fn verified_bot_category(&self) -> Option<String> {
+        self.inner.verified_bot_category()
     }
 
     /// The three-letter airport code (e.g. `ATX`, `LUX`) representing
@@ -279,64 +282,6 @@ impl TlsClientAuth {
 
 impl From<worker_sys::TlsClientAuth> for TlsClientAuth {
     fn from(inner: worker_sys::TlsClientAuth) -> Self {
-        Self { inner }
-    }
-}
-
-#[derive(Debug)]
-pub struct BotManagement {
-    inner: worker_sys::BotManagement,
-}
-
-impl BotManagement {
-    pub fn score(&self) -> usize {
-        self.inner.score().unwrap()
-    }
-
-    pub fn verified_bot(&self) -> bool {
-        self.inner.verified_bot().unwrap()
-    }
-
-    pub fn static_resource(&self) -> bool {
-        self.inner.static_resource().unwrap()
-    }
-
-    pub fn ja3_hash(&self) -> String {
-        self.inner.ja3_hash().unwrap()
-    }
-
-    pub fn ja4(&self) -> String {
-        self.inner.ja4().unwrap()
-    }
-
-    pub fn js_detection(&self) -> JsDetection {
-        self.inner.js_detection().map(Into::into).unwrap()
-    }
-
-    pub fn detection_ids(&self) -> Vec<usize> {
-        self.inner.detection_ids().unwrap()
-    }
-}
-
-impl From<worker_sys::BotManagement> for BotManagement {
-    fn from(inner: worker_sys::BotManagement) -> Self {
-        Self { inner }
-    }
-}
-
-#[derive(Debug)]
-pub struct JsDetection {
-    inner: worker_sys::JsDetection,
-}
-
-impl JsDetection {
-    pub fn passed(&self) -> bool {
-        self.inner.passed().unwrap()
-    }
-}
-
-impl From<worker_sys::JsDetection> for JsDetection {
-    fn from(inner: worker_sys::JsDetection) -> Self {
         Self { inner }
     }
 }
