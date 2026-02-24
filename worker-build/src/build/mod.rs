@@ -99,6 +99,28 @@ pub enum BuildProfile {
     Custom(String),
 }
 
+/// Mutually exclusive build profile flags.
+#[derive(Debug, Args, Default)]
+#[group(required = false, multiple = false)]
+pub struct ProfileOptions {
+    #[clap(long = "dev", alias = "debug")]
+    /// Create a development build. Enable debug info, and disable
+    /// optimizations.
+    pub dev: bool,
+
+    #[clap(long = "release")]
+    /// Create a release build. Enable optimizations and disable debug info.
+    pub release: bool,
+
+    #[clap(long = "profiling")]
+    /// Create a profiling build. Enable optimizations and debug info.
+    pub profiling: bool,
+
+    #[clap(long = "profile")]
+    /// User-defined profile with --profile flag.
+    pub profile: Option<String>,
+}
+
 /// Everything required to configure and run the `worker build` command.
 #[derive(Debug, Args, Default)]
 #[command(allow_hyphen_values = true, trailing_var_arg = true)]
@@ -120,26 +142,8 @@ pub struct BuildOptions {
     /// Sets the target environment. [possible values: bundler, nodejs, web, no-modules, deno, module]
     pub target: Target,
 
-    #[clap(long = "debug")]
-    /// Deprecated. Renamed to `--dev`.
-    pub debug: bool,
-
-    #[clap(long = "dev")]
-    /// Create a development build. Enable debug info, and disable
-    /// optimizations.
-    pub dev: bool,
-
-    #[clap(long = "release")]
-    /// Create a release build. Enable optimizations and disable debug info.
-    pub release: bool,
-
-    #[clap(long = "profiling")]
-    /// Create a profiling build. Enable optimizations and debug info.
-    pub profiling: bool,
-
-    #[clap(long = "profile")]
-    /// User-defined profile with --profile flag
-    pub profile: Option<String>,
+    #[command(flatten)]
+    pub profile: ProfileOptions,
 
     #[clap(long = "out-dir", short = 'd', default_value = "pkg")]
     /// Sets the output directory with a relative path.
@@ -197,20 +201,14 @@ impl Build {
         let crate_data = manifest::CrateData::new(&crate_path, build_opts.out_name.clone())?;
         let out_dir = crate_path.join(PathBuf::from(build_opts.out_dir)).clean();
 
-        let dev = build_opts.dev || build_opts.debug;
-        let profile = match (
-            dev,
-            build_opts.release,
-            build_opts.profiling,
-            build_opts.profile,
-        ) {
-            (false, false, false, None) | (false, true, false, None) => BuildProfile::Release,
-            (true, false, false, None) => BuildProfile::Dev,
-            (false, false, true, None) => BuildProfile::Profiling,
-            (false, false, false, Some(profile)) => BuildProfile::Custom(profile),
-            // Unfortunately, `clap` doesn't expose clap's `conflicts_with`
-            // functionality yet, so we have to implement it ourselves.
-            _ => bail!("Can only supply one of the --dev, --release, --profiling, or --profile 'name' flags"),
+        let profile = if build_opts.profile.dev {
+            BuildProfile::Dev
+        } else if build_opts.profile.profiling {
+            BuildProfile::Profiling
+        } else if let Some(name) = build_opts.profile.profile {
+            BuildProfile::Custom(name)
+        } else {
+            BuildProfile::Release
         };
 
         Ok(Build {
