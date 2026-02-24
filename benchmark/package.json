@@ -6,9 +6,9 @@
   "private": true,
   "scripts": {
     "build": "WASM_BINDGEN_BIN=../wasm-bindgen/target/debug/wasm-bindgen ../target/debug/worker-build --release",
-    "bench": "npm run build && node run.js"
+    "bench": "node --run build && node run.js"
   },
   "dependencies": {
-    "miniflare": "^4.20250923.0"
+    "miniflare": "^4.20260302.0"
   }
 }

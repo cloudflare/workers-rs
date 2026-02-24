@@ -9,6 +9,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 worker.workspace = true
+web-sys.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 futures-util.workspace = true

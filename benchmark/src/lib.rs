@@ -1,3 +1,4 @@
+use worker::wasm_bindgen::JsCast;
 use worker::*;
 
 #[event(fetch)]
@@ -67,10 +68,14 @@ async fn handle_benchmark(url: &Url) -> Result<Response> {
     }
 
     // Execute all tasks in parallel
-    let start = Date::now().as_millis();
+    let performance = web_sys::js_sys::global()
+        .unchecked_into::<web_sys::WorkerGlobalScope>()
+        .performance()
+        .expect("performance API not available");
+    let start = performance.now();
     let results = futures_util::future::join_all(tasks).await;
-    let end = Date::now().as_millis();
-    let duration_ms = end - start;
+    let end = performance.now();
+    let duration_ms = (end - start) as u64;
 
     // Check for errors and sum up total bytes
     let mut total_bytes = 0u64;
