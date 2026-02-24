@@ -133,23 +133,23 @@ pub struct BuildOptions {
     #[clap(long = "scope", short = 's')]
     pub scope: Option<String>,
 
-    #[clap(long = "no-typescript")]
+    #[clap(long = "no-typescript", hide = true)]
     /// By default a *.d.ts file is generated for the generated JS file, but
     /// this flag will disable generating this TypeScript file.
     pub disable_dts: bool,
 
-    #[clap(long = "target", short = 't', default_value = "bundler")]
+    #[clap(long = "target", short = 't', default_value = "bundler", hide = true)]
     /// Sets the target environment. [possible values: bundler, nodejs, web, no-modules, deno, module]
     pub target: Target,
 
     #[command(flatten)]
     pub profile: ProfileOptions,
 
-    #[clap(long = "out-dir", short = 'd', default_value = "pkg")]
+    #[clap(long = "out-dir", short = 'd', default_value = "pkg", hide = true)]
     /// Sets the output directory with a relative path.
     pub out_dir: String,
 
-    #[clap(long = "out-name")]
+    #[clap(long = "out-name", hide = true)]
     /// Sets the output file names. Defaults to package name.
     pub out_name: Option<String>,
 
