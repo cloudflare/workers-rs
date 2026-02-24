@@ -19,12 +19,14 @@ const SHIM_FILE: &str = include_str!("./js/shim.js");
 
 pub(crate) mod binary;
 mod build;
+mod build_lock;
 mod emoji;
 mod lockfile;
 mod main_legacy;
 mod versions;
 
 use build::{Build, BuildOptions};
+use build_lock::BuildLock;
 
 use crate::{
     binary::{Esbuild, GetBinary},
@@ -73,11 +75,13 @@ pub fn main() -> Result<()> {
     // `Build::try_from_opts`, not the process current working directory.
     let out_dir = builder.out_dir.clone();
 
-    if out_dir.is_dir() {
-        fs::remove_dir_all(&out_dir)?;
-    } else if out_dir.exists() {
-        fs::remove_file(&out_dir)?;
-    }
+    // Acquire the build lock: waits for any concurrent build to finish,
+    // then creates a fresh .tmp staging directory with a heartbeat thread.
+    let lock = BuildLock::acquire(&out_dir)?;
+    let staging_dir = lock.staging_dir().to_path_buf();
+
+    // Point the builder at the staging directory
+    builder.out_dir = staging_dir.clone();
 
     builder.init()?;
 
@@ -103,12 +107,12 @@ pub fn main() -> Result<()> {
     let with_coredump = env::var("COREDUMP").is_ok();
     if with_coredump {
         println!("Adding wasm coredump");
-        wasm_coredump(&out_dir)?;
+        wasm_coredump(&staging_dir)?;
     }
 
     if module_target {
         let shim = SHIM_FILE
-            .replace("$HANDLERS", &generate_handlers(&out_dir)?)
+            .replace("$HANDLERS", &generate_handlers(&staging_dir)?)
             .replace(
                 "$PANIC_CRITICAL_ERROR",
                 if builder.panic_unwind {
@@ -117,24 +121,27 @@ pub fn main() -> Result<()> {
                     "criticalError = true;"
                 },
             );
-        fs::write(output_path(&out_dir, "shim.js"), shim)?;
+        fs::write(output_path(&staging_dir, "shim.js"), shim)?;
 
-        add_export_wrappers(&out_dir)?;
+        add_export_wrappers(&staging_dir)?;
 
-        update_package_json(&out_dir)?;
+        update_package_json(&staging_dir)?;
 
         let esbuild_path = Esbuild.get_binary(None)?.0;
-        bundle(&out_dir, &esbuild_path)?;
+        bundle(&staging_dir, &esbuild_path)?;
 
-        fix_wasm_import(&out_dir)?;
+        fix_wasm_import(&staging_dir)?;
 
-        remove_unused_files(&out_dir)?;
+        remove_unused_files(&staging_dir)?;
 
-        create_wrapper_alias(&out_dir, false)?;
+        create_wrapper_alias(&staging_dir, false)?;
     } else {
-        main_legacy::process(&out_dir)?;
-        create_wrapper_alias(&out_dir, true)?;
+        main_legacy::process(&staging_dir)?;
+        create_wrapper_alias(&staging_dir, true)?;
     }
+
+    // Swap staging entries into the real output directory and clean up.
+    lock.finish()?;
 
     Ok(())
 }
