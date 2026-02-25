@@ -14,6 +14,7 @@
 
 use anyhow::{bail, Context, Result};
 use filetime::FileTime;
+use log::warn;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -63,13 +64,16 @@ impl BuildLock {
         if tmp_dir.exists() {
             // Move to .oldtmp so new .tmp can be created immediately
             if oldtmp_dir.exists() {
-                let _ = fs::remove_dir_all(&oldtmp_dir);
+                if let Err(e) = fs::remove_dir_all(&oldtmp_dir) {
+                    warn!("Failed to remove old .oldtmp directory: {e}");
+                }
             }
             fs::rename(&tmp_dir, &oldtmp_dir)
                 .or_else(|_| fs::remove_dir_all(&tmp_dir))
                 .context("Failed to clean up stale .tmp directory")?;
-            // Best-effort removal of .oldtmp
-            let _ = fs::remove_dir_all(&oldtmp_dir);
+            if let Err(e) = fs::remove_dir_all(&oldtmp_dir) {
+                warn!("Failed to remove .oldtmp directory: {e}");
+            }
         }
 
         // Create fresh .tmp
@@ -83,7 +87,9 @@ impl BuildLock {
             thread::spawn(move || {
                 while !stop.load(Ordering::Relaxed) {
                     let now = FileTime::now();
-                    let _ = filetime::set_file_mtime(&tmp_dir, now);
+                    if let Err(e) = filetime::set_file_mtime(&tmp_dir, now) {
+                        warn!("Failed to update heartbeat mtime: {e}");
+                    }
                     thread::sleep(HEARTBEAT_INTERVAL);
                 }
             })
@@ -116,9 +122,16 @@ impl BuildLock {
 
             // Remove existing entry at destination
             if dest.is_dir() {
-                let _ = fs::remove_dir_all(&dest);
+                if let Err(e) = fs::remove_dir_all(&dest) {
+                    warn!(
+                        "Failed to remove existing directory {}: {e}",
+                        dest.display()
+                    );
+                }
             } else if dest.exists() {
-                let _ = fs::remove_file(&dest);
+                if let Err(e) = fs::remove_file(&dest) {
+                    warn!("Failed to remove existing file {}: {e}", dest.display());
+                }
             }
 
             fs::rename(entry.path(), &dest).with_context(|| {
@@ -130,7 +143,9 @@ impl BuildLock {
         }
 
         // Remove the now-empty .tmp directory
-        let _ = fs::remove_dir_all(&self.tmp_dir);
+        if let Err(e) = fs::remove_dir(&self.tmp_dir) {
+            warn!("Failed to remove .tmp staging directory: {e}");
+        }
 
         Ok(())
     }
