@@ -1,7 +1,7 @@
 //! Utility functions for commands.
 #![allow(clippy::redundant_closure)]
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use log::info;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -39,8 +39,10 @@ fn find_manifest_from_cwd() -> Result<PathBuf> {
 /// Construct our `pkg` directory in the crate.
 pub fn create_pkg_dir(out_dir: &Path) -> Result<()> {
     let _ = fs::remove_file(out_dir.join("package.json")); // Clean up package.json from previous runs
-    fs::create_dir_all(out_dir)?;
-    fs::write(out_dir.join(".gitignore"), "*")?;
+    fs::create_dir_all(out_dir)
+        .with_context(|| format!("Failed to create pkg directory {}", out_dir.display()))?;
+    fs::write(out_dir.join(".gitignore"), "*")
+        .with_context(|| format!("Failed to write .gitignore in {}", out_dir.display()))?;
     Ok(())
 }
 

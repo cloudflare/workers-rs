@@ -585,7 +585,8 @@ pub fn wasm_opt_run(out_dir: &Path, args: &[String]) -> Result<()> {
         let mut cmd = Command::new(&wasm_opt_path);
         cmd.arg(&path).arg("-o").arg(&tmp).args(args);
         utils::run(cmd, "wasm-opt")?;
-        std::fs::rename(&tmp, &path)?;
+        std::fs::rename(&tmp, &path)
+            .with_context(|| format!("Failed to rename {} to {}", tmp.display(), path.display()))?;
     }
 
     Ok(())

@@ -55,7 +55,8 @@ impl BuildLock {
         let oldtmp_dir = out_dir.join(".oldtmp");
 
         // Ensure the parent out_dir exists
-        fs::create_dir_all(out_dir)?;
+        fs::create_dir_all(out_dir)
+            .with_context(|| format!("Failed to create output directory {}", out_dir.display()))?;
 
         // Wait for any active build to finish
         Self::wait_for_stale(&tmp_dir)?;
@@ -77,7 +78,8 @@ impl BuildLock {
         }
 
         // Create fresh .tmp
-        fs::create_dir_all(&tmp_dir)?;
+        fs::create_dir_all(&tmp_dir)
+            .with_context(|| format!("Failed to create staging directory {}", tmp_dir.display()))?;
 
         // Start heartbeat
         let stop = Arc::new(AtomicBool::new(false));
@@ -115,7 +117,12 @@ impl BuildLock {
         self.stop_heartbeat();
 
         // Move each entry from .tmp/ into out_dir/
-        for entry in fs::read_dir(&self.tmp_dir)? {
+        for entry in fs::read_dir(&self.tmp_dir).with_context(|| {
+            format!(
+                "Failed to read staging directory {}",
+                self.tmp_dir.display()
+            )
+        })? {
             let entry = entry?;
             let name = entry.file_name();
             let dest = self.out_dir.join(&name);
