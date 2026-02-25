@@ -224,6 +224,7 @@ mod global;
 mod headers;
 mod http;
 mod hyperdrive;
+pub mod images;
 pub mod kv;
 #[cfg(feature = "queue")]
 mod queue;
