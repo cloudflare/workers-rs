@@ -9,6 +9,6 @@
     "bench": "node --run build && node run.js"
   },
   "dependencies": {
-    "miniflare": "^4.20260302.0"
+    "miniflare": "^4.20260305.0"
   }
 }
