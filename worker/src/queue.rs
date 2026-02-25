@@ -10,6 +10,8 @@ use wasm_bindgen::{prelude::*, JsCast};
 use wasm_bindgen_futures::JsFuture;
 use worker_sys::{Message as MessageSys, MessageBatch as MessageBatchSys, Queue as EdgeQueue};
 
+use crate::send::SendFuture;
+
 /// A batch of messages that are sent to a consumer Worker.
 #[derive(Debug)]
 pub struct MessageBatch<T> {
@@ -616,7 +618,7 @@ impl Queue {
             None => JsValue::null(),
         };
 
-        let fut: JsFuture = self.0.send(message.message, options)?.into();
+        let fut = SendFuture::new(JsFuture::from(self.0.send(message.message, options)?));
         fut.await.map_err(Error::from)?;
         Ok(())
     }
@@ -684,7 +686,9 @@ impl Queue {
             })
             .collect::<Result<js_sys::Array>>()?;
 
-        let fut: JsFuture = self.0.send_batch(messages, batch_send_options)?.into();
+        let fut = SendFuture::new(JsFuture::from(
+            self.0.send_batch(messages, batch_send_options)?,
+        ));
         fut.await.map_err(Error::from)?;
         Ok(())
     }

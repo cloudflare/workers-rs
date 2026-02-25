@@ -85,7 +85,7 @@ fn expand_trait(interface: &Interface, interface_name: &Ident) -> anyhow::Result
 
 fn expand_struct(struct_name: &Ident, sys_name: &Ident) -> anyhow::Result<syn::ItemStruct> {
     let struct_raw = quote!(
-        pub struct #struct_name(::worker::send::SendWrapper<sys::#sys_name>);
+        pub struct #struct_name(sys::#sys_name);
     );
     let struct_item: syn::ItemStruct = syn::parse2(struct_raw)?;
     Ok(struct_item)
@@ -95,7 +95,7 @@ fn expand_from_impl(struct_name: &Ident, from_type: &syn::Type) -> anyhow::Resul
     let impl_raw = quote!(
         impl From<#from_type> for #struct_name {
             fn from(fetcher: #from_type) -> Self {
-                Self(::worker::send::SendWrapper::new(fetcher.into_rpc()))
+                Self(fetcher.into_rpc())
             }
         }
     );
@@ -184,7 +184,7 @@ fn expand_sys_module(interface: &Interface, sys_name: &Ident) -> anyhow::Result<
 
     let mod_raw = quote!(
         mod sys {
-            use ::wasm_bindgen::prelude::*;
+            use wasm_bindgen::prelude::*;
         }
     );
     let mut mod_item: syn::ItemMod = syn::parse2(mod_raw)?;

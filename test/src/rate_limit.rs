@@ -2,7 +2,6 @@ use super::SomeSharedData;
 use std::collections::HashMap;
 use worker::{js_sys, Env, Request, Response, Result};
 
-#[worker::send]
 pub async fn handle_rate_limit_check(
     _req: Request,
     env: Env,
@@ -18,7 +17,6 @@ pub async fn handle_rate_limit_check(
     }))
 }
 
-#[worker::send]
 pub async fn handle_rate_limit_with_key(
     req: Request,
     env: Env,
@@ -37,7 +35,6 @@ pub async fn handle_rate_limit_with_key(
     }))
 }
 
-#[worker::send]
 pub async fn handle_rate_limit_bulk_test(
     _req: Request,
     env: Env,
@@ -62,7 +59,6 @@ pub async fn handle_rate_limit_bulk_test(
     }))
 }
 
-#[worker::send]
 pub async fn handle_rate_limit_reset(
     _req: Request,
     env: Env,
@@ -81,4 +77,13 @@ pub async fn handle_rate_limit_reset(
     }
 
     Response::from_json(&outcomes)
+}
+
+// Compile-time assertion: public async RateLimiter methods return Send futures.
+#[allow(dead_code, unused)]
+fn _assert_send() {
+    fn require_send<T: Send>(_t: T) {}
+    fn rate_limiter(rl: worker::RateLimiter) {
+        require_send(rl.limit("key".into()));
+    }
 }

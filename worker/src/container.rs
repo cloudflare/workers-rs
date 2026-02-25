@@ -1,3 +1,4 @@
+use crate::send::SendFuture;
 use js_sys::{Map, Object, Reflect};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
@@ -24,13 +25,13 @@ impl Container {
 
     pub async fn wait_for_exit(&self) -> Result<()> {
         let promise = self.inner.monitor();
-        JsFuture::from(promise).await?;
+        SendFuture::new(JsFuture::from(promise)).await?;
         Ok(())
     }
 
     pub async fn destroy(&self, error: Option<&str>) -> Result<()> {
         let promise = self.inner.destroy(error);
-        JsFuture::from(promise).await?;
+        SendFuture::new(JsFuture::from(promise)).await?;
         Ok(())
     }
 

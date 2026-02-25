@@ -119,19 +119,14 @@ pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
-/// Convert an async function which is `!Send` to be `Send`.
+#[deprecated(
+    since = "0.8.0",
+    note = "JsValue types are now Send in wasm-bindgen. #[worker::send] is no longer needed for most async handlers."
+)]
+/// Deprecated: Convert an async function which is `!Send` to be `Send`.
 ///
-/// This is useful for implementing async handlers in frameworks which
-/// expect the handler to be `Send`, such as `axum`.
-///
-/// ```rust
-/// #[worker::send]
-/// async fn foo() {
-///     // JsFuture is !Send
-///     let fut = JsFuture::from(promise);
-///     fut.await
-/// }
-/// ```
+/// With recent versions of `wasm-bindgen`, `JsValue` types are `Send`,
+/// so this macro is no longer needed for most async handlers.
 pub fn send(attr: TokenStream, stream: TokenStream) -> TokenStream {
     send::expand_macro(attr, stream)
 }

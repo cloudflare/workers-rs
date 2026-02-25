@@ -7,7 +7,6 @@ use worker::{
     RequestInit, Response, Result,
 };
 
-#[worker::send]
 pub async fn handle_fetch(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     let req = Request::new("https://example.com", Method::Post)?;
     let resp = Fetch::Request(req).send().await?;
@@ -19,7 +18,6 @@ pub async fn handle_fetch(_req: Request, _env: Env, _data: SomeSharedData) -> Re
     ))
 }
 
-#[worker::send]
 pub async fn handle_fetch_json(
     _req: Request,
     _env: Env,
@@ -40,7 +38,6 @@ pub async fn handle_fetch_json(
     ))
 }
 
-#[worker::send]
 pub async fn handle_proxy_request(
     req: Request,
     _env: Env,
@@ -57,7 +54,6 @@ pub async fn handle_proxy_request(
     Fetch::Url(url.parse()?).send().await
 }
 
-#[worker::send]
 pub async fn handle_request_init_fetch(
     _req: Request,
     _env: Env,
@@ -69,7 +65,6 @@ pub async fn handle_request_init_fetch(
         .await
 }
 
-#[worker::send]
 pub async fn handle_request_init_fetch_post(
     _req: Request,
     _env: Env,
@@ -82,7 +77,6 @@ pub async fn handle_request_init_fetch_post(
         .await
 }
 
-#[worker::send]
 pub async fn handle_cancelled_fetch(
     _req: Request,
     _env: Env,
@@ -115,7 +109,6 @@ pub async fn handle_cancelled_fetch(
     Ok(res)
 }
 
-#[worker::send]
 pub async fn handle_fetch_timeout(
     _req: Request,
     _env: Env,
@@ -158,7 +151,6 @@ pub async fn handle_fetch_timeout(
     }
 }
 
-#[worker::send]
 pub async fn handle_cloned_fetch(
     _req: Request,
     _env: Env,
@@ -179,7 +171,6 @@ pub async fn handle_cloned_fetch(
     Response::ok((left == right).to_string())
 }
 
-#[worker::send]
 pub async fn handle_cloned_response_attributes(
     _req: Request,
     _env: Env,
@@ -208,4 +199,16 @@ pub async fn handle_cloned_response_attributes(
     assert_eq!(cf, cf1);
 
     Response::ok("true")
+}
+
+// Compile-time assertion: public async Fetch methods return Send futures.
+#[allow(dead_code, unused)]
+fn _assert_send() {
+    fn require_send<T: Send>(_t: T) {}
+    fn fetch(f: worker::Fetch) {
+        require_send(f.send());
+    }
+    fn fetcher(f: worker::Fetcher) {
+        require_send(f.fetch("https://example.com", None));
+    }
 }

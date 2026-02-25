@@ -5,6 +5,7 @@ use crate::Date;
 use crate::DateInit;
 use crate::Result;
 
+use crate::send::SendFuture;
 use js_sys::Array;
 use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
@@ -172,7 +173,7 @@ impl File {
 
     /// Read the file from an internal buffer and get the resulting bytes.
     pub async fn bytes(&self) -> Result<Vec<u8>> {
-        JsFuture::from(self.0.array_buffer())
+        SendFuture::new(JsFuture::from(self.0.array_buffer()))
             .await
             .map(|val| js_sys::Uint8Array::new(&val).to_vec())
             .map_err(|e| {

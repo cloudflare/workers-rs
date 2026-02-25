@@ -71,7 +71,6 @@ pub async fn handle_headers(req: Request, _env: Env, _data: SomeSharedData) -> R
         .ok("returned your headers to you.")
 }
 
-#[worker::send]
 pub async fn handle_post_file_size(
     mut req: Request,
     _env: Env,
@@ -81,7 +80,6 @@ pub async fn handle_post_file_size(
     Response::ok(format!("size = {}", bytes.len()))
 }
 
-#[worker::send]
 pub async fn handle_async_text_echo(
     mut req: Request,
     _env: Env,
@@ -112,7 +110,6 @@ pub async fn handle_bytes(_req: Request, _env: Env, _data: SomeSharedData) -> Re
     Response::from_bytes(vec![1, 2, 3, 4, 5, 6, 7])
 }
 
-#[worker::send]
 pub async fn handle_api_data(
     mut req: Request,
     _env: Env,
@@ -183,7 +180,6 @@ pub async fn handle_now(_req: Request, _env: Env, _data: SomeSharedData) -> Resu
     Response::ok(js_date.to_string())
 }
 
-#[worker::send]
 pub async fn handle_cloned(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     let mut resp = Response::ok("Hello")?;
     let mut resp1 = resp.cloned()?;
@@ -194,7 +190,6 @@ pub async fn handle_cloned(_req: Request, _env: Env, _data: SomeSharedData) -> R
     Response::ok((left == right).to_string())
 }
 
-#[worker::send]
 pub async fn handle_cloned_stream(
     _req: Request,
     _env: Env,
@@ -226,7 +221,6 @@ pub async fn handle_custom_response_body(
     Response::from_body(ResponseBody::Body(vec![b'h', b'e', b'l', b'l', b'o']))
 }
 
-#[worker::send]
 pub async fn handle_wait_delay(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     let uri = req.url()?;
     let mut segments = uri.path_segments().unwrap();
@@ -240,4 +234,16 @@ pub async fn handle_wait_delay(req: Request, _env: Env, _data: SomeSharedData) -
     delay.await;
 
     Response::ok("Waited!\n")
+}
+
+// Compile-time assertion: public async Request methods return Send futures.
+#[allow(dead_code, unused)]
+fn _assert_send() {
+    fn require_send<T: Send>(_t: T) {}
+    fn request(mut req: worker::Request) {
+        require_send(req.json::<String>());
+        require_send(req.text());
+        require_send(req.bytes());
+        require_send(req.form_data());
+    }
 }
