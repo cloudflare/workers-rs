@@ -78,7 +78,7 @@ unsafe impl Send for Socket {}
 unsafe impl Sync for Socket {}
 
 impl Socket {
-    fn new(inner: worker_sys::Socket) -> Self {
+    pub(crate) fn new(inner: worker_sys::Socket) -> Self {
         let writable = inner.writable().unwrap();
         let readable = inner.readable().unwrap();
         Socket {
