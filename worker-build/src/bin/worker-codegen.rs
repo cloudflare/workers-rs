@@ -1,3 +1,4 @@
+use anyhow::Context;
 use clap::Parser;
 use worker_codegen::wit::expand_wit_source;
 
@@ -22,6 +23,7 @@ pub fn main() -> Result<(), anyhow::Error> {
     println!("Parsing schema from '{}'.", args.input);
     let source = expand_wit_source(&args.input)?;
     println!("Writing Rust code to '{}'.", args.output);
-    std::fs::write(&args.output, source)?;
+    std::fs::write(&args.output, &source)
+        .with_context(|| format!("Failed to write generated code to {}", args.output))?;
     Ok(())
 }

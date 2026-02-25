@@ -501,7 +501,8 @@ impl CrateData {
         let existing_deps = if pkg_file_path.exists() {
             // It's just a map of dependency names to versions
             Some(serde_json::from_str::<HashMap<String, String>>(
-                &fs::read_to_string(&pkg_file_path)?,
+                &fs::read_to_string(&pkg_file_path)
+                    .with_context(|| format!("Failed to read {}", pkg_file_path.display()))?,
             )?)
         } else {
             None
