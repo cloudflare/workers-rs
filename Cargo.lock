@@ -3458,6 +3458,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "websocket-on-workers"
+version = "0.0.1"
+dependencies = [
+ "futures-util",
+ "worker",
+]
+
+[[package]]
 name = "whoami"
 version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
