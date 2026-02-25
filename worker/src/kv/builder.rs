@@ -2,6 +2,7 @@ use js_sys::{ArrayBuffer, Function, Object, Promise, Uint8Array};
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
 use serde_wasm_bindgen::Serializer;
+use std::fmt::Debug;
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 
@@ -133,24 +134,16 @@ impl ListOptionsBuilder {
 /// A builder to configure get requests.
 #[derive(Debug, Clone)]
 #[must_use = "GetOptionsBuilder does nothing until you 'get' it"]
-pub struct GetOptionsBuilder {
+pub struct GetOptionsBuilder<T: GetValueTypes> {
     pub(crate) this: Object,
     pub(crate) get_function: Function,
     pub(crate) get_with_meta_function: Function,
     pub(crate) name: JsValue,
     pub(crate) cache_ttl: Option<u64>,
-    pub(crate) value_type: Option<GetValueType>,
+    pub(crate) value_type: Option<T>,
 }
 
-#[derive(Serialize)]
-struct GetOptions {
-    #[serde(rename = "cacheTtl", skip_serializing_if = "Option::is_none")]
-    pub(crate) cache_ttl: Option<u64>,
-    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
-    pub(crate) value_type: Option<GetValueType>,
-}
-
-impl GetOptionsBuilder {
+impl<Type: GetValueTypes> GetOptionsBuilder<Type> {
     /// The cache_ttl parameter must be an integer that is greater than or equal to 60. It defines
     /// the length of time in seconds that a KV result is cached in the edge location that it is
     /// accessed from. This can be useful for reducing cold read latency on keys that are read
@@ -163,12 +156,20 @@ impl GetOptionsBuilder {
         self
     }
 
-    fn value_type(mut self, value_type: GetValueType) -> Self {
+    fn value_type(mut self, value_type: Type) -> Self {
         self.value_type = Some(value_type);
         self
     }
 
     fn options(&self) -> Result<JsValue, KvError> {
+        #[derive(Serialize)]
+        struct GetOptions<T: GetValueTypes> {
+            #[serde(rename = "cacheTtl", skip_serializing_if = "Option::is_none")]
+            pub(crate) cache_ttl: Option<u64>,
+            #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
+            pub(crate) value_type: Option<T>,
+        }
+
         let ser = Serializer::json_compatible();
         Ok(GetOptions {
             cache_ttl: self.cache_ttl,
@@ -189,34 +190,18 @@ impl GetOptionsBuilder {
     }
 
     /// Gets the value as a string.
-    pub async fn text(self) -> Result<Option<String>, KvError> {
-        let value = self.value_type(GetValueType::Text).get().await?;
-        Ok(value.as_string())
+    pub async fn text(self) -> Result<Type::TextOutput, KvError> {
+        let value = self.value_type(Type::text()).get().await?;
+        serde_wasm_bindgen::from_value(value).map_err(|e| KvError::JavaScript(e.into()))
     }
 
     /// Tries to deserialize the inner text to the generic type.
-    pub async fn json<T>(self) -> Result<Option<T>, KvError>
+    pub async fn json<T>(self) -> Result<Type::JsonOutput<T>, KvError>
     where
         T: DeserializeOwned,
     {
-        let value = self.value_type(GetValueType::Json).get().await?;
-        Ok(if value.is_null() {
-            None
-        } else {
-            Some(serde_wasm_bindgen::from_value(value).map_err(JsValue::from)?)
-        })
-    }
-
-    /// Gets the value as a byte slice.
-    pub async fn bytes(self) -> Result<Option<Vec<u8>>, KvError> {
-        let v = self.value_type(GetValueType::ArrayBuffer).get().await?;
-        if ArrayBuffer::instanceof(&v) {
-            let buffer = ArrayBuffer::from(v);
-            let buffer = Uint8Array::new(&buffer);
-            Ok(Some(buffer.to_vec()))
-        } else {
-            Ok(None)
-        }
+        let value = self.value_type(Type::json()).get().await?;
+        serde_wasm_bindgen::from_value(value).map_err(|e| KvError::JavaScript(e.into()))
     }
 
     async fn get_with_metadata<M>(&self) -> Result<(JsValue, Option<M>), KvError>
@@ -249,10 +234,7 @@ impl GetOptionsBuilder {
     where
         M: DeserializeOwned,
     {
-        let (value, metadata) = self
-            .value_type(GetValueType::Text)
-            .get_with_metadata()
-            .await?;
+        let (value, metadata) = self.value_type(Type::text()).get_with_metadata().await?;
         Ok((value.as_string(), metadata))
     }
 
@@ -262,10 +244,7 @@ impl GetOptionsBuilder {
         T: DeserializeOwned,
         M: DeserializeOwned,
     {
-        let (value, metadata) = self
-            .value_type(GetValueType::Json)
-            .get_with_metadata()
-            .await?;
+        let (value, metadata) = self.value_type(Type::json()).get_with_metadata().await?;
         Ok((
             if value.is_null() {
                 None
@@ -274,6 +253,20 @@ impl GetOptionsBuilder {
             },
             metadata,
         ))
+    }
+}
+
+impl GetOptionsBuilder<GetValueType> {
+    /// Gets the value as a byte slice.
+    pub async fn bytes(self) -> Result<Option<Vec<u8>>, KvError> {
+        let v = self.value_type(GetValueType::ArrayBuffer).get().await?;
+        if ArrayBuffer::instanceof(&v) {
+            let buffer = ArrayBuffer::from(v);
+            let buffer = Uint8Array::new(&buffer);
+            Ok(Some(buffer.to_vec()))
+        } else {
+            Ok(None)
+        }
     }
 
     /// Gets the value as a byte slice and it's associated metadata.
@@ -296,10 +289,93 @@ impl GetOptionsBuilder {
     }
 }
 
+#[doc(hidden)]
 #[derive(Debug, Clone, Serialize, Copy)]
 #[serde(rename_all = "camelCase")]
-pub(crate) enum GetValueType {
+pub enum GetValueType {
     Text,
     ArrayBuffer,
     Json,
+}
+
+#[doc(hidden)]
+#[derive(Debug, Clone, Serialize, Copy)]
+#[serde(rename_all = "camelCase")]
+pub enum BatchGetValueType {
+    Text,
+    Json,
+}
+
+#[doc(hidden)]
+pub trait IntoGetRequest<'a> {
+    #[doc(hidden)]
+    type ValueType: GetValueTypes;
+
+    #[doc(hidden)]
+    fn into_js_value(self) -> JsValue;
+}
+
+impl<'a> IntoGetRequest<'a> for &'a str {
+    type ValueType = GetValueType;
+
+    fn into_js_value(self) -> JsValue {
+        JsValue::from(self)
+    }
+}
+
+impl<'a> IntoGetRequest<'a> for &'a [&'a str] {
+    type ValueType = BatchGetValueType;
+
+    fn into_js_value(self) -> JsValue {
+        let array = js_sys::Array::new();
+        for &v in self.iter() {
+            array.push(&JsValue::from(v));
+        }
+        array.into()
+    }
+}
+
+#[doc(hidden)]
+pub trait GetValueTypes: Debug + Clone + Serialize + Copy {
+    #[doc(hidden)]
+    type TextOutput: DeserializeOwned;
+
+    #[doc(hidden)]
+    type JsonOutput<T: DeserializeOwned>: DeserializeOwned;
+
+    #[doc(hidden)]
+    fn text() -> Self;
+
+    #[doc(hidden)]
+    fn json() -> Self;
+}
+
+impl GetValueTypes for GetValueType {
+    type TextOutput = Option<String>;
+    type JsonOutput<T: DeserializeOwned> = Option<T>;
+
+    #[inline]
+    fn text() -> Self {
+        GetValueType::Text
+    }
+
+    #[inline]
+    fn json() -> Self {
+        GetValueType::Json
+    }
+}
+
+impl GetValueTypes for BatchGetValueType {
+    type TextOutput = std::collections::HashMap<String, Option<String>>;
+    type JsonOutput<T: DeserializeOwned> = std::collections::HashMap<String, Option<T>>;
+
+    #[inline]
+    fn text() -> Self {
+        BatchGetValueType::Text
+    }
+
+    #[inline]
+    fn json() -> Self {
+        BatchGetValueType::Json
+    }
 }
