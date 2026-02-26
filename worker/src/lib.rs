@@ -149,12 +149,16 @@ use std::result::Result as StdResult;
 #[doc(hidden)]
 pub use async_trait;
 pub use js_sys;
+pub use serde_json;
+pub use serde_wasm_bindgen;
 pub use url::Url;
 pub use wasm_bindgen;
 pub use wasm_bindgen_futures;
 pub use web_sys;
 
 pub use cf::{Cf, CfResponseProperties, TlsClientAuth};
+#[cfg(feature = "workflow")]
+pub use worker_macros::workflow;
 pub use worker_macros::{consume, durable_object, event, send};
 #[doc(hidden)]
 pub use worker_sys;
@@ -197,6 +201,8 @@ pub use crate::socket::*;
 pub use crate::streams::*;
 pub use crate::version::*;
 pub use crate::websocket::*;
+#[cfg(feature = "workflow")]
+pub use crate::workflow::*;
 
 mod abort;
 mod ai;
@@ -241,6 +247,8 @@ mod sql;
 mod streams;
 mod version;
 mod websocket;
+#[cfg(feature = "workflow")]
+mod workflow;
 
 /// A `Result` alias defaulting to [`Error`].
 pub type Result<T, E = error::Error> = StdResult<T, E>;
