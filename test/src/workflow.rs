@@ -26,8 +26,9 @@ impl WorkflowEntrypoint for TestWorkflow {
             serde_json::from_value(event.payload).map_err(|e| Error::RustError(e.to_string()))?;
 
         let result = step
-            .do_("process", move || async move {
-                Ok(serde_json::json!({ "processed": params.value }))
+            .do_("process", move || {
+                let params = params.clone();
+                async move { Ok(serde_json::json!({ "processed": params.value })) }
             })
             .await?;
 

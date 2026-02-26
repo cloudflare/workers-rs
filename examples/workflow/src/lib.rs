@@ -34,14 +34,40 @@ impl WorkflowEntrypoint for MyWorkflow {
         let params: MyParams =
             serde_json::from_value(event.payload).map_err(|e| Error::RustError(e.to_string()))?;
 
+        let email_for_validation = params.email.clone();
+        step.do_with_config(
+            "validate-params",
+            StepConfig {
+                retries: Some(RetryConfig {
+                    limit: 3,
+                    delay: "1 second".to_string(),
+                    backoff: None,
+                }),
+                timeout: None,
+            },
+            move || {
+                let email = email_for_validation.clone();
+                async move {
+                    if !email.contains('@') {
+                        return Err(NonRetryableError::new("invalid email address").into());
+                    }
+                    Ok(serde_json::json!({ "valid": true }))
+                }
+            },
+        )
+        .await?;
+
         let name_for_step1 = params.name.clone();
         let step1_result = step
-            .do_("initial-processing", move || async move {
-                console_log!("Processing for user: {}", name_for_step1);
-                Ok(serde_json::json!({
-                    "processed": true,
-                    "user": name_for_step1
-                }))
+            .do_("initial-processing", move || {
+                let name = name_for_step1.clone();
+                async move {
+                    console_log!("Processing for user: {}", name);
+                    Ok(serde_json::json!({
+                        "processed": true,
+                        "user": name
+                    }))
+                }
             })
             .await?;
 
@@ -62,12 +88,18 @@ impl WorkflowEntrypoint for MyWorkflow {
                     }),
                     timeout: Some("1 minute".to_string()),
                 },
-                move || async move {
-                    console_log!("Sending notification to: {}", email_for_step3);
-                    Ok(serde_json::json!({
-                        "notification_sent": true,
-                        "email": email_for_step3
-                    }))
+                move || {
+                    let email = email_for_step3.clone();
+                    async move {
+                        console_log!("Sending notification to: {}", email);
+                        if js_sys::Math::random() < 0.5 {
+                            return Err("notification service temporarily unavailable".into());
+                        }
+                        Ok(serde_json::json!({
+                            "notification_sent": true,
+                            "email": email
+                        }))
+                    }
                 },
             )
             .await?;
@@ -84,23 +116,19 @@ impl WorkflowEntrypoint for MyWorkflow {
 }
 
 #[event(fetch)]
-async fn fetch(req: Request, env: Env, _ctx: Context) -> Result<Response> {
+async fn fetch(mut req: Request, env: Env, _ctx: Context) -> Result<Response> {
     let url = req.url()?;
     let path = url.path();
     let workflow = env.workflow("MY_WORKFLOW")?;
 
     match (req.method(), path) {
         (Method::Post, "/workflow") => {
-            let params = MyParams {
-                email: "user@example.com".to_string(),
-                name: "Test User".to_string(),
-            };
+            let params: MyParams = req.json().await?;
 
             let instance = workflow
                 .create(Some(CreateOptions {
-                    id: None,
                     params: Some(params),
-                    retention: None,
+                    ..Default::default()
                 }))
                 .await?;
 
