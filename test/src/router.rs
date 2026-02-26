@@ -235,6 +235,7 @@ macro_rules! add_routes (
     add_route!($obj, get, "/rate-limit/bulk-test", rate_limit::handle_rate_limit_bulk_test);
     add_route!($obj, get, "/rate-limit/reset", rate_limit::handle_rate_limit_reset);
     add_route!($obj, post, "/workflow/create", workflow::handle_workflow_create);
+    add_route!($obj, post, "/workflow/create-invalid", workflow::handle_workflow_create_invalid);
     add_route!($obj, get, format_route!("/workflow/status/{}", "id"), workflow::handle_workflow_status);
 });
 
