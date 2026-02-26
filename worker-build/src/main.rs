@@ -6,7 +6,7 @@ use std::{
     process::{Command, Stdio},
 };
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::Parser;
 
 /// Default output dir passed to the internal build pipeline.
@@ -19,12 +19,14 @@ const SHIM_FILE: &str = include_str!("./js/shim.js");
 
 pub(crate) mod binary;
 mod build;
+mod build_lock;
 mod emoji;
 mod lockfile;
 mod main_legacy;
 mod versions;
 
 use build::{Build, BuildOptions};
+use build_lock::BuildLock;
 
 use crate::{
     binary::{Esbuild, GetBinary},
@@ -35,16 +37,19 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn fix_wasm_import(out_dir: &Path) -> Result<()> {
     let index_path = output_path(out_dir, "index.js");
-    let content = fs::read_to_string(&index_path)?;
+    let content = fs::read_to_string(&index_path)
+        .with_context(|| format!("Failed to read {}", index_path.display()))?;
     let updated_content = content.replace("import source ", "import ");
-    fs::write(&index_path, updated_content)?;
+    fs::write(&index_path, updated_content)
+        .with_context(|| format!("Failed to write {}", index_path.display()))?;
     Ok(())
 }
 
 fn update_package_json(out_dir: &Path) -> Result<()> {
     let package_json_path = output_path(out_dir, "package.json");
 
-    let original_content = fs::read_to_string(&package_json_path)?;
+    let original_content = fs::read_to_string(&package_json_path)
+        .with_context(|| format!("Failed to read {}", package_json_path.display()))?;
     let mut package_json: serde_json::Value = serde_json::from_str(&original_content)?;
 
     package_json["files"] = serde_json::json!(["index_bg.wasm", "index.js", "index.d.ts"]);
@@ -52,7 +57,8 @@ fn update_package_json(out_dir: &Path) -> Result<()> {
     package_json["sideEffects"] = serde_json::json!(["./index.js"]);
 
     let updated_content = serde_json::to_string_pretty(&package_json)?;
-    fs::write(package_json_path, updated_content)?;
+    fs::write(&package_json_path, updated_content)
+        .with_context(|| format!("Failed to write {}", package_json_path.display()))?;
     Ok(())
 }
 
@@ -73,11 +79,13 @@ pub fn main() -> Result<()> {
     // `Build::try_from_opts`, not the process current working directory.
     let out_dir = builder.out_dir.clone();
 
-    if out_dir.is_dir() {
-        fs::remove_dir_all(&out_dir)?;
-    } else if out_dir.exists() {
-        fs::remove_file(&out_dir)?;
-    }
+    // Acquire the build lock: waits for any concurrent build to finish,
+    // then creates a fresh .tmp staging directory with a heartbeat thread.
+    let lock = BuildLock::acquire(&out_dir)?;
+    let staging_dir = lock.staging_dir().to_path_buf();
+
+    // Point the builder at the staging directory
+    builder.out_dir = staging_dir.clone();
 
     builder.init()?;
 
@@ -103,12 +111,12 @@ pub fn main() -> Result<()> {
     let with_coredump = env::var("COREDUMP").is_ok();
     if with_coredump {
         println!("Adding wasm coredump");
-        wasm_coredump(&out_dir)?;
+        wasm_coredump(&staging_dir)?;
     }
 
     if module_target {
         let shim = SHIM_FILE
-            .replace("$HANDLERS", &generate_handlers(&out_dir)?)
+            .replace("$HANDLERS", &generate_handlers(&staging_dir)?)
             .replace(
                 "$PANIC_CRITICAL_ERROR",
                 if builder.panic_unwind {
@@ -117,33 +125,39 @@ pub fn main() -> Result<()> {
                     "criticalError = true;"
                 },
             );
-        fs::write(output_path(&out_dir, "shim.js"), shim)?;
+        let shim_path = output_path(&staging_dir, "shim.js");
+        fs::write(&shim_path, shim)
+            .with_context(|| format!("Failed to write {}", shim_path.display()))?;
 
-        let has_workflows = add_export_wrappers(&out_dir)?;
+        let has_workflows = add_export_wrappers(&staging_dir)?;
 
-        update_package_json(&out_dir)?;
+        update_package_json(&staging_dir)?;
 
         let esbuild_path = Esbuild.get_binary(None)?.0;
-        bundle(&out_dir, &esbuild_path)?;
+        bundle(&staging_dir, &esbuild_path)?;
 
-        fix_wasm_import(&out_dir)?;
+        fix_wasm_import(&staging_dir)?;
 
-        remove_unused_files(&out_dir)?;
+        remove_unused_files(&staging_dir)?;
 
         if !has_workflows {
-            create_wrapper_alias(&out_dir, false)?;
+            create_wrapper_alias(&staging_dir, false)?;
         }
     } else {
-        main_legacy::process(&out_dir)?;
-        create_wrapper_alias(&out_dir, true)?;
+        main_legacy::process(&staging_dir)?;
+        create_wrapper_alias(&staging_dir, true)?;
     }
+
+    // Swap staging entries into the real output directory and clean up.
+    lock.finish()?;
 
     Ok(())
 }
 
 fn generate_handlers(out_dir: &Path) -> Result<String> {
     let index_path = output_path(out_dir, "index.js");
-    let content = fs::read_to_string(&index_path)?;
+    let content = fs::read_to_string(&index_path)
+        .with_context(|| format!("Failed to read {}", index_path.display()))?;
 
     // Extract ESM function exports from the wasm-bindgen generated output.
     // This code is specialized to what wasm-bindgen outputs for ESM and is therefore
@@ -203,7 +217,8 @@ static SYSTEM_FNS: &[&str] = &["__wbg_reset_state", "setPanicHook"];
 /// Returns true if workflow classes were detected and a wrapper was generated
 fn add_export_wrappers(out_dir: &Path) -> Result<bool> {
     let index_path = output_path(out_dir, "index.js");
-    let content = fs::read_to_string(&index_path)?;
+    let content = fs::read_to_string(&index_path)
+        .with_context(|| format!("Failed to read {}", index_path.display()))?;
 
     let mut class_names = Vec::new();
     let mut workflow_classes = Vec::new();
@@ -224,7 +239,8 @@ fn add_export_wrappers(out_dir: &Path) -> Result<bool> {
     }
 
     let shim_path = output_path(out_dir, "shim.js");
-    let mut output = fs::read_to_string(&shim_path)?;
+    let mut output = fs::read_to_string(&shim_path)
+        .with_context(|| format!("Failed to read {}", shim_path.display()))?;
 
     for class_name in &class_names {
         if workflow_classes.contains(class_name) {
@@ -237,7 +253,8 @@ fn add_export_wrappers(out_dir: &Path) -> Result<bool> {
             ));
         }
     }
-    fs::write(&shim_path, output)?;
+    fs::write(&shim_path, output)
+        .with_context(|| format!("Failed to write {}", shim_path.display()))?;
 
     // Workflows need a JS wrapper that extends WorkflowEntrypoint from cloudflare:workers
     let has_workflows = !workflow_classes.is_empty();
@@ -274,8 +291,12 @@ export { default } from "../index.js";
         ));
     }
 
-    fs::create_dir_all(output_path(out_dir, "worker"))?;
-    fs::write(output_path(out_dir, "worker/shim.mjs"), wrapper)?;
+    let worker_dir = output_path(out_dir, "worker");
+    fs::create_dir_all(&worker_dir)
+        .with_context(|| format!("Failed to create directory {}", worker_dir.display()))?;
+    let shim_path = output_path(out_dir, "worker/shim.mjs");
+    fs::write(&shim_path, wrapper)
+        .with_context(|| format!("Failed to write {}", shim_path.display()))?;
 
     Ok(())
 }
@@ -346,14 +367,33 @@ fn wasm_coredump(out_dir: &Path) -> Result<()> {
 }
 
 fn create_wrapper_alias(out_dir: &Path, legacy: bool) -> Result<()> {
-    if legacy {
-        let shim_content =
-            "export * from './worker/shim.mjs';\nexport { default } from './worker/shim.mjs';\n";
-        fs::write(output_path(out_dir, "index.js"), shim_content)?;
+    let msg = if !legacy {
+        "// Use index.js directly, this file provided for backwards compat\n// with former shim.mjs only.\n"
     } else {
-        let shim_content = "// Use index.js directly, this file provided for backwards compat\n// with former shim.mjs only.\nexport * from '../index.js';\nexport { default } from '../index.js';\n";
-        fs::create_dir_all(output_path(out_dir, "worker"))?;
-        fs::write(output_path(out_dir, "worker/shim.mjs"), shim_content)?;
+        ""
+    };
+    let path = if !legacy {
+        "../index.js"
+    } else {
+        "./worker/shim.mjs"
+    };
+    let shim_content = format!(
+        "{msg}export * from '{path}';
+export {{ default }} from '{path}';
+"
+    );
+
+    if !legacy {
+        let worker_dir = output_path(out_dir, "worker");
+        fs::create_dir_all(&worker_dir)
+            .with_context(|| format!("Failed to create directory {}", worker_dir.display()))?;
+        let shim_path = output_path(out_dir, "worker/shim.mjs");
+        fs::write(&shim_path, shim_content)
+            .with_context(|| format!("Failed to write {}", shim_path.display()))?;
+    } else {
+        let index_path = output_path(out_dir, "index.js");
+        fs::write(&index_path, shim_content)
+            .with_context(|| format!("Failed to write {}", index_path.display()))?;
     }
     Ok(())
 }
@@ -372,6 +412,7 @@ where
     // BuildOptions to preserve the behavior of appending
     // arbitrary arguments in `args`.
     let mut build_args = vec![
+        env!("CARGO_BIN_NAME").to_owned(),
         "--no-typescript".to_owned(),
         "--target".to_owned(),
         "module".to_owned(),
@@ -390,8 +431,12 @@ where
 // Bundles the snippets and worker-related code into a single file.
 fn bundle(out_dir: &Path, esbuild_path: &Path) -> Result<()> {
     let no_minify = !matches!(env::var("NO_MINIFY"), Err(VarError::NotPresent));
-    let path = out_dir.canonicalize()?;
-    let esbuild_path = esbuild_path.canonicalize()?;
+    let path = out_dir
+        .canonicalize()
+        .with_context(|| format!("Failed to resolve output directory {}", out_dir.display()))?;
+    let esbuild_path = esbuild_path
+        .canonicalize()
+        .with_context(|| format!("Failed to resolve esbuild path {}", esbuild_path.display()))?;
     let mut command = Command::new(esbuild_path);
     command.args([
         "--external:./index_bg.wasm",
@@ -418,11 +463,13 @@ fn bundle(out_dir: &Path, esbuild_path: &Path) -> Result<()> {
 }
 
 fn remove_unused_files(out_dir: &Path) -> Result<()> {
-    std::fs::remove_file(output_path(out_dir, "index_bg.wasm.d.ts"))?;
-    std::fs::remove_file(output_path(out_dir, "shim.js"))?;
+    let shim_path = output_path(out_dir, "shim.js");
+    std::fs::remove_file(&shim_path)
+        .with_context(|| format!("Failed to remove {}", shim_path.display()))?;
     let snippets_path = output_path(out_dir, "snippets");
     if snippets_path.exists() {
-        std::fs::remove_dir_all(snippets_path)?;
+        std::fs::remove_dir_all(&snippets_path)
+            .with_context(|| format!("Failed to remove {}", snippets_path.display()))?;
     }
     Ok(())
 }

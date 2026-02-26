@@ -92,7 +92,9 @@ fn remove_all_versions(name: &str, target: &str) -> Result<usize> {
         .join("worker-build");
 
     let mut deleted_count = 0;
-    for entry in read_dir(dir)? {
+    for entry in read_dir(&dir)
+        .with_context(|| format!("Failed to read cache directory {}", dir.display()))?
+    {
         let entry = entry?;
         let file_name = entry.file_name();
 
@@ -100,9 +102,13 @@ fn remove_all_versions(name: &str, target: &str) -> Result<usize> {
             if name_str.starts_with(&prefix_name) {
                 let path = entry.path();
                 if path.is_dir() {
-                    std::fs::remove_dir_all(&path)?;
+                    std::fs::remove_dir_all(&path).with_context(|| {
+                        format!("Failed to remove cached directory {}", path.display())
+                    })?;
                 } else {
-                    std::fs::remove_file(&path)?;
+                    std::fs::remove_file(&path).with_context(|| {
+                        format!("Failed to remove cached file {}", path.display())
+                    })?;
                 }
                 deleted_count += 1;
             }
@@ -120,7 +126,8 @@ fn cache_path(name: &str, version: &str, target: &str) -> Result<PathBuf> {
         .join("worker-build")
         .join(&path_name);
     if !path.exists() {
-        create_dir_all(&path)?;
+        create_dir_all(&path)
+            .with_context(|| format!("Failed to create cache directory {}", path.display()))?;
     }
     Ok(path)
 }
@@ -138,29 +145,49 @@ fn fix_permissions(options: &mut OpenOptions) -> &mut OpenOptions {
 
 /// Download this binary instance into its cache path
 fn download(url: &str, bin_dir: &Path) -> Result<()> {
-    let mut res = ureq::get(url)
+    let agent = ureq::Agent::config_builder()
+        .tls_config(
+            ureq::tls::TlsConfig::builder()
+                .provider(ureq::tls::TlsProvider::NativeTls)
+                .root_certs(ureq::tls::RootCerts::PlatformVerifier)
+                .build(),
+        )
+        .build()
+        .new_agent();
+    let mut res = agent
+        .get(url)
         .call()
         .with_context(|| format!("Failed to fetch URL {url}"))?;
     let body = res.body_mut().as_reader();
     let deflater = GzDecoder::new(body);
     let mut archive = tar::Archive::new(deflater);
 
-    for entry in archive.entries()? {
+    for entry in archive
+        .entries()
+        .context("Failed to read archive entries")?
+    {
         let mut entry = entry?;
         let path_stripped = entry.path()?.components().skip(1).collect::<PathBuf>();
         let bin_path = bin_dir.join(path_stripped);
 
         if entry.header().entry_type().is_dir() {
-            std::fs::create_dir_all(&bin_path)?;
+            std::fs::create_dir_all(&bin_path)
+                .with_context(|| format!("Failed to create directory {}", bin_path.display()))?;
         } else {
             if let Some(parent) = bin_path.parent() {
-                std::fs::create_dir_all(parent)?;
+                std::fs::create_dir_all(parent)
+                    .with_context(|| format!("Failed to create directory {}", parent.display()))?;
             }
 
             let mut options = std::fs::OpenOptions::new();
             let options = fix_permissions(&mut options);
-            let mut file = options.create(true).write(true).open(&bin_path)?;
-            std::io::copy(&mut entry, &mut file)?;
+            let mut file = options
+                .create(true)
+                .write(true)
+                .open(&bin_path)
+                .with_context(|| format!("Failed to create file {}", bin_path.display()))?;
+            std::io::copy(&mut entry, &mut file)
+                .with_context(|| format!("Failed to extract file {}", bin_path.display()))?;
         }
     }
 

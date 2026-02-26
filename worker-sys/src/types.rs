@@ -1,5 +1,6 @@
 mod ai;
 mod analytics_engine;
+mod bot_management;
 mod context;
 mod crypto;
 #[cfg(feature = "d1")]
@@ -26,6 +27,7 @@ mod workflow;
 
 pub use ai::*;
 pub use analytics_engine::*;
+pub use bot_management::*;
 pub use context::*;
 pub use crypto::*;
 #[cfg(feature = "d1")]

@@ -3,6 +3,7 @@ use crate::Result;
 
 use serde::de::DeserializeOwned;
 use wasm_bindgen::JsCast;
+use worker_sys::BotManagement;
 
 /// In addition to the methods on the `Request` struct, the `Cf` struct on an inbound Request contains information about the request provided by Cloudflare’s edge.
 ///
@@ -24,6 +25,17 @@ impl Cf {
     #[cfg(feature = "http")]
     pub(crate) fn inner(&self) -> &worker_sys::IncomingRequestCfProperties {
         &self.inner
+    }
+
+    /// Information about bot management.
+    /// Only set when using Cloudflare Bot Management.
+    pub fn bot_management(&self) -> Option<BotManagement> {
+        self.inner.bot_management()
+    }
+
+    /// The verified bot category for the request, if applicable.
+    pub fn verified_bot_category(&self) -> Option<String> {
+        self.inner.verified_bot_category()
     }
 
     /// The three-letter airport code (e.g. `ATX`, `LUX`) representing

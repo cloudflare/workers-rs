@@ -2,7 +2,7 @@
 authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
 edition = "2021"
 name = "worker-build"
-version = "0.7.4"
+version = "0.7.5"
 license = "Apache-2.0"
 repository = "https://github.com/cloudflare/workers-rs/tree/main/worker-build"
 readme = "README.md"
@@ -16,6 +16,7 @@ clap = { version = "4.5", features = ['derive'] }
 console = "0.16.0"
 dirs-next = "2.0"
 env_logger = "0.11.8"
+filetime = "0.2"
 flate2 = "1.1"
 glob = "0.3.1"
 heck = "0.5.0"
@@ -29,7 +30,7 @@ serde_json = "1.0.143"
 strsim = "0.11.1"
 tar = "0.4"
 toml = "0.9.5"
-ureq = { version = "3.1", features = ["gzip", "json"] }
+ureq = { version = "3.1", features = ["gzip", "json", "native-tls"] }
 which = "8.0.0"
 worker-codegen.workspace = true
 

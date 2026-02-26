@@ -7,7 +7,7 @@ use std::{
     process::Command,
 };
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 
 const OUT_NAME: &str = "index";
 const WORKER_SUBDIR: &str = "worker";
@@ -27,7 +27,8 @@ pub fn process(out_dir: &Path) -> Result<()> {
             let path = Path::new(&path).to_owned();
             println!("Using custom shim from {}", path.display());
             // NOTE: we fail in case that file doesnt exist or something else happens
-            read_to_string(path)?
+            read_to_string(&path)
+                .with_context(|| format!("Failed to read custom shim from {}", path.display()))?
         }
         Err(_) => SHIM_TEMPLATE.to_owned(),
     };
@@ -52,7 +53,9 @@ pub fn process(out_dir: &Path) -> Result<()> {
         snippets: &mut Vec<(String, String)>,
     ) -> Result<()> {
         if path.is_dir() {
-            for entry in fs::read_dir(path)? {
+            for entry in fs::read_dir(path)
+                .with_context(|| format!("Failed to read snippets directory {}", path.display()))?
+            {
                 let entry = entry?;
                 get_snippets(
                     &entry.path(),
@@ -109,13 +112,16 @@ fn create_worker_dir(out_dir: &Path) -> Result<()> {
 
     // remove anything that already exists
     if worker_dir.is_dir() {
-        fs::remove_dir_all(&worker_dir)?
+        fs::remove_dir_all(&worker_dir)
+            .with_context(|| format!("Failed to remove directory {}", worker_dir.display()))?;
     } else if worker_dir.is_file() {
-        fs::remove_file(&worker_dir)?
+        fs::remove_file(&worker_dir)
+            .with_context(|| format!("Failed to remove file {}", worker_dir.display()))?;
     };
 
     // create an output dir
-    fs::create_dir_all(worker_dir)?;
+    fs::create_dir_all(&worker_dir)
+        .with_context(|| format!("Failed to create directory {}", worker_dir.display()))?;
 
     Ok(())
 }
@@ -141,7 +147,8 @@ fn copy_generated_code_to_worker_dir(out_dir: &Path) -> Result<()> {
             continue;
         }
 
-        fs::rename(src, dest)?;
+        fs::rename(&src, &dest)
+            .with_context(|| format!("Failed to move {} to {}", src.display(), dest.display()))?;
     }
 
     Ok(())
@@ -150,8 +157,13 @@ fn copy_generated_code_to_worker_dir(out_dir: &Path) -> Result<()> {
 // Bundles the snippets and worker-related code into a single file.
 fn bundle(out_dir: &Path, esbuild_path: &Path) -> Result<()> {
     let no_minify = !matches!(env::var("NO_MINIFY"), Err(VarError::NotPresent));
-    let path = out_dir.join(WORKER_SUBDIR).canonicalize()?;
-    let esbuild_path = esbuild_path.canonicalize()?;
+    let worker_subdir = out_dir.join(WORKER_SUBDIR);
+    let path = worker_subdir
+        .canonicalize()
+        .with_context(|| format!("Failed to resolve path {}", worker_subdir.display()))?;
+    let esbuild_path = esbuild_path
+        .canonicalize()
+        .with_context(|| format!("Failed to resolve esbuild path {}", esbuild_path.display()))?;
     let mut command = Command::new(esbuild_path);
     command.args([
         "--external:./index.wasm",
@@ -182,19 +194,29 @@ fn remove_unused_js(out_dir: &Path) -> Result<()> {
     let snippets_dir = worker_path(out_dir, "snippets");
 
     if snippets_dir.exists() {
-        std::fs::remove_dir_all(&snippets_dir)?;
+        std::fs::remove_dir_all(&snippets_dir)
+            .with_context(|| format!("Failed to remove {}", snippets_dir.display()))?;
     }
 
-    std::fs::remove_file(worker_path(out_dir, format!("{OUT_NAME}_bg.js")))?;
-    std::fs::remove_file(worker_path(out_dir, "shim.js"))?;
-    std::fs::remove_file(output_path(out_dir, "index.js"))?;
+    let bg_js = worker_path(out_dir, format!("{OUT_NAME}_bg.js"));
+    std::fs::remove_file(&bg_js)
+        .with_context(|| format!("Failed to remove {}", bg_js.display()))?;
+    let shim_js = worker_path(out_dir, "shim.js");
+    std::fs::remove_file(&shim_js)
+        .with_context(|| format!("Failed to remove {}", shim_js.display()))?;
+    let index_js = output_path(out_dir, "index.js");
+    std::fs::remove_file(&index_js)
+        .with_context(|| format!("Failed to remove {}", index_js.display()))?;
 
     Ok(())
 }
 
 fn write_string_to_file<P: AsRef<Path>>(path: P, contents: impl AsRef<str>) -> Result<()> {
-    let mut file = File::create(path)?;
-    file.write_all(contents.as_ref().as_bytes())?;
+    let path = path.as_ref();
+    let mut file =
+        File::create(path).with_context(|| format!("Failed to create file {}", path.display()))?;
+    file.write_all(contents.as_ref().as_bytes())
+        .with_context(|| format!("Failed to write file {}", path.display()))?;
 
     Ok(())
 }
