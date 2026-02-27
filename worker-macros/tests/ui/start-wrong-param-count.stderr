@@ -1,0 +1,7 @@
+error: custom attribute panicked
+ --> tests/ui/start-wrong-param-count.rs:3:1
+  |
+3 | #[event(start)]
+  | ^^^^^^^^^^^^^^^
+  |
+  = help: message: the `start` handler expects 0 argument(s) but found 1

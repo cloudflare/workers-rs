@@ -1,0 +1,7 @@
+error[E0308]: mismatched types
+ --> tests/ui/scheduled-wrong-return-type.rs:8:13
+  |
+8 |   ) -> String {
+  |  _____________^
+9 | | }
+  | |_^ expected `String`, found `()`

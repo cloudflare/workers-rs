@@ -1,0 +1,7 @@
+error: custom attribute panicked
+ --> tests/ui/fetch-wrong-param-count.rs:3:1
+  |
+3 | #[event(fetch)]
+  | ^^^^^^^^^^^^^^^
+  |
+  = help: message: the `fetch` handler expects 3 argument(s) but found 1

@@ -1,0 +1,17 @@
+error[E0308]: arguments to this function are incorrect
+ --> tests/ui/scheduled-wrong-argument-types.rs:4:10
+  |
+3 | #[event(scheduled)]
+  | -------------------
+  | |
+  | expected `String`, found `ScheduledEvent`
+  | expected `String`, found `Env`
+  | expected `String`, found `ScheduleContext`
+4 | async fn scheduled(_a: String, _b: String, _c: String) {}
+  |          ^^^^^^^^^
+  |
+note: function defined here
+ --> tests/ui/scheduled-wrong-argument-types.rs:4:10
+  |
+4 | async fn scheduled(_a: String, _b: String, _c: String) {}
+  |          ^^^^^^^^^ ----------  ----------  ----------
