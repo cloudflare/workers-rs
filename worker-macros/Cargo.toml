@@ -17,9 +17,13 @@ wasm-bindgen.workspace = true
 wasm-bindgen-futures.workspace = true
 wasm-bindgen-macro-support.workspace = true
 worker-sys.workspace = true
+strum.workspace = true
 syn.workspace = true
 proc-macro2.workspace = true
 quote.workspace = true
+
+[dev-dependencies]
+trybuild.workspace = true
 
 [features]
 queue = []

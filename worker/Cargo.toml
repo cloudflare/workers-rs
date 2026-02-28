@@ -52,4 +52,5 @@ axum = ["dep:axum"]
 timezone = ["dep:chrono-tz"]
 
 [dev-dependencies]
+trybuild.workspace = true
 wasm-bindgen-test.workspace = true
