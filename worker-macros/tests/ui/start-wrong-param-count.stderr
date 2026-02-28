@@ -4,4 +4,4 @@ error: custom attribute panicked
 3 | #[event(start)]
   | ^^^^^^^^^^^^^^^
   |
-  = help: message: the `start` handler expects 0 argument(s) but found 1
+  = help: message: the `start` handler should be a function with 0 arguments but found 1

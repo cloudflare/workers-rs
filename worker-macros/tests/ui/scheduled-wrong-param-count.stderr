@@ -4,4 +4,4 @@ error: custom attribute panicked
 3 | #[event(scheduled)]
   | ^^^^^^^^^^^^^^^^^^^
   |
-  = help: message: the `scheduled` handler expects 3 argument(s) but found 0
+  = help: message: the `scheduled` handler should be a function with 3 arguments but found 0

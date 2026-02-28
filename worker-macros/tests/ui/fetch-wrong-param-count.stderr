@@ -4,4 +4,4 @@ error: custom attribute panicked
 3 | #[event(fetch)]
   | ^^^^^^^^^^^^^^^
   |
-  = help: message: the `fetch` handler expects 3 argument(s) but found 1
+  = help: message: the `fetch` handler should be a function with 3 arguments but found 1

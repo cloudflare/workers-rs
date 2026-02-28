@@ -25,10 +25,16 @@ fn validate_event_fn(
         panic!("the `{handler_type}` handler must{not} be an async function");
     }
 
+    let argument_word_form = if expected_params == 1 {
+        "argument"
+    } else {
+        "arguments"
+    };
+
     let actual_params = sig.inputs.len();
     if actual_params != expected_params {
         panic!(
-            "the `{handler_type}` handler expects {expected_params} argument(s) but found {actual_params}"
+            "the `{handler_type}` handler should be a function with {expected_params} {argument_word_form} but found {actual_params}"
         );
     }
 }
