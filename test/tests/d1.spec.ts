@@ -55,6 +55,18 @@ describe("d1", () => {
     expect(resp.status).toBe(200);
   });
 
+  test("session prepare and batch", async () => {
+    const resp = await mf.dispatchFetch(`${mfUrl}d1/session_prepare_and_batch`);
+    expect(await resp.text()).toBe("ok");
+    expect(resp.status).toBe(200);
+  });
+
+  test("session bookmark roundtrip", async () => {
+    const resp = await mf.dispatchFetch(`${mfUrl}d1/session_bookmark_roundtrip`);
+    expect(await resp.text()).toBe("ok");
+    expect(resp.status).toBe(200);
+  });
+
   test("error", async () => {
     const resp = await mf.dispatchFetch(`${mfUrl}d1/error`);
     expect(resp.status).toBe(200);
