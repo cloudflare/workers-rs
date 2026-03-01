@@ -59,7 +59,7 @@
 //! ### `Send` Helpers
 //!
 //! A number of frameworks (including `axum`) require that objects that they are given (including route handlers) can be
-//! sent between threads (i.e are marked as `Send`). Unfortuntately, objects which interact with JavaScript are frequently
+//! sent between threads (i.e are marked as `Send`). Unfortunately, objects which interact with JavaScript are frequently
 //! not marked as `Send`. In the Workers environment, this is not an issue, because Workers are single threaded. There are still
 //! some ergonomic difficulties which we address with some wrapper types:
 //!
