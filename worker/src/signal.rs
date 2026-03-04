@@ -11,6 +11,12 @@ const RESERVED_SIGNAL_VALUE: u32 = 0xFFFF;
 static __instance_signal: AtomicU32 = AtomicU32::new(RESERVED_SIGNAL_VALUE);
 
 /// A global signal value used by the runtime to communicate with workers.
+/// ```rust
+/// // Time consuming loop
+/// while condition && !Signal::poll().is_almost_out_of_time() {
+///     // ...
+/// }
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Signal(pub u32);
 
