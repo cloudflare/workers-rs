@@ -33,6 +33,7 @@ mod request;
 mod router;
 mod secret_store;
 mod service;
+mod signal;
 mod socket;
 mod sql_counter;
 mod sql_iterator;

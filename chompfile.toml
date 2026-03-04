@@ -38,12 +38,8 @@ env.CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER = 'wasm-bindgen/target/debug/wasm
 run = 'cargo test -p worker --target wasm32-unknown-unknown'
 
 [[task]]
-name = 'build:signal-wasm'
-run = 'rustc --target wasm32-unknown-unknown --crate-type cdylib -o test/tests/signal_wasm/signal.wasm test/tests/signal_wasm/signal.rs'
-
-[[task]]
 name = 'test'
-deps = ['build', 'build:signal-wasm']
+deps = ['build']
 cwd = 'test'
 env.NO_MINIFY = '1'
 env.WASM_BINDGEN_BIN = '../wasm-bindgen/target/debug/wasm-bindgen'
@@ -54,7 +50,7 @@ npx vitest run --testTimeout 25000
 
 [[task]]
 name = 'test-http'
-deps = ['build', 'build:signal-wasm']
+deps = ['build']
 cwd = 'test'
 env.NO_MINIFY = '1'
 env.WASM_BINDGEN_BIN = '../wasm-bindgen/target/debug/wasm-bindgen'
@@ -65,7 +61,7 @@ npx vitest run --testTimeout 25000
 
 [[task]]
 name = 'test-panic-unwind'
-deps = ['build', 'build:signal-wasm']
+deps = ['build']
 cwd = 'test'
 env.NO_MINIFY = '1'
 env.WASM_BINDGEN_BIN = '../wasm-bindgen/target/debug/wasm-bindgen'
