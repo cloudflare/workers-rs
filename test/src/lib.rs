@@ -33,6 +33,7 @@ mod request;
 mod router;
 mod secret_store;
 mod service;
+#[cfg(panic = "unwind")]
 mod signal;
 mod socket;
 mod sql_counter;

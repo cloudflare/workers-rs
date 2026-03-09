@@ -1,8 +1,10 @@
 use crate::{
     alarm, analytics_engine, assets, auto_response, cache, container, counter, d1, durable, fetch,
-    form, js_snippets, kv, put_raw, queue, r2, rate_limit, request, secret_store, service, signal,
-    socket, sql_counter, sql_iterator, user, ws, SomeSharedData, GLOBAL_STATE,
+    form, js_snippets, kv, put_raw, queue, r2, rate_limit, request, secret_store, service, socket,
+    sql_counter, sql_iterator, user, ws, SomeSharedData, GLOBAL_STATE,
 };
+#[cfg(panic = "unwind")]
+use crate::signal;
 #[cfg(feature = "http")]
 use std::convert::TryInto;
 use std::sync::atomic::Ordering;
@@ -234,6 +236,7 @@ macro_rules! add_routes (
     add_route!($obj, get, format_route!("/rate-limit/key/{}", "key"), rate_limit::handle_rate_limit_with_key);
     add_route!($obj, get, "/rate-limit/bulk-test", rate_limit::handle_rate_limit_bulk_test);
     add_route!($obj, get, "/rate-limit/reset", rate_limit::handle_rate_limit_reset);
+    #[cfg(panic = "unwind")]
     add_route!($obj, get, "/signal/poll", signal::handle_signal_poll);
 });
 

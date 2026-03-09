@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { mf } from "./mf";
+import { mf } from "../mf";
 
 describe("signal", () => {
   test("Signal::poll() reports is_listening as true", async () => {
