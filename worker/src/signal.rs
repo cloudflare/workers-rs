@@ -21,12 +21,10 @@ static __instance_signal: AtomicU32 = AtomicU32::new(RESERVED_SIGNAL_VALUE);
 pub struct Signal(pub u32);
 
 impl Signal {
-    const ALMOST_OUT_OF_TIME_VALUE: u32 = 42;
+    const ALMOST_OUT_OF_TIME_VALUE: u32 = 24;
     /// Retrieve the most recent signal value
     pub fn poll() -> Self {
-        Self(std::hint::black_box(
-            __instance_signal.load(Ordering::Relaxed),
-        ))
+        Self(__instance_signal.load(Ordering::Relaxed))
     }
     /// Access the raw signal value
     pub fn value(&self) -> u32 {

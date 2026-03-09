@@ -11,6 +11,5 @@ pub async fn handle_signal_poll(
     let signal = Signal::poll();
     let is_listening = signal.is_listening();
     let value = signal.value();
-
     Response::ok(format!("{is_listening}:{value}"))
 }

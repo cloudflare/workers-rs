@@ -1,0 +1,5 @@
+[unstable]
+build-std = ["std", "panic_unwind"]
+
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "panic=unwind"]

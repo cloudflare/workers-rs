@@ -1,0 +1,15 @@
+[package]
+name = "signal-test"
+version = "0.1.0"
+edition = "2021"
+authors = ["Logan Gatlin <lgatlin@cloudflare.com>"]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+worker = { path = "../../worker", features = ['http'] }
+worker-macros = { path = "../../worker-macros", features = ['http'] }
+http = "1.3"
+num-bigint = "0.4"
+num-integer = "0.1"
