@@ -16,6 +16,7 @@ use clap::Parser;
 const OUT_DIR: &str = "build";
 
 const SHIM_FILE: &str = include_str!("./js/shim.js");
+const SHIM_UNWIND_FILE: &str = include_str!("./js/shim-unwind.js");
 
 pub(crate) mod binary;
 mod build;
@@ -115,21 +116,20 @@ pub fn main() -> Result<()> {
     }
 
     if module_target {
-        let shim = SHIM_FILE
-            .replace("$HANDLERS", &generate_handlers(&staging_dir)?)
-            .replace(
-                "$PANIC_CRITICAL_ERROR",
-                if builder.panic_unwind {
-                    ""
-                } else {
-                    "criticalError = true;"
-                },
-            );
+        let handlers = generate_handlers(&staging_dir)?;
+        let shim = if builder.panic_unwind {
+            // In panic=unwind mode, wasm-bindgen 0.2.114+ handles reinit
+            // natively via __wbg_termination_guard / __wbg_reset_state.
+            // The shim only provides the WorkerEntrypoint adapter layer.
+            SHIM_UNWIND_FILE.replace("$HANDLERS", &handlers)
+        } else {
+            SHIM_FILE.replace("$HANDLERS", &handlers)
+        };
         let shim_path = output_path(&staging_dir, "shim.js");
         fs::write(&shim_path, shim)
             .with_context(|| format!("Failed to write {}", shim_path.display()))?;
 
-        add_export_wrappers(&staging_dir)?;
+        add_export_wrappers(&staging_dir, builder.panic_unwind)?;
 
         update_package_json(&staging_dir)?;
 
@@ -212,7 +212,7 @@ fn generate_handlers(out_dir: &Path) -> Result<String> {
 
 static SYSTEM_FNS: &[&str] = &["__wbg_reset_state", "setPanicHook"];
 
-fn add_export_wrappers(out_dir: &Path) -> Result<()> {
+fn add_export_wrappers(out_dir: &Path, panic_unwind: bool) -> Result<()> {
     let index_path = output_path(out_dir, "index.js");
     let content = fs::read_to_string(&index_path)
         .with_context(|| format!("Failed to read {}", index_path.display()))?;
@@ -230,10 +230,18 @@ fn add_export_wrappers(out_dir: &Path) -> Result<()> {
     let shim_path = output_path(out_dir, "shim.js");
     let mut output = fs::read_to_string(&shim_path)
         .with_context(|| format!("Failed to read {}", shim_path.display()))?;
-    for class_name in class_names {
-        output.push_str(&format!(
-            "export const {class_name} = new Proxy(exports.{class_name}, classProxyHooks);\n"
-        ));
+    for class_name in &class_names {
+        if panic_unwind {
+            // In panic=unwind mode, wasm-bindgen handles reinit natively.
+            // Re-export classes directly without Proxy wrapping.
+            output.push_str(&format!(
+                "export const {class_name} = exports.{class_name};\n"
+            ));
+        } else {
+            output.push_str(&format!(
+                "export const {class_name} = new Proxy(exports.{class_name}, classProxyHooks);\n"
+            ));
+        }
     }
     fs::write(&shim_path, output)
         .with_context(|| format!("Failed to write {}", shim_path.display()))?;
