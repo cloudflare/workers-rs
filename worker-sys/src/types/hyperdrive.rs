@@ -1,10 +1,15 @@
 use wasm_bindgen::prelude::*;
 
+use crate::Socket;
+
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(extends=js_sys::Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type Hyperdrive;
+
+    #[wasm_bindgen(method, getter, js_name=connectionString, catch)]
+    pub fn connect(this: &Hyperdrive) -> Result<Socket, JsValue>;
 
     #[wasm_bindgen(method, getter, js_name=connectionString)]
     pub fn connection_string(this: &Hyperdrive) -> String;
