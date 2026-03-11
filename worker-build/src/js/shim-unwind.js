@@ -4,7 +4,9 @@ import * as exports from "./index.js";
 Error.stackTraceLimit = 100;
 
 const liveInstances = new Set();
-const cleanup = new FinalizationRegistry((holder) => liveInstances.delete(holder));
+const cleanup = typeof FinalizationRegistry !== "undefined"
+  ? new FinalizationRegistry((holder) => liveInstances.delete(holder))
+  : { register() {}, unregister() {} };
 
 function panicHook(message) {
   console.error("Rust panic:", message);
