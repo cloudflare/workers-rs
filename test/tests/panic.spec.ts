@@ -90,10 +90,10 @@ describe("Panic Hook with WASM Reinitialization", () => {
         expect(responses[2].status).toBe(200);
       }
 
-      // Test 4: Fatal abort (wasm32::unreachable) triggers auto-reinit in
-      // panic=unwind mode, calls __wbg_reset_state on the next request. The
-      // reinit hook increments instanceId, causing the DO Proxy to reconstruct
-      // the stale instance on a fresh wasm module.
+      // Test 4: Fatal abort (wasm32::unreachable) triggers auto-reinit.
+      // wasm-bindgen's __wbg_termination_guard calls __wbg_reset_state on the
+      // next request. The reinit hook eagerly reconstructs all live DO instances
+      // on the fresh wasm module.
       {
         // Establish counter state (unstored_count > 0 from prior tests)
         const before = await mf.dispatchFetch(`${mfUrl}durable/pre-abort`);
