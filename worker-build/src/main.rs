@@ -235,15 +235,15 @@ fn add_export_wrappers(out_dir: &Path, panic_unwind: bool) -> Result<()> {
         if panic_unwind {
             // In panic=unwind mode, wasm-bindgen handles reinit natively.
             // Re-export classes directly without Proxy wrapping.
-            let _ = writeln!(
+            writeln!(
                 &mut output,
                 "export const {class_name} = exports.{class_name};"
-            );
+            )?;
         } else {
-            let _ = writeln!(
+            writeln!(
                 &mut output,
                 "export const {class_name} = new Proxy(exports.{class_name}, classProxyHooks);"
-            );
+            )?;
         }
     }
     fs::write(&shim_path, output)
