@@ -361,7 +361,10 @@ impl Storage {
     }
 
     /// Retrieves the values associated with each of the provided keys.
-    pub async fn get_multiple<S: Deref<Target = str>, I: IntoIterator<Item=S>>(&self, keys: I) -> Result<Map> {
+    pub async fn get_multiple<S: Deref<Target = str>, I: IntoIterator<Item = S>>(
+        &self,
+        keys: I,
+    ) -> Result<Map> {
         let keys = self.inner.get_multiple(
             keys.into_iter()
                 .map(|key| JsValue::from(key.deref()))
@@ -593,7 +596,10 @@ impl Transaction {
             .map_err(Error::from)
     }
 
-    pub async fn get_multiple<I: IntoIterator<Item = D>, D: Deref<Target=str>>(&self, keys: I) -> Result<Map> {
+    pub async fn get_multiple<I: IntoIterator<Item = D>, D: Deref<Target = str>>(
+        &self,
+        keys: I,
+    ) -> Result<Map> {
         let keys = self.inner.get_multiple(
             keys.into_iter()
                 .map(|key| JsValue::from(key.deref()))
@@ -632,7 +638,10 @@ impl Transaction {
             .map_err(Error::from)
     }
 
-    pub async fn delete_multiple<I: IntoIterator<Item = D>, D: Deref<Target=str>>(&self, keys: I) -> Result<usize> {
+    pub async fn delete_multiple<I: IntoIterator<Item = D>, D: Deref<Target = str>>(
+        &self,
+        keys: I,
+    ) -> Result<usize> {
         let fut: JsFuture = self
             .inner
             .delete_multiple(

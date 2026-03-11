@@ -110,8 +110,7 @@ impl WebSocket {
                 .map(AsRef::as_ref)
                 .collect::<Vec<&str>>()
                 .join(",");
-            req.headers_mut()?
-                .set("Sec-WebSocket-Protocol", &joined)?;
+            req.headers_mut()?.set("Sec-WebSocket-Protocol", &joined)?;
         }
 
         #[cfg(not(feature = "http"))]

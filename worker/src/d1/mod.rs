@@ -49,7 +49,10 @@ impl D1Database {
     /// Batch execute one or more statements against the database.
     ///
     /// Returns the results in the same order as the provided statements.
-    pub async fn batch(&self, statements: impl IntoIterator<Item = D1PreparedStatement>) -> Result<Vec<D1Result>> {
+    pub async fn batch(
+        &self,
+        statements: impl IntoIterator<Item = D1PreparedStatement>,
+    ) -> Result<Vec<D1Result>> {
         let statements = statements.into_iter().map(|s| s.0).collect::<Array>();
         let results = JsFuture::from(self.0.batch(statements)?).await;
         let results = cast_to_d1_error(results)?;

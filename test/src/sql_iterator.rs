@@ -244,9 +244,7 @@ impl SqlIterator {
     }
 
     fn handle_blob_next(&self) -> Result<Response> {
-        let cursor = self
-            .sql
-            .exec("SELECT * FROM blob_data ORDER BY id;", [])?;
+        let cursor = self.sql.exec("SELECT * FROM blob_data ORDER BY id;", [])?;
 
         let mut results = Vec::new();
         let iterator = cursor.raw();
@@ -285,9 +283,7 @@ impl SqlIterator {
     }
 
     fn handle_blob_raw(&self) -> Result<Response> {
-        let cursor = self
-            .sql
-            .exec("SELECT * FROM blob_data ORDER BY id;", [])?;
+        let cursor = self.sql.exec("SELECT * FROM blob_data ORDER BY id;", [])?;
 
         let mut results = Vec::new();
         let column_names = cursor.column_names();
@@ -400,10 +396,8 @@ impl SqlIterator {
         }
 
         // Clean up test data
-        self.sql.exec(
-            "DELETE FROM blob_data WHERE name = ?;",
-            [test_name.into()],
-        )?;
+        self.sql
+            .exec("DELETE FROM blob_data WHERE name = ?;", [test_name.into()])?;
 
         let response_body = format!("blob-roundtrip test results:\n{}", results.join("\n"));
 
