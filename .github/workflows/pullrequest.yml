@@ -18,6 +18,9 @@ jobs:
 
     steps:
       - uses: dtolnay/rust-toolchain@1.87.0
+      - name: Enable symlinks on Windows
+        if: runner.os == 'Windows'
+        run: git config --global core.symlinks true
       - uses: actions/checkout@v4
         with:
           submodules: true
@@ -165,6 +168,9 @@ jobs:
 
     steps:
       - uses: dtolnay/rust-toolchain@1.87.0
+      - name: Enable symlinks on Windows
+        if: runner.os == 'Windows'
+        run: git config --global core.symlinks true
       - uses: actions/checkout@v4
         with:
           submodules: true

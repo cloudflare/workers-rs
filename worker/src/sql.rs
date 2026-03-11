@@ -201,13 +201,11 @@ impl SqlStorage {
     pub fn exec(
         &self,
         query: &str,
-        bindings: impl Into<Option<Vec<SqlStorageValue>>>,
+        bindings: impl IntoIterator<Item = SqlStorageValue>,
     ) -> Result<SqlCursor> {
         let array = Array::new();
-        if let Some(bindings) = bindings.into() {
-            for v in bindings {
-                array.push(&v.into());
-            }
+        for v in bindings {
+            array.push(&v.into());
         }
         let cursor = self.inner.exec(query, array).map_err(Error::from)?;
         Ok(SqlCursor { inner: cursor })
@@ -220,13 +218,11 @@ impl SqlStorage {
     pub fn exec_raw(
         &self,
         query: &str,
-        bindings: impl Into<Option<Vec<JsValue>>>,
+        bindings: impl IntoIterator<Item = JsValue>,
     ) -> Result<SqlCursor> {
         let array = Array::new();
-        if let Some(bindings) = bindings.into() {
-            for v in bindings {
-                array.push(&v);
-            }
+        for v in bindings {
+            array.push(&v);
         }
         let cursor = self.inner.exec(query, array).map_err(Error::from)?;
         Ok(SqlCursor { inner: cursor })

@@ -87,7 +87,10 @@ impl Bucket {
     /// pairs globally.
     ///
     /// Up to 1000 keys may be deleted per call.
-    pub async fn delete_multiple(&self, keys: Vec<impl Deref<Target = str>>) -> Result<()> {
+    pub async fn delete_multiple(
+        &self,
+        keys: impl IntoIterator<Item = impl Deref<Target = str>>,
+    ) -> Result<()> {
         let fut: JsFuture = self
             .inner
             .delete_multiple(keys.into_iter().map(|key| JsValue::from(&*key)).collect())?

@@ -68,18 +68,18 @@ impl DurableObject for SqlIterator {
         // Create table and seed with test data
         sql.exec(
             "CREATE TABLE IF NOT EXISTS products(id INTEGER PRIMARY KEY, name TEXT, price REAL, in_stock INTEGER);",
-            None,
+            [],
         ).expect("create table");
 
         sql.exec(
             "CREATE TABLE IF NOT EXISTS blob_data(id INTEGER PRIMARY KEY, name TEXT, data BLOB);",
-            None,
+            [],
         )
         .expect("create blob table");
 
         // Check if we need to seed data
         let count: Vec<serde_json::Value> = sql
-            .exec("SELECT COUNT(*) as count FROM products;", None)
+            .exec("SELECT COUNT(*) as count FROM products;", [])
             .expect("count query")
             .to_array()
             .expect("count result");
@@ -103,14 +103,14 @@ impl DurableObject for SqlIterator {
             for (name, price, in_stock) in products {
                 sql.exec(
                     "INSERT INTO products(name, price, in_stock) VALUES (?, ?, ?);",
-                    vec![name.into(), price.into(), i32::from(in_stock).into()],
+                    [name.into(), price.into(), i32::from(in_stock).into()],
                 )
                 .expect("insert product");
             }
         }
 
         let blob_count: Vec<serde_json::Value> = sql
-            .exec("SELECT COUNT(*) as count FROM blob_data;", None)
+            .exec("SELECT COUNT(*) as count FROM blob_data;", [])
             .expect("blob count query")
             .to_array()
             .expect("blob count result");
@@ -135,7 +135,7 @@ impl DurableObject for SqlIterator {
             for (name, data) in blob_test_data {
                 sql.exec(
                     "INSERT INTO blob_data(name, data) VALUES (?, ?);",
-                    vec![name.into(), SqlStorageValue::Blob(data)],
+                    [name.into(), SqlStorageValue::Blob(data)],
                 )
                 .expect("insert blob data");
             }
@@ -162,7 +162,7 @@ impl DurableObject for SqlIterator {
 
 impl SqlIterator {
     fn handle_next(&self) -> Result<Response> {
-        let cursor = self.sql.exec("SELECT * FROM products ORDER BY id;", None)?;
+        let cursor = self.sql.exec("SELECT * FROM products ORDER BY id;", [])?;
 
         let mut results = Vec::new();
         let iterator = cursor.next::<Product>();
@@ -190,7 +190,7 @@ impl SqlIterator {
     }
 
     fn handle_raw(&self) -> Result<Response> {
-        let cursor = self.sql.exec("SELECT * FROM products ORDER BY id;", None)?;
+        let cursor = self.sql.exec("SELECT * FROM products ORDER BY id;", [])?;
 
         let mut results = Vec::new();
         let column_names = cursor.column_names();
@@ -216,7 +216,7 @@ impl SqlIterator {
     }
 
     fn handle_next_invalid(&self) -> Result<Response> {
-        let cursor = self.sql.exec("SELECT * FROM products ORDER BY id;", None)?;
+        let cursor = self.sql.exec("SELECT * FROM products ORDER BY id;", [])?;
 
         let mut results = Vec::new();
         let iterator = cursor.next::<BadProduct>();
@@ -244,9 +244,7 @@ impl SqlIterator {
     }
 
     fn handle_blob_next(&self) -> Result<Response> {
-        let cursor = self
-            .sql
-            .exec("SELECT * FROM blob_data ORDER BY id;", None)?;
+        let cursor = self.sql.exec("SELECT * FROM blob_data ORDER BY id;", [])?;
 
         let mut results = Vec::new();
         let iterator = cursor.raw();
@@ -285,9 +283,7 @@ impl SqlIterator {
     }
 
     fn handle_blob_raw(&self) -> Result<Response> {
-        let cursor = self
-            .sql
-            .exec("SELECT * FROM blob_data ORDER BY id;", None)?;
+        let cursor = self.sql.exec("SELECT * FROM blob_data ORDER BY id;", [])?;
 
         let mut results = Vec::new();
         let column_names = cursor.column_names();
@@ -341,18 +337,18 @@ impl SqlIterator {
         // Insert test data
         self.sql.exec(
             "INSERT INTO blob_data(name, data) VALUES (?, ?);",
-            vec![test_name.into(), SqlStorageValue::Blob(test_data.clone())],
+            [test_name.into(), SqlStorageValue::Blob(test_data.clone())],
         )?;
 
         // Read it back using both methods (raw iterator approach for both)
         let cursor_next = self.sql.exec(
             "SELECT * FROM blob_data WHERE name = ? ORDER BY id DESC LIMIT 1;",
-            vec![test_name.into()],
+            [test_name.into()],
         )?;
 
         let cursor_raw = self.sql.exec(
             "SELECT * FROM blob_data WHERE name = ? ORDER BY id DESC LIMIT 1;",
-            vec![test_name.into()],
+            [test_name.into()],
         )?;
 
         let mut results = Vec::new();
@@ -400,10 +396,8 @@ impl SqlIterator {
         }
 
         // Clean up test data
-        self.sql.exec(
-            "DELETE FROM blob_data WHERE name = ?;",
-            vec![test_name.into()],
-        )?;
+        self.sql
+            .exec("DELETE FROM blob_data WHERE name = ?;", [test_name.into()])?;
 
         let response_body = format!("blob-roundtrip test results:\n{}", results.join("\n"));
 
