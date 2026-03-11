@@ -129,7 +129,7 @@ pub fn main() -> Result<()> {
         fs::write(&shim_path, shim)
             .with_context(|| format!("Failed to write {}", shim_path.display()))?;
 
-        add_export_wrappers(&staging_dir, builder.panic_unwind)?;
+        add_export_wrappers(&staging_dir)?;
 
         update_package_json(&staging_dir)?;
 
@@ -210,9 +210,9 @@ fn generate_handlers(out_dir: &Path) -> Result<String> {
     Ok(handlers)
 }
 
-static SYSTEM_FNS: &[&str] = &["__wbg_reset_state", "setPanicHook"];
+static SYSTEM_FNS: &[&str] = &["__wbg_reset_state", "__wbg_set_reinit_hook", "setPanicHook"];
 
-fn add_export_wrappers(out_dir: &Path, panic_unwind: bool) -> Result<()> {
+fn add_export_wrappers(out_dir: &Path) -> Result<()> {
     let index_path = output_path(out_dir, "index.js");
     let content = fs::read_to_string(&index_path)
         .with_context(|| format!("Failed to read {}", index_path.display()))?;
@@ -231,20 +231,11 @@ fn add_export_wrappers(out_dir: &Path, panic_unwind: bool) -> Result<()> {
     let mut output = fs::read_to_string(&shim_path)
         .with_context(|| format!("Failed to read {}", shim_path.display()))?;
     for class_name in &class_names {
-        use std::fmt::*;
-        if panic_unwind {
-            // In panic=unwind mode, wasm-bindgen handles reinit natively.
-            // Re-export classes directly without Proxy wrapping.
-            writeln!(
-                &mut output,
-                "export const {class_name} = exports.{class_name};"
-            )?;
-        } else {
-            writeln!(
-                &mut output,
-                "export const {class_name} = new Proxy(exports.{class_name}, classProxyHooks);"
-            )?;
-        }
+        use std::fmt::Write;
+        writeln!(
+            &mut output,
+            "export const {class_name} = new Proxy(exports.{class_name}, classProxyHooks);"
+        )?;
     }
     fs::write(&shim_path, output)
         .with_context(|| format!("Failed to write {}", shim_path.display()))?;
