@@ -231,16 +231,19 @@ fn add_export_wrappers(out_dir: &Path, panic_unwind: bool) -> Result<()> {
     let mut output = fs::read_to_string(&shim_path)
         .with_context(|| format!("Failed to read {}", shim_path.display()))?;
     for class_name in &class_names {
+        use std::fmt::*;
         if panic_unwind {
             // In panic=unwind mode, wasm-bindgen handles reinit natively.
             // Re-export classes directly without Proxy wrapping.
-            output.push_str(&format!(
-                "export const {class_name} = exports.{class_name};\n"
-            ));
+            let _ = writeln!(
+                &mut output,
+                "export const {class_name} = exports.{class_name};"
+            );
         } else {
-            output.push_str(&format!(
-                "export const {class_name} = new Proxy(exports.{class_name}, classProxyHooks);\n"
-            ));
+            let _ = writeln!(
+                &mut output,
+                "export const {class_name} = new Proxy(exports.{class_name}, classProxyHooks);"
+            );
         }
     }
     fs::write(&shim_path, output)
