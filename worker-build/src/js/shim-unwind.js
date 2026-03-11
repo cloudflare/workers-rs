@@ -3,6 +3,14 @@ import * as exports from "./index.js";
 
 Error.stackTraceLimit = 100;
 
+// Polyfill console.createTask for runtimes that don't support it (e.g. workerd).
+// wasm-bindgen-futures calls this under debug_assertions for async task tracking.
+if (typeof console.createTask !== "function") {
+  console.createTask = (_name) => ({
+    run: (fn) => fn(),
+  });
+}
+
 const liveInstances = new Set();
 const cleanup = typeof FinalizationRegistry !== "undefined"
   ? new FinalizationRegistry((holder) => liveInstances.delete(holder))
