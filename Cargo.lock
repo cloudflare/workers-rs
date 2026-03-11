@@ -4333,3 +4333,35 @@ dependencies = [
  "cc",
  "pkg-config",
 ]
+
+[[patch.unused]]
+name = "js-sys"
+version = "0.3.91"
+
+[[patch.unused]]
+name = "wasm-bindgen"
+version = "0.2.114"
+
+[[patch.unused]]
+name = "wasm-bindgen-cli-support"
+version = "0.2.114"
+
+[[patch.unused]]
+name = "wasm-bindgen-futures"
+version = "0.4.64"
+
+[[patch.unused]]
+name = "wasm-bindgen-macro-support"
+version = "0.2.114"
+
+[[patch.unused]]
+name = "wasm-bindgen-shared"
+version = "0.2.114"
+
+[[patch.unused]]
+name = "wasm-bindgen-test"
+version = "0.3.64"
+
+[[patch.unused]]
+name = "web-sys"
+version = "0.3.91"

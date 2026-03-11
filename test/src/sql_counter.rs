@@ -15,7 +15,7 @@ impl DurableObject for SqlCounter {
     fn new(state: State, _env: Env) -> Self {
         let sql = state.storage().sql();
         // Create table if it does not exist.  Note: `exec` is synchronous.
-        sql.exec("CREATE TABLE IF NOT EXISTS counter(value INTEGER);", None)
+        sql.exec("CREATE TABLE IF NOT EXISTS counter(value INTEGER);", [])
             .expect("create table");
         Self { sql }
     }
@@ -43,15 +43,15 @@ impl SqlCounter {
 
         let rows: Vec<Row> = self
             .sql
-            .exec("SELECT value FROM counter LIMIT 1;", None)?
+            .exec("SELECT value FROM counter LIMIT 1;", [])?
             .to_array()?;
         let current = rows.first().map_or(0, |r| r.value);
         let next = current + 1;
 
         // Upsert new value – simplest way: delete and insert again.
-        self.sql.exec("DELETE FROM counter;", None)?;
+        self.sql.exec("DELETE FROM counter;", [])?;
         self.sql
-            .exec("INSERT INTO counter(value) VALUES (?);", vec![next.into()])?;
+            .exec("INSERT INTO counter(value) VALUES (?);", [next.into()])?;
 
         Response::ok(format!("SQL counter is now {next}"))
     }
@@ -77,9 +77,9 @@ impl SqlCounter {
         };
 
         // Store the safe value
-        self.sql.exec("DELETE FROM counter;", None)?;
+        self.sql.exec("DELETE FROM counter;", [])?;
         self.sql
-            .exec("INSERT INTO counter(value) VALUES (?);", vec![safe_value])?;
+            .exec("INSERT INTO counter(value) VALUES (?);", [safe_value])?;
 
         Response::ok(format!("Successfully stored large value: {large_value}"))
     }

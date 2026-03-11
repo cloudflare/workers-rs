@@ -426,7 +426,10 @@ impl Storage {
 
     /// Deletes the provided keys and their associated values. Returns a count of the number of
     /// key-value pairs deleted.
-    pub async fn delete_multiple(&self, keys: Vec<impl Deref<Target = str>>) -> Result<usize> {
+    pub async fn delete_multiple(
+        &self,
+        keys: impl IntoIterator<Item = impl Deref<Target = str>>,
+    ) -> Result<usize> {
         let fut: JsFuture = self
             .inner
             .delete_multiple(

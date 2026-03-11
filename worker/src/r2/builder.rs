@@ -408,8 +408,8 @@ impl ListOptionsBuilder<'_> {
     ///         .await?;
     /// }
     /// ```
-    pub fn include(mut self, include: Vec<Include>) -> Self {
-        self.include = Some(include);
+    pub fn include(mut self, include: impl IntoIterator<Item = Include>) -> Self {
+        self.include = Some(include.into_iter().collect());
         self
     }
 

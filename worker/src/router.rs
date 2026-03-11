@@ -357,7 +357,7 @@ impl<'a, D: 'a> Router<'a, D> {
         self
     }
 
-    fn add_handler(&mut self, pattern: &str, func: Handler<'a, D>, methods: Vec<Method>) {
+    fn add_handler(&mut self, pattern: &str, func: Handler<'a, D>, methods: impl IntoIterator<Item = Method>) {
         for method in methods {
             self.handlers
                 .entry(method.clone())

@@ -76,19 +76,19 @@ impl WebSocket {
     /// Response::error("never got a message echoed back :(", 500)
     /// ```
     pub async fn connect(url: Url) -> Result<WebSocket> {
-        WebSocket::connect_with_protocols(url, None).await
+        WebSocket::connect_with_protocols(url, std::iter::empty::<&str>()).await
     }
 
     /// Attempts to establish a [`WebSocket`] connection to the provided [`Url`] and protocol.
     ///
     /// # Example:
     /// ```rust,ignore
-    /// let ws = WebSocket::connect_with_protocols("wss://echo.zeb.workers.dev/".parse()?, Some(vec!["GiggleBytes"])).await?;
+    /// let ws = WebSocket::connect_with_protocols("wss://echo.zeb.workers.dev/".parse()?, ["GiggleBytes"]).await?;
     ///
     /// ```
     pub async fn connect_with_protocols(
         mut url: Url,
-        protocols: Option<Vec<&str>>,
+        protocols: impl IntoIterator<Item = impl AsRef<str>>,
     ) -> Result<WebSocket> {
         let scheme: String = match url.scheme() {
             "ws" => "http".into(),
@@ -103,12 +103,15 @@ impl WebSocket {
         let mut req = Request::new(url.as_str(), Method::Get)?;
         req.headers_mut()?.set("upgrade", "websocket")?;
 
-        match protocols {
-            None => {}
-            Some(v) => {
-                req.headers_mut()?
-                    .set("Sec-WebSocket-Protocol", v.join(",").as_str())?;
-            }
+        let protocols: Vec<_> = protocols.into_iter().collect();
+        if !protocols.is_empty() {
+            let joined: String = protocols
+                .iter()
+                .map(AsRef::as_ref)
+                .collect::<Vec<&str>>()
+                .join(",");
+            req.headers_mut()?
+                .set("Sec-WebSocket-Protocol", &joined)?;
         }
 
         #[cfg(not(feature = "http"))]
