@@ -15,7 +15,8 @@ crate-type = ["cdylib"]
 
 [dependencies]
 axum = { version = "0.8", default-features = false, optional = true }
-getrandom = { version = "0.3", features = ["wasm_js"]}
+getrandom = { version = "0.4", features = ["wasm_js"]}
+getrandom03 = { package = "getrandom", version = "0.3", features = ["wasm_js"] }
 leptos = { version = "0.8"{% if use_nightly %}, features = ["nightly"]{% endif %} }
 leptos_axum = { version = "0.8", default-features = false, features = ["wasm"], optional = true }
 leptos_meta = { version = "0.8" }
