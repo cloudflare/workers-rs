@@ -121,10 +121,11 @@ pub fn main() -> Result<()> {
             // In panic=unwind mode, wasm-bindgen 0.2.114+ handles reinit
             // natively via __wbg_termination_guard / __wbg_reset_state.
             // The shim only provides the WorkerEntrypoint adapter layer.
-            SHIM_UNWIND_FILE.replace("$HANDLERS", &handlers)
+            SHIM_UNWIND_FILE
         } else {
-            SHIM_FILE.replace("$HANDLERS", &handlers)
-        };
+            SHIM_FILE
+        }
+        .replace("$HANDLERS", &handlers);
         let shim_path = output_path(&staging_dir, "shim.js");
         fs::write(&shim_path, shim)
             .with_context(|| format!("Failed to write {}", shim_path.display()))?;

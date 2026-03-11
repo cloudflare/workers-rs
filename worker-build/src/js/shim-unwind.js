@@ -3,7 +3,8 @@ import * as exports from "./index.js";
 
 Error.stackTraceLimit = 100;
 
-let instanceId = 0;
+const liveInstances = new Set();
+const cleanup = new FinalizationRegistry((holder) => liveInstances.delete(holder));
 
 function panicHook(message) {
   console.error("Rust panic:", message);
@@ -18,12 +19,14 @@ function registerPanicHook() {
 registerPanicHook();
 
 // After wasm-bindgen auto-reinits via __wbg_reset_state, this hook fires
-// so we can re-register the panic hook and bump the instance generation
-// counter (used by the class Proxy to reconstruct stale DO instances).
+// so we can re-register the panic hook and reconstruct all live DO/RPC
+// class instances on the fresh wasm module.
 if (exports.__wbg_set_reinit_hook) {
   exports.__wbg_set_reinit_hook(function () {
     registerPanicHook();
-    instanceId++;
+    for (const holder of liveInstances) {
+      holder.instance = Reflect.construct(holder.ctor, holder.args, holder.newTarget);
+    }
   });
 }
 
@@ -33,27 +36,25 @@ $HANDLERS
 
 // Lightweight Proxy for exported classes (Durable Objects, RPC).
 // After a wasm reinit, existing class instances hold stale wasm pointers.
-// The reinit hook increments instanceId; the Proxy detects the mismatch
-// and transparently re-constructs the instance from its stored args.
+// The reinit hook eagerly reconstructs all tracked instances so the Proxy
+// can delegate without any per-access staleness checks.
 const classProxyHooks = {
   construct(ctor, args, newTarget) {
     const holder = {
       instance: Reflect.construct(ctor, args, newTarget),
-      instanceId,
       ctor,
       args,
       newTarget,
     };
-    return new Proxy(holder, instanceProxyHooks);
+    liveInstances.add(holder);
+    const proxy = new Proxy(holder, instanceProxyHooks);
+    cleanup.register(proxy, holder);
+    return proxy;
   },
 };
 
 const instanceProxyHooks = {
   get(target, prop, receiver) {
-    if (target.instanceId !== instanceId) {
-      target.instance = Reflect.construct(target.ctor, target.args, target.newTarget);
-      target.instanceId = instanceId;
-    }
     const val = Reflect.get(target.instance, prop, receiver);
     if (typeof val !== "function") return val;
     return function (...fnArgs) {
