@@ -11,7 +11,7 @@ export const server = createServer(function (socket) {
 
 export const mf = new Miniflare({
   scriptPath: "./build/index.js",
-  compatibilityDate: "2024-12-05",
+  compatibilityDate: "2025-07-24",
   modules: true,
   modulesRules: [
     { type: "CompiledWasm", include: ["**/*.wasm"], fallthrough: true },

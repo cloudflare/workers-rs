@@ -16,6 +16,7 @@ use clap::Parser;
 const OUT_DIR: &str = "build";
 
 const SHIM_FILE: &str = include_str!("./js/shim.js");
+const SHIM_UNWIND_FILE: &str = include_str!("./js/shim-unwind.js");
 
 pub(crate) mod binary;
 mod build;
@@ -115,16 +116,16 @@ pub fn main() -> Result<()> {
     }
 
     if module_target {
-        let shim = SHIM_FILE
-            .replace("$HANDLERS", &generate_handlers(&staging_dir)?)
-            .replace(
-                "$PANIC_CRITICAL_ERROR",
-                if builder.panic_unwind {
-                    ""
-                } else {
-                    "criticalError = true;"
-                },
-            );
+        let handlers = generate_handlers(&staging_dir)?;
+        let shim = if builder.panic_unwind {
+            // In panic=unwind mode, wasm-bindgen 0.2.114+ handles reinit
+            // natively via __wbg_termination_guard / __wbg_reset_state.
+            // The shim only provides the WorkerEntrypoint adapter layer.
+            SHIM_UNWIND_FILE
+        } else {
+            SHIM_FILE
+        }
+        .replace("$HANDLERS", &handlers);
         let shim_path = output_path(&staging_dir, "shim.js");
         fs::write(&shim_path, shim)
             .with_context(|| format!("Failed to write {}", shim_path.display()))?;
@@ -210,7 +211,7 @@ fn generate_handlers(out_dir: &Path) -> Result<String> {
     Ok(handlers)
 }
 
-static SYSTEM_FNS: &[&str] = &["__wbg_reset_state", "setPanicHook"];
+static SYSTEM_FNS: &[&str] = &["__wbg_reset_state", "__wbg_set_reinit_hook", "setPanicHook"];
 
 fn add_export_wrappers(out_dir: &Path) -> Result<()> {
     let index_path = output_path(out_dir, "index.js");
@@ -230,10 +231,12 @@ fn add_export_wrappers(out_dir: &Path) -> Result<()> {
     let shim_path = output_path(out_dir, "shim.js");
     let mut output = fs::read_to_string(&shim_path)
         .with_context(|| format!("Failed to read {}", shim_path.display()))?;
-    for class_name in class_names {
-        output.push_str(&format!(
-            "export const {class_name} = new Proxy(exports.{class_name}, classProxyHooks);\n"
-        ));
+    for class_name in &class_names {
+        use std::fmt::Write;
+        writeln!(
+            &mut output,
+            "export const {class_name} = new Proxy(exports.{class_name}, classProxyHooks);"
+        )?;
     }
     fs::write(&shim_path, output)
         .with_context(|| format!("Failed to write {}", shim_path.display()))?;

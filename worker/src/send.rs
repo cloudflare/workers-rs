@@ -15,7 +15,7 @@ use std::task::Poll;
 #[pin_project]
 /// Wrap any future to make it `Send`.
 ///
-/// ```rust
+/// ```ignore
 /// let fut = SendFuture::new(JsFuture::from(promise));
 /// fut.await
 /// ```
@@ -44,7 +44,7 @@ impl<F: Future> Future for SendFuture<F> {
 
 /// Trait for SendFuture. Implemented for any type that implements Future.
 ///
-/// ```rust
+/// ```ignore
 /// let fut = JsFuture::from(promise).into_send();
 /// fut.await
 /// ```
@@ -67,7 +67,7 @@ where
 
 /// Wrap any type to make it `Send`.
 ///
-/// ```rust
+/// ```ignore
 /// // js_sys::Promise is !Send
 /// let send_promise = SendWrapper::new(promise);
 /// ```

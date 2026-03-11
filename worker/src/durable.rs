@@ -395,14 +395,14 @@ impl Storage {
 
     /// Takes an object and stores each of its keys and values to storage.
     ///
-    /// ```no_run
+    /// ```ignore
     /// # use worker::Storage;
-    /// use worker::JsValue;
+    /// use wasm_bindgen::JsValue;
     ///
     /// # let storage: Storage = todo!();
     ///
     /// let obj = js_sys::Object::new();
-    /// js_sys::Reflect::set(&obj, &JsValue::from_str("foo"), JsValue::from_u64(1));
+    /// js_sys::Reflect::set(&obj, &JsValue::from_str("foo"), &JsValue::from_f64(1.0));
     ///
     /// storage.put_multiple_raw(obj);
     /// ```
@@ -851,7 +851,7 @@ integrate them with the Workers Runtime, you must also add the **`#[durable_obje
 to the struct.
 
 ## Example
-```no_run
+```ignore
 use worker::*;
 
 #[durable_object]

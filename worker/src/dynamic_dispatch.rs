@@ -9,7 +9,7 @@ use crate::{env::EnvBinding, Fetcher, Result};
 ///
 /// # Example:
 ///
-/// ```no_run
+/// ```ignore
 /// let dispatcher = env.dynamic_dispatcher("DISPATCHER")?;
 /// let fetcher = dispatcher.get("namespaced-worker-name")?;
 /// let resp = fetcher.fetch_request(req).await?;

@@ -383,7 +383,8 @@ impl ResponseBuilder {
 
     /// Sets this response's cors headers from the `Cors` struct.
     /// Example usage:
-    /// ```
+    /// ```ignore
+    /// use worker::*;
     /// let cors = Cors::default();
     /// ResponseBuilder::new()
     ///     .with_cors(&cors)

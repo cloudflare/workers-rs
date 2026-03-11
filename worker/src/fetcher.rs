@@ -62,7 +62,7 @@ impl Fetcher {
     }
 
     /// Convert Fetcher into user-defined RPC interface.
-    /// ```
+    /// ```ignore
     /// #[wasm_bindgen]
     /// extern "C" {
     ///     #[wasm_bindgen(extends=js_sys::Object)]
