@@ -236,6 +236,8 @@ mod router;
 mod schedule;
 mod secret_store;
 pub mod send;
+#[cfg(panic = "unwind")] // TODO: Remove this cfg when signals are supported on panic=abort
+pub mod signal;
 mod socket;
 mod sql;
 mod streams;

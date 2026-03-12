@@ -1,0 +1,6 @@
+name = "signal-test-dev"
+main = "build/index.js"
+compatibility_date = "2026-03-03"
+
+[build]
+command = "worker-build --panic-unwind"
