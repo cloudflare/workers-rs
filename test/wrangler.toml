@@ -90,6 +90,11 @@ name = "test-workflow"
 binding = "TEST_WORKFLOW"
 class_name = "TestWorkflow"
 
+[[workflows]]
+name = "event-workflow"
+binding = "EVENT_WORKFLOW"
+class_name = "EventWorkflow"
+
 [[ratelimits]]
 name = "TEST_RATE_LIMITER"
 namespace_id = "1"

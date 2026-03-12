@@ -108,3 +108,77 @@ pub async fn handle_workflow_status(
         "error": status.error,
     }))
 }
+
+#[workflow]
+pub struct EventWorkflow {
+    #[allow(dead_code)]
+    env: Env,
+}
+
+impl WorkflowEntrypoint for EventWorkflow {
+    fn new(_ctx: Context, env: Env) -> Self {
+        Self { env }
+    }
+
+    async fn run(
+        &self,
+        _event: WorkflowEvent<serde_json::Value>,
+        step: WorkflowStep,
+    ) -> Result<serde_json::Value> {
+        let event = step
+            .wait_for_event::<serde_json::Value>(
+                "wait-for-approval",
+                WaitForEventOptions {
+                    event_type: "approval".to_string(),
+                    timeout: Some("30 seconds".to_string()),
+                },
+            )
+            .await?;
+
+        Ok(serde_json::json!({
+            "payload": event.payload,
+            "event_type": event.event_type,
+        }))
+    }
+}
+
+pub async fn handle_event_workflow_create(
+    _req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let workflow = env.workflow("EVENT_WORKFLOW")?;
+    let instance = workflow.create(None::<CreateOptions<()>>).await?;
+    Response::from_json(&serde_json::json!({ "id": instance.id()? }))
+}
+
+pub async fn handle_event_workflow_send(
+    mut req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let url = req.url()?;
+    let id = url.path().trim_start_matches("/workflow/event/send/");
+    let payload: serde_json::Value = req.json().await?;
+    let workflow = env.workflow("EVENT_WORKFLOW")?;
+    let instance = workflow.get(id).await?;
+    instance.send_event("approval", payload).await?;
+    Response::ok("sent")
+}
+
+pub async fn handle_event_workflow_status(
+    req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let url = req.url()?;
+    let id = url.path().trim_start_matches("/workflow/event/status/");
+    let workflow = env.workflow("EVENT_WORKFLOW")?;
+    let instance = workflow.get(id).await?;
+    let status = instance.status().await?;
+    Response::from_json(&serde_json::json!({
+        "status": format!("{:?}", status.status),
+        "output": status.output,
+        "error": status.error,
+    }))
+}

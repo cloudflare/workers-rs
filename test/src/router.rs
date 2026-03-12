@@ -237,6 +237,9 @@ macro_rules! add_routes (
     add_route!($obj, post, "/workflow/create", workflow::handle_workflow_create);
     add_route!($obj, post, "/workflow/create-invalid", workflow::handle_workflow_create_invalid);
     add_route!($obj, get, format_route!("/workflow/status/{}", "id"), workflow::handle_workflow_status);
+    add_route!($obj, post, "/workflow/event/create", workflow::handle_event_workflow_create);
+    add_route!($obj, post, format_route!("/workflow/event/send/{}", "id"), workflow::handle_event_workflow_send);
+    add_route!($obj, get, format_route!("/workflow/event/status/{}", "id"), workflow::handle_event_workflow_status);
 });
 
 #[cfg(feature = "http")]

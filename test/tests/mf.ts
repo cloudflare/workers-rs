@@ -122,6 +122,11 @@ const mf_instance = new Miniflare({
           className: "TestWorkflow",
           scriptName: "workflow-worker",
         },
+        EVENT_WORKFLOW: {
+          name: "event-workflow",
+          className: "EventWorkflow",
+          scriptName: "workflow-worker",
+        },
       },
       ratelimits: {
         TEST_RATE_LIMITER: {
