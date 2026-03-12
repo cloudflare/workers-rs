@@ -178,7 +178,10 @@ impl From<std::io::Error> for Error {
 
 impl From<Error> for JsValue {
     fn from(e: Error) -> Self {
-        JsValue::from_str(&e.to_string())
+        match e {
+            Error::Internal(v) => v,
+            _ => JsValue::from_str(&e.to_string()),
+        }
     }
 }
 
