@@ -50,6 +50,31 @@ extern "C" {
 
     #[wasm_bindgen(structural, method, catch, js_class=D1Database, js_name=exec)]
     pub fn exec(this: &D1Database, query: &str) -> Result<Promise, JsValue>;
+
+    #[wasm_bindgen(structural, method, catch, js_class=D1Database, js_name=withSession)]
+    pub fn with_session(
+        this: &D1Database,
+        constraint_or_bookmark: Option<&str>,
+    ) -> Result<D1DatabaseSession, JsValue>;
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(extends=::js_sys::Object, js_name=D1DatabaseSession)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type D1DatabaseSession;
+
+    #[wasm_bindgen(structural, method, catch, js_class=D1DatabaseSession, js_name=prepare)]
+    pub fn session_prepare(
+        this: &D1DatabaseSession,
+        query: &str,
+    ) -> Result<D1PreparedStatement, JsValue>;
+
+    #[wasm_bindgen(structural, method, catch, js_class=D1DatabaseSession, js_name=batch)]
+    pub fn session_batch(this: &D1DatabaseSession, statements: Array) -> Result<Promise, JsValue>;
+
+    #[wasm_bindgen(structural, method, catch, js_class=D1DatabaseSession, js_name=getBookmark)]
+    pub fn get_bookmark(this: &D1DatabaseSession) -> Result<Option<String>, JsValue>;
 }
 
 #[wasm_bindgen]

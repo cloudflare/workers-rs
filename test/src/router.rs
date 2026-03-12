@@ -182,6 +182,8 @@ macro_rules! add_routes (
     add_route!($obj, get, "/queue",queue::handle_queue);
     add_route!($obj, get, "/d1/prepared", d1::prepared_statement);
     add_route!($obj, get, "/d1/batch", d1::batch);
+    add_route!($obj, get, "/d1/session_prepare_and_batch", d1::session_prepare_and_batch);
+    add_route!($obj, get, "/d1/session_bookmark_roundtrip", d1::session_bookmark_roundtrip);
     add_route!($obj, get,  "/d1/dump", d1::dump);
     add_route!($obj, post, "/d1/exec", d1::exec);
     add_route!($obj, get, "/d1/error", d1::error);
