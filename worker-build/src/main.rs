@@ -169,7 +169,7 @@ fn generate_handlers(out_dir: &Path) -> Result<String> {
             if let Some(bracket_pos) = rest.find("(") {
                 let func_name = rest[..bracket_pos].trim();
                 // strip the exported function (we re-wrap all handlers)
-                if !SYSTEM_FNS.contains(&func_name) {
+                if !SYSTEM_FNS.contains(&func_name) && !func_name.starts_with("__wf_") {
                     func_names.push(func_name);
                 }
             }
@@ -178,7 +178,7 @@ fn generate_handlers(out_dir: &Path) -> Result<String> {
                 let rest = &rest[as_pos + 4..];
                 if let Some(brace_pos) = rest.find("}") {
                     let func_name = rest[..brace_pos].trim();
-                    if !SYSTEM_FNS.contains(&func_name) {
+                    if !SYSTEM_FNS.contains(&func_name) && !func_name.starts_with("__wf_") {
                         func_names.push(func_name);
                     }
                 }

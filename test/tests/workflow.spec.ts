@@ -14,7 +14,6 @@ describe("workflow", () => {
     let status: string | undefined;
     let output: unknown;
     for (let i = 0; i < 30; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 500));
       const statusResp = await mf.dispatchFetch(
         `${mfUrl}workflow/status/${id}`
       );
@@ -29,6 +28,7 @@ describe("workflow", () => {
       if (status === "Complete" || status === "Errored") {
         break;
       }
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
     expect(status).toBe("Complete");
@@ -46,7 +46,6 @@ describe("workflow", () => {
 
     let status: string | undefined;
     for (let i = 0; i < 30; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 500));
       const statusResp = await mf.dispatchFetch(
         `${mfUrl}workflow/status/${id}`
       );
@@ -59,6 +58,7 @@ describe("workflow", () => {
       if (status === "Complete" || status === "Errored") {
         break;
       }
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
     expect(status).toBe("Errored");

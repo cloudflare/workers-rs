@@ -86,8 +86,9 @@ impl Workflow {
         let result = SendFuture::new(self.inner.create_batch(&js_array)).await?;
         let result_array: js_sys::Array = result.unchecked_into();
 
-        let mut instances = Vec::with_capacity(result_array.length() as usize);
-        for i in 0..result_array.length() {
+        let len = result_array.length();
+        let mut instances = Vec::with_capacity(len as usize);
+        for i in 0..len {
             instances.push(WorkflowInstance::from_js(result_array.get(i)));
         }
         Ok(instances)
@@ -231,14 +232,17 @@ impl WorkflowInstance {
 
     /// Send an event to the workflow instance to trigger `step.wait_for_event()` calls.
     pub async fn send_event<T: Serialize>(&self, event_type: &str, payload: T) -> Result<()> {
-        let event = Object::new();
-        Reflect::set(&event, &"type".into(), &event_type.into())?;
-        Reflect::set(
-            &event,
-            &"payload".into(),
-            &serde_wasm_bindgen::to_value(&payload)?,
-        )?;
-        SendFuture::new(self.inner.send_event(event.into())).await?;
+        #[derive(Serialize)]
+        struct SendEventPayload<'a, P: Serialize> {
+            #[serde(rename = "type")]
+            event_type: &'a str,
+            payload: P,
+        }
+        let event = serde_wasm_bindgen::to_value(&SendEventPayload {
+            event_type,
+            payload,
+        })?;
+        SendFuture::new(self.inner.send_event(event)).await?;
         Ok(())
     }
 }

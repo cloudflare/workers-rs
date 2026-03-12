@@ -59,14 +59,10 @@ impl WorkflowEntrypoint for TestWorkflow {
     }
 }
 
-pub async fn handle_workflow_create(
-    _req: Request,
-    env: Env,
-    _data: crate::SomeSharedData,
-) -> Result<Response> {
+async fn create_workflow_with_value(env: &Env, value: &str) -> Result<Response> {
     let workflow = env.workflow("TEST_WORKFLOW")?;
     let params = TestParams {
-        value: "hello".to_string(),
+        value: value.to_string(),
     };
     let instance = workflow
         .create(Some(CreateOptions {
@@ -78,23 +74,20 @@ pub async fn handle_workflow_create(
     Response::from_json(&serde_json::json!({ "id": instance.id()? }))
 }
 
+pub async fn handle_workflow_create(
+    _req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    create_workflow_with_value(&env, "hello").await
+}
+
 pub async fn handle_workflow_create_invalid(
     _req: Request,
     env: Env,
     _data: crate::SomeSharedData,
 ) -> Result<Response> {
-    let workflow = env.workflow("TEST_WORKFLOW")?;
-    let params = TestParams {
-        value: "".to_string(),
-    };
-    let instance = workflow
-        .create(Some(CreateOptions {
-            params: Some(params),
-            ..Default::default()
-        }))
-        .await?;
-
-    Response::from_json(&serde_json::json!({ "id": instance.id()? }))
+    create_workflow_with_value(&env, "").await
 }
 
 pub async fn handle_workflow_status(

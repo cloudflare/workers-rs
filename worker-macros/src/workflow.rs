@@ -3,14 +3,18 @@ use quote::{format_ident, quote};
 use syn::{Error, ItemImpl, ItemStruct};
 
 pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
-    if syn::parse2::<ItemImpl>(tokens.clone()).is_ok() {
-        return Err(Error::new(
-            proc_macro2::Span::call_site(),
-            "#[workflow] should only be applied to struct definitions, not impl blocks",
-        ));
-    }
-
-    let target = syn::parse2::<ItemStruct>(tokens)?;
+    let target = match syn::parse2::<ItemStruct>(tokens.clone()) {
+        Ok(s) => s,
+        Err(e) => {
+            if syn::parse2::<ItemImpl>(tokens).is_ok() {
+                return Err(Error::new(
+                    proc_macro2::Span::call_site(),
+                    "#[workflow] should only be applied to struct definitions, not impl blocks",
+                ));
+            }
+            return Err(e);
+        }
+    };
     let target_name = &target.ident;
     let marker_fn_name = format_ident!("__wf_{}", target_name);
     let marker_js_name = format!("__wf_{target_name}");
