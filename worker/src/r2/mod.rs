@@ -2,6 +2,7 @@ use std::{collections::HashMap, convert::TryInto, ops::Deref};
 
 pub use builder::*;
 
+use crate::send::SendFuture;
 use js_sys::{JsString, Reflect, Uint8Array};
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
@@ -28,7 +29,7 @@ impl Bucket {
     /// Retrieves the [Object] for the given key containing only object metadata, if the key exists.
     pub async fn head(&self, key: impl Into<String>) -> Result<Option<Object>> {
         let head_promise = self.inner.head(key.into())?;
-        let value = JsFuture::from(head_promise).await?;
+        let value = SendFuture::new(JsFuture::from(head_promise)).await?;
 
         if value.is_null() {
             return Ok(None);
@@ -75,7 +76,7 @@ impl Bucket {
     /// operations will no longer see this key value pair globally.
     pub async fn delete(&self, key: impl Into<String>) -> Result<()> {
         let delete_promise = self.inner.delete(key.into())?;
-        JsFuture::from(delete_promise).await?;
+        SendFuture::new(JsFuture::from(delete_promise)).await?;
         Ok(())
     }
 
@@ -88,10 +89,10 @@ impl Bucket {
     ///
     /// Up to 1000 keys may be deleted per call.
     pub async fn delete_multiple(&self, keys: Vec<impl Deref<Target = str>>) -> Result<()> {
-        let fut: JsFuture = self
-            .inner
-            .delete_multiple(keys.into_iter().map(|key| JsValue::from(&*key)).collect())?
-            .into();
+        let fut = SendFuture::new(JsFuture::from(
+            self.inner
+                .delete_multiple(keys.into_iter().map(|key| JsValue::from(&*key)).collect())?,
+        ));
         fut.await?;
         Ok(())
     }
@@ -328,7 +329,7 @@ impl ObjectBody<'_> {
     }
 
     pub async fn bytes(self) -> Result<Vec<u8>> {
-        let js_buffer = JsFuture::from(self.inner.array_buffer()?).await?;
+        let js_buffer = SendFuture::new(JsFuture::from(self.inner.array_buffer()?)).await?;
         let js_buffer = Uint8Array::new(&js_buffer);
         let mut bytes = vec![0; js_buffer.length() as usize];
         js_buffer.copy_to(&mut bytes);
@@ -396,8 +397,10 @@ impl MultipartUpload {
         part_number: u16,
         value: impl Into<Data>,
     ) -> Result<UploadedPart> {
-        let uploaded_part =
-            JsFuture::from(self.inner.upload_part(part_number, value.into().into())?).await?;
+        let uploaded_part = SendFuture::new(JsFuture::from(
+            self.inner.upload_part(part_number, value.into().into())?,
+        ))
+        .await?;
         Ok(UploadedPart {
             inner: uploaded_part.into(),
         })
@@ -410,7 +413,7 @@ impl MultipartUpload {
 
     /// Aborts the multipart upload.
     pub async fn abort(&self) -> Result<()> {
-        JsFuture::from(self.inner.abort()?).await?;
+        SendFuture::new(JsFuture::from(self.inner.abort()?)).await?;
         Ok(())
     }
 
@@ -420,14 +423,14 @@ impl MultipartUpload {
         self,
         uploaded_parts: impl IntoIterator<Item = UploadedPart>,
     ) -> Result<Object> {
-        let object = JsFuture::from(
+        let object = SendFuture::new(JsFuture::from(
             self.inner.complete(
                 uploaded_parts
                     .into_iter()
                     .map(|part| part.inner.into())
                     .collect(),
             )?,
-        )
+        ))
         .await?;
         Ok(Object {
             inner: ObjectInner::Body(object.into()),

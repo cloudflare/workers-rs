@@ -4,6 +4,7 @@ use std::{
     task::{Context, Poll},
 };
 
+use crate::send::SendFuture;
 use crate::Result;
 use crate::{r2::js_object, Error};
 use futures_util::FutureExt;
@@ -93,19 +94,19 @@ impl Socket {
 
     /// Closes the TCP socket. Both the readable and writable streams are forcibly closed.
     pub async fn close(&mut self) -> Result<()> {
-        JsFuture::from(self.inner.close()?).await?;
+        SendFuture::new(JsFuture::from(self.inner.close()?)).await?;
         Ok(())
     }
 
     /// This Future is resolved when the socket is closed
     /// and is rejected if the socket encounters an error.
     pub async fn closed(&self) -> Result<()> {
-        JsFuture::from(self.inner.closed()?).await?;
+        SendFuture::new(JsFuture::from(self.inner.closed()?)).await?;
         Ok(())
     }
 
     pub async fn opened(&self) -> Result<SocketInfo> {
-        let value = JsFuture::from(self.inner.opened()?).await?;
+        let value = SendFuture::new(JsFuture::from(self.inner.opened()?)).await?;
         value.try_into()
     }
 

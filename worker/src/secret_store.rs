@@ -1,8 +1,4 @@
-use crate::{
-    error::Error,
-    send::{SendFuture, SendWrapper},
-    EnvBinding, Result,
-};
+use crate::{error::Error, send::SendFuture, EnvBinding, Result};
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 
@@ -12,11 +8,7 @@ use wasm_bindgen_futures::JsFuture;
 /// secret (identified by `store_id` + `secret_name`) to a binding name.
 /// Use [`SecretStore::get`] to retrieve the secret value.
 #[derive(Debug, Clone)]
-pub struct SecretStore(SendWrapper<worker_sys::SecretStoreSys>);
-
-// Workers will never allow multithreading.
-unsafe impl Send for SecretStore {}
-unsafe impl Sync for SecretStore {}
+pub struct SecretStore(worker_sys::SecretStoreSys);
 
 impl EnvBinding for SecretStore {
     const TYPE_NAME: &'static str = "Fetcher";
@@ -28,7 +20,7 @@ impl JsCast for SecretStore {
     }
 
     fn unchecked_from_js(val: JsValue) -> Self {
-        Self(SendWrapper::new(val.unchecked_into()))
+        Self(val.unchecked_into())
     }
 
     fn unchecked_from_js_ref(val: &JsValue) -> &Self {

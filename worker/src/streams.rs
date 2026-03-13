@@ -46,6 +46,10 @@ impl Stream for ByteStream {
     }
 }
 
+/// SAFETY: Cloudflare Workers runtime is single-threaded, so it's safe to mark ByteStream
+/// as Send even though `IntoStream` internally contains `Option<JsFuture>` which is `!Send`.
+unsafe impl Send for ByteStream {}
+
 #[pin_project]
 pub struct FixedLengthStream {
     length: u64,
@@ -109,6 +113,11 @@ impl Stream for FixedLengthStream {
         Poll::Ready(item)
     }
 }
+
+/// SAFETY: Cloudflare Workers runtime is single-threaded, so it's safe to mark FixedLengthStream
+/// as Send and Sync even though it contains a trait object that may not be Send/Sync.
+unsafe impl Send for FixedLengthStream {}
+unsafe impl Sync for FixedLengthStream {}
 
 impl From<FixedLengthStream> for FixedLengthStreamSys {
     fn from(stream: FixedLengthStream) -> Self {

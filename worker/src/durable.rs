@@ -35,6 +35,8 @@ use worker_sys::{
 // use wasm_bindgen_futures::future_to_promise;
 use wasm_bindgen_futures::{future_to_promise, JsFuture};
 
+use crate::send::SendFuture;
+
 /// A Durable Object stub is a client object used to send requests to a remote Durable Object.
 #[derive(Debug)]
 pub struct Stub {
@@ -48,14 +50,14 @@ impl Stub {
     /// Send an internal Request to the Durable Object to which the stub points.
     pub async fn fetch_with_request(&self, req: Request) -> Result<Response> {
         let promise = self.inner.fetch_with_request(req.inner())?;
-        let response = JsFuture::from(promise).await?;
+        let response = SendFuture::new(JsFuture::from(promise)).await?;
         Ok(response.dyn_into::<web_sys::Response>()?.into())
     }
 
     /// Construct a Request from a URL to the Durable Object to which the stub points.
     pub async fn fetch_with_str(&self, url: &str) -> Result<Response> {
         let promise = self.inner.fetch_with_str(url)?;
-        let response = JsFuture::from(promise).await?;
+        let response = SendFuture::new(JsFuture::from(promise)).await?;
         Ok(response.dyn_into::<web_sys::Response>()?.into())
     }
 
@@ -346,7 +348,7 @@ impl Storage {
     ///
     /// Returns `Ok(None)` if the key does not exist.
     pub async fn get<T: DeserializeOwned>(&self, key: &str) -> Result<Option<T>> {
-        let res = match JsFuture::from(self.inner.get(key)?).await {
+        let res = match SendFuture::new(JsFuture::from(self.inner.get(key)?)).await {
             // If we successfully retrived `undefined`, that means the key doesn't exist
             Ok(val) if val.is_undefined() => Ok(None),
             // Otherwise deserialize whatever we successfully received
@@ -367,7 +369,7 @@ impl Storage {
                 .map(|key| JsValue::from(key.deref()))
                 .collect(),
         )?;
-        let keys = JsFuture::from(keys).await?;
+        let keys = SendFuture::new(JsFuture::from(keys)).await?;
         keys.dyn_into::<Map>().map_err(Error::from)
     }
 
@@ -378,7 +380,7 @@ impl Storage {
     }
 
     pub async fn put_raw(&self, key: &str, value: impl Into<JsValue>) -> Result<()> {
-        JsFuture::from(self.inner.put(key, value.into())?)
+        SendFuture::new(JsFuture::from(self.inner.put(key, value.into())?))
             .await
             .map_err(Error::from)
             .map(|_| ())
@@ -407,7 +409,7 @@ impl Storage {
     /// storage.put_multiple_raw(obj);
     /// ```
     pub async fn put_multiple_raw(&self, values: Object) -> Result<()> {
-        JsFuture::from(self.inner.put_multiple(values.into())?)
+        SendFuture::new(JsFuture::from(self.inner.put_multiple(values.into())?))
             .await
             .map_err(Error::from)
             .map(|_| ())
@@ -415,7 +417,7 @@ impl Storage {
 
     /// Deletes the key and associated value. Returns true if the key existed or false if it didn't.
     pub async fn delete(&self, key: &str) -> Result<bool> {
-        let fut: JsFuture = self.inner.delete(key)?.into();
+        let fut = SendFuture::new(JsFuture::from(self.inner.delete(key)?));
         fut.await
             .and_then(|jsv| {
                 jsv.as_bool()
@@ -427,14 +429,13 @@ impl Storage {
     /// Deletes the provided keys and their associated values. Returns a count of the number of
     /// key-value pairs deleted.
     pub async fn delete_multiple(&self, keys: Vec<impl Deref<Target = str>>) -> Result<usize> {
-        let fut: JsFuture = self
-            .inner
-            .delete_multiple(
+        let fut = SendFuture::new(JsFuture::from(
+            self.inner.delete_multiple(
                 keys.into_iter()
                     .map(|key| JsValue::from(key.deref()))
                     .collect(),
-            )?
-            .into();
+            )?,
+        ));
         fut.await
             .and_then(|jsv| {
                 jsv.as_f64()
@@ -448,7 +449,7 @@ impl Storage {
     /// Durable Object. In the event of a failure while the operation is still in flight, it may be
     /// that only a subset of the data is properly deleted.
     pub async fn delete_all(&self) -> Result<()> {
-        let fut: JsFuture = self.inner.delete_all()?.into();
+        let fut = SendFuture::new(JsFuture::from(self.inner.delete_all()?));
         fut.await.map(|_| ()).map_err(Error::from)
     }
 
@@ -460,7 +461,7 @@ impl Storage {
     /// potentially hitting its [limit](https://developers.cloudflare.com/workers/platform/limits#durable-objects-limits).
     /// If that is a concern, use the alternate `list_with_options()` method.
     pub async fn list(&self) -> Result<Map> {
-        let fut: JsFuture = self.inner.list()?.into();
+        let fut = SendFuture::new(JsFuture::from(self.inner.list()?));
         fut.await
             .and_then(|jsv| jsv.dyn_into())
             .map_err(Error::from)
@@ -469,10 +470,10 @@ impl Storage {
     /// Returns keys associated with the current Durable Object according to the parameters in the
     /// provided options object.
     pub async fn list_with_options(&self, opts: ListOptions<'_>) -> Result<Map> {
-        let fut: JsFuture = self
-            .inner
-            .list_with_options(serde_wasm_bindgen::to_value(&opts)?.into())?
-            .into();
+        let fut = SendFuture::new(JsFuture::from(
+            self.inner
+                .list_with_options(serde_wasm_bindgen::to_value(&opts)?.into())?,
+        ));
         fut.await
             .and_then(|jsv| jsv.dyn_into())
             .map_err(Error::from)
@@ -482,17 +483,17 @@ impl Storage {
     /// The alarm is considered to be set if it has not started, or if it has failed
     /// and any retry has not begun. If no alarm is set, `get_alarm()` returns `None`.
     pub async fn get_alarm(&self) -> Result<Option<i64>> {
-        let fut: JsFuture = self.inner.get_alarm(JsValue::NULL.into())?.into();
+        let fut = SendFuture::new(JsFuture::from(self.inner.get_alarm(JsValue::NULL.into())?));
         fut.await
             .map(|jsv| jsv.as_f64().map(|f| f as i64))
             .map_err(Error::from)
     }
 
     pub async fn get_alarm_with_options(&self, options: GetAlarmOptions) -> Result<Option<i64>> {
-        let fut: JsFuture = self
-            .inner
-            .get_alarm(serde_wasm_bindgen::to_value(&options)?.into())?
-            .into();
+        let fut = SendFuture::new(JsFuture::from(
+            self.inner
+                .get_alarm(serde_wasm_bindgen::to_value(&options)?.into())?,
+        ));
         fut.await
             .map(|jsv| jsv.as_f64().map(|f| f as i64))
             .map_err(Error::from)
@@ -507,10 +508,10 @@ impl Storage {
     /// a few milliseconds after the set time, but can be delayed by up to a minute
     /// due to maintenance or failures while failover takes place.
     pub async fn set_alarm(&self, scheduled_time: impl Into<ScheduledTime>) -> Result<()> {
-        let fut: JsFuture = self
-            .inner
-            .set_alarm(scheduled_time.into().schedule(), JsValue::NULL.into())?
-            .into();
+        let fut = SendFuture::new(JsFuture::from(
+            self.inner
+                .set_alarm(scheduled_time.into().schedule(), JsValue::NULL.into())?,
+        ));
         fut.await.map(|_| ()).map_err(Error::from)
     }
 
@@ -519,28 +520,27 @@ impl Storage {
         scheduled_time: impl Into<ScheduledTime>,
         options: SetAlarmOptions,
     ) -> Result<()> {
-        let fut: JsFuture = self
-            .inner
-            .set_alarm(
-                scheduled_time.into().schedule(),
-                serde_wasm_bindgen::to_value(&options)?.into(),
-            )?
-            .into();
+        let fut = SendFuture::new(JsFuture::from(self.inner.set_alarm(
+            scheduled_time.into().schedule(),
+            serde_wasm_bindgen::to_value(&options)?.into(),
+        )?));
         fut.await.map(|_| ()).map_err(Error::from)
     }
 
     /// Deletes the alarm if one exists. Does not cancel the alarm handler if it is
     /// currently executing.
     pub async fn delete_alarm(&self) -> Result<()> {
-        let fut: JsFuture = self.inner.delete_alarm(JsValue::NULL.into())?.into();
+        let fut = SendFuture::new(JsFuture::from(
+            self.inner.delete_alarm(JsValue::NULL.into())?,
+        ));
         fut.await.map(|_| ()).map_err(Error::from)
     }
 
     pub async fn delete_alarm_with_options(&self, options: SetAlarmOptions) -> Result<()> {
-        let fut: JsFuture = self
-            .inner
-            .delete_alarm(serde_wasm_bindgen::to_value(&options)?.into())?
-            .into();
+        let fut = SendFuture::new(JsFuture::from(
+            self.inner
+                .delete_alarm(serde_wasm_bindgen::to_value(&options)?.into())?,
+        ));
         fut.await.map(|_| ()).map_err(Error::from)
     }
 
@@ -559,7 +559,7 @@ impl Storage {
                 }))
             });
         let clos = wasm_bindgen::closure::Closure::once_assert_unwind_safe(inner);
-        JsFuture::from(self.inner.transaction(&clos)?)
+        SendFuture::new(JsFuture::from(self.inner.transaction(&clos)?))
             .await
             .map_err(Error::from)
             .map(|_| ())
@@ -578,7 +578,7 @@ pub struct Transaction {
 
 impl Transaction {
     pub async fn get<T: DeserializeOwned>(&self, key: &str) -> Result<T> {
-        JsFuture::from(self.inner.get(key)?)
+        SendFuture::new(JsFuture::from(self.inner.get(key)?))
             .await
             .and_then(|val| {
                 if val.is_undefined() {
@@ -596,15 +596,17 @@ impl Transaction {
                 .map(|key| JsValue::from(key.deref()))
                 .collect(),
         )?;
-        let keys = JsFuture::from(keys).await?;
+        let keys = SendFuture::new(JsFuture::from(keys)).await?;
         keys.dyn_into::<Map>().map_err(Error::from)
     }
 
     pub async fn put<T: Serialize>(&self, key: &str, value: T) -> Result<()> {
-        JsFuture::from(self.inner.put(key, serde_wasm_bindgen::to_value(&value)?)?)
-            .await
-            .map_err(Error::from)
-            .map(|_| ())
+        SendFuture::new(JsFuture::from(
+            self.inner.put(key, serde_wasm_bindgen::to_value(&value)?)?,
+        ))
+        .await
+        .map_err(Error::from)
+        .map(|_| ())
     }
 
     // Each key-value pair in the serialized object will be added to the storage
@@ -613,14 +615,14 @@ impl Transaction {
         if !values.is_object() {
             return Err("Must pass in a struct type".to_string().into());
         }
-        JsFuture::from(self.inner.put_multiple(values)?)
+        SendFuture::new(JsFuture::from(self.inner.put_multiple(values)?))
             .await
             .map_err(Error::from)
             .map(|_| ())
     }
 
     pub async fn delete(&self, key: &str) -> Result<bool> {
-        let fut: JsFuture = self.inner.delete(key)?.into();
+        let fut = SendFuture::new(JsFuture::from(self.inner.delete(key)?));
         fut.await
             .and_then(|jsv| {
                 jsv.as_bool()
@@ -630,14 +632,13 @@ impl Transaction {
     }
 
     pub async fn delete_multiple(&self, keys: Vec<impl Deref<Target = str>>) -> Result<usize> {
-        let fut: JsFuture = self
-            .inner
-            .delete_multiple(
+        let fut = SendFuture::new(JsFuture::from(
+            self.inner.delete_multiple(
                 keys.into_iter()
                     .map(|key| JsValue::from(key.deref()))
                     .collect(),
-            )?
-            .into();
+            )?,
+        ));
         fut.await
             .and_then(|jsv| {
                 jsv.as_f64()
@@ -648,22 +649,22 @@ impl Transaction {
     }
 
     pub async fn delete_all(&self) -> Result<()> {
-        let fut: JsFuture = self.inner.delete_all()?.into();
+        let fut = SendFuture::new(JsFuture::from(self.inner.delete_all()?));
         fut.await.map(|_| ()).map_err(Error::from)
     }
 
     pub async fn list(&self) -> Result<Map> {
-        let fut: JsFuture = self.inner.list()?.into();
+        let fut = SendFuture::new(JsFuture::from(self.inner.list()?));
         fut.await
             .and_then(|jsv| jsv.dyn_into())
             .map_err(Error::from)
     }
 
     pub async fn list_with_options(&self, opts: ListOptions<'_>) -> Result<Map> {
-        let fut: JsFuture = self
-            .inner
-            .list_with_options(serde_wasm_bindgen::to_value(&opts)?.into())?
-            .into();
+        let fut = SendFuture::new(JsFuture::from(
+            self.inner
+                .list_with_options(serde_wasm_bindgen::to_value(&opts)?.into())?,
+        ));
         fut.await
             .and_then(|jsv| jsv.dyn_into())
             .map_err(Error::from)

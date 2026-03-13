@@ -10,8 +10,8 @@ release = false
 crate-type = ["cdylib"]
 
 [dependencies]
-worker = { version = "0.7", features = ['http', 'axum'] }
-worker-macros = { version = "0.7", features = ['http'] }
+worker = { path = "../../worker", features = ['http', 'axum'] }
+worker-macros = { path = "../../worker-macros", features = ['http'] }
 axum = { version = "0.8", default-features = false, features = ['json'] }
 axum-macros = "0.5.0"
 tower-service = "0.3.3"

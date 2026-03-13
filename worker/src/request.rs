@@ -4,6 +4,7 @@ use crate::{
     cf::Cf, error::Error, headers::Headers, http::Method, ByteStream, FormData, RequestInit, Result,
 };
 
+use crate::send::SendFuture;
 use serde::de::DeserializeOwned;
 #[cfg(test)]
 use std::borrow::Cow;
@@ -122,7 +123,7 @@ impl Request {
     pub async fn json<B: DeserializeOwned>(&mut self) -> Result<B> {
         if !self.body_used {
             self.body_used = true;
-            return JsFuture::from(self.edge_request.json()?)
+            return SendFuture::new(JsFuture::from(self.edge_request.json()?))
                 .await
                 .map_err(|e| {
                     Error::JsError(
@@ -140,7 +141,7 @@ impl Request {
     pub async fn text(&mut self) -> Result<String> {
         if !self.body_used {
             self.body_used = true;
-            return JsFuture::from(self.edge_request.text()?)
+            return SendFuture::new(JsFuture::from(self.edge_request.text()?))
                 .await
                 .map(|val| val.as_string().unwrap())
                 .map_err(|e| {
@@ -158,7 +159,7 @@ impl Request {
     pub async fn bytes(&mut self) -> Result<Vec<u8>> {
         if !self.body_used {
             self.body_used = true;
-            return JsFuture::from(self.edge_request.array_buffer()?)
+            return SendFuture::new(JsFuture::from(self.edge_request.array_buffer()?))
                 .await
                 .map(|val| js_sys::Uint8Array::new(&val).to_vec())
                 .map_err(|e| {
@@ -176,7 +177,7 @@ impl Request {
     pub async fn form_data(&mut self) -> Result<FormData> {
         if !self.body_used {
             self.body_used = true;
-            return JsFuture::from(self.edge_request.form_data()?)
+            return SendFuture::new(JsFuture::from(self.edge_request.form_data()?))
                 .await
                 .map(|val| val.into())
                 .map_err(|e| {

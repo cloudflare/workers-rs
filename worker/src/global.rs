@@ -1,5 +1,6 @@
 use std::ops::Deref;
 
+use crate::send::SendFuture;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 
@@ -37,7 +38,7 @@ async fn fetch_with_str(url: &str, signal: Option<&AbortSignal>) -> Result<Respo
 
     let worker: web_sys::WorkerGlobalScope = js_sys::global().unchecked_into();
     let promise = worker.fetch_with_str_and_init(url, &init);
-    let resp = JsFuture::from(promise).await?;
+    let resp = SendFuture::new(JsFuture::from(promise)).await?;
     let resp: web_sys::Response = resp.dyn_into()?;
     Ok(resp.into())
 }
@@ -49,7 +50,7 @@ async fn fetch_with_request(request: &Request, signal: Option<&AbortSignal>) -> 
     let worker: web_sys::WorkerGlobalScope = js_sys::global().unchecked_into();
     let req = request.inner();
     let promise = worker.fetch_with_request_and_init(req, &init);
-    let resp = JsFuture::from(promise).await?;
+    let resp = SendFuture::new(JsFuture::from(promise)).await?;
     let edge_response: web_sys::Response = resp.dyn_into()?;
     Ok(edge_response.into())
 }

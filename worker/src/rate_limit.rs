@@ -17,9 +17,6 @@ pub struct RateLimitOutcome {
     pub success: bool,
 }
 
-unsafe impl Send for RateLimiter {}
-unsafe impl Sync for RateLimiter {}
-
 impl EnvBinding for RateLimiter {
     const TYPE_NAME: &'static str = "Ratelimit";
 }

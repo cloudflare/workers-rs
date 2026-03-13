@@ -81,7 +81,6 @@ impl DurableObject for EchoContainer {
 
 const CONTAINER_NAME: &str = "my-container";
 
-#[worker::send]
 pub async fn handle_container(
     mut req: Request,
     env: Env,
@@ -140,5 +139,15 @@ async fn redir_websocket(dst: WebSocket, src: WebSocket) {
                     .expect_throw("failed to close dst websocket");
             }
         }
+    }
+}
+
+// Compile-time assertion: public async Container methods return Send futures.
+#[allow(dead_code, unused)]
+fn _assert_send() {
+    fn require_send<T: Send>(_t: T) {}
+    fn container(c: worker::Container) {
+        require_send(c.wait_for_exit());
+        require_send(c.destroy(None));
     }
 }

@@ -1,3 +1,4 @@
+use crate::send::SendFuture;
 use js_sys::{ArrayBuffer, Function, Object, Promise, Uint8Array};
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
@@ -63,7 +64,7 @@ impl PutOptionsBuilder {
             .put_function
             .call3(&self.this, &self.name, &self.value, &options_object)?
             .into();
-        JsFuture::from(promise)
+        SendFuture::new(JsFuture::from(promise))
             .await
             .map(|_| ())
             .map_err(KvError::from)
@@ -124,7 +125,7 @@ impl ListOptionsBuilder {
             .call1(&self.this, &options_object)?
             .into();
 
-        let value = JsFuture::from(promise).await?;
+        let value = SendFuture::new(JsFuture::from(promise)).await?;
         let resp = serde_wasm_bindgen::from_value(value).map_err(JsValue::from)?;
         Ok(resp)
     }
@@ -185,7 +186,9 @@ impl GetOptionsBuilder {
             .get_function
             .call2(&self.this, &self.name, &options_object)?
             .into();
-        JsFuture::from(promise).await.map_err(KvError::from)
+        SendFuture::new(JsFuture::from(promise))
+            .await
+            .map_err(KvError::from)
     }
 
     /// Gets the value as a string.
@@ -230,7 +233,7 @@ impl GetOptionsBuilder {
             .call2(&self.this, &self.name, &options_object)?
             .into();
 
-        let pair = JsFuture::from(promise).await?;
+        let pair = SendFuture::new(JsFuture::from(promise)).await?;
         let metadata = crate::kv::get(&pair, "metadata")?;
         let value = crate::kv::get(&pair, "value")?;
 

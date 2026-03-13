@@ -1,4 +1,4 @@
-use crate::{env::EnvBinding, RequestInit, Result};
+use crate::{env::EnvBinding, send::SendFuture, RequestInit, Result};
 use std::convert::TryInto;
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
@@ -31,7 +31,8 @@ impl Fetcher {
             None => self.0.fetch_with_str(&path),
         }?;
 
-        let resp_sys: web_sys::Response = JsFuture::from(promise).await?.dyn_into()?;
+        let resp_sys: web_sys::Response =
+            SendFuture::new(JsFuture::from(promise)).await?.dyn_into()?;
         #[cfg(not(feature = "http"))]
         let result = Ok(Response::from(resp_sys));
         #[cfg(feature = "http")]
@@ -52,7 +53,8 @@ impl Fetcher {
     {
         let req = request.try_into()?;
         let promise = self.0.fetch(req.inner())?;
-        let resp_sys: web_sys::Response = JsFuture::from(promise).await?.dyn_into()?;
+        let resp_sys: web_sys::Response =
+            SendFuture::new(JsFuture::from(promise)).await?.dyn_into()?;
         let response = Response::from(resp_sys);
         #[cfg(feature = "http")]
         let result = response.try_into();

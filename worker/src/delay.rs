@@ -98,3 +98,7 @@ impl PinnedDrop for Delay {
         }
     }
 }
+
+/// SAFETY: Cloudflare Workers runtime is single-threaded, so it's safe to mark Delay as Send
+/// even though it contains Rc<Cell<bool>>.
+unsafe impl Send for Delay {}

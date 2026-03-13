@@ -31,7 +31,6 @@ pub async fn seed_bucket(bucket: &Bucket) -> Result<()> {
     Ok(())
 }
 
-#[worker::send]
 pub async fn list_empty(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let bucket = env.bucket("EMPTY_BUCKET")?;
 
@@ -43,7 +42,6 @@ pub async fn list_empty(_req: Request, env: Env, _data: SomeSharedData) -> Resul
     Response::ok("ok")
 }
 
-#[worker::send]
 pub async fn list(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let bucket = env.bucket("SEEDED_BUCKET")?;
     seed_bucket(&bucket).await?;
@@ -96,7 +94,6 @@ pub async fn list(_req: Request, env: Env, _data: SomeSharedData) -> Result<Resp
     Response::ok("ok")
 }
 
-#[worker::send]
 pub async fn get_empty(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let bucket = env.bucket("EMPTY_BUCKET")?;
 
@@ -119,7 +116,6 @@ pub async fn get_empty(_req: Request, env: Env, _data: SomeSharedData) -> Result
     Response::ok("ok")
 }
 
-#[worker::send]
 pub async fn get(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let bucket = env.bucket("SEEDED_BUCKET")?;
     seed_bucket(&bucket).await?;
@@ -141,7 +137,6 @@ pub async fn get(_req: Request, env: Env, _data: SomeSharedData) -> Result<Respo
     Response::ok("ok")
 }
 
-#[worker::send]
 pub async fn put(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let bucket = env.bucket("PUT_BUCKET")?;
 
@@ -175,7 +170,6 @@ pub async fn put(_req: Request, env: Env, _data: SomeSharedData) -> Result<Respo
     Response::ok("ok")
 }
 
-#[worker::send]
 pub async fn put_properties(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let bucket = env.bucket("PUT_BUCKET")?;
     let (http_metadata, custom_metadata, object_with_props) =
@@ -190,7 +184,6 @@ pub async fn put_properties(_req: Request, env: Env, _data: SomeSharedData) -> R
 }
 
 #[allow(clippy::large_stack_arrays)]
-#[worker::send]
 pub async fn put_multipart(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     const R2_MULTIPART_CHUNK_MIN_SIZE: usize = 5 * 1_024 * 1_024; // 5MiB.
                                                                   // const TEST_CHUNK_COUNT: usize = 3;
@@ -246,7 +239,6 @@ pub async fn put_multipart(_req: Request, env: Env, _data: SomeSharedData) -> Re
     Response::ok("ok")
 }
 
-#[worker::send]
 pub async fn delete(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let bucket = env.bucket("DELETE_BUCKET")?;
 
@@ -302,4 +294,18 @@ fn dummy_properties() -> (HttpMetadata, HashMap<String, String>) {
         map
     };
     (http_metadata, custom_metadata)
+}
+
+// Compile-time assertion: public async R2 methods return Send futures.
+#[allow(dead_code, unused)]
+fn _assert_send() {
+    fn require_send<T: Send>(_t: T) {}
+    fn r2(bucket: worker::Bucket) {
+        require_send(bucket.head("k"));
+        require_send(bucket.delete("k"));
+        require_send(bucket.delete_multiple(vec!["a", "b"]));
+        require_send(bucket.get("k").execute());
+        require_send(bucket.put("k", worker::Data::Empty).execute());
+        require_send(bucket.list().execute());
+    }
 }
