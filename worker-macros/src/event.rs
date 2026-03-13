@@ -2,33 +2,60 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, punctuated::Punctuated, token::Comma, Ident, ItemFn};
 
+#[derive(strum::EnumString, strum::Display)]
+#[strum(serialize_all = "snake_case")]
+enum HandlerType {
+    Fetch,
+    Scheduled,
+    Start,
+    #[cfg(feature = "queue")]
+    Queue,
+}
+
+fn validate_event_fn(
+    input_fn: &ItemFn,
+    handler_type: HandlerType,
+    expected_params: usize,
+    must_be_async: bool,
+) {
+    let sig = &input_fn.sig;
+
+    if must_be_async != sig.asyncness.is_some() {
+        let not = if must_be_async { "" } else { " not" };
+        panic!("the `{handler_type}` handler must{not} be an async function");
+    }
+
+    let argument_word_form = if expected_params == 1 {
+        "argument"
+    } else {
+        "arguments"
+    };
+
+    let actual_params = sig.inputs.len();
+    if actual_params != expected_params {
+        panic!(
+            "the `{handler_type}` handler should be a function with {expected_params} {argument_word_form} but found {actual_params}"
+        );
+    }
+}
+
 pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attrs: Punctuated<Ident, Comma> =
         parse_macro_input!(attr with Punctuated::parse_terminated);
 
-    enum HandlerType {
-        Fetch,
-        Scheduled,
-        Start,
-        #[cfg(feature = "queue")]
-        Queue,
-    }
     use HandlerType::*;
 
     let mut handler_type = None;
     let mut respond_with_errors = false;
 
     for attr in attrs {
-        match attr.to_string().as_str() {
-            "fetch" => handler_type = Some(Fetch),
-            "scheduled" => handler_type = Some(Scheduled),
-            "start" => handler_type = Some(Start),
-            #[cfg(feature = "queue")]
-            "queue" => handler_type = Some(Queue),
-            "respond_with_errors" => {
-                respond_with_errors = true;
-            }
-            _ => panic!("Invalid attribute: {attr}"),
+        let attr_str = attr.to_string();
+        if attr_str == "respond_with_errors" {
+            respond_with_errors = true;
+        } else if let Ok(ht) = attr_str.parse() {
+            handler_type = Some(ht);
+        } else {
+            panic!("Invalid attribute: {attr}");
         }
     }
     let handler_type = handler_type.expect(
@@ -40,7 +67,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     match handler_type {
         Fetch => {
-            // TODO: validate the inputs / signature
+            validate_event_fn(&input_fn, Fetch, 3, true);
             // save original fn name for re-use in the wrapper fn
             let input_fn_ident = Ident::new(
                 &(input_fn.sig.ident.to_string() + "_fetch_glue"),
@@ -117,6 +144,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             TokenStream::from(output)
         }
         Scheduled => {
+            validate_event_fn(&input_fn, Scheduled, 3, true);
             // save original fn name for re-use in the wrapper fn
             let input_fn_ident = Ident::new(
                 &(input_fn.sig.ident.to_string() + "_scheduled_glue"),
@@ -155,6 +183,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
         #[cfg(feature = "queue")]
         Queue => {
+            validate_event_fn(&input_fn, Queue, 3, true);
             // save original fn name for re-use in the wrapper fn
             let input_fn_ident = Ident::new(
                 &(input_fn.sig.ident.to_string() + "_queue_glue"),
@@ -199,6 +228,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             TokenStream::from(output)
         }
         Start => {
+            validate_event_fn(&input_fn, Start, 0, false);
             // save original fn name for re-use in the wrapper fn
             let input_fn_ident = Ident::new(
                 &(input_fn.sig.ident.to_string() + "_start_glue"),
