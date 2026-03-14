@@ -314,7 +314,7 @@ impl BinaryDep for WasmBindgen<'_> {
     fn download_url(&self) -> String {
         let version = self.version();
         let target = self.target();
-        format!("https://github.com/wasm-bindgen/wasm-bindgen/releases/download/{version}/wasm-bindgen-{version}-{target}.tar.gz")
+        format!("https://github.com/walkingeyerobot/wasm-bindgen/releases/download/{version}/wasm-bindgen-{version}-{target}.tar.gz")
     }
     fn bin_path(&self, name: Option<&str>) -> Result<String> {
         Ok(match name {
