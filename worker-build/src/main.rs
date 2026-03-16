@@ -32,6 +32,8 @@ const EMCC_POSTLINK_FLAGS: &[&str] = &[
     "-sEXPORT_ES6=1",
     "-sENVIRONMENT=web",
     "-sASSERTIONS=0",
+    // Suppress "--post-link is experimental" noise — we know.
+    "-Wno-experimental",
 ];
 
 pub(crate) mod binary;

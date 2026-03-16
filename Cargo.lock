@@ -719,6 +719,7 @@ dependencies = [
  "tokio",
  "wasm-bindgen",
  "wasm-bindgen-futures",
+ "worker 0.7.5",
 ]
 
 [[package]]

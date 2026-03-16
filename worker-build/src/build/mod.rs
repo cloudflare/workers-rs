@@ -396,30 +396,44 @@ impl Build {
     fn step_check_lib_versions(&mut self) -> Result<()> {
         let lockfile = Lockfile::new(&self.crate_data.data)?;
 
-        // For emscripten builds the `worker` crate is not required — only
-        // wasm-bindgen is needed. Skip the worker version check in that case.
-        if self.wasm_target != target::WasmTarget::Emscripten {
-            lockfile.require_lib("worker", &MIN_WORKER_LIB_VERSION, &CUR_WORKER_VERSION).map_err(|err| match err {
-                DepCheckError::VersionError(msg, Some(version)) => {
-                    anyhow!(
-                        "{msg}\n\nEither upgrade to worker@{}, or use an older worker-build toolchain (e.g. by updating wrangler.toml to use `{}`).",
-                        *MIN_WORKER_LIB_VERSION,
-                        style(format!("cargo install worker-build@^{}",
-                        // Prior to worker@0.6 toolchain was 0.1 with no lock
-                        if version.major == 0 && version.minor <= 6 {
-                            "0.1".to_string()
-                        // 0.x semver lock
-                        } else if version.major == 0 {
-                            format!("{}.{}", version.major, version.minor)
-                        // N.x semver lock
-                        } else {
-                            version.major.to_string()
-                        })).bold()
-                    )
-                },
-                DepCheckError::VersionError(msg, None) => anyhow!(msg),
-                DepCheckError::Error(err) => err,
-            })?;
+        // For emscripten builds the `worker` crate is optional — users can
+        // use raw wasm-bindgen or the full worker crate with #[event(fetch)].
+        // Only enforce the version check when worker is actually present.
+        let worker_required = self.wasm_target != target::WasmTarget::Emscripten;
+        match lockfile.require_lib("worker", &MIN_WORKER_LIB_VERSION, &CUR_WORKER_VERSION) {
+            Ok(_) => {}
+            Err(DepCheckError::VersionError(_, None)) if !worker_required => {
+                // worker crate not in lockfile — fine for emscripten
+            }
+            Err(err) => {
+                if worker_required {
+                    return Err(match err {
+                        DepCheckError::VersionError(msg, Some(version)) => {
+                            anyhow!(
+                                "{msg}\n\nEither upgrade to worker@{}, or use an older worker-build toolchain (e.g. by updating wrangler.toml to use `{}`).",
+                                *MIN_WORKER_LIB_VERSION,
+                                style(format!("cargo install worker-build@^{}",
+                                // Prior to worker@0.6 toolchain was 0.1 with no lock
+                                if version.major == 0 && version.minor <= 6 {
+                                    "0.1".to_string()
+                                // 0.x semver lock
+                                } else if version.major == 0 {
+                                    format!("{}.{}", version.major, version.minor)
+                                // N.x semver lock
+                                } else {
+                                    version.major.to_string()
+                                })).bold()
+                            )
+                        }
+                        DepCheckError::VersionError(msg, None) => anyhow!(msg),
+                        DepCheckError::Error(err) => err,
+                    });
+                }
+                // For emscripten, warn but don't fail on version mismatch
+                if let DepCheckError::VersionError(msg, _) = err {
+                    eprintln!("Warning: {msg}");
+                }
+            }
         }
 
         self.wasm_bindgen_version = Some(

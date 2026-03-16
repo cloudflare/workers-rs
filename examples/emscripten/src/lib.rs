@@ -1,23 +1,33 @@
 //! Emscripten-on-Workers example.
 //!
-//! Demonstrates `std` library APIs and **tokio** on `wasm32-unknown-emscripten`.
-//! These either panic or fail to compile on `wasm32-unknown-unknown`:
+//! Demonstrates that a standard `worker` crate application — using `#[event(fetch)]`,
+//! `Router`, `Request`, `Response`, etc. — compiles and runs on `wasm32-unknown-emscripten`
+//! with no code changes. Just pass `--emscripten` to worker-build.
+//!
+//! The emscripten target unlocks `std` library APIs that are unavailable on
+//! `wasm32-unknown-unknown`:
 //!
 //! - `std::time::Instant` / `SystemTime` (clock access)
 //! - `std::env::current_dir` / `std::env::vars` (process environment)
 //! - `std::collections::HashMap` with default random state
-//! - `std::fs` write / read / metadata / remove (in-memory VFS via MEMFS)
+//! - `std::fs` write / read / metadata / remove (in-memory MEMFS)
 //! - `rand::random` (WASI `random_get` import)
 //! - `tokio::spawn`, `tokio::sync::mpsc`, `tokio::sync::oneshot`, `tokio::join!`
 
 use std::collections::HashMap;
 use std::fmt::Write;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
-use wasm_bindgen::prelude::*;
+use worker::*;
 
-/// Async entry point — returns an HTML page showing test results.
-#[wasm_bindgen]
-pub async fn handle_request() -> String {
+#[event(fetch)]
+async fn main(req: Request, _env: Env, _ctx: Context) -> Result<Response> {
+    Router::new()
+        .get_async("/", |_, _| async { checks_page().await })
+        .run(req, _env)
+        .await
+}
+
+async fn checks_page() -> Result<Response> {
     let start = Instant::now();
 
     let checks = vec![
@@ -66,7 +76,7 @@ pub async fn handle_request() -> String {
 <body>
 <div class="container">
 <h1>Emscripten on Workers</h1>
-<p class="subtitle">Rust std library APIs running on wasm32-unknown-emscripten</p>
+<p class="subtitle">Rust std library APIs running via <code>#[event(fetch)]</code> on wasm32-unknown-emscripten</p>
 <div class="summary">
   <span class="summary-icon">{}</span>
   <span class="summary-text">{pass_count}/{total} checks passed</span>
@@ -108,7 +118,7 @@ pub async fn handle_request() -> String {
         elapsed.as_micros(),
     );
 
-    html
+    Response::from_html(&html)
 }
 
 struct Check {
@@ -179,7 +189,7 @@ fn check_filesystem() -> Check {
     let path = "/tmp/emscripten_demo.txt";
     let payload = "Emscripten MEMFS works!";
 
-    let result = (|| -> Result<usize, String> {
+    let result = (|| -> std::result::Result<usize, String> {
         std::fs::write(path, payload).map_err(|e| format!("write: {e}"))?;
         let read_back = std::fs::read_to_string(path).map_err(|e| format!("read: {e}"))?;
         if read_back != payload {
@@ -209,7 +219,6 @@ fn check_filesystem() -> Check {
 async fn check_tokio() -> Check {
     use tokio::sync::{mpsc, oneshot};
 
-    // mpsc channel: fan-in from spawned tasks
     let (tx, mut rx) = mpsc::channel::<i32>(8);
     for i in 1..=3 {
         let tx = tx.clone();
@@ -224,14 +233,12 @@ async fn check_tokio() -> Check {
         mpsc_sum += val;
     }
 
-    // oneshot: request/reply
     let (os_tx, os_rx) = oneshot::channel::<&str>();
     wasm_bindgen_futures::spawn_local(async move {
         os_tx.send("pong").ok();
     });
     let oneshot_reply = os_rx.await.unwrap_or("error");
 
-    // join!: concurrent futures
     let (a, b) = tokio::join!(async { 100 }, async { 200 });
     let join_sum = a + b;
 

@@ -10,6 +10,7 @@ release = false
 crate-type = ["cdylib"]
 
 [dependencies]
+worker.workspace = true
 wasm-bindgen.workspace = true
 wasm-bindgen-futures.workspace = true
 tokio = { version = "1.28", default-features = false, features = ["sync", "macros", "rt"] }
