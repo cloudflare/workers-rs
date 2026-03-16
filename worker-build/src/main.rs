@@ -17,6 +17,7 @@ use log::info;
 const OUT_DIR: &str = "build";
 
 const SHIM_FILE: &str = include_str!("./js/shim.js");
+const EMSCRIPTEN_WRAPPER_FILE: &str = include_str!("./js/emscripten_wrapper.js");
 /// Emscripten post-link flags passed to `emcc --post-link`.
 ///
 /// These configure the emscripten JS runtime for Workers compatibility:
@@ -570,84 +571,68 @@ fn generate_emscripten_wrapper(out_dir: &Path) -> Result<String> {
     let func_names = extract_exported_functions(out_dir)?;
     info!("Detected exported functions: {:?}", func_names);
 
-    let mut js = String::new();
+    let handlers = generate_emscripten_handlers(&func_names);
+    let js = EMSCRIPTEN_WRAPPER_FILE.replace("$HANDLERS", &handlers);
 
-    // Imports
-    js.push_str(
-        "import createModule from './output.js';\n\
-         import wasmModule from './output.wasm';\n\n",
-    );
+    Ok(js)
+}
 
-    // Lazy module initialisation
-    js.push_str(
-        "let modulePromise = null;\n\n\
-         function getModule() {\n\
-         \x20\x20if (!modulePromise) {\n\
-         \x20\x20\x20\x20modulePromise = createModule({\n\
-         \x20\x20\x20\x20\x20\x20instantiateWasm(imports, successCallback) {\n\
-         \x20\x20\x20\x20\x20\x20\x20\x20WebAssembly.instantiate(wasmModule, imports).then(instance => {\n\
-         \x20\x20\x20\x20\x20\x20\x20\x20\x20\x20successCallback(instance, wasmModule);\n\
-         \x20\x20\x20\x20\x20\x20\x20\x20});\n\
-         \x20\x20\x20\x20\x20\x20\x20\x20return {};\n\
-         \x20\x20\x20\x20\x20\x20},\n\
-         \x20\x20\x20\x20});\n\
-         \x20\x20}\n\
-         \x20\x20return modulePromise;\n\
-         }\n\n",
-    );
-
-    // Workers handler object
-    js.push_str("export default {\n");
+/// Build the handler method bodies for the emscripten wrapper's default export.
+fn generate_emscripten_handlers(func_names: &[String]) -> String {
+    let mut handlers = String::new();
 
     // fetch handler — always present (falls back to 404)
     if func_names.contains(&"fetch".to_string()) {
-        js.push_str(
-            "  async fetch(request, env, ctx) {\n\
-             \x20\x20\x20\x20const mod = await getModule();\n\
-             \x20\x20\x20\x20return mod.fetch(request, env, ctx);\n\
-             \x20\x20},\n",
+        handlers.push_str(
+            "  async fetch(request, env, ctx) {
+    const mod = await getModule();
+    return mod.fetch(request, env, ctx);
+  },
+",
         );
     } else if func_names.contains(&"handle_request".to_string()) {
-        js.push_str(
-            "  async fetch(request, env, ctx) {\n\
-             \x20\x20\x20\x20const mod = await getModule();\n\
-             \x20\x20\x20\x20const result = await mod.handle_request();\n\
-             \x20\x20\x20\x20return new Response(result, {\n\
-             \x20\x20\x20\x20\x20\x20headers: { 'Content-Type': 'text/html; charset=utf-8' },\n\
-             \x20\x20\x20\x20});\n\
-             \x20\x20},\n",
+        handlers.push_str(
+            "  async fetch(request, env, ctx) {
+    const mod = await getModule();
+    const result = await mod.handle_request();
+    return new Response(result, {
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    });
+  },
+",
         );
     } else {
-        js.push_str(
-            "  async fetch(request, env, ctx) {\n\
-             \x20\x20\x20\x20return new Response('No fetch handler exported', { status: 404 });\n\
-             \x20\x20},\n",
+        handlers.push_str(
+            "  async fetch(request, env, ctx) {
+    return new Response('No fetch handler exported', { status: 404 });
+  },
+",
         );
     }
 
     // scheduled handler
     if func_names.contains(&"scheduled".to_string()) {
-        js.push_str(
-            "  async scheduled(event, env, ctx) {\n\
-             \x20\x20\x20\x20const mod = await getModule();\n\
-             \x20\x20\x20\x20return mod.scheduled(event, env, ctx);\n\
-             \x20\x20},\n",
+        handlers.push_str(
+            "  async scheduled(event, env, ctx) {
+    const mod = await getModule();
+    return mod.scheduled(event, env, ctx);
+  },
+",
         );
     }
 
     // queue handler
     if func_names.contains(&"queue".to_string()) {
-        js.push_str(
-            "  async queue(batch, env, ctx) {\n\
-             \x20\x20\x20\x20const mod = await getModule();\n\
-             \x20\x20\x20\x20return mod.queue(batch, env, ctx);\n\
-             \x20\x20},\n",
+        handlers.push_str(
+            "  async queue(batch, env, ctx) {
+    const mod = await getModule();
+    return mod.queue(batch, env, ctx);
+  },
+",
         );
     }
 
-    js.push_str("};\n");
-
-    Ok(js)
+    handlers
 }
 
 /// Bundle emscripten wrapper + emcc output with esbuild.
