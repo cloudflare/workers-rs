@@ -116,21 +116,28 @@ pub fn main() -> Result<()> {
     }
 
     if module_target {
-        let handlers = generate_handlers(&staging_dir)?;
+        let index_path = output_path(&staging_dir, "index.js");
+        let index_content = fs::read_to_string(&index_path)
+            .with_context(|| format!("Failed to read {}", index_path.display()))?;
+
+        let exported_fns = collect_exported_fns(&index_content);
+        let do_classes = detect_do_classes(&exported_fns);
+
+        let handlers = generate_handlers(&exported_fns, builder.panic_unwind);
+        let do_class_js = generate_do_classes(&do_classes, &exported_fns, builder.panic_unwind);
+
         let shim = if builder.panic_unwind {
-            // In panic=unwind mode, wasm-bindgen 0.2.114+ handles reinit
-            // natively via __wbg_termination_guard / __wbg_reset_state.
-            // The shim only provides the WorkerEntrypoint adapter layer.
             SHIM_UNWIND_FILE
         } else {
             SHIM_FILE
         }
-        .replace("$HANDLERS", &handlers);
+        .replace("$HANDLERS", &handlers)
+        .replace("$DO_CLASSES", &do_class_js);
         let shim_path = output_path(&staging_dir, "shim.js");
         fs::write(&shim_path, shim)
             .with_context(|| format!("Failed to write {}", shim_path.display()))?;
 
-        add_export_wrappers(&staging_dir)?;
+        add_class_reexports(&staging_dir, &do_classes)?;
 
         update_package_json(&staging_dir)?;
 
@@ -153,80 +160,250 @@ pub fn main() -> Result<()> {
     Ok(())
 }
 
-fn generate_handlers(out_dir: &Path) -> Result<String> {
-    let index_path = output_path(out_dir, "index.js");
-    let content = fs::read_to_string(&index_path)
-        .with_context(|| format!("Failed to read {}", index_path.display()))?;
+/// Names of wasm-bindgen internal/system exports that must NOT be wrapped as
+/// Worker handler methods on the Entrypoint prototype.
+static SYSTEM_FNS: &[&str] = &["__wbg_reset_state", "setPanicHook"];
 
-    // Extract ESM function exports from the wasm-bindgen generated output.
-    // This code is specialized to what wasm-bindgen outputs for ESM and is therefore
-    // brittle to upstream changes. It is comprehensive to current output patterns though.
-    // TODO: Convert this to Wasm binary exports analysis for entry point detection instead.
-    let mut func_names = Vec::new();
+/// The well-known method suffixes emitted by the `#[durable_object]` macro.
+/// Each DO class exports `ClassName__init` plus a subset of these.
+static DO_METHOD_SUFFIXES: &[&str] = &[
+    "fetch",
+    "alarm",
+    "webSocketMessage",
+    "webSocketClose",
+    "webSocketError",
+];
+
+/// Collects all exported function names from the wasm-bindgen output.
+fn collect_exported_fns(content: &str) -> Vec<String> {
+    let mut names = Vec::new();
     for line in content.lines() {
         let trimmed = line.trim_start();
-        if let Some(rest) = trimmed.strip_prefix("export function") {
-            if let Some(bracket_pos) = rest.find("(") {
-                let func_name = rest[..bracket_pos].trim();
-                // strip the exported function (we re-wrap all handlers)
-                if !SYSTEM_FNS.contains(&func_name) {
-                    func_names.push(func_name);
-                }
+        if let Some(rest) = trimmed.strip_prefix("export function ") {
+            if let Some(paren) = rest.find('(') {
+                names.push(rest[..paren].trim().to_string());
             }
         } else if let Some(rest) = trimmed.strip_prefix("export {") {
             if let Some(as_pos) = rest.find(" as ") {
                 let rest = &rest[as_pos + 4..];
-                if let Some(brace_pos) = rest.find("}") {
-                    let func_name = rest[..brace_pos].trim();
-                    if !SYSTEM_FNS.contains(&func_name) {
-                        func_names.push(func_name);
-                    }
+                if let Some(brace) = rest.find('}') {
+                    names.push(rest[..brace].trim().to_string());
                 }
             }
         }
     }
+    names
+}
 
+/// Detect Durable Object class names by finding `ClassName__init` exports.
+fn detect_do_classes(exported_fns: &[String]) -> Vec<String> {
+    exported_fns
+        .iter()
+        .filter_map(|name| name.strip_suffix("__init").map(String::from))
+        .collect()
+}
+
+/// Generate `Entrypoint.prototype.*` handler methods for Worker-level exports
+/// (fetch, scheduled, queue, etc.), excluding system fns and DO method exports.
+///
+/// In abort mode (`panic_unwind == false`), each handler is wrapped with
+/// `checkReinitialize()` and a try/catch that flags `RuntimeError` as critical.
+fn generate_handlers(exported_fns: &[String], panic_unwind: bool) -> String {
     let mut handlers = String::new();
-    for func_name in func_names {
+    for func_name in exported_fns {
+        // Skip system functions
+        if SYSTEM_FNS.contains(&func_name.as_str()) {
+            continue;
+        }
+        // Skip DO method exports (contain "__")
+        if func_name.contains("__") {
+            continue;
+        }
+
         if func_name == "fetch" && env::var("RUN_TO_COMPLETION").is_ok() {
-            handlers += "Entrypoint.prototype.fetch = async function fetch(request) {
+            if panic_unwind {
+                handlers += "Entrypoint.prototype.fetch = async function fetch(request) {
   let response = exports.fetch(request, this.env, this.ctx);
   this.ctx.waitUntil(response);
   return response;
 }
 ";
+            } else {
+                handlers += "Entrypoint.prototype.fetch = async function fetch(request) {
+  checkReinitialize();
+  try {
+    let response = exports.fetch(request, this.env, this.ctx);
+    this.ctx.waitUntil(response);
+    return response;
+  } catch (e) { handleMaybeCritical(e); throw e; }
+}
+";
+            }
         } else if func_name == "fetch" || func_name == "queue" || func_name == "scheduled" {
-            // TODO: Switch these over to https://github.com/wasm-bindgen/wasm-bindgen/pull/4757
-            // once that lands.
-            handlers += &format!(
-                "Entrypoint.prototype.{func_name} = function {func_name} (arg) {{
+            if panic_unwind {
+                handlers += &format!(
+                    "Entrypoint.prototype.{func_name} = function {func_name} (arg) {{
   return exports.{func_name}.call(this, arg, this.env, this.ctx);
 }}
 "
-            );
-        } else {
+                );
+            } else {
+                handlers += &format!(
+                    "Entrypoint.prototype.{func_name} = function {func_name} (arg) {{
+  checkReinitialize();
+  try {{
+    return exports.{func_name}.call(this, arg, this.env, this.ctx);
+  }} catch (e) {{ handleMaybeCritical(e); throw e; }}
+}}
+"
+                );
+            }
+        } else if panic_unwind {
             handlers += &format!("Entrypoint.prototype.{func_name} = exports.{func_name};\n");
+        } else {
+            handlers += &format!(
+                "Entrypoint.prototype.{func_name} = function {func_name} (...args) {{
+  checkReinitialize();
+  try {{
+    return exports.{func_name}(...args);
+  }} catch (e) {{ handleMaybeCritical(e); throw e; }}
+}}
+"
+            );
         }
     }
-
-    Ok(handlers)
+    handlers
 }
 
-static SYSTEM_FNS: &[&str] = &["__wbg_reset_state", "setPanicHook"];
+/// Generate thin JS class wrappers for Durable Objects and a reinit callback.
+///
+/// For the **unwind** shim, classes simply delegate to `exports.ClassName__method`.
+/// The post-reinit hook callback re-initialises each DO with stashed state/env.
+///
+/// For the **abort** shim, each method also includes `checkReinitialize()` and a
+/// lazy staleness check via `instanceId`.
+fn generate_do_classes(
+    do_classes: &[String],
+    exported_fns: &[String],
+    panic_unwind: bool,
+) -> String {
+    if do_classes.is_empty() {
+        return String::new();
+    }
 
-fn add_export_wrappers(out_dir: &Path) -> Result<()> {
+    let mut output = String::new();
+
+    // Global key counter shared by all DO classes.
+    // Each DO instance gets a unique key used to look up the Rust struct.
+    output += "let __do_next_key = 0;\n";
+
+    // Map from key → { class_name, state, env } for reinit after wasm reset.
+    output += "const __do_live = new Map();\n\n";
+
+    for class_name in do_classes {
+        let methods: Vec<&str> = DO_METHOD_SUFFIXES
+            .iter()
+            .filter(|m| exported_fns.contains(&format!("{class_name}__{m}")))
+            .copied()
+            .collect();
+
+        output += &format!("class {class_name} {{\n");
+
+        // Constructor: assign a key, stash state/env, call Rust init
+        if panic_unwind {
+            output += &format!(
+                "  constructor(state, env) {{\n\
+                 \x20   this.__key = __do_next_key++;\n\
+                 \x20   __do_live.set(this.__key, {{ cls: \"{class_name}\", state, env }});\n\
+                 \x20   exports.{class_name}__init(this.__key, state, env);\n\
+                 \x20 }}\n"
+            );
+        } else {
+            output += &format!(
+                "  constructor(state, env) {{\n\
+                 \x20   checkReinitialize();\n\
+                 \x20   this.__key = __do_next_key++;\n\
+                 \x20   this.__insId = instanceId;\n\
+                 \x20   __do_live.set(this.__key, {{ cls: \"{class_name}\", state, env }});\n\
+                 \x20   exports.{class_name}__init(this.__key, state, env);\n\
+                 \x20 }}\n"
+            );
+        }
+
+        // Methods
+        for method in &methods {
+            let args = match *method {
+                "fetch" => "req",
+                "alarm" => "",
+                "webSocketMessage" => "ws, message",
+                "webSocketClose" => "ws, code, reason, was_clean",
+                "webSocketError" => "ws, error",
+                _ => "",
+            };
+            let args_with_key = if args.is_empty() {
+                "this.__key".to_string()
+            } else {
+                format!("this.__key, {args}")
+            };
+
+            if panic_unwind {
+                output += &format!(
+                    "  {method}({args}) {{ return exports.{class_name}__{method}({args_with_key}); }}\n"
+                );
+            } else {
+                output += &format!(
+                    "  {method}({args}) {{\n\
+                     \x20   checkReinitialize();\n\
+                     \x20   if (this.__insId !== instanceId) {{\n\
+                     \x20     const e = __do_live.get(this.__key);\n\
+                     \x20     if (e) exports[e.cls + '__init'](this.__key, e.state, e.env);\n\
+                     \x20     this.__insId = instanceId;\n\
+                     \x20   }}\n\
+                     \x20   return exports.{class_name}__{method}({args_with_key});\n\
+                     \x20 }}\n"
+                );
+            }
+        }
+
+        output += "}\n";
+        output += &format!("export {{ {class_name} }};\n\n");
+    }
+
+    // Reinit callback: after wasm reset, re-init every live DO instance
+    // with its stashed state/env so subsequent method calls succeed.
+    if panic_unwind {
+        output += "globalThis.__worker_reinit_dos = function () {\n\
+                   \x20 for (const [key, e] of __do_live) {\n\
+                   \x20   exports[e.cls + '__init'](key, e.state, e.env);\n\
+                   \x20 }\n\
+                   };\n";
+    }
+
+    output
+}
+
+/// Re-export non-DO classes (wasm-bindgen utility types) directly, without Proxy.
+fn add_class_reexports(out_dir: &Path, do_classes: &[String]) -> Result<()> {
     let index_path = output_path(out_dir, "index.js");
     let content = fs::read_to_string(&index_path)
         .with_context(|| format!("Failed to read {}", index_path.display()))?;
 
     let mut class_names = Vec::new();
     for line in content.lines() {
-        if let Some(rest) = line.strip_prefix("export class ") {
-            if let Some(brace_pos) = rest.find("{") {
+        let trimmed = line.trim_start();
+        if let Some(rest) = trimmed.strip_prefix("export class ") {
+            if let Some(brace_pos) = rest.find('{') {
                 let class_name = rest[..brace_pos].trim();
-                class_names.push(class_name.to_string());
+                // Only re-export non-DO classes (DOs are now flat fn exports)
+                if !do_classes.iter().any(|dc| dc == class_name) {
+                    class_names.push(class_name.to_string());
+                }
             }
         }
+    }
+
+    if class_names.is_empty() {
+        return Ok(());
     }
 
     let shim_path = output_path(out_dir, "shim.js");
@@ -236,7 +413,7 @@ fn add_export_wrappers(out_dir: &Path) -> Result<()> {
         use std::fmt::Write;
         writeln!(
             &mut output,
-            "export const {class_name} = new Proxy(exports.{class_name}, classProxyHooks);"
+            "export const {class_name} = exports.{class_name};"
         )?;
     }
     fs::write(&shim_path, output)

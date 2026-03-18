@@ -26,23 +26,23 @@ pub fn set_panic_hook(_callback: ()) {
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
 extern "C" {
-    /// JS callback registered by the shim on `globalThis` to reconstruct
-    /// live Durable Object / RPC class instances after a wasm reinit.
-    /// Guarded with `catch` so the call is a no-op when the global is absent
-    /// (e.g. abort-mode shim, or non-worker usage).
-    #[wasm_bindgen(catch, js_namespace = globalThis, js_name = "__worker_post_reinit")]
-    fn worker_post_reinit() -> Result<(), JsValue>;
+    /// JS callback registered by the unwind shim on `globalThis` to
+    /// re-initialise Durable Object instances with their stashed state/env
+    /// after a wasm reinit.  Guarded with `catch` so the call is a no-op
+    /// when the global is absent (e.g. abort-mode shim, or non-worker usage).
+    #[wasm_bindgen(catch, js_namespace = globalThis, js_name = "__worker_reinit_dos")]
+    fn worker_reinit_dos() -> Result<(), JsValue>;
 }
 
 /// Post-reinit hook called by wasm-bindgen on the NEW wasm instance after
 /// `__wbg_reset_state` creates it. Re-installs the panic hook (the
 /// `std::sync::Once` is fresh on a new instance) and invokes the JS-side
-/// callback that reconstructs live DO/RPC class proxies.
+/// callback that re-initialises Durable Objects with their stashed state/env.
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(post_reinit_hook)]
 pub fn on_post_reinit() {
     set_once();
-    let _ = worker_post_reinit();
+    let _ = worker_reinit_dos();
 }
 
 #[allow(deprecated)]
