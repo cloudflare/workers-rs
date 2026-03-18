@@ -30,7 +30,11 @@ jobs:
       - run: cargo test -p worker-build
       - run: cargo build -p worker-build
       - name: Build wasm-bindgen CLI (fork)
+        working-directory: wasm-bindgen
         run: cargo build -p wasm-bindgen-cli --bin wasm-bindgen
+      - name: Copy wasm-bindgen binary alongside worker-build
+        shell: bash
+        run: cp wasm-bindgen/target/debug/wasm-bindgen* target/debug/ 2>/dev/null || true
       - uses: actions/upload-artifact@v4
         with:
           name: worker-build-${{ matrix.platform }}
