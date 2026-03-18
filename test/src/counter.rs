@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use tokio_stream::{StreamExt, StreamMap};
 use worker::{
-    durable_object, wasm_bindgen, wasm_bindgen_futures, DurableObject, Env, Error, Method, Request,
+    durable_object, wasm_bindgen_futures, DurableObject, Env, Error, Method, Request,
     Response, ResponseBuilder, Result, State, WebSocket, WebSocketIncomingMessage, WebSocketPair,
     WebsocketEvent,
 };
