@@ -165,7 +165,7 @@ pub fn main() -> Result<()> {
 static SYSTEM_FNS: &[&str] = &["__wbg_reset_state", "setPanicHook"];
 
 /// The well-known method suffixes emitted by the `#[durable_object]` macro.
-/// Each DO class exports `ClassName__init` plus a subset of these.
+/// Each DO class exports `ClassName__DURABLE_OBJECT_INIT` plus a subset of these.
 static DO_METHOD_SUFFIXES: &[&str] = &[
     "fetch",
     "alarm",
@@ -195,11 +195,11 @@ fn collect_exported_fns(content: &str) -> Vec<String> {
     names
 }
 
-/// Detect Durable Object class names by finding `ClassName__init` exports.
+/// Detect Durable Object class names by finding `ClassName__DURABLE_OBJECT_INIT` exports.
 fn detect_do_classes(exported_fns: &[String]) -> Vec<String> {
     exported_fns
         .iter()
-        .filter_map(|name| name.strip_suffix("__init").map(String::from))
+        .filter_map(|name| name.strip_suffix("__DURABLE_OBJECT_INIT").map(String::from))
         .collect()
 }
 
@@ -315,7 +315,7 @@ fn generate_do_classes(
                 "  constructor(state, env) {{\n\
                  \x20   this.__key = __do_next_key++;\n\
                  \x20   __do_live.set(this.__key, {{ cls: \"{class_name}\", state, env }});\n\
-                 \x20   exports.{class_name}__init(this.__key, state, env);\n\
+                 \x20   exports.{class_name}__DURABLE_OBJECT_INIT(this.__key, state, env);\n\
                  \x20 }}\n"
             );
         } else {
@@ -325,7 +325,7 @@ fn generate_do_classes(
                  \x20   this.__key = __do_next_key++;\n\
                  \x20   this.__insId = instanceId;\n\
                  \x20   __do_live.set(this.__key, {{ cls: \"{class_name}\", state, env }});\n\
-                 \x20   exports.{class_name}__init(this.__key, state, env);\n\
+                 \x20   exports.{class_name}__DURABLE_OBJECT_INIT(this.__key, state, env);\n\
                  \x20 }}\n"
             );
         }
@@ -356,7 +356,7 @@ fn generate_do_classes(
                      \x20   checkReinitialize();\n\
                      \x20   if (this.__insId !== instanceId) {{\n\
                      \x20     const e = __do_live.get(this.__key);\n\
-                     \x20     if (e) exports[e.cls + '__init'](this.__key, e.state, e.env);\n\
+                     \x20     if (e) exports[e.cls + '__DURABLE_OBJECT_INIT'](this.__key, e.state, e.env);\n\
                      \x20     this.__insId = instanceId;\n\
                      \x20   }}\n\
                      \x20   return exports.{class_name}__{method}({args_with_key});\n\
@@ -374,7 +374,7 @@ fn generate_do_classes(
     if panic_unwind {
         output += "globalThis.__worker_reinit_dos = function () {\n\
                    \x20 for (const [key, e] of __do_live) {\n\
-                   \x20   exports[e.cls + '__init'](key, e.state, e.env);\n\
+                   \x20   exports[e.cls + '__DURABLE_OBJECT_INIT'](key, e.state, e.env);\n\
                    \x20 }\n\
                    };\n";
     }

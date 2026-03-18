@@ -214,8 +214,10 @@ pub fn expand_macro(attr: TokenStream, tokens: TokenStream) -> syn::Result<Token
     let class_str = target_name.to_string();
 
     // Build JS export names: ClassName__method
-    let init_js = format!("{class_str}__init");
-    let drop_js = format!("{class_str}__drop");
+    // The init/drop names use a distinctive prefix so worker-build can reliably
+    // detect DO classes without false-positiving on user-defined exports.
+    let init_js = format!("{class_str}__DURABLE_OBJECT_INIT");
+    let drop_js = format!("{class_str}__DURABLE_OBJECT_DROP");
     let fetch_js = format!("{class_str}__fetch");
     let alarm_js = format!("{class_str}__alarm");
     let ws_msg_js = format!("{class_str}__webSocketMessage");
