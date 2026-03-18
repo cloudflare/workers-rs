@@ -28,17 +28,14 @@ function registerPanicHook() {
 
 registerPanicHook();
 
-// After wasm-bindgen auto-reinits via __wbg_reset_state, this hook fires
-// so we can re-register the panic hook and reconstruct all live DO/RPC
-// class instances on the fresh wasm module.
-if (exports.__wbg_set_reinit_hook) {
-  exports.__wbg_set_reinit_hook(function () {
-    registerPanicHook();
-    for (const holder of liveInstances) {
-      holder.instance = Reflect.construct(holder.ctor, holder.args, holder.newTarget);
-    }
-  });
-}
+// Called by the Rust post_reinit_hook (via globalThis) after wasm-bindgen
+// creates a fresh wasm instance. Eagerly reconstructs all tracked DO/RPC
+// class instances so their Proxy wrappers delegate to live pointers.
+globalThis.__worker_post_reinit = function () {
+  for (const holder of liveInstances) {
+    holder.instance = Reflect.construct(holder.ctor, holder.args, holder.newTarget);
+  }
+};
 
 class Entrypoint extends WorkerEntrypoint {}
 

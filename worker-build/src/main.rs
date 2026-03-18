@@ -164,7 +164,8 @@ fn generate_handlers(out_dir: &Path) -> Result<String> {
     // TODO: Convert this to Wasm binary exports analysis for entry point detection instead.
     let mut func_names = Vec::new();
     for line in content.lines() {
-        if let Some(rest) = line.strip_prefix("export function") {
+        let trimmed = line.trim_start();
+        if let Some(rest) = trimmed.strip_prefix("export function") {
             if let Some(bracket_pos) = rest.find("(") {
                 let func_name = rest[..bracket_pos].trim();
                 // strip the exported function (we re-wrap all handlers)
@@ -172,7 +173,7 @@ fn generate_handlers(out_dir: &Path) -> Result<String> {
                     func_names.push(func_name);
                 }
             }
-        } else if let Some(rest) = line.strip_prefix("export {") {
+        } else if let Some(rest) = trimmed.strip_prefix("export {") {
             if let Some(as_pos) = rest.find(" as ") {
                 let rest = &rest[as_pos + 4..];
                 if let Some(brace_pos) = rest.find("}") {
@@ -211,7 +212,7 @@ fn generate_handlers(out_dir: &Path) -> Result<String> {
     Ok(handlers)
 }
 
-static SYSTEM_FNS: &[&str] = &["__wbg_reset_state", "__wbg_set_reinit_hook", "setPanicHook"];
+static SYSTEM_FNS: &[&str] = &["__wbg_reset_state", "setPanicHook"];
 
 fn add_export_wrappers(out_dir: &Path) -> Result<()> {
     let index_path = output_path(out_dir, "index.js");

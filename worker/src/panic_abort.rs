@@ -23,6 +23,28 @@ pub fn set_panic_hook(_callback: ()) {
     // No-op on non-wasm targets
 }
 
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen]
+extern "C" {
+    /// JS callback registered by the shim on `globalThis` to reconstruct
+    /// live Durable Object / RPC class instances after a wasm reinit.
+    /// Guarded with `catch` so the call is a no-op when the global is absent
+    /// (e.g. abort-mode shim, or non-worker usage).
+    #[wasm_bindgen(catch, js_namespace = globalThis, js_name = "__worker_post_reinit")]
+    fn worker_post_reinit() -> Result<(), JsValue>;
+}
+
+/// Post-reinit hook called by wasm-bindgen on the NEW wasm instance after
+/// `__wbg_reset_state` creates it. Re-installs the panic hook (the
+/// `std::sync::Once` is fresh on a new instance) and invokes the JS-side
+/// callback that reconstructs live DO/RPC class proxies.
+#[cfg(target_arch = "wasm32")]
+#[wasm_bindgen(post_reinit_hook)]
+pub fn on_post_reinit() {
+    set_once();
+    let _ = worker_post_reinit();
+}
+
 #[allow(deprecated)]
 #[cfg(target_arch = "wasm32")]
 fn hook_impl(info: &panic::PanicInfo) {
@@ -35,6 +57,10 @@ fn hook_impl(info: &panic::PanicInfo) {
             if let Err(e) = callback.call1(&JsValue::UNDEFINED, &JsString::from(message)) {
                 web_sys::console::error_2(&"Failed to call panic callback:".into(), &e);
             }
+        } else {
+            // No JS callback registered (e.g. after reinit before the shim
+            // re-registers one). Fall back to logging directly.
+            web_sys::console::error_1(&format!("Rust panic: {message}").into());
         }
     });
 }
