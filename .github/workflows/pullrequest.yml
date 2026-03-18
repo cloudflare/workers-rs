@@ -29,10 +29,16 @@ jobs:
           restore-keys: ${{ runner.os }}-cargo-
       - run: cargo test -p worker-build
       - run: cargo build -p worker-build
+      - name: Build wasm-bindgen CLI (fork)
+        run: cargo build -p wasm-bindgen-cli --bin wasm-bindgen
       - uses: actions/upload-artifact@v4
         with:
-          name: worker-build
-          path: target/debug/worker-build
+          name: worker-build-${{ matrix.platform }}
+          path: |
+            target/debug/worker-build
+            target/debug/worker-build.exe
+            target/debug/wasm-bindgen
+            target/debug/wasm-bindgen.exe
 
   build-templates:
     name: Templates
@@ -55,11 +61,11 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: worker-build
+          name: worker-build-ubuntu-latest
           path: ./target/debug
 
-      - name: Make worker-build executable
-        run: chmod +x ./target/debug/worker-build
+      - name: Make binaries executable
+        run: chmod +x ./target/debug/worker-build ./target/debug/wasm-bindgen
 
       - uses: cargo-bins/cargo-binstall@main
 
@@ -67,6 +73,8 @@ jobs:
         run: cargo binstall cargo-generate
 
       - name: Generate and build all templates
+        env:
+          WASM_BINDGEN_BIN: ${{ github.workspace }}/target/debug/wasm-bindgen
         run: |
           mkdir -p generated
           for template in templates/*/; do
@@ -102,13 +110,15 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: worker-build
+          name: worker-build-ubuntu-latest
           path: ./target/debug
 
-      - name: Make worker-build executable
-        run: chmod +x ./target/debug/worker-build
+      - name: Make binaries executable
+        run: chmod +x ./target/debug/worker-build ./target/debug/wasm-bindgen
 
       - name: Build all examples
+        env:
+          WASM_BINDGEN_BIN: ${{ github.workspace }}/target/debug/wasm-bindgen
         run: |
           sed -i 's/, "examples\/axum"//g' Cargo.toml
           for example in examples/*/; do
@@ -176,11 +186,12 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: worker-build
+          name: worker-build-${{ matrix.platform }}
           path: ./target/debug
 
-      - name: Make worker-build executable
-        run: chmod +x ./target/debug/worker-build
+      - name: Make binaries executable
+        if: matrix.platform != 'windows-latest'
+        run: chmod +x ./target/debug/worker-build ./target/debug/wasm-bindgen
 
       - name: Cache Rust dependencies
         uses: actions/cache@v4
@@ -241,11 +252,11 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: worker-build
+          name: worker-build-ubuntu-latest
           path: ./target/debug
 
-      - name: Make worker-build executable
-        run: chmod +x ./target/debug/worker-build
+      - name: Make binaries executable
+        run: chmod +x ./target/debug/worker-build ./target/debug/wasm-bindgen
 
       - name: Cache Rust dependencies
         uses: actions/cache@v4
