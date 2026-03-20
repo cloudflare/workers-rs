@@ -4,17 +4,20 @@ use std::panic;
 use wasm_bindgen::prelude::*;
 
 #[cfg(target_arch = "wasm32")]
-use std::cell::Cell;
+use std::cell::RefCell;
 
 #[cfg(target_arch = "wasm32")]
 thread_local! {
-    static PANIC_CALLBACK: Cell<Option<js_sys::Function>> = Cell::new(None);
+    // RefCell (not Cell) so we can borrow the callback without consuming it.
+    // Using Cell::take() would remove the callback after the first panic, causing
+    // subsequent panics in unwind-mode to silently bypass the JS hook.
+    static PANIC_CALLBACK: RefCell<Option<js_sys::Function>> = RefCell::new(None);
 }
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(js_name = "setPanicHook")]
 pub fn set_panic_hook(callback: js_sys::Function) {
-    PANIC_CALLBACK.with(|f| f.set(Some(callback)));
+    PANIC_CALLBACK.with(|f| *f.borrow_mut() = Some(callback));
     set_once();
 }
 
@@ -51,10 +54,13 @@ fn hook_impl(info: &panic::PanicInfo) {
     let message = info.to_string();
 
     PANIC_CALLBACK.with(|f| {
-        if let Some(callback) = f.take() {
+        // Borrow without consuming so the callback remains registered for
+        // subsequent panics (important in panic=unwind mode where the worker
+        // continues after a caught panic).
+        if let Some(callback) = f.borrow().as_ref() {
             use js_sys::JsString;
 
-            if let Err(e) = callback.call1(&JsValue::UNDEFINED, &JsString::from(message)) {
+            if let Err(e) = callback.call1(&JsValue::UNDEFINED, &JsString::from(message.as_str())) {
                 web_sys::console::error_2(&"Failed to call panic callback:".into(), &e);
             }
         } else {

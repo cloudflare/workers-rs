@@ -71,7 +71,7 @@ jobs:
       - name: Make binaries executable
         run: chmod +x ./target/debug/worker-build ./target/debug/wasm-bindgen
 
-      - uses: cargo-bins/cargo-binstall@main
+      - uses: cargo-bins/cargo-binstall@v1.17.7
 
       - name: Install cargo-generate
         run: cargo binstall cargo-generate

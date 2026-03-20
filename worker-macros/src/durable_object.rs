@@ -36,8 +36,16 @@ mod bindgen_fns {
                 let borrow = map.borrow();
                 let instance = borrow.get(&key)
                     .expect("Durable Object not initialized — call init first");
-                // SAFETY: Durable Object will never be destroyed while there
-                // is still a running promise inside of it.
+                // SAFETY: The instance reference is extended to `'static` lifetime for use
+                // inside the `async move` future handed to `future_to_promise`. This is
+                // sound under the following invariants:
+                //   1. DO instances are stored in a `thread_local! HashMap` and are never
+                //      removed while a future is alive — there is no drop export wired up
+                //      from the JS side.  If a cleanup mechanism is added in the future
+                //      this must be revisited (e.g. by storing `Arc<T>` instead of `T`).
+                //   2. WASM is single-threaded; no concurrent mutation of the map is possible.
+                //   3. The Workers runtime serialises requests to a single DO instance so
+                //      only one `async` future runs at a time per instance.
                 let static_ref: &'static #class_name = unsafe { &*(instance as *const _) };
                 #body
             })
@@ -57,15 +65,6 @@ mod bindgen_fns {
                     env,
                 );
                 __INSTANCES.with(|map| map.borrow_mut().insert(key, instance));
-            }
-        }
-    }
-
-    pub fn drop_fn(js_name: &str) -> TokenStream {
-        quote! {
-            #[wasm_bindgen(js_name = #js_name, wasm_bindgen=::worker::wasm_bindgen)]
-            pub fn __drop(key: u32) {
-                __INSTANCES.with(|map| map.borrow_mut().remove(&key));
             }
         }
     }
@@ -214,10 +213,9 @@ pub fn expand_macro(attr: TokenStream, tokens: TokenStream) -> syn::Result<Token
     let class_str = target_name.to_string();
 
     // Build JS export names: ClassName__method
-    // The init/drop names use a distinctive prefix so worker-build can reliably
+    // The init name uses a distinctive suffix so worker-build can reliably
     // detect DO classes without false-positiving on user-defined exports.
     let init_js = format!("{class_str}__DURABLE_OBJECT_INIT");
-    let drop_js = format!("{class_str}__DURABLE_OBJECT_DROP");
     let fetch_js = format!("{class_str}__fetch");
     let alarm_js = format!("{class_str}__alarm");
     let ws_msg_js = format!("{class_str}__webSocketMessage");
@@ -226,7 +224,6 @@ pub fn expand_macro(attr: TokenStream, tokens: TokenStream) -> syn::Result<Token
 
     let mut fns = vec![
         bindgen_fns::init(target_name, &init_js),
-        bindgen_fns::drop_fn(&drop_js),
         bindgen_fns::fetch(target_name, &fetch_js),
     ];
 

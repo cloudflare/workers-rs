@@ -1,5 +1,5 @@
 use std::{
-    env::{self, VarError},
+    env,
     fs::{self, File},
     io::{Read, Write},
     path::{Path, PathBuf},
@@ -426,7 +426,7 @@ const INSTALL_HELP: &str = "In case you are missing the binary, you can install 
 fn wasm_coredump(out_dir: &Path) -> Result<()> {
     let coredump_flags = env::var("COREDUMP_FLAGS");
     let coredump_flags: Vec<&str> = if let Ok(flags) = &coredump_flags {
-        flags.split(' ').collect()
+        flags.split_whitespace().collect()
     } else {
         vec![]
     };
@@ -552,7 +552,7 @@ where
 
 // Bundles the snippets and worker-related code into a single file.
 fn bundle(out_dir: &Path, esbuild_path: &Path) -> Result<()> {
-    let no_minify = !matches!(env::var("NO_MINIFY"), Err(VarError::NotPresent));
+    let minify = env::var("NO_MINIFY").is_err();
     let path = out_dir
         .canonicalize()
         .with_context(|| format!("Failed to resolve output directory {}", out_dir.display()))?;
@@ -571,7 +571,7 @@ fn bundle(out_dir: &Path, esbuild_path: &Path) -> Result<()> {
         "--allow-overwrite",
     ]);
 
-    if !no_minify {
+    if minify {
         command.arg("--minify");
     }
 
