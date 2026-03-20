@@ -137,6 +137,7 @@ macro_rules! add_routes (
     add_route!($obj, get, format_route!("/proxy_request/{}", "*url") ,fetch::handle_proxy_request);
     add_route!($obj, get, "/durable/alarm", alarm::handle_alarm);
     add_route!($obj, get, format_route!("/durable/{}", "id"), counter::handle_id);
+    add_route!($obj, get, "/durable/do-panic", counter::handle_do_panic);
     add_route!($obj, get, "/durable/put-raw", put_raw::handle_put_raw);
     add_route!($obj, get, "/durable/websocket", counter::handle_websocket);
     add_route!($obj, get,  "/secret", request::handle_secret);

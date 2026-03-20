@@ -359,7 +359,9 @@ fn generate_do_classes(
                      \x20     if (e) exports[e.cls + '__DURABLE_OBJECT_INIT'](this.__key, e.state, e.env);\n\
                      \x20     this.__insId = instanceId;\n\
                      \x20   }}\n\
-                     \x20   return exports.{class_name}__{method}({args_with_key});\n\
+                     \x20   try {{\n\
+                     \x20     return exports.{class_name}__{method}({args_with_key});\n\
+                     \x20   }} catch (e) {{ handleMaybeCritical(e); throw e; }}\n\
                      \x20 }}\n"
                 );
             }

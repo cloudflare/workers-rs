@@ -90,10 +90,36 @@ describe("Panic Hook with WASM Reinitialization", () => {
         expect(responses[2].status).toBe(200);
       }
 
-      // Test 4: Fatal abort (wasm32::unreachable) triggers auto-reinit.
+      // Test 4: Panic inside a Durable Object's fetch handler
+      // The DO instance should survive the panic and retain its in-memory state.
+      // Note: all /durable/* routes resolve to the same DO instance (name "A"),
+      // so we use relative counter assertions rather than absolute values.
+      {
+        // Read current counter state
+        const before = await mf.dispatchFetch(`${mfUrl}durable/pre-do-panic`);
+        expect(before.status).toBe(200);
+        const matchBefore = (await before.text()).match(/unstored_count: (\d+)/);
+        const countBefore = matchBefore ? parseInt(matchBefore[1]) : 0;
+
+        // Trigger a panic inside the DO's fetch handler
+        const panicResp = await mf.dispatchFetch(`${mfUrl}durable/do-panic`);
+        expect(panicResp.status).toBe(500);
+
+        // The DO instance should still be alive with its in-memory state intact.
+        // unstored_count should increment by 1 from countBefore, not reset to 1.
+        const after = await mf.dispatchFetch(`${mfUrl}durable/post-do-panic`);
+        expect(after.status).toBe(200);
+        const matchAfter = (await after.text()).match(/unstored_count: (\d+)/);
+        const countAfter = matchAfter ? parseInt(matchAfter[1]) : 0;
+        expect(countAfter).toBe(countBefore + 1);
+      }
+
+      // Test 5: Fatal abort (wasm32::unreachable) triggers auto-reinit.
       // wasm-bindgen's __wbg_termination_guard calls __wbg_reset_state on the
       // next request. The reinit hook eagerly reconstructs all live DO instances
       // on the fresh wasm module.
+      // (Note: DO-internal panic test above uses the same COUNTER DO as "A",
+      // so the unstored_count here reflects accumulated state from prior tests.)
       {
         // Establish counter state (unstored_count > 0 from prior tests)
         const before = await mf.dispatchFetch(`${mfUrl}durable/pre-abort`);
@@ -112,7 +138,7 @@ describe("Panic Hook with WASM Reinitialization", () => {
         expect(await after.text()).toContain("unstored_count: 1");
       }
 
-      // Test 5: Panic hook still works after fatal reinit
+      // Test 6: Panic hook still works after fatal reinit
       // The reinit hook re-registers setPanicHook, so subsequent panics should
       // still be caught and returned as PanicError (not bare RuntimeError).
       {
@@ -123,7 +149,7 @@ describe("Panic Hook with WASM Reinitialization", () => {
         expect(panicText).toContain("Intentional panic");
       }
 
-      // Test 6: OOM triggers auto-reinit
+      // Test 7: OOM triggers auto-reinit
       {
         // Establish counter is working
         const before = await mf.dispatchFetch(`${mfUrl}durable/pre-oom`);
@@ -142,7 +168,7 @@ describe("Panic Hook with WASM Reinitialization", () => {
         expect(await after.text()).toContain("unstored_count: 1");
       }
 
-      // Test 7: Multiple fatal error recovery cycles
+      // Test 8: Multiple fatal error recovery cycles
       // Proves reinit is repeatable and the reinit hook fires every time.
       {
         for (let cycle = 1; cycle <= 3; cycle++) {

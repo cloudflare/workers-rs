@@ -12,7 +12,7 @@ pub(crate) static CUR_WASM_OPT_VERSION: &str = "126";
 pub(crate) static CUR_ESBUILD_VERSION: LazyLock<semver::Version> = version!("0.27.3");
 
 // Minimum required libraries, validated before build
-pub(crate) static MIN_WASM_BINDGEN_LIB_VERSION: LazyLock<semver::Version> = version!("0.2.106");
+pub(crate) static MIN_WASM_BINDGEN_LIB_VERSION: LazyLock<semver::Version> = version!("0.2.114");
 pub(crate) static MIN_RUSTC_VERSION: LazyLock<semver::Version> = version!("1.71.0"); // workers-rs MSRV
 
 pub(crate) static MIN_WORKER_LIB_VERSION: LazyLock<semver::Version> = version!(&format!(

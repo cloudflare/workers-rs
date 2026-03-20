@@ -34,6 +34,10 @@ impl DurableObject for Counter {
             *self.count.borrow_mut() = self.state.storage().get("count").await?.unwrap_or(0);
         }
 
+        if req.path().eq("/panic") {
+            panic!("Intentional panic inside Durable Object fetch handler");
+        }
+
         if req.path().eq("/ws") {
             let pair = WebSocketPair::new()?;
             let server = pair.server;
@@ -108,6 +112,13 @@ pub async fn handle_id(req: Request, env: Env, _data: SomeSharedData) -> Result<
     // compatibility flag can be provided in wrangler.toml to opt-in to older behavior:
     // https://developers.cloudflare.com/workers/platform/compatibility-dates#durable-object-stubfetch-requires-a-full-url
     stub.fetch_with_str("https://fake-host/").await
+}
+
+#[worker::send]
+pub async fn handle_do_panic(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let namespace = env.durable_object("COUNTER").expect("COUNTER binding");
+    let stub = namespace.id_from_name("A")?.get_stub()?;
+    stub.fetch_with_str("https://fake-host/panic").await
 }
 
 #[worker::send]

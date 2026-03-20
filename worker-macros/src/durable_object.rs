@@ -199,7 +199,7 @@ pub fn expand_macro(attr: TokenStream, tokens: TokenStream) -> syn::Result<Token
     if syn::parse2::<ItemImpl>(tokens.clone()).is_ok() {
         return Err(syn::Error::new(
             proc_macro2::Span::call_site(),
-            "The #[durable_object] macro is no longer required for `impl` blocks, and can be removed"
+            "The #[durable_object] macro is now only needed on the struct definition. Remove it from the impl block."
         ));
     }
 
