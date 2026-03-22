@@ -1,5 +1,5 @@
 {% if win -%}
-  {% assign prefix = "$set " -%}
+  {% assign prefix = "set " -%}
   {% assign suffix = "&&" -%}
 {% endif -%}
 name = "{{project-name}}"
