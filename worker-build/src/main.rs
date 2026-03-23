@@ -277,6 +277,11 @@ fn generate_handlers(exported_fns: &[String], panic_unwind: bool) -> String {
 
 /// Generate thin JS class wrappers for Durable Objects and a reinit callback.
 ///
+/// Each DO instance is stored in a Rust-side `HashMap<u32, T>` keyed by a
+/// JS-assigned `u32`.  A `FinalizationRegistry` calls the `__DURABLE_OBJECT_FREE`
+/// export when the JS wrapper is garbage-collected, eagerly dropping the Rust
+/// struct and freeing its memory.
+///
 /// For the **unwind** shim, classes simply delegate to `exports.ClassName__method`.
 /// The post-reinit hook callback re-initialises each DO with stashed state/env.
 ///
@@ -297,8 +302,15 @@ fn generate_do_classes(
     // Each DO instance gets a unique key used to look up the Rust struct.
     output += "let __do_next_key = 0;\n";
 
-    // Map from key → { class_name, state, env } for reinit after wasm reset.
-    output += "const __do_live = new Map();\n\n";
+    // Map from key → { cls, state, env } for reinit after wasm reset.
+    output += "const __do_live = new Map();\n";
+
+    // FinalizationRegistry: when a JS DO wrapper is GC'd, free the Rust-side
+    // HashMap entry so the struct is dropped and its memory reclaimed.
+    output += "const __do_cleanup = new FinalizationRegistry(({ key, cls }) => {\n\
+               \x20 exports[cls + '__DURABLE_OBJECT_FREE'](key);\n\
+               \x20 __do_live.delete(key);\n\
+               });\n\n";
 
     for class_name in do_classes {
         let methods: Vec<&str> = DO_METHOD_SUFFIXES
@@ -309,13 +321,15 @@ fn generate_do_classes(
 
         output += &format!("class {class_name} {{\n");
 
-        // Constructor: assign a key, stash state/env, call Rust init
+        // Constructor: assign a key, stash state/env, call Rust init, register
+        // for GC-based cleanup.
         if panic_unwind {
             output += &format!(
                 "  constructor(state, env) {{\n\
                  \x20   this.__key = __do_next_key++;\n\
                  \x20   __do_live.set(this.__key, {{ cls: \"{class_name}\", state, env }});\n\
                  \x20   exports.{class_name}__DURABLE_OBJECT_INIT(this.__key, state, env);\n\
+                 \x20   __do_cleanup.register(this, {{ key: this.__key, cls: \"{class_name}\" }});\n\
                  \x20 }}\n"
             );
         } else {
@@ -326,6 +340,7 @@ fn generate_do_classes(
                  \x20   this.__insId = instanceId;\n\
                  \x20   __do_live.set(this.__key, {{ cls: \"{class_name}\", state, env }});\n\
                  \x20   exports.{class_name}__DURABLE_OBJECT_INIT(this.__key, state, env);\n\
+                 \x20   __do_cleanup.register(this, {{ key: this.__key, cls: \"{class_name}\" }});\n\
                  \x20 }}\n"
             );
         }

@@ -23,7 +23,9 @@ impl syn::parse::Parse for DurableObjectType {
 ///
 /// Each DO instance is stored in a `thread_local! HashMap<u32, T>` keyed by an
 /// instance ID assigned on the JS side.  Every exported function takes the
-/// instance key as its first `u32` argument so the correct instance is looked up.
+/// instance key as its first `u32` argument so the correct instance is looked
+/// up.  A `__free` export is provided so the JS shim can eagerly drop instances
+/// when they are no longer needed.
 mod bindgen_fns {
     use proc_macro2::{Ident, TokenStream};
     use quote::quote;
@@ -37,13 +39,14 @@ mod bindgen_fns {
                 let instance = borrow.get(&key)
                     .expect("Durable Object not initialized — call init first");
                 // SAFETY: The instance reference is extended to `'static` lifetime for use
-                // inside the `async move` future handed to `future_to_promise`. This is
+                // inside the `async move` future handed to `future_to_promise`.  This is
                 // sound under the following invariants:
-                //   1. DO instances are stored in a `thread_local! HashMap` and are never
-                //      removed while a future is alive — there is no drop export wired up
-                //      from the JS side.  If a cleanup mechanism is added in the future
-                //      this must be revisited (e.g. by storing `Arc<T>` instead of `T`).
-                //   2. WASM is single-threaded; no concurrent mutation of the map is possible.
+                //   1. The JS shim only calls `__free` inside the DO constructor, before
+                //      any method is invoked on the new instance.  The Workers runtime
+                //      serialises requests to a DO, so no async future can be alive for a
+                //      key that is about to be freed.
+                //   2. WASM is single-threaded; no concurrent mutation of the map is
+                //      possible.
                 //   3. The Workers runtime serialises requests to a single DO instance so
                 //      only one `async` future runs at a time per instance.
                 let static_ref: &'static #class_name = unsafe { &*(instance as *const _) };
@@ -65,6 +68,15 @@ mod bindgen_fns {
                     env,
                 );
                 __INSTANCES.with(|map| map.borrow_mut().insert(key, instance));
+            }
+        }
+    }
+
+    pub fn free(js_name: &str) -> TokenStream {
+        quote! {
+            #[wasm_bindgen(js_name = #js_name, wasm_bindgen=::worker::wasm_bindgen)]
+            pub fn __free(key: u32) {
+                __INSTANCES.with(|map| map.borrow_mut().remove(&key));
             }
         }
     }
@@ -216,6 +228,7 @@ pub fn expand_macro(attr: TokenStream, tokens: TokenStream) -> syn::Result<Token
     // The init name uses a distinctive suffix so worker-build can reliably
     // detect DO classes without false-positiving on user-defined exports.
     let init_js = format!("{class_str}__DURABLE_OBJECT_INIT");
+    let free_js = format!("{class_str}__DURABLE_OBJECT_FREE");
     let fetch_js = format!("{class_str}__fetch");
     let alarm_js = format!("{class_str}__alarm");
     let ws_msg_js = format!("{class_str}__webSocketMessage");
@@ -224,6 +237,7 @@ pub fn expand_macro(attr: TokenStream, tokens: TokenStream) -> syn::Result<Token
 
     let mut fns = vec![
         bindgen_fns::init(target_name, &init_js),
+        bindgen_fns::free(&free_js),
         bindgen_fns::fetch(target_name, &fetch_js),
     ];
 
