@@ -221,6 +221,52 @@ jobs:
       - name: Run tests (http)
         run: chomp test-http
 
+  test-emscripten:
+    name: Test (emscripten)
+    needs: worker-build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: dtolnay/rust-toolchain@1.87.0
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Setup Chomp
+        uses: guybedford/chomp-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: worker-build
+          path: ./target/debug
+
+      - name: Make worker-build executable
+        run: chmod +x ./target/debug/worker-build
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry ~/.cargo/git target
+          key: ${{ runner.os }}-cargo-em-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-em-
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Install wasm32-unknown-emscripten target
+        run: rustup target add wasm32-unknown-emscripten
+
+      - name: Setup emsdk
+        uses: mymindstorm/setup-emsdk@v14
+
+      - name: Run tests (emscripten)
+        run: chomp test-em
+
+      - name: Run tests (http + emscripten)
+        run: chomp test-http-em
+
   test-panic-unwind:
     name: Test (panic-unwind)
     needs: worker-build

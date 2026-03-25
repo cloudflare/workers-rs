@@ -2,14 +2,14 @@
 rustflags = ["--cfg", "getrandom_backend=\"wasm_js\""]
 
 [target.wasm32-unknown-emscripten]
-# getrandom_backend: same as wasm32-unknown-unknown
+# No getrandom_backend needed: emscripten provides native getentropy() in its
+# libc, so getrandom uses the built-in emscripten backend automatically.
 # -Cpanic=abort: emscripten defaults to panic=unwind, but the wasm-bindgen fork's
 # future_to_promise requires UnwindSafe when panic=unwind, which wasm-streams
 # doesn't satisfy. Force abort for ecosystem compatibility (can revisit later).
 # -sERROR_ON_UNDEFINED_SYMBOLS=0 / -Wno-error=undefined: allow __em_vfs_*
 # symbols to remain as unresolved wasm imports (resolved at runtime by the shim).
 rustflags = [
-  "--cfg", "getrandom_backend=\"wasm_js\"",
   "-Cpanic=abort",
   "-Clink-arg=--no-entry",
   "-Clink-arg=-sERROR_ON_UNDEFINED_SYMBOLS=0",

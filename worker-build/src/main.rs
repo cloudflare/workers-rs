@@ -532,6 +532,161 @@ fn run_emcc_postlink(out_dir: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Information about an exported class detected in the wasm-bindgen TypeScript
+/// definitions.
+struct ClassInfo {
+    /// The JavaScript class name (e.g. `Counter`, `MyDurableObject`).
+    name: String,
+    /// Public method names, excluding internal wasm-bindgen methods like `free`,
+    /// `constructor`, `__destroy_into_raw`, and `[Symbol.dispose]`.
+    methods: Vec<String>,
+}
+
+/// Methods that are internal to wasm-bindgen and should not be proxied in the
+/// emscripten wrapper.
+const SKIP_CLASS_METHODS: &[&str] = &["free", "constructor"];
+
+/// Extract exported class information from `library_bindgen.js`.
+///
+/// The wasm-bindgen emscripten output contains class definitions inside the
+/// `$initBindgen` function, followed by `Module.<Name> = <Name>;` assignments.
+/// We parse these to generate proxy classes for the emscripten wrapper that
+/// lazily initialise the emscripten module and delegate to the real
+/// wasm-bindgen class instance.
+fn extract_class_info(out_dir: &Path) -> Result<Vec<ClassInfo>> {
+    let lib_path = output_path(out_dir, "library_bindgen.js");
+    if !lib_path.exists() {
+        return Ok(Vec::new());
+    }
+    let content = fs::read_to_string(&lib_path)
+        .with_context(|| format!("Failed to read {}", lib_path.display()))?;
+
+    // First pass: collect all names assigned to Module (these are exported).
+    let mut module_exports: std::collections::HashSet<String> = std::collections::HashSet::new();
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if let Some(rest) = trimmed.strip_prefix("Module.") {
+            if let Some(eq_pos) = rest.find(" = ") {
+                let name = rest[..eq_pos].trim();
+                if !name.starts_with("__wbindgen") && !name.starts_with("__wbg") {
+                    module_exports.insert(name.to_string());
+                }
+            }
+        }
+    }
+
+    // Second pass: find class definitions and their methods.
+    let mut classes = Vec::new();
+    let mut current_class: Option<(String, Vec<String>)> = None;
+    // Track brace depth to know when a class body ends.
+    let mut brace_depth: i32 = 0;
+
+    for line in content.lines() {
+        let trimmed = line.trim();
+
+        if current_class.is_none() {
+            // Look for `class <Name> {`
+            if let Some(rest) = trimmed.strip_prefix("class ") {
+                if let Some(brace_pos) = rest.find('{') {
+                    let name = rest[..brace_pos].trim().to_string();
+                    if module_exports.contains(&name) {
+                        current_class = Some((name, Vec::new()));
+                        brace_depth = 1;
+                    }
+                }
+            }
+        } else {
+            // Track brace depth to detect end of class.
+            for ch in trimmed.chars() {
+                match ch {
+                    '{' => brace_depth += 1,
+                    '}' => brace_depth -= 1,
+                    _ => {}
+                }
+            }
+
+            if brace_depth <= 0 {
+                // Class body ended.
+                if let Some((name, methods)) = current_class.take() {
+                    if !methods.is_empty() {
+                        classes.push(ClassInfo { name, methods });
+                    }
+                }
+            } else if let Some(paren_pos) = trimmed.find('(') {
+                // Potential method definition: `<name>(<args>) {`
+                let before_paren = trimmed[..paren_pos].trim();
+                // A valid method definition is a bare identifier followed
+                // by `(`. Skip anything that contains dots (property access),
+                // spaces (keywords/expressions), or other non-identifier chars.
+                let is_method_name = !before_paren.is_empty()
+                    && !before_paren.contains('.')
+                    && !before_paren.contains(' ')
+                    && !before_paren.contains('=')
+                    && !before_paren.starts_with("__")
+                    && !before_paren.starts_with("//")
+                    && !before_paren.starts_with("*")
+                    && !SKIP_CLASS_METHODS.contains(&before_paren);
+                if is_method_name {
+                    if let Some((_, ref mut methods)) = current_class {
+                        methods.push(before_paren.to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(classes)
+}
+
+/// Generate proxy class definitions for the emscripten wrapper.
+///
+/// Each proxy class:
+///   1. Stores constructor arguments synchronously (Workers calls `new Class(state, env)`)
+///   2. Lazily initialises the emscripten module on the first method call
+///   3. Delegates all method calls to the real wasm-bindgen class instance
+///
+/// This allows Durable Object classes (and any other exported classes) to work
+/// with the asynchronous emscripten module initialisation.
+fn generate_emscripten_classes(classes: &[ClassInfo]) -> String {
+    let mut output = String::new();
+
+    for class in classes {
+        // Class header + constructor
+        output.push_str(&format!("export class {} {{\n", class.name));
+        output.push_str("  constructor(...args) {\n");
+        output.push_str("    this.__em_args = args;\n");
+        output.push_str("    this.__em_inner = null;\n");
+        output.push_str("    this.__em_init = null;\n");
+        output.push_str("  }\n");
+
+        // Lazy initialisation helper
+        output.push_str("  __em_ensure() {\n");
+        output.push_str("    if (!this.__em_init) {\n");
+        output.push_str("      this.__em_init = getModule().then(mod => {\n");
+        output.push_str(&format!(
+            "        this.__em_inner = new mod.{}(...this.__em_args);\n",
+            class.name
+        ));
+        output.push_str("        this.__em_args = null;\n");
+        output.push_str("      });\n");
+        output.push_str("    }\n");
+        output.push_str("    return this.__em_init;\n");
+        output.push_str("  }\n");
+
+        // Proxy methods — each returns a Promise that resolves after the
+        // emscripten module is ready and the inner method completes.
+        for method in &class.methods {
+            output.push_str(&format!(
+                "  {method}(...args) {{\n    return this.__em_ensure().then(() => this.__em_inner.{method}(...args));\n  }}\n"
+            ));
+        }
+
+        output.push_str("}\n\n");
+    }
+
+    output
+}
+
 /// Extract exported function names from `library_bindgen.js`.
 ///
 /// The wasm-bindgen emscripten output contains `Module.<name> = <name>;`
@@ -567,12 +722,26 @@ fn extract_exported_functions(out_dir: &Path) -> Result<Vec<String>> {
 ///      `instantiateWasm` hook (so Workers' wasm module loading works)
 ///   4. Exports Workers-compatible handlers based on which functions
 ///      the Rust crate exports via `#[wasm_bindgen]`
+///   5. Exports proxy classes for Durable Objects (and any other exported
+///      classes) that lazily initialise through the emscripten module
 fn generate_emscripten_wrapper(out_dir: &Path) -> Result<String> {
     let func_names = extract_exported_functions(out_dir)?;
-    info!("Detected exported functions: {:?}", func_names);
+    info!("Detected exported functions: {func_names:?}");
+
+    let classes = extract_class_info(out_dir)?;
+    if !classes.is_empty() {
+        info!(
+            "Detected exported classes: {:?}",
+            classes.iter().map(|c| &c.name).collect::<Vec<_>>()
+        );
+    }
 
     let handlers = generate_emscripten_handlers(&func_names);
-    let js = EMSCRIPTEN_WRAPPER_FILE.replace("$HANDLERS", &handlers);
+    let class_defs = generate_emscripten_classes(&classes);
+
+    let js = EMSCRIPTEN_WRAPPER_FILE
+        .replace("$CLASSES", &class_defs)
+        .replace("$HANDLERS", &handlers);
 
     Ok(js)
 }

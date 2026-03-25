@@ -71,6 +71,28 @@ npx vitest run --testTimeout 25000
 '''
 
 [[task]]
+name = 'test-em'
+dep = 'build'
+cwd = 'test'
+env.NO_MINIFY = '1'
+env.WASM_BINDGEN_BIN = '../wasm-bindgen/target/debug/wasm-bindgen'
+run = '''
+../target/debug/worker-build --release --emscripten
+npx vitest run --testTimeout 25000 --exclude 'tests/panic.spec.ts' --exclude 'tests/snippets.spec.ts' --exclude 'tests/socket.spec.ts'
+'''
+
+[[task]]
+name = 'test-http-em'
+dep = 'build'
+cwd = 'test'
+env.NO_MINIFY = '1'
+env.WASM_BINDGEN_BIN = '../wasm-bindgen/target/debug/wasm-bindgen'
+run = '''
+../target/debug/worker-build --release --features http --emscripten
+npx vitest run --testTimeout 25000 --exclude 'tests/panic.spec.ts' --exclude 'tests/snippets.spec.ts' --exclude 'tests/socket.spec.ts'
+'''
+
+[[task]]
 name = 'test-mem'
 cwd = 'test'
 run = 'npx wrangler dev --enable-containers=false'

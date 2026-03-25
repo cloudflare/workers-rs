@@ -23,6 +23,7 @@ mod d1;
 mod durable;
 mod fetch;
 mod form;
+#[cfg(not(target_os = "emscripten"))]
 mod js_snippets;
 mod kv;
 mod put_raw;
@@ -33,6 +34,7 @@ mod request;
 mod router;
 mod secret_store;
 mod service;
+#[cfg(not(target_os = "emscripten"))]
 mod socket;
 mod sql_counter;
 mod sql_iterator;

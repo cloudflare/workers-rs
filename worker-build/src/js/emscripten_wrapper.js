@@ -5,17 +5,21 @@ let modulePromise = null;
 
 function getModule() {
   if (!modulePromise) {
-    modulePromise = createModule({
-      instantiateWasm(imports, successCallback) {
-        WebAssembly.instantiate(wasmModule, imports).then(instance => {
-          successCallback(instance, wasmModule);
-        });
-        return {};
-      },
+    modulePromise = new Promise((resolve, reject) => {
+      createModule({
+        instantiateWasm(imports, successCallback) {
+          WebAssembly.instantiate(wasmModule, imports).then(
+            instance => { successCallback(instance, wasmModule); },
+            reject
+          );
+          return {};
+        },
+      }).then(resolve, reject);
     });
   }
   return modulePromise;
 }
 
+$CLASSES
 export default {
 $HANDLERS};

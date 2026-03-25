@@ -27,6 +27,8 @@
     "test": "cd test && NO_MINIFY=1 WASM_BINDGEN_BIN=../wasm-bindgen/target/debug/wasm-bindgen ../target/debug/worker-build --dev && NODE_OPTIONS='--experimental-vm-modules' npx vitest run",
     "test-http": "cd test && NO_MINIFY=1 WASM_BINDGEN_BIN=../wasm-bindgen/target/debug/wasm-bindgen ../target/debug/worker-build --release --features http && NODE_OPTIONS='--experimental-vm-modules' npx vitest run",
     "test-panic-unwind": "cd test && NO_MINIFY=1 WASM_BINDGEN_BIN=../wasm-bindgen/target/debug/wasm-bindgen ../target/debug/worker-build --dev --panic-unwind && NODE_OPTIONS='--experimental-vm-modules' npx vitest run",
+    "test-em": "cd test && NO_MINIFY=1 WASM_BINDGEN_BIN=../wasm-bindgen/target/debug/wasm-bindgen ../target/debug/worker-build --release --emscripten && NODE_OPTIONS='--experimental-vm-modules' npx vitest run --exclude tests/panic.spec.ts --exclude tests/snippets.spec.ts --exclude tests/socket.spec.ts",
+    "test-http-em": "cd test && NO_MINIFY=1 WASM_BINDGEN_BIN=../wasm-bindgen/target/debug/wasm-bindgen ../target/debug/worker-build --release --features http --emscripten && NODE_OPTIONS='--experimental-vm-modules' npx vitest run --exclude tests/panic.spec.ts --exclude tests/snippets.spec.ts --exclude tests/socket.spec.ts",
     "test-mem": "cd test && npx wrangler dev --enable-containers=false",
     "lint": "cargo clippy --features d1,queue --all-targets --workspace -- -D warnings",
     "lint:fix": "cargo fmt && cargo clippy --features d1,queue --all-targets --workspace --fix -- -D warnings"
