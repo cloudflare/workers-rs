@@ -21,18 +21,15 @@ const EMSCRIPTEN_WRAPPER_FILE: &str = include_str!("./js/emscripten_wrapper.js")
 /// Emscripten post-link flags passed to `emcc --post-link`.
 ///
 /// These configure the emscripten JS runtime for Workers compatibility:
-///   - STACK_OVERFLOW_CHECK=0: skip the `emscripten_stack_get_end` assertion
 ///   - ERROR_ON_UNDEFINED_SYMBOLS=0: allow unresolved imports (wasm-bindgen glue)
 ///   - MODULARIZE=1 + EXPORT_ES6=1: ESM factory function output
 ///   - ENVIRONMENT=web: hardcode ENVIRONMENT_IS_WEB=true (avoids node/shell probes)
-///   - ASSERTIONS=0: strip debug assertions from emscripten runtime
 const EMCC_POSTLINK_FLAGS: &[&str] = &[
-    "-sSTACK_OVERFLOW_CHECK=0",
     "-sERROR_ON_UNDEFINED_SYMBOLS=0",
     "-sMODULARIZE=1",
     "-sEXPORT_ES6=1",
     "-sENVIRONMENT=web",
-    "-sASSERTIONS=0",
+    //    "-sASSERTIONS=0",
     // Suppress "--post-link is experimental" noise — we know.
     "-Wno-experimental",
 ];
