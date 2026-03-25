@@ -237,46 +237,6 @@ fn rustc_minor_version() -> Option<u32> {
     otry!(pieces.next()).parse().ok()
 }
 
-/// C source that overrides emscripten's weak filesystem syscall stubs.
-///
-/// Uses `__attribute__((import_name(...)))` to force the standard emscripten
-/// syscall names (`__syscall_openat`, etc.) to appear as wasm imports, so
-/// `emcc --post-link` automatically provides MEMFS-backed JS implementations.
-/// See `src/c/em_vfs.c` for the full explanation.
-const EM_VFS_C: &str = include_str!("../c/em_vfs.c");
-
-/// Compile the embedded em_vfs.c source into a wasm object file using emcc.
-///
-/// Returns the path to the compiled `.o` file.  The file is placed in
-/// `<target-dir>/wasm32-unknown-emscripten/em_vfs.o` so it persists across
-/// incremental builds (the source is static, so re-compiling is cheap but
-/// we avoid unnecessary work).
-fn compile_em_vfs(target_dir: &Path) -> Result<PathBuf> {
-    let em_dir = target_dir.join("wasm32-unknown-emscripten");
-    std::fs::create_dir_all(&em_dir)
-        .with_context(|| format!("Failed to create {}", em_dir.display()))?;
-
-    let c_path = em_dir.join("em_vfs.c");
-    let o_path = em_dir.join("em_vfs.o");
-
-    // Always write the source (it's small and ensures we pick up changes)
-    std::fs::write(&c_path, EM_VFS_C)
-        .with_context(|| format!("Failed to write {}", c_path.display()))?;
-
-    let emcc =
-        which::which("emcc").context("emcc not found on PATH; required for --emscripten builds")?;
-
-    let mut cmd = Command::new(emcc);
-    cmd.args(["-c", "-Os", "--target=wasm32-unknown-emscripten"])
-        .arg(&c_path)
-        .arg("-o")
-        .arg(&o_path);
-
-    utils::run(cmd, "emcc (compile em_vfs.c)").context("Compiling em_vfs.c with emcc failed")?;
-
-    Ok(o_path)
-}
-
 /// Run `cargo build` targeting the given wasm target.
 pub fn cargo_build_wasm(
     path: &Path,
@@ -296,28 +256,6 @@ pub fn cargo_build_wasm(
     };
     PBAR.info(&msg);
 
-    // For emscripten builds, compile the VFS syscall overrides before cargo
-    // build so we can pass the .o as a linker argument.
-    let em_vfs_obj = if wasm_target == WasmTarget::Emscripten {
-        // Determine the target directory (may be overridden by --target-dir)
-        let target_dir = {
-            let mut iter = extra_options.iter();
-            iter.find(|o| o.as_str() == "--target-dir")
-                .and_then(|_| iter.next())
-                .map(PathBuf::from)
-                .unwrap_or_else(|| path.join("target"))
-        };
-        Some(compile_em_vfs(&target_dir)?)
-    } else {
-        None
-    };
-
-    // For emscripten builds with the VFS override, we use `cargo rustc` so
-    // we can pass `-Clink-arg=<em_vfs.o>` after the `--` separator.  This
-    // adds the argument only to the final cdylib link step and doesn't
-    // conflict with rustflags set in .cargo/config.toml.
-    let use_cargo_rustc = em_vfs_obj.is_some();
-
     let mut cmd = Command::new("cargo");
 
     // When panic_unwind is enabled, use nightly toolchain
@@ -325,11 +263,7 @@ pub fn cargo_build_wasm(
         cmd.arg("+nightly");
     }
 
-    if use_cargo_rustc {
-        cmd.current_dir(path).arg("rustc").arg("--lib");
-    } else {
-        cmd.current_dir(path).arg("build").arg("--lib");
-    }
+    cmd.current_dir(path).arg("build").arg("--lib");
 
     if PBAR.quiet() {
         cmd.arg("--quiet");
@@ -393,29 +327,15 @@ pub fn cargo_build_wasm(
         .collect::<Result<Vec<_>>>()?;
     cmd.args(extra_options_with_absolute_paths);
 
-    // For emscripten builds, pass the VFS object file as a linker argument
-    // after the `--` separator so it ends up on the emcc command line.
-    if let Some(obj_path) = em_vfs_obj {
-        let obj_str = obj_path
-            .to_str()
-            .ok_or_else(|| anyhow!("em_vfs.o path contains non-UTF-8 characters"))?;
-        cmd.arg("--").arg(format!("-Clink-arg={obj_str}"));
-    }
-
     utils::run(cmd, "cargo build").context("Compiling your crate to WebAssembly failed")?;
     Ok(())
 }
 
-/// Try to locate the Emscripten SDK and prepend it to `PATH` if found.
+/// If the `EMSDK` environment variable is set, prepend its directories to
+/// `PATH` so that `emcc` and friends are available to child processes.
 ///
-/// Probes, in order:
-///   1. `EMSDK` environment variable (set by `source emsdk_env.sh`)
-///   2. `~/emsdk` (common manual install location)
-///
-/// If a valid emsdk root is found, the function prepends
-/// `<emsdk>`, `<emsdk>/upstream/emscripten`, and any python dir
-/// under `<emsdk>/python/` to `PATH` so that `emcc` and friends
-/// are available to child processes for the rest of the build.
+/// Prepends `<emsdk>`, `<emsdk>/upstream/emscripten`, and any python dir
+/// under `<emsdk>/python/` to `PATH`.
 ///
 /// Returns `true` if the PATH was modified.
 fn try_add_emsdk_to_path() -> bool {
@@ -424,42 +344,37 @@ fn try_add_emsdk_to_path() -> bool {
         return false;
     }
 
-    let candidates: Vec<PathBuf> = [
-        std::env::var_os("EMSDK").map(PathBuf::from),
-        dirs_next::home_dir().map(|h| h.join("emsdk")),
-    ]
-    .into_iter()
-    .flatten()
-    .collect();
+    let root = match std::env::var_os("EMSDK").map(PathBuf::from) {
+        Some(p) => p,
+        None => return false,
+    };
 
-    for root in &candidates {
-        let emcc = root.join("upstream/emscripten/emcc");
-        if !emcc.exists() {
-            continue;
-        }
+    let emcc = root.join("upstream/emscripten/emcc");
+    if !emcc.exists() {
+        return false;
+    }
 
-        info!("Auto-detected emsdk at {}", root.display());
+    info!("Using emsdk at {}", root.display());
 
-        let mut new_dirs = vec![root.clone(), root.join("upstream/emscripten")];
+    let mut new_dirs = vec![root.clone(), root.join("upstream/emscripten")];
 
-        // Also pick up the bundled python if present.
-        if let Ok(entries) = std::fs::read_dir(root.join("python")) {
-            for entry in entries.flatten() {
-                let p = entry.path().join("bin");
-                if p.is_dir() {
-                    new_dirs.push(p);
-                }
+    // Also pick up the bundled python if present.
+    if let Ok(entries) = std::fs::read_dir(root.join("python")) {
+        for entry in entries.flatten() {
+            let p = entry.path().join("bin");
+            if p.is_dir() {
+                new_dirs.push(p);
             }
         }
+    }
 
-        let current = std::env::var_os("PATH").unwrap_or_default();
-        let mut all: Vec<PathBuf> = new_dirs;
-        all.extend(std::env::split_paths(&current));
-        if let Ok(joined) = std::env::join_paths(&all) {
-            std::env::set_var("PATH", &joined);
-            info!("Prepended emsdk directories to PATH");
-            return true;
-        }
+    let current = std::env::var_os("PATH").unwrap_or_default();
+    let mut all: Vec<PathBuf> = new_dirs;
+    all.extend(std::env::split_paths(&current));
+    if let Ok(joined) = std::env::join_paths(&all) {
+        std::env::set_var("PATH", &joined);
+        info!("Prepended emsdk directories to PATH");
+        return true;
     }
 
     false
@@ -482,13 +397,8 @@ pub fn check_for_emcc() -> Result<()> {
             bail!(
                 "emcc not found on PATH. The Emscripten SDK (emsdk) is required for --emscripten builds.\n\
                  \n\
-                 Install it with:\n\
-                   git clone https://github.com/emscripten-core/emsdk.git ~/emsdk\n\
-                   ~/emsdk/emsdk install latest && ~/emsdk/emsdk activate latest\n\
-                 \n\
-                 Or set the EMSDK environment variable to your emsdk installation path.\n\
-                 \n\
-                 Then re-run your build."
+                 Set the EMSDK environment variable to your emsdk installation path\n\
+                 (e.g. by running `source <emsdk>/emsdk_env.sh`) and re-run your build."
             )
         }
     }
