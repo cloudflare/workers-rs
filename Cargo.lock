@@ -1348,6 +1348,8 @@ dependencies = [
 name = "js-sys"
 version = "0.3.91"
 dependencies = [
+ "cfg-if",
+ "futures-util",
  "once_cell",
  "wasm-bindgen",
 ]
@@ -3244,7 +3246,6 @@ dependencies = [
  "base64",
  "leb128",
  "log",
- "regex",
  "rustc-demangle",
  "serde",
  "serde_json",
@@ -3257,12 +3258,8 @@ dependencies = [
 name = "wasm-bindgen-futures"
 version = "0.4.64"
 dependencies = [
- "cfg-if",
- "futures-util",
  "js-sys",
- "once_cell",
  "wasm-bindgen",
- "web-sys",
 ]
 
 [[package]]
