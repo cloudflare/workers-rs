@@ -28,8 +28,9 @@ const EMCC_POSTLINK_FLAGS: &[&str] = &[
     "-sERROR_ON_UNDEFINED_SYMBOLS=0",
     "-sMODULARIZE=1",
     "-sEXPORT_ES6=1",
-    "-sENVIRONMENT=web",
-    //    "-sASSERTIONS=0",
+    "-sENVIRONMENT=web,worker",
+    "-sASSERTIONS=0",
+    "-sFILESYSTEM=0",
     // Suppress "--post-link is experimental" noise — we know.
     "-Wno-experimental",
 ];
@@ -526,6 +527,43 @@ fn run_emcc_postlink(out_dir: &Path) -> Result<()> {
         output_wasm.display()
     );
 
+    // Workaround: emscripten's --post-link mode doesn't detect that
+    // library_bindgen.js references HEAP_DATA_VIEW, so it omits the
+    // declaration and the assignment in updateMemoryViews(). Patch the
+    // output to include it until this is fixed upstream in emscripten.
+    patch_heap_data_view(&output_path)?;
+
+    Ok(())
+}
+
+/// Patch emscripten's output.js to include `HEAP_DATA_VIEW` if it is
+/// referenced but not declared. This is a temporary workaround for an
+/// upstream emscripten bug in `--post-link` mode.
+fn patch_heap_data_view(output_js: &Path) -> Result<()> {
+    let js = std::fs::read_to_string(output_js)?;
+
+    // Nothing to do if HEAP_DATA_VIEW isn't referenced or is already declared.
+    if !js.contains("HEAP_DATA_VIEW") || js.contains("var HEAP_DATA_VIEW") {
+        return Ok(());
+    }
+
+    // Emscripten's output uses multiline var declarations with JSDoc
+    // annotations, so we can't match a simple "var HEAP8, HEAPU8" pattern.
+    // Instead, prepend a standalone declaration before the existing block.
+    let js = if let Some(pos) = js.find("HEAP8,") {
+        // Walk back to find the start of the var statement
+        let var_pos = js[..pos].rfind("var").unwrap_or(pos);
+        format!("{}var HEAP_DATA_VIEW;\n{}", &js[..var_pos], &js[var_pos..])
+    } else {
+        js
+    };
+    let js = js.replacen(
+        "HEAPU8 = new Uint8Array(b);",
+        "HEAPU8 = new Uint8Array(b);\n    HEAP_DATA_VIEW = new DataView(b);",
+        1,
+    );
+
+    std::fs::write(output_js, js)?;
     Ok(())
 }
 
