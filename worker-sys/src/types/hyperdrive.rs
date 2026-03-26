@@ -8,7 +8,7 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type Hyperdrive;
 
-    #[wasm_bindgen(method, getter, js_name=connectionString, catch)]
+    #[wasm_bindgen(method, catch)]
     pub fn connect(this: &Hyperdrive) -> Result<Socket, JsValue>;
 
     #[wasm_bindgen(method, getter, js_name=connectionString)]
