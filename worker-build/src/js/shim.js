@@ -27,7 +27,10 @@ let instanceId = 0;
 function checkReinitialize() {
   if (criticalError) {
     console.log("Reinitializing Wasm application");
-    exports.__wbg_reset_state(true); // skip pre-reinit: instance is in a panicked/invalid state
+    // The try/catch guards against panic=abort builds where __reinit_handler
+    // is not present as a Wasm global — the fresh instance is still created
+    // successfully before the handler invocation that may throw.
+    try { exports.__wbg_reset_state(); } catch(_) {}
     criticalError = false;
     registerPanicHook();
     instanceId++;

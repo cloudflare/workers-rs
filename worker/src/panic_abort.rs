@@ -37,13 +37,22 @@ extern "C" {
     fn worker_reinit_dos() -> Result<(), JsValue>;
 }
 
-/// Post-reinit hook called by wasm-bindgen on the NEW wasm instance after
-/// `__wbg_reset_state` creates it. Re-installs the panic hook (the
-/// `std::sync::Once` is fresh on a new instance) and invokes the JS-side
-/// callback that re-initialises Durable Objects with their stashed state/env.
+/// Abort handler: signals that the instance should be reinitialized after a
+/// hard abort (unreachable, OOM, stack overflow). Called by wasm-bindgen's JS
+/// glue via the indirect function table. Only effective on `panic=unwind`
+/// builds; a no-op on `panic=abort`.
 #[cfg(target_arch = "wasm32")]
-#[wasm_bindgen(post_reinit_hook)]
-pub fn on_post_reinit() {
+fn on_abort() {
+    wasm_bindgen::handler::reinit();
+}
+
+/// Reinit handler: called on the NEW wasm instance after `__wbg_reset_state`
+/// creates it. Re-installs the panic hook (the `std::sync::Once` is fresh on
+/// a new instance) and invokes the JS-side callback that re-initialises
+/// Durable Object instances with their stashed state/env.
+/// Only effective on `panic=unwind` builds; a no-op on `panic=abort`.
+#[cfg(target_arch = "wasm32")]
+fn on_reinit() {
     set_once();
     let _ = worker_reinit_dos();
 }
@@ -79,13 +88,24 @@ fn hook_impl(_info: &panic::PanicInfo) {
 }
 
 /// Set the WASM reinitialization panic hook the first time this is called.
-/// Subsequent invocations do nothing.
+/// Subsequent invocations do nothing.  On `panic=unwind` builds, also
+/// registers the abort and reinit handlers via `wasm_bindgen::handler`.
 #[allow(dead_code)]
 #[inline]
 fn set_once() {
     use std::sync::Once;
     static SET_HOOK: Once = Once::new();
     SET_HOOK.call_once(|| {
+        // Register abort handler for hard-abort recovery (unreachable, OOM, etc.).
+        // On panic=unwind builds this fires from __wbg_handle_catch and signals
+        // reinit so the next export call creates a fresh instance.
+        // On panic=abort builds these are no-ops.
+        #[cfg(target_arch = "wasm32")]
+        {
+            wasm_bindgen::handler::set_on_abort(on_abort);
+            wasm_bindgen::handler::set_on_reinit(on_reinit);
+        }
+
         let default_hook = panic::take_hook();
         panic::set_hook(Box::new(move |panic_info| {
             // First call the existing hook (console_error_panic_hook if set)
