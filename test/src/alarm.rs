@@ -1,7 +1,5 @@
 use std::time::Duration;
-use worker::{
-    console_log, durable_object, wasm_bindgen, DurableObject, Env, Request, Response, Result, State,
-};
+use worker::{console_log, durable_object, DurableObject, Env, Request, Response, Result, State};
 
 use super::SomeSharedData;
 

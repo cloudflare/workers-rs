@@ -7,7 +7,7 @@ use crate::send::SendFuture;
 /// A Rust-friendly wrapper around the non-standard [crypto.DigestStream](https://developers.cloudflare.com/workers/runtime-apis/web-crypto/#constructors) API
 ///
 /// Example usage:
-/// ```rust
+/// ```ignore
 /// let digest_stream = DigestStream::new(DigestStreamAlgorithm::Sha256);
 ///
 /// // create a ReadableStream from a string

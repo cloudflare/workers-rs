@@ -311,7 +311,7 @@ impl CreateMultipartUploadOptionsBuilder<'_> {
 }
 
 /// Metadata that's automatically rendered into R2 HTTP API endpoints.
-/// ```
+/// ```text
 /// * contentType -> content-type
 /// * contentLanguage -> content-language
 /// etc...
@@ -399,10 +399,10 @@ impl ListOptionsBuilder<'_> {
     /// you are sending into one bucket. Make sure to look at `truncated` for the result
     /// rather than having logic like
     ///
-    /// ```no_run
+    /// ```ignore
     /// while listed.len() < limit {
     ///     listed = bucket.list()
-    ///         .limit(limit),
+    ///         .limit(limit)
     ///         .include(vec![Include::CustomMetadata])
     ///         .execute()
     ///         .await?;

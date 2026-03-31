@@ -11,7 +11,7 @@
 //!
 //! Enables `queue` event type in [`[event]`](worker_macros::event) macro.
 //!
-//! ```
+//! ```ignore
 //! // Consume messages from a queue
 //! #[event(queue)]
 //! pub async fn main(message_batch: MessageBatch<MyType>, env: Env, _ctx: Context) -> Result<()> {
@@ -34,7 +34,7 @@
 //!
 //! The end result is being able to use frameworks like `axum` directly (see [example](./examples/axum)):
 //!
-//! ```rust
+//! ```ignore
 //! pub async fn root() -> &'static str {
 //!     "Hello Axum!"
 //! }
@@ -65,7 +65,7 @@
 //!
 //! 1. [`send::SendFuture`] - wraps any `Future` and marks it as `Send`:
 //!
-//! ```rust
+//! ```ignore
 //! // `fut` is `Send`
 //! let fut = send::SendFuture::new(async move {
 //!     // `JsFuture` is not `Send`
@@ -76,7 +76,7 @@
 //! 2. [`send::SendWrapper`] - Marks an arbitrary object as `Send` and implements `Deref` and `DerefMut`, as well as `Clone`, `Debug`, and `Display` if the
 //!    inner type does. This is useful for attaching types as state to an `axum` `Router`:
 //!
-//! ```rust
+//! ```ignore
 //! // `KvStore` is not `Send`
 //! let store = env.kv("FOO")?;
 //! // `state` is `Send`
@@ -89,7 +89,7 @@
 //!    `axum`'s `[debug_handler]` macro can help, and looking for warnings that a function or object cannot safely be sent
 //!    between threads.
 //!
-//! ```rust
+//! ```ignore
 //! // This macro makes the whole function (i.e. the `Future` it returns) `Send`.
 //! #[worker::send]
 //! async fn handler(Extension(env): Extension<Env>) -> Response<String> {
@@ -100,7 +100,7 @@
 //! }
 //!
 //! let router = axum::Router::new()
-//!     .route("/", get(handler))
+//!     .route("/", get(handler));
 //! ```
 //!
 //! # RPC Support

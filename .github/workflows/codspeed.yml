@@ -26,7 +26,7 @@ jobs:
         with:
           submodules: true
 
-      - uses: dtolnay/rust-toolchain@1.87.0
+      - uses: dtolnay/rust-toolchain@1.90.0
         with:
           targets: wasm32-unknown-unknown
 

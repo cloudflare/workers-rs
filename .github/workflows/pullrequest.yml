@@ -17,7 +17,7 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
-      - uses: dtolnay/rust-toolchain@1.87.0
+      - uses: dtolnay/rust-toolchain@1.90.0
       - uses: actions/checkout@v4
         with:
           submodules: true
@@ -29,10 +29,20 @@ jobs:
           restore-keys: ${{ runner.os }}-cargo-
       - run: cargo test -p worker-build
       - run: cargo build -p worker-build
+      - name: Build wasm-bindgen CLI (fork)
+        working-directory: wasm-bindgen
+        run: cargo build -p wasm-bindgen-cli --bin wasm-bindgen
+      - name: Copy wasm-bindgen binary alongside worker-build
+        shell: bash
+        run: cp wasm-bindgen/target/debug/wasm-bindgen* target/debug/ 2>/dev/null || true
       - uses: actions/upload-artifact@v4
         with:
-          name: worker-build
-          path: target/debug/worker-build
+          name: worker-build-${{ matrix.platform }}
+          path: |
+            target/debug/worker-build
+            target/debug/worker-build.exe
+            target/debug/wasm-bindgen
+            target/debug/wasm-bindgen.exe
 
   build-templates:
     name: Templates
@@ -40,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: dtolnay/rust-toolchain@1.87.0
+      - uses: dtolnay/rust-toolchain@1.90.0
 
       - uses: actions/checkout@v4
         with:
@@ -55,18 +65,20 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: worker-build
+          name: worker-build-ubuntu-latest
           path: ./target/debug
 
-      - name: Make worker-build executable
-        run: chmod +x ./target/debug/worker-build
+      - name: Make binaries executable
+        run: chmod +x ./target/debug/worker-build ./target/debug/wasm-bindgen
 
-      - uses: cargo-bins/cargo-binstall@main
+      - uses: cargo-bins/cargo-binstall@v1.17.7
 
       - name: Install cargo-generate
         run: cargo binstall cargo-generate
 
       - name: Generate and build all templates
+        env:
+          WASM_BINDGEN_BIN: ${{ github.workspace }}/target/debug/wasm-bindgen
         run: |
           mkdir -p generated
           for template in templates/*/; do
@@ -88,7 +100,7 @@ jobs:
     needs: worker-build
     runs-on: ubuntu-latest
     steps:
-      - uses: dtolnay/rust-toolchain@1.87.0
+      - uses: dtolnay/rust-toolchain@1.90.0
       - uses: actions/checkout@v4
         with:
           submodules: true
@@ -97,18 +109,20 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cargo/registry ~/.cargo/git target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-
+          key: ${{ runner.os }}-cargo-examples-${{ hashFiles('**/Cargo.lock', 'wasm-bindgen/crates/shared/src/lib.rs') }}
+          restore-keys: ${{ runner.os }}-cargo-examples-
 
       - uses: actions/download-artifact@v4
         with:
-          name: worker-build
+          name: worker-build-ubuntu-latest
           path: ./target/debug
 
-      - name: Make worker-build executable
-        run: chmod +x ./target/debug/worker-build
+      - name: Make binaries executable
+        run: chmod +x ./target/debug/worker-build ./target/debug/wasm-bindgen
 
       - name: Build all examples
+        env:
+          WASM_BINDGEN_BIN: ${{ github.workspace }}/target/debug/wasm-bindgen
         run: |
           sed -i 's/, "examples\/axum"//g' Cargo.toml
           for example in examples/*/; do
@@ -127,7 +141,7 @@ jobs:
     name: Formatter
     runs-on: ubuntu-latest
     steps:
-      - uses: dtolnay/rust-toolchain@1.87.0
+      - uses: dtolnay/rust-toolchain@1.90.0
         with:
           components: rustfmt, clippy
 
@@ -164,7 +178,7 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
-      - uses: dtolnay/rust-toolchain@1.87.0
+      - uses: dtolnay/rust-toolchain@1.90.0
       - uses: actions/checkout@v4
         with:
           submodules: true
@@ -176,11 +190,12 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: worker-build
+          name: worker-build-${{ matrix.platform }}
           path: ./target/debug
 
-      - name: Make worker-build executable
-        run: chmod +x ./target/debug/worker-build
+      - name: Make binaries executable
+        if: matrix.platform != 'windows-latest'
+        run: chmod +x ./target/debug/worker-build ./target/debug/wasm-bindgen
 
       - name: Cache Rust dependencies
         uses: actions/cache@v4
@@ -241,11 +256,11 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: worker-build
+          name: worker-build-ubuntu-latest
           path: ./target/debug
 
-      - name: Make worker-build executable
-        run: chmod +x ./target/debug/worker-build
+      - name: Make binaries executable
+        run: chmod +x ./target/debug/worker-build ./target/debug/wasm-bindgen
 
       - name: Cache Rust dependencies
         uses: actions/cache@v4
