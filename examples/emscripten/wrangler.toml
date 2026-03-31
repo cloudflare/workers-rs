@@ -1,0 +1,6 @@
+name = "emscripten-on-workers"
+main = "build/index.js"
+compatibility_date = "2025-03-10"
+
+[build]
+command = "WASM_BINDGEN_BIN=../../wasm-bindgen/target/release/wasm-bindgen ../../target/release/worker-build --release --emscripten"

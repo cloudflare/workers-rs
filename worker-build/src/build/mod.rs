@@ -8,7 +8,7 @@ use crate::versions::{
 
 mod manifest;
 mod progressbar;
-mod target;
+pub mod target;
 mod utils;
 
 use console::style;
@@ -49,6 +49,7 @@ pub struct Build {
     pub extra_options: Vec<String>,
     pub wasm_bindgen_version: Option<String>,
     pub panic_unwind: bool,
+    pub wasm_target: target::WasmTarget,
 }
 
 /// What sort of output we're going to be generating and flags we're invoking
@@ -169,6 +170,13 @@ pub struct BuildOptions {
     /// with panic=unwind, allowing panics to be caught and converted to
     /// JavaScript errors instead of aborting the Worker.
     pub panic_unwind: bool,
+
+    #[clap(long = "emscripten")]
+    /// Build using the wasm32-unknown-emscripten target instead of
+    /// wasm32-unknown-unknown. Requires the Emscripten SDK (emcc) to be
+    /// installed and on PATH. The output is linked through emcc to produce
+    /// a full Emscripten runtime with POSIX/libc emulation.
+    pub emscripten: bool,
 }
 
 type BuildStep = fn(&mut Build) -> Result<()>;
@@ -211,6 +219,12 @@ impl Build {
             BuildProfile::Release
         };
 
+        let wasm_target = if build_opts.emscripten {
+            target::WasmTarget::Emscripten
+        } else {
+            target::WasmTarget::Unknown
+        };
+
         Ok(Build {
             crate_path,
             crate_data,
@@ -227,6 +241,7 @@ impl Build {
             extra_options: build_opts.extra_options,
             wasm_bindgen_version: None,
             panic_unwind: build_opts.panic_unwind,
+            wasm_target,
         })
     }
 
@@ -331,7 +346,11 @@ impl Build {
 
     fn step_check_for_wasm_target(&mut self) -> Result<()> {
         info!("Checking for wasm-target...");
-        target::check_for_wasm32_target()?;
+        target::check_for_wasm32_target(self.wasm_target)?;
+        // For emscripten builds, also check that emcc is available
+        if self.wasm_target == target::WasmTarget::Emscripten {
+            target::check_for_emcc()?;
+        }
         info!("Checking for wasm-target was successful.");
         Ok(())
     }
@@ -343,6 +362,7 @@ impl Build {
             self.profile.clone(),
             &self.extra_options,
             self.panic_unwind,
+            self.wasm_target,
         )?;
 
         info!(
@@ -350,7 +370,7 @@ impl Build {
             &self
                 .crate_path
                 .join("target")
-                .join("wasm32-unknown-unknown")
+                .join(self.wasm_target.triple())
                 .join("release")
         );
         Ok(())
@@ -376,27 +396,29 @@ impl Build {
     fn step_check_lib_versions(&mut self) -> Result<()> {
         let lockfile = Lockfile::new(&self.crate_data.data)?;
 
-        lockfile.require_lib("worker", &MIN_WORKER_LIB_VERSION, &CUR_WORKER_VERSION).map_err(|err| match err {
-            DepCheckError::VersionError(msg, Some(version)) => {
-                anyhow!(
-                    "{msg}\n\nEither upgrade to worker@{}, or use an older worker-build toolchain (e.g. by updating wrangler.toml to use `{}`).",
-                    *MIN_WORKER_LIB_VERSION,
-                    style(format!("cargo install worker-build@^{}",
-                    // Prior to worker@0.6 toolchain was 0.1 with no lock
-                    if version.major == 0 && version.minor <= 6 {
-                        "0.1".to_string()
-                    // 0.x semver lock
-                    } else if version.major == 0 {
-                        format!("{}.{}", version.major, version.minor)
-                    // N.x semver lock
-                    } else {
-                        version.major.to_string()
-                    })).bold()
-                )
-            },
-            DepCheckError::VersionError(msg, None) => anyhow!(msg),
-            DepCheckError::Error(err) => err,
-        })?;
+        lockfile
+            .require_lib("worker", &MIN_WORKER_LIB_VERSION, &CUR_WORKER_VERSION)
+            .map_err(|err| match err {
+                DepCheckError::VersionError(msg, Some(version)) => {
+                    anyhow!(
+                        "{msg}\n\nEither upgrade to worker@{}, or use an older worker-build toolchain (e.g. by updating wrangler.toml to use `{}`).",
+                        *MIN_WORKER_LIB_VERSION,
+                        style(format!("cargo install worker-build@^{}",
+                        // Prior to worker@0.6 toolchain was 0.1 with no lock
+                        if version.major == 0 && version.minor <= 6 {
+                            "0.1".to_string()
+                        // 0.x semver lock
+                        } else if version.major == 0 {
+                            format!("{}.{}", version.major, version.minor)
+                        // N.x semver lock
+                        } else {
+                            version.major.to_string()
+                        })).bold()
+                    )
+                }
+                DepCheckError::VersionError(msg, None) => anyhow!(msg),
+                DepCheckError::Error(err) => err,
+            })?;
 
         self.wasm_bindgen_version = Some(
             lockfile
@@ -437,6 +459,7 @@ impl Build {
             self.profile.clone(),
             &self.extra_args,
             &self.extra_options,
+            self.wasm_target,
         )?;
         info!("wasm bindings were built at {:#?}.", &self.out_dir);
         Ok(())
@@ -500,6 +523,7 @@ pub fn wasm_bindgen_build(
     profile: BuildProfile,
     extra_args: &[String],
     extra_options: &[String],
+    wasm_target: target::WasmTarget,
 ) -> Result<()> {
     let profile_name = match profile.clone() {
         BuildProfile::Release | BuildProfile::Profiling => "release",
@@ -519,7 +543,7 @@ pub fn wasm_bindgen_build(
     };
 
     let wasm_path = target_directory
-        .join("wasm32-unknown-unknown")
+        .join(wasm_target.triple())
         .join(profile_name)
         .join(data.crate_name())
         .with_extension("wasm");
@@ -536,6 +560,9 @@ pub fn wasm_bindgen_build(
         .arg(out_dir)
         .arg(dts_arg);
 
+    // For emscripten target, wasm-bindgen auto-detects via the marker section.
+    // We still pass --target bundler (or module) to wasm-bindgen; the emscripten
+    // output mode overrides it internally when the marker is found.
     cmd.arg("--target").arg(target.to_string());
 
     if let Some(value) = out_name {

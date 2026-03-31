@@ -1,0 +1,17 @@
+[package]
+name = "emscripten-on-workers"
+version = "0.1.0"
+edition = "2021"
+
+[package.metadata.release]
+release = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+worker.workspace = true
+wasm-bindgen.workspace = true
+wasm-bindgen-futures.workspace = true
+tokio = { version = "1.28", default-features = false, features = ["sync", "macros", "rt"] }
+rand = "0.8"

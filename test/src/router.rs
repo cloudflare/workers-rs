@@ -1,7 +1,11 @@
 use crate::{
     alarm, analytics_engine, assets, auto_response, cache, container, counter, d1, durable, fetch,
-    form, js_snippets, kv, put_raw, queue, r2, rate_limit, request, secret_store, service, socket,
+    form, kv, put_raw, queue, r2, rate_limit, request, secret_store, service,
     sql_counter, sql_iterator, user, ws, SomeSharedData, GLOBAL_STATE,
+};
+#[cfg(not(target_os = "emscripten"))]
+use crate::{
+    js_snippets, socket,
 };
 #[cfg(feature = "http")]
 use std::convert::TryInto;
@@ -209,7 +213,9 @@ macro_rules! add_routes (
     add_route!($obj, put,  "/r2/put-properties", r2::put_properties);
     add_route!($obj, put,  "/r2/put-multipart", r2::put_multipart);
     add_route!($obj, delete, "/r2/delete", r2::delete);
+    #[cfg(not(target_os = "emscripten"))]
     add_route!($obj, get, "/socket/failed",  socket::handle_socket_failed);
+    #[cfg(not(target_os = "emscripten"))]
     add_route!($obj, get, "/socket/read",  socket::handle_socket_read);
     add_route!($obj, get, "/durable/auto-response", auto_response::handle_auto_response);
     add_route!($obj, get, "/durable/hello", durable::handle_hello);
@@ -218,7 +224,9 @@ macro_rules! add_routes (
     add_route!($obj, get, "/durable/handle-basic-test", durable::handle_basic_test);
     add_route!($obj, get, "/durable/get-by-name", durable::handle_get_by_name);
     add_route!($obj, get, "/durable/get-by-name-with-location-hint", durable::handle_get_by_name_with_location_hint);
+    #[cfg(not(target_os = "emscripten"))]
     add_route!($obj, get, "/js_snippets/now", js_snippets::performance_now);
+    #[cfg(not(target_os = "emscripten"))]
     add_route!($obj, get, "/js_snippets/log", js_snippets::console_log);
     add_route!($obj, get, format_route!("/sql-counter/{}", "*path"), sql_counter::handle_sql_counter);
     add_route!($obj, get, format_route!("/sql-iterator/{}", "*path"), sql_iterator::handle_sql_iterator);
@@ -227,6 +235,7 @@ macro_rules! add_routes (
     add_route!($obj, get, sync, "/test-panic", handle_test_panic);
     add_route!($obj, get, sync, "/test-abort", handle_test_abort);
     add_route!($obj, get, sync, "/test-oom", handle_test_oom);
+    #[cfg(not(target_os = "emscripten"))]
     add_route!($obj, get, sync, "/test-js-error", js_snippets::throw_js_error);
     add_route!($obj, post, "/container/echo", container::handle_container);
     add_route!($obj, get, "/container/ws", container::handle_container);

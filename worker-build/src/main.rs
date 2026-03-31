@@ -8,6 +8,7 @@ use std::{
 
 use anyhow::{Context, Result};
 use clap::Parser;
+use log::info;
 
 /// Default output dir passed to the internal build pipeline.
 ///
@@ -16,6 +17,23 @@ use clap::Parser;
 const OUT_DIR: &str = "build";
 
 const SHIM_FILE: &str = include_str!("./js/shim.js");
+const EMSCRIPTEN_WRAPPER_FILE: &str = include_str!("./js/emscripten_wrapper.js");
+/// Emscripten post-link flags passed to `emcc --post-link`.
+///
+/// These configure the emscripten JS runtime for Workers compatibility:
+///   - ERROR_ON_UNDEFINED_SYMBOLS=0: allow unresolved imports (wasm-bindgen glue)
+///   - MODULARIZE=1 + EXPORT_ES6=1: ESM factory function output
+///   - ENVIRONMENT=web: hardcode ENVIRONMENT_IS_WEB=true (avoids node/shell probes)
+const EMCC_POSTLINK_FLAGS: &[&str] = &[
+    "-sERROR_ON_UNDEFINED_SYMBOLS=0",
+    "-sMODULARIZE=1",
+    "-sEXPORT_ES6=1",
+    "-sENVIRONMENT=web,worker",
+    "-sASSERTIONS=0",
+    "-sFILESYSTEM=0",
+    // Suppress "--post-link is experimental" noise — we know.
+    "-Wno-experimental",
+];
 
 pub(crate) mod binary;
 mod build;
@@ -30,6 +48,7 @@ use build_lock::BuildLock;
 
 use crate::{
     binary::{Esbuild, GetBinary},
+    build::target::WasmTarget,
     build::Target,
 };
 
@@ -89,61 +108,90 @@ pub fn main() -> Result<()> {
 
     builder.init()?;
 
-    let supports_reset_state = builder.supports_target_module_and_reset_state()?;
-    let module_target =
-        supports_reset_state && !no_panic_recovery && env::var("CUSTOM_SHIM").is_err();
-    if module_target {
-        builder
-            .extra_args
-            .push("--experimental-reset-state-function".to_string());
-        builder.run()?;
-    } else {
-        if supports_reset_state {
-            // Enable once we have DO bindings to offer an alternative
-            // eprintln!("Using CUSTOM_SHIM will be deprecated in a future release.");
-        } else {
-            eprintln!("A newer version of wasm-bindgen is available. Update to use the latest workers-rs features.");
-        }
+    let is_emscripten = builder.wasm_target == WasmTarget::Emscripten;
+
+    if is_emscripten {
+        // Emscripten path: use bundler target for wasm-bindgen (emscripten mode
+        // is auto-detected via the __wasm_bindgen_emscripten_marker section).
         builder.target = Target::Bundler;
         builder.run()?;
-    }
 
-    let with_coredump = env::var("COREDUMP").is_ok();
-    if with_coredump {
-        println!("Adding wasm coredump");
-        wasm_coredump(&staging_dir)?;
-    }
+        // Run emcc --post-link: takes the wasm-bindgen output wasm and
+        // library_bindgen.js, produces output.js (emscripten JS runtime +
+        // wasm-bindgen glue) and output.wasm (post-linked wasm binary).
+        run_emcc_postlink(&staging_dir)?;
 
-    if module_target {
-        let shim = SHIM_FILE
-            .replace("$HANDLERS", &generate_handlers(&staging_dir)?)
-            .replace(
-                "$PANIC_CRITICAL_ERROR",
-                if builder.panic_unwind {
-                    ""
-                } else {
-                    "criticalError = true;"
-                },
-            );
-        let shim_path = output_path(&staging_dir, "shim.js");
-        fs::write(&shim_path, shim)
-            .with_context(|| format!("Failed to write {}", shim_path.display()))?;
+        // Generate the thin Workers wrapper that imports the emscripten
+        // module factory and wasm, then exports Workers handlers.
+        let wrapper = generate_emscripten_wrapper(&staging_dir)?;
+        let wrapper_path = output_path(&staging_dir, "wrapper.js");
+        fs::write(&wrapper_path, &wrapper)
+            .with_context(|| format!("Failed to write {}", wrapper_path.display()))?;
 
-        add_export_wrappers(&staging_dir)?;
-
-        update_package_json(&staging_dir)?;
-
+        // Bundle with esbuild
         let esbuild_path = Esbuild.get_binary(None)?.0;
-        bundle(&staging_dir, &esbuild_path)?;
+        bundle_emscripten(&staging_dir, &esbuild_path)?;
 
-        fix_wasm_import(&staging_dir)?;
-
-        remove_unused_files(&staging_dir)?;
+        remove_unused_files_emscripten(&staging_dir)?;
 
         create_wrapper_alias(&staging_dir, false)?;
     } else {
-        main_legacy::process(&staging_dir)?;
-        create_wrapper_alias(&staging_dir, true)?;
+        let supports_reset_state = builder.supports_target_module_and_reset_state()?;
+        let module_target =
+            supports_reset_state && !no_panic_recovery && env::var("CUSTOM_SHIM").is_err();
+        if module_target {
+            builder
+                .extra_args
+                .push("--experimental-reset-state-function".to_string());
+            builder.run()?;
+        } else {
+            if supports_reset_state {
+                // Enable once we have DO bindings to offer an alternative
+                // eprintln!("Using CUSTOM_SHIM will be deprecated in a future release.");
+            } else {
+                eprintln!("A newer version of wasm-bindgen is available. Update to use the latest workers-rs features.");
+            }
+            builder.target = Target::Bundler;
+            builder.run()?;
+        }
+
+        let with_coredump = env::var("COREDUMP").is_ok();
+        if with_coredump {
+            println!("Adding wasm coredump");
+            wasm_coredump(&staging_dir)?;
+        }
+
+        if module_target {
+            let shim = SHIM_FILE
+                .replace("$HANDLERS", &generate_handlers(&staging_dir)?)
+                .replace(
+                    "$PANIC_CRITICAL_ERROR",
+                    if builder.panic_unwind {
+                        ""
+                    } else {
+                        "criticalError = true;"
+                    },
+                );
+            let shim_path = output_path(&staging_dir, "shim.js");
+            fs::write(&shim_path, shim)
+                .with_context(|| format!("Failed to write {}", shim_path.display()))?;
+
+            add_export_wrappers(&staging_dir)?;
+
+            update_package_json(&staging_dir)?;
+
+            let esbuild_path = Esbuild.get_binary(None)?.0;
+            bundle(&staging_dir, &esbuild_path)?;
+
+            fix_wasm_import(&staging_dir)?;
+
+            remove_unused_files(&staging_dir)?;
+
+            create_wrapper_alias(&staging_dir, false)?;
+        } else {
+            main_legacy::process(&staging_dir)?;
+            create_wrapper_alias(&staging_dir, true)?;
+        }
     }
 
     // Swap staging entries into the real output directory and clean up.
@@ -416,6 +464,454 @@ fn remove_unused_files(out_dir: &Path) -> Result<()> {
 
 pub fn output_path(out_dir: &Path, name: impl AsRef<str>) -> PathBuf {
     out_dir.join(name.as_ref())
+}
+
+/// Run `emcc --post-link` on the wasm-bindgen output.
+///
+/// Takes `index_bg.wasm` (the wasm-bindgen output) and `library_bindgen.js`
+/// (the wasm-bindgen emscripten JS library) and produces `output.js`
+/// (emscripten JS runtime with wasm-bindgen glue inlined) and `output.wasm`
+/// (the post-linked wasm binary with emscripten runtime support).
+fn run_emcc_postlink(out_dir: &Path) -> Result<()> {
+    let wasm_path = output_path(out_dir, "index_bg.wasm");
+    let library_path = output_path(out_dir, "library_bindgen.js");
+    let output_path = output_path(out_dir, "output.js");
+
+    anyhow::ensure!(
+        wasm_path.exists(),
+        "wasm-bindgen output not found at {}",
+        wasm_path.display()
+    );
+    anyhow::ensure!(
+        library_path.exists(),
+        "library_bindgen.js not found at {}",
+        library_path.display()
+    );
+
+    let emcc =
+        which::which("emcc").context("emcc not found on PATH; required for --emscripten builds")?;
+
+    let mut cmd = Command::new(emcc);
+    cmd.arg("--post-link")
+        .arg(&wasm_path)
+        .arg("--js-library")
+        .arg(&library_path)
+        .arg("-o")
+        .arg(&output_path);
+
+    for flag in EMCC_POSTLINK_FLAGS {
+        cmd.arg(flag);
+    }
+
+    let exit_status = cmd.spawn()?.wait()?;
+    if !exit_status.success() {
+        anyhow::bail!("emcc --post-link exited with status {exit_status}");
+    }
+
+    // Verify output files were created
+    let output_wasm = output_path.with_file_name("output.wasm");
+    anyhow::ensure!(
+        output_path.exists(),
+        "emcc --post-link did not produce {}",
+        output_path.display()
+    );
+    anyhow::ensure!(
+        output_wasm.exists(),
+        "emcc --post-link did not produce {}",
+        output_wasm.display()
+    );
+
+    info!(
+        "emcc --post-link produced {} and {}",
+        output_path.display(),
+        output_wasm.display()
+    );
+
+    // Workaround: emscripten's --post-link mode doesn't detect that
+    // library_bindgen.js references HEAP_DATA_VIEW, so it omits the
+    // declaration and the assignment in updateMemoryViews(). Patch the
+    // output to include it until this is fixed upstream in emscripten.
+    patch_heap_data_view(&output_path)?;
+
+    Ok(())
+}
+
+/// Patch emscripten's output.js to include `HEAP_DATA_VIEW` if it is
+/// referenced but not declared. This is a temporary workaround for an
+/// upstream emscripten bug in `--post-link` mode.
+fn patch_heap_data_view(output_js: &Path) -> Result<()> {
+    let js = std::fs::read_to_string(output_js)?;
+
+    // Nothing to do if HEAP_DATA_VIEW isn't referenced or is already declared.
+    if !js.contains("HEAP_DATA_VIEW") || js.contains("var HEAP_DATA_VIEW") {
+        return Ok(());
+    }
+
+    // Emscripten's output uses multiline var declarations with JSDoc
+    // annotations, so we can't match a simple "var HEAP8, HEAPU8" pattern.
+    // Instead, prepend a standalone declaration before the existing block.
+    let js = if let Some(pos) = js.find("HEAP8,") {
+        // Walk back to find the start of the var statement
+        let var_pos = js[..pos].rfind("var").unwrap_or(pos);
+        format!("{}var HEAP_DATA_VIEW;\n{}", &js[..var_pos], &js[var_pos..])
+    } else {
+        js
+    };
+    let js = js.replacen(
+        "HEAPU8 = new Uint8Array(b);",
+        "HEAPU8 = new Uint8Array(b);\n    HEAP_DATA_VIEW = new DataView(b);",
+        1,
+    );
+
+    std::fs::write(output_js, js)?;
+    Ok(())
+}
+
+/// Information about an exported class detected in the wasm-bindgen TypeScript
+/// definitions.
+struct ClassInfo {
+    /// The JavaScript class name (e.g. `Counter`, `MyDurableObject`).
+    name: String,
+    /// Public method names, excluding internal wasm-bindgen methods like `free`,
+    /// `constructor`, `__destroy_into_raw`, and `[Symbol.dispose]`.
+    methods: Vec<String>,
+}
+
+/// Methods that are internal to wasm-bindgen and should not be proxied in the
+/// emscripten wrapper.
+const SKIP_CLASS_METHODS: &[&str] = &["free", "constructor"];
+
+/// Extract exported class information from `library_bindgen.js`.
+///
+/// The wasm-bindgen emscripten output contains class definitions inside the
+/// `$initBindgen` function, followed by `Module.<Name> = <Name>;` assignments.
+/// We parse these to generate proxy classes for the emscripten wrapper that
+/// lazily initialise the emscripten module and delegate to the real
+/// wasm-bindgen class instance.
+fn extract_class_info(out_dir: &Path) -> Result<Vec<ClassInfo>> {
+    let lib_path = output_path(out_dir, "library_bindgen.js");
+    if !lib_path.exists() {
+        return Ok(Vec::new());
+    }
+    let content = fs::read_to_string(&lib_path)
+        .with_context(|| format!("Failed to read {}", lib_path.display()))?;
+
+    // First pass: collect all names assigned to Module (these are exported).
+    let mut module_exports: std::collections::HashSet<String> = std::collections::HashSet::new();
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if let Some(rest) = trimmed.strip_prefix("Module.") {
+            if let Some(eq_pos) = rest.find(" = ") {
+                let name = rest[..eq_pos].trim();
+                if !name.starts_with("__wbindgen") && !name.starts_with("__wbg") {
+                    module_exports.insert(name.to_string());
+                }
+            }
+        }
+    }
+
+    // Second pass: find class definitions and their methods.
+    let mut classes = Vec::new();
+    let mut current_class: Option<(String, Vec<String>)> = None;
+    // Track brace depth to know when a class body ends.
+    let mut brace_depth: i32 = 0;
+
+    for line in content.lines() {
+        let trimmed = line.trim();
+
+        if current_class.is_none() {
+            // Look for `class <Name> {`
+            if let Some(rest) = trimmed.strip_prefix("class ") {
+                if let Some(brace_pos) = rest.find('{') {
+                    let name = rest[..brace_pos].trim().to_string();
+                    if module_exports.contains(&name) {
+                        current_class = Some((name, Vec::new()));
+                        brace_depth = 1;
+                    }
+                }
+            }
+        } else {
+            // Track brace depth to detect end of class.
+            for ch in trimmed.chars() {
+                match ch {
+                    '{' => brace_depth += 1,
+                    '}' => brace_depth -= 1,
+                    _ => {}
+                }
+            }
+
+            if brace_depth <= 0 {
+                // Class body ended.
+                if let Some((name, methods)) = current_class.take() {
+                    if !methods.is_empty() {
+                        classes.push(ClassInfo { name, methods });
+                    }
+                }
+            } else if let Some(paren_pos) = trimmed.find('(') {
+                // Potential method definition: `<name>(<args>) {`
+                let before_paren = trimmed[..paren_pos].trim();
+                // A valid method definition is a bare identifier followed
+                // by `(`. Skip anything that contains dots (property access),
+                // spaces (keywords/expressions), or other non-identifier chars.
+                let is_method_name = !before_paren.is_empty()
+                    && !before_paren.contains('.')
+                    && !before_paren.contains(' ')
+                    && !before_paren.contains('=')
+                    && !before_paren.starts_with("__")
+                    && !before_paren.starts_with("//")
+                    && !before_paren.starts_with("*")
+                    && !SKIP_CLASS_METHODS.contains(&before_paren);
+                if is_method_name {
+                    if let Some((_, ref mut methods)) = current_class {
+                        methods.push(before_paren.to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(classes)
+}
+
+/// Generate proxy class definitions for the emscripten wrapper.
+///
+/// Each proxy class:
+///   1. Stores constructor arguments synchronously (Workers calls `new Class(state, env)`)
+///   2. Lazily initialises the emscripten module on the first method call
+///   3. Delegates all method calls to the real wasm-bindgen class instance
+///
+/// This allows Durable Object classes (and any other exported classes) to work
+/// with the asynchronous emscripten module initialisation.
+fn generate_emscripten_classes(classes: &[ClassInfo]) -> String {
+    let mut output = String::new();
+
+    for class in classes {
+        // Class header + constructor
+        output.push_str(&format!("export class {} {{\n", class.name));
+        output.push_str("  constructor(...args) {\n");
+        output.push_str("    this.__em_args = args;\n");
+        output.push_str("    this.__em_inner = null;\n");
+        output.push_str("    this.__em_init = null;\n");
+        output.push_str("  }\n");
+
+        // Lazy initialisation helper
+        output.push_str("  __em_ensure() {\n");
+        output.push_str("    if (!this.__em_init) {\n");
+        output.push_str("      this.__em_init = getModule().then(mod => {\n");
+        output.push_str(&format!(
+            "        this.__em_inner = new mod.{}(...this.__em_args);\n",
+            class.name
+        ));
+        output.push_str("        this.__em_args = null;\n");
+        output.push_str("      });\n");
+        output.push_str("    }\n");
+        output.push_str("    return this.__em_init;\n");
+        output.push_str("  }\n");
+
+        // Proxy methods — each returns a Promise that resolves after the
+        // emscripten module is ready and the inner method completes.
+        for method in &class.methods {
+            output.push_str(&format!(
+                "  {method}(...args) {{\n    return this.__em_ensure().then(() => this.__em_inner.{method}(...args));\n  }}\n"
+            ));
+        }
+
+        output.push_str("}\n\n");
+    }
+
+    output
+}
+
+/// Extract exported function names from `library_bindgen.js`.
+///
+/// The wasm-bindgen emscripten output contains `Module.<name> = <name>;`
+/// assignments inside `$initBindgen`. We scan for these to determine which
+/// Workers handlers to wire up.
+fn extract_exported_functions(out_dir: &Path) -> Result<Vec<String>> {
+    let library_path = output_path(out_dir, "library_bindgen.js");
+    let content = fs::read_to_string(&library_path)
+        .with_context(|| format!("Failed to read {}", library_path.display()))?;
+
+    let mut func_names = Vec::new();
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if let Some(rest) = trimmed.strip_prefix("Module.") {
+            if let Some(eq_pos) = rest.find('=') {
+                let name = rest[..eq_pos].trim();
+                if !name.starts_with("__wbindgen") && !name.starts_with("__wbg") {
+                    func_names.push(name.to_string());
+                }
+            }
+        }
+    }
+
+    Ok(func_names)
+}
+
+/// Generate the Workers wrapper for the emscripten post-link output.
+///
+/// This is a thin ESM module that:
+///   1. Imports the emscripten module factory (`output.js`)
+///   2. Imports the wasm module (`output.wasm`)
+///   3. Lazily instantiates the emscripten module with a custom
+///      `instantiateWasm` hook (so Workers' wasm module loading works)
+///   4. Exports Workers-compatible handlers based on which functions
+///      the Rust crate exports via `#[wasm_bindgen]`
+///   5. Exports proxy classes for Durable Objects (and any other exported
+///      classes) that lazily initialise through the emscripten module
+fn generate_emscripten_wrapper(out_dir: &Path) -> Result<String> {
+    let func_names = extract_exported_functions(out_dir)?;
+    info!("Detected exported functions: {func_names:?}");
+
+    let classes = extract_class_info(out_dir)?;
+    if !classes.is_empty() {
+        info!(
+            "Detected exported classes: {:?}",
+            classes.iter().map(|c| &c.name).collect::<Vec<_>>()
+        );
+    }
+
+    let handlers = generate_emscripten_handlers(&func_names);
+    let class_defs = generate_emscripten_classes(&classes);
+
+    let js = EMSCRIPTEN_WRAPPER_FILE
+        .replace("$CLASSES", &class_defs)
+        .replace("$HANDLERS", &handlers);
+
+    Ok(js)
+}
+
+/// Build the handler method bodies for the emscripten wrapper's default export.
+fn generate_emscripten_handlers(func_names: &[String]) -> String {
+    let mut handlers = String::new();
+
+    // fetch handler — always present (falls back to 404)
+    if func_names.contains(&"fetch".to_string()) {
+        handlers.push_str(
+            "  async fetch(request, env, ctx) {
+    const mod = await getModule();
+    return mod.fetch(request, env, ctx);
+  },
+",
+        );
+    } else if func_names.contains(&"handle_request".to_string()) {
+        handlers.push_str(
+            "  async fetch(request, env, ctx) {
+    const mod = await getModule();
+    const result = await mod.handle_request();
+    return new Response(result, {
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    });
+  },
+",
+        );
+    } else {
+        handlers.push_str(
+            "  async fetch(request, env, ctx) {
+    return new Response('No fetch handler exported', { status: 404 });
+  },
+",
+        );
+    }
+
+    // scheduled handler
+    if func_names.contains(&"scheduled".to_string()) {
+        handlers.push_str(
+            "  async scheduled(event, env, ctx) {
+    const mod = await getModule();
+    return mod.scheduled(event, env, ctx);
+  },
+",
+        );
+    }
+
+    // queue handler
+    if func_names.contains(&"queue".to_string()) {
+        handlers.push_str(
+            "  async queue(batch, env, ctx) {
+    const mod = await getModule();
+    return mod.queue(batch, env, ctx);
+  },
+",
+        );
+    }
+
+    handlers
+}
+
+/// Bundle emscripten wrapper + emcc output with esbuild.
+///
+/// The wrapper.js imports output.js (emscripten runtime) and output.wasm.
+/// esbuild inlines output.js into the bundle but keeps output.wasm external
+/// since Workers load wasm modules directly.
+fn bundle_emscripten(out_dir: &Path, esbuild_path: &Path) -> Result<()> {
+    let path = out_dir
+        .canonicalize()
+        .with_context(|| format!("Failed to resolve output directory {}", out_dir.display()))?;
+    let esbuild_path = esbuild_path
+        .canonicalize()
+        .with_context(|| format!("Failed to resolve esbuild path {}", esbuild_path.display()))?;
+
+    let no_minify = !matches!(env::var("NO_MINIFY"), Err(env::VarError::NotPresent));
+
+    let mut command = Command::new(esbuild_path);
+    command.args([
+        // Mark wasm as external — Workers handle wasm module loading
+        "--external:./output.wasm",
+        "--format=esm",
+        "--bundle",
+        "./wrapper.js",
+        "--outfile=index.js",
+        "--allow-overwrite",
+    ]);
+
+    if !no_minify {
+        command.arg("--minify");
+    }
+
+    let exit_status = command.current_dir(path).spawn()?.wait()?;
+
+    match exit_status.success() {
+        true => Ok(()),
+        false => anyhow::bail!("esbuild exited with status {exit_status}"),
+    }
+}
+
+/// Remove build artifacts that aren't needed in the final output for emscripten.
+///
+/// After bundling, the final output contains only:
+///   - `index.js` — bundled ESM entry point (esbuild output)
+///   - `output.wasm` — post-linked wasm binary (external to esbuild)
+///   - `worker/shim.mjs` — backwards-compat alias
+///
+/// Everything else is intermediate and can be removed.
+fn remove_unused_files_emscripten(out_dir: &Path) -> Result<()> {
+    let intermediates = [
+        "wrapper.js",
+        "output.js",
+        "library_bindgen.js",
+        "index_bg.wasm",
+        "index_bg.wasm.d.ts",
+        "index.d.ts",
+        "package.json",
+    ];
+
+    for name in &intermediates {
+        let path = output_path(out_dir, name);
+        if path.exists() {
+            std::fs::remove_file(&path)
+                .with_context(|| format!("Failed to remove {}", path.display()))?;
+        }
+    }
+
+    // Remove snippets if present
+    let snippets_path = output_path(out_dir, "snippets");
+    if snippets_path.exists() {
+        std::fs::remove_dir_all(&snippets_path)
+            .with_context(|| format!("Failed to remove {}", snippets_path.display()))?;
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
