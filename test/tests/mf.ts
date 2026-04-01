@@ -1,7 +1,6 @@
-import { Miniflare, Response } from "miniflare";
-import { MockAgent } from "undici";
+import { Miniflare, Response, createFetchMock } from "miniflare";
 
-const mockAgent = new MockAgent();
+const mockAgent = createFetchMock();
 
 mockAgent
   .get("https://cloudflare.com")
@@ -125,6 +124,11 @@ const mf_instance = new Miniflare({
         EVENT_WORKFLOW: {
           name: "event-workflow",
           className: "EventWorkflow",
+          scriptName: "workflow-worker",
+        },
+        LIFECYCLE_WORKFLOW: {
+          name: "lifecycle-workflow",
+          className: "LifecycleWorkflow",
           scriptName: "workflow-worker",
         },
       },

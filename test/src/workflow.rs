@@ -1,6 +1,37 @@
 use serde::{Deserialize, Serialize};
 use worker::*;
 
+fn last_path_segment(req: &Request) -> Result<String> {
+    let url = req.url()?;
+    url.path_segments()
+        .and_then(|s| s.last().map(String::from))
+        .ok_or_else(|| Error::RustError("missing path segment".into()))
+}
+
+async fn get_workflow_instance(
+    req: &Request,
+    env: &Env,
+    binding: &str,
+) -> Result<WorkflowInstance> {
+    let id = last_path_segment(req)?;
+    let workflow = env.workflow(binding)?;
+    workflow.get(&id).await
+}
+
+async fn create_workflow_no_params(env: &Env, binding: &str) -> Result<Response> {
+    let workflow = env.workflow(binding)?;
+    let instance = workflow.create(None::<CreateOptions<()>>).await?;
+    Response::from_json(&serde_json::json!({ "id": instance.id()? }))
+}
+
+fn status_response(status: InstanceStatus) -> Result<Response> {
+    Response::from_json(&serde_json::json!({
+        "status": format!("{:?}", status.status),
+        "output": status.output,
+        "error": status.error,
+    }))
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TestParams {
     pub value: String,
@@ -95,18 +126,9 @@ pub async fn handle_workflow_status(
     env: Env,
     _data: crate::SomeSharedData,
 ) -> Result<Response> {
-    let url = req.url()?;
-    let path = url.path();
-    let id = path.trim_start_matches("/workflow/status/");
-    let workflow = env.workflow("TEST_WORKFLOW")?;
-    let instance = workflow.get(id).await?;
+    let instance = get_workflow_instance(&req, &env, "TEST_WORKFLOW").await?;
     let status = instance.status().await?;
-
-    Response::from_json(&serde_json::json!({
-        "status": format!("{:?}", status.status),
-        "output": status.output,
-        "error": status.error,
-    }))
+    status_response(status)
 }
 
 #[workflow]
@@ -147,9 +169,7 @@ pub async fn handle_event_workflow_create(
     env: Env,
     _data: crate::SomeSharedData,
 ) -> Result<Response> {
-    let workflow = env.workflow("EVENT_WORKFLOW")?;
-    let instance = workflow.create(None::<CreateOptions<()>>).await?;
-    Response::from_json(&serde_json::json!({ "id": instance.id()? }))
+    create_workflow_no_params(&env, "EVENT_WORKFLOW").await
 }
 
 pub async fn handle_event_workflow_send(
@@ -157,11 +177,8 @@ pub async fn handle_event_workflow_send(
     env: Env,
     _data: crate::SomeSharedData,
 ) -> Result<Response> {
-    let url = req.url()?;
-    let id = url.path().trim_start_matches("/workflow/event/send/");
+    let instance = get_workflow_instance(&req, &env, "EVENT_WORKFLOW").await?;
     let payload: serde_json::Value = req.json().await?;
-    let workflow = env.workflow("EVENT_WORKFLOW")?;
-    let instance = workflow.get(id).await?;
     instance.send_event("approval", payload).await?;
     Response::ok("sent")
 }
@@ -171,14 +188,86 @@ pub async fn handle_event_workflow_status(
     env: Env,
     _data: crate::SomeSharedData,
 ) -> Result<Response> {
-    let url = req.url()?;
-    let id = url.path().trim_start_matches("/workflow/event/status/");
-    let workflow = env.workflow("EVENT_WORKFLOW")?;
-    let instance = workflow.get(id).await?;
+    let instance = get_workflow_instance(&req, &env, "EVENT_WORKFLOW").await?;
     let status = instance.status().await?;
-    Response::from_json(&serde_json::json!({
-        "status": format!("{:?}", status.status),
-        "output": status.output,
-        "error": status.error,
-    }))
+    status_response(status)
+}
+
+#[workflow]
+pub struct LifecycleWorkflow {
+    #[allow(dead_code)]
+    env: Env,
+}
+
+impl WorkflowEntrypoint for LifecycleWorkflow {
+    fn new(_ctx: Context, env: Env) -> Self {
+        Self { env }
+    }
+
+    async fn run(
+        &self,
+        _event: WorkflowEvent<serde_json::Value>,
+        step: WorkflowStep,
+    ) -> Result<serde_json::Value> {
+        step.sleep("long-sleep", "60 seconds").await?;
+        Ok(serde_json::json!({ "done": true }))
+    }
+}
+
+pub async fn handle_lifecycle_workflow_create(
+    _req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    create_workflow_no_params(&env, "LIFECYCLE_WORKFLOW").await
+}
+
+pub async fn handle_lifecycle_workflow_status(
+    req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let instance = get_workflow_instance(&req, &env, "LIFECYCLE_WORKFLOW").await?;
+    let status = instance.status().await?;
+    status_response(status)
+}
+
+pub async fn handle_lifecycle_workflow_pause(
+    req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let instance = get_workflow_instance(&req, &env, "LIFECYCLE_WORKFLOW").await?;
+    instance.pause().await?;
+    Response::ok("paused")
+}
+
+pub async fn handle_lifecycle_workflow_resume(
+    req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let instance = get_workflow_instance(&req, &env, "LIFECYCLE_WORKFLOW").await?;
+    instance.resume().await?;
+    Response::ok("resumed")
+}
+
+pub async fn handle_lifecycle_workflow_terminate(
+    req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let instance = get_workflow_instance(&req, &env, "LIFECYCLE_WORKFLOW").await?;
+    instance.terminate().await?;
+    Response::ok("terminated")
+}
+
+pub async fn handle_lifecycle_workflow_restart(
+    req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let instance = get_workflow_instance(&req, &env, "LIFECYCLE_WORKFLOW").await?;
+    instance.restart().await?;
+    Response::ok("restarted")
 }

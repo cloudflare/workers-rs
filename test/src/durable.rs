@@ -23,8 +23,6 @@ pub struct QueryParams {
 
 impl DurableObject for MyClass {
     fn new(state: State, _env: Env) -> Self {
-        // Unfortunately we can't access the `name` property within the Durable Object (see <https://github.com/cloudflare/workerd/issues/2240>). Instead, we can pass it as a request parameter.
-        assert!(state.id().name().is_none());
         Self {
             state,
             number: RefCell::new(0),
