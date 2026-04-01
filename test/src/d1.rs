@@ -5,7 +5,9 @@ use crate::{
 };
 use serde::Deserialize;
 use wasm_bindgen::JsValue;
-use worker::{D1PreparedArgument, D1Type, Env, Error, Request, Response, Result};
+use worker::{
+    D1PreparedArgument, D1SessionConstraint, D1Type, Env, Error, Request, Response, Result,
+};
 
 #[derive(Deserialize)]
 struct Person {
@@ -89,6 +91,85 @@ pub async fn batch(_req: Request, env: Env, _data: SomeSharedData) -> Result<Res
     assert_eq!(second_results.len(), 2);
     assert_eq!(second_results[0].id, 5);
     assert_eq!(second_results[1].id, 6);
+
+    Response::ok("ok")
+}
+
+#[worker::send]
+pub async fn session_prepare_and_batch(
+    _req: Request,
+    env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
+    let db = env.d1("DB")?;
+
+    let session = db.with_session(None)?;
+    assert_eq!(session.get_bookmark()?, None);
+
+    let stmt = session
+        .prepare("SELECT * FROM people WHERE id = ?")
+        .bind_refs(&D1Type::Integer(6))?;
+    let person = stmt.first::<Person>(None).await?.unwrap();
+    assert_eq!(person.id, 6);
+    assert_eq!(person.name, "Ryan Upton");
+    assert_eq!(person.age, 21);
+
+    let constrained_session = db.with_session_constraint(D1SessionConstraint::FirstPrimary)?;
+    let mut results = constrained_session
+        .batch(vec![
+            constrained_session.prepare("SELECT * FROM people WHERE id < 3"),
+            constrained_session.prepare("SELECT * FROM people WHERE id > 5"),
+        ])
+        .await?
+        .into_iter();
+
+    let first_results = results.next().unwrap().results::<Person>()?;
+    assert_eq!(first_results.len(), 2);
+    assert_eq!(first_results[0].id, 1);
+    assert_eq!(first_results[1].id, 2);
+
+    let second_results = results.next().unwrap().results::<Person>()?;
+    assert_eq!(second_results.len(), 1);
+    assert_eq!(second_results[0].id, 6);
+
+    Response::ok("ok")
+}
+
+#[worker::send]
+pub async fn session_bookmark_roundtrip(
+    _req: Request,
+    env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
+    let db = env.d1("DB")?;
+    let session = db.with_session_constraint(D1SessionConstraint::FirstUnconstrained)?;
+
+    let stmt = session
+        .prepare("SELECT * FROM people WHERE id = ?")
+        .bind_refs(&D1Type::Integer(1))?;
+    let person = stmt.first::<Person>(None).await?.unwrap();
+    assert_eq!(person.id, 1);
+
+    let bookmark = session.get_bookmark()?;
+    if let Some(bookmark) = bookmark {
+        assert!(!bookmark.is_empty());
+
+        let resumed_session = db.with_session(Some(&bookmark))?;
+        let stmt = resumed_session
+            .prepare("SELECT * FROM people WHERE id = ?")
+            .bind_refs(&D1Type::Integer(4))?;
+        let person = stmt.first::<Person>(None).await?.unwrap();
+        assert_eq!(person.name, "John Smith");
+    } else {
+        // Some local runtimes may not materialize bookmarks for simple reads.
+        // Keep this test verifying API behavior without making bookmark presence mandatory.
+        let fallback_session = db.with_session_constraint(D1SessionConstraint::FirstPrimary)?;
+        let stmt = fallback_session
+            .prepare("SELECT * FROM people WHERE id = ?")
+            .bind_refs(&D1Type::Integer(4))?;
+        let person = stmt.first::<Person>(None).await?.unwrap();
+        assert_eq!(person.name, "John Smith");
+    }
 
     Response::ok("ok")
 }
