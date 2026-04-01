@@ -64,7 +64,7 @@ jobs:
       - uses: cargo-bins/cargo-binstall@main
 
       - name: Install cargo-generate
-        run: cargo binstall cargo-generate
+        run: cargo binstall --locked cargo-generate
 
       - name: Generate and build all templates
         run: |
@@ -198,24 +198,7 @@ jobs:
       - name: Run unit tests
         run: chomp test:unit
 
-      - name: Set up Docker Buildx
-        if: matrix.platform == 'ubuntu-latest'
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Container
-        if: matrix.platform == 'ubuntu-latest'
-        uses: docker/build-push-action@v6
-        with:
-          context: ./test/container-echo
-          push: false
-          load: true
-          tags: worker-dev/echocontainer:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
       - name: Run tests
-        env:
-          TEST_CONTAINER_NAME: ${{ matrix.platform == 'ubuntu-latest' && 'worker-dev/echocontainer:latest' || '' }}
         run: chomp test
 
       - name: Run tests (http)
