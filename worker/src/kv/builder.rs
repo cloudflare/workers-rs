@@ -4,6 +4,7 @@ use serde_json::Value;
 use serde_wasm_bindgen::Serializer;
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
+use web_sys::ReadableStream;
 
 use crate::kv::{KvError, ListResponse};
 
@@ -219,6 +220,15 @@ impl GetOptionsBuilder {
         }
     }
 
+    /// Gets the value as a readable stream.
+    pub async fn stream(self) -> Result<Option<ReadableStream>, KvError> {
+        let value = self.value_type(GetValueType::Stream).get().await?;
+        match value.dyn_into::<ReadableStream>() {
+            Ok(stream) => Ok(Some(stream)),
+            Err(_) => Ok(None),
+        }
+    }
+
     async fn get_with_metadata<M>(&self) -> Result<(JsValue, Option<M>), KvError>
     where
         M: DeserializeOwned,
@@ -294,6 +304,24 @@ impl GetOptionsBuilder {
             Ok((None, metadata))
         }
     }
+
+    /// Gets the value as a readable stream and it's associated metadata.
+    pub async fn stream_with_metadata<M>(
+        self,
+    ) -> Result<(Option<ReadableStream>, Option<M>), KvError>
+    where
+        M: DeserializeOwned,
+    {
+        let (value, metadata) = self
+            .value_type(GetValueType::Stream)
+            .get_with_metadata()
+            .await?;
+
+        match value.dyn_into::<ReadableStream>() {
+            Ok(stream) => Ok((Some(stream), metadata)),
+            Err(_) => Ok((None, metadata)),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Copy)]
@@ -301,5 +329,6 @@ impl GetOptionsBuilder {
 pub(crate) enum GetValueType {
     Text,
     ArrayBuffer,
+    Stream,
     Json,
 }
