@@ -8,8 +8,8 @@ macro_rules! version {
 
 // Current build toolchain, always used exactly for builds, unless overridden by {}_BIN env vars
 pub(crate) static LATEST_WASM_BINDGEN_VERSION: LazyLock<semver::Version> = version!("0.2.117");
-pub(crate) static CUR_WASM_OPT_VERSION: &str = "126";
-pub(crate) static CUR_ESBUILD_VERSION: LazyLock<semver::Version> = version!("0.27.3");
+pub(crate) static CUR_WASM_OPT_VERSION: &str = "129";
+pub(crate) static CUR_ESBUILD_VERSION: LazyLock<semver::Version> = version!("0.27.4");
 
 // Minimum required libraries, validated before build
 pub(crate) static MIN_WASM_BINDGEN_LIB_VERSION: LazyLock<semver::Version> = version!("0.2.106");
