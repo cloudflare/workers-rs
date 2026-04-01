@@ -1,4 +1,6 @@
-use js_sys::{ArrayBuffer, Function, Object, Promise, Uint8Array};
+use std::collections::HashMap;
+
+use js_sys::{ArrayBuffer, Function, Map as JsMap, Object, Promise, Uint8Array};
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
 use serde_wasm_bindgen::Serializer;
@@ -6,7 +8,38 @@ use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::ReadableStream;
 
-use crate::kv::{KvError, ListResponse};
+use crate::kv::{self, KvError, ListResponse};
+
+/// Deserializes a possibly-null JsValue into `Option<T>`.
+fn deserialize_nullable<T: DeserializeOwned>(value: JsValue) -> Result<Option<T>, KvError> {
+    if value.is_null() || value.is_undefined() {
+        Ok(None)
+    } else {
+        Ok(Some(
+            serde_wasm_bindgen::from_value(value).map_err(JsValue::from)?,
+        ))
+    }
+}
+
+/// Extracts and deserializes metadata from a JS object with a "metadata" field.
+fn extract_metadata<M: DeserializeOwned>(entry: &JsValue) -> Result<Option<M>, KvError> {
+    let metadata = kv::get(entry, "metadata")?;
+    deserialize_nullable(metadata)
+}
+
+/// Builds the options JsValue for get/getWithMetadata calls.
+fn build_get_options(
+    cache_ttl: Option<u64>,
+    value_type: Option<GetValueType>,
+) -> Result<JsValue, KvError> {
+    let ser = Serializer::json_compatible();
+    Ok(GetOptions {
+        cache_ttl,
+        value_type,
+    }
+    .serialize(&ser)
+    .map_err(JsValue::from)?)
+}
 
 /// A builder to configure put requests.
 #[derive(Debug, Clone)]
@@ -169,18 +202,8 @@ impl GetOptionsBuilder {
         self
     }
 
-    fn options(&self) -> Result<JsValue, KvError> {
-        let ser = Serializer::json_compatible();
-        Ok(GetOptions {
-            cache_ttl: self.cache_ttl,
-            value_type: self.value_type,
-        }
-        .serialize(&ser)
-        .map_err(JsValue::from)?)
-    }
-
     async fn get(self) -> Result<JsValue, KvError> {
-        let options_object = self.options()?;
+        let options_object = build_get_options(self.cache_ttl, self.value_type)?;
 
         let promise: Promise = self
             .get_function
@@ -201,11 +224,7 @@ impl GetOptionsBuilder {
         T: DeserializeOwned,
     {
         let value = self.value_type(GetValueType::Json).get().await?;
-        Ok(if value.is_null() {
-            None
-        } else {
-            Some(serde_wasm_bindgen::from_value(value).map_err(JsValue::from)?)
-        })
+        deserialize_nullable(value)
     }
 
     /// Gets the value as a byte slice.
@@ -233,7 +252,7 @@ impl GetOptionsBuilder {
     where
         M: DeserializeOwned,
     {
-        let options_object = self.options()?;
+        let options_object = build_get_options(self.cache_ttl, self.value_type)?;
 
         let promise: Promise = self
             .get_with_meta_function
@@ -241,17 +260,10 @@ impl GetOptionsBuilder {
             .into();
 
         let pair = JsFuture::from(promise).await?;
-        let metadata = crate::kv::get(&pair, "metadata")?;
-        let value = crate::kv::get(&pair, "value")?;
+        let value = kv::get(&pair, "value")?;
+        let metadata = extract_metadata(&pair)?;
 
-        Ok((
-            value,
-            if metadata.is_null() {
-                None
-            } else {
-                Some(serde_wasm_bindgen::from_value(metadata).map_err(JsValue::from)?)
-            },
-        ))
+        Ok((value, metadata))
     }
 
     /// Gets the value as a string and it's associated metadata.
@@ -276,14 +288,7 @@ impl GetOptionsBuilder {
             .value_type(GetValueType::Json)
             .get_with_metadata()
             .await?;
-        Ok((
-            if value.is_null() {
-                None
-            } else {
-                Some(serde_wasm_bindgen::from_value(value).map_err(JsValue::from)?)
-            },
-            metadata,
-        ))
+        Ok((deserialize_nullable(value)?, metadata))
     }
 
     /// Gets the value as a byte slice and it's associated metadata.
@@ -331,4 +336,177 @@ pub(crate) enum GetValueType {
     ArrayBuffer,
     Stream,
     Json,
+}
+
+/// A builder to configure bulk get requests.
+#[derive(Debug)]
+#[must_use = "GetBulkOptionsBuilder does nothing until you 'get' it"]
+pub struct GetBulkOptionsBuilder {
+    pub(crate) this: Object,
+    pub(crate) get_function: Function,
+    pub(crate) get_with_meta_function: Function,
+    pub(crate) keys: JsValue,
+    pub(crate) cache_ttl: Option<u64>,
+    pub(crate) value_type: Option<GetValueType>,
+}
+
+impl GetBulkOptionsBuilder {
+    /// The cache_ttl parameter must be an integer that is greater than or equal to 60. It defines
+    /// the length of time in seconds that a KV result is cached in the edge location that it is
+    /// accessed from.
+    pub fn cache_ttl(mut self, cache_ttl: u64) -> Self {
+        self.cache_ttl = Some(cache_ttl);
+        self
+    }
+
+    fn value_type(mut self, value_type: GetValueType) -> Self {
+        self.value_type = Some(value_type);
+        self
+    }
+
+    async fn get(self) -> Result<JsMap, KvError> {
+        let options_object = build_get_options(self.cache_ttl, self.value_type)?;
+
+        let promise: Promise = self
+            .get_function
+            .call2(&self.this, &self.keys, &options_object)?
+            .into();
+        let result = JsFuture::from(promise).await?;
+        Ok(JsMap::from(result))
+    }
+
+    /// Gets all values as strings.
+    pub async fn text(self) -> Result<HashMap<String, Option<String>>, KvError> {
+        let map = self.value_type(GetValueType::Text).get().await?;
+        let mut result = HashMap::new();
+        map.for_each(&mut |value, key| {
+            if let Some(k) = key.as_string() {
+                result.insert(k, value.as_string());
+            }
+        });
+        Ok(result)
+    }
+
+    /// Tries to deserialize all values to the generic type.
+    pub async fn json<T>(self) -> Result<HashMap<String, Option<T>>, KvError>
+    where
+        T: DeserializeOwned,
+    {
+        let map = self.value_type(GetValueType::Json).get().await?;
+        let mut result = HashMap::new();
+        let mut last_err: Option<KvError> = None;
+        map.for_each(&mut |value, key| {
+            if last_err.is_some() {
+                return;
+            }
+            if let Some(k) = key.as_string() {
+                match deserialize_nullable(value) {
+                    Ok(v) => {
+                        result.insert(k, v);
+                    }
+                    Err(e) => {
+                        last_err = Some(e);
+                    }
+                }
+            }
+        });
+        if let Some(err) = last_err {
+            return Err(err);
+        }
+        Ok(result)
+    }
+
+    async fn get_with_metadata(self) -> Result<JsMap, KvError> {
+        let options_object = build_get_options(self.cache_ttl, self.value_type)?;
+
+        let promise: Promise = self
+            .get_with_meta_function
+            .call2(&self.this, &self.keys, &options_object)?
+            .into();
+        let result = JsFuture::from(promise).await?;
+        Ok(JsMap::from(result))
+    }
+
+    /// Gets all values as strings along with their associated metadata.
+    pub async fn text_with_metadata<M>(
+        self,
+    ) -> Result<HashMap<String, (Option<String>, Option<M>)>, KvError>
+    where
+        M: DeserializeOwned,
+    {
+        let map = self
+            .value_type(GetValueType::Text)
+            .get_with_metadata()
+            .await?;
+        let mut result = HashMap::new();
+        let mut last_err: Option<KvError> = None;
+        map.for_each(&mut |entry, key| {
+            if last_err.is_some() {
+                return;
+            }
+            if let Some(k) = key.as_string() {
+                let value = match kv::get(&entry, "value") {
+                    Ok(v) => v,
+                    Err(e) => {
+                        last_err = Some(KvError::from(e));
+                        return;
+                    }
+                };
+                match extract_metadata(&entry) {
+                    Ok(metadata) => {
+                        result.insert(k, (value.as_string(), metadata));
+                    }
+                    Err(e) => {
+                        last_err = Some(e);
+                    }
+                }
+            }
+        });
+        if let Some(err) = last_err {
+            return Err(err);
+        }
+        Ok(result)
+    }
+
+    /// Tries to deserialize all values to the generic type along with their associated metadata.
+    pub async fn json_with_metadata<T, M>(
+        self,
+    ) -> Result<HashMap<String, (Option<T>, Option<M>)>, KvError>
+    where
+        T: DeserializeOwned,
+        M: DeserializeOwned,
+    {
+        let map = self
+            .value_type(GetValueType::Json)
+            .get_with_metadata()
+            .await?;
+        let mut result = HashMap::new();
+        let mut last_err: Option<KvError> = None;
+        map.for_each(&mut |entry, key| {
+            if last_err.is_some() {
+                return;
+            }
+            if let Some(k) = key.as_string() {
+                let value_js = match kv::get(&entry, "value") {
+                    Ok(v) => v,
+                    Err(e) => {
+                        last_err = Some(KvError::from(e));
+                        return;
+                    }
+                };
+                match (deserialize_nullable(value_js), extract_metadata(&entry)) {
+                    (Ok(value), Ok(metadata)) => {
+                        result.insert(k, (value, metadata));
+                    }
+                    (Err(e), _) | (_, Err(e)) => {
+                        last_err = Some(e);
+                    }
+                }
+            }
+        });
+        if let Some(err) = last_err {
+            return Err(err);
+        }
+        Ok(result)
+    }
 }
