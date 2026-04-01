@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::convert::TryFrom;
 use std::{cell::RefCell, collections::HashMap};
 use worker::DurableObject;
@@ -16,15 +16,8 @@ pub struct MyClass {
     number: RefCell<usize>,
 }
 
-#[derive(Deserialize)]
-pub struct QueryParams {
-    name: String,
-}
-
 impl DurableObject for MyClass {
     fn new(state: State, _env: Env) -> Self {
-        // Unfortunately we can't access the `name` property within the Durable Object (see <https://github.com/cloudflare/workerd/issues/2240>). Instead, we can pass it as a request parameter.
-        assert!(state.id().name().is_none());
         Self {
             state,
             number: RefCell::new(0),
@@ -36,7 +29,11 @@ impl DurableObject for MyClass {
         let handler = async move {
             match req.path().as_str() {
                 "/hello" => {
-                    let name = &req.query::<QueryParams>()?.name;
+                    let name = self
+                        .state
+                        .id()
+                        .name()
+                        .unwrap_or_else(|| "unknown".to_string());
                     Response::ok(format!("Hello from {name}!"))
                 }
                 "/storage" => {
@@ -327,8 +324,7 @@ pub async fn handle_get_by_name(
     // let stub = id.get_stub()?;
     let stub = namespace.get_by_name(name)?;
 
-    stub.fetch_with_str(&format!("https://fake-host/hello?name={name}"))
-        .await
+    stub.fetch_with_str("https://fake-host/hello").await
 }
 
 #[worker::send]
@@ -343,6 +339,5 @@ pub async fn handle_get_by_name_with_location_hint(
     // Using the new get_by_name_with_location_hint method
     let stub = namespace.get_by_name_with_location_hint(name, "enam")?;
 
-    stub.fetch_with_str(&format!("https://fake-host/hello?name={name}"))
-        .await
+    stub.fetch_with_str("https://fake-host/hello").await
 }

@@ -1,7 +1,6 @@
-import { Miniflare, Response } from "miniflare";
-import { MockAgent } from "undici";
+import { Miniflare, Response, createFetchMock } from "miniflare";
 
-const mockAgent = new MockAgent();
+const mockAgent = createFetchMock();
 
 mockAgent
   .get("https://cloudflare.com")
