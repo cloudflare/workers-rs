@@ -206,8 +206,7 @@ pub async fn handle_hello(
     let name = "my-durable-object";
     let id = namespace.id_from_name(name)?;
     let stub = id.get_stub()?;
-    stub.fetch_with_str(&format!("https://fake-host/hello?name={name}"))
-        .await
+    stub.fetch_with_str("https://fake-host/hello").await
 }
 
 #[worker::send]
@@ -218,10 +217,8 @@ pub async fn handle_hello_unique(
 ) -> Result<Response> {
     let namespace = env.durable_object("MY_CLASS")?;
     let id = namespace.unique_id()?;
-    let name = id.to_string();
     let stub = id.get_stub()?;
-    stub.fetch_with_str(&format!("https://fake-host/hello?name={name}"))
-        .await
+    stub.fetch_with_str("https://fake-host/hello").await
 }
 
 #[worker::send]
@@ -253,16 +250,13 @@ pub async fn handle_basic_test(
 
     let stub = id.get_stub()?;
     let res = stub
-        .fetch_with_str(&format!(
-            "https://fake-host/hello?name={}",
-            id.name().unwrap()
-        ))
+        .fetch_with_str("https://fake-host/hello")
         .await?
         .text()
         .await?;
     let res2 = stub
         .fetch_with_request(Request::new_with_init(
-            &format!("https://fake-host/hello?name={}", id.name().unwrap()),
+            "https://fake-host/hello",
             RequestInit::new()
                 .with_body(Some("lol".into()))
                 .with_method(Method::Post),
