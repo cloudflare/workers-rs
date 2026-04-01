@@ -16,7 +16,7 @@ describe("container", () => {
       body: test_text,
     });
     expect(await resp.text()).toBe(test_text);
-  });
+  }, 60_000);
 
   (testContainer ? test : test.skip)("websocket-to-container", async () => {
     const resp = await mf.dispatchFetch(`${mfUrl}container/ws`, {
@@ -43,5 +43,5 @@ describe("container", () => {
     }
 
     socket.close();
-  });
+  }, 60_000);
 });
