@@ -9,12 +9,6 @@ use std::{
 use anyhow::{Context, Result};
 use clap::Parser;
 
-/// Default output dir passed to the internal build pipeline.
-///
-/// Note: all filesystem access must be relative to the crate root discovered by
-/// `Build::try_from_opts` (i.e. `Build::out_dir`), NOT the process current-dir.
-const OUT_DIR: &str = "build";
-
 const SHIM_FILE: &str = include_str!("./js/shim.js");
 
 pub(crate) mod binary;
@@ -357,8 +351,6 @@ where
         "--no-typescript".to_owned(),
         "--target".to_owned(),
         "module".to_owned(),
-        "--out-dir".to_owned(),
-        OUT_DIR.to_owned(),
         "--out-name".to_owned(),
         "index".to_owned(),
     ];
@@ -426,5 +418,19 @@ mod test {
         let args = vec!["--release".to_owned()];
         let result = parse_wasm_pack_opts(args);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_out_dir_default() {
+        let args: Vec<String> = vec![];
+        let result = parse_wasm_pack_opts(args).unwrap();
+        assert_eq!(result.out_dir, "build");
+    }
+
+    #[test]
+    fn test_out_dir_override() {
+        let args = vec!["--out-dir".to_owned(), "dist/worker".to_owned()];
+        let result = parse_wasm_pack_opts(args).unwrap();
+        assert_eq!(result.out_dir, "dist/worker");
     }
 }

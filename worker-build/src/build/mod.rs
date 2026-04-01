@@ -145,7 +145,7 @@ pub struct BuildOptions {
     #[command(flatten)]
     pub profile: ProfileOptions,
 
-    #[clap(long = "out-dir", short = 'd', default_value = "pkg", hide = true)]
+    #[clap(long = "out-dir", short = 'd', default_value = "build")]
     /// Sets the output directory with a relative path.
     pub out_dir: String,
 
