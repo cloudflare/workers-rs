@@ -64,7 +64,7 @@ jobs:
       - uses: cargo-bins/cargo-binstall@main
 
       - name: Install cargo-generate
-        run: cargo binstall cargo-generate
+        run: cargo binstall --locked cargo-generate
 
       - name: Generate and build all templates
         run: |
