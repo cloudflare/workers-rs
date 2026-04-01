@@ -297,13 +297,13 @@ impl WorkflowStep {
         Fut: Future<Output = Result<T>> + 'static,
     {
         let callback = Rc::new(AssertUnwindSafe(callback));
-        wasm_bindgen::closure::Closure::wrap(Box::new(move || -> js_sys::Promise {
+        wasm_bindgen::closure::Closure::new(move || -> js_sys::Promise {
             let callback = callback.clone();
             future_to_promise(AssertUnwindSafe(async move {
                 let result = (callback.0)().await.map_err(JsValue::from)?;
                 serialize_as_object(&result).map_err(|e| JsValue::from_str(&e.to_string()))
             }))
-        }) as Box<dyn FnMut() -> js_sys::Promise>)
+        })
     }
 
     /// Execute a named step. The callback's return value is persisted and

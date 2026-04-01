@@ -4,7 +4,7 @@ use worker::*;
 fn last_path_segment(req: &Request) -> Result<String> {
     let url = req.url()?;
     url.path_segments()
-        .and_then(|s| s.last().map(String::from))
+        .and_then(|mut s| s.next_back().map(String::from))
         .ok_or_else(|| Error::RustError("missing path segment".into()))
 }
 
