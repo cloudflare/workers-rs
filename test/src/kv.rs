@@ -148,3 +148,42 @@ pub async fn put_metadata_struct(
 
     Response::ok("passed")
 }
+
+#[worker::send]
+pub async fn get_bulk(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let store = env.kv(TEST_NAMESPACE)?;
+    store.put("bulk_a", "value_a")?.execute().await?;
+    store.put("bulk_b", "value_b")?.execute().await?;
+
+    let values = store
+        .get_bulk(&["bulk_a", "bulk_b", "bulk_missing"])
+        .text()
+        .await?;
+    kv_assert_eq!(values.get("bulk_a").unwrap(), &Some("value_a".to_string()))?;
+    kv_assert_eq!(values.get("bulk_b").unwrap(), &Some("value_b".to_string()))?;
+    kv_assert_eq!(values.get("bulk_missing").unwrap(), &None)?;
+
+    Response::ok("passed")
+}
+
+#[worker::send]
+pub async fn get_bulk_empty(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let store = env.kv(TEST_NAMESPACE)?;
+    let empty: &[&str] = &[];
+    let values = store.get_bulk(empty).text().await?;
+    kv_assert_eq!(values.len(), 0)?;
+
+    Response::ok("passed")
+}
+
+#[worker::send]
+pub async fn get_bulk_limit(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let store = env.kv(TEST_NAMESPACE)?;
+    let keys: Vec<String> = (0..101).map(|i| format!("key_{i}")).collect();
+    let key_refs: Vec<&str> = keys.iter().map(|s| s.as_str()).collect();
+
+    match store.get_bulk(&key_refs).text().await {
+        Err(_) => Response::ok("passed"),
+        Ok(_) => Response::error("expected error for >100 keys", 500),
+    }
+}
