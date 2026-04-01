@@ -12,6 +12,7 @@ use serde::Deserialize;
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use worker_sys::types::D1Database as D1DatabaseSys;
+use worker_sys::types::D1DatabaseSession as D1DatabaseSessionSys;
 use worker_sys::types::D1ExecResult;
 use worker_sys::types::D1PreparedStatement as D1PreparedStatementSys;
 use worker_sys::types::D1Result as D1ResultSys;
@@ -31,10 +32,48 @@ pub struct D1Database(D1DatabaseSys);
 unsafe impl Sync for D1Database {}
 unsafe impl Send for D1Database {}
 
+/// Session constraints for [`D1Database::with_session_constraint`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum D1SessionConstraint {
+    /// First query should be sent to primary.
+    FirstPrimary,
+    /// First query can be sent to any replica.
+    FirstUnconstrained,
+}
+
+/// A bookmark string that can be used to anchor a D1 session.
+pub type D1SessionBookmark = String;
+
+impl D1SessionConstraint {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::FirstPrimary => "first-primary",
+            Self::FirstUnconstrained => "first-unconstrained",
+        }
+    }
+}
+
 impl D1Database {
     /// Prepare a query statement from a query string.
     pub fn prepare<T: Into<String>>(&self, query: T) -> D1PreparedStatement {
         self.0.prepare(&query.into()).unwrap().into()
+    }
+
+    /// Creates a new D1 session anchored at an optional session constraint or bookmark.
+    ///
+    /// Supported constraints are `"first-primary"` and `"first-unconstrained"`.
+    /// Any other value is treated as a bookmark.
+    pub fn with_session(&self, constraint_or_bookmark: Option<&str>) -> Result<D1DatabaseSession> {
+        let session = cast_to_d1_error(self.0.with_session(constraint_or_bookmark))?;
+        Ok(session.into())
+    }
+
+    /// Creates a new D1 session using a typed session constraint.
+    pub fn with_session_constraint(
+        &self,
+        constraint: D1SessionConstraint,
+    ) -> Result<D1DatabaseSession> {
+        self.with_session(Some(constraint.as_str()))
     }
 
     /// Dump the data in the database to a `Vec`.
@@ -78,6 +117,43 @@ impl D1Database {
         let result = JsFuture::from(self.0.exec(query)?).await;
         let result = cast_to_d1_error(result)?;
         Ok(result.into())
+    }
+}
+
+/// A D1 session that provides sequential consistency between queries.
+#[derive(Debug)]
+pub struct D1DatabaseSession(D1DatabaseSessionSys);
+
+unsafe impl Sync for D1DatabaseSession {}
+unsafe impl Send for D1DatabaseSession {}
+
+impl D1DatabaseSession {
+    /// Prepare a query statement from a query string.
+    pub fn prepare<T: Into<String>>(&self, query: T) -> D1PreparedStatement {
+        self.0.session_prepare(&query.into()).unwrap().into()
+    }
+
+    /// Batch execute one or more statements against the database using this session.
+    ///
+    /// Returns the results in the same order as the provided statements.
+    pub async fn batch(&self, statements: Vec<D1PreparedStatement>) -> Result<Vec<D1Result>> {
+        let statements = statements.into_iter().map(|s| s.0).collect::<Array>();
+        let results = JsFuture::from(self.0.session_batch(statements)?).await;
+        let results = cast_to_d1_error(results)?;
+        let results = results.dyn_into::<Array>()?;
+        let mut vec = Vec::with_capacity(results.length() as usize);
+        for result in results.iter() {
+            let result = result.unchecked_into::<D1ResultSys>();
+            vec.push(D1Result(result));
+        }
+        Ok(vec)
+    }
+
+    /// Returns the latest bookmark seen by this session.
+    ///
+    /// If no query has been executed in this session yet, returns `None`.
+    pub fn get_bookmark(&self) -> Result<Option<D1SessionBookmark>> {
+        cast_to_d1_error(self.0.get_bookmark())
     }
 }
 
@@ -129,6 +205,38 @@ impl AsRef<JsValue> for D1Database {
 
 impl From<D1DatabaseSys> for D1Database {
     fn from(inner: D1DatabaseSys) -> Self {
+        Self(inner)
+    }
+}
+
+impl JsCast for D1DatabaseSession {
+    fn instanceof(val: &JsValue) -> bool {
+        val.is_instance_of::<D1DatabaseSessionSys>()
+    }
+
+    fn unchecked_from_js(val: JsValue) -> Self {
+        Self(val.into())
+    }
+
+    fn unchecked_from_js_ref(val: &JsValue) -> &Self {
+        unsafe { &*(val as *const JsValue as *const Self) }
+    }
+}
+
+impl From<D1DatabaseSession> for JsValue {
+    fn from(session: D1DatabaseSession) -> Self {
+        JsValue::from(session.0)
+    }
+}
+
+impl AsRef<JsValue> for D1DatabaseSession {
+    fn as_ref(&self) -> &JsValue {
+        &self.0
+    }
+}
+
+impl From<D1DatabaseSessionSys> for D1DatabaseSession {
+    fn from(inner: D1DatabaseSessionSys) -> Self {
         Self(inner)
     }
 }
@@ -465,4 +573,18 @@ fn cast_to_d1_error<T>(result: StdResult<T, JsValue>) -> StdResult<T, crate::Err
     };
 
     Err(err.into())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::D1SessionConstraint;
+
+    #[test]
+    fn session_constraint_strings_match_runtime_api() {
+        assert_eq!(D1SessionConstraint::FirstPrimary.as_str(), "first-primary");
+        assert_eq!(
+            D1SessionConstraint::FirstUnconstrained.as_str(),
+            "first-unconstrained"
+        );
+    }
 }
