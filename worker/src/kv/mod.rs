@@ -25,6 +25,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::JsFuture;
+use web_sys::ReadableStream;
 
 /// A binding to a Cloudflare KvStore.
 #[derive(Clone, Debug)]
@@ -132,6 +133,23 @@ impl KvStore {
             put_function: self.put_function.clone(),
             name: JsValue::from(name),
             value,
+            expiration: None,
+            expiration_ttl: None,
+            metadata: None,
+        })
+    }
+
+    /// Puts the specified stream into the kv store.
+    pub fn put_stream(
+        &self,
+        name: &str,
+        value: ReadableStream,
+    ) -> Result<PutOptionsBuilder, KvError> {
+        Ok(PutOptionsBuilder {
+            this: self.this.clone(),
+            put_function: self.put_function.clone(),
+            name: JsValue::from(name),
+            value: value.into(),
             expiration: None,
             expiration_ttl: None,
             metadata: None,

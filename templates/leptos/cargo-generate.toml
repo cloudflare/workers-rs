@@ -1,5 +1,6 @@
 [placeholders]
 use_nightly = { prompt = "Use nightly features?", default = false, type = "bool" }
+win = { type = "bool", prompt = "Use windows syntax?", default = false}
 
 [template]
 exclude = ["*.ico"]
