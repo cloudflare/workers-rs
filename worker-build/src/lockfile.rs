@@ -35,6 +35,8 @@ impl Lockfile {
     /// Read the `Cargo.lock` file for the crate at the given path.
     pub fn new(crate_data: &Metadata) -> Result<Lockfile> {
         let lock_path = get_lockfile_path(crate_data)?;
+        // lock_path comes from cargo metadata workspace_root, not untrusted input
+        // nosemgrep
         let lockfile = fs::read_to_string(&lock_path)
             .with_context(|| anyhow!("failed to read: {}", lock_path.display()))?;
         let mut lockfile: Lockfile = toml::from_str(&lockfile)
