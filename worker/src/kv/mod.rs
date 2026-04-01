@@ -20,7 +20,7 @@ mod builder;
 
 pub use builder::*;
 
-use js_sys::{global, Function, Object, Promise, Reflect, Uint8Array};
+use js_sys::{global, Array, Function, Object, Promise, Reflect, Uint8Array};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use wasm_bindgen::JsValue;
@@ -89,6 +89,22 @@ impl KvStore {
             get_function: self.get_function.clone(),
             get_with_meta_function: self.get_with_meta_function.clone(),
             name: JsValue::from(name),
+            cache_ttl: None,
+            value_type: None,
+        }
+    }
+
+    /// Fetches multiple values from the kv store by name.
+    pub fn get_bulk(&self, keys: &[impl AsRef<str>]) -> GetBulkOptionsBuilder {
+        let array = Array::new();
+        for key in keys {
+            array.push(&JsValue::from(key.as_ref()));
+        }
+        GetBulkOptionsBuilder {
+            this: self.this.clone(),
+            get_function: self.get_function.clone(),
+            get_with_meta_function: self.get_with_meta_function.clone(),
+            keys: array.into(),
             cache_ttl: None,
             value_type: None,
         }
