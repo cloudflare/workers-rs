@@ -17,6 +17,8 @@ use axum::{
     routing::{delete, get, head, options, patch, post, put},
     Extension,
 };
+#[cfg(feature = "http")]
+use worker::send::SendFuture;
 
 // Transform the argument into the correct form for the router.
 // For axum::Router:
@@ -59,16 +61,16 @@ macro_rules! format_route (
 #[cfg(feature = "http")]
 macro_rules! handler (
     ($name:path) => {
-        |Extension(env): Extension<Env>, Extension(data): Extension<SomeSharedData>, req: axum::extract::Request| async {
+        |Extension(env): Extension<Env>, Extension(data): Extension<SomeSharedData>, req: axum::extract::Request| SendFuture::new(async {
             let resp = $name(req.try_into().expect("convert request"), env, data).await.expect("handler result");
             Into::<http::Response<axum::body::Body>>::into(resp)
-        }
+        })
     };
     ($name:path, sync) => {
-        |Extension(env): Extension<Env>, Extension(data): Extension<SomeSharedData>, req: axum::extract::Request| async {
+        |Extension(env): Extension<Env>, Extension(data): Extension<SomeSharedData>, req: axum::extract::Request| SendFuture::new(async {
             let resp = $name(req.try_into().expect("convert request"), env, data).expect("handler result");
             Into::<http::Response<axum::body::Body>>::into(resp)
-        }
+        })
     };
 );
 #[cfg(not(feature = "http"))]
