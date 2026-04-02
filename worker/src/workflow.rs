@@ -173,9 +173,9 @@ impl<T> Default for CreateOptions<T> {
 #[serde(rename_all = "camelCase")]
 pub struct RetentionOptions {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub success_retention: Option<String>,
+    pub success_retention: Option<WorkflowSleepDuration>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub error_retention: Option<String>,
+    pub error_retention: Option<WorkflowSleepDuration>,
 }
 
 /// A handle to a workflow instance.
@@ -343,7 +343,7 @@ impl WorkflowStep {
         name: &str,
         duration: impl Into<WorkflowSleepDuration>,
     ) -> Result<()> {
-        let duration_js = duration.into().0;
+        let duration_js = duration.into().to_js_value();
         SendFuture::new(self.0.sleep(name, duration_js)).await?;
         Ok(())
     }
@@ -380,14 +380,14 @@ pub struct StepConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub retries: Option<RetryConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub timeout: Option<String>,
+    pub timeout: Option<WorkflowSleepDuration>,
 }
 
 /// Retry configuration for a workflow step.
 #[derive(Debug, Clone, Serialize)]
 pub struct RetryConfig {
     pub limit: u32,
-    pub delay: String,
+    pub delay: WorkflowSleepDuration,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub backoff: Option<Backoff>,
 }
@@ -407,7 +407,7 @@ pub struct WaitForEventOptions {
     #[serde(rename = "type")]
     pub type_: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub timeout: Option<String>,
+    pub timeout: Option<WorkflowSleepDuration>,
 }
 
 /// An event received from `wait_for_event`.
@@ -446,49 +446,84 @@ impl WorkflowEvent {
     }
 }
 
-/// Unit of time for workflow sleep durations.
+/// Unit of time for workflow durations.
 #[derive(Debug, Clone, Copy)]
 pub enum WorkflowDuration {
     Seconds,
     Minutes,
     Hours,
     Days,
+    Weeks,
+    Months,
+    Years,
 }
 
-/// A typed duration for workflow sleep operations.
+/// A typed duration used throughout the Workflows API for sleep, timeout,
+/// retry delay, and retention fields.
 ///
-/// Wraps a JS-compatible value representing the sleep duration.
+/// Corresponds to the `WorkflowSleepDuration` type in the Workers runtime,
+/// which accepts either a string like `"5 seconds"` or a number of milliseconds.
 #[derive(Debug, Clone)]
-pub struct WorkflowSleepDuration(JsValue);
+enum WorkflowSleepDurationInner {
+    Text(String),
+    Millis(f64),
+}
+
+#[derive(Debug, Clone)]
+pub struct WorkflowSleepDuration(WorkflowSleepDurationInner);
 
 impl WorkflowSleepDuration {
-    /// Create a new sleep duration with the given amount and unit.
+    /// Create a new duration with the given amount and unit.
     pub fn new(amount: u32, unit: WorkflowDuration) -> Self {
         let unit_str = match unit {
             WorkflowDuration::Seconds => "seconds",
             WorkflowDuration::Minutes => "minutes",
             WorkflowDuration::Hours => "hours",
             WorkflowDuration::Days => "days",
+            WorkflowDuration::Weeks => "weeks",
+            WorkflowDuration::Months => "months",
+            WorkflowDuration::Years => "years",
         };
-        Self(JsValue::from_str(&format!("{amount} {unit_str}")))
+        Self(WorkflowSleepDurationInner::Text(format!(
+            "{amount} {unit_str}"
+        )))
+    }
+
+    fn to_js_value(&self) -> JsValue {
+        match &self.0 {
+            WorkflowSleepDurationInner::Text(s) => JsValue::from_str(s),
+            WorkflowSleepDurationInner::Millis(ms) => JsValue::from_f64(*ms),
+        }
+    }
+}
+
+impl Serialize for WorkflowSleepDuration {
+    fn serialize<S: serde::Serializer>(
+        &self,
+        serializer: S,
+    ) -> std::result::Result<S::Ok, S::Error> {
+        match &self.0 {
+            WorkflowSleepDurationInner::Text(s) => serializer.serialize_str(s),
+            WorkflowSleepDurationInner::Millis(ms) => serializer.serialize_f64(*ms),
+        }
     }
 }
 
 impl From<&str> for WorkflowSleepDuration {
     fn from(s: &str) -> Self {
-        Self(JsValue::from_str(s))
+        Self(WorkflowSleepDurationInner::Text(s.to_string()))
     }
 }
 
 impl From<String> for WorkflowSleepDuration {
     fn from(s: String) -> Self {
-        Self(JsValue::from_str(&s))
+        Self(WorkflowSleepDurationInner::Text(s))
     }
 }
 
 impl From<std::time::Duration> for WorkflowSleepDuration {
     fn from(d: std::time::Duration) -> Self {
-        Self(JsValue::from_f64(d.as_millis() as f64))
+        Self(WorkflowSleepDurationInner::Millis(d.as_millis() as f64))
     }
 }
 

@@ -36,7 +36,7 @@ impl WorkflowEntrypoint for MyWorkflow {
             StepConfig {
                 retries: Some(RetryConfig {
                     limit: 3,
-                    delay: "1 second".to_string(),
+                    delay: "1 second".into(),
                     backoff: None,
                 }),
                 timeout: None,
@@ -79,10 +79,10 @@ impl WorkflowEntrypoint for MyWorkflow {
                 StepConfig {
                     retries: Some(RetryConfig {
                         limit: 3,
-                        delay: "5 seconds".to_string(),
+                        delay: "5 seconds".into(),
                         backoff: Some(Backoff::Exponential),
                     }),
-                    timeout: Some("1 minute".to_string()),
+                    timeout: Some("1 minute".into()),
                 },
                 move || {
                     let email = email_for_step3.clone();

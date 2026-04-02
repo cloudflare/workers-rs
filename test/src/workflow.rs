@@ -58,7 +58,7 @@ impl WorkflowEntrypoint for TestWorkflow {
             StepConfig {
                 retries: Some(RetryConfig {
                     limit: 2,
-                    delay: "1 second".to_string(),
+                    delay: "1 second".into(),
                     backoff: None,
                 }),
                 timeout: None,
@@ -144,7 +144,7 @@ impl WorkflowEntrypoint for EventWorkflow {
                 "wait-for-approval",
                 WaitForEventOptions {
                     type_: "approval".to_string(),
-                    timeout: Some("30 seconds".to_string()),
+                    timeout: Some("30 seconds".into()),
                 },
             )
             .await?;
