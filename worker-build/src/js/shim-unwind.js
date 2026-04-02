@@ -19,6 +19,8 @@ import * as exports from "./index.js";
 
 Error.stackTraceLimit = 100;
 
+if (!console.createTask) console.createTask = () => ({ run: (fn) => fn() });
+
 // Shared state object from the worker crate's inline_js snippet.  The object
 // reference is grabbed once here (single Wasm hop at module load); after that
 // every read of `reinitState.id` is a plain JS property access — no Wasm
