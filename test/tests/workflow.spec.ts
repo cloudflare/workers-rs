@@ -187,6 +187,6 @@ describe("workflow", () => {
 
     expect(status).toBe("Complete");
     expect(output.payload).toEqual({ approved: true, reason: "looks good" });
-    expect(output.event_type).toBe("approval");
+    expect(output.type).toBe("approval");
   });
 });

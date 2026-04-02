@@ -71,10 +71,8 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                         let event = ::worker::WorkflowEvent::from_js(event)
                             .map_err(|e| ::worker::wasm_bindgen::JsValue::from_str(&e.to_string()))?;
                         let step = ::worker::WorkflowStep::from(step);
-                        let result = <Self as ::worker::WorkflowEntrypoint>::run(static_self, event, step).await
-                            .map_err(::worker::wasm_bindgen::JsValue::from)?;
-                        ::worker::serialize_as_object(&result)
-                            .map_err(|e| ::worker::wasm_bindgen::JsValue::from_str(&e.to_string()))
+                        <Self as ::worker::WorkflowEntrypoint>::run(static_self, event, step).await
+                            .map_err(::worker::wasm_bindgen::JsValue::from)
                     }))
                 }
             }

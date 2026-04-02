@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use worker::wasm_bindgen::JsValue;
 use worker::*;
 
 fn last_path_segment(req: &Request) -> Result<String> {
@@ -21,7 +22,7 @@ async fn get_workflow_instance(
 async fn create_workflow_no_params(env: &Env, binding: &str) -> Result<Response> {
     let workflow = env.workflow(binding)?;
     let instance = workflow.create(None::<CreateOptions<()>>).await?;
-    Response::from_json(&serde_json::json!({ "id": instance.id()? }))
+    Response::from_json(&serde_json::json!({ "id": instance.id() }))
 }
 
 fn status_response(status: InstanceStatus) -> Result<Response> {
@@ -48,13 +49,8 @@ impl WorkflowEntrypoint for TestWorkflow {
         Self { env }
     }
 
-    async fn run(
-        &self,
-        event: WorkflowEvent<serde_json::Value>,
-        step: WorkflowStep,
-    ) -> Result<serde_json::Value> {
-        let params: TestParams =
-            serde_json::from_value(event.payload).map_err(|e| Error::RustError(e.to_string()))?;
+    async fn run(&self, event: WorkflowEvent, step: WorkflowStep) -> Result<JsValue> {
+        let params: TestParams = serde_wasm_bindgen::from_value(event.payload)?;
 
         let value_for_validation = params.value.clone();
         step.do_with_config(
@@ -79,14 +75,14 @@ impl WorkflowEntrypoint for TestWorkflow {
         )
         .await?;
 
-        let result = step
+        let result: serde_json::Value = step
             .do_("process", move || {
                 let params = params.clone();
                 async move { Ok(serde_json::json!({ "processed": params.value })) }
             })
             .await?;
 
-        Ok(result)
+        Ok(serialize_as_object(&result)?)
     }
 }
 
@@ -102,7 +98,7 @@ async fn create_workflow_with_value(env: &Env, value: &str) -> Result<Response> 
         }))
         .await?;
 
-    Response::from_json(&serde_json::json!({ "id": instance.id()? }))
+    Response::from_json(&serde_json::json!({ "id": instance.id() }))
 }
 
 pub async fn handle_workflow_create(
@@ -142,25 +138,21 @@ impl WorkflowEntrypoint for EventWorkflow {
         Self { env }
     }
 
-    async fn run(
-        &self,
-        _event: WorkflowEvent<serde_json::Value>,
-        step: WorkflowStep,
-    ) -> Result<serde_json::Value> {
+    async fn run(&self, _event: WorkflowEvent, step: WorkflowStep) -> Result<JsValue> {
         let event = step
             .wait_for_event::<serde_json::Value>(
                 "wait-for-approval",
                 WaitForEventOptions {
-                    event_type: "approval".to_string(),
+                    type_: "approval".to_string(),
                     timeout: Some("30 seconds".to_string()),
                 },
             )
             .await?;
 
-        Ok(serde_json::json!({
+        Ok(serialize_as_object(&serde_json::json!({
             "payload": event.payload,
-            "event_type": event.event_type,
-        }))
+            "type": event.type_,
+        }))?)
     }
 }
 
@@ -204,13 +196,13 @@ impl WorkflowEntrypoint for LifecycleWorkflow {
         Self { env }
     }
 
-    async fn run(
-        &self,
-        _event: WorkflowEvent<serde_json::Value>,
-        step: WorkflowStep,
-    ) -> Result<serde_json::Value> {
-        step.sleep("long-sleep", "60 seconds").await?;
-        Ok(serde_json::json!({ "done": true }))
+    async fn run(&self, _event: WorkflowEvent, step: WorkflowStep) -> Result<JsValue> {
+        step.sleep(
+            "long-sleep",
+            WorkflowSleepDuration::new(60, WorkflowDuration::Seconds),
+        )
+        .await?;
+        Ok(serialize_as_object(&serde_json::json!({ "done": true }))?)
     }
 }
 

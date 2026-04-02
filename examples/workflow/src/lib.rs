@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use worker::wasm_bindgen::JsValue;
 use worker::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -24,15 +25,10 @@ impl WorkflowEntrypoint for MyWorkflow {
         Self { env }
     }
 
-    async fn run(
-        &self,
-        event: WorkflowEvent<serde_json::Value>,
-        step: WorkflowStep,
-    ) -> Result<serde_json::Value> {
+    async fn run(&self, event: WorkflowEvent, step: WorkflowStep) -> Result<JsValue> {
         console_log!("Workflow started with instance ID: {}", event.instance_id);
 
-        let params: MyParams =
-            serde_json::from_value(event.payload).map_err(|e| Error::RustError(e.to_string()))?;
+        let params: MyParams = serde_wasm_bindgen::from_value(event.payload)?;
 
         let email_for_validation = params.email.clone();
         step.do_with_config(
@@ -111,7 +107,7 @@ impl WorkflowEntrypoint for MyWorkflow {
             steps_completed: 3,
         };
 
-        Ok(serde_json::to_value(output).unwrap())
+        Ok(serialize_as_object(&output)?)
     }
 }
 
@@ -133,7 +129,7 @@ async fn fetch(mut req: Request, env: Env, _ctx: Context) -> Result<Response> {
                 .await?;
 
             Response::from_json(&serde_json::json!({
-                "id": instance.id()?,
+                "id": instance.id(),
                 "message": "Workflow created"
             }))
         }
@@ -144,7 +140,7 @@ async fn fetch(mut req: Request, env: Env, _ctx: Context) -> Result<Response> {
             let status = instance.status().await?;
 
             Response::from_json(&serde_json::json!({
-                "id": instance.id()?,
+                "id": instance.id(),
                 "status": format!("{:?}", status.status),
                 "error": status.error,
                 "output": status.output
@@ -159,7 +155,7 @@ async fn fetch(mut req: Request, env: Env, _ctx: Context) -> Result<Response> {
             instance.pause().await?;
 
             Response::from_json(&serde_json::json!({
-                "id": instance.id()?,
+                "id": instance.id(),
                 "message": "Workflow paused"
             }))
         }
@@ -172,7 +168,7 @@ async fn fetch(mut req: Request, env: Env, _ctx: Context) -> Result<Response> {
             instance.resume().await?;
 
             Response::from_json(&serde_json::json!({
-                "id": instance.id()?,
+                "id": instance.id(),
                 "message": "Workflow resumed"
             }))
         }

@@ -18,7 +18,10 @@ use crate::env::EnvBinding;
 use crate::send::SendFuture;
 use crate::Result;
 
-#[doc(hidden)]
+/// Serialize a value to a JS object, ensuring maps are serialized as plain objects.
+///
+/// This is useful when returning values from [`WorkflowEntrypoint::run`] that
+/// need to be plain JS objects rather than `Map` instances.
 pub fn serialize_as_object<T: Serialize>(
     value: &T,
 ) -> std::result::Result<JsValue, serde_wasm_bindgen::Error> {
@@ -101,10 +104,7 @@ impl EnvBinding for Workflow {
     fn get(val: JsValue) -> Result<Self> {
         let obj = Object::from(val);
         let constructor_name = obj.constructor().name();
-        if constructor_name == Self::TYPE_NAME
-            || constructor_name == "WorkflowImpl"
-            || constructor_name == "Fetcher"
-        {
+        if constructor_name == Self::TYPE_NAME || constructor_name == "WorkflowImpl" {
             Ok(Self {
                 inner: obj.unchecked_into(),
             })
@@ -196,8 +196,9 @@ impl WorkflowInstance {
     }
 
     /// The unique ID of this workflow instance.
-    pub fn id(&self) -> Result<String> {
+    pub fn id(&self) -> String {
         get_string_property(self.inner.as_ref(), "id")
+            .expect("WorkflowInstance always has an id property")
     }
 
     /// Pause the workflow instance.
@@ -231,17 +232,14 @@ impl WorkflowInstance {
     }
 
     /// Send an event to the workflow instance to trigger `step.wait_for_event()` calls.
-    pub async fn send_event<T: Serialize>(&self, event_type: &str, payload: T) -> Result<()> {
+    pub async fn send_event<T: Serialize>(&self, type_: &str, payload: T) -> Result<()> {
         #[derive(Serialize)]
         struct SendEventPayload<'a, P: Serialize> {
             #[serde(rename = "type")]
-            event_type: &'a str,
+            type_: &'a str,
             payload: P,
         }
-        let event = serde_wasm_bindgen::to_value(&SendEventPayload {
-            event_type,
-            payload,
-        })?;
+        let event = serde_wasm_bindgen::to_value(&SendEventPayload { type_, payload })?;
         SendFuture::new(self.inner.send_event(event)).await?;
         Ok(())
     }
@@ -340,8 +338,12 @@ impl WorkflowStep {
     }
 
     /// Sleep for a specified duration (e.g., "1 minute", "5 seconds").
-    pub async fn sleep(&self, name: &str, duration: impl Into<WorkflowDuration>) -> Result<()> {
-        let duration_js = duration.into().to_js_value();
+    pub async fn sleep(
+        &self,
+        name: &str,
+        duration: impl Into<WorkflowSleepDuration>,
+    ) -> Result<()> {
+        let duration_js = duration.into().0;
         SendFuture::new(self.0.sleep(name, duration_js)).await?;
         Ok(())
     }
@@ -403,7 +405,7 @@ pub enum Backoff {
 #[derive(Debug, Clone, Serialize)]
 pub struct WaitForEventOptions {
     #[serde(rename = "type")]
-    pub event_type: String,
+    pub type_: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timeout: Option<String>,
 }
@@ -413,7 +415,7 @@ pub struct WaitForEventOptions {
 pub struct WorkflowStepEvent<T> {
     pub payload: T,
     pub timestamp: crate::Date,
-    pub event_type: String,
+    pub type_: String,
 }
 
 impl<T: DeserializeOwned> WorkflowStepEvent<T> {
@@ -421,60 +423,72 @@ impl<T: DeserializeOwned> WorkflowStepEvent<T> {
         Ok(Self {
             payload: serde_wasm_bindgen::from_value(get_property(&value, "payload")?)?,
             timestamp: get_timestamp_property(&value, "timestamp")?,
-            event_type: get_string_property(&value, "type")?,
+            type_: get_string_property(&value, "type")?,
         })
     }
 }
 
 /// The event passed to a workflow's run method.
 #[derive(Debug, Clone)]
-pub struct WorkflowEvent<T> {
-    pub payload: T,
+pub struct WorkflowEvent {
+    pub payload: JsValue,
     pub timestamp: crate::Date,
     pub instance_id: String,
 }
 
-impl<T: DeserializeOwned> WorkflowEvent<T> {
+impl WorkflowEvent {
     pub fn from_js(value: JsValue) -> Result<Self> {
         Ok(Self {
-            payload: serde_wasm_bindgen::from_value(get_property(&value, "payload")?)?,
+            payload: get_property(&value, "payload")?,
             timestamp: get_timestamp_property(&value, "timestamp")?,
             instance_id: get_string_property(&value, "instanceId")?,
         })
     }
 }
 
-/// Duration type for workflow sleep operations.
-#[derive(Debug, Clone)]
+/// Unit of time for workflow sleep durations.
+#[derive(Debug, Clone, Copy)]
 pub enum WorkflowDuration {
-    Milliseconds(u64),
-    String(String),
+    Seconds,
+    Minutes,
+    Hours,
+    Days,
 }
 
-impl WorkflowDuration {
-    fn to_js_value(&self) -> JsValue {
-        match self {
-            Self::Milliseconds(ms) => JsValue::from_f64(*ms as f64),
-            Self::String(s) => JsValue::from_str(s),
-        }
+/// A typed duration for workflow sleep operations.
+///
+/// Wraps a JS-compatible value representing the sleep duration.
+#[derive(Debug, Clone)]
+pub struct WorkflowSleepDuration(JsValue);
+
+impl WorkflowSleepDuration {
+    /// Create a new sleep duration with the given amount and unit.
+    pub fn new(amount: u32, unit: WorkflowDuration) -> Self {
+        let unit_str = match unit {
+            WorkflowDuration::Seconds => "seconds",
+            WorkflowDuration::Minutes => "minutes",
+            WorkflowDuration::Hours => "hours",
+            WorkflowDuration::Days => "days",
+        };
+        Self(JsValue::from_str(&format!("{amount} {unit_str}")))
     }
 }
 
-impl From<&str> for WorkflowDuration {
+impl From<&str> for WorkflowSleepDuration {
     fn from(s: &str) -> Self {
-        Self::String(s.to_string())
+        Self(JsValue::from_str(s))
     }
 }
 
-impl From<String> for WorkflowDuration {
+impl From<String> for WorkflowSleepDuration {
     fn from(s: String) -> Self {
-        Self::String(s)
+        Self(JsValue::from_str(&s))
     }
 }
 
-impl From<std::time::Duration> for WorkflowDuration {
+impl From<std::time::Duration> for WorkflowSleepDuration {
     fn from(d: std::time::Duration) -> Self {
-        Self::Milliseconds(d.as_millis() as u64)
+        Self(JsValue::from_f64(d.as_millis() as f64))
     }
 }
 
@@ -524,9 +538,5 @@ pub trait HasWorkflowAttribute {}
 pub trait WorkflowEntrypoint: HasWorkflowAttribute {
     fn new(ctx: crate::Context, env: crate::Env) -> Self;
 
-    async fn run(
-        &self,
-        event: WorkflowEvent<serde_json::Value>,
-        step: WorkflowStep,
-    ) -> Result<serde_json::Value>;
+    async fn run(&self, event: WorkflowEvent, step: WorkflowStep) -> Result<JsValue>;
 }
