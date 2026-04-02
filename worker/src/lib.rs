@@ -208,6 +208,8 @@ mod context;
 mod cors;
 pub mod crypto;
 pub mod panic_abort;
+#[doc(hidden)]
+pub mod reinit_support;
 // Require pub module for macro export
 #[cfg(feature = "d1")]
 /// **Requires** `d1` feature.
