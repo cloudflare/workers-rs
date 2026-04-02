@@ -63,7 +63,7 @@ impl WorkflowEntrypoint for TestWorkflow {
                 }),
                 timeout: None,
             },
-            move || {
+            move |_ctx| {
                 let value = value_for_validation.clone();
                 async move {
                     if value.is_empty() {
@@ -76,7 +76,7 @@ impl WorkflowEntrypoint for TestWorkflow {
         .await?;
 
         let result: serde_json::Value = step
-            .do_("process", move || {
+            .do_("process", move |_ctx| {
                 let params = params.clone();
                 async move { Ok(serde_json::json!({ "processed": params.value })) }
             })

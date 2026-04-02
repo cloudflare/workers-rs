@@ -277,6 +277,13 @@ pub struct InstanceError {
     pub message: String,
 }
 
+/// Context passed to step callbacks, providing information about the current execution attempt.
+#[derive(Debug, Clone, Copy)]
+pub struct WorkflowStepContext {
+    /// The current retry attempt number (starts at 1).
+    pub attempt: u32,
+}
+
 /// Provides methods for executing durable workflow steps.
 #[derive(Debug)]
 pub struct WorkflowStep(WorkflowStepSys);
@@ -288,17 +295,23 @@ unsafe impl Sync for WorkflowStep {}
 impl WorkflowStep {
     fn wrap_callback<T, F, Fut>(
         callback: F,
-    ) -> wasm_bindgen::closure::Closure<dyn FnMut() -> js_sys::Promise>
+    ) -> wasm_bindgen::closure::Closure<dyn FnMut(JsValue) -> js_sys::Promise>
     where
         T: Serialize + 'static,
-        F: Fn() -> Fut + 'static,
+        F: Fn(WorkflowStepContext) -> Fut + 'static,
         Fut: Future<Output = Result<T>> + 'static,
     {
         let callback = Rc::new(AssertUnwindSafe(callback));
-        wasm_bindgen::closure::Closure::new(move || -> js_sys::Promise {
+        wasm_bindgen::closure::Closure::new(move |ctx: JsValue| -> js_sys::Promise {
             let callback = callback.clone();
+            let attempt = Reflect::get(&ctx, &JsValue::from_str("attempt"))
+                .ok()
+                .and_then(|v| v.as_f64())
+                .unwrap_or(1.0) as u32;
             future_to_promise(AssertUnwindSafe(async move {
-                let result = (callback.0)().await.map_err(JsValue::from)?;
+                let result = (callback.0)(WorkflowStepContext { attempt })
+                    .await
+                    .map_err(JsValue::from)?;
                 serialize_as_object(&result).map_err(|e| JsValue::from_str(&e.to_string()))
             }))
         })
@@ -309,7 +322,7 @@ impl WorkflowStep {
     pub async fn do_<T, F, Fut>(&self, name: &str, callback: F) -> Result<T>
     where
         T: Serialize + DeserializeOwned + 'static,
-        F: Fn() -> Fut + 'static,
+        F: Fn(WorkflowStepContext) -> Fut + 'static,
         Fut: Future<Output = Result<T>> + 'static,
     {
         let closure = Self::wrap_callback(callback);
@@ -327,7 +340,7 @@ impl WorkflowStep {
     ) -> Result<T>
     where
         T: Serialize + DeserializeOwned + 'static,
-        F: Fn() -> Fut + 'static,
+        F: Fn(WorkflowStepContext) -> Fut + 'static,
         Fut: Future<Output = Result<T>> + 'static,
     {
         let config_js = serde_wasm_bindgen::to_value(&config)?;

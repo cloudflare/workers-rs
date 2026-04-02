@@ -41,7 +41,7 @@ impl WorkflowEntrypoint for MyWorkflow {
                 }),
                 timeout: None,
             },
-            move || {
+            move |_ctx| {
                 let email = email_for_validation.clone();
                 async move {
                     if !email.contains('@') {
@@ -55,7 +55,7 @@ impl WorkflowEntrypoint for MyWorkflow {
 
         let name_for_step1 = params.name.clone();
         let step1_result = step
-            .do_("initial-processing", move || {
+            .do_("initial-processing", move |_ctx| {
                 let name = name_for_step1.clone();
                 async move {
                     console_log!("Processing for user: {}", name);
@@ -84,7 +84,7 @@ impl WorkflowEntrypoint for MyWorkflow {
                     }),
                     timeout: Some("1 minute".into()),
                 },
-                move || {
+                move |_ctx| {
                     let email = email_for_step3.clone();
                     async move {
                         console_log!("Sending notification to: {}", email);
