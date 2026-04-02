@@ -563,6 +563,12 @@ pub fn wasm_bindgen_build(
         cmd.arg(arg);
     }
 
+    // When building with panic=unwind, the wasm-bindgen Rust runtime emits
+    // an `__instance_terminated` global in the Wasm binary.  The CLI's
+    // catch_handler transform auto-detects this and generates Wasm-level
+    // catch wrappers that handle abort detection and reinit, allowing the
+    // JS shim to be drastically simplified.
+
     utils::run(cmd, "wasm-bindgen").context("Running the wasm-bindgen CLI")?;
     Ok(())
 }

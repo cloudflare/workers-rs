@@ -8,21 +8,21 @@ describe("Panic Hook with WASM Reinitialization", () => {
     // First, detect which panic mode we're running in by checking the error message
     const detectResp = await mf.dispatchFetch(`${mfUrl}test-panic`);
     const detectText = await detectResp.text();
-    
+
     // panic=unwind mode returns "PanicError:" in the response
     // panic=abort mode returns "Workers runtime canceled"
     const isPanicUnwind = detectText.includes("PanicError:");
-    
+
     if (isPanicUnwind) {
       // ===== PANIC=UNWIND MODE TESTS =====
       // In this mode, panics are caught and converted to JS errors.
       // The Worker continues without reinitialization.
-      
+
       // Test 1: Basic panic recovery - counter should NOT reset after panic
       // We use a unique durable object ID to get fresh state
       {
         const uniqueId = `UNWIND_${Date.now()}_${Math.random()}`;
-        
+
         // Call the durable object twice to establish a counter
         const resp1 = await mf.dispatchFetch(`${mfUrl}durable/${uniqueId}`);
         const text1 = await resp1.text();
@@ -54,7 +54,7 @@ describe("Panic Hook with WASM Reinitialization", () => {
       // Test 2: Multiple panics don't affect subsequent requests
       {
         const uniqueId = `UNWIND2_${Date.now()}_${Math.random()}`;
-        
+
         const resp1 = await mf.dispatchFetch(`${mfUrl}durable/${uniqueId}`);
         const match1 = (await resp1.text()).match(/unstored_count: (\d+)/);
         const count1 = match1 ? parseInt(match1[1]) : 0;
@@ -82,7 +82,7 @@ describe("Panic Hook with WASM Reinitialization", () => {
         ];
 
         const responses = await Promise.all(requests);
-        
+
         // First should be 500 (panic), others should succeed
         expect(responses[0].status).toBe(500);
         expect(await responses[0].text()).toContain("PanicError:");
@@ -181,23 +181,20 @@ describe("Panic Hook with WASM Reinitialization", () => {
       }
 
       // JS error recovery test
-      // TODO: figure out how to achieve this one. Hard part is global error handler
-      // will need to detect JS errors, not just WebAssembly.RuntimeError, which
-      // may over-classify.
-      // {
-      //   await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
-      //   const resp = await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
-      //   expect(await resp.text()).toContain("unstored_count:");
+      {
+        await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
+        const resp = await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
+        expect(await resp.text()).toContain("unstored_count:");
 
-      //   const jsErrorResp = await mf.dispatchFetch(`${mfUrl}test-js-error`);
-      //   expect(jsErrorResp.status).toBe(500);
+        const jsErrorResp = await mf.dispatchFetch(`${mfUrl}test-js-error`);
+        expect(jsErrorResp.status).toBe(500);
 
-      //   const jsErrorText = await jsErrorResp.text();
-      //   expect(jsErrorText).toContain("Workers runtime canceled");
+        const jsErrorText = await jsErrorResp.text();
+        expect(jsErrorText).toContain("Workers runtime canceled");
 
-      //   const normalResp = await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
-      //   expect(await normalResp.text()).toContain("unstored_count: 1");
-      // }
+        const normalResp = await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
+        expect(await normalResp.text()).toContain("unstored_count: 1");
+      }
 
       // out of memory recovery test
       {

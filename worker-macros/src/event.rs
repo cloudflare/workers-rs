@@ -240,6 +240,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
 
             let wrapper_fn = quote! {
                 pub fn #wrapper_fn_ident() {
+                    ::worker::reinit_support::init();
                     // call the original fn
                     #input_fn_ident()
                 }

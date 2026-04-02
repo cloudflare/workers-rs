@@ -9,7 +9,7 @@ use proc_macro::TokenStream;
 ///
 /// ## Example
 ///
-/// ```rust
+/// ```ignore
 /// #[durable_object]
 /// pub struct Chatroom {
 ///     users: Vec<User>,
@@ -44,7 +44,7 @@ use proc_macro::TokenStream;
 /// * `alarm`: with [Alarms API](https://developers.cloudflare.com/durable-objects/examples/alarms-api/)
 /// * `websocket`: [WebSocket server](https://developers.cloudflare.com/durable-objects/examples/websocket-hibernation-server/)
 ///
-/// ```rust
+/// ```ignore
 /// #[durable_object(fetch)]
 /// pub struct Chatroom {
 ///     users: Vec<User>,
@@ -77,7 +77,7 @@ pub fn durable_object(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///
 /// At a high-level, the `fetch` handler is used to handle incoming HTTP requests. The function signature for a `fetch` handler is conceptually something like:
 ///  
-/// ```rust
+/// ```ignore
 /// async fn fetch(req: impl From<web_sys::Request>, env: Env, ctx: Context) -> Result<impl Into<web_sys::Response>, impl Into<Box<dyn Error>>>
 /// ```
 ///
@@ -89,7 +89,7 @@ pub fn durable_object(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///
 /// ### worker::{Request, Response}
 ///
-/// ```rust
+/// ```ignore
 /// #[event(fetch, respond_with_errors)]
 /// async fn main(req: worker::Request, env: Env, ctx: Context) -> Result<worker::Response> {
 ///   worker::Response::ok("Hello World (worker type)")
@@ -98,7 +98,7 @@ pub fn durable_object(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///
 /// ### web_sys::{Request, Response}
 ///
-/// ```rust
+/// ```ignore
 /// #[event(fetch, respond_with_errors)]
 /// async fn main(req: web_sys::Request, env: Env, ctx: Context) -> Result<web_sys::Response> {
 ///   Ok(web_sys::Response::new_with_opt_str(Some("Hello World (native type)".into())).unwrap())
@@ -107,7 +107,7 @@ pub fn durable_object(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///
 /// ### axum (with `http` feature)
 ///
-/// ```rust
+/// ```ignore
 ///  #[event(fetch)]
 /// async fn fetch(req: HttpRequest, env: Env, ctx: Context) -> Result<http::Response<axum::body::Body>> {
 ///   Ok(router().call(req).await?)
@@ -124,7 +124,7 @@ pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// This is useful for implementing async handlers in frameworks which
 /// expect the handler to be `Send`, such as `axum`.
 ///
-/// ```rust
+/// ```ignore
 /// #[worker::send]
 /// async fn foo() {
 ///     // JsFuture is !Send
