@@ -2,27 +2,14 @@ import { WorkerEntrypoint } from "cloudflare:workers";
 import * as exports from "./index.js";
 
 Error.stackTraceLimit = 100;
+const initState = exports.__worker_init_state();
 
-let criticalError = false;
-function registerPanicHook() {
-  if (exports.setPanicHook)
-    exports.setPanicHook(function (message) {
-      const panicError = new Error("Rust panic: " + message);
-      console.error('Critical', panicError);
-      $PANIC_CRITICAL_ERROR
-    });
-}
-
-registerPanicHook();
-
-let instanceId = 0;
 function checkReinitialize() {
-  if (criticalError) {
+  if (initState.criticalError) {
     console.log("Reinitializing Wasm application");
     exports.__wbg_reset_state();
-    criticalError = false;
-    registerPanicHook();
-    instanceId++;
+    initState.criticalError = false;
+    initState.instanceId++;
   }
 }
 
@@ -33,7 +20,7 @@ addEventListener('error', (e) => {
 function handleMaybeCritical(e) {
   if (e instanceof WebAssembly.RuntimeError) {
     console.error('Critical', e);
-    criticalError = true;
+    initState.criticalError = true;
   }
 }
 
@@ -62,7 +49,7 @@ const classProxyHooks = {
       checkReinitialize();
       const instance = {
         instance: Reflect.construct(ctor, args, newTarget),
-        instanceId,
+        instanceId: initState.instanceId,
         ctor,
         args,
         newTarget
@@ -70,9 +57,9 @@ const classProxyHooks = {
       return new Proxy(instance, {
         ...instanceProxyHooks,
         get(target, prop, receiver) {
-          if (target.instanceId !== instanceId) {
+          if (target.instanceId !== initState.instanceId) {
             target.instance = Reflect.construct(target.ctor, target.args, target.newTarget);
-            target.instanceId = instanceId;
+            target.instanceId = initState.instanceId;
           }
           const original = Reflect.get(target.instance, prop, receiver);
           if (typeof original !== 'function') return original;
@@ -104,7 +91,7 @@ const classProxyHooks = {
         }
       });
     } catch (e) {
-      criticalError = true;
+      initState.criticalError = true;
       throw e;
     }
   }
