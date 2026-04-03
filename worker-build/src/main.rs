@@ -18,19 +18,22 @@ const OUT_DIR: &str = "build";
 
 const SHIM_FILE: &str = include_str!("./js/shim.js");
 const EMSCRIPTEN_WRAPPER_FILE: &str = include_str!("./js/emscripten_wrapper.js");
+const FS_IMPORTS_C: &str = include_str!("./js/fs_imports.c");
 /// Emscripten post-link flags passed to `emcc --post-link`.
 ///
 /// These configure the emscripten JS runtime for Workers compatibility:
 ///   - ERROR_ON_UNDEFINED_SYMBOLS=0: allow unresolved imports (wasm-bindgen glue)
 ///   - MODULARIZE=1 + EXPORT_ES6=1: ESM factory function output
 ///   - ENVIRONMENT=web: hardcode ENVIRONMENT_IS_WEB=true (avoids node/shell probes)
+///   - FORCE_FILESYSTEM=1: include MEMFS so std::fs operations work at runtime.
+///     Workers document /bundle, /tmp, and /dev as available filesystem paths.
 const EMCC_POSTLINK_FLAGS: &[&str] = &[
     "-sERROR_ON_UNDEFINED_SYMBOLS=0",
     "-sMODULARIZE=1",
     "-sEXPORT_ES6=1",
     "-sENVIRONMENT=web,worker",
     "-sASSERTIONS=0",
-    "-sFILESYSTEM=0",
+    "-sFORCE_FILESYSTEM=1",
     // Suppress "--post-link is experimental" noise — we know.
     "-Wno-experimental",
 ];
@@ -111,6 +114,11 @@ pub fn main() -> Result<()> {
     let is_emscripten = builder.wasm_target == WasmTarget::Emscripten;
 
     if is_emscripten {
+        // Compile the FS-import shim that overrides the weak standalone
+        // stubs so that filesystem syscalls become real wasm imports.
+        let fs_shim_o = compile_fs_imports_shim(&staging_dir)?;
+        builder.emscripten_link_objects.push(fs_shim_o);
+
         // Emscripten path: use bundler target for wasm-bindgen (emscripten mode
         // is auto-detected via the __wasm_bindgen_emscripten_marker section).
         builder.target = Target::Bundler;
@@ -464,6 +472,43 @@ fn remove_unused_files(out_dir: &Path) -> Result<()> {
 
 pub fn output_path(out_dir: &Path, name: impl AsRef<str>) -> PathBuf {
     out_dir.join(name.as_ref())
+}
+
+/// Compile the FS-import shim with `emcc -c` and return the path to the
+/// resulting `.o` file.
+///
+/// When emcc links a bare `.wasm` output it sets `STANDALONE_WASM=1` and
+/// links `libstandalonewasm`, whose weak C stubs resolve filesystem
+/// syscalls (`openat`, `stat64`, …) to `-EPERM` / `-ENOSYS` *inside* the
+/// wasm binary.  The JS-side MEMFS that `emcc --post-link` later provides
+/// can never supply the real implementations because they are no longer
+/// imports.
+///
+/// This shim provides strong (non-weak) definitions of those syscalls that
+/// forward to `__attribute__((import_module("env")))` functions, so the
+/// linker emits them as wasm imports that `--post-link` can satisfy.
+fn compile_fs_imports_shim(staging_dir: &Path) -> Result<PathBuf> {
+    let emcc =
+        which::which("emcc").context("emcc not found on PATH; required for --emscripten builds")?;
+
+    let c_path = staging_dir.join("fs_imports.c");
+    let o_path = staging_dir.join("fs_imports.o");
+    fs::write(&c_path, FS_IMPORTS_C)
+        .with_context(|| format!("Failed to write {}", c_path.display()))?;
+
+    let status = Command::new(emcc)
+        .arg("-c")
+        .arg("-O2")
+        .arg(&c_path)
+        .arg("-o")
+        .arg(&o_path)
+        .spawn()?
+        .wait()?;
+    anyhow::ensure!(
+        status.success(),
+        "emcc -c fs_imports.c exited with status {status}"
+    );
+    Ok(o_path)
 }
 
 /// Run `emcc --post-link` on the wasm-bindgen output.

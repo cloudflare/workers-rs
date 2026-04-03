@@ -238,12 +238,17 @@ fn rustc_minor_version() -> Option<u32> {
 }
 
 /// Run `cargo build` targeting the given wasm target.
+///
+/// If `link_objects` is non-empty, `cargo rustc` is used instead so extra
+/// `-Clink-arg=` flags can be injected for the final link step without
+/// overriding the user's `[target.*].rustflags` in `.cargo/config.toml`.
 pub fn cargo_build_wasm(
     path: &Path,
     profile: BuildProfile,
     extra_options: &[String],
     panic_unwind: bool,
     wasm_target: WasmTarget,
+    link_objects: &[PathBuf],
 ) -> Result<()> {
     let triple = wasm_target.triple();
     let msg = if panic_unwind {
@@ -263,7 +268,13 @@ pub fn cargo_build_wasm(
         cmd.arg("+nightly");
     }
 
-    cmd.current_dir(path).arg("build").arg("--lib");
+    if link_objects.is_empty() {
+        cmd.current_dir(path).arg("build").arg("--lib");
+    } else {
+        // Use `cargo rustc` so we can append `-- -Clink-arg=<obj>` flags
+        // without overriding the user's target-level rustflags.
+        cmd.current_dir(path).arg("rustc").arg("--lib");
+    }
 
     if PBAR.quiet() {
         cmd.arg("--quiet");
@@ -326,6 +337,14 @@ pub fn cargo_build_wasm(
         })
         .collect::<Result<Vec<_>>>()?;
     cmd.args(extra_options_with_absolute_paths);
+
+    // Append extra link objects via `-- -Clink-arg=<obj>` (cargo rustc mode).
+    if !link_objects.is_empty() {
+        cmd.arg("--");
+        for obj in link_objects {
+            cmd.arg(format!("-Clink-arg={}", obj.display()));
+        }
+    }
 
     utils::run(cmd, "cargo build").context("Compiling your crate to WebAssembly failed")?;
     Ok(())

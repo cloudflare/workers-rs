@@ -50,6 +50,8 @@ pub struct Build {
     pub wasm_bindgen_version: Option<String>,
     pub panic_unwind: bool,
     pub wasm_target: target::WasmTarget,
+    /// Extra object files to link for emscripten builds (e.g. FS-import shim).
+    pub emscripten_link_objects: Vec<PathBuf>,
 }
 
 /// What sort of output we're going to be generating and flags we're invoking
@@ -242,6 +244,7 @@ impl Build {
             wasm_bindgen_version: None,
             panic_unwind: build_opts.panic_unwind,
             wasm_target,
+            emscripten_link_objects: Vec::new(),
         })
     }
 
@@ -363,6 +366,7 @@ impl Build {
             &self.extra_options,
             self.panic_unwind,
             self.wasm_target,
+            &self.emscripten_link_objects,
         )?;
 
         info!(
