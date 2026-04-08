@@ -43,7 +43,7 @@ fn init() {
     panic::set_hook(Box::new(move |info| {
         default_hook(info);
         let message = info.to_string();
-        let panic_err = js_sys::Error::new(&format!("Rust panic: {}", message));
+        let panic_err = js_sys::Error::new(&format!("Rust panic: {message}"));
         web_sys::console::error_2(&"Critical".into(), &panic_err.into());
         #[cfg(not(panic = "unwind"))]
         {
