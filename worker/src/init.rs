@@ -21,6 +21,11 @@ extern "C" {
     fn set_instance_id(this: &InitState, val: u32);
 }
 
+// On abort -> reinit
+fn on_abort() {
+    wasm_bindgen::handler::schedule_reinit();
+}
+
 // When building with panic=unwind and reinitialization support,
 // this hook will be called for any critical error or abort.
 // Since wasm-bindgen manages the reinitialization for us in this
@@ -46,6 +51,7 @@ fn init() {
         }
     }));
 
+    wasm_bindgen::handler::set_on_abort(on_abort);
     wasm_bindgen::handler::set_on_reinit(on_reinit);
 }
 

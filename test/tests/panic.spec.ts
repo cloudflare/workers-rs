@@ -89,6 +89,22 @@ describe("Panic Hook with WASM Reinitialization", () => {
         expect(responses[1].status).toBe(200);
         expect(responses[2].status).toBe(200);
       }
+
+      // js errors are unwound with panic=unwind
+      {
+        await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
+        const resp = await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
+        expect(await resp.text()).toContain("unstored_count:");
+
+        const jsErrorResp = await mf.dispatchFetch(`${mfUrl}test-js-error`);
+        expect(jsErrorResp.status).toBe(500);
+
+        const jsErrorText = await jsErrorResp.text();
+        expect(jsErrorText).toContain("Workers runtime canceled");
+
+        const normalResp = await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
+        expect(await normalResp.text()).not.toContain("unstored_count: 1");
+      }
     } else {
       // ===== PANIC=ABORT MODE TESTS (default) =====
       // In this mode, panics cause "Workers runtime canceled" and WASM reinitializes.
