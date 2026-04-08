@@ -109,7 +109,7 @@ jobs:
         run: chmod +x ./target/debug/worker-build
 
       - name: Build wasm-bindgen
-        run: chomp build:wasm-bindgen
+        run: cargo build -p wasm-bindgen-cli --bin wasm-bindgen
 
       - name: Build all examples
         run: |
