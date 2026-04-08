@@ -119,7 +119,7 @@ jobs:
               fi
               echo "Building $example_name"
               cd "$example"
-              ../../target/debug/worker-build
+              WASM_BINDGEN_BIN='../../wasm-bindgen/target/debug/wasm-bindgen' ../../target/debug/worker-build
               cd ../..
           done
 
