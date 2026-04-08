@@ -108,6 +108,9 @@ jobs:
       - name: Make worker-build executable
         run: chmod +x ./target/debug/worker-build
 
+      - name: Build wasm-bindgen
+        run: chomp build:wasm-bindgen
+
       - name: Build all examples
         run: |
           sed -i 's/, "examples\/axum"//g' Cargo.toml
