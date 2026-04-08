@@ -110,6 +110,8 @@ jobs:
 
       - name: Build wasm-bindgen
         run: cargo build -p wasm-bindgen-cli --bin wasm-bindgen
+        with:
+          path: wasm-bindgen
 
       - name: Build all examples
         run: |
