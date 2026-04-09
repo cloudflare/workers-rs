@@ -2,7 +2,7 @@
 [![crates.io](https://img.shields.io/crates/v/worker)](https://crates.io/crates/worker)
 [![docs.rs](https://img.shields.io/docsrs/worker)](https://docs.rs/worker)
 
-**Work-in-progress** ergonomic Rust bindings to Cloudflare Workers environment. Write your entire worker in Rust!
+Ergonomic Rust bindings to Cloudflare Workers environment. Write your entire worker in Rust!
 
 Read the [Notes and FAQ](#notes-and-faq)
 
