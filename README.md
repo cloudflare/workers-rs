@@ -48,8 +48,10 @@ Use [cargo generate](https://github.com/cargo-generate/cargo-generate) to start 
 cargo generate cloudflare/workers-rs
 ```
 
-There are several templates to chose from. You should see a new project layout with a `src/lib.rs`. 
-Start there! Use any local or remote crates and modules (as long as they compile to the `wasm32-unknown-unknown` target).
+There are several templates to choose from. During generation you will be prompted to enable
+`panic=unwind` and abort recovery (see [Panic Recovery](#panic-recovery-with---panic-unwind)
+below). You should see a new project layout with a `src/lib.rs`. Start there! Use any local or
+remote crates and modules (as long as they compile to the `wasm32-unknown-unknown` target).
 
 Once you're ready to run your project, run your worker locally:
 

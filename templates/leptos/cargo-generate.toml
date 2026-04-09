@@ -1,6 +1,7 @@
 [placeholders]
 use_nightly = { prompt = "Use nightly features?", default = false, type = "bool" }
-win = { type = "bool", prompt = "Use windows syntax?", default = false}
+win = { type = "bool", prompt = "Use windows syntax?", default = false }
+# TODO: add panic_unwind placeholder once leptos template build is validated with --panic-unwind
 
 [template]
 exclude = ["*.ico"]
