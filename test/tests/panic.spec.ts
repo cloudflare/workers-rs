@@ -12,7 +12,7 @@ describe("Panic Hook with WASM Reinitialization", () => {
     // panic=unwind mode returns "PanicError:" in the response
     // panic=abort mode returns "Workers runtime canceled"
     const isPanicUnwind = detectText.includes("PanicError:");
-    
+
     if (isPanicUnwind) {
       // ===== PANIC=UNWIND MODE TESTS =====
       // In this mode, panics are caught and converted to JS errors.
@@ -90,6 +90,37 @@ describe("Panic Hook with WASM Reinitialization", () => {
         expect(responses[2].status).toBe(200);
       }
 
+      // js errors are unwound with panic=unwind
+      {
+        await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
+        const resp = await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
+        expect(await resp.text()).toContain("unstored_count:");
+
+        const jsErrorResp = await mf.dispatchFetch(`${mfUrl}test-js-error`);
+        expect(jsErrorResp.status).toBe(500);
+
+        const jsErrorText = await jsErrorResp.text();
+        expect(jsErrorText).toContain("Workers runtime canceled");
+
+        const normalResp = await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
+        expect(await normalResp.text()).not.toContain("unstored_count: 1");
+      }
+
+      // explicit abort() recovery test - critical errors trigger reinit even with panic=unwind
+      {
+        await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
+        const resp = await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
+        expect(await resp.text()).toContain("unstored_count:");
+
+        const abortResp = await mf.dispatchFetch(`${mfUrl}test-abort`);
+        expect(abortResp.status).toBe(500);
+
+        const abortText = await abortResp.text();
+        expect(abortText).toContain("Workers runtime canceled");
+
+        const normalResp = await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
+        expect(await normalResp.text()).toContain("unstored_count: 1");
+      }
     } else {
       // ===== PANIC=ABORT MODE TESTS (default) =====
       // In this mode, panics cause "Workers runtime canceled" and WASM reinitializes.
@@ -180,10 +211,9 @@ describe("Panic Hook with WASM Reinitialization", () => {
         expect(await normalResp.text()).toContain("unstored_count: 1");
       }
 
-      // JS error recovery test
-      // TODO: figure out how to achieve this one. Hard part is global error handler
-      // will need to detect JS errors, not just WebAssembly.RuntimeError, which
-      // may over-classify.
+      // TODO: JS error recovery test - requires distinguishing critical errors
+      // from accepted errors, which requires wasm-bindgen native abort handling
+      // to support this.
       // {
       //   await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
       //   const resp = await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
@@ -198,22 +228,22 @@ describe("Panic Hook with WASM Reinitialization", () => {
       //   const normalResp = await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
       //   expect(await normalResp.text()).toContain("unstored_count: 1");
       // }
+    }
 
-      // out of memory recovery test
-      {
-        await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
-        const resp = await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
-        expect(await resp.text()).toContain("unstored_count:");
+    // out of memory recovery test
+    {
+      await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
+      const resp = await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
+      expect(await resp.text()).toContain("unstored_count:");
 
-        const oomResp = await mf.dispatchFetch(`${mfUrl}test-oom`);
-        expect(oomResp.status).toBe(500);
+      const oomResp = await mf.dispatchFetch(`${mfUrl}test-oom`);
+      expect(oomResp.status).toBe(500);
 
-        const oomText = await oomResp.text();
-        expect(oomText).toContain("Workers runtime canceled");
+      const oomText = await oomResp.text();
+      expect(oomText).toContain("Workers runtime canceled");
 
-        const normalResp = await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
-        expect(await normalResp.text()).toContain("unstored_count: 1");
-      }
+      const normalResp = await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
+      expect(await normalResp.text()).toContain("unstored_count: 1");
     }
   }, 20_000);
 });

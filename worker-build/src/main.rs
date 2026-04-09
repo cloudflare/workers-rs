@@ -10,6 +10,7 @@ use anyhow::{Context, Result};
 use clap::Parser;
 
 const SHIM_FILE: &str = include_str!("./js/shim.js");
+const SHIM_UNWIND_FILE: &str = include_str!("./js/shim-unwind.js");
 
 pub(crate) mod binary;
 mod build;
@@ -109,16 +110,12 @@ pub fn main() -> Result<()> {
     }
 
     if module_target {
-        let shim = SHIM_FILE
-            .replace("$HANDLERS", &generate_handlers(&staging_dir)?)
-            .replace(
-                "$PANIC_CRITICAL_ERROR",
-                if builder.panic_unwind {
-                    ""
-                } else {
-                    "criticalError = true;"
-                },
-            );
+        let shim = if builder.panic_unwind {
+            SHIM_UNWIND_FILE
+        } else {
+            SHIM_FILE
+        }
+        .replace("$HANDLERS", &generate_handlers(&staging_dir)?);
         let shim_path = output_path(&staging_dir, "shim.js");
         fs::write(&shim_path, shim)
             .with_context(|| format!("Failed to write {}", shim_path.display()))?;
@@ -204,7 +201,7 @@ fn generate_handlers(out_dir: &Path) -> Result<String> {
     Ok(handlers)
 }
 
-static SYSTEM_FNS: &[&str] = &["__wbg_reset_state", "setPanicHook"];
+static SYSTEM_FNS: &[&str] = &["__wbg_reset_state", "__worker_init_state"];
 
 fn add_export_wrappers(out_dir: &Path) -> Result<()> {
     let index_path = output_path(out_dir, "index.js");
