@@ -26,17 +26,6 @@ fn on_abort() {
     wasm_bindgen::handler::schedule_reinit();
 }
 
-// When building with panic=unwind and reinitialization support,
-// this hook will be called for any critical error or abort.
-// Since wasm-bindgen manages the reinitialization for us in this
-// case, we only need to bump the instance ID.
-fn on_reinit() {
-    INIT_STATE.with(|s| {
-        let id = s.instance_id();
-        s.set_instance_id(id + 1);
-    });
-}
-
 #[wasm_bindgen(start)]
 fn init() {
     let default_hook = panic::take_hook();
@@ -51,8 +40,12 @@ fn init() {
         }
     }));
 
+    INIT_STATE.with(|s| {
+        let id = s.instance_id();
+        s.set_instance_id(id + 1);
+    });
+
     wasm_bindgen::handler::set_on_abort(on_abort);
-    wasm_bindgen::handler::set_on_reinit(on_reinit);
 }
 
 #[wasm_bindgen(js_name = "__worker_init_state")]
