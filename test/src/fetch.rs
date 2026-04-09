@@ -146,10 +146,9 @@ pub async fn handle_fetch_timeout(
                 Err(e) if e.to_string().contains("AbortError") => { /* Yay! It worked, let's do nothing to celebrate */
                 }
                 Err(e) => panic!(
-                    "Fetch errored with a different error than expected: {:#?}",
-                    e
+                    "Fetch errored with a different error than expected: {e:#?}"
                 ),
-                Ok(text) => panic!("Fetch unexpectedly succeeded: {}", text),
+                Ok(text) => panic!("Fetch unexpectedly succeeded: {text}"),
             }
 
             res
