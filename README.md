@@ -439,6 +439,66 @@ allows you to describe your RPC interface using WIT and generate JavaScript bind
 [rpc-client example](./examples/rpc-client/wit/calculator.wit). The easiest way to use this code generator is using a [build script](./examples/rpc-client/build.rs) as shown in the example.
 This code generator is pre-alpha, with no support guarantee, and implemented only for primitive types at this time. 
 
+## Panic Recovery with `--panic-unwind`
+
+By default, Rust panics in Workers compile with `panic=abort`, which terminates the WebAssembly
+instance. The `--panic-unwind` flag for `worker-build` changes this behavior so that panics are
+caught and converted to JavaScript exceptions, allowing the Worker to continue serving requests
+after a panic.
+
+```bash
+npx worker-build --panic-unwind
+```
+
+Or in your `wrangler.toml` build command:
+
+```toml
+[build]
+command = "cargo install worker-build && worker-build --release --panic-unwind"
+```
+
+This flag:
+
+- Uses the **nightly** Rust toolchain (requires `rustup toolchain install nightly`)
+- Rebuilds `std` with `-Zbuild-std=std,panic_unwind` and `-Cpanic=unwind`
+- Enables wasm-bindgen's [panic catching](https://wasm-bindgen.github.io/wasm-bindgen/reference/catch-unwind.html)
+  support, which catches panics at FFI boundaries and converts them to JavaScript `PanicError`
+  exceptions
+- Registers `schedule_reinit()` via wasm-bindgen's [abort handling](https://wasm-bindgen.github.io/wasm-bindgen/reference/handling-aborts.html)
+  hooks to automatically recover from critical errors (e.g. `unreachable`, stack overflow, or
+  out-of-memory). After a hard abort the WebAssembly instance is transparently reinitialized on
+  the next request, with an internal instance ID bump so that Durable Object instances are
+  recreated.
+
+Without this flag, any panic will terminate the isolate. With it, individual requests that
+trigger a panic will fail with an error response while subsequent requests continue to work
+normally.
+
+### Unwind Safety
+
+When building with `panic=unwind`, exported function arguments and closure captures must satisfy
+Rust's `UnwindSafe` trait. The `worker` crate macros wrap handler callbacks with
+`AssertUnwindSafe` automatically, but if you pass closures to JavaScript via `Closure::new` or
+similar APIs you may need to wrap non-unwind-safe captures (e.g. `&mut T`, `Cell<T>`,
+`RefCell<T>`) in `std::panic::AssertUnwindSafe`:
+
+```rust
+use std::cell::Cell;
+use std::panic::AssertUnwindSafe;
+use wasm_bindgen::prelude::*;
+
+let counter = Cell::new(0u32);
+let counter_ref = AssertUnwindSafe(&counter);
+let closure = Closure::new(move || {
+    counter_ref.set(counter_ref.get() + 1);
+});
+```
+
+Alternatively, `Closure::own_aborting` and other `*_aborting` variants skip the `UnwindSafe`
+requirement but will abort on panic instead of catching it. See the
+[wasm-bindgen closures documentation](https://wasm-bindgen.github.io/wasm-bindgen/reference/passing-rust-closures-to-js.html)
+for the full set of closure APIs and their unwind behavior.
+
 ## Testing with Miniflare
 
 In order to test your Rust worker locally, the best approach is to use
