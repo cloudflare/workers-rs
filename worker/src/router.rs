@@ -190,7 +190,7 @@ impl<'a, D: 'a> Router<'a, D> {
     pub fn or_else_any_method(mut self, pattern: &str, func: HandlerFn<D>) -> Self {
         self.or_else_any_method
             .insert(pattern, Handler::Sync(func))
-            .unwrap_or_else(|e| panic!("failed to register route for {} pattern: {}", pattern, e));
+            .unwrap_or_else(|e| panic!("failed to register route for {pattern} pattern: {e}"));
         self
     }
 
@@ -353,7 +353,7 @@ impl<'a, D: 'a> Router<'a, D> {
                 pattern,
                 Handler::Async(Rc::new(move |req, route| Box::pin(func(req, route)))),
             )
-            .unwrap_or_else(|e| panic!("failed to register route for {} pattern: {}", pattern, e));
+            .unwrap_or_else(|e| panic!("failed to register route for {pattern} pattern: {e}"));
         self
     }
 
@@ -364,10 +364,7 @@ impl<'a, D: 'a> Router<'a, D> {
                 .or_default()
                 .insert(pattern, func.clone())
                 .unwrap_or_else(|e| {
-                    panic!(
-                        "failed to register {:?} route for {} pattern: {}",
-                        method, pattern, e
-                    )
+                    panic!("failed to register {method:?} route for {pattern} pattern: {e}")
                 });
         }
     }
