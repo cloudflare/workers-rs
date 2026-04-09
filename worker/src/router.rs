@@ -364,9 +364,7 @@ impl<'a, D: 'a> Router<'a, D> {
                 .or_default()
                 .insert(pattern, func.clone())
                 .unwrap_or_else(|e| {
-                    panic!(
-                        "failed to register {method:?} route for {pattern} pattern: {e}"
-                    )
+                    panic!("failed to register {method:?} route for {pattern} pattern: {e}")
                 });
         }
     }
