@@ -172,7 +172,11 @@ pub async fn get(_req: Request, env: Env, _data: SomeSharedData) -> Result<Respo
 }
 
 #[worker::send]
-pub async fn get_many_sequential(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+pub async fn get_many_sequential(
+    _req: Request,
+    env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
     let bucket = env.bucket("PUT_BUCKET")?;
     let keys = repro_keys();
     seed_repro_keys(&bucket, &keys).await?;
@@ -181,12 +185,19 @@ pub async fn get_many_sequential(_req: Request, env: Env, _data: SomeSharedData)
     let mut values = Vec::with_capacity(keys.len());
     for (i, key) in keys.iter().enumerate() {
         let get_start = Date::now().as_millis();
-        let object = bucket.get(key).execute().await?.expect("seeded object missing");
+        let object = bucket
+            .get(key)
+            .execute()
+            .await?
+            .expect("seeded object missing");
         let body = object.body().expect("seeded object body missing");
         values.push(body.text().await?);
         let get_elapsed = Date::now().as_millis() - get_start;
         if i < 10 || i % 100 == 0 {
-            console_log!("[seq] key {i} started at {}ms, took {get_elapsed}ms", get_start - start);
+            console_log!(
+                "[seq] key {i} started at {}ms, took {get_elapsed}ms",
+                get_start - start
+            );
         }
     }
     let elapsed_ms = (Date::now().as_millis() - start) as u64;
@@ -234,7 +245,10 @@ pub async fn get_many_parallel(_req: Request, env: Env, _data: SomeSharedData) -
                 .map_err(|e| JsValue::from_str(&e.to_string()))?;
             let get_elapsed = Date::now().as_millis() - get_start;
             if i < 10 || i % 100 == 0 {
-                console_log!("[par] key {i} completed at +{}ms, took {get_elapsed}ms", Date::now().as_millis() - outer_start);
+                console_log!(
+                    "[par] key {i} completed at +{}ms, took {get_elapsed}ms",
+                    Date::now().as_millis() - outer_start
+                );
             }
             Ok(JsValue::from_str(&text))
         });
@@ -285,7 +299,10 @@ pub async fn get_many_chunked(_req: Request, env: Env, _data: SomeSharedData) ->
                 let text = body.text().await.expect("body text");
                 let get_elapsed = Date::now().as_millis() - get_start;
                 if i < 10 || i % 100 == 0 {
-                    console_log!("[chunk] key {i} completed at +{}ms, took {get_elapsed}ms", Date::now().as_millis() - start);
+                    console_log!(
+                        "[chunk] key {i} completed at +{}ms, took {get_elapsed}ms",
+                        Date::now().as_millis() - start
+                    );
                 }
                 text
             }
@@ -311,29 +328,36 @@ pub async fn get_many_join(_req: Request, env: Env, _data: SomeSharedData) -> Re
     seed_repro_keys(&bucket, &keys).await?;
 
     let start = Date::now().as_millis();
-    let futs: Vec<_> = keys.iter().enumerate().map(|(i, key)| {
-        let bucket = bucket.clone();
-        let key = key.clone();
-        async move {
-            let get_start = Date::now().as_millis();
-            if i < 10 || i % 100 == 0 {
-                console_log!("[join] key {i} started at +{}ms", get_start - start);
+    let futs: Vec<_> = keys
+        .iter()
+        .enumerate()
+        .map(|(i, key)| {
+            let bucket = bucket.clone();
+            let key = key.clone();
+            async move {
+                let get_start = Date::now().as_millis();
+                if i < 10 || i % 100 == 0 {
+                    console_log!("[join] key {i} started at +{}ms", get_start - start);
+                }
+                let object = bucket
+                    .get(&key)
+                    .execute()
+                    .await
+                    .expect("seeded object missing")
+                    .expect("seeded object missing");
+                let body = object.body().expect("seeded object body missing");
+                let text = body.text().await.expect("body text");
+                let get_elapsed = Date::now().as_millis() - get_start;
+                if i < 10 || i % 100 == 0 {
+                    console_log!(
+                        "[join] key {i} completed at +{}ms, took {get_elapsed}ms",
+                        Date::now().as_millis() - start
+                    );
+                }
+                text
             }
-            let object = bucket
-                .get(&key)
-                .execute()
-                .await
-                .expect("seeded object missing")
-                .expect("seeded object missing");
-            let body = object.body().expect("seeded object body missing");
-            let text = body.text().await.expect("body text");
-            let get_elapsed = Date::now().as_millis() - get_start;
-            if i < 10 || i % 100 == 0 {
-                console_log!("[join] key {i} completed at +{}ms, took {get_elapsed}ms", Date::now().as_millis() - start);
-            }
-            text
-        }
-    }).collect();
+        })
+        .collect();
 
     let values = futures_util::future::join_all(futs).await;
     let elapsed_ms = (Date::now().as_millis() - start) as u64;

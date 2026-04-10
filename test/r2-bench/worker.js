@@ -2,6 +2,7 @@
 // Run with: cd test/r2-bench && npx wrangler dev
 
 const COUNT = 1024;
+const CHUNK_SIZE = 32;
 
 async function seed(bucket) {
   const existing = await bucket.head(`bench/key-0`);
@@ -33,6 +34,21 @@ async function parallel(bucket) {
   return { mode: "parallel", count: values.length, elapsed_ms: Date.now() - start };
 }
 
+async function chunked(bucket) {
+  const start = Date.now();
+  const values = [];
+  for (let offset = 0; offset < COUNT; offset += CHUNK_SIZE) {
+    const chunk = [];
+    for (let i = offset; i < Math.min(offset + CHUNK_SIZE, COUNT); i++) {
+      chunk.push(
+        bucket.get(`bench/key-${i}`).then((obj) => obj.text())
+      );
+    }
+    values.push(...await Promise.all(chunk));
+  }
+  return { mode: "chunked", count: values.length, elapsed_ms: Date.now() - start };
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -45,23 +61,28 @@ export default {
 
     if (url.pathname === "/sequential") {
       await seed(bucket);
-      const result = await sequential(bucket);
-      return Response.json(result);
+      return Response.json(await sequential(bucket));
     }
 
     if (url.pathname === "/parallel") {
       await seed(bucket);
-      const result = await parallel(bucket);
-      return Response.json(result);
+      return Response.json(await parallel(bucket));
     }
 
-    if (url.pathname === "/both") {
+    if (url.pathname === "/chunked") {
       await seed(bucket);
-      const seq = await sequential(bucket);
-      const par = await parallel(bucket);
-      return Response.json({ sequential: seq, parallel: par });
+      return Response.json(await chunked(bucket));
     }
 
-    return new Response("GET /sequential, /parallel, or /both", { status: 404 });
+    if (url.pathname === "/all") {
+      await seed(bucket);
+      return Response.json({
+        sequential: await sequential(bucket),
+        parallel: await parallel(bucket),
+        chunked: await chunked(bucket),
+      });
+    }
+
+    return new Response("GET /sequential, /parallel, /chunked, or /all", { status: 404 });
   },
 };
