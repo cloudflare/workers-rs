@@ -1,10 +1,15 @@
 use futures_util::StreamExt;
+use serde::Serialize;
 use std::{
     collections::HashMap,
     convert::TryFrom,
     sync::atomic::{AtomicBool, Ordering},
 };
 use worker::{
+    console_log,
+    js_sys::{Array, Promise},
+    wasm_bindgen::JsValue,
+    wasm_bindgen_futures::{future_to_promise, JsFuture},
     Bucket, Conditional, Data, Date, Env, FixedLengthStream, HttpMetadata, Include, Request,
     Response, Result,
 };
@@ -12,6 +17,31 @@ use worker::{
 use crate::SomeSharedData;
 
 static SEEDED: AtomicBool = AtomicBool::new(false);
+
+const REPRO_OBJECT_COUNT: usize = 512;
+
+#[derive(Serialize)]
+struct MultiGetTiming {
+    mode: &'static str,
+    count: usize,
+    elapsed_ms: u64,
+}
+
+fn repro_keys() -> Vec<String> {
+    (0..REPRO_OBJECT_COUNT)
+        .map(|i| format!("repro/parallel-get-{i}"))
+        .collect()
+}
+
+async fn seed_repro_keys(bucket: &Bucket, keys: &[String]) -> Result<()> {
+    for key in keys {
+        bucket
+            .put(key, format!("value-for-{key}"))
+            .execute()
+            .await?;
+    }
+    Ok(())
+}
 
 pub async fn seed_bucket(bucket: &Bucket) -> Result<()> {
     if SEEDED.load(Ordering::Acquire) {
@@ -139,6 +169,92 @@ pub async fn get(_req: Request, env: Env, _data: SomeSharedData) -> Result<Respo
     assert_eq!(uploaded_http_metadata, http_metadata);
 
     Response::ok("ok")
+}
+
+#[worker::send]
+pub async fn get_many_sequential(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let bucket = env.bucket("PUT_BUCKET")?;
+    let keys = repro_keys();
+    seed_repro_keys(&bucket, &keys).await?;
+
+    let start = Date::now().as_millis();
+    let mut values = Vec::with_capacity(keys.len());
+    for (i, key) in keys.iter().enumerate() {
+        let get_start = Date::now().as_millis();
+        let object = bucket.get(key).execute().await?.expect("seeded object missing");
+        let body = object.body().expect("seeded object body missing");
+        values.push(body.text().await?);
+        let get_elapsed = Date::now().as_millis() - get_start;
+        if i < 10 || i % 100 == 0 {
+            console_log!("[seq] key {i} started at {}ms, took {get_elapsed}ms", get_start - start);
+        }
+    }
+    let elapsed_ms = (Date::now().as_millis() - start) as u64;
+
+    assert_eq!(values.len(), keys.len());
+
+    Response::from_json(&MultiGetTiming {
+        mode: "sequential",
+        count: values.len(),
+        elapsed_ms,
+    })
+}
+
+#[worker::send]
+pub async fn get_many_parallel(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let bucket = env.bucket("PUT_BUCKET")?;
+    let keys = repro_keys();
+    seed_repro_keys(&bucket, &keys).await?;
+
+    let start = Date::now().as_millis();
+    let keys_len_u32 = u32::try_from(keys.len()).expect("too many keys");
+    let promises = Array::new_with_length(keys_len_u32);
+    for (i, key) in keys.iter().enumerate() {
+        let bucket = bucket.clone();
+        let key = key.clone();
+        let outer_start = start;
+        let promise = future_to_promise(async move {
+            let get_start = Date::now().as_millis();
+            let spawn_offset = get_start - outer_start;
+            if i < 10 || i % 100 == 0 {
+                console_log!("[par] key {i} future polled first at +{spawn_offset}ms");
+            }
+            let object = bucket
+                .get(&key)
+                .execute()
+                .await
+                .map_err(|e| JsValue::from_str(&e.to_string()))?
+                .ok_or_else(|| JsValue::from_str("seeded object missing"))?;
+            let body = object
+                .body()
+                .ok_or_else(|| JsValue::from_str("seeded object body missing"))?;
+            let text = body
+                .text()
+                .await
+                .map_err(|e| JsValue::from_str(&e.to_string()))?;
+            let get_elapsed = Date::now().as_millis() - get_start;
+            if i < 10 || i % 100 == 0 {
+                console_log!("[par] key {i} completed at +{}ms, took {get_elapsed}ms", Date::now().as_millis() - outer_start);
+            }
+            Ok(JsValue::from_str(&text))
+        });
+
+        promises.set(i as u32, promise.into());
+    }
+    let spawn_done = Date::now().as_millis();
+    console_log!("[par] all futures spawned at +{}ms", spawn_done - start);
+
+    let results = JsFuture::from(Promise::all(&promises))
+        .await
+        .map_err(|e| worker::Error::RustError(format!("Promise.all failed: {e:?}")))?;
+    let values = Array::from(&results);
+    let elapsed_ms = (Date::now().as_millis() - start) as u64;
+
+    Response::from_json(&MultiGetTiming {
+        mode: "parallel",
+        count: values.length() as usize,
+        elapsed_ms,
+    })
 }
 
 #[worker::send]
