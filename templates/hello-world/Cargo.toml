@@ -8,5 +8,5 @@ authors = ["{{authors}}"]
 crate-type = ["cdylib"]
 
 [dependencies]
-worker = { version = "0.7" }
-worker-macros = { version = "0.7" }
+worker = { version = "0.8" }
+worker-macros = { version = "0.8" }

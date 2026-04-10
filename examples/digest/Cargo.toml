@@ -10,5 +10,5 @@ release = false
 crate-type = ["cdylib"]
 
 [dependencies]
-worker = "0.7"
+worker.workspace = true
 hex = "0.4"
