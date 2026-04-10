@@ -257,6 +257,53 @@ pub async fn get_many_parallel(_req: Request, env: Env, _data: SomeSharedData) -
     })
 }
 
+const CHUNK_SIZE: usize = 32;
+
+#[worker::send]
+pub async fn get_many_chunked(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let bucket = env.bucket("PUT_BUCKET")?;
+    let keys = repro_keys();
+    seed_repro_keys(&bucket, &keys).await?;
+
+    let start = Date::now().as_millis();
+    let values: Vec<String> = futures_util::stream::iter(keys.iter().enumerate())
+        .map(|(i, key)| {
+            let bucket = bucket.clone();
+            let key = key.clone();
+            async move {
+                let get_start = Date::now().as_millis();
+                if i < 10 || i % 100 == 0 {
+                    console_log!("[chunk] key {i} started at +{}ms", get_start - start);
+                }
+                let object = bucket
+                    .get(&key)
+                    .execute()
+                    .await
+                    .expect("seeded object missing")
+                    .expect("seeded object missing");
+                let body = object.body().expect("seeded object body missing");
+                let text = body.text().await.expect("body text");
+                let get_elapsed = Date::now().as_millis() - get_start;
+                if i < 10 || i % 100 == 0 {
+                    console_log!("[chunk] key {i} completed at +{}ms, took {get_elapsed}ms", Date::now().as_millis() - start);
+                }
+                text
+            }
+        })
+        .buffer_unordered(CHUNK_SIZE)
+        .collect()
+        .await;
+    let elapsed_ms = (Date::now().as_millis() - start) as u64;
+
+    assert_eq!(values.len(), REPRO_OBJECT_COUNT);
+
+    Response::from_json(&MultiGetTiming {
+        mode: "chunked",
+        count: values.len(),
+        elapsed_ms,
+    })
+}
+
 #[worker::send]
 pub async fn put(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let bucket = env.bucket("PUT_BUCKET")?;

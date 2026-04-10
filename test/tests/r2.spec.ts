@@ -52,6 +52,21 @@ describe("r2", () => {
     expect(body.elapsed_ms).toBeGreaterThanOrEqual(0);
   });
 
+  test("get many chunked", async () => {
+    const resp = await mf.dispatchFetch(`${mfUrl}r2/get-many-chunked`);
+    expect(resp.status).toBe(200);
+
+    const body = (await resp.json()) as {
+      mode: string;
+      count: number;
+      elapsed_ms: number;
+    };
+
+    expect(body.mode).toBe("chunked");
+    expect(body.count).toBe(512);
+    expect(body.elapsed_ms).toBeGreaterThanOrEqual(0);
+  });
+
   test("put", async () => {
     const resp = await mf.dispatchFetch(`${mfUrl}r2/put`, {
       method: "put",

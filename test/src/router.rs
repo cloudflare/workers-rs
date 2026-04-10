@@ -212,6 +212,7 @@ macro_rules! add_routes (
     add_route!($obj, get, "/r2/get", r2::get);
     add_route!($obj, get, "/r2/get-many-sequential", r2::get_many_sequential);
     add_route!($obj, get, "/r2/get-many-parallel", r2::get_many_parallel);
+    add_route!($obj, get, "/r2/get-many-chunked", r2::get_many_chunked);
     add_route!($obj, put,  "/r2/put", r2::put);
     add_route!($obj, put,  "/r2/put-properties", r2::put_properties);
     add_route!($obj, put,  "/r2/put-multipart", r2::put_multipart);
