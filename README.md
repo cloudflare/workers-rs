@@ -459,7 +459,7 @@ Or in your `wrangler.toml` build command:
 command = "cargo install worker-build && worker-build --release --panic-unwind"
 ```
 
-### Prerequesites
+### Prerequisites
 
 To configure the nightly toolchain with build std run:
 
