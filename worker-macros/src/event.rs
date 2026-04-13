@@ -230,11 +230,24 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
         Start => {
             validate_event_fn(&input_fn, Start, 0, false);
 
+            let mod_name = Ident::new(
+                &format!("_worker_start_{}", input_fn.sig.ident),
+                input_fn.sig.ident.span(),
+            );
+
             let wasm_bindgen_code =
                 wasm_bindgen_macro_support::expand(quote! { start }, quote! { #input_fn })
                     .expect("wasm_bindgen macro failed to expand");
 
-            TokenStream::from(wasm_bindgen_code)
+            let output = quote! {
+                mod #mod_name {
+                    pub use ::worker::{wasm_bindgen, wasm_bindgen_futures};
+                }
+                use #mod_name::*;
+                #wasm_bindgen_code
+            };
+
+            TokenStream::from(output)
         }
     }
 }
