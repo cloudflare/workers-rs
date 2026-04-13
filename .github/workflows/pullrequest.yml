@@ -113,7 +113,7 @@ jobs:
 
       - name: Build all examples
         run: |
-          sed -i 's/, "examples\/axum"//g' Cargo.toml
+          sed -i '/"examples\/axum",/d' Cargo.toml
           for example in examples/*/; do
               example_name=$(basename "$example")
               if [ "$example_name" = "coredump" ]; then
