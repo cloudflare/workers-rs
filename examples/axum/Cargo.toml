@@ -15,6 +15,6 @@ worker-macros = { workspace = true, features = ['http'] }
 axum = { version = "0.8", default-features = false, features = ['json'] }
 axum-macros = "0.5.0"
 tower-service = "0.3.3"
-wasm-bindgen-futures = "0.4"
-wasm-bindgen = "0.2.117"
+wasm-bindgen-futures = { workspace = true }
+wasm-bindgen = { workspace = true }
 serde = { version = "1.0", features = ["derive"] }
