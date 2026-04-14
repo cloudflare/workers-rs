@@ -459,18 +459,10 @@ Or in your `wrangler.toml` build command:
 command = "cargo install worker-build && worker-build --release --panic-unwind"
 ```
 
-### Prerequisites
+This flag:
 
-To configure the nightly toolchain with build std run:
-
-```
-rustup toolchain install nightly
-rustup component add rust-src --toolchain nightly
-rustup target add wasm32-unknown-unknown --toolchain nightly
-```
-
-- Uses the **nightly** Rust toolchain (requires `rustup toolchain install nightly`)
-- Rebuilds `std` with `-Zbuild-std=std,panic_unwind` and `-Cpanic=unwind`
+- Uses the **nightly** Rust toolchain (installed automatically if missing)
+- Rebuilds `std` with `-Zbuild-std=std,panic_unwind` and `-Cpanic=unwind` (the `rust-src` component and `wasm32-unknown-unknown` target for nightly are installed automatically if missing)
 - Enables wasm-bindgen's [panic catching](https://wasm-bindgen.github.io/wasm-bindgen/reference/catch-unwind.html)
   support, which catches panics at FFI boundaries and converts them to JavaScript `PanicError`
   exceptions

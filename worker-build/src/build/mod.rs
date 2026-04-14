@@ -282,6 +282,7 @@ impl Build {
             step_check_rustc_version,
             step_check_crate_config,
             step_check_for_wasm_target,
+            step_check_nightly_prerequisites,
             step_check_lib_versions,
             step_install_wasm_bindgen,
         ]
@@ -333,6 +334,16 @@ impl Build {
         info!("Checking for wasm-target...");
         target::check_for_wasm32_target()?;
         info!("Checking for wasm-target was successful.");
+        Ok(())
+    }
+
+    fn step_check_nightly_prerequisites(&mut self) -> Result<()> {
+        if !self.panic_unwind {
+            return Ok(());
+        }
+        info!("Checking nightly prerequisites for panic=unwind...");
+        target::check_nightly_prerequisites()?;
+        info!("Nightly prerequisites check was successful.");
         Ok(())
     }
 
