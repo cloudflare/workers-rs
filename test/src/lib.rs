@@ -32,6 +32,7 @@ mod rate_limit;
 mod request;
 mod router;
 mod secret_store;
+mod send_email;
 mod service;
 mod socket;
 mod sql_counter;

@@ -1,0 +1,11 @@
+name = "send-email-on-workers"
+main = "build/index.js"
+compatibility_date = "2024-10-01"
+
+[build]
+command = "cargo install \"worker-build@^0.8\" && worker-build --release"
+# For development: use local worker-build binary
+# command = "../../target/release/worker-build --release"
+
+[[send_email]]
+name = "EMAIL"

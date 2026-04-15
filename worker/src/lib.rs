@@ -193,6 +193,7 @@ pub use crate::response::{EncodeBody, IntoResponse, Response, ResponseBody, Resp
 pub use crate::router::{RouteContext, RouteParams, Router};
 pub use crate::schedule::*;
 pub use crate::secret_store::SecretStore;
+pub use crate::send_email::{EmailMessage, SendEmail};
 pub use crate::socket::*;
 pub use crate::streams::*;
 pub use crate::version::*;
@@ -236,6 +237,7 @@ mod router;
 mod schedule;
 mod secret_store;
 pub mod send;
+mod send_email;
 mod socket;
 mod sql;
 mod streams;

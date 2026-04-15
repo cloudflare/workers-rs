@@ -5,6 +5,7 @@ use crate::analytics_engine::AnalyticsEngineDataset;
 use crate::d1::D1Database;
 use crate::kv::KvStore;
 use crate::rate_limit::RateLimiter;
+use crate::send_email::SendEmail;
 use crate::Ai;
 #[cfg(feature = "queue")]
 use crate::Queue;
@@ -126,6 +127,14 @@ impl Env {
 
     /// Access a Rate Limiter by the binding name configured in your wrangler.toml file.
     pub fn rate_limiter(&self, binding: &str) -> Result<RateLimiter> {
+        self.get_binding(binding)
+    }
+
+    /// Access a [send_email binding](https://developers.cloudflare.com/email-routing/email-workers/send-email-workers/)
+    /// configured under `[[send_email]]` in your `wrangler.toml`. Use the
+    /// returned [`SendEmail`] to dispatch an
+    /// [`EmailMessage`](crate::EmailMessage).
+    pub fn send_email(&self, binding: &str) -> Result<SendEmail> {
         self.get_binding(binding)
     }
 }

@@ -201,20 +201,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "axum-on-workers"
-version = "0.1.0"
-dependencies = [
- "axum",
- "axum-macros",
- "serde",
- "tower-service",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "worker",
- "worker-macros",
-]
-
-[[package]]
 name = "base64"
 version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1560,6 +1546,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "mail-builder"
+version = "0.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "900998f307338c4013a28ab14d760b784067324b164448c6d98a89e44810473b"
+
+[[package]]
 name = "matchit"
 version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2321,6 +2313,14 @@ checksum = "8a7852d02fc848982e0c167ef163aaff9cd91dc640ba85e263cb1ce46fae51cd"
 dependencies = [
  "serde",
  "serde_core",
+]
+
+[[package]]
+name = "send-email-on-workers"
+version = "0.1.0"
+dependencies = [
+ "mail-builder",
+ "worker",
 ]
 
 [[package]]

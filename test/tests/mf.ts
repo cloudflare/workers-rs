@@ -119,6 +119,15 @@ const mf_instance = new Miniflare({
             period: 60,
           }
         }
+      },
+      email: {
+        send_email: [
+          {
+            name: "EMAIL",
+            allowed_sender_addresses: ["allowed-sender@example.com"],
+            allowed_destination_addresses: ["allowed-recipient@example.com"],
+          }
+        ]
       }
     },
     {
