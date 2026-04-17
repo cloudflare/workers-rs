@@ -1,7 +1,6 @@
-use serde::{
-    ser::{SerializeMap, SerializeStruct},
-    Deserialize, Serialize, Serializer,
-};
+use std::collections::BTreeMap;
+
+use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use worker_sys::{EmailMessage as EmailMessageSys, SendEmail as SendEmailSys};
@@ -218,46 +217,50 @@ impl<N: Into<String>, E: Into<String>> From<(N, E)> for EmailAddress {
     }
 }
 
-/// Content for an [`EmailAttachment`] — either a pre-encoded base64 string or
-/// raw bytes (serialized as a `Uint8Array`).
+/// Content for an [`EmailAttachment`] — either text (sent as UTF-8 bytes on
+/// the wire) or raw bytes (serialized as a `Uint8Array`).
+///
+/// If your source is a base64 string, decode it to bytes first and use
+/// [`AttachmentContent::Bytes`]. The runtime does not base64-decode string
+/// content — it treats it as UTF-8 and would send the literal base64 text.
 #[derive(Debug, Clone)]
 pub enum AttachmentContent {
-    Base64(String),
-    Binary(Vec<u8>),
+    Text(String),
+    Bytes(Vec<u8>),
 }
 
 impl Serialize for AttachmentContent {
     fn serialize<S: Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
         match self {
-            AttachmentContent::Base64(s) => serializer.serialize_str(s),
+            AttachmentContent::Text(s) => serializer.serialize_str(s),
             // With the non-`json_compatible` serde_wasm_bindgen serializer this
             // produces a `Uint8Array`, which is what the runtime expects.
-            AttachmentContent::Binary(bytes) => serializer.serialize_bytes(bytes),
+            AttachmentContent::Bytes(bytes) => serializer.serialize_bytes(bytes),
         }
     }
 }
 
 impl From<String> for AttachmentContent {
     fn from(s: String) -> Self {
-        AttachmentContent::Base64(s)
+        AttachmentContent::Text(s)
     }
 }
 
 impl From<&str> for AttachmentContent {
     fn from(s: &str) -> Self {
-        AttachmentContent::Base64(s.to_owned())
+        AttachmentContent::Text(s.to_owned())
     }
 }
 
 impl From<Vec<u8>> for AttachmentContent {
     fn from(bytes: Vec<u8>) -> Self {
-        AttachmentContent::Binary(bytes)
+        AttachmentContent::Bytes(bytes)
     }
 }
 
 impl From<&[u8]> for AttachmentContent {
     fn from(bytes: &[u8]) -> Self {
-        AttachmentContent::Binary(bytes.to_vec())
+        AttachmentContent::Bytes(bytes.to_vec())
     }
 }
 
@@ -332,13 +335,10 @@ pub struct Email {
     bcc: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     reply_to: Option<EmailAddress>,
-    // `Vec<(String, String)>` preserves insertion order (duplicate header
-    // names are meaningful in RFC 5322) but serializes as a plain JS object.
-    #[serde(
-        skip_serializing_if = "Vec::is_empty",
-        serialize_with = "serialize_headers"
-    )]
-    headers: Vec<(String, String)>,
+    // Runtime side is `jsg::Dict<kj::String>` — one value per header name
+    // survives the wire, so a map up front makes the constraint explicit.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    headers: BTreeMap<String, String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     attachments: Vec<EmailAttachment>,
 }
@@ -348,17 +348,6 @@ impl Email {
     pub fn builder() -> EmailBuilder {
         EmailBuilder::default()
     }
-}
-
-fn serialize_headers<S: Serializer>(
-    headers: &[(String, String)],
-    serializer: S,
-) -> std::result::Result<S::Ok, S::Error> {
-    let mut map = serializer.serialize_map(Some(headers.len()))?;
-    for (k, v) in headers {
-        map.serialize_entry(k, v)?;
-    }
-    map.end()
 }
 
 /// Fluent builder for [`Email`]. See [`Email::builder`].
@@ -372,7 +361,7 @@ pub struct EmailBuilder {
     cc: Vec<String>,
     bcc: Vec<String>,
     reply_to: Option<EmailAddress>,
-    headers: Vec<(String, String)>,
+    headers: BTreeMap<String, String>,
     attachments: Vec<EmailAttachment>,
 }
 
@@ -438,9 +427,12 @@ impl EmailBuilder {
         self
     }
 
+    /// Set a custom header. Calling with the same `name` twice overwrites the
+    /// previous value — the runtime's header map only preserves one value per
+    /// name.
     #[must_use]
     pub fn header(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
-        self.headers.push((name.into(), value.into()));
+        self.headers.insert(name.into(), value.into());
         self
     }
 
@@ -460,9 +452,7 @@ impl EmailBuilder {
             .from
             .ok_or_else(|| Error::RustError("EmailBuilder::build: missing `from`".into()))?;
         if self.to.is_empty() {
-            return Err(Error::RustError(
-                "EmailBuilder::build: missing `to`".into(),
-            ));
+            return Err(Error::RustError("EmailBuilder::build: missing `to`".into()));
         }
         let subject = self
             .subject
