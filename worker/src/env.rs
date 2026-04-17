@@ -130,9 +130,10 @@ impl Env {
         self.get_binding(binding)
     }
 
-    /// Access a [send_email binding](https://developers.cloudflare.com/email-routing/email-workers/send-email-workers/)
+    /// Access a [send_email binding](https://developers.cloudflare.com/email-service/api/send-emails/workers-api/)
     /// configured under `[[send_email]]` in your `wrangler.toml`. Use the
-    /// returned [`SendEmail`] to dispatch an
+    /// returned [`SendEmail`] to dispatch either a structured
+    /// [`Email`](crate::Email) or a prebuilt
     /// [`EmailMessage`](crate::EmailMessage).
     pub fn send_email(&self, binding: &str) -> Result<SendEmail> {
         self.get_binding(binding)

@@ -3,10 +3,18 @@
 Demonstration of using `worker::SendEmail` to dispatch an outbound message
 through a `[[send_email]]` binding.
 
-The MIME body is built with
-[`mail-builder`](https://crates.io/crates/mail-builder), wrapped in an
-[`EmailMessage`](https://docs.rs/worker/latest/worker/struct.EmailMessage.html),
-and handed to `env.send_email("EMAIL")`.
+Two paths are shown:
+
+* `GET /` — the **structured** path, using
+  [`Message::builder`](https://docs.rs/worker/latest/worker/struct.MessageBuilder.html).
+  The runtime composes the MIME body from the fields you set (`from`, `to`,
+  `subject`, `text`/`html`, attachments, etc.).
+* `GET /raw` — the **raw MIME** path, using
+  [`EmailMessage`](https://docs.rs/worker/latest/worker/struct.EmailMessage.html).
+  The MIME body is built locally with
+  [`mail-builder`](https://crates.io/crates/mail-builder) and handed verbatim
+  to the binding. Use this when you need precise control over the MIME
+  structure (custom headers, DKIM passthrough, VERP bounces, etc.).
 
 ## Local development
 
@@ -19,13 +27,14 @@ the path is printed in the terminal so you can inspect the raw message.
 npm install
 npm run dev
 # then, in another shell:
-curl http://localhost:8787/
+curl http://localhost:8787/        # structured
+curl http://localhost:8787/raw     # raw MIME
 ```
 
 ## Deploying
 
 Before deploying, verify the sender and recipient addresses as documented at
-<https://developers.cloudflare.com/email-routing/email-workers/send-email-workers/>,
+<https://developers.cloudflare.com/email-service/api/send-emails/workers-api/>,
 then:
 
 ```bash

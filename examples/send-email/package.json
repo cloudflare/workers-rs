@@ -7,6 +7,6 @@
 		"dev": "cargo install worker-build ; wrangler dev --local"
 	},
 	"devDependencies": {
-		"wrangler": "^4"
+		"wrangler": "^4.83.0"
 	}
 }
