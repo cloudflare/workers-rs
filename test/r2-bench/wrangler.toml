@@ -1,0 +1,8 @@
+name = "r2-bench"
+main = "worker.js"
+compatibility_date = "2025-09-23"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "bench-bucket"
+preview_bucket_name = "bench-bucket"
