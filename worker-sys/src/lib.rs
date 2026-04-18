@@ -1,6 +1,7 @@
 #![allow(clippy::manual_non_exhaustive, clippy::empty_docs)]
 
 pub mod ext;
+pub mod images;
 pub mod types;
 
 pub use types::*;

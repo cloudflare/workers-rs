@@ -3,6 +3,7 @@ use std::fmt::Display;
 use crate::analytics_engine::AnalyticsEngineDataset;
 #[cfg(feature = "d1")]
 use crate::d1::D1Database;
+use crate::images::Images;
 use crate::kv::KvStore;
 use crate::rate_limit::RateLimiter;
 use crate::Ai;
@@ -101,6 +102,10 @@ impl Env {
 
     /// Access an R2 Bucket by the binding name configured in your wrangler.toml file.
     pub fn bucket(&self, binding: &str) -> Result<Bucket> {
+        self.get_binding(binding)
+    }
+
+    pub fn images(&self, binding: &str) -> Result<Images> {
         self.get_binding(binding)
     }
 
