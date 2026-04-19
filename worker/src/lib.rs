@@ -241,6 +241,7 @@ mod sql;
 mod streams;
 mod version;
 mod websocket;
+mod sync_kv;
 
 /// A `Result` alias defaulting to [`Error`].
 pub type Result<T, E = error::Error> = StdResult<T, E>;

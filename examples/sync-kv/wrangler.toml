@@ -1,0 +1,14 @@
+name = "worker-rs-test"
+main = "build/index.js"
+compatibility_date = "2026-04-19"
+
+[build]
+command = "cargo install \"worker-build@^0.8\" && worker-build --release"
+
+[[durable_objects.bindings]]
+name = "TEST"
+class_name = "Test"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Test"]
