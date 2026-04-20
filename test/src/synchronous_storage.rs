@@ -22,12 +22,17 @@ impl DurableObject for SynchronousStorage {
         assert_eq!(sync_kv.get("first")?, Some(first.clone()));
         assert_eq!(sync_kv.get("second")?, Some(second.clone()));
 
-        let original = [first, second];
+        let mut original = [
+            (String::from("first"), first),
+            (String::from("second"), second),
+        ];
+        let mut list: Box<[(String, serde_json::Value)]> =
+            sync_kv.list().filter_map(Result::ok).collect();
 
-        sync_kv.list().all(|e| {
-            let val: serde_json::Value = e.expect("sync_kv list").1;
-            original.contains(&val)
-        });
+        original.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+        list.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+
+        assert_eq!(original.as_slice(), list.as_ref());
 
         assert!(sync_kv.delete("first"));
         assert!(sync_kv.delete("second"));
