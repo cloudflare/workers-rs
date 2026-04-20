@@ -22,6 +22,7 @@ mod counter;
 mod d1;
 mod durable;
 mod fetch;
+mod flagship;
 mod form;
 mod js_snippets;
 mod kv;
