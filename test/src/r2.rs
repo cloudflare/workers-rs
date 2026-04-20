@@ -364,25 +364,26 @@ pub async fn get_many_join(_req: Request, env: Env, _data: SomeSharedData) -> Re
         .enumerate()
         .map(|(i, key)| get_one_seeded(bucket.clone(), key.clone(), i, start));
 
-    // `join_all` delegates to `Promise.all` on the JS side so completions can
-    // interleave via the event loop instead of being serialized through the
-    // Rust executor. The broadened `IntoPromise` impl lifts each
+    // `try_join_all` delegates to `Promise.all` on the JS side so completions
+    // can interleave via the event loop instead of being serialized through
+    // the Rust executor. The broadened `IntoPromise` impl lifts each
     // `worker::Result<JsString>` into a `Promise<JsString>` for us, so the
     // call site stays free of manual `.map_err(Into::into)`.
-    let values = worker::js_sys::futures::join_all(futs).await?;
+    let values = worker::js_sys::futures::try_join_all(futs).await?;
     let elapsed_ms = (Date::now().as_millis() - start) as u64;
 
-    assert_eq!(values.length() as usize, REPRO_OBJECT_COUNT);
+    let count = values.iter().len();
+    assert_eq!(count, REPRO_OBJECT_COUNT);
 
     Response::from_json(&MultiGetTiming {
         mode: "join",
-        count: values.length() as usize,
+        count,
         elapsed_ms,
     })
 }
 
 /// Same concurrency shape as `get_many_chunked` (32-wide windows over the
-/// input keys) but each window is awaited through `worker::js_sys::futures::join_all`,
+/// input keys) but each window is awaited through `worker::js_sys::futures::try_join_all`,
 /// which delegates to `Promise.all` on the JS side. This is the apples-to-apples
 /// comparison for whether the JS-native combinator actually buys us parallel
 /// I/O versus `futures_util::stream::buffer_unordered`, which polls the
@@ -405,8 +406,8 @@ pub async fn get_many_chunked_js(
         let futs = chunk.iter().enumerate().map(|(offset, key)| {
             get_one_seeded(bucket.clone(), key.clone(), base + offset, start)
         });
-        let values = worker::js_sys::futures::join_all(futs).await?;
-        total += values.length() as usize;
+        let values = worker::js_sys::futures::try_join_all(futs).await?;
+        total += values.iter().len();
     }
     let elapsed_ms = (Date::now().as_millis() - start) as u64;
 

@@ -19,6 +19,7 @@ import { writeFileSync } from "node:fs";
 const ITERATIONS = Number(process.env.ITERATIONS ?? 10);
 const WARMUP = Number(process.env.WARMUP ?? 2);
 const MODES = [
+  { path: "r2/get-many-sequential", label: "sequential" },
   { path: "r2/get-many-parallel", label: "parallel" },
   { path: "r2/get-many-chunked", label: "chunked" },
   { path: "r2/get-many-chunked-js", label: "chunked-js" },
@@ -141,8 +142,8 @@ for (const mode of MODES) {
 
 console.log();
 console.log("━".repeat(60));
-console.log("Relative to `parallel` (hand-rolled Promise.all):");
-const baseline = results.parallel.median;
+console.log("Relative to `sequential` (serial R2 gets):");
+const baseline = results.sequential.median;
 for (const mode of MODES) {
   const r = results[mode.label];
   const ratio = r.median / baseline;
