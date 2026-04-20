@@ -3,6 +3,7 @@ use std::fmt::Display;
 use crate::analytics_engine::AnalyticsEngineDataset;
 #[cfg(feature = "d1")]
 use crate::d1::D1Database;
+use crate::flagship::Flagship;
 use crate::kv::KvStore;
 use crate::rate_limit::RateLimiter;
 use crate::Ai;
@@ -126,6 +127,12 @@ impl Env {
 
     /// Access a Rate Limiter by the binding name configured in your wrangler.toml file.
     pub fn rate_limiter(&self, binding: &str) -> Result<RateLimiter> {
+        self.get_binding(binding)
+    }
+
+    /// Access a [Flagship](https://developers.cloudflare.com/flagship/) feature-flag store by
+    /// the binding name configured in your wrangler.toml file.
+    pub fn flagship(&self, binding: &str) -> Result<Flagship> {
         self.get_binding(binding)
     }
 }

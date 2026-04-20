@@ -110,6 +110,9 @@ const mf_instance = new Miniflare({
       wrappedBindings: {
         HTTP_ANALYTICS: {
           scriptName: "mini-analytics-engine" // mock out analytics engine binding to the "mini-analytics-engine" worker
+        },
+        FLAGS: {
+          scriptName: "mini-flagship" // mock out Flagship binding to the "mini-flagship" worker
         }
       },
       ratelimits: {
@@ -131,6 +134,65 @@ const mf_instance = new Miniflare({
           }
         }
       }`
+    },
+    {
+      name: "mini-flagship",
+      modules: true,
+      // A deterministic stand-in for the Flagship binding. Known flags resolve to fixed values;
+      // anything else returns the supplied default. The *Details methods round-trip targeting
+      // metadata (variant/reason) so the Rust wrapper's EvaluationDetails<T> can be asserted.
+      script: `
+        const KNOWN = {
+          "dark-mode":     { type: "boolean", value: true,  variant: "on" },
+          "checkout-flow": { type: "string",  value: "v2",  variant: "rollout-25" },
+          "max-retries":   { type: "number",  value: 5,     variant: "bumped" },
+          "theme-colors":  { type: "object",  value: { primary: "#ff0000", secondary: "#00ff00" }, variant: "brand-v2" },
+        };
+        function resolve(flagKey, expectedType, defaultValue, context) {
+          const flag = KNOWN[flagKey];
+          if (flagKey === "user-branch" && context && context.userId === "alice") {
+            return { value: "alice-branch", variant: "alice", reason: "TARGETING_MATCH" };
+          }
+          if (!flag) {
+            return { value: defaultValue, reason: "DEFAULT", errorCode: "GENERAL", errorMessage: "flag not found" };
+          }
+          if (flag.type !== expectedType) {
+            return { value: defaultValue, reason: "ERROR", errorCode: "TYPE_MISMATCH", errorMessage: "flag type mismatch" };
+          }
+          return { value: flag.value, variant: flag.variant, reason: "TARGETING_MATCH" };
+        }
+        export default function (env) {
+          return {
+            async get(flagKey, defaultValue, context) {
+              return KNOWN[flagKey]?.value ?? defaultValue;
+            },
+            async getBooleanValue(flagKey, defaultValue, context) {
+              return resolve(flagKey, "boolean", defaultValue, context).value;
+            },
+            async getStringValue(flagKey, defaultValue, context) {
+              return resolve(flagKey, "string", defaultValue, context).value;
+            },
+            async getNumberValue(flagKey, defaultValue, context) {
+              return resolve(flagKey, "number", defaultValue, context).value;
+            },
+            async getObjectValue(flagKey, defaultValue, context) {
+              return resolve(flagKey, "object", defaultValue, context).value;
+            },
+            async getBooleanDetails(flagKey, defaultValue, context) {
+              return { flagKey, ...resolve(flagKey, "boolean", defaultValue, context) };
+            },
+            async getStringDetails(flagKey, defaultValue, context) {
+              return { flagKey, ...resolve(flagKey, "string", defaultValue, context) };
+            },
+            async getNumberDetails(flagKey, defaultValue, context) {
+              return { flagKey, ...resolve(flagKey, "number", defaultValue, context) };
+            },
+            async getObjectDetails(flagKey, defaultValue, context) {
+              return { flagKey, ...resolve(flagKey, "object", defaultValue, context) };
+            },
+          };
+        }
+      `
     }]
 });
 
