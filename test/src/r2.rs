@@ -7,7 +7,7 @@ use std::{
 };
 use worker::{
     console_log,
-    js_sys::{Array, Promise},
+    js_sys::{Array, JsString, Promise},
     wasm_bindgen::JsValue,
     wasm_bindgen_futures::{future_to_promise, JsFuture},
     Bucket, Conditional, Data, Date, Env, FixedLengthStream, HttpMetadata, Include, Request,
@@ -321,6 +321,37 @@ pub async fn get_many_chunked(_req: Request, env: Env, _data: SomeSharedData) ->
     })
 }
 
+// Fetches one seeded key. Named so the return type pins `E = worker::Error`,
+// which lets the body use `?` and a bare `Ok(...)` with no turbofish.
+async fn get_one_seeded(
+    bucket: Bucket,
+    key: String,
+    i: usize,
+    start: u64,
+) -> Result<JsString> {
+    let get_start = Date::now().as_millis();
+    if i < 10 || i % 100 == 0 {
+        console_log!("[join] key {i} started at +{}ms", get_start - start);
+    }
+    let object = bucket
+        .get(&key)
+        .execute()
+        .await?
+        .ok_or_else(|| worker::Error::RustError("seeded object missing".into()))?;
+    let body = object
+        .body()
+        .ok_or_else(|| worker::Error::RustError("seeded object body missing".into()))?;
+    let text = body.text().await?;
+    let get_elapsed = Date::now().as_millis() - get_start;
+    if i < 10 || i % 100 == 0 {
+        console_log!(
+            "[join] key {i} completed at +{}ms, took {get_elapsed}ms",
+            Date::now().as_millis() - start
+        );
+    }
+    Ok(JsString::from(text))
+}
+
 #[worker::send]
 pub async fn get_many_join(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let bucket = env.bucket("PUT_BUCKET")?;
@@ -328,45 +359,62 @@ pub async fn get_many_join(_req: Request, env: Env, _data: SomeSharedData) -> Re
     seed_repro_keys(&bucket, &keys).await?;
 
     let start = Date::now().as_millis();
-    let futs: Vec<_> = keys
+    let futs = keys
         .iter()
         .enumerate()
-        .map(|(i, key)| {
-            let bucket = bucket.clone();
-            let key = key.clone();
-            async move {
-                let get_start = Date::now().as_millis();
-                if i < 10 || i % 100 == 0 {
-                    console_log!("[join] key {i} started at +{}ms", get_start - start);
-                }
-                let object = bucket
-                    .get(&key)
-                    .execute()
-                    .await
-                    .expect("seeded object missing")
-                    .expect("seeded object missing");
-                let body = object.body().expect("seeded object body missing");
-                let text = body.text().await.expect("body text");
-                let get_elapsed = Date::now().as_millis() - get_start;
-                if i < 10 || i % 100 == 0 {
-                    console_log!(
-                        "[join] key {i} completed at +{}ms, took {get_elapsed}ms",
-                        Date::now().as_millis() - start
-                    );
-                }
-                text
-            }
-        })
-        .collect();
+        .map(|(i, key)| get_one_seeded(bucket.clone(), key.clone(), i, start));
 
-    let values = futures_util::future::join_all(futs).await;
+    // `join_all` delegates to `Promise.all` on the JS side so completions can
+    // interleave via the event loop instead of being serialized through the
+    // Rust executor. The broadened `IntoPromise` impl lifts each
+    // `worker::Result<JsString>` into a `Promise<JsString>` for us, so the
+    // call site stays free of manual `.map_err(Into::into)`.
+    let values = worker::js_sys::futures::join_all(futs).await?;
     let elapsed_ms = (Date::now().as_millis() - start) as u64;
 
-    assert_eq!(values.len(), REPRO_OBJECT_COUNT);
+    assert_eq!(values.length() as usize, REPRO_OBJECT_COUNT);
 
     Response::from_json(&MultiGetTiming {
         mode: "join",
-        count: values.len(),
+        count: values.length() as usize,
+        elapsed_ms,
+    })
+}
+
+/// Same concurrency shape as `get_many_chunked` (32-wide windows over the
+/// input keys) but each window is awaited through `worker::js_sys::futures::join_all`,
+/// which delegates to `Promise.all` on the JS side. This is the apples-to-apples
+/// comparison for whether the JS-native combinator actually buys us parallel
+/// I/O versus `futures_util::stream::buffer_unordered`, which polls the
+/// sub-futures cooperatively inside the Rust executor and cannot yield to the
+/// JS event loop between individual completions.
+#[worker::send]
+pub async fn get_many_chunked_js(
+    _req: Request,
+    env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
+    let bucket = env.bucket("PUT_BUCKET")?;
+    let keys = repro_keys();
+    seed_repro_keys(&bucket, &keys).await?;
+
+    let start = Date::now().as_millis();
+    let mut total = 0usize;
+    for (chunk_idx, chunk) in keys.chunks(CHUNK_SIZE).enumerate() {
+        let base = chunk_idx * CHUNK_SIZE;
+        let futs = chunk.iter().enumerate().map(|(offset, key)| {
+            get_one_seeded(bucket.clone(), key.clone(), base + offset, start)
+        });
+        let values = worker::js_sys::futures::join_all(futs).await?;
+        total += values.length() as usize;
+    }
+    let elapsed_ms = (Date::now().as_millis() - start) as u64;
+
+    assert_eq!(total, REPRO_OBJECT_COUNT);
+
+    Response::from_json(&MultiGetTiming {
+        mode: "chunked-js",
+        count: total,
         elapsed_ms,
     })
 }
