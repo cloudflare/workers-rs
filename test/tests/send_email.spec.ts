@@ -13,13 +13,10 @@ async function runScenario(name: string): Promise<SendResult> {
   return (await resp.json()) as SendResult;
 }
 
-// Miniflare's send_email binding resolves to `undefined` on success rather
-// than `{ messageId }` like real workerd, so `messageId` is expected to be an
-// empty string here. We still assert the type/presence.
 function expectSuccess(result: SendResult) {
   expect(result.error).toBeNull();
   expect(result.ok).toBe(true);
-  expect(typeof result.messageId).toBe("string");
+  expect(result.messageId).toBeTruthy();
 }
 
 describe("send email (raw MIME)", () => {

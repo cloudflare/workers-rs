@@ -115,25 +115,16 @@ impl SendEmail {
     async fn send_js(&self, payload: &JsValue) -> Result<EmailSendResult> {
         let promise = self.0.send(payload)?;
         let value = SendFuture::new(JsFuture::from(promise)).await?;
-        // Miniflare's `send_email` binding resolves to `undefined`; real
-        // workerd resolves to `{ messageId }`. Tolerate both so local dev
-        // with `wrangler dev` doesn't throw on deserialize.
-        if value.is_undefined() || value.is_null() {
-            return Ok(EmailSendResult::default());
-        }
         Ok(serde_wasm_bindgen::from_value(value)?)
     }
 }
 
 /// Return value of a successful send.
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EmailSendResult {
     /// The runtime-assigned message id (also exposed as the `Message-ID`
     /// header on the delivered message).
-    ///
-    /// Empty under `miniflare` (used by `wrangler dev`), which resolves the
-    /// binding with no value; real workerd populates it.
     pub message_id: String,
 }
 
