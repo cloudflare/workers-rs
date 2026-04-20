@@ -4,19 +4,20 @@ use std::marker::PhantomData;
 use serde::{Serialize, de::DeserializeOwned};
 use serde_wasm_bindgen as swb;
 use wasm_bindgen::JsCast as _;
+use worker_sys::types::SyncKvStorage as SyncKvStorageSys;
 
 use crate::{Error, ListOptions, Result};
 
 #[derive(Clone)]
 pub struct SyncKvStorage {
-    inner: worker_sys::types::SyncKvStorage,
+    inner: SyncKvStorageSys,
 }
 
 unsafe impl Send for SyncKvStorage {}
 unsafe impl Sync for SyncKvStorage {}
 
 impl SyncKvStorage {
-    pub(crate) fn new(inner: worker_sys::types::SyncKvStorage) -> Self {
+    pub(crate) fn new(inner: SyncKvStorageSys) -> Self {
         Self { inner }
     }
 }
@@ -50,7 +51,7 @@ impl SyncKvStorage {
 }
 
 pub struct SyncKvIterator<T> {
-    inner: js_sys::Object,
+    inner: js_sys::IntoIter,
     _phantom: PhantomData<T>,
 }
 
@@ -61,46 +62,53 @@ where
     type Item = Result<(String, T)>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let next = js_sys::Reflect::get(&self.inner, &"next".into())
-            .ok()?
-            .dyn_into::<js_sys::Function>()
-            .ok()?;
+        let result = match self.inner.next()? {
+            Ok(r) => r,
+            Err(e) => return Some(Err(Error::from(e))),
+        };
 
-        let result = next.call0(&self.inner).ok()?;
-
-        let done = js_sys::Reflect::get(&result, &"done".into())
-            .ok()
-            .and_then(|v| v.as_bool())
-            .unwrap_or(true);
-
-        if done {
-            return None;
+        if !js_sys::Array::is_array(&result) {
+            return Some(Err(Error::JsError("Expected result to be array".into())));
         }
 
-        let value = js_sys::Reflect::get(&result, &"value".into())
-            .map_err(Error::from)
-            .and_then(|v| {
-                let arr = js_sys::Array::from(&v);
+        let arr: js_sys::Array = result.unchecked_into();
 
-                let key = arr.get(0).as_string().unwrap_or_default();
-                let val = swb::from_value(arr.get(1))?;
+        if arr.length() < 2 {
+            return Some(Err(Error::JsError(
+                "Expected entry to have at least 2 elements".into(),
+            )));
+        }
 
-                Ok((key, val))
-            });
+        let key = match arr.get(0).as_string() {
+            Some(k) => k,
+            None => {
+                return Some(Err(Error::JsError("Expected key to be string".into())));
+            }
+        };
 
-        Some(value)
+        let val = match swb::from_value(arr.get(1)) {
+            Ok(v) => v,
+            Err(e) => return Some(Err(Error::from(e))),
+        };
+
+        Some(Ok((key, val)))
     }
 }
 
 impl SyncKvStorage {
-    pub fn list<T>(&self) -> SyncKvIterator<T>
+    const ERR_NOT_AN_ITERABLE: &str = "SyncKvStorage.list() did not return an iterable";
+
+    pub fn list<T>(&self) -> Result<SyncKvIterator<T>>
     where
         T: DeserializeOwned,
     {
-        SyncKvIterator {
-            inner: self.inner.list(),
+        let inner = js_sys::try_iter(&self.inner.list())?
+            .ok_or_else(|| Error::JsError(Self::ERR_NOT_AN_ITERABLE.into()))?;
+
+        Ok(SyncKvIterator {
+            inner,
             _phantom: PhantomData,
-        }
+        })
     }
 
     pub fn list_with_options<T>(&self, options: ListOptions<'_>) -> Result<SyncKvIterator<T>> {
@@ -108,8 +116,11 @@ impl SyncKvStorage {
 
         let iter = self.inner.list_with_options(js_opts.into());
 
+        let inner = js_sys::try_iter(&iter)?
+            .ok_or_else(|| Error::JsError(Self::ERR_NOT_AN_ITERABLE.into()))?;
+
         Ok(SyncKvIterator {
-            inner: iter,
+            inner,
             _phantom: PhantomData,
         })
     }

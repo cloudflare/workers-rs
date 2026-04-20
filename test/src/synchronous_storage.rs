@@ -26,8 +26,7 @@ impl DurableObject for SynchronousStorage {
             (String::from("first"), first),
             (String::from("second"), second),
         ];
-        let mut list: Box<[(String, serde_json::Value)]> =
-            sync_kv.list().filter_map(Result::ok).collect();
+        let mut list: Box<[_]> = sync_kv.list()?.filter_map(Result::ok).collect();
 
         original.sort_unstable_by(|a, b| a.0.cmp(&b.0));
         list.sort_unstable_by(|a, b| a.0.cmp(&b.0));
