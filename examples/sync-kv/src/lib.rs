@@ -1,4 +1,4 @@
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use worker::*;
 
 #[durable_object]
@@ -37,7 +37,7 @@ impl DurableObject for Test {
 
         // LIST
         let mut list = Vec::new();
-        for item in kv.list::<Value>() {
+        for item in kv.list::<Value>()? {
             let (k, v) = item?;
             list.push((k, v));
         }

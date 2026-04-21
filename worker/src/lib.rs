@@ -278,3 +278,4 @@ pub type HttpRequest = ::http::Request<http::body::Body>;
 pub type HttpResponse = ::http::Response<http::body::Body>;
 
 pub use crate::sql::*;
+pub use crate::sync_kv::*;
