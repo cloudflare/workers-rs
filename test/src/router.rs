@@ -240,7 +240,13 @@ macro_rules! add_routes (
     add_route!($obj, get, format_route!("/rate-limit/key/{}", "key"), rate_limit::handle_rate_limit_with_key);
     add_route!($obj, get, "/rate-limit/bulk-test", rate_limit::handle_rate_limit_bulk_test);
     add_route!($obj, get, "/rate-limit/reset", rate_limit::handle_rate_limit_reset);
-    add_route!($obj, get, "/synchronous-storage", synchronous_storage::handle_synchronous_storage);
+    add_route!($obj, get, "/synchronous-storage/smoke", synchronous_storage::handle_synchronous_storage_smoke);
+    add_route!($obj, get, "/synchronous-storage/overwrite", synchronous_storage::handle_synchronous_storage_overwrite);
+    add_route!($obj, get, "/synchronous-storage/not_found", synchronous_storage::handle_synchronous_storage_not_found);
+    add_route!($obj, get, "/synchronous-storage/list", synchronous_storage::handle_synchronous_storage_list);
+    add_route!($obj, get, "/synchronous-storage/persist_fill", synchronous_storage::handle_synchronous_storage_persist_fill);
+    add_route!($obj, get, "/synchronous-storage/persist_check", synchronous_storage::handle_synchronous_storage_persist_check);
+    add_route!($obj, get, "/synchronous-storage/persist_cleanup", synchronous_storage::handle_synchronous_storage_persist_cleanup);
 });
 
 #[cfg(feature = "http")]
