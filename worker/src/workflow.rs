@@ -44,6 +44,10 @@ fn get_timestamp_property(target: &JsValue, name: &str) -> Result<crate::Date> {
     Ok(crate::Date::from(js_sys::Date::from(val)))
 }
 
+fn get_f64_property(target: &JsValue, name: &str) -> Option<f64> {
+    get_property(target, name).ok().and_then(|v| v.as_f64())
+}
+
 /// A Workflow binding for creating and managing workflow instances.
 #[derive(Debug, Clone)]
 pub struct Workflow {
@@ -277,11 +281,134 @@ pub struct InstanceError {
     pub message: String,
 }
 
-/// Context passed to step callbacks, providing information about the current execution attempt.
-#[derive(Debug, Clone, Copy)]
+/// Context passed to step callbacks with information about the current step invocation.
+#[derive(Debug, Clone)]
 pub struct WorkflowStepContext {
+    /// Identity of the step being executed.
+    pub step: WorkflowStepInfo,
     /// The current retry attempt number (starts at 1).
     pub attempt: u32,
+    /// The fully resolved step configuration, with runtime defaults applied.
+    pub config: ResolvedStepConfig,
+}
+
+/// Identity of a step within a workflow run.
+#[derive(Debug, Clone)]
+pub struct WorkflowStepInfo {
+    /// The step's name, as passed to `step.do()` / `step.do_with_config()`.
+    pub name: String,
+    /// Number of times this step has been invoked in the current run, starting at 1.
+    ///
+    /// Useful for disambiguating steps inside loops.
+    pub count: u32,
+}
+
+impl WorkflowStepInfo {
+    fn from_js(val: &JsValue) -> Self {
+        Self {
+            name: get_property(val, "name")
+                .ok()
+                .and_then(|v| v.as_string())
+                .unwrap_or_default(),
+            count: get_f64_property(val, "count").unwrap_or(1.0) as u32,
+        }
+    }
+}
+
+impl Default for WorkflowStepInfo {
+    fn default() -> Self {
+        Self {
+            name: String::new(),
+            count: 1,
+        }
+    }
+}
+
+impl WorkflowStepContext {
+    fn from_js(ctx: &JsValue) -> Self {
+        Self {
+            step: get_property(ctx, "step")
+                .ok()
+                .map(|v| WorkflowStepInfo::from_js(&v))
+                .unwrap_or_default(),
+            attempt: get_f64_property(ctx, "attempt").unwrap_or(1.0) as u32,
+            config: get_property(ctx, "config")
+                .ok()
+                .map(|v| ResolvedStepConfig::from_js(&v))
+                .unwrap_or_default(),
+        }
+    }
+}
+
+/// A step configuration with runtime defaults applied.
+#[derive(Debug, Clone)]
+pub struct ResolvedStepConfig {
+    pub timeout: WorkflowSleepDuration,
+    pub retries: ResolvedRetryConfig,
+}
+
+impl ResolvedStepConfig {
+    fn from_js(val: &JsValue) -> Self {
+        let defaults = Self::default();
+        let timeout = get_property(val, "timeout")
+            .ok()
+            .and_then(|v| WorkflowSleepDuration::from_js_value(&v))
+            .unwrap_or(defaults.timeout);
+        let retries = get_property(val, "retries")
+            .ok()
+            .map(|v| ResolvedRetryConfig::from_js(&v))
+            .unwrap_or(defaults.retries);
+        Self { timeout, retries }
+    }
+}
+
+impl Default for ResolvedStepConfig {
+    fn default() -> Self {
+        Self {
+            timeout: WorkflowSleepDuration::text("10 minutes"),
+            retries: ResolvedRetryConfig::default(),
+        }
+    }
+}
+
+/// A retry configuration with runtime defaults applied.
+#[derive(Debug, Clone)]
+pub struct ResolvedRetryConfig {
+    pub limit: u32,
+    pub delay: WorkflowSleepDuration,
+    pub backoff: Backoff,
+}
+
+impl ResolvedRetryConfig {
+    fn from_js(val: &JsValue) -> Self {
+        let defaults = Self::default();
+        let limit = get_f64_property(val, "limit")
+            .map(|v| v as u32)
+            .unwrap_or(defaults.limit);
+        let delay = get_property(val, "delay")
+            .ok()
+            .and_then(|v| WorkflowSleepDuration::from_js_value(&v))
+            .unwrap_or(defaults.delay);
+        let backoff = get_property(val, "backoff")
+            .ok()
+            .and_then(|v| serde_wasm_bindgen::from_value(v).ok())
+            .unwrap_or(defaults.backoff);
+        Self {
+            limit,
+            delay,
+            backoff,
+        }
+    }
+}
+
+impl Default for ResolvedRetryConfig {
+    fn default() -> Self {
+        Self {
+            limit: 5,
+            delay: WorkflowSleepDuration::text("1 second"),
+            backoff: Backoff::Exponential,
+        }
+    }
 }
 
 /// Provides methods for executing durable workflow steps.
@@ -301,19 +428,42 @@ impl WorkflowStep {
         F: Fn(WorkflowStepContext) -> Fut + 'static,
         Fut: Future<Output = Result<T>> + 'static,
     {
+        Self::wrap_callback_raw(move |ctx| {
+            let fut = callback(ctx);
+            async move {
+                let result = fut.await?;
+                serialize_as_object(&result).map_err(|e| crate::Error::from(e.to_string()))
+            }
+        })
+    }
+
+    fn wrap_callback_raw<F, Fut>(
+        callback: F,
+    ) -> wasm_bindgen::closure::Closure<dyn FnMut(JsValue) -> js_sys::Promise>
+    where
+        F: Fn(WorkflowStepContext) -> Fut + 'static,
+        Fut: Future<Output = Result<JsValue>> + 'static,
+    {
         let callback = Rc::new(AssertUnwindSafe(callback));
         wasm_bindgen::closure::Closure::new(move |ctx: JsValue| -> js_sys::Promise {
             let callback = callback.clone();
-            let attempt = Reflect::get(&ctx, &JsValue::from_str("attempt"))
-                .ok()
-                .and_then(|v| v.as_f64())
-                .unwrap_or(1.0) as u32;
+            let context = WorkflowStepContext::from_js(&ctx);
             future_to_promise(AssertUnwindSafe(async move {
-                let result = (callback.0)(WorkflowStepContext { attempt })
-                    .await
-                    .map_err(JsValue::from)?;
-                serialize_as_object(&result).map_err(|e| JsValue::from_str(&e.to_string()))
+                (callback.0)(context).await.map_err(JsValue::from)
             }))
+        })
+    }
+
+    fn wrap_stream_callback<F, Fut>(
+        callback: F,
+    ) -> wasm_bindgen::closure::Closure<dyn FnMut(JsValue) -> js_sys::Promise>
+    where
+        F: Fn(WorkflowStepContext) -> Fut + 'static,
+        Fut: Future<Output = Result<web_sys::ReadableStream>> + 'static,
+    {
+        Self::wrap_callback_raw(move |ctx| {
+            let fut = callback(ctx);
+            async move { fut.await.map(JsValue::from) }
         })
     }
 
@@ -348,6 +498,45 @@ impl WorkflowStep {
         let js_fn = closure.as_ref().unchecked_ref::<js_sys::Function>();
         let result = SendFuture::new(self.0.do_with_config(name, config_js, js_fn)).await?;
         Ok(serde_wasm_bindgen::from_value(result)?)
+    }
+
+    /// Execute a named step whose return value is a `ReadableStream`.
+    ///
+    /// Stream return values are not subject to the 1 MiB payload limit that
+    /// applies to serialized step outputs, making this suitable for passing
+    /// large bodies (for example, an R2 object body) between steps.
+    pub async fn do_stream<F, Fut>(
+        &self,
+        name: &str,
+        callback: F,
+    ) -> Result<web_sys::ReadableStream>
+    where
+        F: Fn(WorkflowStepContext) -> Fut + 'static,
+        Fut: Future<Output = Result<web_sys::ReadableStream>> + 'static,
+    {
+        let closure = Self::wrap_stream_callback(callback);
+        let js_fn = closure.as_ref().unchecked_ref::<js_sys::Function>();
+        let result = SendFuture::new(self.0.do_(name, js_fn)).await?;
+        Ok(result.unchecked_into())
+    }
+
+    /// Execute a named step whose return value is a `ReadableStream`, with
+    /// retry and timeout configuration.
+    pub async fn do_stream_with_config<F, Fut>(
+        &self,
+        name: &str,
+        config: StepConfig,
+        callback: F,
+    ) -> Result<web_sys::ReadableStream>
+    where
+        F: Fn(WorkflowStepContext) -> Fut + 'static,
+        Fut: Future<Output = Result<web_sys::ReadableStream>> + 'static,
+    {
+        let config_js = serde_wasm_bindgen::to_value(&config)?;
+        let closure = Self::wrap_stream_callback(callback);
+        let js_fn = closure.as_ref().unchecked_ref::<js_sys::Function>();
+        let result = SendFuture::new(self.0.do_with_config(name, config_js, js_fn)).await?;
+        Ok(result.unchecked_into())
     }
 
     /// Sleep for a specified duration (e.g., "1 minute", "5 seconds").
@@ -406,7 +595,7 @@ pub struct RetryConfig {
 }
 
 /// Backoff strategy for retries.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Backoff {
     Constant,
@@ -502,10 +691,23 @@ impl WorkflowSleepDuration {
         )))
     }
 
+    fn text(s: &str) -> Self {
+        Self(WorkflowSleepDurationInner::Text(s.to_string()))
+    }
+
     fn to_js_value(&self) -> JsValue {
         match &self.0 {
             WorkflowSleepDurationInner::Text(s) => JsValue::from_str(s),
             WorkflowSleepDurationInner::Millis(ms) => JsValue::from_f64(*ms),
+        }
+    }
+
+    fn from_js_value(val: &JsValue) -> Option<Self> {
+        if let Some(s) = val.as_string() {
+            Some(Self(WorkflowSleepDurationInner::Text(s)))
+        } else {
+            val.as_f64()
+                .map(|n| Self(WorkflowSleepDurationInner::Millis(n)))
         }
     }
 }

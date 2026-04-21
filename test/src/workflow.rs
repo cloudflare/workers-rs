@@ -63,13 +63,18 @@ impl WorkflowEntrypoint for TestWorkflow {
                 }),
                 timeout: None,
             },
-            move |_ctx| {
+            move |ctx| {
                 let value = value_for_validation.clone();
                 async move {
                     if value.is_empty() {
                         return Err(NonRetryableError::new("value must not be empty").into());
                     }
-                    Ok(serde_json::json!({ "valid": true }))
+                    Ok(serde_json::json!({
+                        "valid": true,
+                        "step_name": ctx.step.name,
+                        "attempt": ctx.attempt,
+                        "count": ctx.step.count,
+                    }))
                 }
             },
         )

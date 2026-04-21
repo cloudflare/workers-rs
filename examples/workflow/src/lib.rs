@@ -41,9 +41,15 @@ impl WorkflowEntrypoint for MyWorkflow {
                 }),
                 timeout: None,
             },
-            move |_ctx| {
+            move |ctx| {
                 let email = email_for_validation.clone();
                 async move {
+                    console_log!(
+                        "step '{}' attempt {}/{}",
+                        ctx.step.name,
+                        ctx.attempt,
+                        ctx.config.retries.limit
+                    );
                     if !email.contains('@') {
                         return Err(NonRetryableError::new("invalid email address").into());
                     }
