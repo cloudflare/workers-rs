@@ -1,4 +1,4 @@
-use worker::signal::Signal;
+use worker::signal;
 use worker::{Env, Request, Response, Result};
 
 use crate::SomeSharedData;
@@ -8,8 +8,7 @@ pub async fn handle_signal_poll(
     _env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    let signal = Signal::poll();
-    let is_listening = signal.is_listening();
-    let value = signal.value();
-    Response::ok(format!("{is_listening}:{value}"))
+    let is_registered = signal::is_registered();
+    let is_near_limit = signal::is_near_cpu_limit();
+    Response::ok(format!("{is_registered}:{is_near_limit}"))
 }
