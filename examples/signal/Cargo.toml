@@ -1,0 +1,14 @@
+[package]
+name = "signal-test"
+version = "0.1.0"
+edition = "2021"
+authors = ["Logan Gatlin <lgatlin@cloudflare.com>"]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+worker = { path = "../../worker" }
+worker-macros = { path = "../../worker-macros" }
+num-bigint = "0.4"
+num-integer = "0.1"

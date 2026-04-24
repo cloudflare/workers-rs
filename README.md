@@ -441,6 +441,24 @@ allows you to describe your RPC interface using WIT and generate JavaScript bind
 [rpc-client example](./examples/rpc-client/wit/calculator.wit). The easiest way to use this code generator is using a [build script](./examples/rpc-client/build.rs) as shown in the example.
 This code generator is pre-alpha, with no support guarantee, and implemented only for primitive types at this time. 
 
+## CPU Limits
+
+Rust Workers have CPU limits assigned by the platform. To gracefully detect these limits we provide a `worker::signals` API.
+
+This allows for graceful backoff by detecting when the Worker is near its CPU limit and will be terminated using:
+
+```rs
+use worker::signals;
+
+pub fn do_work () {
+    while !signals::is_near_cpu_limit() {
+        // hot loop
+    }
+}
+```
+
+See [Signal Example](examples/signals) for a full end-to-end workflow.
+
 ## Panic Recovery with `--panic-unwind`
 
 By default, Rust panics in Workers compile with `panic=abort`, which terminates the WebAssembly

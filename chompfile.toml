@@ -39,10 +39,11 @@ run = 'cargo test -p worker --target wasm32-unknown-unknown'
 
 [[task]]
 name = 'test'
-dep = 'build'
+deps = ['build']
 cwd = 'test'
 env.NO_MINIFY = '1'
 env.WASM_BINDGEN_BIN = '../wasm-bindgen/target/debug/wasm-bindgen'
+env.WORKERD_ALL_AUTOGATES = '1'
 run = '''
 ../target/debug/worker-build --dev
 npx vitest run --testTimeout 25000
@@ -50,10 +51,11 @@ npx vitest run --testTimeout 25000
 
 [[task]]
 name = 'test-http'
-dep = 'build'
+deps = ['build']
 cwd = 'test'
 env.NO_MINIFY = '1'
 env.WASM_BINDGEN_BIN = '../wasm-bindgen/target/debug/wasm-bindgen'
+env.WORKERD_ALL_AUTOGATES = '1'
 run = '''
 ../target/debug/worker-build --release --features http
 npx vitest run --testTimeout 25000
@@ -61,10 +63,11 @@ npx vitest run --testTimeout 25000
 
 [[task]]
 name = 'test-panic-unwind'
-dep = 'build'
+deps = ['build']
 cwd = 'test'
 env.NO_MINIFY = '1'
 env.WASM_BINDGEN_BIN = '../wasm-bindgen/target/debug/wasm-bindgen'
+env.WORKERD_ALL_AUTOGATES = '1'
 run = '''
 ../target/debug/worker-build --dev --panic-unwind
 npx vitest run --testTimeout 25000
