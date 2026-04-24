@@ -1,6 +1,6 @@
 use num_bigint::BigInt;
 use num_integer::Integer;
-use worker::{signal::Signal, *};
+use worker::*;
 
 #[event(fetch)]
 async fn fetch(_req: HttpRequest, _env: Env, _ctx: Context) -> Result<Response> {
@@ -60,7 +60,7 @@ fn compute_pi() -> String {
     let mut l = BigInt::from(3u32);
     let mut first_digit = true;
 
-    while !Signal::poll().is_almost_out_of_time() {
+    while !signal::is_near_cpu_limit() {
         if &q * &four + &r - &t < &n * &t {
             // The extraction check passed — `n` is the next confirmed digit of Pi.
             result.push_str(&n.to_string());
