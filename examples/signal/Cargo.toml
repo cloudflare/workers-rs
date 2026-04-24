@@ -8,8 +8,7 @@ authors = ["Logan Gatlin <lgatlin@cloudflare.com>"]
 crate-type = ["cdylib"]
 
 [dependencies]
-worker = { path = "../../worker", features = ['http'] }
-worker-macros = { path = "../../worker-macros", features = ['http'] }
-http = "1.3"
+worker = { path = "../../worker" }
+worker-macros = { path = "../../worker-macros" }
 num-bigint = "0.4"
 num-integer = "0.1"

@@ -3,7 +3,7 @@ use num_integer::Integer;
 use worker::*;
 
 #[event(fetch)]
-async fn fetch(_req: HttpRequest, _env: Env, _ctx: Context) -> Result<Response> {
+async fn fetch(_req: Request, _env: Env, _ctx: Context) -> Result<Response> {
     let pi = compute_pi();
     // The digit count is the string length minus the "3." prefix.
     let digit_count = pi.len().saturating_sub(2);

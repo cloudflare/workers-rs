@@ -2504,7 +2504,6 @@ dependencies = [
 name = "signal-test"
 version = "0.1.0"
 dependencies = [
- "http",
  "num-bigint",
  "num-integer",
  "worker",
