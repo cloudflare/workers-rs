@@ -18,6 +18,7 @@ mod build_lock;
 mod emoji;
 mod lockfile;
 mod main_legacy;
+mod producers;
 mod versions;
 
 use build::{Build, BuildOptions};
@@ -108,6 +109,8 @@ pub fn main() -> Result<()> {
         println!("Adding wasm coredump");
         wasm_coredump(&staging_dir)?;
     }
+
+    producers::inject_workers_rs_sdk_metadata(&staging_dir, VERSION)?;
 
     if module_target {
         let shim = if builder.panic_unwind {
