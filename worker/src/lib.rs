@@ -236,6 +236,7 @@ mod router;
 mod schedule;
 mod secret_store;
 pub mod send;
+pub mod signal;
 mod socket;
 mod sql;
 mod streams;

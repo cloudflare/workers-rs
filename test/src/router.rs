@@ -1,3 +1,4 @@
+use crate::signal;
 use crate::{
     alarm, analytics_engine, assets, auto_response, cache, container, counter, d1, durable, fetch,
     form, js_snippets, kv, put_raw, queue, r2, rate_limit, request, secret_store, service, socket,
@@ -247,6 +248,7 @@ macro_rules! add_routes (
     add_route!($obj, get, "/synchronous-storage/persist_fill", synchronous_storage::handle_synchronous_storage_persist_fill);
     add_route!($obj, get, "/synchronous-storage/persist_check", synchronous_storage::handle_synchronous_storage_persist_check);
     add_route!($obj, get, "/synchronous-storage/persist_cleanup", synchronous_storage::handle_synchronous_storage_persist_cleanup);
+    add_route!($obj, get, "/signal/poll", signal::handle_signal_poll);
 });
 
 #[cfg(feature = "http")]
