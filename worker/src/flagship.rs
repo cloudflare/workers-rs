@@ -8,9 +8,9 @@ use worker_sys::Flagship as FlagshipSys;
 /// A binding to a [Cloudflare Flagship](https://developers.cloudflare.com/flagship/) feature-flag
 /// store. Retrieved via [`Env::flagship`](crate::Env::flagship).
 ///
-/// `get_*_value` methods never surface evaluation failures as errors — if the flag is missing,
-/// the type doesn't match, or Flagship can't reach a decision, they return the supplied
-/// `default_value`. Use the `_details` variants when you need to inspect `error_code`,
+/// The `get_*_value` methods never surface evaluation failures as errors. If anything goes wrong
+/// (missing flag, type mismatch, evaluation error) they just hand back the `default_value` you
+/// passed in. Reach for the `_details` variants when you need to see `error_code`,
 /// `error_message`, or `reason`.
 #[derive(Debug)]
 pub struct Flagship(FlagshipSys);
@@ -22,8 +22,8 @@ impl EnvBinding for Flagship {
     const TYPE_NAME: &'static str = "Flagship";
 
     // Miniflare's `wrappedBindings` expose the binding as a plain `Object`, so the default
-    // constructor-name check fails under local dev. Skip it — method calls surface mismatched
-    // bindings loudly enough. Mirrors `AnalyticsEngineDataset::get`.
+    // constructor-name check fails under local dev. Skip it; a mismatched binding will blow up
+    // loudly enough on the first method call. Mirrors `AnalyticsEngineDataset::get`.
     fn get(val: JsValue) -> Result<Self> {
         let obj = Object::from(val);
         Ok(obj.unchecked_into())
@@ -243,9 +243,9 @@ impl AsRef<JsValue> for EvaluationContext {
 
 /// Full evaluation record returned by the `get_*_details` methods.
 ///
-/// `reason` describes why Flagship resolved the value (for example `"TARGETING_MATCH"` or
-/// `"DEFAULT"`); `error_code` and `error_message` are populated when the evaluation fell back
-/// to the provided default (common codes: `"TYPE_MISMATCH"`, `"GENERAL"`).
+/// `reason` says why Flagship picked the value it did (e.g. `"TARGETING_MATCH"`, `"DEFAULT"`).
+/// `error_code` and `error_message` are only set when evaluation fell back to the default;
+/// `"TYPE_MISMATCH"` and `"GENERAL"` are the codes you'll see most often.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EvaluationDetails<T> {
