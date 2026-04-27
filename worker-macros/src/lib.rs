@@ -1,6 +1,8 @@
 mod durable_object;
 mod event;
 mod send;
+#[cfg(feature = "workflow")]
+mod workflow;
 
 use proc_macro::TokenStream;
 
@@ -140,4 +142,74 @@ pub fn send(attr: TokenStream, stream: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn consume(_: TokenStream, _: TokenStream) -> TokenStream {
     TokenStream::new()
+}
+
+/// Integrate the struct with the Workers Runtime as a Workflow Entrypoint.
+/// Pair this attribute with an `impl WorkflowEntrypoint for ...` block that
+/// declares the workflow's typed `Input`, `Output`, and `run` method.
+///
+/// `Input` and `Output` are user-defined types implementing
+/// `serde::Deserialize` and `serde::Serialize` respectively. The macro
+/// deserializes the incoming payload into `Input` before calling `run`, and
+/// serializes the returned `Output` for the runtime, so user code works
+/// with plain Rust structs and never touches `JsValue`.
+///
+/// Use `Input = ()` for workflows started without `params`, and
+/// `Output = ()` when there's no return value.
+///
+/// ## Example
+///
+/// ```rust,ignore
+/// use serde::{Deserialize, Serialize};
+/// use worker::*;
+///
+/// #[derive(Deserialize)]
+/// pub struct Params { pub email: String }
+///
+/// #[derive(Serialize)]
+/// pub struct Output { pub message: String }
+///
+/// #[workflow]
+/// pub struct MyWorkflow { env: Env }
+///
+/// impl WorkflowEntrypoint for MyWorkflow {
+///     type Input = Params;
+///     type Output = Output;
+///
+///     fn new(_ctx: Context, env: Env) -> Self { Self { env } }
+///
+///     async fn run(
+///         &self,
+///         event: WorkflowEvent<Params>,
+///         step: WorkflowStep,
+///     ) -> Result<Output> {
+///         let email = event.payload.email.clone();
+///         let validated: bool = step
+///             .do_("validate", move |_ctx| {
+///                 let email = email.clone();
+///                 async move { Ok(email.contains('@')) }
+///             })
+///             .await?;
+///
+///         if !validated {
+///             return Err(NonRetryableError::new("invalid email").into());
+///         }
+///
+///         Ok(Output {
+///             message: format!("processed {}", event.payload.email),
+///         })
+///     }
+/// }
+/// ```
+///
+/// If you need an untyped escape hatch (for dynamic payloads, or when
+/// migrating from a JS workflow), use `serde_json::Value` as the `Input`
+/// or `Output`. Typed structs are usually better: you get compile-time
+/// field checks instead of runtime serialization errors.
+#[cfg(feature = "workflow")]
+#[proc_macro_attribute]
+pub fn workflow(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    workflow::expand_macro(item.into())
+        .unwrap_or_else(syn::Error::into_compile_error)
+        .into()
 }

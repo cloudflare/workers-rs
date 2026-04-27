@@ -2,7 +2,8 @@ use crate::signal;
 use crate::{
     alarm, analytics_engine, assets, auto_response, cache, container, counter, d1, durable, fetch,
     form, js_snippets, kv, put_raw, queue, r2, rate_limit, request, secret_store, service, socket,
-    sql_counter, sql_iterator, user, ws, SomeSharedData, GLOBAL_SECOND_START, GLOBAL_STATE,
+    sql_counter, sql_iterator, user, workflow, ws, SomeSharedData, GLOBAL_SECOND_START,
+    GLOBAL_STATE,
 };
 #[cfg(feature = "http")]
 use std::convert::TryInto;
@@ -18,6 +19,8 @@ use axum::{
     routing::{delete, get, head, options, patch, post, put},
     Extension,
 };
+#[cfg(feature = "http")]
+use worker::send::SendFuture;
 
 // Transform the argument into the correct form for the router.
 // For axum::Router:
@@ -60,16 +63,16 @@ macro_rules! format_route (
 #[cfg(feature = "http")]
 macro_rules! handler (
     ($name:path) => {
-        |Extension(env): Extension<Env>, Extension(data): Extension<SomeSharedData>, req: axum::extract::Request| async {
+        |Extension(env): Extension<Env>, Extension(data): Extension<SomeSharedData>, req: axum::extract::Request| SendFuture::new(async {
             let resp = $name(req.try_into().expect("convert request"), env, data).await.expect("handler result");
             Into::<http::Response<axum::body::Body>>::into(resp)
-        }
+        })
     };
     ($name:path, sync) => {
-        |Extension(env): Extension<Env>, Extension(data): Extension<SomeSharedData>, req: axum::extract::Request| async {
+        |Extension(env): Extension<Env>, Extension(data): Extension<SomeSharedData>, req: axum::extract::Request| SendFuture::new(async {
             let resp = $name(req.try_into().expect("convert request"), env, data).expect("handler result");
             Into::<http::Response<axum::body::Body>>::into(resp)
-        }
+        })
     };
 );
 #[cfg(not(feature = "http"))]
@@ -240,6 +243,18 @@ macro_rules! add_routes (
     add_route!($obj, get, format_route!("/rate-limit/key/{}", "key"), rate_limit::handle_rate_limit_with_key);
     add_route!($obj, get, "/rate-limit/bulk-test", rate_limit::handle_rate_limit_bulk_test);
     add_route!($obj, get, "/rate-limit/reset", rate_limit::handle_rate_limit_reset);
+    add_route!($obj, post, "/workflow/create", workflow::handle_workflow_create);
+    add_route!($obj, post, "/workflow/create-invalid", workflow::handle_workflow_create_invalid);
+    add_route!($obj, get, format_route!("/workflow/status/{}", "id"), workflow::handle_workflow_status);
+    add_route!($obj, post, "/workflow/event/create", workflow::handle_event_workflow_create);
+    add_route!($obj, post, format_route!("/workflow/event/send/{}", "id"), workflow::handle_event_workflow_send);
+    add_route!($obj, get, format_route!("/workflow/event/status/{}", "id"), workflow::handle_event_workflow_status);
+    add_route!($obj, post, "/workflow/lifecycle/create", workflow::handle_lifecycle_workflow_create);
+    add_route!($obj, get, format_route!("/workflow/lifecycle/status/{}", "id"), workflow::handle_lifecycle_workflow_status);
+    add_route!($obj, post, format_route!("/workflow/lifecycle/pause/{}", "id"), workflow::handle_lifecycle_workflow_pause);
+    add_route!($obj, post, format_route!("/workflow/lifecycle/resume/{}", "id"), workflow::handle_lifecycle_workflow_resume);
+    add_route!($obj, post, format_route!("/workflow/lifecycle/terminate/{}", "id"), workflow::handle_lifecycle_workflow_terminate);
+    add_route!($obj, post, format_route!("/workflow/lifecycle/restart/{}", "id"), workflow::handle_lifecycle_workflow_restart);
     add_route!($obj, get, "/signal/poll", signal::handle_signal_poll);
 });
 

@@ -124,7 +124,19 @@ impl std::fmt::Display for Error {
             #[cfg(feature = "http")]
             Error::Http(e) => write!(f, "http::Error: {e}"),
             Error::Infallible => write!(f, "infallible"),
-            Error::Internal(_) => write!(f, "unrecognized JavaScript object"),
+            Error::Internal(v) => {
+                if let Some(e) = v.dyn_ref::<js_sys::Error>() {
+                    let name = String::from(e.name());
+                    let msg = String::from(e.message());
+                    if name.is_empty() {
+                        write!(f, "{msg}")
+                    } else {
+                        write!(f, "{name}: {msg}")
+                    }
+                } else {
+                    write!(f, "unrecognized JavaScript object")
+                }
+            }
             Error::Io(e) => write!(f, "IO Error: {e}"),
             Error::BindingError(name) => write!(f, "no binding found for `{name}`"),
             Error::RouteInsertError(e) => write!(f, "failed to insert route: {e}"),
@@ -149,24 +161,16 @@ impl std::fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
-// Not sure if the changes I've made here are good or bad...
 impl From<JsValue> for Error {
     fn from(v: JsValue) -> Self {
-        match v.as_string().or_else(|| {
-            v.dyn_ref::<js_sys::Error>().map(|e| {
-                format!(
-                    "Error: {} - Cause: {}",
-                    e.to_string(),
-                    e.cause()
-                        .as_string()
-                        .or_else(|| { Some(e.to_string().into()) })
-                        .unwrap_or(String::from("N/A"))
-                )
-            })
-        }) {
-            Some(s) => Self::JsError(s),
-            None => Self::Internal(v),
+        if let Some(s) = v.as_string() {
+            return Self::JsError(s);
         }
+        // Preserve JS Error objects (and other non-string JsValues) as
+        // Internal so they survive roundtrips back to JS unchanged.
+        // This is important for workflow abort errors whose identity the
+        // engine checks with `instanceof Error` / `.message`.
+        Self::Internal(v)
     }
 }
 
@@ -178,7 +182,10 @@ impl From<std::io::Error> for Error {
 
 impl From<Error> for JsValue {
     fn from(e: Error) -> Self {
-        JsValue::from_str(&e.to_string())
+        match e {
+            Error::Internal(v) => v,
+            _ => JsValue::from_str(&e.to_string()),
+        }
     }
 }
 
