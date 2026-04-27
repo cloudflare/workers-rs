@@ -1,27 +1,15 @@
-# Sending Email from Cloudflare Workers
+# Sending email from Cloudflare Workers
 
-Demonstration of using `worker::SendEmail` to dispatch an outbound message
-through a `[[send_email]]` binding.
+Example of using `worker::SendEmail` to send a message through a `[[send_email]]` binding.
 
-Two paths are shown:
+Two routes:
 
-* `GET /` — the **structured** path, using
-  [`Message::builder`](https://docs.rs/worker/latest/worker/struct.MessageBuilder.html).
-  The runtime composes the MIME body from the fields you set (`from`, `to`,
-  `subject`, `text`/`html`, attachments, etc.).
-* `GET /raw` — the **raw MIME** path, using
-  [`EmailMessage`](https://docs.rs/worker/latest/worker/struct.EmailMessage.html).
-  The MIME body is built locally with
-  [`mail-builder`](https://crates.io/crates/mail-builder) and handed verbatim
-  to the binding. Use this when you need precise control over the MIME
-  structure (custom headers, DKIM passthrough, VERP bounces, etc.).
+* `GET /` — the structured path. Set fields like `from`, `to`, `subject`, and `text`/`html` on [`Message::builder`](https://docs.rs/worker/latest/worker/struct.MessageBuilder.html), and the runtime assembles the MIME body for you.
+* `GET /raw` — the raw MIME path. Build the body yourself with [`mail-builder`](https://crates.io/crates/mail-builder) and hand it to [`EmailMessage`](https://docs.rs/worker/latest/worker/struct.EmailMessage.html) as-is. Reach for this when you need control over the MIME — custom headers, DKIM passthrough, VERP bounces, that sort of thing.
 
 ## Local development
 
-Running `wrangler dev --local` does **not** actually deliver the email. Per
-the [Cloudflare docs](https://developers.cloudflare.com/email-routing/email-workers/local-development/),
-outbound messages are simulated by writing each one to a local `.eml` file —
-the path is printed in the terminal so you can inspect the raw message.
+`wrangler dev --local` won't actually send anything. As the [Cloudflare docs](https://developers.cloudflare.com/email-routing/email-workers/local-development/) explain, outbound messages get written to a local `.eml` file. Wrangler prints the path so you can open it and check the raw message.
 
 ```bash
 npm install
@@ -33,9 +21,7 @@ curl http://localhost:8787/raw     # raw MIME
 
 ## Deploying
 
-Before deploying, verify the sender and recipient addresses as documented at
-<https://developers.cloudflare.com/email-service/api/send-emails/workers-api/>,
-then:
+Verify the sender and recipient addresses first (see the [Cloudflare email API docs](https://developers.cloudflare.com/email-service/api/send-emails/workers-api/)), then:
 
 ```bash
 npm run deploy

@@ -16,9 +16,8 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type SendEmail;
 
-    // The runtime's `send` overload accepts either an `EmailMessage` instance
-    // or a plain builder object, so the arg is declared as `JsValue` and the
-    // caller is responsible for constructing the right shape.
+    // `send` takes either an `EmailMessage` or a builder object, so this
+    // is `JsValue` — the caller picks which.
     #[wasm_bindgen(method, catch)]
     pub fn send(this: &SendEmail, message: &JsValue) -> Result<js_sys::Promise, JsValue>;
 }

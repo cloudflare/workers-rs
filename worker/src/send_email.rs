@@ -11,16 +11,16 @@ use crate::{error::Error, send::SendFuture, EnvBinding, Result};
 /// `[[send_email]]` in `wrangler.toml` and retrieved via
 /// [`Env::send_email`](crate::Env::send_email).
 ///
-/// Two send paths are supported, mirroring the JS `send()` overloads:
+/// There are two send paths, mirroring the JS `send()` overloads:
 ///
-/// * [`SendEmail::send`] — hand it a structured [`Email`]; the runtime builds
+/// * [`SendEmail::send`] takes a structured [`Email`]; the runtime builds
 ///   the MIME body and dispatches. This is the common path.
-/// * [`SendEmail::send_mime`] — hand it a prebuilt [`EmailMessage`] (a
+/// * [`SendEmail::send_mime`] takes a prebuilt [`EmailMessage`] (a
 ///   fully-formed RFC 5322 MIME blob plus envelope addresses) for cases that
 ///   need precise MIME control.
 ///
 /// Both return an [`EmailSendResult`] containing the runtime-assigned message
-/// id (useful for logging and correlation).
+/// id, which is useful for logging and correlation.
 ///
 /// [Cloudflare Email Sending]: https://developers.cloudflare.com/email-service/api/send-emails/workers-api/
 ///
@@ -61,7 +61,7 @@ impl JsCast for SendEmail {
     // `SendEmail` has no JS class at runtime (see `EnvBinding::get` above), so
     // the wasm-bindgen-generated `val instanceof SendEmail` shim would throw a
     // `ReferenceError` if we ever reached it. Fall back to a plain object
-    // check — good enough for the binding and can't blow up.
+    // check, which is good enough for the binding and can't blow up.
     fn instanceof(val: &JsValue) -> bool {
         val.is_object()
     }
@@ -105,7 +105,7 @@ impl SendEmail {
     }
 
     /// Dispatch a prebuilt [`EmailMessage`] containing a fully-formed RFC 5322
-    /// MIME body. Prefer [`send`](Self::send) for typical use — this path is
+    /// MIME body. Prefer [`send`](Self::send) for typical use; this path is
     /// for cases where you need precise control over the MIME structure
     /// (custom headers, DKIM passthrough, VERP bounces, etc.).
     pub async fn send_mime(&self, message: &EmailMessage) -> Result<EmailSendResult> {
@@ -132,8 +132,8 @@ pub struct EmailSendResult {
 ///
 /// The envelope `from`/`to` addresses drive the SMTP `MAIL FROM` and `RCPT TO`
 /// commands and may legitimately differ from the `From:`/`To:` headers inside
-/// `raw` — for example when implementing bounces, VERP, or BCC. For everyday
-/// use where you don't care about that distinction, prefer [`Email`] and
+/// `raw`. That matters for bounces, VERP, or BCC. For everyday use where you
+/// don't care about the distinction, prefer [`Email`] and
 /// [`SendEmail::send`].
 #[derive(Debug)]
 pub struct EmailMessage(EmailMessageSys);
@@ -208,12 +208,12 @@ impl<N: Into<String>, E: Into<String>> From<(N, E)> for EmailAddress {
     }
 }
 
-/// Content for an [`EmailAttachment`] — either text (sent as UTF-8 bytes on
+/// Content for an [`EmailAttachment`]: either text (sent as UTF-8 bytes on
 /// the wire) or raw bytes (serialized as a `Uint8Array`).
 ///
 /// If your source is a base64 string, decode it to bytes first and use
 /// [`AttachmentContent::Bytes`]. The runtime does not base64-decode string
-/// content — it treats it as UTF-8 and would send the literal base64 text.
+/// content; it treats it as UTF-8 and would send the literal base64 text.
 #[derive(Debug, Clone)]
 pub enum AttachmentContent {
     Text(String),
@@ -326,8 +326,8 @@ pub struct Email {
     bcc: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     reply_to: Option<EmailAddress>,
-    // Runtime side is `jsg::Dict<kj::String>` — one value per header name
-    // survives the wire, so a map up front makes the constraint explicit.
+    // Runtime side is `jsg::Dict<kj::String>`, so only one value per header
+    // name survives the wire. A map up front makes that constraint explicit.
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     headers: BTreeMap<String, String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -419,8 +419,8 @@ impl EmailBuilder {
     }
 
     /// Set a custom header. Calling with the same `name` twice overwrites the
-    /// previous value — the runtime's header map only preserves one value per
-    /// name.
+    /// previous value, since the runtime's header map only preserves one value
+    /// per name.
     #[must_use]
     pub fn header(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
         self.headers.insert(name.into(), value.into());
