@@ -1,0 +1,18 @@
+[package]
+name = "send-email-on-workers"
+version = "0.1.0"
+edition = "2021"
+
+[package.metadata.release]
+release = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# Default feature `gethostname` pulls in a crate that doesn't build for
+# `wasm32-unknown-unknown`, so disable it. The remaining core API is enough
+# to assemble a message as long as we set `date` and `message_id` ourselves
+# (the auto-generated ones rely on `SystemTime::now()` / `gethostname`).
+mail-builder = { version = "0.4", default-features = false }
+worker.workspace = true

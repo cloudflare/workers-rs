@@ -373,6 +373,7 @@ fn bundle(out_dir: &Path, esbuild_path: &Path) -> Result<()> {
     let mut command = Command::new(esbuild_path);
     command.args([
         "--external:./index_bg.wasm",
+        "--external:cloudflare:email",
         "--external:cloudflare:sockets",
         "--external:cloudflare:workers",
         "--format=esm",
