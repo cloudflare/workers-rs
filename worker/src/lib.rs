@@ -241,6 +241,7 @@ mod schedule;
 mod secret_store;
 pub mod send;
 mod send_email;
+pub mod signal;
 mod socket;
 mod sql;
 mod streams;

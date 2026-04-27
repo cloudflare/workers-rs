@@ -41,8 +41,7 @@ jobs:
       - name: Build wasm-bindgen and worker-build
         run: npm run build
 
-      - name: Install benchmark dependencies
-        working-directory: benchmark
+      - name: Install dependencies
         run: npm install
 
       - name: Build benchmark

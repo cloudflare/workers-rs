@@ -34,6 +34,7 @@ mod router;
 mod secret_store;
 mod send_email;
 mod service;
+mod signal;
 mod socket;
 mod sql_counter;
 mod sql_iterator;
