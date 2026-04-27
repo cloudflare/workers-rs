@@ -1,7 +1,9 @@
+use crate::signal;
 use crate::{
     alarm, analytics_engine, assets, auto_response, cache, container, counter, d1, durable, fetch,
     form, js_snippets, kv, put_raw, queue, r2, rate_limit, request, secret_store, service, socket,
-    sql_counter, sql_iterator, user, workflow, ws, SomeSharedData, GLOBAL_STATE,
+    sql_counter, sql_iterator, user, workflow, ws, SomeSharedData, GLOBAL_SECOND_START,
+    GLOBAL_STATE,
 };
 #[cfg(feature = "http")]
 use std::convert::TryInto;
@@ -253,6 +255,7 @@ macro_rules! add_routes (
     add_route!($obj, post, format_route!("/workflow/lifecycle/resume/{}", "id"), workflow::handle_lifecycle_workflow_resume);
     add_route!($obj, post, format_route!("/workflow/lifecycle/terminate/{}", "id"), workflow::handle_lifecycle_workflow_terminate);
     add_route!($obj, post, format_route!("/workflow/lifecycle/restart/{}", "id"), workflow::handle_lifecycle_workflow_restart);
+    add_route!($obj, get, "/signal/poll", signal::handle_signal_poll);
 });
 
 #[cfg(feature = "http")]
@@ -324,7 +327,8 @@ async fn handle_options_catchall(
 
 async fn handle_init_called(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     let init_called = GLOBAL_STATE.load(Ordering::SeqCst);
-    Response::ok(init_called.to_string())
+    let second_init_called = GLOBAL_SECOND_START.load(Ordering::SeqCst);
+    Response::ok((init_called && second_init_called).to_string())
 }
 
 fn handle_test_panic(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {

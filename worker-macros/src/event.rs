@@ -229,33 +229,22 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
         Start => {
             validate_event_fn(&input_fn, Start, 0, false);
-            // save original fn name for re-use in the wrapper fn
-            let input_fn_ident = Ident::new(
-                &(input_fn.sig.ident.to_string() + "_start_glue"),
+
+            let mod_name = Ident::new(
+                &format!("_worker_start_{}", input_fn.sig.ident),
                 input_fn.sig.ident.span(),
             );
-            let wrapper_fn_ident = Ident::new("start", input_fn.sig.ident.span());
-            // rename the original attributed fn
-            input_fn.sig.ident = input_fn_ident.clone();
 
-            let wrapper_fn = quote! {
-                pub fn #wrapper_fn_ident() {
-                    // call the original fn
-                    #input_fn_ident()
-                }
-            };
             let wasm_bindgen_code =
-                wasm_bindgen_macro_support::expand(quote! { start }, wrapper_fn)
+                wasm_bindgen_macro_support::expand(quote! { start }, quote! { #input_fn })
                     .expect("wasm_bindgen macro failed to expand");
 
             let output = quote! {
-                #input_fn
-
-                mod _worker_start {
-                    use ::worker::{wasm_bindgen, wasm_bindgen_futures};
-                    use super::#input_fn_ident;
-                    #wasm_bindgen_code
+                mod #mod_name {
+                    pub use ::worker::{wasm_bindgen, wasm_bindgen_futures};
                 }
+                use #mod_name::*;
+                #wasm_bindgen_code
             };
 
             TokenStream::from(output)

@@ -12,4 +12,4 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 futures-util = "0.3"
 serde = { version = "1.0", features = ["derive"] }
-worker = { path = "../../worker" }
+worker.workspace = true

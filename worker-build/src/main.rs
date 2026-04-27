@@ -10,6 +10,7 @@ use anyhow::{Context, Result};
 use clap::Parser;
 
 const SHIM_FILE: &str = include_str!("./js/shim.js");
+const SHIM_UNWIND_FILE: &str = include_str!("./js/shim-unwind.js");
 
 pub(crate) mod binary;
 mod build;
@@ -17,6 +18,7 @@ mod build_lock;
 mod emoji;
 mod lockfile;
 mod main_legacy;
+mod producers;
 mod versions;
 
 use build::{Build, BuildOptions};
@@ -108,17 +110,15 @@ pub fn main() -> Result<()> {
         wasm_coredump(&staging_dir)?;
     }
 
+    producers::inject_workers_rs_sdk_metadata(&staging_dir, VERSION)?;
+
     if module_target {
-        let shim = SHIM_FILE
-            .replace("$HANDLERS", &generate_handlers(&staging_dir)?)
-            .replace(
-                "$PANIC_CRITICAL_ERROR",
-                if builder.panic_unwind {
-                    ""
-                } else {
-                    "criticalError = true;"
-                },
-            );
+        let shim = if builder.panic_unwind {
+            SHIM_UNWIND_FILE
+        } else {
+            SHIM_FILE
+        }
+        .replace("$HANDLERS", &generate_handlers(&staging_dir)?);
         let shim_path = output_path(&staging_dir, "shim.js");
         fs::write(&shim_path, shim)
             .with_context(|| format!("Failed to write {}", shim_path.display()))?;
@@ -206,7 +206,7 @@ fn generate_handlers(out_dir: &Path) -> Result<String> {
     Ok(handlers)
 }
 
-static SYSTEM_FNS: &[&str] = &["__wbg_reset_state", "setPanicHook"];
+static SYSTEM_FNS: &[&str] = &["__wbg_reset_state", "__worker_init_state"];
 
 /// Returns true if workflow classes were detected and a wrapper was generated
 fn add_export_wrappers(out_dir: &Path) -> Result<bool> {

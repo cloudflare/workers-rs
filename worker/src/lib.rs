@@ -213,7 +213,7 @@ mod container;
 mod context;
 mod cors;
 pub mod crypto;
-pub mod panic_abort;
+mod init;
 // Require pub module for macro export
 #[cfg(feature = "d1")]
 /// **Requires** `d1` feature.
@@ -242,6 +242,7 @@ mod router;
 mod schedule;
 mod secret_store;
 pub mod send;
+pub mod signal;
 mod socket;
 mod sql;
 mod streams;
