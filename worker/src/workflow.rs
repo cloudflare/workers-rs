@@ -1,4 +1,12 @@
 //! Cloudflare Workflows support for Rust Workers.
+//!
+//! ## `Send`/`Sync` for JS-backed types
+//!
+//! Several types in this module wrap JS objects and have `unsafe impl Send` /
+//! `unsafe impl Sync`. WASM is single-threaded and these JS objects only ever
+//! live on the main thread; the impls exist solely so the types can be held
+//! across `await` points in async machinery that demands `Send`. Cross-thread
+//! access is impossible in the Workers runtime.
 
 use std::future::Future;
 use std::panic::AssertUnwindSafe;
@@ -18,10 +26,13 @@ use crate::env::EnvBinding;
 use crate::send::SendFuture;
 use crate::Result;
 
-/// Serialize a value to a JS object, with maps serialized as plain objects.
+/// Serialize a value to a JS object, with maps serialized as plain objects
+/// rather than `Map` instances.
 ///
-/// Use this for return values from [`WorkflowEntrypoint::run`] that must be
-/// plain JS objects rather than `Map` instances.
+/// This exists for the macro-generated entrypoint to convert
+/// [`WorkflowEntrypoint::Output`] into the JS shape the Workflows runtime
+/// expects. It's not part of the user-facing API.
+#[doc(hidden)]
 pub fn serialize_as_object<T: Serialize>(
     value: &T,
 ) -> std::result::Result<JsValue, serde_wasm_bindgen::Error> {
@@ -54,10 +65,7 @@ pub struct Workflow {
     inner: WorkflowBindingSys,
 }
 
-// SAFETY: WASM is single-threaded. These types wrap JS objects that are only
-// accessed from the main thread. Send/Sync are implemented to satisfy Rust's
-// async machinery (e.g., holding references across await points), but actual
-// cross-thread access is impossible in the Workers runtime.
+// SAFETY: see module-level docs.
 unsafe impl Send for Workflow {}
 unsafe impl Sync for Workflow {}
 
@@ -68,17 +76,19 @@ impl Workflow {
         Ok(WorkflowInstance::from_js(result))
     }
 
-    /// Create a new workflow instance.
+    /// Create a new workflow instance with the given options.
     pub async fn create<T: Serialize>(
         &self,
-        options: Option<CreateOptions<T>>,
+        options: CreateOptions<T>,
     ) -> Result<WorkflowInstance> {
-        let js_options = match options {
-            Some(opts) => serde_wasm_bindgen::to_value(&opts)?,
-            None => JsValue::UNDEFINED,
-        };
+        let js_options = serialize_create_options(&options)?;
         let result = SendFuture::new(self.inner.create(js_options)).await?;
         Ok(WorkflowInstance::from_js(result))
+    }
+
+    /// Create a new workflow instance with no params and a runtime-generated id.
+    pub async fn create_default(&self) -> Result<WorkflowInstance> {
+        self.create(CreateOptions::<()>::default()).await
     }
 
     /// Create a batch of workflow instances (limited to 100 at a time).
@@ -86,20 +96,35 @@ impl Workflow {
         &self,
         batch: Vec<CreateOptions<T>>,
     ) -> Result<Vec<WorkflowInstance>> {
-        let js_array = js_sys::Array::new();
-        for opts in batch {
-            js_array.push(&serde_wasm_bindgen::to_value(&opts)?);
-        }
+        let js_array = batch
+            .iter()
+            .map(|opts| serialize_create_options(opts))
+            .collect::<Result<js_sys::Array>>()?;
         let result = SendFuture::new(self.inner.create_batch(&js_array)).await?;
         let result_array: js_sys::Array = result.unchecked_into();
-
-        let len = result_array.length();
-        let mut instances = Vec::with_capacity(len as usize);
-        for i in 0..len {
-            instances.push(WorkflowInstance::from_js(result_array.get(i)));
-        }
-        Ok(instances)
+        Ok(result_array.iter().map(WorkflowInstance::from_js).collect())
     }
+}
+
+// Serializer used everywhere we hand a payload off to the Workflows runtime.
+//
+// - `serialize_missing_as_null(true)`: the runtime destructures `{ params = {} }`
+//   from the create options, so a missing (or `undefined`) `params` becomes `{}`,
+//   which isn't nullish and can't be deserialized as `()` for `Input = ()` workflows.
+// - `serialize_maps_as_objects(true)`: deserializing a JS `Map` back into a Rust
+//   struct fails (the struct deserializer reads named fields off an object;
+//   Maps don't expose entries as own properties). Emitting plain objects keeps
+//   the round-trip working for `serde_json::Value::Object`, `HashMap`, etc.
+fn workflow_serializer() -> serde_wasm_bindgen::Serializer {
+    serde_wasm_bindgen::Serializer::new()
+        .serialize_missing_as_null(true)
+        .serialize_maps_as_objects(true)
+}
+
+fn serialize_create_options<T: Serialize>(options: &CreateOptions<T>) -> Result<JsValue> {
+    options
+        .serialize(&workflow_serializer())
+        .map_err(Into::into)
 }
 
 impl EnvBinding for Workflow {
@@ -156,7 +181,8 @@ impl AsRef<JsValue> for Workflow {
 pub struct CreateOptions<T> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    // Always serialize `params` (as `null` when `None`) so the runtime sees an
+    // explicit value rather than falling through to its `params = {}` default.
     pub params: Option<T>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub retention: Option<RetentionOptions>,
@@ -188,7 +214,7 @@ pub struct WorkflowInstance {
     inner: WorkflowInstanceSys,
 }
 
-// SAFETY: See Workflow for rationale - WASM is single-threaded.
+// SAFETY: see module-level docs.
 unsafe impl Send for WorkflowInstance {}
 unsafe impl Sync for WorkflowInstance {}
 
@@ -243,7 +269,7 @@ impl WorkflowInstance {
             type_: &'a str,
             payload: P,
         }
-        let event = serde_wasm_bindgen::to_value(&SendEventPayload { type_, payload })?;
+        let event = SendEventPayload { type_, payload }.serialize(&workflow_serializer())?;
         SendFuture::new(self.inner.send_event(event)).await?;
         Ok(())
     }
@@ -365,7 +391,7 @@ impl ResolvedStepConfig {
 impl Default for ResolvedStepConfig {
     fn default() -> Self {
         Self {
-            timeout: WorkflowSleepDuration::text("10 minutes"),
+            timeout: WorkflowSleepDuration::new(10, WorkflowDuration::Minutes),
             retries: ResolvedRetryConfig::default(),
         }
     }
@@ -405,7 +431,7 @@ impl Default for ResolvedRetryConfig {
     fn default() -> Self {
         Self {
             limit: 5,
-            delay: WorkflowSleepDuration::text("1 second"),
+            delay: WorkflowSleepDuration::new(1, WorkflowDuration::Seconds),
             backoff: Backoff::Exponential,
         }
     }
@@ -415,7 +441,7 @@ impl Default for ResolvedRetryConfig {
 #[derive(Debug)]
 pub struct WorkflowStep(WorkflowStepSys);
 
-// SAFETY: See Workflow for rationale - WASM is single-threaded.
+// SAFETY: see module-level docs.
 unsafe impl Send for WorkflowStep {}
 unsafe impl Sync for WorkflowStep {}
 
@@ -570,6 +596,9 @@ impl WorkflowStep {
     }
 }
 
+// Macro-internal: the `#[workflow]` proc-macro feeds the JS-side `WorkflowStep`
+// in via this conversion. Not part of the user-facing API.
+#[doc(hidden)]
 impl From<WorkflowStepSys> for WorkflowStep {
     fn from(inner: WorkflowStepSys) -> Self {
         Self(inner)
@@ -631,17 +660,21 @@ impl<T: DeserializeOwned> WorkflowStepEvent<T> {
 }
 
 /// The event passed to a workflow's run method.
+///
+/// `T` matches [`WorkflowEntrypoint::Input`]; the macro deserializes the JS
+/// payload into `T` before calling `run`.
 #[derive(Debug, Clone)]
-pub struct WorkflowEvent {
-    pub payload: JsValue,
+pub struct WorkflowEvent<T> {
+    pub payload: T,
     pub timestamp: crate::Date,
     pub instance_id: String,
 }
 
-impl WorkflowEvent {
+impl<T: DeserializeOwned> WorkflowEvent<T> {
+    #[doc(hidden)]
     pub fn from_js(value: JsValue) -> Result<Self> {
         Ok(Self {
-            payload: get_property(&value, "payload")?,
+            payload: serde_wasm_bindgen::from_value(get_property(&value, "payload")?)?,
             timestamp: get_timestamp_property(&value, "timestamp")?,
             instance_id: get_string_property(&value, "instanceId")?,
         })
@@ -689,10 +722,6 @@ impl WorkflowSleepDuration {
         Self(WorkflowSleepDurationInner::Text(format!(
             "{amount} {unit_str}"
         )))
-    }
-
-    fn text(s: &str) -> Self {
-        Self(WorkflowSleepDurationInner::Text(s.to_string()))
     }
 
     fn to_js_value(&self) -> JsValue {
@@ -784,9 +813,26 @@ impl From<NonRetryableError> for crate::Error {
 pub trait HasWorkflowAttribute {}
 
 /// Trait for implementing a Workflow entrypoint.
+///
+/// Pair this with `#[workflow]` on the struct definition. The macro generates
+/// the wasm-bindgen glue and handles deserializing the incoming payload into
+/// `Input` and serializing the returned `Output` back to JS.
+///
+/// Use `Input = ()` for workflows with no params, and `Output = ()` if you
+/// don't need to return anything meaningful.
 #[allow(async_fn_in_trait)]
 pub trait WorkflowEntrypoint: HasWorkflowAttribute {
+    /// Type of the `params` payload supplied to [`Workflow::create`].
+    type Input: DeserializeOwned;
+
+    /// Type returned to the runtime as the workflow's output.
+    type Output: Serialize;
+
     fn new(ctx: crate::Context, env: crate::Env) -> Self;
 
-    async fn run(&self, event: WorkflowEvent, step: WorkflowStep) -> Result<JsValue>;
+    async fn run(
+        &self,
+        event: WorkflowEvent<Self::Input>,
+        step: WorkflowStep,
+    ) -> Result<Self::Output>;
 }

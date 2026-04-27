@@ -32,7 +32,10 @@ describe("workflow", () => {
     }
 
     expect(status).toBe("Complete");
-    expect(output).toEqual({ processed: "hello" });
+    expect(output).toEqual({
+      processed: "hello",
+      validation: { valid: true, attempt: 1 },
+    });
   });
 
   test("non-retryable error stops workflow immediately", async () => {
@@ -186,7 +189,10 @@ describe("workflow", () => {
     }
 
     expect(status).toBe("Complete");
-    expect(output.payload).toEqual({ approved: true, reason: "looks good" });
-    expect(output.type).toBe("approval");
+    expect(output).toEqual({
+      approved: true,
+      reason: "looks good",
+      type: "approval",
+    });
   });
 });

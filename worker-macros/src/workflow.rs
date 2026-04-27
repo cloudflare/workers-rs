@@ -18,7 +18,6 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
     let target_name = &target.ident;
     let marker_fn_name = format_ident!("__wf_{}", target_name);
     let marker_js_name = format!("__wf_{target_name}");
-    let target_name_str = target_name.to_string();
 
     Ok(quote! {
         #target
@@ -30,11 +29,11 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
             #[allow(unused_imports)]
             use ::worker::WorkflowEntrypoint;
 
+            // Marker export read by `worker-build` to detect workflow classes
+            // in the generated `index.js`. Only the function name matters.
             #[allow(non_snake_case)]
             #[wasm_bindgen(js_name = #marker_js_name, wasm_bindgen=::worker::wasm_bindgen)]
-            pub fn #marker_fn_name() -> ::worker::js_sys::JsString {
-                ::worker::js_sys::JsString::from(#target_name_str)
-            }
+            pub fn #marker_fn_name() {}
 
             #[wasm_bindgen(wasm_bindgen=::worker::wasm_bindgen)]
             #[::worker::consume]
@@ -59,20 +58,20 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                     event: ::worker::wasm_bindgen::JsValue,
                     step: ::worker::worker_sys::WorkflowStep
                 ) -> ::worker::js_sys::Promise {
-                    // SAFETY: The Cloudflare Workers runtime manages the Workflow instance
-                    // lifecycle. The runtime guarantees that:
-                    // 1. The instance is created before run() is called
-                    // 2. The instance is not destroyed while any Promise returned by run() is pending
-                    // 3. WASM execution is single-threaded, so no concurrent access is possible
-                    // This is the same lifecycle model used by Durable Objects and WorkerEntrypoint.
+                    // SAFETY: widen `&Self` to `&'static Self`. The Workers runtime keeps
+                    // `self` alive until the returned Promise settles, which is the
+                    // lifecycle contract for Workflow instances.
                     let static_self: &'static Self = unsafe { &*(self as *const _) };
 
                     ::worker::wasm_bindgen_futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
-                        let event = ::worker::WorkflowEvent::from_js(event)
-                            .map_err(|e| ::worker::wasm_bindgen::JsValue::from_str(&e.to_string()))?;
+                        let event: ::worker::WorkflowEvent<<Self as ::worker::WorkflowEntrypoint>::Input> =
+                            ::worker::WorkflowEvent::from_js(event)
+                                .map_err(|e| ::worker::wasm_bindgen::JsValue::from_str(&e.to_string()))?;
                         let step = ::worker::WorkflowStep::from(step);
-                        <Self as ::worker::WorkflowEntrypoint>::run(static_self, event, step).await
-                            .map_err(::worker::wasm_bindgen::JsValue::from)
+                        let output = <Self as ::worker::WorkflowEntrypoint>::run(static_self, event, step).await
+                            .map_err(::worker::wasm_bindgen::JsValue::from)?;
+                        ::worker::serialize_as_object(&output)
+                            .map_err(|e| ::worker::wasm_bindgen::JsValue::from_str(&e.to_string()))
                     }))
                 }
             }

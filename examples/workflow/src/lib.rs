@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use worker::wasm_bindgen::JsValue;
 use worker::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -21,14 +20,17 @@ pub struct MyWorkflow {
 }
 
 impl WorkflowEntrypoint for MyWorkflow {
+    type Input = MyParams;
+    type Output = MyOutput;
+
     fn new(_ctx: Context, env: Env) -> Self {
         Self { env }
     }
 
-    async fn run(&self, event: WorkflowEvent, step: WorkflowStep) -> Result<JsValue> {
+    async fn run(&self, event: WorkflowEvent<MyParams>, step: WorkflowStep) -> Result<MyOutput> {
         console_log!("Workflow started with instance ID: {}", event.instance_id);
 
-        let params: MyParams = serde_wasm_bindgen::from_value(event.payload)?;
+        let params = event.payload;
 
         let email_for_validation = params.email.clone();
         step.do_with_config(
@@ -108,12 +110,10 @@ impl WorkflowEntrypoint for MyWorkflow {
 
         console_log!("Step 3 completed: {:?}", notification_result);
 
-        let output = MyOutput {
+        Ok(MyOutput {
             message: format!("Workflow completed for {}", params.name),
             steps_completed: 3,
-        };
-
-        Ok(serialize_as_object(&output)?)
+        })
     }
 }
 
@@ -128,10 +128,10 @@ async fn fetch(mut req: Request, env: Env, _ctx: Context) -> Result<Response> {
             let params: MyParams = req.json().await?;
 
             let instance = workflow
-                .create(Some(CreateOptions {
+                .create(CreateOptions {
                     params: Some(params),
                     ..Default::default()
-                }))
+                })
                 .await?;
 
             Response::from_json(&serde_json::json!({

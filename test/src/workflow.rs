@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use worker::wasm_bindgen::JsValue;
 use worker::*;
 
 fn last_path_segment(req: &Request) -> Result<String> {
@@ -21,7 +20,7 @@ async fn get_workflow_instance(
 
 async fn create_workflow_no_params(env: &Env, binding: &str) -> Result<Response> {
     let workflow = env.workflow(binding)?;
-    let instance = workflow.create(None::<CreateOptions<()>>).await?;
+    let instance = workflow.create_default().await?;
     Response::from_json(&serde_json::json!({ "id": instance.id() }))
 }
 
@@ -38,6 +37,18 @@ pub struct TestParams {
     pub value: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ValidationOutcome {
+    pub valid: bool,
+    pub attempt: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TestOutput {
+    pub processed: String,
+    pub validation: ValidationOutcome,
+}
+
 #[workflow]
 pub struct TestWorkflow {
     #[allow(dead_code)]
@@ -45,49 +56,58 @@ pub struct TestWorkflow {
 }
 
 impl WorkflowEntrypoint for TestWorkflow {
+    type Input = TestParams;
+    type Output = TestOutput;
+
     fn new(_ctx: Context, env: Env) -> Self {
         Self { env }
     }
 
-    async fn run(&self, event: WorkflowEvent, step: WorkflowStep) -> Result<JsValue> {
-        let params: TestParams = serde_wasm_bindgen::from_value(event.payload)?;
+    async fn run(
+        &self,
+        event: WorkflowEvent<TestParams>,
+        step: WorkflowStep,
+    ) -> Result<TestOutput> {
+        let value = event.payload.value;
 
-        let value_for_validation = params.value.clone();
-        step.do_with_config(
-            "validate",
-            StepConfig {
-                retries: Some(RetryConfig {
-                    limit: 2,
-                    delay: "1 second".into(),
-                    backoff: None,
-                }),
-                timeout: None,
-            },
-            move |ctx| {
-                let value = value_for_validation.clone();
-                async move {
-                    if value.is_empty() {
-                        return Err(NonRetryableError::new("value must not be empty").into());
+        let value_for_validation = value.clone();
+        let validation: ValidationOutcome = step
+            .do_with_config(
+                "validate",
+                StepConfig {
+                    retries: Some(RetryConfig {
+                        limit: 2,
+                        delay: "1 second".into(),
+                        backoff: None,
+                    }),
+                    timeout: None,
+                },
+                move |ctx| {
+                    let value = value_for_validation.clone();
+                    async move {
+                        if value.is_empty() {
+                            return Err(NonRetryableError::new("value must not be empty").into());
+                        }
+                        Ok(ValidationOutcome {
+                            valid: true,
+                            attempt: ctx.attempt,
+                        })
                     }
-                    Ok(serde_json::json!({
-                        "valid": true,
-                        "step_name": ctx.step.name,
-                        "attempt": ctx.attempt,
-                        "count": ctx.step.count,
-                    }))
-                }
-            },
-        )
-        .await?;
+                },
+            )
+            .await?;
 
-        let result: serde_json::Value = step
+        let processed: String = step
             .do_("process", move |_ctx| {
-                let params = params.clone();
-                async move { Ok(serde_json::json!({ "processed": params.value })) }
+                let value = value.clone();
+                async move { Ok(value) }
             })
             .await?;
 
-        Ok(serialize_as_object(&result)?)
+        Ok(TestOutput {
+            processed,
+            validation,
+        })
     }
 }
 
@@ -97,10 +117,10 @@ async fn create_workflow_with_value(env: &Env, value: &str) -> Result<Response> 
         value: value.to_string(),
     };
     let instance = workflow
-        .create(Some(CreateOptions {
+        .create(CreateOptions {
             params: Some(params),
             ..Default::default()
-        }))
+        })
         .await?;
 
     Response::from_json(&serde_json::json!({ "id": instance.id() }))
@@ -132,6 +152,20 @@ pub async fn handle_workflow_status(
     status_response(status)
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApprovalEvent {
+    pub approved: bool,
+    pub reason: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApprovalResult {
+    pub approved: bool,
+    pub reason: String,
+    #[serde(rename = "type")]
+    pub event_type: String,
+}
+
 #[workflow]
 pub struct EventWorkflow {
     #[allow(dead_code)]
@@ -139,13 +173,16 @@ pub struct EventWorkflow {
 }
 
 impl WorkflowEntrypoint for EventWorkflow {
+    type Input = ();
+    type Output = ApprovalResult;
+
     fn new(_ctx: Context, env: Env) -> Self {
         Self { env }
     }
 
-    async fn run(&self, _event: WorkflowEvent, step: WorkflowStep) -> Result<JsValue> {
+    async fn run(&self, _event: WorkflowEvent<()>, step: WorkflowStep) -> Result<ApprovalResult> {
         let event = step
-            .wait_for_event::<serde_json::Value>(
+            .wait_for_event::<ApprovalEvent>(
                 "wait-for-approval",
                 WaitForEventOptions {
                     type_: "approval".to_string(),
@@ -154,10 +191,11 @@ impl WorkflowEntrypoint for EventWorkflow {
             )
             .await?;
 
-        Ok(serialize_as_object(&serde_json::json!({
-            "payload": event.payload,
-            "type": event.type_,
-        }))?)
+        Ok(ApprovalResult {
+            approved: event.payload.approved,
+            reason: event.payload.reason,
+            event_type: event.type_,
+        })
     }
 }
 
@@ -190,6 +228,11 @@ pub async fn handle_event_workflow_status(
     status_response(status)
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LifecycleResult {
+    pub completed: bool,
+}
+
 #[workflow]
 pub struct LifecycleWorkflow {
     #[allow(dead_code)]
@@ -197,17 +240,20 @@ pub struct LifecycleWorkflow {
 }
 
 impl WorkflowEntrypoint for LifecycleWorkflow {
+    type Input = ();
+    type Output = LifecycleResult;
+
     fn new(_ctx: Context, env: Env) -> Self {
         Self { env }
     }
 
-    async fn run(&self, _event: WorkflowEvent, step: WorkflowStep) -> Result<JsValue> {
+    async fn run(&self, _event: WorkflowEvent<()>, step: WorkflowStep) -> Result<LifecycleResult> {
         step.sleep(
             "long-sleep",
             WorkflowSleepDuration::new(60, WorkflowDuration::Seconds),
         )
         .await?;
-        Ok(serialize_as_object(&serde_json::json!({ "done": true }))?)
+        Ok(LifecycleResult { completed: true })
     }
 }
 
