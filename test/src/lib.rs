@@ -37,6 +37,7 @@ mod signal;
 mod socket;
 mod sql_counter;
 mod sql_iterator;
+mod synchronous_storage;
 mod user;
 mod ws;
 

@@ -565,9 +565,16 @@ impl Storage {
             .map(|_| ())
     }
 
-    // Add new method to access SQLite APIs
+    /// Access the SQLite APIs exposed at `ctx.storage.sql`.
     pub fn sql(&self) -> crate::sql::SqlStorage {
         crate::sql::SqlStorage::new(self.inner.sql())
+    }
+
+    /// Access the synchronous key-value APIs exposed at `ctx.storage.kv`.
+    ///
+    /// This is Cloudflare's Synchronous KV API for SQLite-backed Durable Objects
+    pub fn kv(&self) -> crate::sync_kv::SyncKvStorage {
+        crate::sync_kv::SyncKvStorage::new(self.inner.kv())
     }
 }
 
@@ -679,6 +686,10 @@ pub struct ListOptions<'a> {
     /// Key at which the list results should start, inclusive.
     #[serde(skip_serializing_if = "Option::is_none")]
     start: Option<&'a str>,
+    /// Key at which the list results should start, exclusive.
+    /// Cannot be used simultaneously with start.
+    #[serde(rename = "startAfter", skip_serializing_if = "Option::is_none")]
+    pub start_after: Option<&'a str>,
     /// Key at which the list results should end, exclusive.
     #[serde(skip_serializing_if = "Option::is_none")]
     end: Option<&'a str>,
@@ -703,6 +714,13 @@ impl<'a> ListOptions<'a> {
     /// Key at which the list results should start, inclusive.
     pub fn start(mut self, val: &'a str) -> Self {
         self.start = Some(val);
+        self
+    }
+
+    /// Key at which the list results should start, exclusive.
+    /// Cannot be used simultaneously with start.
+    pub fn start_after(mut self, val: &'a str) -> Self {
+        self.start_after = Some(val);
         self
     }
 

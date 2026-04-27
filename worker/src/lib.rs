@@ -242,6 +242,7 @@ mod sql;
 mod streams;
 mod version;
 mod websocket;
+mod sync_kv;
 
 /// A `Result` alias defaulting to [`Error`].
 pub type Result<T, E = error::Error> = StdResult<T, E>;
@@ -278,3 +279,4 @@ pub type HttpRequest = ::http::Request<http::body::Body>;
 pub type HttpResponse = ::http::Response<http::body::Body>;
 
 pub use crate::sql::*;
+pub use crate::sync_kv::*;

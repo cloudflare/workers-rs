@@ -1,6 +1,6 @@
 name = "testing-rust-worker"
 workers_dev = true
-compatibility_date = "2025-09-23"                     # required
+compatibility_date = "2025-09-23" # required
 main = "build/worker/shim.mjs"
 
 kv_namespaces = [
@@ -31,6 +31,7 @@ bindings = [
     { name = "SQL_ITERATOR", class_name = "SqlIterator" },
     { name = "MY_CLASS", class_name = "MyClass" },
     { name = "ECHO_CONTAINER", class_name = "EchoContainer" },
+    { name = "SYNCHRONOUS_STORAGE", class_name = "SynchronousStorage" },
 ]
 
 [[analytics_engine_datasets]]
@@ -74,7 +75,12 @@ command = "WASM_BINDGEN_BIN=../wasm-bindgen/target/debug/wasm-bindgen ../target/
 
 [[migrations]]
 tag = "v1"
-new_sqlite_classes = ["SqlCounter", "SqlIterator", "EchoContainer"]
+new_sqlite_classes = [
+    "SqlCounter",
+    "SqlIterator",
+    "EchoContainer",
+    "SynchronousStorage",
+]
 
 [[secrets_store_secrets]]
 binding = "SECRETS"
