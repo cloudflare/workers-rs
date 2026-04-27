@@ -18,10 +18,10 @@ use crate::env::EnvBinding;
 use crate::send::SendFuture;
 use crate::Result;
 
-/// Serialize a value to a JS object, ensuring maps are serialized as plain objects.
+/// Serialize a value to a JS object, with maps serialized as plain objects.
 ///
-/// This is useful when returning values from [`WorkflowEntrypoint::run`] that
-/// need to be plain JS objects rather than `Map` instances.
+/// Use this for return values from [`WorkflowEntrypoint::run`] that must be
+/// plain JS objects rather than `Map` instances.
 pub fn serialize_as_object<T: Serialize>(
     value: &T,
 ) -> std::result::Result<JsValue, serde_wasm_bindgen::Error> {
@@ -297,7 +297,7 @@ pub struct WorkflowStepContext {
 pub struct WorkflowStepInfo {
     /// The step's name, as passed to `step.do()` / `step.do_with_config()`.
     pub name: String,
-    /// Number of times this step has been invoked in the current run, starting at 1.
+    /// Number of times this step has been invoked in the current run. Starts at 1.
     ///
     /// Useful for disambiguating steps inside loops.
     pub count: u32,
@@ -502,9 +502,9 @@ impl WorkflowStep {
 
     /// Execute a named step whose return value is a `ReadableStream`.
     ///
-    /// Stream return values are not subject to the 1 MiB payload limit that
-    /// applies to serialized step outputs, making this suitable for passing
-    /// large bodies (for example, an R2 object body) between steps.
+    /// Unlike serialized step outputs, stream return values aren't subject to
+    /// the 1 MiB payload limit, so this works for passing large bodies between
+    /// steps (for example, an R2 object body).
     pub async fn do_stream<F, Fut>(
         &self,
         name: &str,
