@@ -16,6 +16,7 @@ run = 'cargo build -p worker-build'
 
 [[task]]
 name = 'build'
+serial = true
 deps = ['build:wasm-bindgen', 'build:worker-build']
 
 [[task]]
@@ -33,6 +34,7 @@ run = 'cargo clippy --features d1,queue --all-targets --workspace --fix -- -D wa
 
 [[task]]
 name = 'test:unit'
+serial = true
 deps = ['build', 'build:wasm-bindgen-test-runner']
 env.CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER = 'wasm-bindgen/target/debug/wasm-bindgen-test-runner'
 run = 'cargo test -p worker --target wasm32-unknown-unknown'
