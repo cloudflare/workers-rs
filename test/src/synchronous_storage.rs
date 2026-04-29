@@ -11,8 +11,6 @@ impl DurableObject for SynchronousStorage {
     }
 
     async fn fetch(&self, req: Request) -> Result<Response> {
-        const KEYS_LEN: usize = 10;
-
         let sync_kv = self.state.storage().kv();
         let path = req.path();
 
@@ -38,8 +36,8 @@ impl DurableObject for SynchronousStorage {
 
                 assert_eq!(original.as_slice(), list.as_ref());
 
-                assert!(sync_kv.delete("first"));
-                assert!(sync_kv.delete("second"));
+                assert!(sync_kv.delete("first")?);
+                assert!(sync_kv.delete("second")?);
 
                 Response::ok("smoke ok")
             }
@@ -51,17 +49,18 @@ impl DurableObject for SynchronousStorage {
 
                 assert_eq!(sync_kv.get("k")?, Some(overwrite));
 
-                assert!(sync_kv.delete("k"));
+                assert!(sync_kv.delete("k")?);
 
                 Response::ok("overwrite ok")
             }
             "/not_found" => {
                 assert_eq!(sync_kv.get::<()>("nope")?, None);
-                assert!(!sync_kv.delete("nope"));
+                assert!(!sync_kv.delete("nope")?);
 
                 Response::ok("not_found ok")
             }
             "/list" => {
+                const KEYS_LEN: usize = 10;
                 let keys: [_; KEYS_LEN] = std::array::from_fn(|i| format!("k{i}"));
 
                 for (i, key) in keys.iter().enumerate() {
@@ -76,12 +75,72 @@ impl DurableObject for SynchronousStorage {
                 assert_eq!(count, KEYS_LEN);
 
                 for key in keys {
-                    assert!(sync_kv.delete(&key));
+                    assert!(sync_kv.delete(&key)?);
                 }
 
                 Response::ok("list ok")
             }
+            "/list_options" => {
+                // Seed: a, b, c, d, e
+                for k in ["a", "b", "c", "d", "e"] {
+                    sync_kv.put(k, serde_json::json!({"k": k}))?;
+                }
+
+                // start_after("b") yields c, d, e
+                let after_b: Vec<String> = sync_kv
+                    .list_with_options::<serde_json::Value>(
+                        &SyncKvListOptionsBuilder::new().start_after("b").build(),
+                    )?
+                    .collect::<Result<Vec<_>>>()?
+                    .into_iter()
+                    .map(|(k, _)| k)
+                    .collect();
+                assert_eq!(after_b, vec!["c", "d", "e"]);
+
+                // start("b") yields b, c, d, e
+                let from_b: Vec<String> = sync_kv
+                    .list_with_options::<serde_json::Value>(
+                        &SyncKvListOptionsBuilder::new().start("b").build(),
+                    )?
+                    .collect::<Result<Vec<_>>>()?
+                    .into_iter()
+                    .map(|(k, _)| k)
+                    .collect();
+                assert_eq!(from_b, vec!["b", "c", "d", "e"]);
+
+                // limit(2) + reverse(true) yields e, d
+                let last_two: Vec<String> = sync_kv
+                    .list_with_options::<serde_json::Value>(
+                        &SyncKvListOptionsBuilder::new()
+                            .reverse(true)
+                            .limit(2)
+                            .build(),
+                    )?
+                    .collect::<Result<Vec<_>>>()?
+                    .into_iter()
+                    .map(|(k, _)| k)
+                    .collect();
+                assert_eq!(last_two, vec!["e", "d"]);
+
+                // end("c") yields a, b (exclusive)
+                let until_c: Vec<String> = sync_kv
+                    .list_with_options::<serde_json::Value>(
+                        &SyncKvListOptionsBuilder::new().end("c").build(),
+                    )?
+                    .collect::<Result<Vec<_>>>()?
+                    .into_iter()
+                    .map(|(k, _)| k)
+                    .collect();
+                assert_eq!(until_c, vec!["a", "b"]);
+
+                for k in ["a", "b", "c", "d", "e"] {
+                    assert!(sync_kv.delete(k)?);
+                }
+
+                Response::ok("list_options ok")
+            }
             "/persist_fill" => {
+                const KEYS_LEN: usize = 10;
                 let keys: [_; KEYS_LEN] = std::array::from_fn(|i| format!("k{i}"));
 
                 for (i, key) in keys.iter().enumerate() {
@@ -91,6 +150,7 @@ impl DurableObject for SynchronousStorage {
                 Response::ok("persist_fill ok")
             }
             "/persist_check" => {
+                const KEYS_LEN: usize = 10;
                 let keys: [_; KEYS_LEN] = std::array::from_fn(|i| format!("k{i}"));
 
                 for (i, key) in keys.iter().enumerate() {
@@ -110,7 +170,7 @@ impl DurableObject for SynchronousStorage {
                     list.filter_map(|e| e.ok().map(|(k, _)| k)).collect();
 
                 for key in keys_collected {
-                    assert!(sync_kv.delete(&key));
+                    assert!(sync_kv.delete(&key)?);
                 }
 
                 Response::ok("persist_cleanup ok")
@@ -162,6 +222,17 @@ pub async fn handle_synchronous_storage_list(
     let namespace = env.durable_object("SYNCHRONOUS_STORAGE")?;
     let stub = namespace.unique_id()?.get_stub()?;
     stub.fetch_with_str("http://fake-host/list").await
+}
+
+#[worker::send]
+pub async fn handle_synchronous_storage_list_options(
+    _req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let namespace = env.durable_object("SYNCHRONOUS_STORAGE")?;
+    let stub = namespace.unique_id()?.get_stub()?;
+    stub.fetch_with_str("http://fake-host/list_options").await
 }
 
 #[worker::send]

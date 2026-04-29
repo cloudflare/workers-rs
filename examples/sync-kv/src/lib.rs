@@ -2,11 +2,11 @@ use serde_json::{json, Value};
 use worker::*;
 
 #[durable_object]
-pub struct Test {
+pub struct SyncKvDurableObject {
     state: State,
 }
 
-impl DurableObject for Test {
+impl DurableObject for SyncKvDurableObject {
     fn new(state: State, _env: Env) -> Self {
         Self { state }
     }
@@ -15,8 +15,8 @@ impl DurableObject for Test {
         let kv = self.state.storage().kv();
 
         // CLEAN
-        kv.delete("a");
-        kv.delete("b");
+        kv.delete("a")?;
+        kv.delete("b")?;
 
         // CREATE
         kv.put("a", json!({ "x": 1 }))?;
@@ -32,7 +32,7 @@ impl DurableObject for Test {
         let a_updated: Option<Value> = kv.get("a")?;
 
         // DELETE
-        let deleted = kv.delete("b");
+        let deleted = kv.delete("b")?;
         let after_delete: Option<Value> = kv.get("b")?;
 
         // LIST
@@ -53,7 +53,7 @@ impl DurableObject for Test {
 
 #[event(fetch)]
 async fn fetch(req: Request, env: Env, _ctx: Context) -> Result<Response> {
-    let durable_obj = env.durable_object("TEST")?;
-    let stub = durable_obj.id_from_name("A")?.get_stub()?;
+    let durable_obj = env.durable_object("SYNC_KV")?;
+    let stub = durable_obj.id_from_name("singleton")?.get_stub()?;
     stub.fetch_with_request(req).await
 }

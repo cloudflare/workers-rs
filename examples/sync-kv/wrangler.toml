@@ -1,14 +1,14 @@
-name = "worker-rs-test"
+name = "sync-kv-example"
 main = "build/index.js"
-compatibility_date = "2026-04-19"
+compatibility_date = "2025-09-23"
 
 [build]
 command = "cargo install \"worker-build@^0.8\" && worker-build --release"
 
 [[durable_objects.bindings]]
-name = "TEST"
-class_name = "Test"
+name = "SYNC_KV"
+class_name = "SyncKvDurableObject"
 
 [[migrations]]
 tag = "v1"
-new_sqlite_classes = ["Test"]
+new_sqlite_classes = ["SyncKvDurableObject"]

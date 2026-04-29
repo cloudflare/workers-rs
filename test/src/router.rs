@@ -245,6 +245,7 @@ macro_rules! add_routes (
     add_route!($obj, get, "/synchronous-storage/overwrite", synchronous_storage::handle_synchronous_storage_overwrite);
     add_route!($obj, get, "/synchronous-storage/not_found", synchronous_storage::handle_synchronous_storage_not_found);
     add_route!($obj, get, "/synchronous-storage/list", synchronous_storage::handle_synchronous_storage_list);
+    add_route!($obj, get, "/synchronous-storage/list_options", synchronous_storage::handle_synchronous_storage_list_options);
     add_route!($obj, get, "/synchronous-storage/persist_fill", synchronous_storage::handle_synchronous_storage_persist_fill);
     add_route!($obj, get, "/synchronous-storage/persist_check", synchronous_storage::handle_synchronous_storage_persist_check);
     add_route!($obj, get, "/synchronous-storage/persist_cleanup", synchronous_storage::handle_synchronous_storage_persist_cleanup);

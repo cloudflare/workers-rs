@@ -26,6 +26,14 @@ describe("synchronous api durable object", () => {
     expect(await resp.text()).toBe("list ok");
   });
 
+  test("list_options", async () => {
+    const resp = await mf.dispatchFetch(
+      `${mfUrl}synchronous-storage/list_options`
+    );
+    expect(resp.status).toBe(200);
+    expect(await resp.text()).toBe("list_options ok");
+  });
+
   describe.sequential("persist", () => {
     test("fill", async () => {
       const resp = await mf.dispatchFetch(

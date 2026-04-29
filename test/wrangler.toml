@@ -1,6 +1,6 @@
 name = "testing-rust-worker"
 workers_dev = true
-compatibility_date = "2025-09-23" # required
+compatibility_date = "2025-09-23"                     # required
 main = "build/worker/shim.mjs"
 
 kv_namespaces = [
