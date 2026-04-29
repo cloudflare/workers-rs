@@ -4,7 +4,7 @@
 //! * `/boolean?flag=<key>`   — evaluate a boolean flag
 //! * `/string?flag=<key>`    — evaluate a string flag, optionally with `?userId=<id>` context
 //! * `/object?flag=<key>`    — evaluate an object flag into a typed struct
-//! * `/details?flag=<key>`   — return the full `EvaluationDetails` envelope
+//! * `/details?flag=<key>`   — return the full evaluation details envelope
 
 use serde::{Deserialize, Serialize};
 use worker::{event, Env, EvaluationContext, Request, Response, Result, Router, Url};
@@ -43,25 +43,25 @@ async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response>
 async fn boolean(req: Request, env: Env) -> Result<Response> {
     let url = req.url()?;
     let flag = query(&url, "flag").unwrap_or_else(|| "example-bool".into());
-    let value = env
-        .flagship(BINDING)?
-        .get_boolean_value(&flag, false, None)
-        .await?;
+    let value = env.flagship(BINDING)?.get_boolean_value(&flag, false).await?;
     Response::from_json(&serde_json::json!({ "flag": flag, "value": value }))
 }
 
 async fn string(req: Request, env: Env) -> Result<Response> {
     let url = req.url()?;
     let flag = query(&url, "flag").unwrap_or_else(|| "checkout-flow".into());
-    let ctx = query(&url, "userId").map(|user_id| {
-        EvaluationContext::new()
-            .string("userId", &user_id)
-            .string("country", "US")
-    });
-    let value = env
-        .flagship(BINDING)?
-        .get_string_value(&flag, "control", ctx.as_ref())
-        .await?;
+    let flagship = env.flagship(BINDING)?;
+    let value = match query(&url, "userId") {
+        Some(user_id) => {
+            let ctx = EvaluationContext::new()
+                .string("userId", &user_id)
+                .string("country", "US");
+            flagship
+                .get_string_value_with_record(&flag, "control", ctx.as_record())
+                .await?
+        }
+        None => flagship.get_string_value(&flag, "control").await?,
+    };
     Response::from_json(&serde_json::json!({ "flag": flag, "value": value }))
 }
 
@@ -74,7 +74,7 @@ async fn object(req: Request, env: Env) -> Result<Response> {
     };
     let value: Theme = env
         .flagship(BINDING)?
-        .get_object_value(&flag, &default, None)
+        .get_object_value(&flag, &default)
         .await?;
     Response::from_json(&serde_json::json!({ "flag": flag, "value": value }))
 }
@@ -84,15 +84,15 @@ async fn details(req: Request, env: Env) -> Result<Response> {
     let flag = query(&url, "flag").unwrap_or_else(|| "checkout-flow".into());
     let details = env
         .flagship(BINDING)?
-        .get_string_details(&flag, "control", None)
+        .get_string_details(&flag, "control")
         .await?;
     Response::from_json(&serde_json::json!({
-        "flagKey": details.flag_key,
-        "value": details.value,
-        "variant": details.variant,
-        "reason": details.reason,
-        "errorCode": details.error_code,
-        "errorMessage": details.error_message,
+        "flagKey": details.flag_key(),
+        "value": details.value().as_string(),
+        "variant": details.variant(),
+        "reason": details.reason(),
+        "errorCode": details.error_code(),
+        "errorMessage": details.error_message(),
     }))
 }
 

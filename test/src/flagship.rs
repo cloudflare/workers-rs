@@ -1,6 +1,9 @@
 use crate::SomeSharedData;
 use serde::{Deserialize, Serialize};
-use worker::{Env, EvaluationContext, EvaluationDetails, Request, Response, Result};
+use worker::wasm_bindgen::JsValue;
+use worker::{
+    Env, EvaluationContext, EvaluationDetails, FlagshipEvaluationDetails, Request, Response, Result,
+};
 
 const BINDING: &str = "FLAGS";
 
@@ -28,10 +31,7 @@ fn last_segment(req: &Request) -> Result<String> {
 #[worker::send]
 pub async fn handle_boolean(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let flag = last_segment(&req)?;
-    let value = env
-        .flagship(BINDING)?
-        .get_boolean_value(&flag, false, None)
-        .await?;
+    let value = env.flagship(BINDING)?.get_boolean_value(&flag, false).await?;
     Response::from_json(&serde_json::json!({ "flag": flag, "value": value }))
 }
 
@@ -40,7 +40,7 @@ pub async fn handle_string(req: Request, env: Env, _data: SomeSharedData) -> Res
     let flag = last_segment(&req)?;
     let value = env
         .flagship(BINDING)?
-        .get_string_value(&flag, "fallback", None)
+        .get_string_value(&flag, "fallback")
         .await?;
     Response::from_json(&serde_json::json!({ "flag": flag, "value": value }))
 }
@@ -48,10 +48,7 @@ pub async fn handle_string(req: Request, env: Env, _data: SomeSharedData) -> Res
 #[worker::send]
 pub async fn handle_number(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let flag = last_segment(&req)?;
-    let value = env
-        .flagship(BINDING)?
-        .get_number_value(&flag, 0.0, None)
-        .await?;
+    let value = env.flagship(BINDING)?.get_number_value(&flag, 0.0).await?;
     Response::from_json(&serde_json::json!({ "flag": flag, "value": value }))
 }
 
@@ -60,7 +57,7 @@ pub async fn handle_object(req: Request, env: Env, _data: SomeSharedData) -> Res
     let flag = last_segment(&req)?;
     let value: Theme = env
         .flagship(BINDING)?
-        .get_object_value(&flag, &default_theme(), None)
+        .get_object_value(&flag, &default_theme())
         .await?;
     Response::from_json(&serde_json::json!({ "flag": flag, "value": value }))
 }
@@ -68,10 +65,12 @@ pub async fn handle_object(req: Request, env: Env, _data: SomeSharedData) -> Res
 #[worker::send]
 pub async fn handle_get(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let flag = last_segment(&req)?;
-    let value = env
+    let default = JsValue::from_str("fallback");
+    let raw = env
         .flagship(BINDING)?
-        .get::<serde_json::Value>(&flag, "fallback", None)
+        .get_with_default_value(&flag, &default)
         .await?;
+    let value: serde_json::Value = serde_wasm_bindgen::from_value(raw)?;
     Response::from_json(&serde_json::json!({ "flag": flag, "value": value }))
 }
 
@@ -84,7 +83,7 @@ pub async fn handle_context(req: Request, env: Env, _data: SomeSharedData) -> Re
         .bool("premium", true);
     let value = env
         .flagship(BINDING)?
-        .get_string_value("user-branch", "default", Some(&eval_ctx))
+        .get_string_value_with_record("user-branch", "default", eval_ctx.as_record())
         .await?;
     Response::from_json(&serde_json::json!({ "userId": user_id, "value": value }))
 }
@@ -98,9 +97,10 @@ pub async fn handle_boolean_details(
     let flag = last_segment(&req)?;
     let details = env
         .flagship(BINDING)?
-        .get_boolean_details(&flag, false, None)
+        .get_boolean_details(&flag, false)
         .await?;
-    Response::from_json(&details_to_json(&details))
+    let value = details.value().as_bool();
+    Response::from_json(&details_to_json(&details, value))
 }
 
 #[worker::send]
@@ -112,9 +112,10 @@ pub async fn handle_string_details(
     let flag = last_segment(&req)?;
     let details = env
         .flagship(BINDING)?
-        .get_string_details(&flag, "fallback", None)
+        .get_string_details(&flag, "fallback")
         .await?;
-    Response::from_json(&details_to_json(&details))
+    let value = details.value().as_string();
+    Response::from_json(&details_to_json(&details, value))
 }
 
 #[worker::send]
@@ -126,9 +127,10 @@ pub async fn handle_number_details(
     let flag = last_segment(&req)?;
     let details = env
         .flagship(BINDING)?
-        .get_number_details(&flag, 0.0, None)
+        .get_number_details(&flag, 0.0)
         .await?;
-    Response::from_json(&details_to_json(&details))
+    let value = details.value().as_f64();
+    Response::from_json(&details_to_json(&details, value))
 }
 
 #[worker::send]
@@ -138,20 +140,30 @@ pub async fn handle_object_details(
     _data: SomeSharedData,
 ) -> Result<Response> {
     let flag = last_segment(&req)?;
-    let details = env
+    let details: EvaluationDetails<Theme> = env
         .flagship(BINDING)?
-        .get_object_details(&flag, &default_theme(), None)
+        .get_object_details(&flag, &default_theme())
         .await?;
-    Response::from_json(&details_to_json(&details))
-}
-
-fn details_to_json<T: Serialize>(details: &EvaluationDetails<T>) -> serde_json::Value {
-    serde_json::json!({
+    Response::from_json(&serde_json::json!({
         "flagKey": details.flag_key,
         "value": details.value,
         "variant": details.variant,
         "reason": details.reason,
         "errorCode": details.error_code,
         "errorMessage": details.error_message,
+    }))
+}
+
+fn details_to_json<T: Serialize>(
+    details: &FlagshipEvaluationDetails,
+    value: T,
+) -> serde_json::Value {
+    serde_json::json!({
+        "flagKey": details.flag_key(),
+        "value": value,
+        "variant": details.variant(),
+        "reason": details.reason(),
+        "errorCode": details.error_code(),
+        "errorMessage": details.error_message(),
     })
 }
