@@ -1,5 +1,5 @@
 use crate::{send::SendFuture, EnvBinding, Result};
-use js_sys::{JsString, Object, Promise};
+use js_sys::{Object, Promise};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
@@ -20,32 +20,41 @@ impl EnvBinding for Flagship {
     }
 }
 
+// Raw extern bindings for the object methods stripped from `flagship.d.ts`.
+// Names mirror the auto-gen pattern from `flagship_gen.rs`:
+// `<base>_raw` for the no-context form, `<base>_with_context_raw` for the
+// targeting form. The inherent wrappers below own the
+// `JsFuture::from(...).await?` step and the serde conversion.
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(method, js_name = "getObjectValue")]
     fn get_object_value_raw(this: &Flagship, flag_key: &str, default_value: &JsValue) -> Promise;
 
     #[wasm_bindgen(method, js_name = "getObjectValue")]
-    fn get_object_value_with_record_raw(
+    fn get_object_value_with_context_raw(
         this: &Flagship,
         flag_key: &str,
         default_value: &JsValue,
-        context: &Object<JsString>,
+        context: &Object,
     ) -> Promise;
 
     #[wasm_bindgen(method, js_name = "getObjectDetails")]
-    fn get_object_details_raw(this: &Flagship, flag_key: &str, default_value: &JsValue)
-        -> Promise;
+    fn get_object_details_raw(this: &Flagship, flag_key: &str, default_value: &JsValue) -> Promise;
 
     #[wasm_bindgen(method, js_name = "getObjectDetails")]
-    fn get_object_details_with_record_raw(
+    fn get_object_details_with_context_raw(
         this: &Flagship,
         flag_key: &str,
         default_value: &JsValue,
-        context: &Object<JsString>,
+        context: &Object,
     ) -> Promise;
 }
 
+// Public surface mirrors the auto-gen primitive accessors: one method for
+// the no-context evaluation, one `_with_context` variant taking `&Object`
+// (the same shape the auto-gen `_with_context` extern variants accept).
+// Callers pass `eval_ctx.as_record()` exactly like they would for
+// `get_boolean_value_with_context`.
 impl Flagship {
     /// Evaluate an object-typed flag, returning the resolved value
     /// deserialized into `T`.
@@ -55,21 +64,22 @@ impl Flagship {
         default_value: &T,
     ) -> Result<T> {
         let default = serde_wasm_bindgen::to_value(default_value)?;
-        let raw = SendFuture::new(JsFuture::from(self.get_object_value_raw(flag_key, &default)))
-            .await?;
+        let raw = SendFuture::new(JsFuture::from(
+            self.get_object_value_raw(flag_key, &default),
+        ))
+        .await?;
         Ok(serde_wasm_bindgen::from_value(raw)?)
     }
 
     /// Evaluate an object-typed flag with a targeting context.
-    pub async fn get_object_value_with_record<T: Serialize + DeserializeOwned>(
+    pub async fn get_object_value_with_context<T: Serialize + DeserializeOwned>(
         &self,
         flag_key: &str,
         default_value: &T,
-        context: &EvaluationContext,
+        context: &Object,
     ) -> Result<T> {
         let default = serde_wasm_bindgen::to_value(default_value)?;
-        let promise =
-            self.get_object_value_with_record_raw(flag_key, &default, context.as_record());
+        let promise = self.get_object_value_with_context_raw(flag_key, &default, context);
         let raw = SendFuture::new(JsFuture::from(promise)).await?;
         Ok(serde_wasm_bindgen::from_value(raw)?)
     }
@@ -92,15 +102,14 @@ impl Flagship {
 
     /// Evaluate an object-typed flag with a targeting context, returning
     /// the full evaluation envelope.
-    pub async fn get_object_details_with_record<T: Serialize + DeserializeOwned>(
+    pub async fn get_object_details_with_context<T: Serialize + DeserializeOwned>(
         &self,
         flag_key: &str,
         default_value: &T,
-        context: &EvaluationContext,
+        context: &Object,
     ) -> Result<EvaluationDetails<T>> {
         let default = serde_wasm_bindgen::to_value(default_value)?;
-        let promise =
-            self.get_object_details_with_record_raw(flag_key, &default, context.as_record());
+        let promise = self.get_object_details_with_context_raw(flag_key, &default, context);
         let raw = SendFuture::new(JsFuture::from(promise)).await?;
         Ok(serde_wasm_bindgen::from_value(raw)?)
     }
@@ -131,9 +140,9 @@ pub struct EvaluationDetails<T> {
 /// constrained to `string`, `number`, and `boolean` to match the JS
 /// `Record<string, string | number | boolean>`.
 ///
-/// Pass via the auto-generated `_with_record` method variants, e.g.
-/// [`Flagship::get_boolean_value_with_record`], or via the hand-written
-/// [`Flagship::get_object_value_with_record`].
+/// Pass via `.as_ref()` to any `_with_context` method, e.g.
+/// [`Flagship::get_boolean_value_with_context`] or
+/// [`Flagship::get_object_value_with_context`].
 #[derive(Debug, Clone)]
 pub struct EvaluationContext {
     inner: Object,
@@ -170,11 +179,10 @@ impl EvaluationContext {
     fn set(&self, key: &str, value: &JsValue) {
         let _ = js_sys::Reflect::set(&self.inner, &JsValue::from_str(key), value);
     }
+}
 
-    /// The `Object<JsString>` phantom is a compile-time tag for the
-    /// `_with_record` extern variants — at runtime the same JS object
-    /// satisfies the `Object<Number>` and `Object<Boolean>` overloads too.
-    pub fn as_record(&self) -> &Object<JsString> {
-        self.inner.unchecked_ref()
+impl AsRef<Object> for EvaluationContext {
+    fn as_ref(&self) -> &Object {
+        &self.inner
     }
 }

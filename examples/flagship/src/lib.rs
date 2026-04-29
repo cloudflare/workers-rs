@@ -43,7 +43,10 @@ async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response>
 async fn boolean(req: Request, env: Env) -> Result<Response> {
     let url = req.url()?;
     let flag = query(&url, "flag").unwrap_or_else(|| "example-bool".into());
-    let value = env.flagship(BINDING)?.get_boolean_value(&flag, false).await?;
+    let value = env
+        .flagship(BINDING)?
+        .get_boolean_value(&flag, false)
+        .await?;
     Response::from_json(&serde_json::json!({ "flag": flag, "value": value }))
 }
 
@@ -57,7 +60,7 @@ async fn string(req: Request, env: Env) -> Result<Response> {
                 .string("userId", &user_id)
                 .string("country", "US");
             flagship
-                .get_string_value_with_record(&flag, "control", ctx.as_record())
+                .get_string_value_with_context(&flag, "control", ctx.as_ref())
                 .await?
         }
         None => flagship.get_string_value(&flag, "control").await?,

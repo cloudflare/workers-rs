@@ -31,7 +31,10 @@ fn last_segment(req: &Request) -> Result<String> {
 #[worker::send]
 pub async fn handle_boolean(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let flag = last_segment(&req)?;
-    let value = env.flagship(BINDING)?.get_boolean_value(&flag, false).await?;
+    let value = env
+        .flagship(BINDING)?
+        .get_boolean_value(&flag, false)
+        .await?;
     Response::from_json(&serde_json::json!({ "flag": flag, "value": value }))
 }
 
@@ -83,7 +86,7 @@ pub async fn handle_context(req: Request, env: Env, _data: SomeSharedData) -> Re
         .bool("premium", true);
     let value = env
         .flagship(BINDING)?
-        .get_string_value_with_record("user-branch", "default", eval_ctx.as_record())
+        .get_string_value_with_context("user-branch", "default", eval_ctx.as_ref())
         .await?;
     Response::from_json(&serde_json::json!({ "userId": user_id, "value": value }))
 }
