@@ -61,7 +61,7 @@ async fn string(req: Request, env: Env) -> Result<Response> {
                 .string("userId", &user_id)
                 .string("country", "US");
             flagship
-                .get_string_value_with_context(&flag, "control", ctx.as_ref())
+                .get_string_value_with_record(&flag, "control", ctx.as_ref())
                 .await?
         }
         None => flagship.get_string_value(&flag, "control").await?,
