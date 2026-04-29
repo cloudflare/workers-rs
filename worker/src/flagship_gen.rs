@@ -144,45 +144,87 @@ extern "C" {
         default_value: &JsValue,
         context: &Object,
     ) -> Result<JsValue, JsValue>;
-    #[wasm_bindgen(method, js_name = "getBooleanValue")]
-    fn get_boolean_value_raw(
+    #[doc = " Get a boolean flag value."]
+    #[doc = ""]
+    #[doc = " ## Arguments"]
+    #[doc = ""]
+    #[doc = " * `flagKey` - The key of the flag to evaluate."]
+    #[doc = " * `defaultValue` - Default value returned when evaluation fails or the flag type does not match."]
+    #[doc = " * `context` - Optional evaluation context for targeting rules."]
+    #[wasm_bindgen(method, catch, js_name = "getBooleanValue")]
+    pub async fn get_boolean_value(
         this: &Flagship,
         flag_key: &str,
         default_value: bool,
-    ) -> ::js_sys::Promise;
-    #[wasm_bindgen(method, js_name = "getBooleanValue")]
-    fn get_boolean_value_with_context_raw(
+    ) -> Result<Boolean, JsValue>;
+    #[doc = " Get a boolean flag value."]
+    #[doc = ""]
+    #[doc = " ## Arguments"]
+    #[doc = ""]
+    #[doc = " * `flagKey` - The key of the flag to evaluate."]
+    #[doc = " * `defaultValue` - Default value returned when evaluation fails or the flag type does not match."]
+    #[doc = " * `context` - Optional evaluation context for targeting rules."]
+    #[wasm_bindgen(method, catch, js_name = "getBooleanValue")]
+    pub async fn get_boolean_value_with_context(
         this: &Flagship,
         flag_key: &str,
         default_value: bool,
         context: &Object,
-    ) -> ::js_sys::Promise;
-    #[wasm_bindgen(method, js_name = "getStringValue")]
-    fn get_string_value_raw(
+    ) -> Result<Boolean, JsValue>;
+    #[doc = " Get a string flag value."]
+    #[doc = ""]
+    #[doc = " ## Arguments"]
+    #[doc = ""]
+    #[doc = " * `flagKey` - The key of the flag to evaluate."]
+    #[doc = " * `defaultValue` - Default value returned when evaluation fails or the flag type does not match."]
+    #[doc = " * `context` - Optional evaluation context for targeting rules."]
+    #[wasm_bindgen(method, catch, js_name = "getStringValue")]
+    pub async fn get_string_value(
         this: &Flagship,
         flag_key: &str,
         default_value: &str,
-    ) -> ::js_sys::Promise;
-    #[wasm_bindgen(method, js_name = "getStringValue")]
-    fn get_string_value_with_context_raw(
+    ) -> Result<JsString, JsValue>;
+    #[doc = " Get a string flag value."]
+    #[doc = ""]
+    #[doc = " ## Arguments"]
+    #[doc = ""]
+    #[doc = " * `flagKey` - The key of the flag to evaluate."]
+    #[doc = " * `defaultValue` - Default value returned when evaluation fails or the flag type does not match."]
+    #[doc = " * `context` - Optional evaluation context for targeting rules."]
+    #[wasm_bindgen(method, catch, js_name = "getStringValue")]
+    pub async fn get_string_value_with_context(
         this: &Flagship,
         flag_key: &str,
         default_value: &str,
         context: &Object,
-    ) -> ::js_sys::Promise;
-    #[wasm_bindgen(method, js_name = "getNumberValue")]
-    fn get_number_value_raw(
+    ) -> Result<JsString, JsValue>;
+    #[doc = " Get a number flag value."]
+    #[doc = ""]
+    #[doc = " ## Arguments"]
+    #[doc = ""]
+    #[doc = " * `flagKey` - The key of the flag to evaluate."]
+    #[doc = " * `defaultValue` - Default value returned when evaluation fails or the flag type does not match."]
+    #[doc = " * `context` - Optional evaluation context for targeting rules."]
+    #[wasm_bindgen(method, catch, js_name = "getNumberValue")]
+    pub async fn get_number_value(
         this: &Flagship,
         flag_key: &str,
         default_value: f64,
-    ) -> ::js_sys::Promise;
-    #[wasm_bindgen(method, js_name = "getNumberValue")]
-    fn get_number_value_with_context_raw(
+    ) -> Result<Number, JsValue>;
+    #[doc = " Get a number flag value."]
+    #[doc = ""]
+    #[doc = " ## Arguments"]
+    #[doc = ""]
+    #[doc = " * `flagKey` - The key of the flag to evaluate."]
+    #[doc = " * `defaultValue` - Default value returned when evaluation fails or the flag type does not match."]
+    #[doc = " * `context` - Optional evaluation context for targeting rules."]
+    #[wasm_bindgen(method, catch, js_name = "getNumberValue")]
+    pub async fn get_number_value_with_context(
         this: &Flagship,
         flag_key: &str,
         default_value: f64,
         context: &Object,
-    ) -> ::js_sys::Promise;
+    ) -> Result<Number, JsValue>;
     #[doc = " Get a boolean flag value with full evaluation details."]
     #[doc = ""]
     #[doc = " ## Arguments"]
@@ -264,127 +306,4 @@ extern "C" {
         default_value: f64,
         context: &Object,
     ) -> Result<FlagshipEvaluationDetails, JsValue>;
-}
-impl Flagship {
-    #[doc = " Get a boolean flag value."]
-    #[doc = ""]
-    #[doc = " ## Arguments"]
-    #[doc = ""]
-    #[doc = " * `flagKey` - The key of the flag to evaluate."]
-    #[doc = " * `defaultValue` - Default value returned when evaluation fails or the flag type does not match."]
-    #[doc = " * `context` - Optional evaluation context for targeting rules."]
-    pub async fn get_boolean_value(
-        &self,
-        flag_key: &str,
-        default_value: bool,
-    ) -> Result<bool, JsValue> {
-        let __promise = self.get_boolean_value_raw(flag_key, default_value);
-        let __raw = ::wasm_bindgen_futures::JsFuture::from(__promise).await?;
-        __raw
-            .as_bool()
-            .ok_or_else(|| ::wasm_bindgen::JsValue::from_str("expected boolean"))
-    }
-}
-impl Flagship {
-    #[doc = " Get a boolean flag value."]
-    #[doc = ""]
-    #[doc = " ## Arguments"]
-    #[doc = ""]
-    #[doc = " * `flagKey` - The key of the flag to evaluate."]
-    #[doc = " * `defaultValue` - Default value returned when evaluation fails or the flag type does not match."]
-    #[doc = " * `context` - Optional evaluation context for targeting rules."]
-    pub async fn get_boolean_value_with_context(
-        &self,
-        flag_key: &str,
-        default_value: bool,
-        context: &Object,
-    ) -> Result<bool, JsValue> {
-        let __promise = self.get_boolean_value_with_context_raw(flag_key, default_value, context);
-        let __raw = ::wasm_bindgen_futures::JsFuture::from(__promise).await?;
-        __raw
-            .as_bool()
-            .ok_or_else(|| ::wasm_bindgen::JsValue::from_str("expected boolean"))
-    }
-}
-impl Flagship {
-    #[doc = " Get a string flag value."]
-    #[doc = ""]
-    #[doc = " ## Arguments"]
-    #[doc = ""]
-    #[doc = " * `flagKey` - The key of the flag to evaluate."]
-    #[doc = " * `defaultValue` - Default value returned when evaluation fails or the flag type does not match."]
-    #[doc = " * `context` - Optional evaluation context for targeting rules."]
-    pub async fn get_string_value(
-        &self,
-        flag_key: &str,
-        default_value: &str,
-    ) -> Result<String, JsValue> {
-        let __promise = self.get_string_value_raw(flag_key, default_value);
-        let __raw = ::wasm_bindgen_futures::JsFuture::from(__promise).await?;
-        __raw
-            .as_string()
-            .ok_or_else(|| ::wasm_bindgen::JsValue::from_str("expected string"))
-    }
-}
-impl Flagship {
-    #[doc = " Get a string flag value."]
-    #[doc = ""]
-    #[doc = " ## Arguments"]
-    #[doc = ""]
-    #[doc = " * `flagKey` - The key of the flag to evaluate."]
-    #[doc = " * `defaultValue` - Default value returned when evaluation fails or the flag type does not match."]
-    #[doc = " * `context` - Optional evaluation context for targeting rules."]
-    pub async fn get_string_value_with_context(
-        &self,
-        flag_key: &str,
-        default_value: &str,
-        context: &Object,
-    ) -> Result<String, JsValue> {
-        let __promise = self.get_string_value_with_context_raw(flag_key, default_value, context);
-        let __raw = ::wasm_bindgen_futures::JsFuture::from(__promise).await?;
-        __raw
-            .as_string()
-            .ok_or_else(|| ::wasm_bindgen::JsValue::from_str("expected string"))
-    }
-}
-impl Flagship {
-    #[doc = " Get a number flag value."]
-    #[doc = ""]
-    #[doc = " ## Arguments"]
-    #[doc = ""]
-    #[doc = " * `flagKey` - The key of the flag to evaluate."]
-    #[doc = " * `defaultValue` - Default value returned when evaluation fails or the flag type does not match."]
-    #[doc = " * `context` - Optional evaluation context for targeting rules."]
-    pub async fn get_number_value(
-        &self,
-        flag_key: &str,
-        default_value: f64,
-    ) -> Result<f64, JsValue> {
-        let __promise = self.get_number_value_raw(flag_key, default_value);
-        let __raw = ::wasm_bindgen_futures::JsFuture::from(__promise).await?;
-        __raw
-            .as_f64()
-            .ok_or_else(|| ::wasm_bindgen::JsValue::from_str("expected number"))
-    }
-}
-impl Flagship {
-    #[doc = " Get a number flag value."]
-    #[doc = ""]
-    #[doc = " ## Arguments"]
-    #[doc = ""]
-    #[doc = " * `flagKey` - The key of the flag to evaluate."]
-    #[doc = " * `defaultValue` - Default value returned when evaluation fails or the flag type does not match."]
-    #[doc = " * `context` - Optional evaluation context for targeting rules."]
-    pub async fn get_number_value_with_context(
-        &self,
-        flag_key: &str,
-        default_value: f64,
-        context: &Object,
-    ) -> Result<f64, JsValue> {
-        let __promise = self.get_number_value_with_context_raw(flag_key, default_value, context);
-        let __raw = ::wasm_bindgen_futures::JsFuture::from(__promise).await?;
-        __raw
-            .as_f64()
-            .ok_or_else(|| ::wasm_bindgen::JsValue::from_str("expected number"))
-    }
 }

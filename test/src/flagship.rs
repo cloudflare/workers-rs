@@ -31,27 +31,33 @@ fn last_segment(req: &Request) -> Result<String> {
 #[worker::send]
 pub async fn handle_boolean(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let flag = last_segment(&req)?;
-    let value = env
+    let value: bool = env
         .flagship(BINDING)?
         .get_boolean_value(&flag, false)
-        .await?;
+        .await?
+        .value_of();
     Response::from_json(&serde_json::json!({ "flag": flag, "value": value }))
 }
 
 #[worker::send]
 pub async fn handle_string(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let flag = last_segment(&req)?;
-    let value = env
-        .flagship(BINDING)?
-        .get_string_value(&flag, "fallback")
-        .await?;
+    let value = String::from(
+        env.flagship(BINDING)?
+            .get_string_value(&flag, "fallback")
+            .await?,
+    );
     Response::from_json(&serde_json::json!({ "flag": flag, "value": value }))
 }
 
 #[worker::send]
 pub async fn handle_number(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let flag = last_segment(&req)?;
-    let value = env.flagship(BINDING)?.get_number_value(&flag, 0.0).await?;
+    let value: f64 = env
+        .flagship(BINDING)?
+        .get_number_value(&flag, 0.0)
+        .await?
+        .value_of();
     Response::from_json(&serde_json::json!({ "flag": flag, "value": value }))
 }
 
@@ -84,10 +90,11 @@ pub async fn handle_context(req: Request, env: Env, _data: SomeSharedData) -> Re
         .string("userId", &user_id)
         .number("age", 30.0)
         .bool("premium", true);
-    let value = env
-        .flagship(BINDING)?
-        .get_string_value_with_context("user-branch", "default", eval_ctx.as_ref())
-        .await?;
+    let value = String::from(
+        env.flagship(BINDING)?
+            .get_string_value_with_context("user-branch", "default", eval_ctx.as_ref())
+            .await?,
+    );
     Response::from_json(&serde_json::json!({ "userId": user_id, "value": value }))
 }
 

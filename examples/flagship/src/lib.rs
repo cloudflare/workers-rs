@@ -43,10 +43,11 @@ async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response>
 async fn boolean(req: Request, env: Env) -> Result<Response> {
     let url = req.url()?;
     let flag = query(&url, "flag").unwrap_or_else(|| "example-bool".into());
-    let value = env
+    let value: bool = env
         .flagship(BINDING)?
         .get_boolean_value(&flag, false)
-        .await?;
+        .await?
+        .value_of();
     Response::from_json(&serde_json::json!({ "flag": flag, "value": value }))
 }
 
@@ -54,7 +55,7 @@ async fn string(req: Request, env: Env) -> Result<Response> {
     let url = req.url()?;
     let flag = query(&url, "flag").unwrap_or_else(|| "checkout-flow".into());
     let flagship = env.flagship(BINDING)?;
-    let value = match query(&url, "userId") {
+    let value = String::from(match query(&url, "userId") {
         Some(user_id) => {
             let ctx = EvaluationContext::new()
                 .string("userId", &user_id)
@@ -64,7 +65,7 @@ async fn string(req: Request, env: Env) -> Result<Response> {
                 .await?
         }
         None => flagship.get_string_value(&flag, "control").await?,
-    };
+    });
     Response::from_json(&serde_json::json!({ "flag": flag, "value": value }))
 }
 
