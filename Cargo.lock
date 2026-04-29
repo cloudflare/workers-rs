@@ -2612,6 +2612,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "sync-kv"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "worker",
+ "worker-macros",
+]
+
+[[package]]
 name = "sync_wrapper"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"

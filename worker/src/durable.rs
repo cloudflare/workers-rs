@@ -565,9 +565,16 @@ impl Storage {
             .map(|_| ())
     }
 
-    // Add new method to access SQLite APIs
+    /// Access the SQLite APIs exposed at `ctx.storage.sql`.
     pub fn sql(&self) -> crate::sql::SqlStorage {
         crate::sql::SqlStorage::new(self.inner.sql())
+    }
+
+    /// Access the synchronous key-value APIs exposed at `ctx.storage.kv`.
+    ///
+    /// This is Cloudflare's Synchronous KV API for SQLite-backed Durable Objects.
+    pub fn kv(&self) -> crate::sync_kv::SyncKvStorage {
+        crate::sync_kv::SyncKvStorage::new(self.inner.kv())
     }
 }
 

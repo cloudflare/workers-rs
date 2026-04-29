@@ -75,6 +75,10 @@ const mf_instance = new Miniflare({
           className: "SqlIterator",
           useSQLite: true,
         },
+        SYNCHRONOUS_STORAGE: {
+          className: "SynchronousStorage",
+          useSQLite: true
+        },
       },
       kvNamespaces: ["SOME_NAMESPACE", "FILE_SIZES", "TEST"],
       serviceBindings: {

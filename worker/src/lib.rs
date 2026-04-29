@@ -240,6 +240,7 @@ pub mod signal;
 mod socket;
 mod sql;
 mod streams;
+mod sync_kv;
 mod version;
 mod websocket;
 
@@ -278,3 +279,4 @@ pub type HttpRequest = ::http::Request<http::body::Body>;
 pub type HttpResponse = ::http::Response<http::body::Body>;
 
 pub use crate::sql::*;
+pub use crate::sync_kv::*;

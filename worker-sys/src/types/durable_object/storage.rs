@@ -77,4 +77,7 @@ extern "C" {
 
     #[wasm_bindgen(method, getter)]
     pub fn sql(this: &DurableObjectStorage) -> crate::types::SqlStorage;
+
+    #[wasm_bindgen(method, getter)]
+    pub fn kv(this: &DurableObjectStorage) -> crate::types::SyncKvStorage;
 }

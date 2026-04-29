@@ -6,6 +6,7 @@ mod namespace;
 mod sql_storage;
 mod state;
 mod storage;
+mod sync_kv_storage;
 mod transaction;
 
 pub use container::*;
@@ -14,6 +15,7 @@ pub use namespace::*;
 pub use sql_storage::*;
 pub use state::*;
 pub use storage::*;
+pub use sync_kv_storage::*;
 pub use transaction::*;
 
 #[wasm_bindgen]
