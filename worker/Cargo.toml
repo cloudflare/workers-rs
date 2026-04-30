@@ -17,32 +17,33 @@ all-features = true
 
 [dependencies]
 async-trait.workspace = true
+axum = { version = "0.8", optional = true, default-features = false }
 bytes = "1.5"
+chrono-tz = { version = "0.10.3", optional = true, default-features = false }
 chrono.workspace = true
 futures-channel.workspace = true
 futures-util.workspace = true
-wasm-bindgen.workspace = true
-wasm-bindgen-futures.workspace = true
-js-sys.workspace = true
-http.workspace = true
 http-body = "1"
+http.workspace = true
+js-sys.workspace = true
 matchit = "0.7"
 pin-project = "1.1.0"
-serde.workspace = true
 serde_json.workspace = true
-tokio = { version = "1.28", default-features = false }
-url = "2.4.0"
-serde-wasm-bindgen.workspace = true
 serde_urlencoded = "0.7"
-wasm-streams.workspace = true
-worker-macros.workspace = true
-worker-sys.workspace = true
-chrono-tz = { version = "0.10.3", optional = true, default-features = false }
-web-sys.workspace = true
+serde-wasm-bindgen.workspace = true
+serde.workspace = true
+strum.workspace = true
+tokio = { version = "1.28", default-features = false }
 tokio-postgres = { version = "0.7", optional = true, default-features = false, features = [
     "js",
 ] }
-axum = { version = "0.8", optional = true, default-features = false }
+url = "2.4.0"
+wasm-bindgen-futures.workspace = true
+wasm-bindgen.workspace = true
+wasm-streams.workspace = true
+web-sys.workspace = true
+worker-macros.workspace = true
+worker-sys.workspace = true
 
 [features]
 queue = ["worker-macros/queue", "worker-sys/queue"]

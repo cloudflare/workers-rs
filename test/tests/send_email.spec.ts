@@ -49,6 +49,13 @@ describe("send email (structured builder)", () => {
     expectSuccess(await runScenario("structured-with-name"));
   });
 
+  // Exercises ts-gen's generic dictionary builder for the
+  // `string | ArrayBuffer | ArrayBufferView` content union — passes a
+  // `Uint8Array` directly into `EmailAttachment::new_attachment_with_typed_array`.
+  test("sends an email with a typed-array attachment", async () => {
+    expectSuccess(await runScenario("structured-with-attachment"));
+  });
+
   test.each([
     ["structured-disallowed-sender", /email from .* not allowed/i],
     ["structured-disallowed-recipient", /email to .* not allowed/i],
