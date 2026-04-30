@@ -92,7 +92,7 @@ pub async fn handle_context(req: Request, env: Env, _data: SomeSharedData) -> Re
         .bool("premium", true);
     let value = String::from(
         env.flagship(BINDING)?
-            .get_string_value_with_record("user-branch", "default", eval_ctx.as_ref())
+            .get_string_value_with_context("user-branch", "default", eval_ctx.as_ref())
             .await?,
     );
     Response::from_json(&serde_json::json!({ "userId": user_id, "value": value }))
