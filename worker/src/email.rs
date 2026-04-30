@@ -40,14 +40,10 @@ extern "C" {
     pub fn set_message_id(this: &EmailSendResult, val: &str);
 }
 impl EmailSendResult {
-    #[doc = " ## Arguments"]
-    #[doc = ""]
     #[doc = " * `message_id` - The Email Message ID"]
     pub fn new(message_id: &str) -> EmailSendResult {
         Self::builder(message_id).build()
     }
-    #[doc = " ## Arguments"]
-    #[doc = ""]
     #[doc = " * `message_id` - The Email Message ID"]
     pub fn builder(message_id: &str) -> EmailSendResultBuilder {
         let inner: Self = JsCast::unchecked_into(js_sys::Object::new());
@@ -79,36 +75,24 @@ extern "C" {
     pub fn raw_size(this: &ForwardableEmailMessage) -> f64;
     #[doc = " Reject this email message by returning a permanent SMTP error back to the connecting client including the given reason."]
     #[doc = ""]
-    #[doc = " ## Arguments"]
-    #[doc = ""]
     #[doc = " * `reason` - The reject reason."]
     #[doc = ""]
-    #[doc = " ## Returns"]
-    #[doc = ""]
-    #[doc = " void"]
+    #[doc = " Returns: void"]
     #[wasm_bindgen(method, js_name = "setReject")]
     pub fn set_reject(this: &ForwardableEmailMessage, reason: &str);
     #[doc = " Reject this email message by returning a permanent SMTP error back to the connecting client including the given reason."]
     #[doc = ""]
-    #[doc = " ## Arguments"]
-    #[doc = ""]
     #[doc = " * `reason` - The reject reason."]
     #[doc = ""]
-    #[doc = " ## Returns"]
-    #[doc = ""]
-    #[doc = " void"]
+    #[doc = " Returns: void"]
     #[wasm_bindgen(method, catch, js_name = "setReject")]
     pub fn try_set_reject(this: &ForwardableEmailMessage, reason: &str) -> Result<(), JsValue>;
     #[doc = " Forward this email message to a verified destination address of the account."]
     #[doc = ""]
-    #[doc = " ## Arguments"]
-    #[doc = ""]
     #[doc = " * `rcptTo` - Verified destination address."]
     #[doc = " * `headers` - A [Headers object](https://developer.mozilla.org/en-US/docs/Web/API/Headers)."]
     #[doc = ""]
-    #[doc = " ## Returns"]
-    #[doc = ""]
-    #[doc = " A promise that resolves when the email message is forwarded."]
+    #[doc = " Returns: A promise that resolves when the email message is forwarded."]
     #[wasm_bindgen(method, catch)]
     pub async fn forward(
         this: &ForwardableEmailMessage,
@@ -116,14 +100,10 @@ extern "C" {
     ) -> Result<EmailSendResult, JsValue>;
     #[doc = " Forward this email message to a verified destination address of the account."]
     #[doc = ""]
-    #[doc = " ## Arguments"]
-    #[doc = ""]
     #[doc = " * `rcptTo` - Verified destination address."]
     #[doc = " * `headers` - A [Headers object](https://developer.mozilla.org/en-US/docs/Web/API/Headers)."]
     #[doc = ""]
-    #[doc = " ## Returns"]
-    #[doc = ""]
-    #[doc = " A promise that resolves when the email message is forwarded."]
+    #[doc = " Returns: A promise that resolves when the email message is forwarded."]
     #[wasm_bindgen(method, catch, js_name = "forward")]
     pub async fn forward_with_headers(
         this: &ForwardableEmailMessage,
@@ -132,13 +112,9 @@ extern "C" {
     ) -> Result<EmailSendResult, JsValue>;
     #[doc = " Reply to the sender of this email message with a new EmailMessage object."]
     #[doc = ""]
-    #[doc = " ## Arguments"]
-    #[doc = ""]
     #[doc = " * `message` - The reply message."]
     #[doc = ""]
-    #[doc = " ## Returns"]
-    #[doc = ""]
-    #[doc = " A promise that resolves when the email message is replied."]
+    #[doc = " Returns: A promise that resolves when the email message is replied."]
     #[wasm_bindgen(method, catch)]
     pub async fn reply(
         this: &ForwardableEmailMessage,
@@ -158,22 +134,20 @@ extern "C" {
     pub fn disposition(this: &EmailAttachment) -> JsValue;
     #[wasm_bindgen(method, getter)]
     pub fn filename(this: &EmailAttachment) -> String;
-    #[wasm_bindgen(method, getter)]
-    pub fn r#type(this: &EmailAttachment) -> String;
+    #[wasm_bindgen(method, getter, js_name = "type")]
+    pub fn type_(this: &EmailAttachment) -> String;
     #[wasm_bindgen(method, setter)]
     pub fn set_content(this: &EmailAttachment, val: &str);
     #[wasm_bindgen(method, setter, js_name = "content")]
     pub fn set_content_with_array_buffer(this: &EmailAttachment, val: &ArrayBuffer);
     #[wasm_bindgen(method, setter, js_name = "content")]
-    pub fn set_content_with_js_value(this: &EmailAttachment, val: &Object);
+    pub fn set_content_with_typed_array<T: ::js_sys::TypedArray>(this: &EmailAttachment, val: &T);
     #[wasm_bindgen(method, setter, js_name = "contentId")]
     pub fn set_content_id(this: &EmailAttachment, val: &str);
     #[wasm_bindgen(method, setter, js_name = "contentId")]
     pub fn set_content_id_with_undefined(this: &EmailAttachment, val: &Undefined);
     #[wasm_bindgen(method, setter)]
     pub fn set_disposition(this: &EmailAttachment, val: &str);
-    #[wasm_bindgen(method, setter, js_name = "disposition")]
-    pub fn set_disposition_with_js_value(this: &EmailAttachment, val: &str);
     #[wasm_bindgen(method, setter)]
     pub fn set_filename(this: &EmailAttachment, val: &str);
     #[wasm_bindgen(method, setter)]
@@ -183,36 +157,18 @@ impl EmailAttachment {
     #[doc = " ## Inlined fields"]
     #[doc = ""]
     #[doc = " * `disposition: \"inline\"`"]
-    #[doc = ""]
-    #[doc = " ## Arguments"]
-    #[doc = ""]
-    #[doc = " * `content`"]
-    #[doc = " * `filename`"]
-    #[doc = " * `type`"]
     pub fn new_inline(content: &str, filename: &str, r#type: &str) -> EmailAttachment {
         Self::builder_inline(content, filename, r#type).build()
     }
     #[doc = " ## Inlined fields"]
     #[doc = ""]
     #[doc = " * `disposition: \"attachment\"`"]
-    #[doc = ""]
-    #[doc = " ## Arguments"]
-    #[doc = ""]
-    #[doc = " * `content`"]
-    #[doc = " * `filename`"]
-    #[doc = " * `type`"]
     pub fn new_attachment(content: &str, filename: &str, r#type: &str) -> EmailAttachment {
         Self::builder_attachment(content, filename, r#type).build()
     }
     #[doc = " ## Inlined fields"]
     #[doc = ""]
     #[doc = " * `disposition: \"inline\"`"]
-    #[doc = ""]
-    #[doc = " ## Arguments"]
-    #[doc = ""]
-    #[doc = " * `content`"]
-    #[doc = " * `filename`"]
-    #[doc = " * `type`"]
     pub fn new_inline_with_array_buffer(
         content: &ArrayBuffer,
         filename: &str,
@@ -223,12 +179,6 @@ impl EmailAttachment {
     #[doc = " ## Inlined fields"]
     #[doc = ""]
     #[doc = " * `disposition: \"attachment\"`"]
-    #[doc = ""]
-    #[doc = " ## Arguments"]
-    #[doc = ""]
-    #[doc = " * `content`"]
-    #[doc = " * `filename`"]
-    #[doc = " * `type`"]
     pub fn new_attachment_with_array_buffer(
         content: &ArrayBuffer,
         filename: &str,
@@ -239,44 +189,26 @@ impl EmailAttachment {
     #[doc = " ## Inlined fields"]
     #[doc = ""]
     #[doc = " * `disposition: \"inline\"`"]
-    #[doc = ""]
-    #[doc = " ## Arguments"]
-    #[doc = ""]
-    #[doc = " * `content`"]
-    #[doc = " * `filename`"]
-    #[doc = " * `type`"]
-    pub fn new_inline_with_js_value(
-        content: &Object,
+    pub fn new_inline_with_typed_array<T: ::js_sys::TypedArray>(
+        content: &T,
         filename: &str,
         r#type: &str,
     ) -> EmailAttachment {
-        Self::builder_inline_with_js_value(content, filename, r#type).build()
+        Self::builder_inline_with_typed_array(content, filename, r#type).build()
     }
     #[doc = " ## Inlined fields"]
     #[doc = ""]
     #[doc = " * `disposition: \"attachment\"`"]
-    #[doc = ""]
-    #[doc = " ## Arguments"]
-    #[doc = ""]
-    #[doc = " * `content`"]
-    #[doc = " * `filename`"]
-    #[doc = " * `type`"]
-    pub fn new_attachment_with_js_value(
-        content: &Object,
+    pub fn new_attachment_with_typed_array<T: ::js_sys::TypedArray>(
+        content: &T,
         filename: &str,
         r#type: &str,
     ) -> EmailAttachment {
-        Self::builder_attachment_with_js_value(content, filename, r#type).build()
+        Self::builder_attachment_with_typed_array(content, filename, r#type).build()
     }
     #[doc = " ## Inlined fields"]
     #[doc = ""]
     #[doc = " * `disposition: \"inline\"`"]
-    #[doc = ""]
-    #[doc = " ## Arguments"]
-    #[doc = ""]
-    #[doc = " * `content`"]
-    #[doc = " * `filename`"]
-    #[doc = " * `type`"]
     pub fn builder_inline(content: &str, filename: &str, r#type: &str) -> EmailAttachmentBuilder {
         let inner: Self = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_content(content);
@@ -288,12 +220,6 @@ impl EmailAttachment {
     #[doc = " ## Inlined fields"]
     #[doc = ""]
     #[doc = " * `disposition: \"attachment\"`"]
-    #[doc = ""]
-    #[doc = " ## Arguments"]
-    #[doc = ""]
-    #[doc = " * `content`"]
-    #[doc = " * `filename`"]
-    #[doc = " * `type`"]
     pub fn builder_attachment(
         content: &str,
         filename: &str,
@@ -301,7 +227,7 @@ impl EmailAttachment {
     ) -> EmailAttachmentBuilder {
         let inner: Self = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_content(content);
-        inner.set_disposition_with_js_value("attachment");
+        inner.set_disposition("attachment");
         inner.set_filename(filename);
         inner.set_type(r#type);
         EmailAttachmentBuilder { inner }
@@ -309,12 +235,6 @@ impl EmailAttachment {
     #[doc = " ## Inlined fields"]
     #[doc = ""]
     #[doc = " * `disposition: \"inline\"`"]
-    #[doc = ""]
-    #[doc = " ## Arguments"]
-    #[doc = ""]
-    #[doc = " * `content`"]
-    #[doc = " * `filename`"]
-    #[doc = " * `type`"]
     pub fn builder_inline_with_array_buffer(
         content: &ArrayBuffer,
         filename: &str,
@@ -330,12 +250,6 @@ impl EmailAttachment {
     #[doc = " ## Inlined fields"]
     #[doc = ""]
     #[doc = " * `disposition: \"attachment\"`"]
-    #[doc = ""]
-    #[doc = " ## Arguments"]
-    #[doc = ""]
-    #[doc = " * `content`"]
-    #[doc = " * `filename`"]
-    #[doc = " * `type`"]
     pub fn builder_attachment_with_array_buffer(
         content: &ArrayBuffer,
         filename: &str,
@@ -343,7 +257,7 @@ impl EmailAttachment {
     ) -> EmailAttachmentBuilder {
         let inner: Self = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_content_with_array_buffer(content);
-        inner.set_disposition_with_js_value("attachment");
+        inner.set_disposition("attachment");
         inner.set_filename(filename);
         inner.set_type(r#type);
         EmailAttachmentBuilder { inner }
@@ -351,19 +265,13 @@ impl EmailAttachment {
     #[doc = " ## Inlined fields"]
     #[doc = ""]
     #[doc = " * `disposition: \"inline\"`"]
-    #[doc = ""]
-    #[doc = " ## Arguments"]
-    #[doc = ""]
-    #[doc = " * `content`"]
-    #[doc = " * `filename`"]
-    #[doc = " * `type`"]
-    pub fn builder_inline_with_js_value(
-        content: &Object,
+    pub fn builder_inline_with_typed_array<T: ::js_sys::TypedArray>(
+        content: &T,
         filename: &str,
         r#type: &str,
     ) -> EmailAttachmentBuilder {
         let inner: Self = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_content_with_js_value(content);
+        inner.set_content_with_typed_array(content);
         inner.set_disposition("inline");
         inner.set_filename(filename);
         inner.set_type(r#type);
@@ -372,20 +280,14 @@ impl EmailAttachment {
     #[doc = " ## Inlined fields"]
     #[doc = ""]
     #[doc = " * `disposition: \"attachment\"`"]
-    #[doc = ""]
-    #[doc = " ## Arguments"]
-    #[doc = ""]
-    #[doc = " * `content`"]
-    #[doc = " * `filename`"]
-    #[doc = " * `type`"]
-    pub fn builder_attachment_with_js_value(
-        content: &Object,
+    pub fn builder_attachment_with_typed_array<T: ::js_sys::TypedArray>(
+        content: &T,
         filename: &str,
         r#type: &str,
     ) -> EmailAttachmentBuilder {
         let inner: Self = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_content_with_js_value(content);
-        inner.set_disposition_with_js_value("attachment");
+        inner.set_content_with_typed_array(content);
+        inner.set_disposition("attachment");
         inner.set_filename(filename);
         inner.set_type(r#type);
         EmailAttachmentBuilder { inner }
@@ -422,17 +324,9 @@ extern "C" {
     pub fn set_email(this: &EmailAddress, val: &str);
 }
 impl EmailAddress {
-    #[doc = " ## Arguments"]
-    #[doc = ""]
-    #[doc = " * `name`"]
-    #[doc = " * `email`"]
     pub fn new(name: &str, email: &str) -> EmailAddress {
         Self::builder(name, email).build()
     }
-    #[doc = " ## Arguments"]
-    #[doc = ""]
-    #[doc = " * `name`"]
-    #[doc = " * `email`"]
     pub fn builder(name: &str, email: &str) -> EmailAddressBuilder {
         let inner: Self = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_name(name);
@@ -521,19 +415,9 @@ extern "C" {
     pub fn set_attachments(this: &SendEmailBuilder, val: &Array<EmailAttachment>);
 }
 impl SendEmailBuilder {
-    #[doc = " ## Arguments"]
-    #[doc = ""]
-    #[doc = " * `from`"]
-    #[doc = " * `to`"]
-    #[doc = " * `subject`"]
     pub fn new(from: &str, to: &str, subject: &str) -> SendEmailBuilder {
         Self::builder(from, to, subject).build()
     }
-    #[doc = " ## Arguments"]
-    #[doc = ""]
-    #[doc = " * `from`"]
-    #[doc = " * `to`"]
-    #[doc = " * `subject`"]
     pub fn new_with_str_and_array(
         from: &str,
         to: &Array<JsString>,
@@ -541,11 +425,6 @@ impl SendEmailBuilder {
     ) -> SendEmailBuilder {
         Self::builder_with_str_and_array(from, to, subject).build()
     }
-    #[doc = " ## Arguments"]
-    #[doc = ""]
-    #[doc = " * `from`"]
-    #[doc = " * `to`"]
-    #[doc = " * `subject`"]
     pub fn new_with_email_address_and_str(
         from: &EmailAddress,
         to: &str,
@@ -553,11 +432,6 @@ impl SendEmailBuilder {
     ) -> SendEmailBuilder {
         Self::builder_with_email_address_and_str(from, to, subject).build()
     }
-    #[doc = " ## Arguments"]
-    #[doc = ""]
-    #[doc = " * `from`"]
-    #[doc = " * `to`"]
-    #[doc = " * `subject`"]
     pub fn new_with_email_address_and_array(
         from: &EmailAddress,
         to: &Array<JsString>,
@@ -565,11 +439,6 @@ impl SendEmailBuilder {
     ) -> SendEmailBuilder {
         Self::builder_with_email_address_and_array(from, to, subject).build()
     }
-    #[doc = " ## Arguments"]
-    #[doc = ""]
-    #[doc = " * `from`"]
-    #[doc = " * `to`"]
-    #[doc = " * `subject`"]
     pub fn builder(from: &str, to: &str, subject: &str) -> SendEmailBuilderBuilder {
         let inner: Self = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_from(from);
@@ -577,11 +446,6 @@ impl SendEmailBuilder {
         inner.set_subject(subject);
         SendEmailBuilderBuilder { inner }
     }
-    #[doc = " ## Arguments"]
-    #[doc = ""]
-    #[doc = " * `from`"]
-    #[doc = " * `to`"]
-    #[doc = " * `subject`"]
     pub fn builder_with_str_and_array(
         from: &str,
         to: &Array<JsString>,
@@ -593,11 +457,6 @@ impl SendEmailBuilder {
         inner.set_subject(subject);
         SendEmailBuilderBuilder { inner }
     }
-    #[doc = " ## Arguments"]
-    #[doc = ""]
-    #[doc = " * `from`"]
-    #[doc = " * `to`"]
-    #[doc = " * `subject`"]
     pub fn builder_with_email_address_and_str(
         from: &EmailAddress,
         to: &str,
@@ -609,11 +468,6 @@ impl SendEmailBuilder {
         inner.set_subject(subject);
         SendEmailBuilderBuilder { inner }
     }
-    #[doc = " ## Arguments"]
-    #[doc = ""]
-    #[doc = " * `from`"]
-    #[doc = " * `to`"]
-    #[doc = " * `subject`"]
     pub fn builder_with_email_address_and_array(
         from: &EmailAddress,
         to: &Array<JsString>,
