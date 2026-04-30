@@ -20,11 +20,7 @@ impl EnvBinding for Flagship {
     }
 }
 
-// Raw extern bindings for the object methods stripped from `flagship.d.ts`.
-// Names mirror the auto-gen pattern from `flagship_gen.rs`:
-// `<base>_raw` for the no-context form, `<base>_with_context_raw` for the
-// targeting form. The inherent wrappers below own the
-// `JsFuture::from(...).await?` step and the serde conversion.
+// Object-typed methods stripped from `flagship.d.ts` (ts-gen erases `<T extends object>`).
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(method, js_name = "getObjectValue")]
@@ -50,10 +46,6 @@ extern "C" {
     ) -> Promise;
 }
 
-// Public surface mirrors the auto-gen primitive accessors: one method for
-// the no-context evaluation, one `_with_context` variant taking `&Object`.
-// Callers pass `eval_ctx.as_ref()` exactly like they would for
-// `get_boolean_value_with_context`.
 impl Flagship {
     /// Evaluate an object-typed flag, returning the resolved value
     /// deserialized into `T`.
@@ -62,12 +54,10 @@ impl Flagship {
         flag_key: &str,
         default_value: &T,
     ) -> Result<T> {
-        let default = serde_wasm_bindgen::to_value(default_value)?;
-        let raw = SendFuture::new(JsFuture::from(
-            self.get_object_value_raw(flag_key, &default),
-        ))
-        .await?;
-        Ok(serde_wasm_bindgen::from_value(raw)?)
+        call_object(default_value, |default| {
+            self.get_object_value_raw(flag_key, default)
+        })
+        .await
     }
 
     /// Evaluate an object-typed flag with a targeting context.
@@ -77,10 +67,10 @@ impl Flagship {
         default_value: &T,
         context: &Object,
     ) -> Result<T> {
-        let default = serde_wasm_bindgen::to_value(default_value)?;
-        let promise = self.get_object_value_with_context_raw(flag_key, &default, context);
-        let raw = SendFuture::new(JsFuture::from(promise)).await?;
-        Ok(serde_wasm_bindgen::from_value(raw)?)
+        call_object(default_value, |default| {
+            self.get_object_value_with_context_raw(flag_key, default, context)
+        })
+        .await
     }
 
     /// Evaluate an object-typed flag and return the full evaluation
@@ -91,12 +81,10 @@ impl Flagship {
         flag_key: &str,
         default_value: &T,
     ) -> Result<EvaluationDetails<T>> {
-        let default = serde_wasm_bindgen::to_value(default_value)?;
-        let raw = SendFuture::new(JsFuture::from(
-            self.get_object_details_raw(flag_key, &default),
-        ))
-        .await?;
-        Ok(serde_wasm_bindgen::from_value(raw)?)
+        call_object(default_value, |default| {
+            self.get_object_details_raw(flag_key, default)
+        })
+        .await
     }
 
     /// Evaluate an object-typed flag with a targeting context, returning
@@ -107,11 +95,20 @@ impl Flagship {
         default_value: &T,
         context: &Object,
     ) -> Result<EvaluationDetails<T>> {
-        let default = serde_wasm_bindgen::to_value(default_value)?;
-        let promise = self.get_object_details_with_context_raw(flag_key, &default, context);
-        let raw = SendFuture::new(JsFuture::from(promise)).await?;
-        Ok(serde_wasm_bindgen::from_value(raw)?)
+        call_object(default_value, |default| {
+            self.get_object_details_with_context_raw(flag_key, default, context)
+        })
+        .await
     }
+}
+
+async fn call_object<I: Serialize, O: DeserializeOwned>(
+    default_value: &I,
+    promise_fn: impl FnOnce(&JsValue) -> Promise,
+) -> Result<O> {
+    let default = serde_wasm_bindgen::to_value(default_value)?;
+    let raw = SendFuture::new(JsFuture::from(promise_fn(&default))).await?;
+    Ok(serde_wasm_bindgen::from_value(raw)?)
 }
 
 /// Typed evaluation record returned by [`Flagship::get_object_details`].
@@ -120,7 +117,7 @@ impl Flagship {
 ///
 /// `error_code` and `error_message` are only populated when evaluation
 /// fell back to `default_value`.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EvaluationDetails<T> {
     pub flag_key: String,

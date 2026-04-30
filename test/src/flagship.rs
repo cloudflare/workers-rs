@@ -154,14 +154,7 @@ pub async fn handle_object_details(
         .flagship(BINDING)?
         .get_object_details(&flag, &default_theme())
         .await?;
-    Response::from_json(&serde_json::json!({
-        "flagKey": details.flag_key,
-        "value": details.value,
-        "variant": details.variant,
-        "reason": details.reason,
-        "errorCode": details.error_code,
-        "errorMessage": details.error_message,
-    }))
+    Response::from_json(&details)
 }
 
 fn details_to_json<T: Serialize>(
