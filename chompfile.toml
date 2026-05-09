@@ -6,7 +6,7 @@ deps = ['install:ts-gen']
 # `Env` / `ExecutionContext` are project-specific re-exports that ts-gen
 # can't infer; everything else (`ReadableStream`, `Headers`, `Event`, …)
 # resolves through ts-gen's built-in web_sys defaults.
-run = '''ts-gen --input types/email.d.ts --output worker/src/email.rs \
+run = '''ts-gen --input types/email.d.ts --output worker/src/bindings/email.rs \
   --errors-as-error \
   --external "Env=crate::Env" \
   --external "ExecutionContext=crate::Context"'''

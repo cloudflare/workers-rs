@@ -1,8 +1,9 @@
 use crate::SomeSharedData;
 use futures_util::stream::once;
 use worker::{
-    js_sys::Uint8Array, worker_sys, Date, EmailAddress, EmailAttachment, EmailMessage, Env,
-    FixedLengthStream, Request, Response, Result, SendEmail, SendEmailBuilder,
+    email::{EmailAddress, EmailAttachment, EmailMessage, SendEmail, SendEmailBuilder},
+    js_sys::Uint8Array,
+    worker_sys, Date, Env, FixedLengthStream, Request, Response, Result,
 };
 
 const SENDER: &str = "allowed-sender@example.com";

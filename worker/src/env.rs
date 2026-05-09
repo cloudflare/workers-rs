@@ -3,9 +3,9 @@ use std::fmt::Display;
 use crate::analytics_engine::AnalyticsEngineDataset;
 #[cfg(feature = "d1")]
 use crate::d1::D1Database;
+use crate::email::SendEmail;
 use crate::kv::KvStore;
 use crate::rate_limit::RateLimiter;
-use crate::send_email::SendEmail;
 use crate::Ai;
 #[cfg(feature = "queue")]
 use crate::Queue;
