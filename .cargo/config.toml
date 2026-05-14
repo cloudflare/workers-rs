@@ -1,2 +1,5 @@
 [target.wasm32-unknown-unknown]
 rustflags = ["--cfg", "getrandom_backend=\"wasm_js\""]
+
+[url."https://github.com/"]
+insteadOf = ["git@github.com:", "ssh://git@github.com/"]

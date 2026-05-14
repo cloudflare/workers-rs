@@ -2,9 +2,9 @@ use std::{collections::HashMap, convert::TryInto, ops::Deref};
 
 pub use builder::*;
 
+use js_sys::futures::JsFuture;
 use js_sys::{JsString, Reflect, Uint8Array};
 use wasm_bindgen::{JsCast, JsValue};
-use wasm_bindgen_futures::JsFuture;
 use worker_sys::{
     FixedLengthStream as EdgeFixedLengthStream, R2Bucket as EdgeR2Bucket, R2Checksums,
     R2MultipartUpload as EdgeR2MultipartUpload, R2Object as EdgeR2Object,

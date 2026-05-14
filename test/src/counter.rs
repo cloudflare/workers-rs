@@ -1,37 +1,39 @@
-use std::cell::RefCell;
+use std::cell::Cell;
+use std::panic::AssertUnwindSafe;
 use tokio_stream::{StreamExt, StreamMap};
 use worker::{
-    durable_object, wasm_bindgen, wasm_bindgen_futures, DurableObject, Env, Error, Method, Request,
-    Response, ResponseBuilder, Result, State, WebSocket, WebSocketIncomingMessage, WebSocketPair,
-    WebsocketEvent,
+    durable_object, wasm_bindgen, DurableObject, Env, Error, Method, Request, Response,
+    ResponseBuilder, Result, State, WebSocket, WebSocketIncomingMessage, WebSocketPair,
+    WebsocketEvent, js_sys
 };
 
 use crate::SomeSharedData;
 
 #[durable_object]
 pub struct Counter {
-    count: RefCell<usize>,
-    unstored_count: RefCell<usize>,
+    count: AssertUnwindSafe<Cell<usize>>,
+    unstored_count: AssertUnwindSafe<Cell<usize>>,
     state: State,
-    initialized: RefCell<bool>,
+    initialized: AssertUnwindSafe<Cell<bool>>,
     env: Env,
 }
 
 impl DurableObject for Counter {
     fn new(state: State, env: Env) -> Self {
         Self {
-            count: RefCell::new(0),
-            unstored_count: RefCell::new(0),
-            initialized: RefCell::new(false),
+            count: AssertUnwindSafe(Cell::new(0)),
+            unstored_count: AssertUnwindSafe(Cell::new(0)),
+            initialized: AssertUnwindSafe(Cell::new(false)),
             state,
             env,
         }
     }
 
     async fn fetch(&self, req: Request) -> Result<Response> {
-        if !*self.initialized.borrow() {
-            *self.initialized.borrow_mut() = true;
-            *self.count.borrow_mut() = self.state.storage().get("count").await?.unwrap_or(0);
+        if !self.initialized.get() {
+            self.initialized.set(true);
+            self.count
+                .set(self.state.storage().get("count").await?.unwrap_or(0));
         }
 
         if req.path().eq("/ws") {
@@ -49,15 +51,15 @@ impl DurableObject for Counter {
                 .empty());
         }
 
-        *self.unstored_count.borrow_mut() += 1;
-        *self.count.borrow_mut() += 10;
-        let count = *self.count.borrow();
+        self.unstored_count.set(self.unstored_count.get() + 1);
+        self.count.set(self.count.get() + 10);
+        let count = self.count.get();
         self.state.storage().put("count", count).await?;
 
         Response::ok(format!(
             "[durable_object]: self.count: {}, self.unstored_count: {}, secret value: {}",
-            self.count.borrow(),
-            self.unstored_count.borrow(),
+            self.count.get(),
+            self.unstored_count.get(),
             self.env.secret("SOME_SECRET")?
         ))
     }
@@ -134,7 +136,7 @@ pub async fn handle_websocket(req: Request, env: Env, _data: SomeSharedData) -> 
     let do_ws = res.websocket().expect("server did not accept websocket");
     do_ws.accept()?;
 
-    wasm_bindgen_futures::spawn_local(async move {
+    js_sys::futures::spawn_local(async move {
         let event_stream = server.events().expect("could not open stream");
         let do_event_stream = do_ws.events().expect("could not open stream");
 

@@ -4,9 +4,9 @@ use std::panic::AssertUnwindSafe;
 use crate::worker_sys::Context as JsContext;
 use crate::Result;
 
+use js_sys::futures::future_to_promise;
 use serde::de::DeserializeOwned;
 use wasm_bindgen::JsValue;
-use wasm_bindgen_futures::future_to_promise;
 
 /// A context bound to a `fetch` event.
 #[derive(Debug)]

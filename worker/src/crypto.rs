@@ -1,6 +1,6 @@
+use js_sys::futures::JsFuture;
 use js_sys::{ArrayBuffer, Uint8Array};
 use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::JsFuture;
 
 use crate::send::SendFuture;
 

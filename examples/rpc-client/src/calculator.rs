@@ -28,7 +28,7 @@ impl Calculator for CalculatorService {
     async fn add(&self, a: u32, b: u32) -> ::worker::Result<u32> {
         let promise = self.0.add(a, b)?;
         let fut = ::worker::send::SendFuture::new(
-            ::worker::wasm_bindgen_futures::JsFuture::from(promise),
+            ::worker::js_sys::futures::JsFuture::from(promise),
         );
         let output = fut.await?;
         Ok(::serde_wasm_bindgen::from_value(output)?)

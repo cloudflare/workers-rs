@@ -7,6 +7,7 @@ use std::{
 use crate::Result;
 use crate::{r2::js_object, Error};
 use futures_util::FutureExt;
+use js_sys::futures::JsFuture;
 use js_sys::{
     Boolean as JsBoolean, Error as JsError, JsString, Number as JsNumber, Object as JsObject,
     Reflect, Uint8Array,
@@ -16,7 +17,6 @@ use std::io::Error as IoError;
 use std::io::Result as IoResult;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use wasm_bindgen::{JsCast, JsValue};
-use wasm_bindgen_futures::JsFuture;
 use web_sys::{
     ReadableStream, ReadableStreamDefaultReader, WritableStream, WritableStreamDefaultWriter,
 };

@@ -388,18 +388,26 @@ pub fn cargo_build_wasm(
 
     cmd.arg("--target").arg("wasm32-unknown-unknown");
 
-    // When panic_unwind is enabled, we need to rebuild std with panic=unwind support
+    // Tell wasm-bindgen's proc-macro to use `js_sys::futures` instead of
+    // `wasm_bindgen_futures`. We pass this as an environment variable rather
+    // than `--cfg` because Cargo does not propagate `RUSTFLAGS`/`--cfg` to
+    // host proc-macros when `--target` is in use. The proc-macro reads this
+    // env var at expansion time.
+    cmd.env("WASM_BINDGEN_USE_JS_SYS", "1");
+
+    // When panic_unwind is enabled, rebuild std with panic=unwind and pass
+    // `-Cpanic=unwind`. Combine with any user-provided RUSTFLAGS so we
+    // don't clobber their flags.
     if panic_unwind {
         cmd.arg("-Z").arg("build-std=std,panic_unwind");
 
-        // Get existing RUSTFLAGS and append panic=unwind
         let existing_rustflags = std::env::var("RUSTFLAGS").unwrap_or_default();
-        let new_rustflags = if existing_rustflags.is_empty() {
+        let rustflags = if existing_rustflags.is_empty() {
             "-Cpanic=unwind".to_string()
         } else {
             format!("{existing_rustflags} -Cpanic=unwind")
         };
-        cmd.env("RUSTFLAGS", new_rustflags);
+        cmd.env("RUSTFLAGS", rustflags);
     }
 
     // The `cargo` command is executed inside the directory at `path`, so relative paths set via extra options won't work.

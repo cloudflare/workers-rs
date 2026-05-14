@@ -4,10 +4,10 @@ use std::{
 };
 
 use crate::{env::EnvBinding, Date, Error, Result};
+use js_sys::futures::JsFuture;
 use js_sys::Array;
 use serde::{de::DeserializeOwned, Serialize};
 use wasm_bindgen::{prelude::*, JsCast};
-use wasm_bindgen_futures::JsFuture;
 use worker_sys::{Message as MessageSys, MessageBatch as MessageBatchSys, Queue as EdgeQueue};
 
 /// A batch of messages that are sent to a consumer Worker.

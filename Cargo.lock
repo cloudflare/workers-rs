@@ -1432,7 +1432,7 @@ dependencies = [
 
 [[package]]
 name = "js-sys"
-version = "0.3.98"
+version = "0.3.99"
 dependencies = [
  "cfg-if",
  "futures-util",
@@ -3421,7 +3421,7 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen"
-version = "0.2.121"
+version = "0.2.122"
 dependencies = [
  "cfg-if",
  "once_cell",
@@ -3432,7 +3432,7 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-cli-support"
-version = "0.2.121"
+version = "0.2.122"
 dependencies = [
  "anyhow",
  "base64",
@@ -3448,7 +3448,7 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-futures"
-version = "0.4.71"
+version = "0.4.72"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
@@ -3456,7 +3456,7 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-macro"
-version = "0.2.121"
+version = "0.2.122"
 dependencies = [
  "quote",
  "wasm-bindgen-macro-support",
@@ -3464,7 +3464,7 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-macro-support"
-version = "0.2.121"
+version = "0.2.122"
 dependencies = [
  "bumpalo",
  "proc-macro2",
@@ -3475,14 +3475,14 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-shared"
-version = "0.2.121"
+version = "0.2.122"
 dependencies = [
  "unicode-ident",
 ]
 
 [[package]]
 name = "wasm-bindgen-test"
-version = "0.3.71"
+version = "0.3.72"
 dependencies = [
  "async-trait",
  "cast",
@@ -3502,7 +3502,7 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-test-macro"
-version = "0.3.71"
+version = "0.3.72"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3511,7 +3511,7 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-test-shared"
-version = "0.2.121"
+version = "0.2.122"
 
 [[package]]
 name = "wasm-encoder"
@@ -3548,8 +3548,6 @@ dependencies = [
 [[package]]
 name = "wasm-streams"
 version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9d1ec4f6517c9e11ae630e200b2b65d193279042e28edd4a2cda233e46670bbb"
 dependencies = [
  "futures-util",
  "js-sys",
@@ -3596,7 +3594,7 @@ dependencies = [
 
 [[package]]
 name = "web-sys"
-version = "0.3.98"
+version = "0.3.99"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
@@ -4101,7 +4099,6 @@ dependencies = [
  "quote",
  "syn",
  "wasm-bindgen",
- "wasm-bindgen-futures",
  "wasm-bindgen-macro-support",
  "wit-parser 0.205.0",
 ]
@@ -4117,7 +4114,6 @@ dependencies = [
  "syn",
  "trybuild",
  "wasm-bindgen",
- "wasm-bindgen-futures",
  "wasm-bindgen-macro-support",
  "worker-sys",
 ]

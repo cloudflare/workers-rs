@@ -1,6 +1,6 @@
+use js_sys::futures::JsFuture;
 use js_sys::{Map, Object, Reflect};
 use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::JsFuture;
 
 use crate::{Fetcher, Result};
 
