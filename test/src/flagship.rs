@@ -1,5 +1,6 @@
 use crate::SomeSharedData;
 use serde::{Deserialize, Serialize};
+use wasm_bindgen::JsGeneric;
 use worker::wasm_bindgen::JsValue;
 use worker::{
     Env, EvaluationContext, EvaluationDetails, FlagshipEvaluationDetails, Request, Response, Result,
@@ -157,8 +158,8 @@ pub async fn handle_object_details(
     Response::from_json(&details)
 }
 
-fn details_to_json<T: Serialize>(
-    details: &FlagshipEvaluationDetails,
+fn details_to_json<T: Serialize, U: JsGeneric>(
+    details: &FlagshipEvaluationDetails<U>,
     value: T,
 ) -> serde_json::Value {
     serde_json::json!({

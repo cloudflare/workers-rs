@@ -26,7 +26,7 @@ run = '''ts-gen --input types/email.d.ts --output worker/src/bindings/email.rs \
 [[task]]
 name = 'build:types:flagship'
 deps = ['install:ts-gen']
-run = 'ts-gen --input types/flagship.d.ts --output worker/src/flagship_gen.rs'
+run = 'ts-gen --input types/flagship.d.ts --output worker/src/bindings/flagship.rs'
 
 [[task]]
 name = 'install:ts-gen'

@@ -4,7 +4,3 @@
 [submodule "ts-gen"]
 	path = ts-gen
 	url = https://github.com/wasm-bindgen/ts-gen
-[submodule "gloo"]
-	path = gloo
-	url = https://github.com/guybedford/gloo
-	branch = fix-gloo-timers-unwind-safety

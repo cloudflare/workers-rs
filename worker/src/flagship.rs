@@ -8,7 +8,7 @@ use wasm_bindgen_futures::JsFuture;
 // `<T extends object>` to `JsValue`, so the typed `get_object_*` methods
 // live here with serde conversions folded in. `EvaluationContext` and the
 // `EnvBinding` impl are also here because ts-gen doesn't synthesize them.
-pub use crate::flagship_gen::{Flagship, FlagshipEvaluationDetails};
+pub use crate::bindings::flagship::{Flagship, FlagshipEvaluationDetails};
 
 impl EnvBinding for Flagship {
     const TYPE_NAME: &'static str = "Flagship";
