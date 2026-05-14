@@ -264,7 +264,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                 pub fn #wrapper_fn_ident(message: ::worker::ForwardableEmailMessage, env: ::worker::Env, ctx: ::worker::worker_sys::Context) -> ::worker::js_sys::Promise {
                     ::worker::wasm_bindgen_futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
                         let ctx = worker::Context::new(ctx);
-                        match #input_fn_ident(::worker::InboundEmail { inner: message }, env, ctx).await {
+                        match #input_fn_ident(message, env, ctx).await {
                             Ok(()) => {},
                             Err(e) => {
                                 ::worker::console_log!("{}", &e);
