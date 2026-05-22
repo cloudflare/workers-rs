@@ -517,7 +517,7 @@ pub enum FromKind {
 #[wasm_bindgen]
 pub enum ToKind {
     String(String),
-    VecOfString(Array<String>),
+    VecOfString(Vec<String>),
 }
 
 pub use email::EmailMessage;
