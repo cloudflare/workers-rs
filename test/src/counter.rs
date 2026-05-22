@@ -2,9 +2,9 @@ use std::cell::Cell;
 use std::panic::AssertUnwindSafe;
 use tokio_stream::{StreamExt, StreamMap};
 use worker::{
-    durable_object, wasm_bindgen, DurableObject, Env, Error, Method, Request, Response,
+    durable_object, js_sys, wasm_bindgen, DurableObject, Env, Error, Method, Request, Response,
     ResponseBuilder, Result, State, WebSocket, WebSocketIncomingMessage, WebSocketPair,
-    WebsocketEvent, js_sys
+    WebsocketEvent,
 };
 
 use crate::SomeSharedData;

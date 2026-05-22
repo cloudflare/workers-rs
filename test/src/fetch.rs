@@ -3,7 +3,8 @@ use futures_util::future::Either;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use worker::{
-    AbortController, Delay, EncodeBody, Env, Fetch, Method, Request, RequestInit, Response, Result, js_sys
+    js_sys, AbortController, Delay, EncodeBody, Env, Fetch, Method, Request, RequestInit, Response,
+    Result,
 };
 
 #[worker::send]
