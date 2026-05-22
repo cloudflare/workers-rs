@@ -151,6 +151,7 @@ pub use async_trait;
 pub use js_sys;
 pub use url::Url;
 pub use wasm_bindgen;
+pub use wasm_bindgen_futures;
 pub use web_sys;
 
 pub use cf::{Cf, CfResponseProperties, TlsClientAuth};
