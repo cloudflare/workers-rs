@@ -47,7 +47,7 @@ mod bindgen_methods {
                 // to the durable object escape into a static-lifetime future.
                 let static_self: &'static Self = unsafe { &*(self as *const _) };
 
-                ::worker::wasm_bindgen_futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
+                ::worker::js_sys::futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
                     <Self as ::worker::DurableObject>::fetch(static_self, req.into()).await
                         .map(::worker::worker_sys::web_sys::Response::from)
                         .map(::worker::wasm_bindgen::JsValue::from)
@@ -67,7 +67,7 @@ mod bindgen_methods {
                 // to the durable object escape into a static-lifetime future.
                 let static_self: &'static Self = unsafe { &*(self as *const _) };
 
-                ::worker::wasm_bindgen_futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
+                ::worker::js_sys::futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
                     <Self as ::worker::DurableObject>::alarm(static_self).await
                         .map(::worker::worker_sys::web_sys::Response::from)
                         .map(::worker::wasm_bindgen::JsValue::from)
@@ -98,7 +98,7 @@ mod bindgen_methods {
                 // to the durable object escape into a static-lifetime future.
                 let static_self: &'static Self = unsafe { &*(self as *const _) };
 
-                ::worker::wasm_bindgen_futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
+                ::worker::js_sys::futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
                     <Self as ::worker::DurableObject>::websocket_message(static_self, ws.into(), message).await
                         .map(|_| ::worker::wasm_bindgen::JsValue::NULL)
                         .map_err(::worker::wasm_bindgen::JsValue::from)
@@ -119,7 +119,7 @@ mod bindgen_methods {
                 // to the durable object escape into a static-lifetime future.
                 let static_self: &'static Self = unsafe { &*(self as *const _) };
 
-                ::worker::wasm_bindgen_futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
+                ::worker::js_sys::futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
                     <Self as ::worker::DurableObject>::websocket_close(static_self, ws.into(), code, reason, was_clean).await
                         .map(|_| ::worker::wasm_bindgen::JsValue::NULL)
                         .map_err(::worker::wasm_bindgen::JsValue::from)
@@ -138,7 +138,7 @@ mod bindgen_methods {
                 // to the durable object escape into a static-lifetime future.
                 let static_self: &'static Self = unsafe { &*(self as *const _) };
 
-                ::worker::wasm_bindgen_futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
+                ::worker::js_sys::futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
                     <Self as ::worker::DurableObject>::websocket_error(static_self, ws.into(), error.into()).await
                         .map(|_| ::worker::wasm_bindgen::JsValue::NULL)
                         .map_err(::worker::wasm_bindgen::JsValue::from)

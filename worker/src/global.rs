@@ -1,7 +1,7 @@
 use std::ops::Deref;
 
+use js_sys::futures::JsFuture;
 use wasm_bindgen::JsCast;
-use wasm_bindgen_futures::JsFuture;
 
 use crate::{request::Request, response::Response, AbortSignal, Result};
 

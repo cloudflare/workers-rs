@@ -24,6 +24,7 @@ use crate::{
 
 use chrono::{DateTime, Utc};
 use futures_util::Future;
+use js_sys::futures::{future_to_promise, JsFuture};
 use js_sys::{Map, Number, Object};
 use serde::{de::DeserializeOwned, Serialize};
 use wasm_bindgen::{prelude::*, JsCast};
@@ -32,8 +33,6 @@ use worker_sys::{
     DurableObjectNamespace as EdgeObjectNamespace, DurableObjectState, DurableObjectStorage,
     DurableObjectTransaction,
 };
-// use wasm_bindgen_futures::future_to_promise;
-use wasm_bindgen_futures::{future_to_promise, JsFuture};
 
 /// A Durable Object stub is a client object used to send requests to a remote Durable Object.
 #[derive(Debug)]

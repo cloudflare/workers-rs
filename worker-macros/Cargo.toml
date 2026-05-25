@@ -14,7 +14,6 @@ path = "src/lib.rs"
 [dependencies]
 async-trait.workspace = true
 wasm-bindgen.workspace = true
-wasm-bindgen-futures.workspace = true
 wasm-bindgen-macro-support.workspace = true
 worker-sys.workspace = true
 strum.workspace = true

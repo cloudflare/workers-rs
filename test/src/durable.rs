@@ -1,6 +1,8 @@
 use serde::Serialize;
+use std::cell::Cell;
+use std::collections::HashMap;
 use std::convert::TryFrom;
-use std::{cell::RefCell, collections::HashMap};
+use std::panic::AssertUnwindSafe;
 use worker::DurableObject;
 
 use worker::{
@@ -13,14 +15,14 @@ use worker::{
 #[durable_object]
 pub struct MyClass {
     state: State,
-    number: RefCell<usize>,
+    number: AssertUnwindSafe<Cell<usize>>,
 }
 
 impl DurableObject for MyClass {
     fn new(state: State, _env: Env) -> Self {
         Self {
             state,
-            number: RefCell::new(0),
+            number: AssertUnwindSafe(Cell::new(0)),
         }
     }
 
@@ -153,13 +155,14 @@ impl DurableObject for MyClass {
                         );
                     }
 
-                    *self.number.borrow_mut() = storage.get("count").await?.unwrap_or(0) + 1;
+                    self.number
+                        .set(storage.get("count").await?.unwrap_or(0) + 1);
 
                     storage.delete_all().await?;
 
-                    let count = *self.number.borrow();
+                    let count = self.number.get();
                     storage.put("count", count).await?;
-                    Response::ok(self.number.borrow().to_string())
+                    Response::ok(self.number.get().to_string())
                 }
                 "/transaction" => {
                     Response::error("transactional storage API is still unstable", 501)
@@ -178,20 +181,20 @@ impl DurableObject for MyClass {
 pub struct AnotherClass {
     #[allow(unused)]
     state: State,
-    counter: RefCell<i32>,
+    counter: AssertUnwindSafe<Cell<i32>>,
 }
 
 impl DurableObject for AnotherClass {
     fn new(state: State, _env: Env) -> Self {
         Self {
             state,
-            counter: RefCell::new(0),
+            counter: AssertUnwindSafe(Cell::new(0)),
         }
     }
 
     async fn fetch(&self, _req: Request) -> Result<Response> {
-        *self.counter.borrow_mut() += 1;
-        Response::ok(format!("Counter: {}", self.counter.borrow()))
+        self.counter.set(self.counter.get() + 1);
+        Response::ok(format!("Counter: {}", self.counter.get()))
     }
 }
 

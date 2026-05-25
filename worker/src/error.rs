@@ -365,7 +365,7 @@ impl From<Error> for JsValue {
 /// indented line under a `Caused by:` header. Matches the convention used
 /// by `anyhow` and `eyre`. Used when serializing back to a `JsValue` so
 /// the full chain is preserved in the rendered string.
-fn format_with_chain(e: &(dyn std::error::Error)) -> String {
+fn format_with_chain(e: &dyn std::error::Error) -> String {
     let mut s = e.to_string();
     let mut current = e.source();
     while let Some(src) = current {

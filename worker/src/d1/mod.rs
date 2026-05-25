@@ -4,13 +4,13 @@ use std::iter::{once, Once};
 use std::ops::Deref;
 use std::result::Result as StdResult;
 
+use js_sys::futures::JsFuture;
 use js_sys::Array;
 use js_sys::ArrayBuffer;
 use js_sys::JsString;
 use js_sys::Uint8Array;
 use serde::Deserialize;
 use wasm_bindgen::{JsCast, JsValue};
-use wasm_bindgen_futures::JsFuture;
 use worker_sys::types::D1Database as D1DatabaseSys;
 use worker_sys::types::D1DatabaseSession as D1DatabaseSessionSys;
 use worker_sys::types::D1ExecResult;

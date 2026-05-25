@@ -8,14 +8,14 @@ use worker_sys::ext::WebSocketExt;
 
 #[cfg(not(feature = "http"))]
 use crate::Fetch;
+#[cfg(feature = "http")]
+use js_sys::futures::JsFuture;
 use std::pin::Pin;
 use std::rc::Rc;
 use std::task::{Context, Poll};
 use wasm_bindgen::convert::FromWasmAbi;
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
-#[cfg(feature = "http")]
-use wasm_bindgen_futures::JsFuture;
 
 pub use crate::ws_events::*;
 pub use worker_sys::WebSocketRequestResponsePair;

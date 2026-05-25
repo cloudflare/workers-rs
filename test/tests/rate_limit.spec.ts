@@ -22,17 +22,20 @@ describe("rate limit", () => {
   });
 
   test("different keys have independent limits", async () => {
-    // Test that different keys have separate rate limits
+    // Test that different keys have separate rate limits.
+    // NOTE: response bodies from `mf.dispatchFetch` must be consumed immediately;
+    // holding multiple unread responses across further `dispatchFetch` calls can
+    // disturb the earlier streams (undici Pool reuse), surfacing as
+    // "Body is unusable: Body has already been read" when reading later.
     const key1 = "user-1";
     const key2 = "user-2";
 
     const resp1 = await mf.dispatchFetch(`${mfUrl}rate-limit/key/${key1}`);
-    const resp2 = await mf.dispatchFetch(`${mfUrl}rate-limit/key/${key2}`);
-
     expect(resp1.status).toBe(200);
-    expect(resp2.status).toBe(200);
-
     const data1 = await resp1.json() as { success: boolean; key: string };
+
+    const resp2 = await mf.dispatchFetch(`${mfUrl}rate-limit/key/${key2}`);
+    expect(resp2.status).toBe(200);
     const data2 = await resp2.json() as { success: boolean; key: string };
 
     expect(data1.success).toBe(true);
