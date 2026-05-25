@@ -44,7 +44,7 @@ wasm-bindgen-futures = { version = "0.4.72" }
 wasm-bindgen-macro-support = { version = "0.2.122" }
 wasm-bindgen-shared = { version = "0.2.122" }
 wasm-bindgen-test = { version = "0.3.72" }
-wasm-streams = { version = "0.5.0" }
+wasm-streams = { version = "0.6.0" }
 web-sys = { version = "0.3.99", features = [
     "AbortController",
     "AbortSignal",
@@ -115,4 +115,3 @@ wasm-bindgen-macro-support = { version = "0.2.122", path = "./wasm-bindgen/crate
 wasm-bindgen-shared = { version = "0.2.122", path = "./wasm-bindgen/crates/shared" }
 wasm-bindgen-test = { version = "0.3.72", path = "./wasm-bindgen/crates/test" }
 web-sys = { version = "0.3.99", path = './wasm-bindgen/crates/web-sys' }
-wasm-streams = { version = "0.5.0", path = './wasm-streams' }
