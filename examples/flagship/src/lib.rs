@@ -7,7 +7,7 @@
 //! * `/details?flag=<key>`   — return the full evaluation details envelope
 
 use serde::{Deserialize, Serialize};
-use worker::{Env, EvaluationContext, Request, Response, Result, Router, Url, event};
+use worker::{event, Env, EvaluationContext, Request, Response, Result, Router, Url};
 
 const BINDING: &str = "FLAGS";
 

@@ -1,8 +1,9 @@
 use crate::signal;
 use crate::{
     alarm, analytics_engine, assets, auto_response, cache, container, counter, d1, durable, fetch,
-    flagship, form, js_snippets, kv, put_raw, queue, r2, rate_limit, request, secret_store, send_email,
-    service, socket, sql_counter, sql_iterator, user, ws, SomeSharedData, GLOBAL_SECOND_START, GLOBAL_STATE
+    flagship, form, js_snippets, kv, put_raw, queue, r2, rate_limit, request, secret_store,
+    send_email, service, socket, sql_counter, sql_iterator, user, ws, SomeSharedData,
+    GLOBAL_SECOND_START, GLOBAL_STATE,
 };
 #[cfg(feature = "http")]
 use std::convert::TryInto;
