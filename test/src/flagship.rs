@@ -57,8 +57,7 @@ pub async fn handle_number(req: Request, env: Env, _data: SomeSharedData) -> Res
     let value: f64 = env
         .flagship(BINDING)?
         .get_number_value(&flag, 0.0)
-        .await?
-        .value_of();
+        .await?;
     Response::from_json(&serde_json::json!({ "flag": flag, "value": value }))
 }
 
@@ -125,7 +124,7 @@ pub async fn handle_string_details(
         .flagship(BINDING)?
         .get_string_details(&flag, "fallback")
         .await?;
-    let value = details.value().as_string();
+    let value = details.value();
     Response::from_json(&details_to_json(&details, value))
 }
 
@@ -140,7 +139,7 @@ pub async fn handle_number_details(
         .flagship(BINDING)?
         .get_number_details(&flag, 0.0)
         .await?;
-    let value = details.value().as_f64();
+    let value = details.value();
     Response::from_json(&details_to_json(&details, value))
 }
 

@@ -159,7 +159,7 @@ extern "C" {
         this: &Flagship,
         flag_key: &str,
         default_value: &str,
-    ) -> Result<JsString, JsValue>;
+    ) -> Result<String, JsValue>;
     #[doc = " Get a string flag value."]
     #[doc = ""]
     #[doc = " * `flagKey` - The key of the flag to evaluate."]
@@ -171,7 +171,7 @@ extern "C" {
         flag_key: &str,
         default_value: &str,
         context: &Object,
-    ) -> Result<JsString, JsValue>;
+    ) -> Result<String, JsValue>;
     #[doc = " Get a number flag value."]
     #[doc = ""]
     #[doc = " * `flagKey` - The key of the flag to evaluate."]
@@ -182,7 +182,7 @@ extern "C" {
         this: &Flagship,
         flag_key: &str,
         default_value: f64,
-    ) -> Result<Number, JsValue>;
+    ) -> Result<f64, JsValue>;
     #[doc = " Get a number flag value."]
     #[doc = ""]
     #[doc = " * `flagKey` - The key of the flag to evaluate."]
@@ -194,7 +194,7 @@ extern "C" {
         flag_key: &str,
         default_value: f64,
         context: &Object,
-    ) -> Result<Number, JsValue>;
+    ) -> Result<f64, JsValue>;
     #[doc = " Get a boolean flag value with full evaluation details."]
     #[doc = ""]
     #[doc = " * `flagKey` - The key of the flag to evaluate."]
@@ -228,7 +228,7 @@ extern "C" {
         this: &Flagship,
         flag_key: &str,
         default_value: &str,
-    ) -> Result<FlagshipEvaluationDetails<JsString>, JsValue>;
+    ) -> Result<FlagshipEvaluationDetails<String>, JsValue>;
     #[doc = " Get a string flag value with full evaluation details."]
     #[doc = ""]
     #[doc = " * `flagKey` - The key of the flag to evaluate."]
@@ -240,7 +240,7 @@ extern "C" {
         flag_key: &str,
         default_value: &str,
         context: &Object,
-    ) -> Result<FlagshipEvaluationDetails<JsString>, JsValue>;
+    ) -> Result<FlagshipEvaluationDetails<String>, JsValue>;
     #[doc = " Get a number flag value with full evaluation details."]
     #[doc = ""]
     #[doc = " * `flagKey` - The key of the flag to evaluate."]
@@ -251,7 +251,7 @@ extern "C" {
         this: &Flagship,
         flag_key: &str,
         default_value: f64,
-    ) -> Result<FlagshipEvaluationDetails<Number>, JsValue>;
+    ) -> Result<FlagshipEvaluationDetails<f64>, JsValue>;
     #[doc = " Get a number flag value with full evaluation details."]
     #[doc = ""]
     #[doc = " * `flagKey` - The key of the flag to evaluate."]
@@ -263,5 +263,5 @@ extern "C" {
         flag_key: &str,
         default_value: f64,
         context: &Object,
-    ) -> Result<FlagshipEvaluationDetails<Number>, JsValue>;
+    ) -> Result<FlagshipEvaluationDetails<f64>, JsValue>;
 }
