@@ -1,0 +1,12 @@
+{
+	"name": "send-email-on-workers",
+	"version": "0.0.0",
+	"private": true,
+	"scripts": {
+		"deploy": "cargo install worker-build ; wrangler deploy",
+		"dev": "cargo install worker-build ; wrangler dev --local"
+	},
+	"devDependencies": {
+		"wrangler": "^4.83.0"
+	}
+}

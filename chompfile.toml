@@ -1,6 +1,22 @@
 version = 0.1
 
 [[task]]
+name = 'build:types'
+deps = ['install:ts-gen']
+# `Env` / `ExecutionContext` are project-specific re-exports that ts-gen
+# can't infer; everything else (`ReadableStream`, `Headers`, `Event`, …)
+# resolves through ts-gen's built-in web_sys defaults.
+run = '''ts-gen --input types/email.d.ts --output worker/src/email.rs \
+  --external "Env=crate::Env" \
+  --external "ExecutionContext=crate::Context"'''
+
+[[task]]
+name = 'install:ts-gen'
+# ts-gen pulls in oxc which needs a newer rustc than the workspace's pinned 1.88;
+# build with the user's stable toolchain instead so it ignores rust-toolchain.toml.
+run = 'cargo +stable install --path ts-gen'
+
+[[task]]
 name = 'build:wasm-bindgen'
 cwd = 'wasm-bindgen'
 run = 'cargo build -p wasm-bindgen-cli --bin wasm-bindgen'
@@ -16,6 +32,7 @@ run = 'cargo build -p worker-build'
 
 [[task]]
 name = 'build'
+serial = true
 deps = ['build:wasm-bindgen', 'build:worker-build']
 
 [[task]]
@@ -33,6 +50,7 @@ run = 'cargo clippy --features d1,queue --all-targets --workspace --fix -- -D wa
 
 [[task]]
 name = 'test:unit'
+serial = true
 deps = ['build', 'build:wasm-bindgen-test-runner']
 env.CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER = 'wasm-bindgen/target/debug/wasm-bindgen-test-runner'
 run = 'cargo test -p worker --target wasm32-unknown-unknown'
