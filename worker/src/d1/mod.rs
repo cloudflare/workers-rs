@@ -332,6 +332,7 @@ impl D1Argument for D1PreparedArgument<'_> {
 
 // A D1 prepared query statement.
 #[derive(Debug, Clone)]
+#[must_use = "D1PreparedStatement does nothing until you 'run' it"]
 pub struct D1PreparedStatement(D1PreparedStatementSys);
 
 impl D1PreparedStatement {
