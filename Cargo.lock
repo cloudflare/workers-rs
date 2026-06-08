@@ -1432,11 +1432,10 @@ dependencies = [
 
 [[package]]
 name = "js-sys"
-version = "0.3.99"
+version = "0.3.100"
 dependencies = [
  "cfg-if",
  "futures-util",
- "once_cell",
  "wasm-bindgen",
 ]
 
@@ -3421,7 +3420,7 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen"
-version = "0.2.122"
+version = "0.2.123"
 dependencies = [
  "cfg-if",
  "once_cell",
@@ -3432,7 +3431,7 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-cli-support"
-version = "0.2.122"
+version = "0.2.123"
 dependencies = [
  "anyhow",
  "base64",
@@ -3448,7 +3447,7 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-futures"
-version = "0.4.72"
+version = "0.4.73"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
@@ -3456,7 +3455,7 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-macro"
-version = "0.2.122"
+version = "0.2.123"
 dependencies = [
  "quote",
  "wasm-bindgen-macro-support",
@@ -3464,7 +3463,7 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-macro-support"
-version = "0.2.122"
+version = "0.2.123"
 dependencies = [
  "bumpalo",
  "proc-macro2",
@@ -3475,14 +3474,14 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-shared"
-version = "0.2.122"
+version = "0.2.123"
 dependencies = [
  "unicode-ident",
 ]
 
 [[package]]
 name = "wasm-bindgen-test"
-version = "0.3.72"
+version = "0.3.73"
 dependencies = [
  "async-trait",
  "cast",
@@ -3502,7 +3501,7 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-test-macro"
-version = "0.3.72"
+version = "0.3.73"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3511,7 +3510,7 @@ dependencies = [
 
 [[package]]
 name = "wasm-bindgen-test-shared"
-version = "0.2.122"
+version = "0.2.123"
 
 [[package]]
 name = "wasm-encoder"
@@ -3596,7 +3595,7 @@ dependencies = [
 
 [[package]]
 name = "web-sys"
-version = "0.3.99"
+version = "0.3.100"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
