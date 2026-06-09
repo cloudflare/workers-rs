@@ -8,7 +8,8 @@ const CASES = [
     "put-simple",
     "put-metadata",
     "put-metadata-struct",
-    "put-expiration"
+    "put-expiration",
+    "delete-key"
 ]
 
 async function runTest() {

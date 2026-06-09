@@ -187,3 +187,15 @@ pub async fn get_bulk_limit(_req: Request, env: Env, _data: SomeSharedData) -> R
         Ok(_) => Response::error("expected error for >100 keys", 500),
     }
 }
+
+#[worker::send]
+pub async fn delete_key(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let store = env.kv(TEST_NAMESPACE)?;
+    store.put("delete_me", "value")?.execute().await?;
+    store.delete("delete_me").await?;
+
+    match store.get("delete_me").text().await? {
+        Some(_) => Response::error("key still exists after delete", 500),
+        None => Response::ok("passed"),
+    }
+}
