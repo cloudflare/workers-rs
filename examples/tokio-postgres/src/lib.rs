@@ -15,7 +15,7 @@ async fn main(_req: Request, env: Env, _ctx: Context) -> anyhow::Result<Response
 
     let (client, connection) = config.connect_raw(socket, PassthroughTls).await?;
 
-    wasm_bindgen_futures::spawn_local(async move {
+    js_sys::futures::spawn_local(async move {
         if let Err(error) = connection.await {
             console_log!("connection error: {:?}", error);
         }

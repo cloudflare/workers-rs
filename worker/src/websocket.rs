@@ -275,7 +275,7 @@ type EvCallback<T> = Closure<dyn FnMut(T)>;
 /// server.accept()?;
 ///
 /// // Spawn a future for handling the stream of events from the websocket.
-/// wasm_bindgen_futures::spawn_local(async move {
+/// js_sys::futures::spawn_local(async move {
 ///     let mut event_stream = server.events().expect("could not open stream");
 ///
 ///     while let Some(event) = event_stream.next().await {

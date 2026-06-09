@@ -38,7 +38,6 @@ tokio-postgres = { version = "0.7", optional = true, default-features = false, f
     "js",
 ] }
 url = "2.4.0"
-wasm-bindgen-futures.workspace = true
 wasm-bindgen.workspace = true
 wasm-streams.workspace = true
 web-sys.workspace = true
