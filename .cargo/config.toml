@@ -1,2 +1,9 @@
 [target.wasm32-unknown-unknown]
 rustflags = ["--cfg", "getrandom_backend=\"wasm_js\""]
+
+# Make `#[wasm_bindgen]` emit `js_sys::futures` glue instead of
+# `wasm_bindgen_futures` for every cargo invocation in this workspace
+# (check, clippy, build). The proc-macro reads this at expansion time, so it
+# must be present for host builds too, not just the wasm build worker-build runs.
+[env]
+WASM_BINDGEN_USE_JS_SYS = "1"
