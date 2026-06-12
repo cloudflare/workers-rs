@@ -211,23 +211,23 @@ describe("Panic Hook with WASM Reinitialization", () => {
         expect(await normalResp.text()).toContain("unstored_count: 1");
       }
 
-      // TODO: JS error recovery test - requires distinguishing critical errors
+      // JS error recovery test - requires distinguishing critical errors
       // from accepted errors, which requires wasm-bindgen native abort handling
       // to support this.
-      // {
-      //   await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
-      //   const resp = await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
-      //   expect(await resp.text()).toContain("unstored_count:");
+      {
+        await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
+        const resp = await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
+        expect(await resp.text()).toContain("unstored_count:");
 
-      //   const jsErrorResp = await mf.dispatchFetch(`${mfUrl}test-js-error`);
-      //   expect(jsErrorResp.status).toBe(500);
+        const jsErrorResp = await mf.dispatchFetch(`${mfUrl}test-js-error`);
+        expect(jsErrorResp.status).toBe(500);
 
-      //   const jsErrorText = await jsErrorResp.text();
-      //   expect(jsErrorText).toContain("Workers runtime canceled");
+        const jsErrorText = await jsErrorResp.text();
+        expect(jsErrorText).toContain("Workers runtime canceled");
 
-      //   const normalResp = await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
-      //   expect(await normalResp.text()).toContain("unstored_count: 1");
-      // }
+        const normalResp = await mf.dispatchFetch(`${mfUrl}durable/COUNTER`);
+        expect(await normalResp.text()).toContain("unstored_count: 1");
+      }
     }
 
     // out of memory recovery test
