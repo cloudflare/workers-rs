@@ -1,7 +1,9 @@
 use std::fmt::Display;
 use std::fmt::Formatter;
+use std::future::{Future, IntoFuture};
 use std::iter::{once, Once};
 use std::ops::Deref;
+use std::pin::Pin;
 use std::result::Result as StdResult;
 
 use js_sys::futures::JsFuture;
@@ -332,7 +334,7 @@ impl D1Argument for D1PreparedArgument<'_> {
 
 // A D1 prepared query statement.
 #[derive(Debug, Clone)]
-#[must_use = "D1PreparedStatement does nothing until you 'run' it"]
+#[must_use = "D1PreparedStatement does nothing until you run or await it"]
 pub struct D1PreparedStatement(D1PreparedStatementSys);
 
 impl D1PreparedStatement {
@@ -443,6 +445,17 @@ impl D1PreparedStatement {
     /// Returns the inner JsValue bindings object.
     pub fn inner(&self) -> &D1PreparedStatementSys {
         &self.0
+    }
+}
+
+impl IntoFuture for D1PreparedStatement {
+    type Output = Result<D1Result>;
+    type IntoFuture = Pin<Box<dyn Future<Output = Self::Output>>>;
+
+    /// Awaiting runs the statement via [`run`](D1PreparedStatement::run) and returns only metadata.
+    /// Use [`all`](D1PreparedStatement::all) or [`first`](D1PreparedStatement::first) to retrieve rows.
+    fn into_future(self) -> Self::IntoFuture {
+        Box::pin(async move { self.run().await })
     }
 }
 
@@ -587,5 +600,20 @@ mod tests {
             D1SessionConstraint::FirstUnconstrained.as_str(),
             "first-unconstrained"
         );
+    }
+}
+
+#[cfg(test)]
+mod into_future_check {
+    // Awaiting a statement resolves through `run`, so the impl must yield
+    // `Result<D1Result>`. This compile-time check guards that contract.
+    use super::{D1PreparedStatement, D1Result};
+    use crate::Result;
+    use std::future::IntoFuture;
+
+    fn _assert_into_future<T: IntoFuture<Output = Result<D1Result>>>() {}
+    #[allow(dead_code)]
+    fn _check() {
+        _assert_into_future::<D1PreparedStatement>();
     }
 }
