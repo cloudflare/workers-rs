@@ -510,6 +510,11 @@ pub fn wasm_bindgen_build(
         .join(data.crate_name())
         .with_extension("wasm");
 
+    // `strip = true` drops the target_features section that wasm-bindgen
+    // needs to enable its externref transform. Patch it back in.
+    crate::reference_types::ensure_reference_types_feature(&wasm_path)
+        .context("Failed to ensure the reference-types target feature is advertised")?;
+
     let dts_arg = if disable_dts {
         "--no-typescript"
     } else {

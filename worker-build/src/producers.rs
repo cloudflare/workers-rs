@@ -9,11 +9,14 @@ struct ProducersEntry<'a> {
     version: &'a str,
 }
 
-struct ProducersSection {
-    start: usize,
-    end: usize,
-    content_start: usize,
-    content_end: usize,
+/// Byte range of a wasm custom section (id 0).
+pub(crate) struct CustomSection {
+    /// Byte offset of the section id byte.
+    pub start: usize,
+    /// Byte offset past the last byte of the section.
+    pub end: usize,
+    /// Byte offset of the payload, past the section name.
+    pub content_start: usize,
 }
 
 pub(crate) fn inject_workers_rs_sdk_metadata(out_dir: &Path, version: &'static str) -> Result<()> {
@@ -46,16 +49,11 @@ fn merge_producers_section<'a>(
     bytes: &'a [u8],
     new_entries: &[ProducersEntry<'a>],
 ) -> Result<Vec<u8>> {
-    let existing = find_producers_section(bytes)?;
+    let existing = find_custom_section(bytes, "producers")?;
     let mut entries = Vec::new();
 
     if let Some(section) = &existing {
-        parse_producers(
-            bytes,
-            section.content_start,
-            section.content_end,
-            &mut entries,
-        )?;
+        parse_producers(bytes, section.content_start, section.end, &mut entries)?;
     }
 
     for new_entry in new_entries {
@@ -82,7 +80,8 @@ fn merge_producers_section<'a>(
     Ok(output)
 }
 
-fn find_producers_section(bytes: &[u8]) -> Result<Option<ProducersSection>> {
+/// Find a named custom section (id 0), or `None` if absent.
+pub(crate) fn find_custom_section(bytes: &[u8], name: &str) -> Result<Option<CustomSection>> {
     ensure_wasm_header(bytes)?;
 
     let mut pos = 8;
@@ -100,20 +99,12 @@ fn find_producers_section(bytes: &[u8]) -> Result<Option<ProducersSection>> {
             .ok_or_else(|| anyhow::anyhow!("invalid wasm section length"))?;
 
         if section_id == 0 {
-            let name_len = read_u32_leb128(bytes, &mut pos)? as usize;
-            let name_end = pos
-                .checked_add(name_len)
-                .filter(|end| *end <= section_end)
-                .ok_or_else(|| anyhow::anyhow!("invalid wasm custom section name"))?;
-            let name = std::str::from_utf8(&bytes[pos..name_end])?;
-            pos = name_end;
-
-            if name == "producers" {
-                return Ok(Some(ProducersSection {
+            let mut name_pos = pos;
+            if read_wasm_name(bytes, &mut name_pos, section_end)? == name {
+                return Ok(Some(CustomSection {
                     start: section_start,
                     end: section_end,
-                    content_start: pos,
-                    content_end: section_end,
+                    content_start: name_pos,
                 }));
             }
         }
@@ -181,25 +172,34 @@ fn encode_producers_section(entries: &[ProducersEntry<'_>]) -> Result<Vec<u8>> {
         }
     }
 
-    let mut payload = Vec::new();
-    append_wasm_name(&mut payload, "producers")?;
-    payload.extend_from_slice(&content);
+    encode_custom_section("producers", &content)
+}
 
-    let mut section = vec![0];
+/// Wrap `content` in a wasm custom section (id 0) with the given `name`.
+pub(crate) fn encode_custom_section(name: &str, content: &[u8]) -> Result<Vec<u8>> {
+    let mut payload = Vec::new();
+    append_wasm_name(&mut payload, name)?;
+    payload.extend_from_slice(content);
+
+    let mut section = vec![0u8];
     append_u32_leb128(&mut section, payload.len().try_into()?);
     section.extend_from_slice(&payload);
 
     Ok(section)
 }
 
-fn ensure_wasm_header(bytes: &[u8]) -> Result<()> {
+pub(crate) fn ensure_wasm_header(bytes: &[u8]) -> Result<()> {
     if bytes.len() < 8 || &bytes[..4] != b"\0asm" || bytes[4..8] != [1, 0, 0, 0] {
         anyhow::bail!("invalid wasm header");
     }
     Ok(())
 }
 
-fn read_wasm_name<'a>(bytes: &'a [u8], pos: &mut usize, limit: usize) -> Result<&'a str> {
+pub(crate) fn read_wasm_name<'a>(
+    bytes: &'a [u8],
+    pos: &mut usize,
+    limit: usize,
+) -> Result<&'a str> {
     let len = read_u32_leb128(bytes, pos)? as usize;
     let end = pos
         .checked_add(len)
@@ -210,13 +210,13 @@ fn read_wasm_name<'a>(bytes: &'a [u8], pos: &mut usize, limit: usize) -> Result<
     Ok(name)
 }
 
-fn append_wasm_name(bytes: &mut Vec<u8>, name: &str) -> Result<()> {
+pub(crate) fn append_wasm_name(bytes: &mut Vec<u8>, name: &str) -> Result<()> {
     append_u32_leb128(bytes, name.len().try_into()?);
     bytes.extend_from_slice(name.as_bytes());
     Ok(())
 }
 
-fn read_u32_leb128(bytes: &[u8], pos: &mut usize) -> Result<u32> {
+pub(crate) fn read_u32_leb128(bytes: &[u8], pos: &mut usize) -> Result<u32> {
     let mut result = 0u32;
     let mut shift = 0;
 
@@ -238,7 +238,7 @@ fn read_u32_leb128(bytes: &[u8], pos: &mut usize) -> Result<u32> {
     }
 }
 
-fn append_u32_leb128(bytes: &mut Vec<u8>, mut value: u32) {
+pub(crate) fn append_u32_leb128(bytes: &mut Vec<u8>, mut value: u32) {
     loop {
         let mut byte = (value & 0x7f) as u8;
         value >>= 7;
@@ -254,7 +254,7 @@ fn append_u32_leb128(bytes: &mut Vec<u8>, mut value: u32) {
 
 #[cfg(test)]
 mod test {
-    use super::{find_producers_section, merge_producers_section, parse_producers, ProducersEntry};
+    use super::{find_custom_section, merge_producers_section, parse_producers, ProducersEntry};
 
     const EMPTY_WASM: &[u8] = b"\0asm\x01\0\0\0";
 
@@ -339,15 +339,9 @@ mod test {
     }
 
     fn producers_entries(wasm: &[u8]) -> Vec<ProducersEntry<'_>> {
-        let section = find_producers_section(wasm).unwrap().unwrap();
+        let section = find_custom_section(wasm, "producers").unwrap().unwrap();
         let mut entries = Vec::new();
-        parse_producers(
-            wasm,
-            section.content_start,
-            section.content_end,
-            &mut entries,
-        )
-        .unwrap();
+        parse_producers(wasm, section.content_start, section.end, &mut entries).unwrap();
         entries
     }
 }

@@ -19,6 +19,7 @@ mod emoji;
 mod lockfile;
 mod main_legacy;
 mod producers;
+mod reference_types;
 mod versions;
 
 use build::{Build, BuildOptions};
