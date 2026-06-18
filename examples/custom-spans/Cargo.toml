@@ -1,0 +1,17 @@
+[package]
+name = "custom-spans"
+version = "0.1.0"
+edition = "2021"
+
+[package.metadata.release]
+release = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# Binding comes from `worker`; the WorkersLayer (src/layer.rs) needs tracing-subscriber.
+worker.workspace = true
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", default-features = false, features = ["registry", "std"] }
+console_error_panic_hook = "0.1"
