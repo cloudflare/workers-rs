@@ -28,7 +28,6 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::str::FromStr;
 use std::time::Instant;
-use utils::run_capture_stdout;
 use utils::{create_pkg_dir, get_crate_path};
 
 /// Everything required to configure and run the `worker build` command.
@@ -471,30 +470,6 @@ impl Build {
                 "{e}\nTo disable `wasm-opt`, add `wasm-opt = false` to your package metadata in your `Cargo.toml`."
             )
         })
-    }
-
-    pub fn supports_target_module_and_reset_state(&self) -> Result<bool> {
-        // using internal wasm bindgen version, we know it supports it
-        if !self.bindgen_override {
-            return Ok(true);
-        }
-        // User override the wasm bindgen version -> must feature detect
-        let bindgen_path = self.bindgen.as_ref().unwrap();
-
-        let mut cmd = Command::new(bindgen_path);
-        cmd.arg("--version");
-        let stdout = run_capture_stdout(cmd, "wasm-bindgen")?;
-        let version = stdout.split_whitespace().nth(1);
-        let cli_version = match version {
-            Some(v) => semver::Version::parse(v),
-            None => bail!(
-                "Unable to determine the wasm-bindgen version via \"{} --version\"",
-                bindgen_path.to_string_lossy()
-            ),
-        }?;
-        // The first CLI version reset state was added (note this only applies to overrides)
-        let expected_version = semver::Version::parse("0.2.102")?;
-        Ok(cli_version >= expected_version)
     }
 }
 

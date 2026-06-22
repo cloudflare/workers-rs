@@ -5,7 +5,7 @@ use anyhow::{bail, Context, Result};
 use log::info;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Command;
 use std::time::Duration;
 
 /// If an explicit path is given, then use it, otherwise assume the current
@@ -68,27 +68,6 @@ pub fn run(mut command: Command, command_name: &str) -> Result<()> {
     } else {
         bail!(
             "failed to execute `{command_name}`: exited with {status}\n  full command: {command:?}",
-        )
-    }
-}
-
-/// Run the given command and return its stdout.
-pub fn run_capture_stdout(mut command: Command, command_name: &str) -> Result<String> {
-    info!("Running {command:?}");
-
-    let output = command
-        .stderr(Stdio::inherit())
-        .stdin(Stdio::inherit())
-        .output()?;
-
-    if output.status.success() {
-        Ok(String::from_utf8_lossy(&output.stdout).into_owned())
-    } else {
-        bail!(
-            "failed to execute `{}`: exited with {}\n  full command: {:?}",
-            command_name,
-            output.status,
-            command,
         )
     }
 }

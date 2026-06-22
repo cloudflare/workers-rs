@@ -297,7 +297,8 @@ pub async fn insert_and_retrieve_optional_none(
         &None::<String>,
         &None::<u32>
     )?;
-    query.run().await?;
+    // Run the insert by awaiting the statement directly (exercises IntoFuture).
+    query.await?;
 
     let stmt = worker::query!(&db, "SELECT * FROM nullable_people WHERE id = 3");
     let person = stmt.first::<NullablePerson>(None).await?.unwrap();

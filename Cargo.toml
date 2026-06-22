@@ -15,7 +15,6 @@ exclude = [
     "templates/*",
     "wasm-bindgen",
     "wasm-streams",
-    "gloo",
     "generated",
 ]
 resolver = "2"
@@ -29,7 +28,7 @@ chrono = { version = "0.4.41", default-features = false, features = [
 futures-channel = "0.3.31"
 futures-util = { version = "0.3.31", default-features = false }
 http = "1.3"
-js-sys = { version = "0.3.99" }
+js-sys = { version = "0.3.102" }
 serde = { version = "1.0.164", features = ["derive"] }
 strum = { version = "0.27", features = ["derive"] }
 serde_json = "1.0.140"
@@ -38,14 +37,14 @@ syn = "2.0.17"
 trybuild = "1.0"
 proc-macro2 = "1.0.60"
 quote = "1.0.28"
-wasm-bindgen = { version = "0.2.122" }
-wasm-bindgen-cli-support = { version = "0.2.122" }
-wasm-bindgen-futures = { version = "0.4.72" }
-wasm-bindgen-macro-support = { version = "0.2.122" }
-wasm-bindgen-shared = { version = "0.2.122" }
-wasm-bindgen-test = { version = "0.3.72" }
+wasm-bindgen = { version = "0.2.125" }
+wasm-bindgen-cli-support = { version = "0.2.125" }
+wasm-bindgen-futures = { version = "0.4.75" }
+wasm-bindgen-macro-support = { version = "0.2.125" }
+wasm-bindgen-shared = { version = "0.2.125" }
+wasm-bindgen-test = { version = "0.3.75" }
 wasm-streams = { version = "0.6.0" }
-web-sys = { version = "0.3.99", features = [
+web-sys = { version = "0.3.102", features = [
     "AbortController",
     "AbortSignal",
     "BinaryType",
@@ -76,10 +75,10 @@ web-sys = { version = "0.3.99", features = [
     "WritableStream",
     "WritableStreamDefaultWriter",
 ] }
-worker = { version = "0.8.3", path = "worker", features = ["queue", "d1", "axum", "timezone"] }
+worker = { version = "0.8.5", path = "worker", features = ["queue", "d1", "axum", "timezone"] }
 worker-codegen = { path = "worker-codegen", version = "0.2.0" }
-worker-macros = { version = "0.8.3", path = "worker-macros", features = ["queue"] }
-worker-sys = { version = "0.8.3", path = "worker-sys", features = ["d1", "queue"] }
+worker-macros = { version = "0.8.5", path = "worker-macros", features = ["queue"] }
+worker-sys = { version = "0.8.5", path = "worker-sys", features = ["d1", "queue"] }
 
 [profile.release]
 # rustc supports two "optimize for size" levels:  opt-level = "s" and "z".
@@ -106,12 +105,3 @@ opt-level = "z"
 
 # These are local patches we use to test against local wasm bindgen
 # We always align on the exact stable wasm bindgen version for releases
-[patch.crates-io]
-js-sys = { version = "0.3.99", path = './wasm-bindgen/crates/js-sys' }
-wasm-bindgen = { version = "0.2.122", path = './wasm-bindgen' }
-wasm-bindgen-cli-support = { version = "0.2.122", path = "./wasm-bindgen/crates/cli-support" }
-wasm-bindgen-futures = { version = "0.4.72", path = './wasm-bindgen/crates/futures' }
-wasm-bindgen-macro-support = { version = "0.2.122", path = "./wasm-bindgen/crates/macro-support" }
-wasm-bindgen-shared = { version = "0.2.122", path = "./wasm-bindgen/crates/shared" }
-wasm-bindgen-test = { version = "0.3.72", path = "./wasm-bindgen/crates/test" }
-web-sys = { version = "0.3.99", path = './wasm-bindgen/crates/web-sys' }
