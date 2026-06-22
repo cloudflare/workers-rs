@@ -55,7 +55,7 @@ async fn string(req: Request, env: Env) -> Result<Response> {
     let url = req.url()?;
     let flag = query(&url, "flag").unwrap_or_else(|| "checkout-flow".into());
     let flagship = env.flagship(BINDING)?;
-    let value = String::from(match query(&url, "userId") {
+    let value = match query(&url, "userId") {
         Some(user_id) => {
             let ctx = EvaluationContext::new()
                 .string("userId", &user_id)
@@ -65,7 +65,7 @@ async fn string(req: Request, env: Env) -> Result<Response> {
                 .await?
         }
         None => flagship.get_string_value(&flag, "control").await?,
-    });
+    };
     Response::from_json(&serde_json::json!({ "flag": flag, "value": value }))
 }
 
@@ -90,14 +90,7 @@ async fn details(req: Request, env: Env) -> Result<Response> {
         .flagship(BINDING)?
         .get_string_details(&flag, "control")
         .await?;
-    Response::from_json(&serde_json::json!({
-        "flagKey": details.flag_key(),
-        "value": details.value().as_string(),
-        "variant": details.variant(),
-        "reason": details.reason(),
-        "errorCode": details.error_code(),
-        "errorMessage": details.error_message(),
-    }))
+    Response::from_json(&details)
 }
 
 fn query(url: &Url, key: &str) -> Option<String> {

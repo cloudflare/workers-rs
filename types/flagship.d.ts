@@ -68,28 +68,10 @@ declare abstract class Flagship {
     defaultValue: boolean,
     context?: FlagshipEvaluationContext,
   ): Promise<boolean>;
-  /**
-   * Get a string flag value.
-   * @param flagKey The key of the flag to evaluate.
-   * @param defaultValue Default value returned when evaluation fails or the flag type does not match.
-   * @param context Optional evaluation context for targeting rules.
-   */
-  getStringValue(
-    flagKey: string,
-    defaultValue: string,
-    context?: FlagshipEvaluationContext,
-  ): Promise<string>;
-  /**
-   * Get a number flag value.
-   * @param flagKey The key of the flag to evaluate.
-   * @param defaultValue Default value returned when evaluation fails or the flag type does not match.
-   * @param context Optional evaluation context for targeting rules.
-   */
-  getNumberValue(
-    flagKey: string,
-    defaultValue: number,
-    context?: FlagshipEvaluationContext,
-  ): Promise<number>;
+  // EDIT: `getStringValue` / `getNumberValue` are hand-written in
+  // worker/src/flagship.rs. ts-gen types them as `JsString` / `Number`;
+  // returning plain `String` / `f64` needs ABI-level generics that no
+  // released wasm-bindgen has yet.
   // EDIT: `getObjectValue<T extends object>(...)` is hand-written in
   // worker/src/flagship.rs (ts-gen erases the generic to JsValue).
   /**
@@ -103,28 +85,11 @@ declare abstract class Flagship {
     defaultValue: boolean,
     context?: FlagshipEvaluationContext,
   ): Promise<FlagshipEvaluationDetails<boolean>>;
-  /**
-   * Get a string flag value with full evaluation details.
-   * @param flagKey The key of the flag to evaluate.
-   * @param defaultValue Default value returned when evaluation fails or the flag type does not match.
-   * @param context Optional evaluation context for targeting rules.
-   */
-  getStringDetails(
-    flagKey: string,
-    defaultValue: string,
-    context?: FlagshipEvaluationContext,
-  ): Promise<FlagshipEvaluationDetails<string>>;
-  /**
-   * Get a number flag value with full evaluation details.
-   * @param flagKey The key of the flag to evaluate.
-   * @param defaultValue Default value returned when evaluation fails or the flag type does not match.
-   * @param context Optional evaluation context for targeting rules.
-   */
-  getNumberDetails(
-    flagKey: string,
-    defaultValue: number,
-    context?: FlagshipEvaluationContext,
-  ): Promise<FlagshipEvaluationDetails<number>>;
+  // EDIT: `getStringDetails` / `getNumberDetails` are hand-written in
+  // worker/src/flagship.rs (return a typed `EvaluationDetails<T>`). ts-gen
+  // types them as `FlagshipEvaluationDetails<JsString>` / `<Number>`;
+  // returning a plain primitive generic needs the same ABI-level generics no
+  // released wasm-bindgen has yet.
   // EDIT: `getObjectDetails<T extends object>(...)` is hand-written in
   // worker/src/flagship.rs (returns a typed `EvaluationDetails<T>`).
 }

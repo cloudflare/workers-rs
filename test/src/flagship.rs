@@ -1,10 +1,7 @@
 use crate::SomeSharedData;
 use serde::{Deserialize, Serialize};
-use wasm_bindgen::JsGeneric;
 use worker::wasm_bindgen::JsValue;
-use worker::{
-    Env, EvaluationContext, EvaluationDetails, FlagshipEvaluationDetails, Request, Response, Result,
-};
+use worker::{Env, EvaluationContext, EvaluationDetails, Request, Response, Result};
 
 const BINDING: &str = "FLAGS";
 
@@ -43,21 +40,17 @@ pub async fn handle_boolean(req: Request, env: Env, _data: SomeSharedData) -> Re
 #[worker::send]
 pub async fn handle_string(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let flag = last_segment(&req)?;
-    let value = String::from(
-        env.flagship(BINDING)?
-            .get_string_value(&flag, "fallback")
-            .await?,
-    );
+    let value = env
+        .flagship(BINDING)?
+        .get_string_value(&flag, "fallback")
+        .await?;
     Response::from_json(&serde_json::json!({ "flag": flag, "value": value }))
 }
 
 #[worker::send]
 pub async fn handle_number(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let flag = last_segment(&req)?;
-    let value: f64 = env
-        .flagship(BINDING)?
-        .get_number_value(&flag, 0.0)
-        .await?;
+    let value: f64 = env.flagship(BINDING)?.get_number_value(&flag, 0.0).await?;
     Response::from_json(&serde_json::json!({ "flag": flag, "value": value }))
 }
 
@@ -90,11 +83,10 @@ pub async fn handle_context(req: Request, env: Env, _data: SomeSharedData) -> Re
         .string("userId", &user_id)
         .number("age", 30.0)
         .bool("premium", true);
-    let value = String::from(
-        env.flagship(BINDING)?
-            .get_string_value_with_context("user-branch", "default", eval_ctx.as_ref())
-            .await?,
-    );
+    let value = env
+        .flagship(BINDING)?
+        .get_string_value_with_context("user-branch", "default", eval_ctx.as_ref())
+        .await?;
     Response::from_json(&serde_json::json!({ "userId": user_id, "value": value }))
 }
 
@@ -109,8 +101,14 @@ pub async fn handle_boolean_details(
         .flagship(BINDING)?
         .get_boolean_details(&flag, false)
         .await?;
-    let value = details.value().as_bool();
-    Response::from_json(&details_to_json(&details, value))
+    Response::from_json(&serde_json::json!({
+        "flagKey": details.flag_key(),
+        "value": details.value().as_bool(),
+        "variant": details.variant(),
+        "reason": details.reason(),
+        "errorCode": details.error_code(),
+        "errorMessage": details.error_message(),
+    }))
 }
 
 #[worker::send]
@@ -120,12 +118,11 @@ pub async fn handle_string_details(
     _data: SomeSharedData,
 ) -> Result<Response> {
     let flag = last_segment(&req)?;
-    let details = env
+    let details: EvaluationDetails<String> = env
         .flagship(BINDING)?
         .get_string_details(&flag, "fallback")
         .await?;
-    let value = details.value();
-    Response::from_json(&details_to_json(&details, value))
+    Response::from_json(&details)
 }
 
 #[worker::send]
@@ -135,12 +132,11 @@ pub async fn handle_number_details(
     _data: SomeSharedData,
 ) -> Result<Response> {
     let flag = last_segment(&req)?;
-    let details = env
+    let details: EvaluationDetails<f64> = env
         .flagship(BINDING)?
         .get_number_details(&flag, 0.0)
         .await?;
-    let value = details.value();
-    Response::from_json(&details_to_json(&details, value))
+    Response::from_json(&details)
 }
 
 #[worker::send]
@@ -155,18 +151,4 @@ pub async fn handle_object_details(
         .get_object_details(&flag, &default_theme())
         .await?;
     Response::from_json(&details)
-}
-
-fn details_to_json<T: Serialize, U: JsGeneric>(
-    details: &FlagshipEvaluationDetails<U>,
-    value: T,
-) -> serde_json::Value {
-    serde_json::json!({
-        "flagKey": details.flag_key(),
-        "value": value,
-        "variant": details.variant(),
-        "reason": details.reason(),
-        "errorCode": details.error_code(),
-        "errorMessage": details.error_message(),
-    })
 }

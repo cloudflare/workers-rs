@@ -149,52 +149,6 @@ extern "C" {
         default_value: bool,
         context: &Object,
     ) -> Result<Boolean, JsValue>;
-    #[doc = " Get a string flag value."]
-    #[doc = ""]
-    #[doc = " * `flagKey` - The key of the flag to evaluate."]
-    #[doc = " * `defaultValue` - Default value returned when evaluation fails or the flag type does not match."]
-    #[doc = " * `context` - Optional evaluation context for targeting rules."]
-    #[wasm_bindgen(method, catch, js_name = "getStringValue")]
-    pub async fn get_string_value(
-        this: &Flagship,
-        flag_key: &str,
-        default_value: &str,
-    ) -> Result<String, JsValue>;
-    #[doc = " Get a string flag value."]
-    #[doc = ""]
-    #[doc = " * `flagKey` - The key of the flag to evaluate."]
-    #[doc = " * `defaultValue` - Default value returned when evaluation fails or the flag type does not match."]
-    #[doc = " * `context` - Optional evaluation context for targeting rules."]
-    #[wasm_bindgen(method, catch, js_name = "getStringValue")]
-    pub async fn get_string_value_with_context(
-        this: &Flagship,
-        flag_key: &str,
-        default_value: &str,
-        context: &Object,
-    ) -> Result<String, JsValue>;
-    #[doc = " Get a number flag value."]
-    #[doc = ""]
-    #[doc = " * `flagKey` - The key of the flag to evaluate."]
-    #[doc = " * `defaultValue` - Default value returned when evaluation fails or the flag type does not match."]
-    #[doc = " * `context` - Optional evaluation context for targeting rules."]
-    #[wasm_bindgen(method, catch, js_name = "getNumberValue")]
-    pub async fn get_number_value(
-        this: &Flagship,
-        flag_key: &str,
-        default_value: f64,
-    ) -> Result<f64, JsValue>;
-    #[doc = " Get a number flag value."]
-    #[doc = ""]
-    #[doc = " * `flagKey` - The key of the flag to evaluate."]
-    #[doc = " * `defaultValue` - Default value returned when evaluation fails or the flag type does not match."]
-    #[doc = " * `context` - Optional evaluation context for targeting rules."]
-    #[wasm_bindgen(method, catch, js_name = "getNumberValue")]
-    pub async fn get_number_value_with_context(
-        this: &Flagship,
-        flag_key: &str,
-        default_value: f64,
-        context: &Object,
-    ) -> Result<f64, JsValue>;
     #[doc = " Get a boolean flag value with full evaluation details."]
     #[doc = ""]
     #[doc = " * `flagKey` - The key of the flag to evaluate."]
@@ -218,50 +172,4 @@ extern "C" {
         default_value: bool,
         context: &Object,
     ) -> Result<FlagshipEvaluationDetails<Boolean>, JsValue>;
-    #[doc = " Get a string flag value with full evaluation details."]
-    #[doc = ""]
-    #[doc = " * `flagKey` - The key of the flag to evaluate."]
-    #[doc = " * `defaultValue` - Default value returned when evaluation fails or the flag type does not match."]
-    #[doc = " * `context` - Optional evaluation context for targeting rules."]
-    #[wasm_bindgen(method, catch, js_name = "getStringDetails")]
-    pub async fn get_string_details(
-        this: &Flagship,
-        flag_key: &str,
-        default_value: &str,
-    ) -> Result<FlagshipEvaluationDetails<String>, JsValue>;
-    #[doc = " Get a string flag value with full evaluation details."]
-    #[doc = ""]
-    #[doc = " * `flagKey` - The key of the flag to evaluate."]
-    #[doc = " * `defaultValue` - Default value returned when evaluation fails or the flag type does not match."]
-    #[doc = " * `context` - Optional evaluation context for targeting rules."]
-    #[wasm_bindgen(method, catch, js_name = "getStringDetails")]
-    pub async fn get_string_details_with_context(
-        this: &Flagship,
-        flag_key: &str,
-        default_value: &str,
-        context: &Object,
-    ) -> Result<FlagshipEvaluationDetails<String>, JsValue>;
-    #[doc = " Get a number flag value with full evaluation details."]
-    #[doc = ""]
-    #[doc = " * `flagKey` - The key of the flag to evaluate."]
-    #[doc = " * `defaultValue` - Default value returned when evaluation fails or the flag type does not match."]
-    #[doc = " * `context` - Optional evaluation context for targeting rules."]
-    #[wasm_bindgen(method, catch, js_name = "getNumberDetails")]
-    pub async fn get_number_details(
-        this: &Flagship,
-        flag_key: &str,
-        default_value: f64,
-    ) -> Result<FlagshipEvaluationDetails<f64>, JsValue>;
-    #[doc = " Get a number flag value with full evaluation details."]
-    #[doc = ""]
-    #[doc = " * `flagKey` - The key of the flag to evaluate."]
-    #[doc = " * `defaultValue` - Default value returned when evaluation fails or the flag type does not match."]
-    #[doc = " * `context` - Optional evaluation context for targeting rules."]
-    #[wasm_bindgen(method, catch, js_name = "getNumberDetails")]
-    pub async fn get_number_details_with_context(
-        this: &Flagship,
-        flag_key: &str,
-        default_value: f64,
-        context: &Object,
-    ) -> Result<FlagshipEvaluationDetails<f64>, JsValue>;
 }
