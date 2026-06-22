@@ -7,7 +7,7 @@
 //! * `/details?flag=<key>`   — return the full evaluation details envelope
 
 use serde::{Deserialize, Serialize};
-use worker::{event, Env, EvaluationContext, Request, Response, Result, Router, Url};
+use worker::{event, Env, EvaluationContext, Request, Response, Result, RouteContext, Router, Url};
 
 const BINDING: &str = "FLAGS";
 
@@ -20,27 +20,16 @@ struct Theme {
 #[event(fetch)]
 async fn main(req: Request, env: Env, _ctx: worker::Context) -> Result<Response> {
     Router::new()
-        .get_async(
-            "/boolean",
-            |req, ctx| async move { boolean(req, ctx.env).await },
-        )
-        .get_async(
-            "/string",
-            |req, ctx| async move { string(req, ctx.env).await },
-        )
-        .get_async(
-            "/object",
-            |req, ctx| async move { object(req, ctx.env).await },
-        )
-        .get_async(
-            "/details",
-            |req, ctx| async move { details(req, ctx.env).await },
-        )
+        .get_async("/boolean", boolean)
+        .get_async("/string", string)
+        .get_async("/object", object)
+        .get_async("/details", details)
         .run(req, env)
         .await
 }
 
-async fn boolean(req: Request, env: Env) -> Result<Response> {
+async fn boolean(req: Request, ctx: RouteContext<()>) -> Result<Response> {
+    let env = ctx.env;
     let url = req.url()?;
     let flag = query(&url, "flag").unwrap_or_else(|| "example-bool".into());
     let value: bool = env
@@ -51,7 +40,8 @@ async fn boolean(req: Request, env: Env) -> Result<Response> {
     Response::from_json(&serde_json::json!({ "flag": flag, "value": value }))
 }
 
-async fn string(req: Request, env: Env) -> Result<Response> {
+async fn string(req: Request, ctx: RouteContext<()>) -> Result<Response> {
+    let env = ctx.env;
     let url = req.url()?;
     let flag = query(&url, "flag").unwrap_or_else(|| "checkout-flow".into());
     let flagship = env.flagship(BINDING)?;
@@ -69,7 +59,8 @@ async fn string(req: Request, env: Env) -> Result<Response> {
     Response::from_json(&serde_json::json!({ "flag": flag, "value": value }))
 }
 
-async fn object(req: Request, env: Env) -> Result<Response> {
+async fn object(req: Request, ctx: RouteContext<()>) -> Result<Response> {
+    let env = ctx.env;
     let url = req.url()?;
     let flag = query(&url, "flag").unwrap_or_else(|| "theme".into());
     let default = Theme {
@@ -83,7 +74,8 @@ async fn object(req: Request, env: Env) -> Result<Response> {
     Response::from_json(&serde_json::json!({ "flag": flag, "value": value }))
 }
 
-async fn details(req: Request, env: Env) -> Result<Response> {
+async fn details(req: Request, ctx: RouteContext<()>) -> Result<Response> {
+    let env = ctx.env;
     let url = req.url()?;
     let flag = query(&url, "flag").unwrap_or_else(|| "checkout-flow".into());
     let details = env
