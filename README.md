@@ -467,7 +467,7 @@ caught and converted to JavaScript exceptions, allowing the Worker to continue s
 after a panic.
 
 ```bash
-npx worker-build --panic-unwind
+worker-build --panic-unwind
 ```
 
 Or in your `wrangler.toml` build command:
