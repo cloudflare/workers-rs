@@ -1,8 +1,9 @@
 use crate::SomeSharedData;
 use futures_util::stream::once;
 use worker::{
-    worker_sys, Date, EmailAddress, EmailMessage, Env, FixedLengthStream, Request, Response,
-    Result, SendEmail, SendEmailBuilder,
+    email::{EmailAddress, EmailAttachment, EmailMessage, SendEmail, SendEmailBuilder},
+    js_sys::Uint8Array,
+    worker_sys, Date, Env, FixedLengthStream, Request, Response, Result,
 };
 
 const SENDER: &str = "allowed-sender@example.com";
@@ -89,6 +90,21 @@ fn build_structured(name: &str) -> Option<SendEmailBuilder> {
         }
         "structured-disallowed-recipient" => {
             SendEmailBuilder::builder(SENDER, BAD_RECIPIENT, subject).text("hello")
+        }
+        // Exercises `EmailAttachment::new_attachment_with_typed_array<T:
+        // js_sys::TypedArray>` — the generic builder ts-gen emits for the
+        // `content: string | ArrayBuffer | ArrayBufferView` union. The
+        // `Uint8Array` flows through wasm-bindgen's generic extern signature
+        // straight into the underlying setter, smoke-testing both ends of
+        // the codegen.
+        "structured-with-attachment" => {
+            let payload = b"hello attachment";
+            let bytes = unsafe { Uint8Array::view(payload) };
+            let attachment =
+                EmailAttachment::new_attachment_with_typed_array("hello.txt", "text/plain", &bytes);
+            SendEmailBuilder::builder(SENDER, RECIPIENT, subject)
+                .text("structured email with an attachment")
+                .attachments(&[attachment])
         }
         _ => return None,
     };

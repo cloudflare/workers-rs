@@ -85,21 +85,14 @@ pub fn main() -> Result<()> {
 
     builder.init()?;
 
-    let supports_reset_state = builder.supports_target_module_and_reset_state()?;
-    let module_target =
-        supports_reset_state && !no_panic_recovery && env::var("CUSTOM_SHIM").is_err();
+    let module_target = !no_panic_recovery && env::var("CUSTOM_SHIM").is_err();
     if module_target {
-        builder
-            .extra_args
-            .push("--experimental-reset-state-function".to_string());
+        builder.extra_args.extend_from_slice(&[
+            "--experimental-reset-state-function".into(),
+            "--force-enable-abort-handler".into(),
+        ]);
         builder.run()?;
     } else {
-        if supports_reset_state {
-            // Enable once we have DO bindings to offer an alternative
-            // eprintln!("Using CUSTOM_SHIM will be deprecated in a future release.");
-        } else {
-            eprintln!("A newer version of wasm-bindgen is available. Update to use the latest workers-rs features.");
-        }
         builder.target = Target::Bundler;
         builder.run()?;
     }
@@ -189,7 +182,11 @@ fn generate_handlers(out_dir: &Path) -> Result<String> {
   return response;
 }
 ";
-        } else if func_name == "fetch" || func_name == "queue" || func_name == "scheduled" {
+        } else if func_name == "fetch"
+            || func_name == "queue"
+            || func_name == "scheduled"
+            || func_name == "email"
+        {
             // TODO: Switch these over to https://github.com/wasm-bindgen/wasm-bindgen/pull/4757
             // once that lands.
             handlers += &format!(

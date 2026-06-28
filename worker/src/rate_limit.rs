@@ -1,7 +1,7 @@
 use crate::{send::SendFuture, EnvBinding, Result};
+use js_sys::futures::JsFuture;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::{JsCast, JsValue};
-use wasm_bindgen_futures::JsFuture;
 use worker_sys::RateLimiter as RateLimiterSys;
 
 #[derive(Debug)]

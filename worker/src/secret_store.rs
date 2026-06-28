@@ -3,8 +3,8 @@ use crate::{
     send::{SendFuture, SendWrapper},
     EnvBinding, Result,
 };
+use js_sys::futures::JsFuture;
 use wasm_bindgen::{JsCast, JsValue};
-use wasm_bindgen_futures::JsFuture;
 
 /// A binding to a Cloudflare Secret Store secret.
 ///

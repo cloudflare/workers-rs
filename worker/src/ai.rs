@@ -1,10 +1,10 @@
 use crate::streams::ByteStream;
 use crate::{env::EnvBinding, send::SendFuture};
 use crate::{Error, Result};
+use js_sys::futures::JsFuture;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use wasm_bindgen::{JsCast, JsValue};
-use wasm_bindgen_futures::JsFuture;
 use web_sys::ReadableStream;
 use worker_sys::Ai as AiSys;
 

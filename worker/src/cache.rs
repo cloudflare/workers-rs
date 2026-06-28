@@ -1,8 +1,8 @@
 use std::convert::TryInto;
 
+use js_sys::futures::JsFuture;
 use serde::Serialize;
 use wasm_bindgen::JsCast;
-use wasm_bindgen_futures::JsFuture;
 use worker_sys::ext::CacheStorageExt;
 
 use crate::request::Request;

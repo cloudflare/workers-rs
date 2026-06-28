@@ -1,9 +1,6 @@
 [submodule "wasm-bindgen"]
 	path = wasm-bindgen
 	url = https://github.com/wasm-bindgen/wasm-bindgen
-[submodule "wasm-streams"]
-	path = wasm-streams
-	url = https://github.com/guybedford/wasm-streams
 [submodule "ts-gen"]
 	path = ts-gen
 	url = https://github.com/wasm-bindgen/ts-gen

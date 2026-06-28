@@ -3,8 +3,8 @@ use futures_util::future::Either;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use worker::{
-    wasm_bindgen_futures, AbortController, Delay, EncodeBody, Env, Fetch, Method, Request,
-    RequestInit, Response, Result,
+    js_sys, AbortController, Delay, EncodeBody, Env, Fetch, Method, Request, RequestInit, Response,
+    Result,
 };
 
 #[worker::send]
@@ -94,7 +94,7 @@ pub async fn handle_cancelled_fetch(
     let (tx, rx) = futures_channel::oneshot::channel();
 
     // Spawns a future that'll make our fetch request and not block this function.
-    wasm_bindgen_futures::spawn_local({
+    js_sys::futures::spawn_local({
         async move {
             let fetch = Fetch::Url("https://cloudflare.com".parse().unwrap());
             let res = fetch.send_with_signal(&signal).await;

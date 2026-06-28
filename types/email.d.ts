@@ -11,10 +11,13 @@
  * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ExtendableEvent)
  */
 declare abstract class ExtendableEvent extends Event {
+  // EDIT: added infallible
   /**
    * The **`ExtendableEvent.waitUntil()`** method tells the event dispatcher that work is ongoing.
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ExtendableEvent/waitUntil)
+   * 
+   * @throws {never}
    */
   waitUntil(promise: Promise<any>): void;
 }
@@ -74,10 +77,13 @@ interface ForwardableEmailMessage extends EmailMessage {
    * Size of the email message content.
    */
   readonly rawSize: number;
+  // EDIT: added infallible
   /**
    * Reject this email message by returning a permanent SMTP error back to the connecting client including the given reason.
    * @param reason The reject reason.
    * @returns void
+   * 
+   * @throws {never}
    */
   setReject(reason: string): void;
   /**
@@ -136,8 +142,8 @@ interface SendEmail {
 declare abstract class EmailEvent extends ExtendableEvent {
   readonly message: ForwardableEmailMessage;
 }
-declare type EmailExportedHandler<Env = unknown, Props = unknown> = (
-  message: ForwardableEmailMessage,
-  env: Env,
-  ctx: ExecutionContext<Props>,
-) => void | Promise<void>;
+// declare type EmailExportedHandler<Env = unknown, Props = unknown> = (
+//   message: ForwardableEmailMessage,
+//   env: Env,
+//   ctx: ExecutionContext<Props>,
+// ) => void | Promise<void>;

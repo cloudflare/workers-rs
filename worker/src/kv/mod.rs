@@ -20,11 +20,11 @@ mod builder;
 
 pub use builder::*;
 
+use js_sys::futures::JsFuture;
 use js_sys::{global, Array, Function, Object, Promise, Reflect, Uint8Array};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use wasm_bindgen::JsValue;
-use wasm_bindgen_futures::JsFuture;
 use web_sys::ReadableStream;
 
 /// A binding to a Cloudflare KvStore.

@@ -466,11 +466,13 @@ instance. The `--panic-unwind` flag for `worker-build` changes this behavior so 
 caught and converted to JavaScript exceptions, allowing the Worker to continue serving requests
 after a panic.
 
+When running `worker-build` directly:
+
 ```bash
-npx worker-build --panic-unwind
+worker-build --panic-unwind
 ```
 
-Or in your `wrangler.toml` build command:
+Example `wrangler.toml` build command:
 
 ```toml
 [build]

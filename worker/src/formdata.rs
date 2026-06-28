@@ -5,11 +5,11 @@ use crate::Date;
 use crate::DateInit;
 use crate::Result;
 
+use js_sys::futures::JsFuture;
 use js_sys::Array;
 use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use wasm_bindgen_futures::JsFuture;
 
 /// Representing the options any FormData value can be, a field or a file.
 #[derive(Debug)]

@@ -1,0 +1,6 @@
+name = "abort-signal-on-workers"
+main = "build/worker/shim.mjs"
+compatibility_date = "2026-04-28"
+
+[build]
+command = "cargo install \"worker-build@^0.8\" && worker-build --release"

@@ -1,7 +1,7 @@
 use crate::{env::EnvBinding, RequestInit, Result};
+use js_sys::futures::JsFuture;
 use std::convert::TryInto;
 use wasm_bindgen::{JsCast, JsValue};
-use wasm_bindgen_futures::JsFuture;
 
 #[cfg(feature = "http")]
 use crate::HttpResponse;

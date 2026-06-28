@@ -10,6 +10,7 @@ enum HandlerType {
     Start,
     #[cfg(feature = "queue")]
     Queue,
+    Email,
 }
 
 fn validate_event_fn(
@@ -59,7 +60,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     }
     let handler_type = handler_type.expect(
-        "must have either 'fetch', 'scheduled', 'queue' or 'start' attribute, e.g. #[event(fetch)]",
+        "must have either 'fetch', 'scheduled', 'queue', 'email', or 'start' attribute, e.g. #[event(fetch)]",
     );
 
     // create new var using syn item of the attributed fn
@@ -93,7 +94,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                     env: ::worker::Env,
                     ctx: ::worker::worker_sys::Context
                 ) -> ::worker::js_sys::Promise {
-                    ::worker::wasm_bindgen_futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
+                    ::worker::js_sys::futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
                         let ctx = worker::Context::new(ctx);
                         let response: ::worker::worker_sys::web_sys::Response = match ::worker::FromRequest::from_raw(req) {
                             Ok(req) => {
@@ -135,7 +136,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                 #input_fn
 
                 mod _worker_fetch {
-                    use ::worker::{wasm_bindgen, wasm_bindgen_futures};
+                    use ::worker::{wasm_bindgen, js_sys};
                     use super::#input_fn_ident;
                     #wasm_bindgen_code
                 }
@@ -158,7 +159,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             // with AssertUnwindSafe to support panic=unwind.
             let wrapper_fn = quote! {
                 pub fn #wrapper_fn_ident(event: ::worker::worker_sys::ScheduledEvent, env: ::worker::Env, ctx: ::worker::worker_sys::ScheduleContext) -> ::worker::js_sys::Promise {
-                    ::worker::wasm_bindgen_futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
+                    ::worker::js_sys::futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
                         // call the original fn
                         #input_fn_ident(::worker::ScheduledEvent::from(event), env, ::worker::ScheduleContext::from(ctx)).await;
                         Ok(::worker::wasm_bindgen::JsValue::UNDEFINED)
@@ -173,7 +174,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                 #input_fn
 
                 mod _worker_scheduled {
-                    use ::worker::{wasm_bindgen, wasm_bindgen_futures};
+                    use ::worker::wasm_bindgen;
                     use super::#input_fn_ident;
                     #wasm_bindgen_code
                 }
@@ -197,7 +198,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             // with AssertUnwindSafe to support panic=unwind.
             let wrapper_fn = quote! {
                 pub fn #wrapper_fn_ident(event: ::worker::worker_sys::MessageBatch, env: ::worker::Env, ctx: ::worker::worker_sys::Context) -> ::worker::js_sys::Promise {
-                    ::worker::wasm_bindgen_futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
+                    ::worker::js_sys::futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
                         // call the original fn
                         let ctx = worker::Context::new(ctx);
                         match #input_fn_ident(::worker::MessageBatch::from(event), env, ctx).await {
@@ -219,7 +220,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                 #input_fn
 
                 mod _worker_queue {
-                    use ::worker::{wasm_bindgen, wasm_bindgen_futures};
+                    use ::worker::wasm_bindgen;
                     use super::#input_fn_ident;
                     #wasm_bindgen_code
                 }
@@ -241,12 +242,52 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
 
             let output = quote! {
                 mod #mod_name {
-                    pub use ::worker::{wasm_bindgen, wasm_bindgen_futures};
+                    pub use ::worker::wasm_bindgen;
                 }
                 use #mod_name::*;
                 #wasm_bindgen_code
             };
 
+            TokenStream::from(output)
+        }
+        Email => {
+            validate_event_fn(&input_fn, Email, 3, true);
+            let input_fn_ident = Ident::new(
+                &(input_fn.sig.ident.to_string() + "_email_glue"),
+                input_fn.sig.ident.span(),
+            );
+            let wrapper_fn_ident = Ident::new("email", input_fn.sig.ident.span());
+            // rename the original attributed fn
+            input_fn.sig.ident = input_fn_ident.clone();
+
+            let wrapper_fn = quote! {
+                pub fn #wrapper_fn_ident(message: ::worker::ForwardableEmailMessage, env: ::worker::Env, ctx: ::worker::worker_sys::Context) -> ::worker::js_sys::Promise {
+                    ::worker::js_sys::futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
+                        let ctx = worker::Context::new(ctx);
+                        match #input_fn_ident(message, env, ctx).await {
+                            Ok(()) => {},
+                            Err(e) => {
+                                ::worker::console_log!("{}", &e);
+                                panic!("{}", e);
+                            }
+                        }
+                        Ok(::worker::wasm_bindgen::JsValue::UNDEFINED)
+                    }))
+                }
+            };
+            let wasm_bindgen_code =
+                wasm_bindgen_macro_support::expand(TokenStream::new().into(), wrapper_fn)
+                    .expect("wasm_bindgen macro failed to expand");
+
+            let output = quote! {
+                #input_fn
+
+                mod _worker_email {
+                    use ::worker::wasm_bindgen;
+                    use super::#input_fn_ident;
+                    #wasm_bindgen_code
+                }
+            };
             TokenStream::from(output)
         }
     }

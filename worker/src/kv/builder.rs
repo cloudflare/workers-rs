@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
+use js_sys::futures::JsFuture;
 use js_sys::{ArrayBuffer, Function, Map as JsMap, Object, Promise, Uint8Array};
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
 use serde_wasm_bindgen::Serializer;
 use wasm_bindgen::{JsCast, JsValue};
-use wasm_bindgen_futures::JsFuture;
 use web_sys::ReadableStream;
 
 use crate::kv::{self, KvError, ListResponse};
