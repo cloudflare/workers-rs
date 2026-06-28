@@ -7,6 +7,7 @@ kv_namespaces = [
     { binding = "SOME_NAMESPACE", id = "SOME_NAMESPACE", preview_id = "SOME_NAMESPACE" },
     { binding = "FILE_SIZES", id = "FILE_SIZES", preview_id = "FILE_SIZES" },
     { binding = "TEST", id = "TEST", preview_id = "TEST" },
+    { binding = "ROLLBACK_KV", id = "ROLLBACK_KV", preview_id = "ROLLBACK_KV" },
 ]
 
 [vars]
@@ -100,6 +101,11 @@ class_name = "EventWorkflow"
 name = "lifecycle-workflow"
 binding = "LIFECYCLE_WORKFLOW"
 class_name = "LifecycleWorkflow"
+
+[[workflows]]
+name = "rollback-workflow"
+binding = "ROLLBACK_WORKFLOW"
+class_name = "RollbackWorkflow"
 
 [[ratelimits]]
 name = "TEST_RATE_LIMITER"

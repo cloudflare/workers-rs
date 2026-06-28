@@ -28,7 +28,17 @@ impl WorkflowEntrypoint for MyWorkflow {
     }
 
     async fn run(&self, event: WorkflowEvent<MyParams>, step: WorkflowStep) -> Result<MyOutput> {
-        console_log!("Workflow started with instance ID: {}", event.instance_id);
+        console_log!(
+            "Workflow '{}' started with instance ID: {}",
+            event.workflow_name,
+            event.instance_id
+        );
+
+        // When triggered by a cron schedule (configured via `schedules` on the
+        // workflow binding in wrangler.toml), `event.schedule` is populated.
+        if let Some(schedule) = &event.schedule {
+            console_log!("Triggered by cron schedule: {}", schedule.cron);
+        }
 
         let params = event.payload;
 
@@ -42,6 +52,7 @@ impl WorkflowEntrypoint for MyWorkflow {
                     backoff: None,
                 }),
                 timeout: None,
+                sensitive: None,
             },
             move |ctx| {
                 let email = email_for_validation.clone();
@@ -91,6 +102,7 @@ impl WorkflowEntrypoint for MyWorkflow {
                         backoff: Some(Backoff::Exponential),
                     }),
                     timeout: Some("1 minute".into()),
+                    sensitive: None,
                 },
                 move |_ctx| {
                     let email = email_for_step3.clone();
@@ -110,9 +122,38 @@ impl WorkflowEntrypoint for MyWorkflow {
 
         console_log!("Step 3 completed: {:?}", notification_result);
 
+        // Step 4: saga-style rollback. If a later step fails, the runtime
+        // invokes the rollback handler (in reverse order of completion) to undo
+        // this step's side effects. The handler receives the step's output, the
+        // original step context, and the error that triggered the rollback.
+        let reservation = step
+            .do_with_rollback(
+                "reserve-inventory",
+                |_ctx| async move {
+                    console_log!("Reserving inventory");
+                    Ok(serde_json::json!({ "reservation_id": "resv_123" }))
+                },
+                Rollback::new(
+                    |rollback: WorkflowRollbackContext<serde_json::Value>| async move {
+                        if let Some(output) = &rollback.output {
+                            console_log!(
+                                "Rolling back '{}' (caused by: {}) — releasing {}",
+                                rollback.ctx.step.name,
+                                rollback.error.message,
+                                output
+                            );
+                        }
+                        Ok(())
+                    },
+                ),
+            )
+            .await?;
+
+        console_log!("Step 4 completed: {:?}", reservation);
+
         Ok(MyOutput {
             message: format!("Workflow completed for {}", params.name),
-            steps_completed: 3,
+            steps_completed: 4,
         })
     }
 }

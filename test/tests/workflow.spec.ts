@@ -145,6 +145,16 @@ describe("workflow", () => {
     await lifecycleAction("terminate", id);
   });
 
+  test("restart a running workflow from a specific step", async () => {
+    const id = await createLifecycleWorkflow();
+
+    expect((await lifecycleAction("restart-from", id)).status).toBe(200);
+    const status = await pollUntil(id, (s) => s !== "Queued");
+    expect(["Running", "Waiting", "Queued"]).toContain(status);
+
+    await lifecycleAction("terminate", id);
+  });
+
   test("wait_for_event receives sent event", async () => {
     const createResp = await mf.dispatchFetch(
       `${mfUrl}workflow/event/create`,
@@ -194,5 +204,45 @@ describe("workflow", () => {
       reason: "looks good",
       type: "approval",
     });
+  });
+
+  test("saga rollback runs when a downstream step fails", async () => {
+    const createResp = await mf.dispatchFetch(
+      `${mfUrl}workflow/rollback/create`,
+      { method: "POST" }
+    );
+    expect(createResp.status).toBe(200);
+    const { id } = (await createResp.json()) as { id: string };
+    expect(id).toBeDefined();
+
+    // The second step fails non-retryably, so the instance ends up errored.
+    let status: string | undefined;
+    for (let i = 0; i < 30; i++) {
+      const statusResp = await mf.dispatchFetch(
+        `${mfUrl}workflow/rollback/status/${id}`
+      );
+      expect(statusResp.status).toBe(200);
+      status = ((await statusResp.json()) as { status: string }).status;
+      if (status === "Complete" || status === "Errored") break;
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+    expect(status).toBe("Errored");
+
+    // The rollback handler records a marker in KV; poll until it appears.
+    let marker: string | null = null;
+    for (let i = 0; i < 30; i++) {
+      const markerResp = await mf.dispatchFetch(
+        `${mfUrl}workflow/rollback/marker/${id}`
+      );
+      expect(markerResp.status).toBe(200);
+      marker = ((await markerResp.json()) as { marker: string | null }).marker;
+      if (marker !== null) break;
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
+    // The marker is the error message that triggered the rollback. Its presence
+    // confirms the handler ran and saw the downstream failure.
+    expect(marker).not.toBeNull();
+    expect(marker).toContain("kaboom");
   });
 });

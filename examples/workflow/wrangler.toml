@@ -11,3 +11,6 @@ command = "RUSTFLAGS='--cfg=web_sys_unstable_apis' ../../target/release/worker-b
 name = "my-workflow"
 binding = "MY_WORKFLOW"
 class_name = "MyWorkflow"
+# Optionally trigger this workflow on a cron schedule. When triggered this way,
+# `WorkflowEvent::schedule` is populated with the matching cron expression.
+# schedules = ["0 * * * *", "*/15 * * * *"]

@@ -77,7 +77,7 @@ const mf_instance = new Miniflare({
           useSQLite: true,
         },
       },
-      kvNamespaces: ["SOME_NAMESPACE", "FILE_SIZES", "TEST"],
+      kvNamespaces: ["SOME_NAMESPACE", "FILE_SIZES", "TEST", "ROLLBACK_KV"],
       serviceBindings: {
         async remote() {
           return new Response("hello world");
@@ -131,6 +131,11 @@ const mf_instance = new Miniflare({
           className: "LifecycleWorkflow",
           scriptName: "workflow-worker",
         },
+        ROLLBACK_WORKFLOW: {
+          name: "rollback-workflow",
+          className: "RollbackWorkflow",
+          scriptName: "workflow-worker",
+        },
       },
       ratelimits: {
         TEST_RATE_LIMITER: {
@@ -160,6 +165,9 @@ const mf_instance = new Miniflare({
         { type: "CompiledWasm", include: ["**/*.wasm"], fallthrough: true },
       ],
       compatibilityDate: "2025-07-24",
+      // Shared with the main worker (same namespace id) so the RollbackWorkflow's
+      // rollback handler can record a marker the test reads back.
+      kvNamespaces: ["ROLLBACK_KV"],
     },
     {
       name: "mini-analytics-engine",

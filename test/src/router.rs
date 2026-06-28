@@ -255,6 +255,10 @@ macro_rules! add_routes (
     add_route!($obj, post, format_route!("/workflow/lifecycle/resume/{}", "id"), workflow::handle_lifecycle_workflow_resume);
     add_route!($obj, post, format_route!("/workflow/lifecycle/terminate/{}", "id"), workflow::handle_lifecycle_workflow_terminate);
     add_route!($obj, post, format_route!("/workflow/lifecycle/restart/{}", "id"), workflow::handle_lifecycle_workflow_restart);
+    add_route!($obj, post, format_route!("/workflow/lifecycle/restart-from/{}", "id"), workflow::handle_lifecycle_workflow_restart_from);
+    add_route!($obj, post, "/workflow/rollback/create", workflow::handle_rollback_workflow_create);
+    add_route!($obj, get, format_route!("/workflow/rollback/status/{}", "id"), workflow::handle_rollback_workflow_status);
+    add_route!($obj, get, format_route!("/workflow/rollback/marker/{}", "id"), workflow::handle_rollback_workflow_marker);
     add_route!($obj, get, "/send-email", send_email::handle_send_email);
     add_route!($obj, get, "/signal/poll", signal::handle_signal_poll);
 });

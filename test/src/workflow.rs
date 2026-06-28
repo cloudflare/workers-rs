@@ -81,6 +81,7 @@ impl WorkflowEntrypoint for TestWorkflow {
                         backoff: None,
                     }),
                     timeout: None,
+                    sensitive: None,
                 },
                 move |ctx| {
                     let value = value_for_validation.clone();
@@ -313,4 +314,105 @@ pub async fn handle_lifecycle_workflow_restart(
     let instance = get_workflow_instance(&req, &env, "LIFECYCLE_WORKFLOW").await?;
     instance.restart().await?;
     Response::ok("restarted")
+}
+
+pub async fn handle_lifecycle_workflow_restart_from(
+    req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let instance = get_workflow_instance(&req, &env, "LIFECYCLE_WORKFLOW").await?;
+    instance
+        .restart_with_options(RestartOptions {
+            from: Some(RestartFrom {
+                name: "long-sleep".to_string(),
+                count: Some(1),
+                type_: Some(StepType::Sleep),
+            }),
+        })
+        .await?;
+    Response::ok("restarted")
+}
+
+// Saga rollback: a first step succeeds with a rollback handler attached, then a
+// second step fails non-retryably. The runtime then invokes the rollback, which
+// records a marker in KV keyed by the instance id so the test can confirm it ran.
+fn rollback_marker_key(instance_id: &str) -> String {
+    format!("rollback:{instance_id}")
+}
+
+#[workflow]
+pub struct RollbackWorkflow {
+    env: Env,
+}
+
+impl WorkflowEntrypoint for RollbackWorkflow {
+    type Input = ();
+    type Output = ();
+
+    fn new(_ctx: Context, env: Env) -> Self {
+        Self { env }
+    }
+
+    async fn run(&self, event: WorkflowEvent<()>, step: WorkflowStep) -> Result<()> {
+        let kv = self.env.kv("ROLLBACK_KV")?;
+        let instance_id = event.instance_id.clone();
+
+        step.do_with_rollback(
+            "reserve",
+            |_ctx| async move { Ok(serde_json::json!({ "reserved": true })) },
+            Rollback::new(
+                move |rollback: WorkflowRollbackContext<serde_json::Value>| {
+                    let kv = kv.clone();
+                    let key = rollback_marker_key(&instance_id);
+                    let reason = rollback.error.message.clone();
+                    async move {
+                        kv.put(&key, reason)?.execute().await?;
+                        Ok(())
+                    }
+                },
+            ),
+        )
+        .await?;
+
+        // Downstream failure triggers the rollback registered above.
+        step.do_("explode", |_ctx| async move {
+            Err::<serde_json::Value, Error>(NonRetryableError::new("kaboom").into())
+        })
+        .await?;
+
+        Ok(())
+    }
+}
+
+pub async fn handle_rollback_workflow_create(
+    _req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    create_workflow_no_params(&env, "ROLLBACK_WORKFLOW").await
+}
+
+pub async fn handle_rollback_workflow_status(
+    req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let instance = get_workflow_instance(&req, &env, "ROLLBACK_WORKFLOW").await?;
+    let status = instance.status().await?;
+    status_response(status)
+}
+
+pub async fn handle_rollback_workflow_marker(
+    req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let id = last_path_segment(&req)?;
+    let marker = env
+        .kv("ROLLBACK_KV")?
+        .get(&rollback_marker_key(&id))
+        .text()
+        .await?;
+    Response::from_json(&serde_json::json!({ "marker": marker }))
 }

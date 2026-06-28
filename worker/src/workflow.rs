@@ -249,9 +249,19 @@ impl WorkflowInstance {
         Ok(())
     }
 
-    /// Restart the workflow instance.
+    /// Restart the workflow instance from the beginning.
     pub async fn restart(&self) -> Result<()> {
         SendFuture::new(self.inner.restart()).await?;
+        Ok(())
+    }
+
+    /// Restart the workflow instance, optionally from a specific step.
+    ///
+    /// When [`RestartOptions::from`] is set, cached results for all steps before
+    /// the named step are preserved and execution resumes from that step.
+    pub async fn restart_with_options(&self, options: RestartOptions) -> Result<()> {
+        let options_js = options.serialize(&workflow_serializer())?;
+        SendFuture::new(self.inner.restart_with_options(options_js)).await?;
         Ok(())
     }
 
@@ -305,6 +315,40 @@ pub enum InstanceStatusKind {
 pub struct InstanceError {
     pub name: String,
     pub message: String,
+}
+
+/// Options for [`WorkflowInstance::restart_with_options`].
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct RestartOptions {
+    /// Restart from a specific step. If `None`, the instance restarts from the
+    /// beginning. The step must exist in the instance's execution history.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub from: Option<RestartFrom>,
+}
+
+/// Identifies the step to restart a workflow instance from.
+#[derive(Debug, Clone, Serialize)]
+pub struct RestartFrom {
+    /// The step name as defined in your workflow code.
+    pub name: String,
+    /// 1-indexed occurrence of this step name. Use when the same step name
+    /// appears multiple times (e.g. in a loop). Defaults to `1`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub count: Option<u32>,
+    /// Step type filter. Use when different step types share the same name.
+    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
+    pub type_: Option<StepType>,
+}
+
+/// The kind of a workflow step, used to disambiguate steps in [`RestartFrom`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum StepType {
+    #[serde(rename = "do")]
+    Do,
+    #[serde(rename = "sleep")]
+    Sleep,
+    #[serde(rename = "waitForEvent")]
+    WaitForEvent,
 }
 
 /// Context passed to step callbacks with information about the current step invocation.
@@ -366,11 +410,71 @@ impl WorkflowStepContext {
     }
 }
 
+/// Context passed to a step's rollback (compensation) handler.
+///
+/// `T` is the step's output type. See [`WorkflowStep::do_with_rollback`].
+#[derive(Debug, Clone)]
+pub struct WorkflowRollbackContext<T> {
+    /// The original context of the step being rolled back.
+    pub ctx: WorkflowStepContext,
+    /// The error that triggered the rollback.
+    pub error: StepError,
+    /// The output the step produced, if it completed successfully before the
+    /// downstream failure. `None` if the step itself never produced output.
+    pub output: Option<T>,
+}
+
+impl<T: DeserializeOwned> WorkflowRollbackContext<T> {
+    fn from_js(value: &JsValue) -> std::result::Result<Self, JsValue> {
+        let ctx = WorkflowStepContext::from_js(&get_property(value, "ctx")?);
+        let error = StepError::from_js(&get_property(value, "error")?);
+        let output_val = get_property(value, "output")?;
+        let output = if output_val.is_undefined() || output_val.is_null() {
+            None
+        } else {
+            Some(serde_wasm_bindgen::from_value(output_val).map_err(JsValue::from)?)
+        };
+        Ok(Self { ctx, error, output })
+    }
+}
+
+/// The error that triggered a step rollback, mirroring a JS `Error`.
+#[derive(Debug, Clone)]
+pub struct StepError {
+    pub name: String,
+    pub message: String,
+}
+
+impl StepError {
+    fn from_js(value: &JsValue) -> Self {
+        let read = |key: &str| {
+            get_property(value, key)
+                .ok()
+                .and_then(|v| v.as_string())
+                .unwrap_or_default()
+        };
+        Self {
+            name: read("name"),
+            message: read("message"),
+        }
+    }
+}
+
+impl std::fmt::Display for StepError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: {}", self.name, self.message)
+    }
+}
+
+impl std::error::Error for StepError {}
+
 /// A step configuration with runtime defaults applied.
 #[derive(Debug, Clone)]
 pub struct ResolvedStepConfig {
     pub timeout: WorkflowSleepDuration,
     pub retries: ResolvedRetryConfig,
+    /// Set when the step was marked sensitive via [`StepConfig::sensitive`].
+    pub sensitive: Option<StepSensitivity>,
 }
 
 impl ResolvedStepConfig {
@@ -384,7 +488,14 @@ impl ResolvedStepConfig {
             .ok()
             .map(|v| ResolvedRetryConfig::from_js(&v))
             .unwrap_or(defaults.retries);
-        Self { timeout, retries }
+        let sensitive = get_property(val, "sensitive")
+            .ok()
+            .and_then(|v| serde_wasm_bindgen::from_value(v).ok());
+        Self {
+            timeout,
+            retries,
+            sensitive,
+        }
     }
 }
 
@@ -393,6 +504,7 @@ impl Default for ResolvedStepConfig {
         Self {
             timeout: WorkflowSleepDuration::new(10, WorkflowDuration::Minutes),
             retries: ResolvedRetryConfig::default(),
+            sensitive: None,
         }
     }
 }
@@ -493,6 +605,33 @@ impl WorkflowStep {
         })
     }
 
+    /// Wrap a rollback handler into a JS function and hand it to the JS GC.
+    ///
+    /// Unlike step callbacks (invoked synchronously during the `do_*` await),
+    /// a rollback handler runs later, when a downstream step fails,
+    /// after `run` has already returned. The closure must therefore outlive
+    /// this call, so we leak it via `into_js_value` rather than dropping it at
+    /// the end of the step.
+    fn wrap_rollback_callback<T, RF, RFut>(rollback: RF) -> JsValue
+    where
+        T: DeserializeOwned + 'static,
+        RF: Fn(WorkflowRollbackContext<T>) -> RFut + 'static,
+        RFut: Future<Output = Result<()>> + 'static,
+    {
+        let rollback = Rc::new(AssertUnwindSafe(rollback));
+        let closure = wasm_bindgen::closure::Closure::<dyn FnMut(JsValue) -> js_sys::Promise>::new(
+            move |ctx: JsValue| -> js_sys::Promise {
+                let rollback = rollback.clone();
+                future_to_promise(AssertUnwindSafe(async move {
+                    let context = WorkflowRollbackContext::<T>::from_js(&ctx)?;
+                    (rollback.0)(context).await.map_err(JsValue::from)?;
+                    Ok(JsValue::UNDEFINED)
+                }))
+            },
+        );
+        closure.into_js_value()
+    }
+
     /// Execute a named step. The callback's return value is persisted and
     /// returned without re-executing on replay.
     pub async fn do_<T, F, Fut>(&self, name: &str, callback: F) -> Result<T>
@@ -523,6 +662,102 @@ impl WorkflowStep {
         let closure = Self::wrap_callback(callback);
         let js_fn = closure.as_ref().unchecked_ref::<js_sys::Function>();
         let result = SendFuture::new(self.0.do_with_config(name, config_js, js_fn)).await?;
+        Ok(serde_wasm_bindgen::from_value(result)?)
+    }
+
+    /// Execute a named step with a saga-style rollback (compensation) handler.
+    ///
+    /// If a later step in the workflow fails, the runtime invokes the
+    /// `rollback` handler to undo this step's side effects. Handlers run in
+    /// reverse order of step completion. The handler receives a
+    /// [`WorkflowRollbackContext`] with the original step context, the error
+    /// that triggered the rollback, and this step's output.
+    ///
+    /// Use [`Rollback::new`] for a handler with default retry/timeout, or
+    /// [`Rollback::with_config`] to customize them.
+    pub async fn do_with_rollback<T, F, Fut, RF, RFut>(
+        &self,
+        name: &str,
+        callback: F,
+        rollback: Rollback<RF>,
+    ) -> Result<T>
+    where
+        T: Serialize + DeserializeOwned + 'static,
+        F: Fn(WorkflowStepContext) -> Fut + 'static,
+        Fut: Future<Output = Result<T>> + 'static,
+        RF: Fn(WorkflowRollbackContext<T>) -> RFut + 'static,
+        RFut: Future<Output = Result<()>> + 'static,
+    {
+        self.do_rollback_inner(name, StepConfig::default(), callback, rollback)
+            .await
+    }
+
+    /// Execute a named step with retry/timeout configuration and a saga-style
+    /// rollback (compensation) handler. See [`do_with_rollback`] for rollback
+    /// semantics.
+    ///
+    /// [`do_with_rollback`]: WorkflowStep::do_with_rollback
+    pub async fn do_with_config_and_rollback<T, F, Fut, RF, RFut>(
+        &self,
+        name: &str,
+        config: StepConfig,
+        callback: F,
+        rollback: Rollback<RF>,
+    ) -> Result<T>
+    where
+        T: Serialize + DeserializeOwned + 'static,
+        F: Fn(WorkflowStepContext) -> Fut + 'static,
+        Fut: Future<Output = Result<T>> + 'static,
+        RF: Fn(WorkflowRollbackContext<T>) -> RFut + 'static,
+        RFut: Future<Output = Result<()>> + 'static,
+    {
+        self.do_rollback_inner(name, config, callback, rollback)
+            .await
+    }
+
+    async fn do_rollback_inner<T, F, Fut, RF, RFut>(
+        &self,
+        name: &str,
+        config: StepConfig,
+        callback: F,
+        rollback: Rollback<RF>,
+    ) -> Result<T>
+    where
+        T: Serialize + DeserializeOwned + 'static,
+        F: Fn(WorkflowStepContext) -> Fut + 'static,
+        Fut: Future<Output = Result<T>> + 'static,
+        RF: Fn(WorkflowRollbackContext<T>) -> RFut + 'static,
+        RFut: Future<Output = Result<()>> + 'static,
+    {
+        let config_js = serde_wasm_bindgen::to_value(&config)?;
+        let closure = Self::wrap_callback(callback);
+        let js_fn = closure.as_ref().unchecked_ref::<js_sys::Function>();
+
+        let rollback_options = Object::new();
+        let rollback_fn = Self::wrap_rollback_callback(rollback.handler);
+        Reflect::set(
+            &rollback_options,
+            &JsValue::from_str("rollback"),
+            &rollback_fn,
+        )
+        .map_err(|e| crate::Error::JsError(format!("failed to set rollback: {e:?}")))?;
+        if let Some(rollback_config) = rollback.config {
+            let cfg_js = serde_wasm_bindgen::to_value(&rollback_config)?;
+            Reflect::set(
+                &rollback_options,
+                &JsValue::from_str("rollbackConfig"),
+                &cfg_js,
+            )
+            .map_err(|e| crate::Error::JsError(format!("failed to set rollbackConfig: {e:?}")))?;
+        }
+
+        let result = SendFuture::new(self.0.do_with_rollback(
+            name,
+            config_js,
+            js_fn,
+            rollback_options.into(),
+        ))
+        .await?;
         Ok(serde_wasm_bindgen::from_value(result)?)
     }
 
@@ -612,6 +847,18 @@ pub struct StepConfig {
     pub retries: Option<RetryConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timeout: Option<WorkflowSleepDuration>,
+    /// Marks the step's output as sensitive so it is redacted from observability.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sensitive: Option<StepSensitivity>,
+}
+
+/// Marks data attached to a step as sensitive so it is redacted from logs and
+/// the observability UI.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum StepSensitivity {
+    /// Redact the step's output.
+    Output,
 }
 
 /// Retry configuration for a workflow step.
@@ -632,6 +879,55 @@ pub enum Backoff {
     Exponential,
 }
 
+/// Retry and timeout configuration for a step's rollback handler.
+///
+/// This is the rollback counterpart of [`StepConfig`]; only `retries` and
+/// `timeout` apply to rollback handlers.
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct RollbackConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub retries: Option<RetryConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timeout: Option<WorkflowSleepDuration>,
+}
+
+/// A rollback (compensation) handler plus its optional configuration, passed to
+/// [`WorkflowStep::do_with_rollback`] / [`WorkflowStep::do_with_config_and_rollback`].
+///
+/// `RF` is an `async` closure of the form
+/// `Fn(WorkflowRollbackContext<T>) -> impl Future<Output = Result<()>>`, where
+/// `T` is the step's output type.
+pub struct Rollback<RF> {
+    handler: RF,
+    config: Option<RollbackConfig>,
+}
+
+impl<RF> std::fmt::Debug for Rollback<RF> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Rollback")
+            .field("config", &self.config)
+            .finish_non_exhaustive()
+    }
+}
+
+impl<RF> Rollback<RF> {
+    /// Create a rollback handler with default retry/timeout configuration.
+    pub fn new(handler: RF) -> Self {
+        Self {
+            handler,
+            config: None,
+        }
+    }
+
+    /// Create a rollback handler with custom retry/timeout configuration.
+    pub fn with_config(handler: RF, config: RollbackConfig) -> Self {
+        Self {
+            handler,
+            config: Some(config),
+        }
+    }
+}
+
 /// Options for waiting for an external event.
 #[derive(Debug, Clone, Serialize)]
 pub struct WaitForEventOptions {
@@ -647,6 +943,8 @@ pub struct WorkflowStepEvent<T> {
     pub payload: T,
     pub timestamp: crate::Date,
     pub type_: String,
+    /// Set when the event payload was marked sensitive.
+    pub sensitive: Option<StepSensitivity>,
 }
 
 impl<T: DeserializeOwned> WorkflowStepEvent<T> {
@@ -655,6 +953,9 @@ impl<T: DeserializeOwned> WorkflowStepEvent<T> {
             payload: serde_wasm_bindgen::from_value(get_property(&value, "payload")?)?,
             timestamp: get_timestamp_property(&value, "timestamp")?,
             type_: get_string_property(&value, "type")?,
+            sensitive: get_property(&value, "sensitive")
+                .ok()
+                .and_then(|v| serde_wasm_bindgen::from_value(v).ok()),
         })
     }
 }
@@ -668,6 +969,11 @@ pub struct WorkflowEvent<T> {
     pub payload: T,
     pub timestamp: crate::Date,
     pub instance_id: String,
+    /// The name of the workflow this instance belongs to.
+    pub workflow_name: String,
+    /// Present when the instance was triggered by a cron schedule configured
+    /// via the `schedules` field of the workflow binding in `wrangler.toml`.
+    pub schedule: Option<WorkflowCronSchedule>,
 }
 
 impl<T: DeserializeOwned> WorkflowEvent<T> {
@@ -677,7 +983,42 @@ impl<T: DeserializeOwned> WorkflowEvent<T> {
             payload: serde_wasm_bindgen::from_value(get_property(&value, "payload")?)?,
             timestamp: get_timestamp_property(&value, "timestamp")?,
             instance_id: get_string_property(&value, "instanceId")?,
+            // Older runtimes don't populate `workflowName`; default rather than fail.
+            workflow_name: get_property(&value, "workflowName")
+                .ok()
+                .and_then(|v| v.as_string())
+                .unwrap_or_default(),
+            schedule: WorkflowCronSchedule::from_js(&value)?,
         })
+    }
+}
+
+/// Details of the cron trigger that started a scheduled workflow instance.
+///
+/// Populated on [`WorkflowEvent::schedule`] when the instance was started by a
+/// cron schedule declared on the workflow binding (the `schedules` field in
+/// `wrangler.toml`).
+#[derive(Debug, Clone)]
+pub struct WorkflowCronSchedule {
+    /// The cron expression that triggered this instance.
+    pub cron: String,
+    /// The scheduled trigger time, if the runtime reported one.
+    pub scheduled_time: Option<crate::Date>,
+}
+
+impl WorkflowCronSchedule {
+    /// Parse the optional `schedule` property off a workflow event object.
+    fn from_js(event: &JsValue) -> Result<Option<Self>> {
+        let schedule = get_property(event, "schedule")?;
+        if schedule.is_undefined() || schedule.is_null() {
+            return Ok(None);
+        }
+        let scheduled_time = get_f64_property(&schedule, "scheduledTime")
+            .map(|ms| crate::Date::new(crate::DateInit::Millis(ms as u64)));
+        Ok(Some(Self {
+            cron: get_string_property(&schedule, "cron")?,
+            scheduled_time,
+        }))
     }
 }
 

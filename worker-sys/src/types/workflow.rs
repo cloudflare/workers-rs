@@ -21,6 +21,20 @@ extern "C" {
         callback: &js_sys::Function,
     ) -> Result<JsValue, JsValue>;
 
+    // Saga-style rollback variant. We always route through this 4-argument
+    // overload (`do(name, config, callback, rollbackOptions)`) rather than the
+    // 3-argument `do(name, callback, rollbackOptions)` form: when both `config`
+    // and `rollbackOptions` are plain objects the 3-argument form is positionally
+    // ambiguous, and some runtimes (e.g. older Miniflare) misparse it.
+    #[wasm_bindgen(method, catch, js_name = "do")]
+    pub async fn do_with_rollback(
+        this: &WorkflowStep,
+        name: &str,
+        config: JsValue,
+        callback: &js_sys::Function,
+        rollback_options: JsValue,
+    ) -> Result<JsValue, JsValue>;
+
     #[wasm_bindgen(method, catch)]
     pub async fn sleep(
         this: &WorkflowStep,
@@ -75,6 +89,12 @@ extern "C" {
 
     #[wasm_bindgen(method, catch)]
     pub async fn restart(this: &WorkflowInstanceSys) -> Result<JsValue, JsValue>;
+
+    #[wasm_bindgen(method, catch, js_name = "restart")]
+    pub async fn restart_with_options(
+        this: &WorkflowInstanceSys,
+        options: JsValue,
+    ) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(method, catch)]
     pub async fn status(this: &WorkflowInstanceSys) -> Result<JsValue, JsValue>;
