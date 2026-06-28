@@ -27,3 +27,4 @@ trybuild.workspace = true
 [features]
 queue = []
 http = []
+workflow = []

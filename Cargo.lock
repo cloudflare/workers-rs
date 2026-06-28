@@ -4176,6 +4176,7 @@ dependencies = [
  "cfg-if",
  "js-sys",
  "wasm-bindgen",
+ "wasm-bindgen-futures",
  "web-sys",
 ]
 
@@ -4187,6 +4188,15 @@ dependencies = [
  "serde",
  "serde_json",
  "web-sys",
+ "worker",
+]
+
+[[package]]
+name = "workflow-example"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
  "worker",
 ]
 

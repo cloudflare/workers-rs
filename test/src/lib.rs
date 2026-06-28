@@ -39,6 +39,7 @@ mod socket;
 mod sql_counter;
 mod sql_iterator;
 mod user;
+mod workflow;
 mod ws;
 
 #[derive(Deserialize, Serialize)]
