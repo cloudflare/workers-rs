@@ -175,6 +175,32 @@ pub async fn session_bookmark_roundtrip(
 }
 
 #[worker::send]
+pub async fn blob_roundtrip(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let db = env.d1("DB")?;
+
+    db.exec("CREATE TABLE IF NOT EXISTS blobs (id INTEGER PRIMARY KEY, data BLOB NOT NULL);")
+        .await?;
+
+    let bytes: &[u8] = &[0x00, 0x01, 0x02, 0xfd, 0xfe, 0xff];
+    let insert = worker::query!(&db, "INSERT OR REPLACE INTO blobs (id, data) VALUES (1, ?)");
+    insert.bind_refs(&D1Type::Blob(bytes))?.run().await?;
+
+    // Verify the bound value arrived in SQLite byte-for-byte.
+    let stmt = worker::query!(&db, "SELECT hex(data) AS h FROM blobs WHERE id = 1");
+    let hex = stmt.first::<String>(Some("h")).await?.unwrap();
+    assert_eq!(hex, "000102FDFEFF");
+
+    let insert = worker::query!(&db, "INSERT OR REPLACE INTO blobs (id, data) VALUES (2, ?)");
+    insert.bind_refs(&D1Type::Blob(&[]))?.run().await?;
+
+    let stmt = worker::query!(&db, "SELECT length(data) AS l FROM blobs WHERE id = 2");
+    let len = stmt.first::<u32>(Some("l")).await?.unwrap();
+    assert_eq!(len, 0);
+
+    Response::ok("ok")
+}
+
+#[worker::send]
 pub async fn exec(mut req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let db = env.d1("DB")?;
     let result = db
