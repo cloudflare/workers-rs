@@ -16,13 +16,16 @@ use worker::{
 pub struct MyClass {
     state: State,
     number: AssertUnwindSafe<Cell<usize>>,
+    ctor_name: Option<String>,
 }
 
 impl DurableObject for MyClass {
     fn new(state: State, _env: Env) -> Self {
+        let ctor_name = state.id().name();
         Self {
             state,
             number: AssertUnwindSafe(Cell::new(0)),
+            ctor_name,
         }
     }
 
@@ -35,6 +38,15 @@ impl DurableObject for MyClass {
                         .state
                         .id()
                         .name()
+                        .unwrap_or_else(|| "unknown".to_string());
+                    Response::ok(format!("Hello from {name}!"))
+                }
+                "/ctor-name" => {
+                    // Return the name captured in the constructor, verifying it
+                    // is available before any request is handled.
+                    let name = self
+                        .ctor_name
+                        .clone()
                         .unwrap_or_else(|| "unknown".to_string());
                     Response::ok(format!("Hello from {name}!"))
                 }
@@ -210,6 +222,19 @@ pub async fn handle_hello(
     let id = namespace.id_from_name(name)?;
     let stub = id.get_stub()?;
     stub.fetch_with_str("https://fake-host/hello").await
+}
+
+#[worker::send]
+pub async fn handle_ctor_name(
+    _req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let namespace = env.durable_object("MY_CLASS")?;
+    let name = "my-durable-object";
+    let id = namespace.id_from_name(name)?;
+    let stub = id.get_stub()?;
+    stub.fetch_with_str("https://fake-host/ctor-name").await
 }
 
 #[worker::send]
