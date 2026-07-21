@@ -1,0 +1,6 @@
+name = "tcp-socket-on-workers"
+main = "build/index.js"
+compatibility_date = "2025-01-01"
+
+[build]
+command = "cargo install \"worker-build@^0.8\" && worker-build --release"
