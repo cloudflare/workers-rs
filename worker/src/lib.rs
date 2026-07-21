@@ -195,7 +195,7 @@ pub use crate::response::{EncodeBody, IntoResponse, Response, ResponseBody, Resp
 pub use crate::router::{RouteContext, RouteParams, Router};
 pub use crate::schedule::*;
 pub use crate::secret_store::SecretStore;
-pub use crate::socket::*;
+pub use crate::socket::{ConnectionBuilder, FromSocket, SecureTransport, Socket, SocketAddress, SocketInfo, SocketOptions};
 pub use crate::streams::*;
 pub use crate::version::*;
 pub use crate::websocket::*;

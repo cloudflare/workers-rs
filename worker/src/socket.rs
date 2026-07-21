@@ -62,7 +62,31 @@ enum Closing {
     None,
 }
 
-/// Represents an outbound TCP connection from your Worker.
+/// A trait used to represent any viable Socket type that can be used in the Worker.
+/// The only requirement is that it be convertible from a `worker_sys::Socket`.
+pub trait FromSocket: std::marker::Sized {
+    fn from_raw(
+        socket: worker_sys::Socket,
+    ) -> std::result::Result<Self, impl Into<Box<dyn std::error::Error>>>;
+}
+
+impl FromSocket for worker_sys::Socket {
+    fn from_raw(
+        socket: worker_sys::Socket,
+    ) -> std::result::Result<Self, impl Into<Box<dyn std::error::Error>>> {
+        Ok::<worker_sys::Socket, Error>(socket)
+    }
+}
+
+impl FromSocket for Socket {
+    fn from_raw(
+        socket: worker_sys::Socket,
+    ) -> std::result::Result<Self, impl Into<Box<dyn std::error::Error>>> {
+        Ok::<Socket, Error>(Socket::new(socket))
+    }
+}
+
+/// Represents a TCP socket connection.
 #[derive(Debug)]
 pub struct Socket {
     inner: worker_sys::Socket,
