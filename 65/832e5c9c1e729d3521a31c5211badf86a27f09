@@ -1,0 +1,21 @@
+Cargo.lock
+  s_47d04d66729438::t_79d417b2c7978b 193,204,1498,1671,3266,4425,4482,4961,5292-5302,5379,5514,5545,5549,6463,6697
+examples/emscripten-tokio-min/Cargo.toml
+  s_47d04d66729438::t_ae3f2f85138430 1-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "65832e5c9c1e729d3521a31c5211badf86a27f09",
+  "prompts": {},
+  "sessions": {
+    "s_47d04d66729438": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_0596ffc8dffeC6yRIvupPpozSe",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Guy Bedford <guybedford@gmail.com>"
+    }
+  }
+}
