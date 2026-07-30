@@ -1,14 +1,15 @@
 //! Custom trace spans for Workers Observability, in Rust.
 //!
-//! Wraps the request in an async platform span, nests a sync span under it,
-//! and lets the `WorkersLayer` forward `tracing` events onto the active span.
-//! Deploy with `observability.traces` enabled (see `wrangler.toml`) and the
-//! spans appear in the trace waterfall alongside the automatic `fetch` span.
+//! Wraps the request in an async platform span, nests a sync span under it, and
+//! lets the `WorkersLayer` turn ordinary `tracing` spans and events into
+//! platform spans and attributes. Deploy with `observability.traces` enabled
+//! (see `wrangler.toml`) and they appear in the trace waterfall alongside the
+//! automatic `fetch` span.
 
 mod layer;
 
 use layer::WorkersLayer;
-use tracing::info;
+use tracing::{info, instrument};
 use tracing_subscriber::prelude::*;
 use worker::observability::{enter_span, enter_span_async};
 use worker::{event, Context, Env, Request, Response, Result};
@@ -39,8 +40,13 @@ async fn fetch(req: Request, _env: Env, _ctx: Context) -> Result<Response> {
             rows
         });
 
+        // ...and the same work instrumented the ordinary `tracing` way. The
+        // layer opens a platform span on entry and ends it on close, so this
+        // gets a platform-measured duration with no Workers-specific code.
+        let total = summarize(rows);
+
         info!(rows, "query complete");
-        Response::ok(format!("loaded {rows} rows for {path}"))
+        Response::ok(format!("loaded {rows} rows for {path}, total {total}"))
     })
     .await
 }
@@ -48,4 +54,12 @@ async fn fetch(req: Request, _env: Env, _ctx: Context) -> Result<Response> {
 /// Stand-in for real work — a Worker would hit D1 / KV / a binding here.
 fn expensive_query() -> u32 {
     1234
+}
+
+/// Instrumented with plain `tracing`: `WorkersLayer` bridges the span lifetime
+/// onto `startActiveSpan` / `span.end()`, and `rows` becomes an attribute.
+#[instrument]
+fn summarize(rows: u32) -> u32 {
+    info!("summarizing");
+    rows * 2
 }

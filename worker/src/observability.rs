@@ -19,17 +19,22 @@
 //! # }
 //! ```
 //!
-//! Spans are **callback-scoped**: a span opens when `enter_span` is called and
-//! closes when the callback returns (sync) or its future resolves (async).
-//! There is no imperative start/end — the platform measures duration itself,
-//! which is why durations are accurate even though guest timer resolution is
-//! clamped.
+//! [`enter_span`] / [`enter_span_async`] are **callback-scoped**: the span opens
+//! on the call and closes when the callback returns (sync) or its future
+//! resolves (async). For work that outlives a callback — a stream, or a span
+//! whose start and end are driven by separate events — [`start_active_span`]
+//! opens a span you close yourself with [`Span::end`].
+//!
+//! Either way the platform measures the duration, which is why durations are
+//! accurate even though guest timer resolution is clamped.
 //!
 //! ## Bridging the `tracing` crate
 //!
-//! [`with_active_span`] exposes the innermost open span so a
-//! `tracing_subscriber::Layer` can forward `tracing` events/fields onto it as
-//! attributes. A ready-made layer isn't included here to keep this crate free
+//! [`start_active_span`] + [`Span::end`] map onto `tracing`'s two-phase span
+//! lifetime (`on_new_span` / `on_close`), so a `tracing_subscriber::Layer` can
+//! turn every `tracing::span!` into a real platform span with a real duration;
+//! [`with_active_span`] forwards events onto the innermost span opened by
+//! `enter_span`. A ready-made layer isn't included here to keep this crate free
 //! of a `tracing-subscriber` dependency — see the `custom-spans` example for a
 //! `WorkersLayer` you can copy.
 //!
@@ -45,8 +50,9 @@ use wasm_bindgen_futures::{future_to_promise, JsFuture};
 use crate::bindings::tracing as raw;
 
 /// A handle to an open span. Cheap to clone (a refcounted JS object). Valid
-/// only while the span that produced it is open, which by construction is the
-/// body of the [`enter_span`] / [`enter_span_async`] call that yielded it.
+/// while the span that produced it is open: the body of the [`enter_span`] /
+/// [`enter_span_async`] call that yielded it, or, for [`start_active_span`],
+/// until [`Span::end`] is called.
 #[derive(Debug, Clone)]
 pub struct Span(raw::Span);
 
@@ -61,6 +67,16 @@ impl Span {
     /// expensive attributes when the span won't be recorded.
     pub fn is_traced(&self) -> bool {
         self.0.is_traced()
+    }
+
+    /// Close a span opened by [`start_active_span`]. Idempotent — calls after
+    /// the first do nothing — so a span whose end is driven by racing events
+    /// (a stream that either completes or is cancelled) can end from both.
+    ///
+    /// A no-op on a span from [`enter_span`] / [`enter_span_async`], which the
+    /// platform closes when the callback returns.
+    pub fn end(&self) {
+        self.0.end();
     }
 }
 
@@ -154,6 +170,44 @@ pub fn enter_span<T>(name: &str, f: impl FnOnce(&Span) -> T) -> T {
     }
 
     out.expect("enterSpan must invoke its callback synchronously")
+}
+
+/// Open a custom span named `name` that stays open until [`Span::end`] is
+/// called, and return its handle. For work whose end isn't a callback return:
+/// a stream that outlives the handler, or a `tracing_subscriber::Layer`
+/// bridging `tracing`'s separate `on_new_span` / `on_close` (see the
+/// `custom-spans` example).
+///
+/// Prefer [`enter_span`] / [`enter_span_async`] when the work *is* callback
+/// shaped: they can't leak an unclosed span, and anything they open nests under
+/// them automatically.
+///
+/// # Nesting
+///
+/// The new span parents under whichever span is active *at this call*, and is
+/// itself the active span only for the instant `startActiveSpan` runs its
+/// callback. Work performed after this function returns is therefore NOT inside
+/// it as far as the platform's async context is concerned, so spans opened
+/// later become siblings rather than children. Reach for [`enter_span`] when
+/// you need a subtree.
+///
+/// Forgetting to call [`Span::end`] leaves the span open for the rest of the
+/// invocation; the platform closes it, but its duration is meaningless.
+pub fn start_active_span(name: &str) -> Span {
+    let mut out: Option<Span> = None;
+
+    // Same synchronous-callback contract as `enter_span`, so the closure may
+    // borrow local state; only the `Span` it hands back outlives the call.
+    let mut cb = |span: raw::Span| {
+        out = Some(Span(span));
+    };
+
+    {
+        let scoped = ScopedClosure::borrow_mut(&mut cb);
+        raw::TRACING.with(|t| t.start_active_span(name, &scoped));
+    }
+
+    out.expect("startActiveSpan must invoke its callback synchronously")
 }
 
 /// Open an asynchronous custom span named `name`, drive `f`'s future inside it,
