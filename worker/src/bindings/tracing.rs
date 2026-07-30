@@ -1,9 +1,9 @@
 //! Raw `wasm-bindgen` import of the `cloudflare:workers` `tracing` API.
 //!
 //! Hand-written (not `ts-gen`-generated) because the safe wrapper in
-//! [`crate::tracing`] needs a couple of shapes `ts-gen` doesn't express well —
-//! the two `enterSpan` callback forms (sync vs. promise-returning) and the
-//! `setAttribute` value overloads.
+//! [`crate::observability`] needs a couple of shapes `ts-gen` doesn't express
+//! well: the two `enterSpan` callback forms (sync vs. promise-returning) and
+//! the `setAttribute` value overloads.
 //!
 //! Platform surface (`@cloudflare/workers-types`):
 //!
@@ -14,10 +14,16 @@
 //!     callback: (span: Span, ...args: A) => T,
 //!     ...args: A
 //!   ): T;
+//!   startActiveSpan<T, A extends unknown[]>(
+//!     name: string,
+//!     callback: (span: Span, ...args: A) => T,
+//!     ...args: A
+//!   ): T;
 //! }
 //! declare abstract class Span {
 //!   get isTraced(): boolean;
 //!   setAttribute(key: string, value?: boolean | number | string): void;
+//!   end(): void;
 //! }
 //! ```
 
@@ -51,6 +57,17 @@ extern "C" {
         cb: &Closure<dyn FnMut(Span) -> Promise>,
     ) -> Promise;
 
+    /// `startActiveSpan`: like `enterSpan`, but the span stays open after the
+    /// callback returns and is closed by an explicit `end()`. The callback is
+    /// still invoked once, synchronously, and is the scope in which the new
+    /// span is the *active* one for auto-nesting.
+    #[wasm_bindgen(method, js_name = startActiveSpan)]
+    pub(crate) fn start_active_span(
+        this: &Tracing,
+        name: &str,
+        cb: &ScopedClosure<dyn FnMut(Span)>,
+    );
+
     /// A live span handle. Refcounted JS object — cloning is cheap and a clone
     /// stays valid while the span is open.
     #[wasm_bindgen(js_name = Span)]
@@ -68,4 +85,9 @@ extern "C" {
 
     #[wasm_bindgen(method, getter, js_name = isTraced)]
     pub(crate) fn is_traced(this: &Span) -> bool;
+
+    /// Close a span opened with `startActiveSpan`. Idempotent: calls after the
+    /// first have no effect. Spans opened with `enterSpan` close themselves.
+    #[wasm_bindgen(method, js_name = end)]
+    pub(crate) fn end(this: &Span);
 }
