@@ -44,6 +44,58 @@ describe("durable", () => {
     // expect(calledClose).toBe(true);
   });
 
+  test("block-concurrency-while", async () => {
+    const first = await mf.dispatchFetch(`${mfUrl}durable/block-concurrency`);
+    expect(first.status).toBe(200);
+    expect(await first.text()).toBe("1");
+
+    const second = await mf.dispatchFetch(`${mfUrl}durable/block-concurrency`);
+    expect(second.status).toBe(200);
+    expect(await second.text()).toBe("2");
+  });
+
+  // Errors from the infallible guard flow back as values; the incrementing counter
+  // proves the object was not reset.
+  test("block-concurrency-while-infallible does not reset on error", async () => {
+    const first = await mf.dispatchFetch(`${mfUrl}durable/block-concurrency-infallible`);
+    expect(first.status).toBe(200);
+    expect(await first.text()).toBe("err:simulated transient failure:1");
+
+    const second = await mf.dispatchFetch(`${mfUrl}durable/block-concurrency-infallible`);
+    expect(second.status).toBe(200);
+    expect(await second.text()).toBe("err:simulated transient failure:2");
+  });
+
+  // The fallible variant resets the object when the closure returns Err: the in-memory
+  // counter persists across requests (1 -> 2), then drops back to 1 after the reset.
+  test("block-concurrency-while resets the object on error", async () => {
+    const count = () =>
+      mf
+        .dispatchFetch(`${mfUrl}durable/block-concurrency-reset-count`)
+        .then((r) => r.text());
+
+    expect(await count()).toBe("1");
+    expect(await count()).toBe("2");
+
+    const triggered = await mf.dispatchFetch(
+      `${mfUrl}durable/block-concurrency-reset-trigger`,
+    );
+    expect(triggered.status).toBe(500);
+
+    expect(await count()).toBe("1");
+  });
+
+  // Lazy init guarded by block_concurrency_while runs once (init_runs stays 1).
+  test("lazy async initialization runs once", async () => {
+    const first = await mf.dispatchFetch(`${mfUrl}durable/lazy-init`);
+    expect(first.status).toBe(200);
+    expect(await first.text()).toBe("limit is 100, init_runs 1");
+
+    const second = await mf.dispatchFetch(`${mfUrl}durable/lazy-init`);
+    expect(second.status).toBe(200);
+    expect(await second.text()).toBe("limit is 100, init_runs 1");
+  });
+
   test("get-by-name", async () => {
     const resp = await mf.dispatchFetch(`${mfUrl}durable/get-by-name`);
     expect(resp.status).toBe(200);

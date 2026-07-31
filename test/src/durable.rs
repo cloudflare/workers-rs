@@ -17,6 +17,10 @@ pub struct MyClass {
     state: State,
     number: AssertUnwindSafe<Cell<usize>>,
     ctor_name: Option<String>,
+    // Lazy async-initialization state, exercised by the `/lazy-init` route below.
+    initialized: AssertUnwindSafe<Cell<bool>>,
+    init_runs: AssertUnwindSafe<Cell<usize>>,
+    limit: AssertUnwindSafe<Cell<u64>>,
 }
 
 impl DurableObject for MyClass {
@@ -26,6 +30,9 @@ impl DurableObject for MyClass {
             state,
             number: AssertUnwindSafe(Cell::new(0)),
             ctor_name,
+            initialized: AssertUnwindSafe(Cell::new(false)),
+            init_runs: AssertUnwindSafe(Cell::new(0)),
+            limit: AssertUnwindSafe(Cell::new(0)),
         }
     }
 
@@ -179,6 +186,79 @@ impl DurableObject for MyClass {
                 "/transaction" => {
                     Response::error("transactional storage API is still unstable", 501)
                 }
+                "/lazy-init" => {
+                    // Recommended async-init pattern: initialize lazily on first use, guarded
+                    // by `block_concurrency_while`. `init_runs` proves the guard runs once.
+                    if !self.initialized.get() {
+                        self.init_runs.set(self.init_runs.get() + 1);
+                        let storage = self.state.storage();
+                        let limit = self
+                            .state
+                            .block_concurrency_while(move || async move {
+                                Ok(storage.get("limit").await?.unwrap_or(100))
+                            })
+                            .await?;
+                        self.limit.set(limit);
+                        self.initialized.set(true);
+                    }
+                    Response::ok(format!(
+                        "limit is {}, init_runs {}",
+                        self.limit.get(),
+                        self.init_runs.get()
+                    ))
+                }
+                "/block-concurrency" => {
+                    // Atomic read-modify-write inside the guard, returning the new count as a
+                    // value out of `block_concurrency_while`.
+                    let storage = self.state.storage();
+                    let count: usize = self
+                        .state
+                        .block_concurrency_while(move || async move {
+                            let current: usize = storage.get("bcw_count").await?.unwrap_or(0);
+                            let next = current + 1;
+                            storage.put("bcw_count", next).await?;
+                            Ok(next)
+                        })
+                        .await?;
+                    Response::ok(count.to_string())
+                }
+                "/block-concurrency-infallible" => {
+                    // In-memory counter to detect resets: a reset would re-run `new()` and
+                    // drop this back to 1 on the next request.
+                    self.number.set(self.number.get() + 1);
+                    let calls = self.number.get();
+
+                    // The closure returns a transient failure as a value; the infallible
+                    // variant does not reset the object.
+                    let storage = self.state.storage();
+                    let outcome: std::result::Result<String, String> = self
+                        .state
+                        .block_concurrency_while_infallible(move || async move {
+                            let _seen: Option<usize> =
+                                storage.get("bcw_count").await.ok().flatten();
+                            Err("simulated transient failure".to_string())
+                        })
+                        .await?;
+
+                    match outcome {
+                        Ok(value) => Response::ok(format!("ok:{value}:{calls}")),
+                        Err(err) => Response::ok(format!("err:{err}:{calls}")),
+                    }
+                }
+                "/block-concurrency-reset-count" => {
+                    // In-memory counter; a reset re-runs `new()` and drops it back to 1.
+                    self.number.set(self.number.get() + 1);
+                    Response::ok(self.number.get().to_string())
+                }
+                "/block-concurrency-reset-trigger" => {
+                    // Fallible variant: returning `Err` rejects the promise and resets the object.
+                    self.state
+                        .block_concurrency_while(move || async move {
+                            Err::<(), _>(worker::Error::RustError("intentional reset".into()))
+                        })
+                        .await?;
+                    Response::ok("unreachable")
+                }
                 _ => Response::error("Not Found", 404),
             }
         };
@@ -330,6 +410,71 @@ pub async fn handle_basic_test(
     );
 
     Response::ok("ok")
+}
+
+#[worker::send]
+pub async fn handle_block_concurrency(
+    _req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let namespace = env.durable_object("MY_CLASS")?;
+    let stub = namespace.id_from_name("block-concurrency")?.get_stub()?;
+    stub.fetch_with_str("https://fake-host/block-concurrency")
+        .await
+}
+
+#[worker::send]
+pub async fn handle_block_concurrency_reset_count(
+    _req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let namespace = env.durable_object("MY_CLASS")?;
+    let stub = namespace
+        .id_from_name("block-concurrency-reset")?
+        .get_stub()?;
+    stub.fetch_with_str("https://fake-host/block-concurrency-reset-count")
+        .await
+}
+
+#[worker::send]
+pub async fn handle_block_concurrency_reset_trigger(
+    _req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let namespace = env.durable_object("MY_CLASS")?;
+    let stub = namespace
+        .id_from_name("block-concurrency-reset")?
+        .get_stub()?;
+    stub.fetch_with_str("https://fake-host/block-concurrency-reset-trigger")
+        .await
+}
+
+#[worker::send]
+pub async fn handle_lazy_init(
+    _req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let namespace = env.durable_object("MY_CLASS")?;
+    let stub = namespace.id_from_name("lazy-init")?.get_stub()?;
+    stub.fetch_with_str("https://fake-host/lazy-init").await
+}
+
+#[worker::send]
+pub async fn handle_block_concurrency_infallible(
+    _req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let namespace = env.durable_object("MY_CLASS")?;
+    let stub = namespace
+        .id_from_name("block-concurrency-infallible")?
+        .get_stub()?;
+    stub.fetch_with_str("https://fake-host/block-concurrency-infallible")
+        .await
 }
 
 #[worker::send]

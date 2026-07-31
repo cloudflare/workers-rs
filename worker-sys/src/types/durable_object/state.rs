@@ -21,6 +21,12 @@ extern "C" {
     #[wasm_bindgen(method, catch, js_name=waitUntil)]
     pub fn wait_until(this: &DurableObjectState, promise: &js_sys::Promise) -> Result<(), JsValue>;
 
+    #[wasm_bindgen(method, catch, js_name=blockConcurrencyWhile)]
+    pub fn block_concurrency_while(
+        this: &DurableObjectState,
+        callback: &Closure<dyn FnMut() -> js_sys::Promise>,
+    ) -> Result<js_sys::Promise, JsValue>;
+
     #[wasm_bindgen(method, catch, js_name=acceptWebSocket)]
     pub fn accept_websocket(
         this: &DurableObjectState,
