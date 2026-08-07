@@ -1,0 +1,29 @@
+examples/emscripten-goose/run.mjs
+  s_da70cfac2791d8::t_04cc8c81413af8 16
+wasm-bindgen
+  s_7ba1a003f3d376::t_5bc1382c8082ac 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "aa14d1cfc7a641e292de9fff074362bb5da4dddc",
+  "prompts": {},
+  "sessions": {
+    "s_7ba1a003f3d376": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_026383ae1ffeksOElfwsEcFSyz",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Guy Bedford <guybedford@gmail.com>"
+    },
+    "s_da70cfac2791d8": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_02630d879ffeyj13DvHsjOS7D0",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Guy Bedford <guybedford@gmail.com>"
+    }
+  }
+}
