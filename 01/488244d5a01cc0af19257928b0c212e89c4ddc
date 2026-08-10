@@ -1,0 +1,31 @@
+Cargo.lock
+  s_c35ad0afe57343::t_428a8749c978e3 2142,2238,2247,2277
+examples/emscripten-goose/wrangler.toml
+  s_c35ad0afe57343::t_903d34b572ed68 4-7,16-19
+wasm-bindgen
+  s_7ba1a003f3d376::t_0466513af9fa8b 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "01488244d5a01cc0af19257928b0c212e89c4ddc",
+  "prompts": {},
+  "sessions": {
+    "s_7ba1a003f3d376": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_026383ae1ffeksOElfwsEcFSyz",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Guy Bedford <guybedford@gmail.com>"
+    },
+    "s_c35ad0afe57343": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_012dea44bffed13zTRShW02aya",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Guy Bedford <guybedford@gmail.com>"
+    }
+  }
+}
