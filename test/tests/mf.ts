@@ -114,6 +114,7 @@ const mf_instance = new Miniflare({
       },
       ratelimits: {
         TEST_RATE_LIMITER: {
+          namespace_id: "1",
           simple: {
             limit: 10,
             period: 60,

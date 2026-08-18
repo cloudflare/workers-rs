@@ -11,7 +11,7 @@ description = "This is a tool to be used as a custom build command for a Cloudfl
 [dependencies]
 anyhow = "1.0.98"
 binary-install = "0.4.1"
-cargo_metadata = "0.20.0"
+cargo_metadata = "0.23.1"
 clap = { version = "4.5", features = ['derive'] }
 console = "0.16.0"
 dirs-next = "2.0"
@@ -29,7 +29,7 @@ serde_ignored = "0.1.12"
 serde_json = "1.0.143"
 strsim = "0.11.1"
 tar = "0.4"
-toml = "0.9.5"
+toml = "1.1.4"
 ureq = { version = "3.1", features = ["gzip", "json", "native-tls"] }
 which = "8.0.0"
 worker-codegen.workspace = true

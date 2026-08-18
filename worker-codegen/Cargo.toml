@@ -16,10 +16,10 @@ path = "src/lib.rs"
 [dependencies]
 wasm-bindgen.workspace = true
 wasm-bindgen-macro-support.workspace = true
-syn = { version = "2.0.17", features = ['extra-traits'] }
+syn = { version = "3.0.3", features = ['extra-traits'] }
 proc-macro2 = "1.0.60"
 quote = "1.0.28"
-prettyplease = { version = "0.2" }
-wit-parser = { version = "0.205" }
-convert_case = { version = "0.6" }
+prettyplease = { version = "0.3" }
+wit-parser = { version = "0.256" }
+convert_case = { version = "0.11" }
 anyhow = { version = "1" }
