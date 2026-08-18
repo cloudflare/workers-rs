@@ -19,8 +19,8 @@ pub struct MyClass {
     number: AssertUnwindSafe<Cell<usize>>,
     ctor_name: Option<String>,
     // Constructor-gated async-initialization state, exercised by the `/limit` route below.
-    init_runs: Rc<Cell<usize>>,
-    limit: Rc<Cell<u64>>,
+    init_runs: AssertUnwindSafe<Rc<Cell<usize>>>,
+    limit: AssertUnwindSafe<Rc<Cell<u64>>>,
 }
 
 impl DurableObject for MyClass {
@@ -44,8 +44,8 @@ impl DurableObject for MyClass {
             state,
             number: AssertUnwindSafe(Cell::new(0)),
             ctor_name,
-            init_runs,
-            limit,
+            init_runs: AssertUnwindSafe(init_runs),
+            limit: AssertUnwindSafe(limit),
         }
     }
 
