@@ -282,9 +282,9 @@ checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 
 [[package]]
 name = "jemalloc-sys-discard"
-version = "0.7.0+5.3.1-0-g81034ce1f1373e37dc865038e1bc8eeecf559ce8"
+version = "0.7.1+5.3.1-0-g81034ce1f1373e37dc865038e1bc8eeecf559ce8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6304b4633679f6452bf2acb0f48c8ea7c4c84f1dd02d2c1c65ccedcef43e75bc"
+checksum = "179e42920548d873baebfb95ab5d9215ad1017a4f17d77f7a99a40070d6112ba"
 dependencies = [
  "cc",
  "libc",
@@ -292,9 +292,9 @@ dependencies = [
 
 [[package]]
 name = "jemallocator-discard"
-version = "0.7.0"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e21ecf871abd41324c6b35c84f5816f83f9106f302d318cd4ecd594f5e01836c"
+checksum = "9d9bf89071989c4542ef364e9cdc882f5444ca534882f3a660ca8047fc8e5bec"
 dependencies = [
  "jemalloc-sys-discard",
  "libc",
