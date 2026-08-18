@@ -24,7 +24,7 @@ jemalloc = ["dep:jemallocator-discard"]
 [dependencies]
 worker = { path = "../../worker" }
 wasm-bindgen = "0.2.126"
-jemallocator-discard = { version = "0.7", optional = true }
+jemallocator-discard = { version = "0.7.1", optional = true }
 
 [profile.release]
 opt-level = "z"

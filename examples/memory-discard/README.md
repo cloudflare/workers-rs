@@ -39,9 +39,18 @@ set `EMSDK` (emsdk clang >= 20) or `JEMALLOC_WASM_SYSROOT`.
 
 ## How it works
 
-- jemalloc is built for `wasm32-unknown-unknown` with `dirty_decay_ms:0`, so
-  freed pages are immediately purged via `madvise(MADV_DONTNEED)`, which the
-  wasm shim forwards to an `env.__wbindgen_memory_discard` function import.
+- jemalloc is built for `wasm32-unknown-unknown` with its standard decay
+  behaviour (`dirty_decay_ms`, default 10s): freed pages are reused freely
+  within the decay window, and pages that go unused for the window are
+  purged via `madvise(MADV_DONTNEED)`, which the wasm shim forwards to an
+  `env.__wbindgen_memory_discard` function import. Decay batches adjacent
+  freed regions into few, large discards rather than purging on every free.
+- wasm has no clock, so worker-build's generated glue advances jemalloc's
+  decay clock and runs a decay pass as each event settles (via the
+  `__jemallocator_decay_tick` export of
+  [`jemallocator-discard`](https://crates.io/crates/jemallocator-discard)).
+  Time is frozen during a request — decay only progresses at event
+  boundaries.
 - wasm-bindgen (`--experimental-memory-discard`, passed through worker-build
   via `WASM_BINDGEN_ARGS`) replaces the import with a generated local
   function whose body is a single `memory.discard` instruction, so page
@@ -49,7 +58,9 @@ set `EMSDK` (emsdk clang >= 20) or `JEMALLOC_WASM_SYSROOT`.
 - The physical release is advisory: the runtime may rate limit the
   page-table work by declining a release, in which case the range is zeroed
   instead. Zero-readback is the only semantic guarantee of `memory.discard`;
-  resident-memory reduction is best-effort.
+  resident-memory reduction is best-effort. (A `-1` failure return allowing
+  declines to be deferred instead of zero-filled is proposed in
+  [memory-control#25](https://github.com/WebAssembly/memory-control/issues/25).)
 
 ## Benchmark
 
@@ -67,6 +78,10 @@ WORKERD=/path/to/workerd EMSDK=/path/to/emsdk \
 - `dlmalloc` — the default Rust wasm allocator (status quo)
 
 ## Results
+
+Measured with immediate purging (`dirty_decay_ms:0`); under the default
+decay window the same release completes once the window has elapsed past
+the churn (the bench settles for ~12s before measuring).
 
 | variant | RSS baseline | RSS peak | RSS after churn | retained |
 |---|---|---|---|---|

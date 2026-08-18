@@ -76,7 +76,13 @@ EOF
   for _ in $(seq 1 "$ITERS"); do
     churn_out=$(curl -sf "http://127.0.0.1:$PORT/churn?mb=$CHURN_MB")
   done
-  sleep 0.5
+  # Dirty pages release via jemalloc's decay curve (default 10s window),
+  # which advances at event boundaries: tick past the window with idle
+  # requests before measuring.
+  for _ in $(seq 1 "${DECAY_SETTLE_S:-12}"); do
+    sleep 1
+    curl -sf "http://127.0.0.1:$PORT/mem" >/dev/null
+  done
   local rss_after=$(rss_kb $pid)
   local hwm=$(hwm_kb $pid)
   local linear=$(curl -sf "http://127.0.0.1:$PORT/mem")

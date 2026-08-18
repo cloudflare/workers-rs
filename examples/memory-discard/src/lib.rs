@@ -1,9 +1,11 @@
 //! Example worker for the wasm `memory.discard` instruction.
 //!
-//! Built with jemalloc as the global allocator (dirty_decay_ms:0), so freed
-//! pages are immediately purged via `madvise(MADV_DONTNEED)`, which lowers to
-//! a single `memory.discard` instruction. The `/churn` endpoint allocates,
-//! touches and frees memory so resident set can be observed from outside.
+//! Built with jemalloc as the global allocator using its standard decay
+//! window: freed pages are reused freely within the window and purged via
+//! `madvise(MADV_DONTNEED)` — a single `memory.discard` instruction — once
+//! they decay. worker-build glue advances the decay clock as each event
+//! settles. The `/churn` endpoint allocates, touches and frees memory so
+//! resident set can be observed from outside.
 
 use worker::*;
 
