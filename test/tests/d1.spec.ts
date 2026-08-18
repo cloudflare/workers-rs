@@ -143,4 +143,10 @@ describe("d1", () => {
     expect(await resp.text()).toBe("ok");
     expect(resp.status).toBe(200);
   });
+
+  test("deserialize_with_type_mismatch", async () => {
+    const resp = await mf.dispatchFetch(`${mfUrl}d1/deserialize_with_type_mismatch`);
+    expect(await resp.text()).toBe("ok");
+    expect(resp.status).toBe(200);
+  });
 });
