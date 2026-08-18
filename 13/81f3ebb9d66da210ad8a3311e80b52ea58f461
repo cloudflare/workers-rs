@@ -1,0 +1,35 @@
+examples/memory-discard/Cargo.lock
+  s_d0739a5c1bbbe2::t_13234b43eefb28 1-822
+examples/memory-discard/bench/run.sh
+  s_d0739a5c1bbbe2::t_69539156f415a3 1-100
+examples/memory-discard/.gitignore
+  s_d0739a5c1bbbe2::t_03a616ad745489 1-4
+examples/memory-discard/src/lib.rs
+  s_d0739a5c1bbbe2::t_71dd293723ccc4 1-81
+examples/memory-discard/README.md
+  s_d0739a5c1bbbe2::t_84f9471cd57a73 1-62
+examples/memory-discard/Cargo.toml
+  s_d0739a5c1bbbe2::t_b5db73812a425b 1-40
+Cargo.lock
+  s_d0739a5c1bbbe2::t_1ba1372886f8dd 1432,3348,3350,3419,3430,3446,3454,3462,3473,3480,3500,3509,3594
+Cargo.toml
+  s_d0739a5c1bbbe2::t_0ceb43ca5a7d6a 15,109-120
+wasm-bindgen
+  s_d0739a5c1bbbe2::t_1b5a7efa881a2e 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "1381f3ebb9d66da210ad8a3311e80b52ea58f461",
+  "prompts": {},
+  "sessions": {
+    "s_d0739a5c1bbbe2": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_fed91a8feffefaHADCuXpqldCg",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Guy Bedford <guybedford@gmail.com>"
+    }
+  }
+}
