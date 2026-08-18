@@ -1,0 +1,19 @@
+test/src/durable.rs
+  s_b490649d60dd4b::t_65c2471a157b22 22-23,47-48
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "b4f713e1f17467e8655881b3e3c1f7272c401cca",
+  "prompts": {},
+  "sessions": {
+    "s_b490649d60dd4b": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_fea42c79cffevo9V30JblSsJ5H",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Guy Bedford <gbedford@cloudflare.com>"
+    }
+  }
+}
