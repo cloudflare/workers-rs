@@ -1,0 +1,23 @@
+Cargo.lock
+  s_5f572682adba45::t_1bb8b06b51f1d0 1446,1448,3325,3327,3338,3340,3356,3358,3366,3368,3376,3378,3389,3391,3398,3400,3420,3422,3431,3433,3484,3486
+Cargo.toml
+  s_5f572682adba45::t_c9d5583c87b506 31,40-45,47
+wasm-bindgen
+  s_5f572682adba45::t_3d582ceddfce19 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "067a60d91752a00eae47c8f48462d597d0c408a8",
+  "prompts": {},
+  "sessions": {
+    "s_5f572682adba45": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_fea42ffffffe1KslBb8C8kran5",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Guy Bedford <gbedford@cloudflare.com>"
+    }
+  }
+}
