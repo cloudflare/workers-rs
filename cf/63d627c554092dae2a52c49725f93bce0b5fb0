@@ -1,0 +1,19 @@
+examples/memory-discard/Cargo.lock
+  s_b490649d60dd4b::t_639a618fabd42a 285,287,295,297
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "cf63d627c554092dae2a52c49725f93bce0b5fb0",
+  "prompts": {},
+  "sessions": {
+    "s_b490649d60dd4b": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_fea42c79cffevo9V30JblSsJ5H",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Guy Bedford <gbedford@cloudflare.com>"
+    }
+  }
+}
