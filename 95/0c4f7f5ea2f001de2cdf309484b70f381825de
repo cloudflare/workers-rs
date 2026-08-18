@@ -1,0 +1,21 @@
+Cargo.lock
+  s_b490649d60dd4b::t_e9156eb185ed7d 1432,3348,3350,3419,3430,3446,3454,3462,3473,3480,3500,3509,3594
+Cargo.toml
+  s_b490649d60dd4b::t_a353dd2b2b9b16 31,40-45,47,108-116
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "950c4f7f5ea2f001de2cdf309484b70f381825de",
+  "prompts": {},
+  "sessions": {
+    "s_b490649d60dd4b": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_fea42c79cffevo9V30JblSsJ5H",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Guy Bedford <guybedford@gmail.com>"
+    }
+  }
+}
