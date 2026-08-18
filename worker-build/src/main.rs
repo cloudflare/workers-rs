@@ -85,6 +85,13 @@ pub fn main() -> Result<()> {
 
     builder.init()?;
 
+    // Extra arguments to pass through to the wasm-bindgen CLI.
+    if let Ok(bindgen_args) = env::var("WASM_BINDGEN_ARGS") {
+        builder
+            .extra_args
+            .extend(bindgen_args.split_whitespace().map(str::to_owned));
+    }
+
     let module_target = !no_panic_recovery && env::var("CUSTOM_SHIM").is_err();
     if module_target {
         builder.extra_args.extend_from_slice(&[

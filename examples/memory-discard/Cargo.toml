@@ -1,0 +1,41 @@
+[package]
+name = "memory-discard-experiment"
+version = "0.1.0"
+edition = "2021"
+
+[package.metadata.release]
+release = false
+
+# Binaryen does not support the memory-control proposal yet.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
+[package.metadata.wasm-pack.profile.dev]
+wasm-opt = false
+
+[lib]
+crate-type = ["cdylib"]
+
+# jemalloc is opt-in since building it requires wasm libc headers (EMSDK).
+[features]
+default = []
+jemalloc = ["dep:tikv-jemallocator"]
+
+[dependencies]
+worker = { path = "../../worker" }
+wasm-bindgen = "0.2.126"
+tikv-jemallocator = { git = "https://github.com/guybedford/jemallocator", branch = "memory-discard", optional = true }
+
+[profile.release]
+opt-level = "z"
+lto = true
+
+[patch.crates-io]
+wasm-bindgen = { path = "../../wasm-bindgen" }
+wasm-bindgen-futures = { path = "../../wasm-bindgen/crates/futures" }
+wasm-bindgen-macro-support = { path = "../../wasm-bindgen/crates/macro-support" }
+wasm-bindgen-shared = { path = "../../wasm-bindgen/crates/shared" }
+js-sys = { path = "../../wasm-bindgen/crates/js-sys" }
+web-sys = { path = "../../wasm-bindgen/crates/web-sys" }
+
+[workspace]
