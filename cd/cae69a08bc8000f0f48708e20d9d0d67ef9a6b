@@ -1,0 +1,23 @@
+examples/memory-discard/Cargo.lock
+  s_b490649d60dd4b::t_6be699e281b6d2 337
+examples/memory-discard/Cargo.toml
+  s_b490649d60dd4b::t_d3e7c6f74fccb2 2
+examples/memory-discard/bench/run.sh
+  s_b490649d60dd4b::t_76c127418f6b86 2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "cdcae69a08bc8000f0f48708e20d9d0d67ef9a6b",
+  "prompts": {},
+  "sessions": {
+    "s_b490649d60dd4b": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_fea42c79cffevo9V30JblSsJ5H",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Guy Bedford <gbedford@cloudflare.com>"
+    }
+  }
+}
