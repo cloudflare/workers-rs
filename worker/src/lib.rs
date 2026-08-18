@@ -149,6 +149,7 @@ use std::result::Result as StdResult;
 #[doc(hidden)]
 pub use async_trait;
 pub use js_sys;
+pub use url;
 pub use url::Url;
 pub use wasm_bindgen;
 pub use wasm_bindgen_futures;
