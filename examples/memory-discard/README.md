@@ -58,9 +58,7 @@ set `EMSDK` (emsdk clang >= 20) or `JEMALLOC_WASM_SYSROOT`.
 - The physical release is advisory: the runtime may rate limit the
   page-table work by declining a release, in which case the range is zeroed
   instead. Zero-readback is the only semantic guarantee of `memory.discard`;
-  resident-memory reduction is best-effort. (A `-1` failure return allowing
-  declines to be deferred instead of zero-filled is proposed in
-  [memory-control#25](https://github.com/WebAssembly/memory-control/issues/25).)
+  resident-memory reduction is best-effort.
 
 ## Benchmark
 
