@@ -9,6 +9,8 @@ use crate::rate_limit::RateLimiter;
 use crate::Ai;
 #[cfg(feature = "queue")]
 use crate::Queue;
+#[cfg(feature = "workflow")]
+use crate::Workflow;
 use crate::{durable::ObjectNamespace, Bucket, DynamicDispatcher, Fetcher, Result, SecretStore};
 use crate::{error::Error, hyperdrive::Hyperdrive};
 
@@ -97,6 +99,12 @@ impl Env {
     #[cfg(feature = "queue")]
     /// Access a Queue by the binding name configured in your wrangler.toml file.
     pub fn queue(&self, binding: &str) -> Result<Queue> {
+        self.get_binding(binding)
+    }
+
+    #[cfg(feature = "workflow")]
+    /// Access a Workflow by the binding name configured in your wrangler.toml file.
+    pub fn workflow(&self, binding: &str) -> Result<Workflow> {
         self.get_binding(binding)
     }
 

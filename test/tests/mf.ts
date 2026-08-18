@@ -36,6 +36,7 @@ const mf_instance = new Miniflare({
   kvPersist: false,
   r2Persist: false,
   cachePersist: false,
+  workflowsPersist: false,
   workers: [
     {
       scriptPath: "./build/index.js",
@@ -76,7 +77,7 @@ const mf_instance = new Miniflare({
           useSQLite: true,
         },
       },
-      kvNamespaces: ["SOME_NAMESPACE", "FILE_SIZES", "TEST"],
+      kvNamespaces: ["SOME_NAMESPACE", "FILE_SIZES", "TEST", "ROLLBACK_KV"],
       serviceBindings: {
         async remote() {
           return new Response("hello world");
@@ -112,6 +113,30 @@ const mf_instance = new Miniflare({
           scriptName: "mini-analytics-engine" // mock out analytics engine binding to the "mini-analytics-engine" worker
         }
       },
+      // Workflow binding requires a separate worker via scriptName in
+      // the Miniflare JS API (wrangler dev handles this automatically).
+      workflows: {
+        TEST_WORKFLOW: {
+          name: "test-workflow",
+          className: "TestWorkflow",
+          scriptName: "workflow-worker",
+        },
+        EVENT_WORKFLOW: {
+          name: "event-workflow",
+          className: "EventWorkflow",
+          scriptName: "workflow-worker",
+        },
+        LIFECYCLE_WORKFLOW: {
+          name: "lifecycle-workflow",
+          className: "LifecycleWorkflow",
+          scriptName: "workflow-worker",
+        },
+        ROLLBACK_WORKFLOW: {
+          name: "rollback-workflow",
+          className: "RollbackWorkflow",
+          scriptName: "workflow-worker",
+        },
+      },
       ratelimits: {
         TEST_RATE_LIMITER: {
           simple: {
@@ -129,6 +154,20 @@ const mf_instance = new Miniflare({
           }
         ]
       }
+    },
+    {
+      // Dedicated worker for TestWorkflow; uses the generated JS class wrapper.
+      name: "workflow-worker",
+      scriptPath: "./build/worker/shim.mjs",
+      modules: true,
+      modulesRules: [
+        { type: "ESModule", include: ["**/*.js"], fallthrough: true },
+        { type: "CompiledWasm", include: ["**/*.wasm"], fallthrough: true },
+      ],
+      compatibilityDate: "2025-07-24",
+      // Shared with the main worker (same namespace id) so the RollbackWorkflow's
+      // rollback handler can record a marker the test reads back.
+      kvNamespaces: ["ROLLBACK_KV"],
     },
     {
       name: "mini-analytics-engine",
