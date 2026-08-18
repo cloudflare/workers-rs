@@ -1,0 +1,19 @@
+worker-build/src/versions.rs
+  s_5f572682adba45::t_dca42ae1f62536 11-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "26e876d4c3eb5e468702efc9f7e2a56c57cc391a",
+  "prompts": {},
+  "sessions": {
+    "s_5f572682adba45": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_fea42ffffffe1KslBb8C8kran5",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Guy Bedford <gbedford@cloudflare.com>"
+    }
+  }
+}
