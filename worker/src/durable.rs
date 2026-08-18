@@ -205,8 +205,16 @@ impl ObjectId<'_> {
     }
 
     /// The name that was used to create the `ObjectId` via [`id_from_name`](https://developers.cloudflare.com/durable-objects/api/namespace/#idfromname).
-    /// `None` is returned if the `ObjectId` was constructed using [`unique_id`](https://developers.cloudflare.com/durable-objects/api/namespace/#newuniqueid).
-    /// `None` is also returned within the Durable Object constructor, as the `name` property is not accessible there (see <https://github.com/cloudflare/workerd/issues/2240>).
+    ///
+    /// When a Durable Object is addressed by name, the name is also passed
+    /// through to the object itself and is available via `state.id().name()`,
+    /// including inside the constructor and [`alarm`](crate::DurableObject::alarm)
+    /// handlers (see <https://github.com/cloudflare/workerd/issues/2240>).
+    ///
+    /// `None` is returned in some cases, for example when the `ObjectId` was
+    /// constructed via [`unique_id`](https://developers.cloudflare.com/durable-objects/api/namespace/#newuniqueid).
+    /// See the [Durable Object ID docs](https://developers.cloudflare.com/durable-objects/api/id/#name)
+    /// for the full list of cases.
     pub fn name(&self) -> Option<String> {
         self.inner.name()
     }
