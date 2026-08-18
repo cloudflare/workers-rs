@@ -51,21 +51,37 @@ impl From<web_sys::Request> for Request {
     fn from(req: web_sys::Request) -> Self {
         Self {
             method: req.method().into(),
-            path: Url::parse(&req.url())
-                .map(|u| u.path().into())
-                .unwrap_or_else(|_| {
-                    let u = req.url();
-                    if !u.starts_with('/') {
-                        return "/".to_string() + &u;
-                    }
-                    u
-                }),
+            path: path_from_url(&req.url()),
             headers: Headers(req.headers()),
             cf: req.cf().map(Into::into),
             edge_request: req,
             body_used: false,
             immutable: true,
         }
+    }
+}
+
+/// Extracts the path from an already-serialized WHATWG URL, as returned by
+/// `web_sys::Request::url()`, without reparsing: special-scheme serialization
+/// never emits an empty path, so the first `/` after the host always begins
+/// the path, within which `?` and `#` are always percent-encoded.
+fn path_from_url(url: &str) -> String {
+    let host_start = match url.find("://") {
+        Some(i) => i + 3,
+        None => {
+            return if url.starts_with('/') {
+                url.to_string()
+            } else {
+                "/".to_string() + url
+            }
+        }
+    };
+    match url[host_start..].find('/') {
+        Some(i) => {
+            let path = &url[host_start + i..];
+            path[..path.find(['?', '#']).unwrap_or(path.len())].to_string()
+        }
+        None => "/".to_string(),
     }
 }
 
@@ -344,6 +360,30 @@ impl FromRequest for crate::HttpRequest {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn path_from_url_matches_url_parse() {
+        for (url, path) in [
+            ("https://example.com/", "/"),
+            ("https://example.com/foo/bar", "/foo/bar"),
+            ("https://example.com/foo?a=1&b=/x", "/foo"),
+            ("https://example.com/foo#/frag?x", "/foo"),
+            ("https://example.com:8080/foo", "/foo"),
+            ("https://example.com/a%3F%23%2Fb?c", "/a%3F%23%2Fb"),
+            ("https://example.com?query", "/"),
+            ("https://example.com#frag", "/"),
+        ] {
+            assert_eq!(path_from_url(url), path, "{url}");
+            assert_eq!(
+                Url::parse(url).unwrap().path(),
+                path,
+                "url crate disagrees for {url}"
+            );
+        }
+        // non-absolute fallbacks retain prior behavior
+        assert_eq!(path_from_url("/already/a/path"), "/already/a/path");
+        assert_eq!(path_from_url("no-scheme"), "/no-scheme");
+    }
 
     /// Used to add additional helper functions to url::Url
     pub trait UrlExt {
