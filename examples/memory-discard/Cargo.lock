@@ -281,6 +281,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 
 [[package]]
+name = "jemalloc-sys-discard"
+version = "0.7.0+5.3.1-0-g81034ce1f1373e37dc865038e1bc8eeecf559ce8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6304b4633679f6452bf2acb0f48c8ea7c4c84f1dd02d2c1c65ccedcef43e75bc"
+dependencies = [
+ "cc",
+ "libc",
+]
+
+[[package]]
+name = "jemallocator-discard"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e21ecf871abd41324c6b35c84f5816f83f9106f302d318cd4ecd594f5e01836c"
+dependencies = [
+ "jemalloc-sys-discard",
+ "libc",
+]
+
+[[package]]
 name = "js-sys"
 version = "0.3.104"
 dependencies = [
@@ -317,7 +337,7 @@ checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 name = "memory-discard-experiment"
 version = "0.1.0"
 dependencies = [
- "tikv-jemallocator",
+ "jemallocator-discard",
  "wasm-bindgen",
  "worker",
 ]
@@ -550,24 +570,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.119",
-]
-
-[[package]]
-name = "tikv-jemalloc-sys"
-version = "0.7.0+5.3.1-0-g81034ce1f1373e37dc865038e1bc8eeecf559ce8"
-source = "git+https://github.com/guybedford/jemallocator?branch=memory-discard#d424355821fbb12f2baa46a47b1be0dd08972960"
-dependencies = [
- "cc",
- "libc",
-]
-
-[[package]]
-name = "tikv-jemallocator"
-version = "0.7.0"
-source = "git+https://github.com/guybedford/jemallocator?branch=memory-discard#d424355821fbb12f2baa46a47b1be0dd08972960"
-dependencies = [
- "libc",
- "tikv-jemalloc-sys",
 ]
 
 [[package]]

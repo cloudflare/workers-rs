@@ -25,7 +25,7 @@ Toolchain status:
 - [wasm-bindgen#5287](https://github.com/wasm-bindgen/wasm-bindgen/pull/5287)
   — `--experimental-memory-discard` trampoline generation (the wasm-bindgen
   submodule tracks this branch)
-- [guybedford/jemallocator#memory-discard](https://github.com/guybedford/jemallocator/tree/memory-discard)
+- [jemallocator-discard](https://crates.io/crates/jemallocator-discard)
   — jemalloc 5.3 built for wasm32-unknown-unknown, purging through the
   `__wbindgen_memory_discard` import
 

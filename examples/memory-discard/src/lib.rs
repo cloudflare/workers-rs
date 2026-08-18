@@ -9,7 +9,7 @@ use worker::*;
 
 #[cfg(feature = "jemalloc")]
 #[global_allocator]
-static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+static ALLOC: jemallocator_discard::Jemalloc = jemallocator_discard::Jemalloc;
 
 const WASM_PAGE: usize = 65536;
 const HOST_PAGE: usize = 4096;

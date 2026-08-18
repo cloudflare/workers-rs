@@ -19,12 +19,12 @@ crate-type = ["cdylib"]
 # jemalloc is opt-in since building it requires wasm libc headers (EMSDK).
 [features]
 default = []
-jemalloc = ["dep:tikv-jemallocator"]
+jemalloc = ["dep:jemallocator-discard"]
 
 [dependencies]
 worker = { path = "../../worker" }
 wasm-bindgen = "0.2.126"
-tikv-jemallocator = { git = "https://github.com/guybedford/jemallocator", branch = "memory-discard", optional = true }
+jemallocator-discard = { version = "0.7", optional = true }
 
 [profile.release]
 opt-level = "z"
