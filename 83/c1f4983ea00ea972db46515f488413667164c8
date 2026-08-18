@@ -1,0 +1,31 @@
+examples/memory-discard/Cargo.toml
+  s_b490649d60dd4b::t_ebaf27afc3e443 27
+examples/memory-discard/bench/run.sh
+  s_198ec66933957a::t_fc16f731fece70 79-85
+worker-build/src/main.rs
+  s_198ec66933957a::t_58c5565a90f594 181-188,194,207-209,225,228-237
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "83c1f4983ea00ea972db46515f488413667164c8",
+  "prompts": {},
+  "sessions": {
+    "s_198ec66933957a": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_fea4208abffe5a0QL3IZ2mdRLf",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Guy Bedford <gbedford@cloudflare.com>"
+    },
+    "s_b490649d60dd4b": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_fea42c79cffevo9V30JblSsJ5H",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Guy Bedford <gbedford@cloudflare.com>"
+    }
+  }
+}
