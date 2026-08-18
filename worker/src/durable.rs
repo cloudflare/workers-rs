@@ -283,106 +283,61 @@ impl State {
 
     /// Executes an async closure while blocking delivery of any other events to the Durable Object
     /// until it completes, guaranteeing ordering. Binds the runtime's
-    /// [`blockConcurrencyWhile`](https://developers.cloudflare.com/durable-objects/api/state/#blockconcurrencywhile).
+    /// [`blockConcurrencyWhile`](https://developers.cloudflare.com/durable-objects/api/state/#blockconcurrencywhile),
+    /// with the same call-time semantics as JavaScript: the gate closes as a side effect of the
+    /// *call*, and the returned future only observes completion.
     ///
-    /// **If the closure returns `Err`, the Durable Object is terminated and reset** (as with
-    /// throwing in the JavaScript callback). That is correct for initialization, but usually wrong
-    /// when guarding request-handling work with external calls (`fetch()`, R2, subrequests), where a
-    /// transient failure would discard all in-memory and in-flight state. For that case use
-    /// [`State::block_concurrency_while_infallible`]. The runtime also resets the object if the
-    /// closure exceeds a 30 second timeout.
-    ///
-    /// The closure must be `'static`, so it cannot borrow the calling handler's `&self`; move owned
-    /// values (such as `state.storage()` or a cloned `Env`) in instead.
-    ///
-    /// # Examples
+    /// Awaiting the future yields the closure's value. Discarding it instead gives the JavaScript
+    /// constructor idiom, gating all event delivery until async initialization completes:
     ///
     /// ```no_run
+    /// # use std::{cell::Cell, rc::Rc};
     /// # use worker::*;
-    /// # async fn example(state: &State) -> Result<()> {
-    /// let storage = state.storage();
-    /// let count: u64 = state
-    ///     .block_concurrency_while(move || async move {
-    ///         Ok(storage.get("count").await?.unwrap_or(0))
-    ///     })
-    ///     .await?;
-    /// # let _ = count;
-    /// # Ok(())
+    /// # fn example(state: State) {
+    /// let limit = Rc::new(Cell::new(0));
+    /// let (l, storage) = (limit.clone(), state.storage());
+    /// let _init = state.block_concurrency_while(move || async move {
+    ///     l.set(storage.get("limit").await?.unwrap_or(100));
+    ///     Ok(())
+    /// });
     /// # }
     /// ```
+    ///
+    /// **If the closure returns `Err`, the Durable Object is terminated and reset**, as with
+    /// throwing in the JavaScript callback. To treat errors as values instead, return them inside
+    /// `Ok` (`T = Result<Outcome, MyError>`). The runtime also resets the object if the closure
+    /// exceeds a 30 second timeout.
+    ///
+    /// The closure must be `'static`, so it cannot borrow `&self`; move owned values (such as
+    /// `state.storage()` or a cloned `Env`) in instead.
     ///
     /// # Errors
     ///
     /// Errors if the `blockConcurrencyWhile` call fails, the closure returns `Err`, or the callback
     /// does not run.
-    pub async fn block_concurrency_while<F, Fut, T>(&self, closure: F) -> Result<T>
+    pub fn block_concurrency_while<F, Fut, T>(&self, closure: F) -> impl Future<Output = Result<T>>
     where
         F: FnOnce() -> Fut + 'static,
         Fut: Future<Output = Result<T>> + 'static,
         T: 'static,
     {
         let output: Rc<RefCell<Option<T>>> = Rc::new(RefCell::new(None));
-        let output_clone = output.clone();
-        let inner: Box<dyn FnOnce() -> js_sys::Promise> = Box::new(move || -> js_sys::Promise {
+        let slot = output.clone();
+        let callback = wasm_bindgen::closure::Closure::once_into_js(AssertUnwindSafe(move || {
             future_to_promise(AssertUnwindSafe(async move {
-                closure()
-                    .await
-                    .map(|value| {
-                        *output_clone.borrow_mut() = Some(value);
-                        JsValue::NULL
-                    })
-                    .map_err(JsValue::from)
+                let value = closure().await.map_err(JsValue::from)?;
+                *slot.borrow_mut() = Some(value);
+                Ok(JsValue::NULL)
             }))
-        });
-        let clos = wasm_bindgen::closure::Closure::once_assert_unwind_safe(inner);
-        JsFuture::from(self.inner.block_concurrency_while(&clos)?)
-            .await
-            .map_err(Error::from)?;
-        let value = output.borrow_mut().take();
-        value.ok_or_else(|| Error::RustError("block_concurrency_while callback did not run".into()))
-    }
-
-    /// Like [`State::block_concurrency_while`], but application errors cannot reset the Durable
-    /// Object.
-    ///
-    /// The closure returns a plain value `T` rather than a `Result`, so no application error can
-    /// reject the underlying promise. For fallible work, make `T` itself a `Result` (for example
-    /// `T = Result<Outcome, MyError>`) so errors flow back to the caller instead of terminating the
-    /// object. This is the recommended form for guarding request-handling work with external calls.
-    ///
-    /// Note this only removes the *application error* reset path: a Rust panic in the closure, or
-    /// exceeding the runtime's 30 second timeout, will still reset the object.
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// # use worker::*;
-    /// # async fn example(state: &State, env: Env) -> Result<()> {
-    /// // The `?` failures below become the returned `Err` value; they do not reset the object.
-    /// let outcome: Result<String> = state
-    ///     .block_concurrency_while_infallible(move || async move {
-    ///         let bucket = env.bucket("MY_BUCKET")?;
-    ///         let object = bucket.get("key").execute().await?;
-    ///         Ok(object.is_some().to_string())
-    ///     })
-    ///     .await?;
-    /// # let _ = outcome;
-    /// # Ok(())
-    /// # }
-    /// ```
-    ///
-    /// # Errors
-    ///
-    /// Errors only if the `blockConcurrencyWhile` call fails or the callback does not run.
-    /// Application errors should be encoded in `T`.
-    pub async fn block_concurrency_while_infallible<F, Fut, T>(&self, closure: F) -> Result<T>
-    where
-        F: FnOnce() -> Fut + 'static,
-        Fut: Future<Output = T> + 'static,
-        T: 'static,
-    {
-        self.block_concurrency_while(move || async move { Ok(closure().await) })
-            .await
+        }));
+        let promise = self.inner.block_concurrency_while(callback.unchecked_ref());
+        async move {
+            JsFuture::from(promise?).await.map_err(Error::from)?;
+            let value = output.borrow_mut().take();
+            value.ok_or_else(|| {
+                Error::RustError("block_concurrency_while callback did not run".into())
+            })
+        }
     }
 
     // needs to be accessed by the `#[durable_object]` macro in a conversion step
@@ -995,7 +950,8 @@ impl DurableObject for Chatroom {
 #[allow(async_fn_in_trait)] // Send is not needed
 pub trait DurableObject: has_durable_object_attribute {
     /// Constructs the Durable Object. This is synchronous; there is no async constructor. For async
-    /// setup, initialize lazily on first use and guard it with [`State::block_concurrency_while`].
+    /// setup, call [`State::block_concurrency_while`] here without awaiting it: the runtime blocks
+    /// delivery of all events until the initialization future completes.
     fn new(state: State, env: Env) -> Self;
 
     async fn fetch(&self, req: Request) -> Result<Response>;

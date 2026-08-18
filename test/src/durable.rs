@@ -3,6 +3,7 @@ use std::cell::Cell;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::panic::AssertUnwindSafe;
+use std::rc::Rc;
 use worker::DurableObject;
 
 use worker::{
@@ -17,22 +18,34 @@ pub struct MyClass {
     state: State,
     number: AssertUnwindSafe<Cell<usize>>,
     ctor_name: Option<String>,
-    // Lazy async-initialization state, exercised by the `/lazy-init` route below.
-    initialized: AssertUnwindSafe<Cell<bool>>,
-    init_runs: AssertUnwindSafe<Cell<usize>>,
-    limit: AssertUnwindSafe<Cell<u64>>,
+    // Constructor-gated async-initialization state, exercised by the `/limit` route below.
+    init_runs: Rc<Cell<usize>>,
+    limit: Rc<Cell<u64>>,
 }
 
 impl DurableObject for MyClass {
     fn new(state: State, _env: Env) -> Self {
         let ctor_name = state.id().name();
+        let init_runs = Rc::new(Cell::new(0));
+        let limit = Rc::new(Cell::new(0));
+        // The JS constructor idiom: call block_concurrency_while without awaiting it. The
+        // runtime gates delivery of all events until the init future completes, so the first
+        // request must observe the loaded limit, never the 0 sentinel. The second await inside
+        // the closure verifies the gate holds across multiple suspension points.
+        let (runs, l, storage) = (init_runs.clone(), limit.clone(), state.storage());
+        let _init = state.block_concurrency_while(move || async move {
+            runs.set(runs.get() + 1);
+            let stored: u64 = storage.get("limit").await?.unwrap_or(100);
+            storage.put("init_probe", stored).await?;
+            l.set(stored);
+            Ok(())
+        });
         Self {
             state,
             number: AssertUnwindSafe(Cell::new(0)),
             ctor_name,
-            initialized: AssertUnwindSafe(Cell::new(false)),
-            init_runs: AssertUnwindSafe(Cell::new(0)),
-            limit: AssertUnwindSafe(Cell::new(0)),
+            init_runs,
+            limit,
         }
     }
 
@@ -186,23 +199,10 @@ impl DurableObject for MyClass {
                 "/transaction" => {
                     Response::error("transactional storage API is still unstable", 501)
                 }
-                "/lazy-init" => {
-                    // Recommended async-init pattern: initialize lazily on first use, guarded
-                    // by `block_concurrency_while`. `init_runs` proves the guard runs once.
-                    if !self.initialized.get() {
-                        self.init_runs.set(self.init_runs.get() + 1);
-                        let storage = self.state.storage();
-                        let limit = self
-                            .state
-                            .block_concurrency_while(move || async move {
-                                Ok(storage.get("limit").await?.unwrap_or(100))
-                            })
-                            .await?;
-                        self.limit.set(limit);
-                        self.initialized.set(true);
-                    }
+                "/limit" => {
+                    // Reports the constructor-gated init state; see `new()` above.
                     Response::ok(format!(
-                        "limit is {}, init_runs {}",
+                        "limit:{}:{}",
                         self.limit.get(),
                         self.init_runs.get()
                     ))
@@ -222,21 +222,21 @@ impl DurableObject for MyClass {
                         .await?;
                     Response::ok(count.to_string())
                 }
-                "/block-concurrency-infallible" => {
+                "/block-concurrency-errors-as-values" => {
                     // In-memory counter to detect resets: a reset would re-run `new()` and
                     // drop this back to 1 on the next request.
                     self.number.set(self.number.get() + 1);
                     let calls = self.number.get();
 
-                    // The closure returns a transient failure as a value; the infallible
-                    // variant does not reset the object.
+                    // Errors returned inside `Ok` are values: they flow back to the caller
+                    // without rejecting the promise, so the object is not reset.
                     let storage = self.state.storage();
                     let outcome: std::result::Result<String, String> = self
                         .state
-                        .block_concurrency_while_infallible(move || async move {
+                        .block_concurrency_while(move || async move {
                             let _seen: Option<usize> =
                                 storage.get("bcw_count").await.ok().flatten();
-                            Err("simulated transient failure".to_string())
+                            Ok(Err("simulated transient failure".to_string()))
                         })
                         .await?;
 
@@ -251,7 +251,7 @@ impl DurableObject for MyClass {
                     Response::ok(self.number.get().to_string())
                 }
                 "/block-concurrency-reset-trigger" => {
-                    // Fallible variant: returning `Err` rejects the promise and resets the object.
+                    // Returning `Err` rejects the promise and resets the object.
                     self.state
                         .block_concurrency_while(move || async move {
                             Err::<(), _>(worker::Error::RustError("intentional reset".into()))
@@ -453,27 +453,27 @@ pub async fn handle_block_concurrency_reset_trigger(
 }
 
 #[worker::send]
-pub async fn handle_lazy_init(
+pub async fn handle_constructor_init(
     _req: Request,
     env: Env,
     _data: crate::SomeSharedData,
 ) -> Result<Response> {
     let namespace = env.durable_object("MY_CLASS")?;
-    let stub = namespace.id_from_name("lazy-init")?.get_stub()?;
-    stub.fetch_with_str("https://fake-host/lazy-init").await
+    let stub = namespace.id_from_name("constructor-init")?.get_stub()?;
+    stub.fetch_with_str("https://fake-host/limit").await
 }
 
 #[worker::send]
-pub async fn handle_block_concurrency_infallible(
+pub async fn handle_block_concurrency_errors_as_values(
     _req: Request,
     env: Env,
     _data: crate::SomeSharedData,
 ) -> Result<Response> {
     let namespace = env.durable_object("MY_CLASS")?;
     let stub = namespace
-        .id_from_name("block-concurrency-infallible")?
+        .id_from_name("block-concurrency-errors-as-values")?
         .get_stub()?;
-    stub.fetch_with_str("https://fake-host/block-concurrency-infallible")
+    stub.fetch_with_str("https://fake-host/block-concurrency-errors-as-values")
         .await
 }
 

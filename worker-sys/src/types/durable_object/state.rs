@@ -24,7 +24,7 @@ extern "C" {
     #[wasm_bindgen(method, catch, js_name=blockConcurrencyWhile)]
     pub fn block_concurrency_while(
         this: &DurableObjectState,
-        callback: &Closure<dyn FnMut() -> js_sys::Promise>,
+        callback: &js_sys::Function,
     ) -> Result<js_sys::Promise, JsValue>;
 
     #[wasm_bindgen(method, catch, js_name=acceptWebSocket)]

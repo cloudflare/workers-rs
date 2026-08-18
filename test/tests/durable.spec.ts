@@ -54,20 +54,20 @@ describe("durable", () => {
     expect(await second.text()).toBe("2");
   });
 
-  // Errors from the infallible guard flow back as values; the incrementing counter
+  // Errors returned inside Ok flow back as values; the incrementing counter
   // proves the object was not reset.
-  test("block-concurrency-while-infallible does not reset on error", async () => {
-    const first = await mf.dispatchFetch(`${mfUrl}durable/block-concurrency-infallible`);
+  test("block-concurrency-while errors as values do not reset", async () => {
+    const first = await mf.dispatchFetch(`${mfUrl}durable/block-concurrency-errors-as-values`);
     expect(first.status).toBe(200);
     expect(await first.text()).toBe("err:simulated transient failure:1");
 
-    const second = await mf.dispatchFetch(`${mfUrl}durable/block-concurrency-infallible`);
+    const second = await mf.dispatchFetch(`${mfUrl}durable/block-concurrency-errors-as-values`);
     expect(second.status).toBe(200);
     expect(await second.text()).toBe("err:simulated transient failure:2");
   });
 
-  // The fallible variant resets the object when the closure returns Err: the in-memory
-  // counter persists across requests (1 -> 2), then drops back to 1 after the reset.
+  // Closures returning Err reset the object: the in-memory counter persists across
+  // requests (1 -> 2), then drops back to 1 after the reset.
   test("block-concurrency-while resets the object on error", async () => {
     const count = () =>
       mf
@@ -85,15 +85,17 @@ describe("durable", () => {
     expect(await count()).toBe("1");
   });
 
-  // Lazy init guarded by block_concurrency_while runs once (init_runs stays 1).
-  test("lazy async initialization runs once", async () => {
-    const first = await mf.dispatchFetch(`${mfUrl}durable/lazy-init`);
+  // Constructor-gated async init: new() fires block_concurrency_while without awaiting
+  // it, so the very first request must already observe the loaded limit rather than the
+  // 0 sentinel, and the init closure runs exactly once.
+  test("constructor async initialization gates event delivery", async () => {
+    const first = await mf.dispatchFetch(`${mfUrl}durable/constructor-init`);
     expect(first.status).toBe(200);
-    expect(await first.text()).toBe("limit is 100, init_runs 1");
+    expect(await first.text()).toBe("limit:100:1");
 
-    const second = await mf.dispatchFetch(`${mfUrl}durable/lazy-init`);
+    const second = await mf.dispatchFetch(`${mfUrl}durable/constructor-init`);
     expect(second.status).toBe(200);
-    expect(await second.text()).toBe("limit is 100, init_runs 1");
+    expect(await second.text()).toBe("limit:100:1");
   });
 
   test("get-by-name", async () => {
