@@ -1,0 +1,19 @@
+worker/src/durable.rs
+  s_80cccffa17dc5d::t_07f711594a5e70 13-15,276-376,986-987
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "eacbbb75825f3b75981f9ae2745a0451863cc5d2",
+  "prompts": {},
+  "sessions": {
+    "s_80cccffa17dc5d": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_047d9032fffe3DIAtuk11fe46i",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Luke Valenta <lvalenta@cloudflare.com>"
+    }
+  }
+}
