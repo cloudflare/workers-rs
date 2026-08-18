@@ -221,6 +221,7 @@ macro_rules! add_routes (
     add_route!($obj, get, "/socket/read",  socket::handle_socket_read);
     add_route!($obj, get, "/durable/auto-response", auto_response::handle_auto_response);
     add_route!($obj, get, "/durable/hello", durable::handle_hello);
+    add_route!($obj, get, "/durable/ctor-name", durable::handle_ctor_name);
     add_route!($obj, get, "/durable/hello-unique", durable::handle_hello_unique);
     add_route!($obj, get, "/durable/storage", durable::handle_storage);
     add_route!($obj, get, "/durable/handle-basic-test", durable::handle_basic_test);
