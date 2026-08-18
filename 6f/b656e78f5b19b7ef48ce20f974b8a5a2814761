@@ -1,0 +1,23 @@
+Cargo.lock
+  s_d0739a5c1bbbe2::t_8fd8d4caa84c0d 85,96,773,1337,1547,2087,2513,3193,3195,3264,3275,3291,3299,3307,3318,3325,3345,3354,3452,3531
+examples/memory-discard/Cargo.lock
+  s_d0739a5c1bbbe2::t_aa617c4a23d3bd 1-821
+wasm-bindgen
+  s_d0739a5c1bbbe2::t_0e152fe8f42652 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "6fb656e78f5b19b7ef48ce20f974b8a5a2814761",
+  "prompts": {},
+  "sessions": {
+    "s_d0739a5c1bbbe2": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_fed91a8feffefaHADCuXpqldCg",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Guy Bedford <guybedford@gmail.com>"
+    }
+  }
+}
