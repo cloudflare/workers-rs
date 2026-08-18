@@ -7,8 +7,8 @@ This example demonstrates handling inbound TCP connections in a Cloudflare Worke
 Build and deploy the Worker:
 
 ```bash
-npx worker-build
-npx wrangler deploy
+npm install
+npm run dev
 ```
 
 ## Handler
