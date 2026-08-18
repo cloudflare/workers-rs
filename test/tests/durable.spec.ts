@@ -65,6 +65,15 @@ describe("durable", () => {
     expect(text).toBe("Hello from my-durable-object!");
   });
 
+  // The name should be available in the constructor, before any request is
+  // handled (see https://github.com/cloudflare/workerd/issues/2240).
+  test("id-from-name preserves name on state.id() in constructor", async () => {
+    const resp = await mf.dispatchFetch(`${mfUrl}durable/ctor-name`);
+    expect(resp.status).toBe(200);
+    const text = await resp.text();
+    expect(text).toBe("Hello from my-durable-object!");
+  });
+
   // unique_id() DOs should not have a name on state.id().
   test("unique-id has no name on state.id()", async () => {
     const resp = await mf.dispatchFetch(`${mfUrl}durable/hello-unique`);

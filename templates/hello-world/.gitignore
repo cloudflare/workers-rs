@@ -1,3 +1,9 @@
 target
 node_modules
-.wrangler
+
+### Wrangler ###
+.wrangler/
+.env*
+!.env.example
+.dev.vars*
+!.dev.vars.example

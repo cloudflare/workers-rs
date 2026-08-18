@@ -199,6 +199,7 @@ macro_rules! add_routes (
     add_route!($obj, get, "/d1/retrieve_optional_some", d1::retrieve_optional_some);
     add_route!($obj, get, "/d1/retrive_first_none", d1::retrive_first_none);
     add_route!($obj, get, "/d1/blob_roundtrip", d1::blob_roundtrip);
+    add_route!($obj, get, "/d1/deserialize_with_type_mismatch", d1::deserialize_with_type_mismatch);
     add_route!($obj, get, "/kv/get", kv::get);
     add_route!($obj, get, "/kv/get-not-found", kv::get_not_found);
     add_route!($obj, get, "/kv/list-keys", kv::list_keys);
@@ -221,6 +222,7 @@ macro_rules! add_routes (
     add_route!($obj, get, "/socket/read",  socket::handle_socket_read);
     add_route!($obj, get, "/durable/auto-response", auto_response::handle_auto_response);
     add_route!($obj, get, "/durable/hello", durable::handle_hello);
+    add_route!($obj, get, "/durable/ctor-name", durable::handle_ctor_name);
     add_route!($obj, get, "/durable/hello-unique", durable::handle_hello_unique);
     add_route!($obj, get, "/durable/storage", durable::handle_storage);
     add_route!($obj, get, "/durable/handle-basic-test", durable::handle_basic_test);
