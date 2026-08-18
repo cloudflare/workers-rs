@@ -1,0 +1,19 @@
+wasm-bindgen
+  s_d0739a5c1bbbe2::t_9200b6b352f542 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "0e66f45b8e8f54ca472e931b5838e3f5340da3da",
+  "prompts": {},
+  "sessions": {
+    "s_d0739a5c1bbbe2": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_fed91a8feffefaHADCuXpqldCg",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Guy Bedford <guybedford@gmail.com>"
+    }
+  }
+}
