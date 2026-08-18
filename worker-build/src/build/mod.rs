@@ -462,6 +462,8 @@ impl Build {
             None => return Ok(()),
         };
         args.push("--all-features".into());
+        // workerd does not yet support the compact import section encoding
+        args.push("--disable-compact-imports".into());
         // Keep the Wasm names section
         args.push("--debuginfo".into());
         info!("executing wasm-opt with {args:?}");
