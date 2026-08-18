@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# memory.discard experiment: builds the worker in two variants and measures
+# memory.discard bench: builds the worker in two variants and measures
 # workerd RSS across an alloc/free churn workload.
 #
 # Requires:

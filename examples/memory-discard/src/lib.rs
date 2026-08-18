@@ -1,4 +1,4 @@
-//! Experiment worker for the wasm `memory.discard` instruction.
+//! Example worker for the wasm `memory.discard` instruction.
 //!
 //! Built with jemalloc as the global allocator (dirty_decay_ms:0), so freed
 //! pages are immediately purged via `madvise(MADV_DONTNEED)`, which lowers to
