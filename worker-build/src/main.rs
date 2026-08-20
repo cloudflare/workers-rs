@@ -184,6 +184,7 @@ fn generate_handlers(out_dir: &Path) -> Result<String> {
             || func_name == "queue"
             || func_name == "scheduled"
             || func_name == "email"
+            || func_name == "connect"
         {
             // TODO: Switch these over to https://github.com/wasm-bindgen/wasm-bindgen/pull/4757
             // once that lands.
