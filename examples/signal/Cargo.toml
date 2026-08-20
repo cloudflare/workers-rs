@@ -10,5 +10,5 @@ crate-type = ["cdylib"]
 [dependencies]
 worker = { path = "../../worker" }
 worker-macros = { path = "../../worker-macros" }
-num-bigint = "0.4"
+num-bigint = "0.5"
 num-integer = "0.1"
