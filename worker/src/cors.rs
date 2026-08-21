@@ -5,7 +5,7 @@ use crate::{Error, Headers, Method, Result};
 pub struct Cors {
     credentials: bool,
     max_age: Option<u32>,
-    origins: Vec<String>,
+    origin: Option<String>,
     methods: Vec<Method>,
     allowed_headers: Vec<String>,
     exposed_headers: Vec<String>,
@@ -17,7 +17,7 @@ impl Default for Cors {
         Self {
             credentials: false,
             max_age: None,
-            origins: vec![],
+            origin: None,
             methods: vec![],
             allowed_headers: vec![],
             exposed_headers: vec![],
@@ -44,11 +44,18 @@ impl Cors {
     }
 
     /// Configures which origins are allowed for cors.
-    pub fn with_origins<S: Into<String>, V: IntoIterator<Item = S>>(mut self, origins: V) -> Self {
-        self.origins = origins
+    /// The actual request origin is also required.
+    pub fn with_origins<S1: Into<String>, S2: AsRef<str>, V: IntoIterator<Item = S1>>(
+        mut self,
+        origins: V,
+        req_origin: S2,
+    ) -> Self {
+        let req_origin_str = req_origin.as_ref();
+        self.origin = origins
             .into_iter()
             .map(|item| item.into())
-            .collect::<Vec<String>>();
+            .filter(|s| s == req_origin_str)
+            .next();
         self
     }
 
@@ -90,11 +97,8 @@ impl Cors {
         if let Some(ref max_age) = self.max_age {
             headers.set("Access-Control-Max-Age", format!("{max_age}").as_str())?;
         }
-        if !self.origins.is_empty() {
-            headers.set(
-                "Access-Control-Allow-Origin",
-                concat_vec_to_string(self.origins.as_slice())?.as_str(),
-            )?;
+        if let Some(origin) = &self.origin {
+            headers.set("Access-Control-Allow-Origin", origin)?;
         }
         if !self.methods.is_empty() {
             headers.set(
