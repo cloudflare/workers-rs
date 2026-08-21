@@ -3,6 +3,7 @@ use std::cell::Cell;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::panic::AssertUnwindSafe;
+use std::rc::Rc;
 use worker::DurableObject;
 
 use worker::{
@@ -17,15 +18,34 @@ pub struct MyClass {
     state: State,
     number: AssertUnwindSafe<Cell<usize>>,
     ctor_name: Option<String>,
+    // Constructor-gated async-initialization state, exercised by the `/limit` route below.
+    init_runs: AssertUnwindSafe<Rc<Cell<usize>>>,
+    limit: AssertUnwindSafe<Rc<Cell<u64>>>,
 }
 
 impl DurableObject for MyClass {
     fn new(state: State, _env: Env) -> Self {
         let ctor_name = state.id().name();
+        let init_runs = Rc::new(Cell::new(0));
+        let limit = Rc::new(Cell::new(0));
+        // The JS constructor idiom: call block_concurrency_while without awaiting it. The
+        // runtime gates delivery of all events until the init future completes, so the first
+        // request must observe the loaded limit, never the 0 sentinel. The second await inside
+        // the closure verifies the gate holds across multiple suspension points.
+        let (runs, l, storage) = (init_runs.clone(), limit.clone(), state.storage());
+        let _init = state.block_concurrency_while(move || async move {
+            runs.set(runs.get() + 1);
+            let stored: u64 = storage.get("limit").await?.unwrap_or(100);
+            storage.put("init_probe", stored).await?;
+            l.set(stored);
+            Ok(())
+        });
         Self {
             state,
             number: AssertUnwindSafe(Cell::new(0)),
             ctor_name,
+            init_runs: AssertUnwindSafe(init_runs),
+            limit: AssertUnwindSafe(limit),
         }
     }
 
@@ -179,6 +199,66 @@ impl DurableObject for MyClass {
                 "/transaction" => {
                     Response::error("transactional storage API is still unstable", 501)
                 }
+                "/limit" => {
+                    // Reports the constructor-gated init state; see `new()` above.
+                    Response::ok(format!(
+                        "limit:{}:{}",
+                        self.limit.get(),
+                        self.init_runs.get()
+                    ))
+                }
+                "/block-concurrency" => {
+                    // Atomic read-modify-write inside the guard, returning the new count as a
+                    // value out of `block_concurrency_while`.
+                    let storage = self.state.storage();
+                    let count: usize = self
+                        .state
+                        .block_concurrency_while(move || async move {
+                            let current: usize = storage.get("bcw_count").await?.unwrap_or(0);
+                            let next = current + 1;
+                            storage.put("bcw_count", next).await?;
+                            Ok(next)
+                        })
+                        .await?;
+                    Response::ok(count.to_string())
+                }
+                "/block-concurrency-errors-as-values" => {
+                    // In-memory counter to detect resets: a reset would re-run `new()` and
+                    // drop this back to 1 on the next request.
+                    self.number.set(self.number.get() + 1);
+                    let calls = self.number.get();
+
+                    // Errors returned inside `Ok` are values: they flow back to the caller
+                    // without rejecting the promise, so the object is not reset.
+                    let storage = self.state.storage();
+                    let outcome: std::result::Result<String, String> = self
+                        .state
+                        .block_concurrency_while(move || async move {
+                            let _seen: Option<usize> =
+                                storage.get("bcw_count").await.ok().flatten();
+                            Ok(Err("simulated transient failure".to_string()))
+                        })
+                        .await?;
+
+                    match outcome {
+                        Ok(value) => Response::ok(format!("ok:{value}:{calls}")),
+                        Err(err) => Response::ok(format!("err:{err}:{calls}")),
+                    }
+                }
+                "/block-concurrency-reset-count" => {
+                    // In-memory counter; a reset re-runs `new()` and drops it back to 1.
+                    self.number.set(self.number.get() + 1);
+                    Response::ok(self.number.get().to_string())
+                }
+                "/block-concurrency-reset-trigger" => {
+                    // Returning `Err` rejects the promise and resets the object.
+                    self.state
+                        .block_concurrency_while(move || async move {
+                            Err::<(), _>(worker::Error::RustError("intentional reset".into()))
+                        })
+                        .await?;
+                    Response::ok("unreachable")
+                }
                 _ => Response::error("Not Found", 404),
             }
         };
@@ -330,6 +410,71 @@ pub async fn handle_basic_test(
     );
 
     Response::ok("ok")
+}
+
+#[worker::send]
+pub async fn handle_block_concurrency(
+    _req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let namespace = env.durable_object("MY_CLASS")?;
+    let stub = namespace.id_from_name("block-concurrency")?.get_stub()?;
+    stub.fetch_with_str("https://fake-host/block-concurrency")
+        .await
+}
+
+#[worker::send]
+pub async fn handle_block_concurrency_reset_count(
+    _req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let namespace = env.durable_object("MY_CLASS")?;
+    let stub = namespace
+        .id_from_name("block-concurrency-reset")?
+        .get_stub()?;
+    stub.fetch_with_str("https://fake-host/block-concurrency-reset-count")
+        .await
+}
+
+#[worker::send]
+pub async fn handle_block_concurrency_reset_trigger(
+    _req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let namespace = env.durable_object("MY_CLASS")?;
+    let stub = namespace
+        .id_from_name("block-concurrency-reset")?
+        .get_stub()?;
+    stub.fetch_with_str("https://fake-host/block-concurrency-reset-trigger")
+        .await
+}
+
+#[worker::send]
+pub async fn handle_constructor_init(
+    _req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let namespace = env.durable_object("MY_CLASS")?;
+    let stub = namespace.id_from_name("constructor-init")?.get_stub()?;
+    stub.fetch_with_str("https://fake-host/limit").await
+}
+
+#[worker::send]
+pub async fn handle_block_concurrency_errors_as_values(
+    _req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let namespace = env.durable_object("MY_CLASS")?;
+    let stub = namespace
+        .id_from_name("block-concurrency-errors-as-values")?
+        .get_stub()?;
+    stub.fetch_with_str("https://fake-host/block-concurrency-errors-as-values")
+        .await
 }
 
 #[worker::send]

@@ -10,7 +10,9 @@
 //! [Learn more](https://developers.cloudflare.com/workers/learning/using-durable-objects) about
 //! using Durable Objects.
 
-use std::{fmt::Display, ops::Deref, panic::AssertUnwindSafe, time::Duration};
+use std::{
+    cell::RefCell, fmt::Display, ops::Deref, panic::AssertUnwindSafe, rc::Rc, time::Duration,
+};
 
 use crate::{
     container::Container,
@@ -277,6 +279,65 @@ impl State {
                 Ok(JsValue::UNDEFINED)
             })))
             .unwrap()
+    }
+
+    /// Executes an async closure while blocking delivery of any other events to the Durable Object
+    /// until it completes, guaranteeing ordering. Binds the runtime's
+    /// [`blockConcurrencyWhile`](https://developers.cloudflare.com/durable-objects/api/state/#blockconcurrencywhile),
+    /// with the same call-time semantics as JavaScript: the gate closes as a side effect of the
+    /// *call*, and the returned future only observes completion.
+    ///
+    /// Awaiting the future yields the closure's value. Discarding it instead gives the JavaScript
+    /// constructor idiom, gating all event delivery until async initialization completes:
+    ///
+    /// ```no_run
+    /// # use std::{cell::Cell, rc::Rc};
+    /// # use worker::*;
+    /// # fn example(state: State) {
+    /// let limit = Rc::new(Cell::new(0));
+    /// let (l, storage) = (limit.clone(), state.storage());
+    /// let _init = state.block_concurrency_while(move || async move {
+    ///     l.set(storage.get("limit").await?.unwrap_or(100));
+    ///     Ok(())
+    /// });
+    /// # }
+    /// ```
+    ///
+    /// **If the closure returns `Err`, the Durable Object is terminated and reset**, as with
+    /// throwing in the JavaScript callback. To treat errors as values instead, return them inside
+    /// `Ok` (`T = Result<Outcome, MyError>`). The runtime also resets the object if the closure
+    /// exceeds a 30 second timeout.
+    ///
+    /// The closure must be `'static`, so it cannot borrow `&self`; move owned values (such as
+    /// `state.storage()` or a cloned `Env`) in instead.
+    ///
+    /// # Errors
+    ///
+    /// Errors if the `blockConcurrencyWhile` call fails, the closure returns `Err`, or the callback
+    /// does not run.
+    pub fn block_concurrency_while<F, Fut, T>(&self, closure: F) -> impl Future<Output = Result<T>>
+    where
+        F: FnOnce() -> Fut + 'static,
+        Fut: Future<Output = Result<T>> + 'static,
+        T: 'static,
+    {
+        let output: Rc<RefCell<Option<T>>> = Rc::new(RefCell::new(None));
+        let slot = output.clone();
+        let callback = wasm_bindgen::closure::Closure::once_into_js(AssertUnwindSafe(move || {
+            future_to_promise(AssertUnwindSafe(async move {
+                let value = closure().await.map_err(JsValue::from)?;
+                *slot.borrow_mut() = Some(value);
+                Ok(JsValue::NULL)
+            }))
+        }));
+        let promise = self.inner.block_concurrency_while(callback.unchecked_ref());
+        async move {
+            JsFuture::from(promise?).await.map_err(Error::from)?;
+            let value = output.borrow_mut().take();
+            value.ok_or_else(|| {
+                Error::RustError("block_concurrency_while callback did not run".into())
+            })
+        }
     }
 
     // needs to be accessed by the `#[durable_object]` macro in a conversion step
@@ -888,6 +949,9 @@ impl DurableObject for Chatroom {
 */
 #[allow(async_fn_in_trait)] // Send is not needed
 pub trait DurableObject: has_durable_object_attribute {
+    /// Constructs the Durable Object. This is synchronous; there is no async constructor. For async
+    /// setup, call [`State::block_concurrency_while`] here without awaiting it: the runtime blocks
+    /// delivery of all events until the initialization future completes.
     fn new(state: State, env: Env) -> Self;
 
     async fn fetch(&self, req: Request) -> Result<Response>;
