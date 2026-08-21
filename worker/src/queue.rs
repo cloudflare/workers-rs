@@ -99,6 +99,19 @@ impl<T> Message<T> {
     pub fn raw_body(&self) -> JsValue {
         self.inner().body().unwrap()
     }
+
+    /// The content type of the message.
+    pub fn content_type(&self) -> Option<QueueContentType> {
+        self.inner
+            .content_type()
+            .unwrap()
+            .map(|s| match s.as_string().unwrap().as_str() {
+                "json" => QueueContentType::Json,
+                "text" => QueueContentType::Text,
+                "v8" => QueueContentType::V8,
+                _ => QueueContentType::V8,
+            })
+    }
 }
 
 impl<T> TryFrom<RawMessage> for Message<T>
@@ -126,6 +139,27 @@ impl RawMessage {
     /// The body of the message.
     pub fn body(&self) -> JsValue {
         self.inner.body().unwrap()
+    }
+
+    /// The content type of the message.
+    pub fn content_type(&self) -> Option<QueueContentType> {
+        self.inner
+            .content_type()
+            .unwrap()
+            .map(|s| match s.as_string().unwrap().as_str() {
+                "json" => QueueContentType::Json,
+                "text" => QueueContentType::Text,
+                "v8" => QueueContentType::V8,
+                _ => QueueContentType::V8,
+            })
+    }
+
+    /// deserialize the body as json using serde_json
+    pub fn body_json<T: DeserializeOwned>(&self) -> Result<T> {
+        let json_str = js_sys::JSON::stringify(&self.body())?
+            .as_string()
+            .ok_or_else(|| Error::RustError("failed to stringify body".into()))?;
+        Ok(serde_json::from_str(&json_str)?)
     }
 }
 
