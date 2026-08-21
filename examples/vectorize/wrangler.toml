@@ -1,0 +1,19 @@
+name = "vectorize-worker"
+main = "build/worker/shim.mjs"
+compatibility_date = "2026-01-01"
+
+[build]
+command = "cargo install worker-build@^0.8 && worker-build --release"
+
+# Embeddings come from Workers AI (the `@cf/baai/bge-base-en-v1.5` model).
+[ai]
+binding = "AI"
+remote = true
+
+# The index must be 768-dimensional to match the embedding model. Create it first:
+#   wrangler vectorize create demo-index --dimensions=768 --metric=cosine
+#   wrangler vectorize create-metadata-index demo-index --property-name=category --type=string
+[[vectorize]]
+binding = "VECTORIZE"
+index_name = "demo-index"
+remote = true
