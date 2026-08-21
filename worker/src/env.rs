@@ -4,6 +4,7 @@ use crate::analytics_engine::AnalyticsEngineDataset;
 #[cfg(feature = "d1")]
 use crate::d1::D1Database;
 use crate::email::SendEmail;
+use crate::flagship::Flagship;
 use crate::kv::KvStore;
 use crate::rate_limit::RateLimiter;
 use crate::Ai;
@@ -136,6 +137,12 @@ impl Env {
     /// [`Email`](crate::Email) or a prebuilt
     /// [`EmailMessage`](crate::EmailMessage).
     pub fn send_email(&self, binding: &str) -> Result<SendEmail> {
+        self.get_binding(binding)
+    }
+
+    /// Access a [Flagship](https://developers.cloudflare.com/flagship/) feature-flag store by
+    /// the binding name configured in your wrangler.toml file.
+    pub fn flagship(&self, binding: &str) -> Result<Flagship> {
         self.get_binding(binding)
     }
 }

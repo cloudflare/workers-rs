@@ -1,0 +1,12 @@
+name = "flagship-worker"
+main = "build/worker/shim.mjs"
+compatibility_date = "2026-04-17"
+
+[build]
+command = "cargo install worker-build@^0.8 && worker-build --release"
+
+# Replace <APP_ID> with your Flagship app ID from the Cloudflare dashboard.
+# https://developers.cloudflare.com/flagship/get-started/
+[[flagship]]
+binding = "FLAGS"
+app_id = "<APP_ID>"
