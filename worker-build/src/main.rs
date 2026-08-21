@@ -85,6 +85,13 @@ pub fn main() -> Result<()> {
 
     builder.init()?;
 
+    // Extra arguments to pass through to the wasm-bindgen CLI.
+    if let Ok(bindgen_args) = env::var("WASM_BINDGEN_ARGS") {
+        builder
+            .extra_args
+            .extend(bindgen_args.split_whitespace().map(str::to_owned));
+    }
+
     let module_target = !no_panic_recovery && env::var("CUSTOM_SHIM").is_err();
     if module_target {
         builder.extra_args.extend_from_slice(&[
@@ -171,12 +178,20 @@ fn generate_handlers(out_dir: &Path) -> Result<String> {
         }
     }
 
-    let mut handlers = String::new();
+    // When the allocator exposes a decay tick (jemallocator-discard), advance
+    // its clock and run a decay pass once each handler invocation settles.
+    let mut handlers = String::from(
+        "const __decayTick = exports.__jemallocator_decay_tick
+  ? () => exports.__jemallocator_decay_tick(Date.now())
+  : null;
+",
+    );
     for func_name in func_names {
         if func_name == "fetch" && env::var("RUN_TO_COMPLETION").is_ok() {
             handlers += "Entrypoint.prototype.fetch = async function fetch(request) {
   let response = exports.fetch(request, this.env, this.ctx);
   this.ctx.waitUntil(response);
+  if (__decayTick) response.then(__decayTick, __decayTick);
   return response;
 }
 ";
@@ -189,7 +204,9 @@ fn generate_handlers(out_dir: &Path) -> Result<String> {
             // once that lands.
             handlers += &format!(
                 "Entrypoint.prototype.{func_name} = function {func_name} (arg) {{
-  return exports.{func_name}.call(this, arg, this.env, this.ctx);
+  const result = exports.{func_name}.call(this, arg, this.env, this.ctx);
+  if (__decayTick) Promise.resolve(result).then(__decayTick, __decayTick);
+  return result;
 }}
 "
             );
@@ -205,8 +222,18 @@ static SYSTEM_FNS: &[&str] = &["__wbg_reset_state", "__worker_init_state"];
 
 fn add_export_wrappers(out_dir: &Path) -> Result<()> {
     let index_path = output_path(out_dir, "index.js");
-    let content = fs::read_to_string(&index_path)
+    let mut content = fs::read_to_string(&index_path)
         .with_context(|| format!("Failed to read {}", index_path.display()))?;
+
+    // Surface the raw allocator decay tick export (if present) through the
+    // JS module, since wasm-bindgen does not re-export unknown wasm exports.
+    if content.contains("let wasm = wasmInstance.exports;") {
+        content.push_str(
+            "\nexport const __jemallocator_decay_tick = wasm.__jemallocator_decay_tick;\n",
+        );
+        fs::write(&index_path, &content)
+            .with_context(|| format!("Failed to write {}", index_path.display()))?;
+    }
 
     let mut class_names = Vec::new();
     for line in content.lines() {

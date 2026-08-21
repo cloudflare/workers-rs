@@ -12,6 +12,7 @@ members = [
 exclude = [
     "examples/coredump",
     "examples/axum",
+    "examples/memory-discard",
     "templates/*",
     "wasm-bindgen",
     "wasm-streams",

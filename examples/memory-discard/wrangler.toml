@@ -1,0 +1,7 @@
+name = "memory-discard-example"
+main = "build/index.js"
+compatibility_date = "2025-05-01"
+compatibility_flags = ["wasm_memory_discard"]
+
+[build]
+command = "cargo install \"worker-build@^0.8\" && WASM_BINDGEN_ARGS=--experimental-memory-discard worker-build --release --features jemalloc"
