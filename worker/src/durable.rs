@@ -893,7 +893,7 @@ pub trait DurableObject: has_durable_object_attribute {
     async fn fetch(&self, req: Request) -> Result<Response>;
 
     #[allow(clippy::diverging_sub_expression)]
-    async fn alarm(&self) -> Result<Response> {
+    async fn alarm(&self) -> Result<()> {
         worker_sys::console_error!("alarm() handler not implemented");
         unimplemented!("alarm() handler")
     }
