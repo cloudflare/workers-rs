@@ -9,7 +9,7 @@ use worker_sys::ext::WebSocketExt;
 #[cfg(not(feature = "http"))]
 use crate::Fetch;
 #[cfg(feature = "http")]
-use js_sys::futures::JsFuture;
+use wasm_bindgen_futures::JsFuture;
 use std::pin::Pin;
 use std::rc::Rc;
 use std::task::{Context, Poll};
@@ -125,6 +125,30 @@ impl WebSocket {
     /// Accepts the connection, allowing for messages to be sent to and from the `WebSocket`.
     pub fn accept(&self) -> Result<()> {
         self.socket.accept().map_err(Error::from)
+    }
+
+    /// Returns the current `binaryType` of this `WebSocket`.
+    ///
+    /// Controls how binary `message` event `data` is delivered.
+    /// With `BinaryType::Blob` (default for `compatibility_date >= 2026-03-17` via
+    /// `websocket_standard_binary_type` flag) binary frames arrive as `Blob`,
+    /// with `BinaryType::Arraybuffer` they arrive as `ArrayBuffer`.
+    /// Must be set via [`Self::set_binary_type`] *before* calling [`Self::accept`]
+    /// to affect incoming messages. See
+    /// <https://developers.cloudflare.com/workers/runtime-apis/websockets/#binarytype>.
+    pub fn binary_type(&self) -> web_sys::BinaryType {
+        self.socket.binary_type()
+    }
+
+    /// Sets the `binaryType` for this `WebSocket`.
+    ///
+    /// Set to `BinaryType::Arraybuffer` before `accept()` to opt back into the
+    /// pre-`2026-03-17` behaviour where binary frames are delivered as `ArrayBuffer`
+    /// and can be read synchronously via [`crate::ws_events::MessageEvent::bytes_from_arraybuffer`].
+    /// With `BinaryType::Blob` (the new default) binary data must be read via
+    /// `MessageEvent::bytes_from_blob().await` or `MessageEvent::bytes().await`.
+    pub fn set_binary_type(&self, ty: web_sys::BinaryType) {
+        self.socket.set_binary_type(ty)
     }
 
     /// Serialize data into a string using serde and send it through the `WebSocket`
@@ -364,6 +388,7 @@ impl AsRef<web_sys::WebSocket> for WebSocket {
 
 pub mod ws_events {
     use serde::de::DeserializeOwned;
+    use wasm_bindgen::JsCast;
     use wasm_bindgen::JsValue;
 
     use crate::Error;
@@ -404,13 +429,106 @@ pub mod ws_events {
             value.as_string()
         }
 
-        pub fn bytes(&self) -> Option<Vec<u8>> {
+        /// Synchronously extract binary data when the WebSocket's `binaryType` is
+        /// `arraybuffer` (the runtime default before `2026-03-17`).
+        ///
+        /// Returns `Err` if `event.data` is not an `ArrayBuffer` / `ArrayBufferView`
+        /// (e.g. it is a `string` or a `Blob`). For the new default `blob` binary
+        /// type use [`Self::bytes_from_blob`] or the unified [`Self::bytes`].
+        ///
+        /// To opt back into this path on newer runtimes set
+        /// `ws.set_binary_type(web_sys::BinaryType::Arraybuffer)` **before**
+        /// `ws.accept()`.
+        pub fn bytes_from_arraybuffer(&self) -> crate::Result<Vec<u8>> {
             let value = self.data();
-            if value.is_object() {
-                Some(js_sys::Uint8Array::new(&value).to_vec())
+            if js_sys::ArrayBuffer::instanceof(&value) {
+                let ab = value.dyn_into::<js_sys::ArrayBuffer>().unwrap();
+                Ok(js_sys::Uint8Array::new(&ab).to_vec())
+            } else if js_sys::Uint8Array::instanceof(&value) {
+                // Some runtimes may deliver a view directly; handle gracefully.
+                Ok(js_sys::Uint8Array::new(&value).to_vec())
+            } else if value.is_object()
+                && js_sys::Reflect::has(&value, &JsValue::from_str("byteLength")).unwrap_or(false)
+            {
+                // Fallback for ArrayBuffer-like objects.
+                Ok(js_sys::Uint8Array::new(&value).to_vec())
             } else {
-                None
+                Err(Error::RustError(
+                    "data is not an ArrayBuffer (binaryType may be \"blob\"; use bytes_from_blob().await or bytes().await)".into(),
+                ))
             }
+        }
+
+        /// Asynchronously extract binary data when the WebSocket's `binaryType` is
+        /// `blob` (the default for `compatibility_date >= 2026-03-17` via
+        /// `websocket_standard_binary_type`).
+        ///
+        /// A naive `js_sys::Uint8Array::new(&blob).to_vec()` yields `[]` because
+        /// `Uint8Array` cannot wrap a `Blob`:
+        /// ```js
+        /// new Uint8Array(new Blob([new Uint8Array([1,2,3])])).length === 0
+        /// ```
+        /// This method correctly does `await blob.arrayBuffer()`.
+        ///
+        /// Returns `Err` if `event.data` is not a `Blob`.
+        pub async fn bytes_from_blob(&self) -> crate::Result<Vec<u8>> {
+            let value = self.data();
+            let blob = value
+                .dyn_ref::<web_sys::Blob>()
+                .ok_or_else(|| {
+                    Error::RustError(
+                        "data is not a Blob (binaryType may be \"arraybuffer\"; use bytes_from_arraybuffer())".into(),
+                    )
+                })?;
+            let promise = blob.array_buffer();
+            let ab_val = wasm_bindgen_futures::JsFuture::from(promise)
+                .await
+                .map_err(Error::from)?;
+            let ab = ab_val
+                .dyn_into::<js_sys::ArrayBuffer>()
+                .map_err(|_| Error::RustError("Blob.arrayBuffer() did not return an ArrayBuffer".into()))?;
+            Ok(js_sys::Uint8Array::new(&ab).to_vec())
+        }
+
+        /// Unified helper that works regardless of `binaryType`.
+        ///
+        /// Tries `ArrayBuffer` first, then `Blob` (via `await blob.arrayBuffer()`).
+        /// Returns `Err` if `event.data` is a `string` or an unknown type.
+        ///
+        /// For explicit control use [`Self::bytes_from_arraybuffer`] (sync) or
+        /// [`Self::bytes_from_blob`] (async).
+        pub async fn bytes(&self) -> crate::Result<Vec<u8>> {
+            let value = self.data();
+            if js_sys::ArrayBuffer::instanceof(&value)
+                || js_sys::Uint8Array::instanceof(&value)
+            {
+                return Ok(js_sys::Uint8Array::new(&value).to_vec());
+            }
+            if let Some(blob) = value.dyn_ref::<web_sys::Blob>() {
+                let promise = blob.array_buffer();
+                let ab_val = wasm_bindgen_futures::JsFuture::from(promise)
+                    .await
+                    .map_err(Error::from)?;
+                let ab = ab_val
+                    .dyn_into::<js_sys::ArrayBuffer>()
+                    .map_err(|_| Error::RustError("Blob.arrayBuffer() did not return an ArrayBuffer".into()))?;
+                return Ok(js_sys::Uint8Array::new(&ab).to_vec());
+            }
+            // Fallback: some workerd builds may deliver an ArrayBuffer-like object
+            // with byteLength but failing instanceof (cross-realm). Try Uint8Array wrap.
+            if value.is_object() {
+                // Heuristic: if it looks like binary, try wrap; otherwise treat as not binary.
+                // We check that it's not a string (already false) and not null.
+                // Attempting Uint8Array::new on a Blob would give [] but we already handled Blob above,
+                // so remaining object case is likely ArrayBuffer.
+                // To avoid silent [], verify byteLength >0 or instanceof check passed above.
+                // If we still get [], treat as error to avoid silent data loss.
+                let arr = js_sys::Uint8Array::new(&value);
+                if arr.length() > 0 || js_sys::ArrayBuffer::instanceof(&value) {
+                    return Ok(arr.to_vec());
+                }
+            }
+            Err(Error::RustError("data is not binary (is string or unknown)".into()))
         }
 
         pub fn json<T: DeserializeOwned>(&self) -> crate::Result<T> {
