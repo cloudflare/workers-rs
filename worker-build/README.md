@@ -34,3 +34,13 @@ export WASM_BINDGEN_BIN=/path/to/custom/wasm-bindgen
 export WASM_OPT_BIN=/path/to/custom/wasm-opt
 worker-build --release
 ```
+
+When developing against the pinned wasm-bindgen submodule, build its CLI and
+point worker-build at that exact binary so the CLI metadata schema matches the
+patched Rust crates:
+
+```bash
+cargo +stable build --manifest-path wasm-bindgen/Cargo.toml -p wasm-bindgen-cli --bin wasm-bindgen
+export WASM_BINDGEN_BIN="$PWD/wasm-bindgen/target/debug/wasm-bindgen"
+worker-build --release
+```

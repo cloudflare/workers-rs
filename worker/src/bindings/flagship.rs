@@ -6,71 +6,51 @@ use js_sys::*;
 use wasm_bindgen::prelude::*;
 #[allow(dead_code)]
 pub type FlagshipEvaluationContext = Object;
-#[wasm_bindgen]
+#[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
-    pub type FlagshipEvaluationDetails<T: ::wasm_bindgen::JsGeneric>;
+    pub type FlagshipEvaluationDetails<T>;
     #[wasm_bindgen(method, getter, js_name = "flagKey")]
-    pub fn flag_key<T: ::wasm_bindgen::JsGeneric>(this: &FlagshipEvaluationDetails<T>) -> String;
+    pub fn flag_key<T>(this: &FlagshipEvaluationDetails<T>) -> String;
     #[wasm_bindgen(method, setter, js_name = "flagKey")]
-    pub fn set_flag_key<T: ::wasm_bindgen::JsGeneric>(
-        this: &FlagshipEvaluationDetails<T>,
-        val: &str,
-    );
+    pub fn set_flag_key<T>(this: &FlagshipEvaluationDetails<T>, val: &str);
     #[wasm_bindgen(method, getter)]
-    pub fn value<T: ::wasm_bindgen::JsGeneric>(this: &FlagshipEvaluationDetails<T>) -> T;
+    pub fn value<T>(this: &FlagshipEvaluationDetails<T>) -> T;
     #[wasm_bindgen(method, setter)]
-    pub fn set_value<T: ::wasm_bindgen::JsGeneric>(this: &FlagshipEvaluationDetails<T>, val: &T);
+    pub fn set_value<T>(this: &FlagshipEvaluationDetails<T>, val: T);
     #[wasm_bindgen(method, getter)]
-    pub fn variant<T: ::wasm_bindgen::JsGeneric>(
-        this: &FlagshipEvaluationDetails<T>,
-    ) -> Option<String>;
+    pub fn variant<T>(this: &FlagshipEvaluationDetails<T>) -> Option<String>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_variant<T: ::wasm_bindgen::JsGeneric>(
-        this: &FlagshipEvaluationDetails<T>,
-        val: &str,
-    );
+    pub fn set_variant<T>(this: &FlagshipEvaluationDetails<T>, val: &str);
     #[wasm_bindgen(method, getter)]
-    pub fn reason<T: ::wasm_bindgen::JsGeneric>(
-        this: &FlagshipEvaluationDetails<T>,
-    ) -> Option<String>;
+    pub fn reason<T>(this: &FlagshipEvaluationDetails<T>) -> Option<String>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_reason<T: ::wasm_bindgen::JsGeneric>(this: &FlagshipEvaluationDetails<T>, val: &str);
+    pub fn set_reason<T>(this: &FlagshipEvaluationDetails<T>, val: &str);
     #[wasm_bindgen(method, getter, js_name = "errorCode")]
-    pub fn error_code<T: ::wasm_bindgen::JsGeneric>(
-        this: &FlagshipEvaluationDetails<T>,
-    ) -> Option<String>;
+    pub fn error_code<T>(this: &FlagshipEvaluationDetails<T>) -> Option<String>;
     #[wasm_bindgen(method, setter, js_name = "errorCode")]
-    pub fn set_error_code<T: ::wasm_bindgen::JsGeneric>(
-        this: &FlagshipEvaluationDetails<T>,
-        val: &str,
-    );
+    pub fn set_error_code<T>(this: &FlagshipEvaluationDetails<T>, val: &str);
     #[wasm_bindgen(method, getter, js_name = "errorMessage")]
-    pub fn error_message<T: ::wasm_bindgen::JsGeneric>(
-        this: &FlagshipEvaluationDetails<T>,
-    ) -> Option<String>;
+    pub fn error_message<T>(this: &FlagshipEvaluationDetails<T>) -> Option<String>;
     #[wasm_bindgen(method, setter, js_name = "errorMessage")]
-    pub fn set_error_message<T: ::wasm_bindgen::JsGeneric>(
-        this: &FlagshipEvaluationDetails<T>,
-        val: &str,
-    );
+    pub fn set_error_message<T>(this: &FlagshipEvaluationDetails<T>, val: &str);
 }
-impl<T: ::wasm_bindgen::JsGeneric> FlagshipEvaluationDetails<T> {
-    pub fn new(flag_key: &str, value: &T) -> FlagshipEvaluationDetails<T> {
+impl<T: ::wasm_bindgen::convert::IntoWasmAbi> FlagshipEvaluationDetails<T> {
+    pub fn new(flag_key: &str, value: T) -> FlagshipEvaluationDetails<T> {
         Self::builder(flag_key, value).build()
     }
-    pub fn builder(flag_key: &str, value: &T) -> FlagshipEvaluationDetailsBuilder<T> {
+    pub fn builder(flag_key: &str, value: T) -> FlagshipEvaluationDetailsBuilder<T> {
         let inner: FlagshipEvaluationDetails<T> = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_flag_key(flag_key);
         inner.set_value(value);
         FlagshipEvaluationDetailsBuilder { inner }
     }
 }
-pub struct FlagshipEvaluationDetailsBuilder<T: ::wasm_bindgen::JsGeneric> {
+pub struct FlagshipEvaluationDetailsBuilder<T: ::wasm_bindgen::convert::IntoWasmAbi> {
     inner: FlagshipEvaluationDetails<T>,
 }
-impl<T: ::wasm_bindgen::JsGeneric> FlagshipEvaluationDetailsBuilder<T> {
+impl<T: ::wasm_bindgen::convert::IntoWasmAbi> FlagshipEvaluationDetailsBuilder<T> {
     pub fn variant(self, val: &str) -> Self {
         self.inner.set_variant(val);
         self
@@ -136,7 +116,7 @@ extern "C" {
         this: &Flagship,
         flag_key: &str,
         default_value: bool,
-    ) -> Result<Boolean, JsValue>;
+    ) -> Result<bool, JsValue>;
     #[doc = " Get a boolean flag value."]
     #[doc = ""]
     #[doc = " * `flagKey` - The key of the flag to evaluate."]
@@ -148,7 +128,33 @@ extern "C" {
         flag_key: &str,
         default_value: bool,
         context: &Object,
-    ) -> Result<Boolean, JsValue>;
+    ) -> Result<bool, JsValue>;
+    #[wasm_bindgen(method, catch, js_name = "getStringValue")]
+    pub async fn get_string_value(
+        this: &Flagship,
+        flag_key: &str,
+        default_value: &str,
+    ) -> Result<String, JsValue>;
+    #[wasm_bindgen(method, catch, js_name = "getStringValue")]
+    pub async fn get_string_value_with_context(
+        this: &Flagship,
+        flag_key: &str,
+        default_value: &str,
+        context: &Object,
+    ) -> Result<String, JsValue>;
+    #[wasm_bindgen(method, catch, js_name = "getNumberValue")]
+    pub async fn get_number_value(
+        this: &Flagship,
+        flag_key: &str,
+        default_value: f64,
+    ) -> Result<f64, JsValue>;
+    #[wasm_bindgen(method, catch, js_name = "getNumberValue")]
+    pub async fn get_number_value_with_context(
+        this: &Flagship,
+        flag_key: &str,
+        default_value: f64,
+        context: &Object,
+    ) -> Result<f64, JsValue>;
     #[doc = " Get a boolean flag value with full evaluation details."]
     #[doc = ""]
     #[doc = " * `flagKey` - The key of the flag to evaluate."]
@@ -159,7 +165,7 @@ extern "C" {
         this: &Flagship,
         flag_key: &str,
         default_value: bool,
-    ) -> Result<FlagshipEvaluationDetails<Boolean>, JsValue>;
+    ) -> Result<FlagshipEvaluationDetails<bool>, JsValue>;
     #[doc = " Get a boolean flag value with full evaluation details."]
     #[doc = ""]
     #[doc = " * `flagKey` - The key of the flag to evaluate."]
@@ -171,5 +177,31 @@ extern "C" {
         flag_key: &str,
         default_value: bool,
         context: &Object,
-    ) -> Result<FlagshipEvaluationDetails<Boolean>, JsValue>;
+    ) -> Result<FlagshipEvaluationDetails<bool>, JsValue>;
+    #[wasm_bindgen(method, catch, js_name = "getStringDetails")]
+    pub async fn get_string_details(
+        this: &Flagship,
+        flag_key: &str,
+        default_value: &str,
+    ) -> Result<FlagshipEvaluationDetails<String>, JsValue>;
+    #[wasm_bindgen(method, catch, js_name = "getStringDetails")]
+    pub async fn get_string_details_with_context(
+        this: &Flagship,
+        flag_key: &str,
+        default_value: &str,
+        context: &Object,
+    ) -> Result<FlagshipEvaluationDetails<String>, JsValue>;
+    #[wasm_bindgen(method, catch, js_name = "getNumberDetails")]
+    pub async fn get_number_details(
+        this: &Flagship,
+        flag_key: &str,
+        default_value: f64,
+    ) -> Result<FlagshipEvaluationDetails<f64>, JsValue>;
+    #[wasm_bindgen(method, catch, js_name = "getNumberDetails")]
+    pub async fn get_number_details_with_context(
+        this: &Flagship,
+        flag_key: &str,
+        default_value: f64,
+        context: &Object,
+    ) -> Result<FlagshipEvaluationDetails<f64>, JsValue>;
 }

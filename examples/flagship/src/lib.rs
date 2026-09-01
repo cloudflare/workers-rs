@@ -35,8 +35,7 @@ async fn boolean(req: Request, ctx: RouteContext<()>) -> Result<Response> {
     let value: bool = env
         .flagship(BINDING)?
         .get_boolean_value(&flag, false)
-        .await?
-        .value_of();
+        .await?;
     Response::from_json(&serde_json::json!({ "flag": flag, "value": value }))
 }
 

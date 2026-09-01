@@ -1,7 +1,7 @@
 /*
  * Flagship binding types from @cloudflare/workers-types. Mirrors
  * workerd/types/defines/flagship.d.ts (valid as of 28/04/2026). This
- * file builds worker/src/flagship_gen.rs as auto-generated bindings
+ * file builds worker/src/bindings/flagship.rs as auto-generated bindings
  * via ts-gen.
  *
  * NOTE: All hand edits to the upstream types are marked with an
@@ -68,12 +68,18 @@ declare abstract class Flagship {
     defaultValue: boolean,
     context?: FlagshipEvaluationContext,
   ): Promise<boolean>;
-  // EDIT: `getStringValue` / `getNumberValue` are hand-written in
-  // worker/src/flagship.rs. ts-gen types them as `JsString` / `Number`;
-  // returning plain `String` / `f64` needs ABI-level generics that no
-  // released wasm-bindgen has yet.
+  getStringValue(
+    flagKey: string,
+    defaultValue: string,
+    context?: FlagshipEvaluationContext,
+  ): Promise<string>;
+  getNumberValue(
+    flagKey: string,
+    defaultValue: number,
+    context?: FlagshipEvaluationContext,
+  ): Promise<number>;
   // EDIT: `getObjectValue<T extends object>(...)` is hand-written in
-  // worker/src/flagship.rs (ts-gen erases the generic to JsValue).
+  // worker/src/flagship.rs to deserialize arbitrary Rust object types.
   /**
    * Get a boolean flag value with full evaluation details.
    * @param flagKey The key of the flag to evaluate.
@@ -85,11 +91,16 @@ declare abstract class Flagship {
     defaultValue: boolean,
     context?: FlagshipEvaluationContext,
   ): Promise<FlagshipEvaluationDetails<boolean>>;
-  // EDIT: `getStringDetails` / `getNumberDetails` are hand-written in
-  // worker/src/flagship.rs (return a typed `EvaluationDetails<T>`). ts-gen
-  // types them as `FlagshipEvaluationDetails<JsString>` / `<Number>`;
-  // returning a plain primitive generic needs the same ABI-level generics no
-  // released wasm-bindgen has yet.
+  getStringDetails(
+    flagKey: string,
+    defaultValue: string,
+    context?: FlagshipEvaluationContext,
+  ): Promise<FlagshipEvaluationDetails<string>>;
+  getNumberDetails(
+    flagKey: string,
+    defaultValue: number,
+    context?: FlagshipEvaluationContext,
+  ): Promise<FlagshipEvaluationDetails<number>>;
   // EDIT: `getObjectDetails<T extends object>(...)` is hand-written in
-  // worker/src/flagship.rs (returns a typed `EvaluationDetails<T>`).
+  // worker/src/flagship.rs to return serde-backed `EvaluationDetails<T>`.
 }

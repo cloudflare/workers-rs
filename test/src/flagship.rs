@@ -32,8 +32,7 @@ pub async fn handle_boolean(req: Request, env: Env, _data: SomeSharedData) -> Re
     let value: bool = env
         .flagship(BINDING)?
         .get_boolean_value(&flag, false)
-        .await?
-        .value_of();
+        .await?;
     Response::from_json(&serde_json::json!({ "flag": flag, "value": value }))
 }
 
@@ -101,14 +100,7 @@ pub async fn handle_boolean_details(
         .flagship(BINDING)?
         .get_boolean_details(&flag, false)
         .await?;
-    Response::from_json(&serde_json::json!({
-        "flagKey": details.flag_key(),
-        "value": details.value().as_bool(),
-        "variant": details.variant(),
-        "reason": details.reason(),
-        "errorCode": details.error_code(),
-        "errorMessage": details.error_message(),
-    }))
+    Response::from_json(&details)
 }
 
 #[worker::send]
@@ -118,7 +110,7 @@ pub async fn handle_string_details(
     _data: SomeSharedData,
 ) -> Result<Response> {
     let flag = last_segment(&req)?;
-    let details: EvaluationDetails<String> = env
+    let details = env
         .flagship(BINDING)?
         .get_string_details(&flag, "fallback")
         .await?;
@@ -132,7 +124,7 @@ pub async fn handle_number_details(
     _data: SomeSharedData,
 ) -> Result<Response> {
     let flag = last_segment(&req)?;
-    let details: EvaluationDetails<f64> = env
+    let details = env
         .flagship(BINDING)?
         .get_number_details(&flag, 0.0)
         .await?;

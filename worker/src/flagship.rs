@@ -1,22 +1,13 @@
 use crate::{send::SendFuture, EnvBinding, Result};
 use js_sys::{Object, Promise};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Deserializer, Serialize, Serializer};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 
 // Hand-written companion to the ts-gen output in `bindings/flagship.rs`.
-//
-// ts-gen types `getStringValue` / `getNumberValue` (and their `*Details`
-// variants) as `JsString` / `Number`. Returning plain `String` / `f64` needs
-// ABI-level generics that no released wasm-bindgen has yet
-// (see https://github.com/wasm-bindgen/wasm-bindgen/pull/5180), so those
-// methods are hand-rolled here until it lands. The `getObject*` methods are
-// here for the same reason: ts-gen erases their `<T>` to `JsValue`. They fold
-// serde conversions in for typed `T`. `EvaluationContext` and the `EnvBinding`
-// impl are here too, because ts-gen doesn't synthesize them.
-//
-// Boolean flags are fully auto-generated: ts-gen maps them onto the js_sys
-// `Boolean` / `FlagshipEvaluationDetails<Boolean>` types, which work as-is.
+// Object values still need serde conversion because arbitrary Rust structs are
+// not wasm-bindgen ABI types. `EvaluationContext` and `EnvBinding` also remain
+// here because ts-gen does not synthesize them.
 pub use crate::bindings::flagship::{Flagship, FlagshipEvaluationDetails};
 
 impl EnvBinding for Flagship {
@@ -29,53 +20,9 @@ impl EnvBinding for Flagship {
     }
 }
 
-// String / number / object methods hand-rolled off raw `Promise` externs.
+// Object methods hand-rolled off raw `Promise` externs.
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(method, js_name = "getStringValue")]
-    fn get_string_value_raw(this: &Flagship, flag_key: &str, default_value: &str) -> Promise;
-
-    #[wasm_bindgen(method, js_name = "getStringValue")]
-    fn get_string_value_with_context_raw(
-        this: &Flagship,
-        flag_key: &str,
-        default_value: &str,
-        context: &Object,
-    ) -> Promise;
-
-    #[wasm_bindgen(method, js_name = "getNumberValue")]
-    fn get_number_value_raw(this: &Flagship, flag_key: &str, default_value: f64) -> Promise;
-
-    #[wasm_bindgen(method, js_name = "getNumberValue")]
-    fn get_number_value_with_context_raw(
-        this: &Flagship,
-        flag_key: &str,
-        default_value: f64,
-        context: &Object,
-    ) -> Promise;
-
-    #[wasm_bindgen(method, js_name = "getStringDetails")]
-    fn get_string_details_raw(this: &Flagship, flag_key: &str, default_value: &str) -> Promise;
-
-    #[wasm_bindgen(method, js_name = "getStringDetails")]
-    fn get_string_details_with_context_raw(
-        this: &Flagship,
-        flag_key: &str,
-        default_value: &str,
-        context: &Object,
-    ) -> Promise;
-
-    #[wasm_bindgen(method, js_name = "getNumberDetails")]
-    fn get_number_details_raw(this: &Flagship, flag_key: &str, default_value: f64) -> Promise;
-
-    #[wasm_bindgen(method, js_name = "getNumberDetails")]
-    fn get_number_details_with_context_raw(
-        this: &Flagship,
-        flag_key: &str,
-        default_value: f64,
-        context: &Object,
-    ) -> Promise;
-
     #[wasm_bindgen(method, js_name = "getObjectValue")]
     fn get_object_value_raw(this: &Flagship, flag_key: &str, default_value: &JsValue) -> Promise;
 
@@ -100,76 +47,6 @@ extern "C" {
 }
 
 impl Flagship {
-    /// Evaluate a string-typed flag.
-    pub async fn get_string_value(&self, flag_key: &str, default_value: &str) -> Result<String> {
-        from_js(self.get_string_value_raw(flag_key, default_value)).await
-    }
-
-    /// Evaluate a string-typed flag with a targeting context.
-    pub async fn get_string_value_with_context(
-        &self,
-        flag_key: &str,
-        default_value: &str,
-        context: &Object,
-    ) -> Result<String> {
-        from_js(self.get_string_value_with_context_raw(flag_key, default_value, context)).await
-    }
-
-    /// Evaluate a number-typed flag.
-    pub async fn get_number_value(&self, flag_key: &str, default_value: f64) -> Result<f64> {
-        from_js(self.get_number_value_raw(flag_key, default_value)).await
-    }
-
-    /// Evaluate a number-typed flag with a targeting context.
-    pub async fn get_number_value_with_context(
-        &self,
-        flag_key: &str,
-        default_value: f64,
-        context: &Object,
-    ) -> Result<f64> {
-        from_js(self.get_number_value_with_context_raw(flag_key, default_value, context)).await
-    }
-
-    /// Evaluate a string-typed flag and return the full evaluation envelope.
-    pub async fn get_string_details(
-        &self,
-        flag_key: &str,
-        default_value: &str,
-    ) -> Result<EvaluationDetails<String>> {
-        from_js(self.get_string_details_raw(flag_key, default_value)).await
-    }
-
-    /// Evaluate a string-typed flag with a targeting context, returning the
-    /// full evaluation envelope.
-    pub async fn get_string_details_with_context(
-        &self,
-        flag_key: &str,
-        default_value: &str,
-        context: &Object,
-    ) -> Result<EvaluationDetails<String>> {
-        from_js(self.get_string_details_with_context_raw(flag_key, default_value, context)).await
-    }
-
-    /// Evaluate a number-typed flag and return the full evaluation envelope.
-    pub async fn get_number_details(
-        &self,
-        flag_key: &str,
-        default_value: f64,
-    ) -> Result<EvaluationDetails<f64>> {
-        from_js(self.get_number_details_raw(flag_key, default_value)).await
-    }
-
-    /// Evaluate a number-typed flag with a targeting context, returning the
-    /// full evaluation envelope.
-    pub async fn get_number_details_with_context(
-        &self,
-        flag_key: &str,
-        default_value: f64,
-        context: &Object,
-    ) -> Result<EvaluationDetails<f64>> {
-        from_js(self.get_number_details_with_context_raw(flag_key, default_value, context)).await
-    }
-
     /// Evaluate an object-typed flag, returning the resolved value
     /// deserialized into `T`.
     pub async fn get_object_value<T: Serialize + DeserializeOwned>(
@@ -238,9 +115,8 @@ async fn call_object<I: Serialize, O: DeserializeOwned>(
     from_js(promise_fn(&default)).await
 }
 
-/// Typed evaluation record returned by the `get_*_details` methods for string,
-/// number, and object flags. Boolean flags use the auto-generated
-/// [`FlagshipEvaluationDetails`] instead.
+/// Typed evaluation record returned by the object details methods. Primitive
+/// flags use the auto-generated [`FlagshipEvaluationDetails`] instead.
 ///
 /// `error_code` and `error_message` are only populated when evaluation
 /// fell back to `default_value`.
@@ -257,6 +133,60 @@ pub struct EvaluationDetails<T> {
     pub error_code: Option<String>,
     #[serde(default)]
     pub error_message: Option<String>,
+}
+
+impl<T> Serialize for FlagshipEvaluationDetails<T>
+where
+    T: Serialize + wasm_bindgen::convert::FromWasmAbi,
+{
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        EvaluationDetails {
+            flag_key: self.flag_key(),
+            value: self.value(),
+            variant: self.variant(),
+            reason: self.reason(),
+            error_code: self.error_code(),
+            error_message: self.error_message(),
+        }
+        .serialize(serializer)
+    }
+}
+
+impl<'de, T> Deserialize<'de> for FlagshipEvaluationDetails<T>
+where
+    T: Deserialize<'de> + wasm_bindgen::convert::IntoWasmAbi,
+{
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let EvaluationDetails {
+            flag_key,
+            value,
+            variant,
+            reason,
+            error_code,
+            error_message,
+        } = EvaluationDetails::deserialize(deserializer)?;
+
+        let mut builder = Self::builder(&flag_key, value);
+        if let Some(variant) = variant.as_deref() {
+            builder = builder.variant(variant);
+        }
+        if let Some(reason) = reason.as_deref() {
+            builder = builder.reason(reason);
+        }
+        if let Some(error_code) = error_code.as_deref() {
+            builder = builder.error_code(error_code);
+        }
+        if let Some(error_message) = error_message.as_deref() {
+            builder = builder.error_message(error_message);
+        }
+        Ok(builder.build())
+    }
 }
 
 /// Evaluation attributes passed to Flagship for targeting rules. Values are
