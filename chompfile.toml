@@ -18,6 +18,14 @@ deps = ['install:ts-gen']
 # implicit "every input is its own export" default is disabled.
 run = '''ts-gen --input types/email.d.ts --output worker/src/bindings/email.rs \
   --errors-as-error \
+  --experimental-generic-mono \
+  --export types/email.d.ts \
+  --export cloudflare:email \
+  --external "Env=crate::Env" \
+  --external "ExecutionContext=crate::Context"
+ts-gen --input types/email.d.ts --output worker-sys/src/types/email.rs \
+  --errors-as-error \
+  --experimental-generic-mono \
   --export types/email.d.ts \
   --export cloudflare:email \
   --external "Env=crate::Env" \

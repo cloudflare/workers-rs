@@ -10,7 +10,7 @@ use ::web_sys::ReadableStream;
 use js_sys::*;
 #[allow(unused_imports)]
 use wasm_bindgen::prelude::*;
-#[wasm_bindgen]
+#[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
     # [wasm_bindgen (extends = Event , extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
@@ -21,7 +21,7 @@ extern "C" {
     #[wasm_bindgen(method, js_name = "waitUntil")]
     pub fn wait_until(this: &ExtendableEvent, promise: &Promise);
 }
-#[wasm_bindgen]
+#[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
@@ -29,20 +29,60 @@ extern "C" {
     #[doc = " The Email Message ID"]
     #[wasm_bindgen(method, getter, js_name = "messageId")]
     pub fn message_id(this: &EmailSendResult) -> String;
+    #[doc = " The Email Message ID"]
+    #[wasm_bindgen(method, getter, js_name = "messageId")]
+    pub fn message_id_js_string(this: &EmailSendResult) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "messageId")]
-    pub fn set_message_id(this: &EmailSendResult, val: &str);
+    pub fn set_message_id<S: ::wasm_bindgen::JsStringLike>(this: &EmailSendResult, val: S);
 }
 impl EmailSendResult {
     #[doc = " * `message_id` - The Email Message ID"]
-    pub fn new(message_id: &str) -> EmailSendResult {
-        let inner: Self = JsCast::unchecked_into(js_sys::Object::new());
+    pub fn new<S: ::wasm_bindgen::JsStringLike>(message_id: S) -> EmailSendResult {
+        let inner: EmailSendResult = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_message_id(message_id);
         inner
     }
 }
-#[wasm_bindgen]
+#[wasm_bindgen(module = "cloudflare:email", experimental_generic_mono)]
 extern "C" {
-    # [wasm_bindgen (extends = email :: EmailMessage , extends = Object)]
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type EmailMessage;
+    #[wasm_bindgen(constructor, catch)]
+    pub fn new<
+        S: ::wasm_bindgen::JsStringLike,
+        S2: ::wasm_bindgen::JsStringLike,
+        S3: ::wasm_bindgen::JsStringLike,
+    >(
+        from: S,
+        to: S2,
+        raw: S3,
+    ) -> Result<EmailMessage, Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "EmailMessage")]
+    pub fn new_with_readable_stream<
+        S: ::wasm_bindgen::JsStringLike,
+        S2: ::wasm_bindgen::JsStringLike,
+    >(
+        from: S,
+        to: S2,
+        raw: &ReadableStream,
+    ) -> Result<EmailMessage, Error>;
+    #[doc = " Envelope From attribute of the email message."]
+    #[wasm_bindgen(method, getter)]
+    pub fn from(this: &EmailMessage) -> String;
+    #[doc = " Envelope From attribute of the email message."]
+    #[wasm_bindgen(method, getter, js_name = "from")]
+    pub fn from_js_string(this: &EmailMessage) -> JsString;
+    #[doc = " Envelope To attribute of the email message."]
+    #[wasm_bindgen(method, getter)]
+    pub fn to(this: &EmailMessage) -> String;
+    #[doc = " Envelope To attribute of the email message."]
+    #[wasm_bindgen(method, getter, js_name = "to")]
+    pub fn to_js_string(this: &EmailMessage) -> JsString;
+}
+#[wasm_bindgen(experimental_generic_mono)]
+extern "C" {
+    # [wasm_bindgen (extends = EmailMessage , extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type ForwardableEmailMessage;
     #[doc = " Stream of the email message content."]
@@ -60,7 +100,7 @@ extern "C" {
     #[doc = ""]
     #[doc = " Returns: void"]
     #[wasm_bindgen(method, js_name = "setReject")]
-    pub fn set_reject(this: &ForwardableEmailMessage, reason: &str);
+    pub fn set_reject<S: ::wasm_bindgen::JsStringLike>(this: &ForwardableEmailMessage, reason: S);
     #[doc = " Forward this email message to a verified destination address of the account."]
     #[doc = ""]
     #[doc = " * `rcptTo` - Verified destination address."]
@@ -68,9 +108,9 @@ extern "C" {
     #[doc = ""]
     #[doc = " Returns: A promise that resolves when the email message is forwarded."]
     #[wasm_bindgen(method, catch)]
-    pub async fn forward(
+    pub async fn forward<S: ::wasm_bindgen::JsStringLike>(
         this: &ForwardableEmailMessage,
-        rcpt_to: &str,
+        rcpt_to: S,
     ) -> Result<EmailSendResult, Error>;
     #[doc = " Forward this email message to a verified destination address of the account."]
     #[doc = ""]
@@ -79,9 +119,9 @@ extern "C" {
     #[doc = ""]
     #[doc = " Returns: A promise that resolves when the email message is forwarded."]
     #[wasm_bindgen(method, catch, js_name = "forward")]
-    pub async fn forward_with_headers(
+    pub async fn forward_with_headers<S: ::wasm_bindgen::JsStringLike>(
         this: &ForwardableEmailMessage,
-        rcpt_to: &str,
+        rcpt_to: S,
         headers: &Headers,
     ) -> Result<EmailSendResult, Error>;
     #[doc = " Reply to the sender of this email message with a new EmailMessage object."]
@@ -92,10 +132,10 @@ extern "C" {
     #[wasm_bindgen(method, catch)]
     pub async fn reply(
         this: &ForwardableEmailMessage,
-        message: &email::EmailMessage,
+        message: &EmailMessage,
     ) -> Result<EmailSendResult, Error>;
 }
-#[wasm_bindgen]
+#[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
@@ -103,23 +143,29 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn disposition(this: &EmailAttachment) -> DispositionKind;
     #[wasm_bindgen(method, setter)]
-    pub fn set_disposition(this: &EmailAttachment, val: &str);
+    pub fn set_disposition<S: ::wasm_bindgen::JsStringLike>(this: &EmailAttachment, val: S);
     #[wasm_bindgen(method, getter, js_name = "contentId")]
     pub fn content_id(this: &EmailAttachment) -> Option<String>;
+    #[wasm_bindgen(method, getter, js_name = "contentId")]
+    pub fn content_id_js_string(this: &EmailAttachment) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "contentId")]
-    pub fn set_content_id(this: &EmailAttachment, val: &str);
+    pub fn set_content_id<S: ::wasm_bindgen::JsStringLike>(this: &EmailAttachment, val: S);
     #[wasm_bindgen(method, getter)]
     pub fn filename(this: &EmailAttachment) -> String;
+    #[wasm_bindgen(method, getter, js_name = "filename")]
+    pub fn filename_js_string(this: &EmailAttachment) -> JsString;
     #[wasm_bindgen(method, setter)]
-    pub fn set_filename(this: &EmailAttachment, val: &str);
+    pub fn set_filename<S: ::wasm_bindgen::JsStringLike>(this: &EmailAttachment, val: S);
     #[wasm_bindgen(method, getter, js_name = "type")]
     pub fn type_(this: &EmailAttachment) -> String;
+    #[wasm_bindgen(method, getter, js_name = "type")]
+    pub fn type__js_string(this: &EmailAttachment) -> JsString;
     #[wasm_bindgen(method, setter)]
-    pub fn set_type(this: &EmailAttachment, val: &str);
+    pub fn set_type<S: ::wasm_bindgen::JsStringLike>(this: &EmailAttachment, val: S);
     #[wasm_bindgen(method, getter)]
     pub fn content(this: &EmailAttachment) -> ContentKind;
     #[wasm_bindgen(method, setter)]
-    pub fn set_content(this: &EmailAttachment, val: &str);
+    pub fn set_content<S: ::wasm_bindgen::JsStringLike>(this: &EmailAttachment, val: S);
     #[wasm_bindgen(method, setter, js_name = "content")]
     pub fn set_content_with_array_buffer(this: &EmailAttachment, val: &ArrayBuffer);
     #[wasm_bindgen(method, setter, js_name = "content")]
@@ -129,13 +175,18 @@ impl EmailAttachment {
     #[doc = " ## Inlined fields"]
     #[doc = ""]
     #[doc = " * `disposition: \"inline\"`"]
-    pub fn new_inline(
-        content_id: &str,
-        filename: &str,
-        r#type: &str,
-        content: &str,
+    pub fn new_inline<
+        S: ::wasm_bindgen::JsStringLike,
+        S2: ::wasm_bindgen::JsStringLike,
+        S3: ::wasm_bindgen::JsStringLike,
+        S4: ::wasm_bindgen::JsStringLike,
+    >(
+        content_id: S,
+        filename: S2,
+        r#type: S3,
+        content: S4,
     ) -> EmailAttachment {
-        let inner: Self = JsCast::unchecked_into(js_sys::Object::new());
+        let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_disposition("inline");
         inner.set_content_id(content_id);
         inner.set_filename(filename);
@@ -146,13 +197,17 @@ impl EmailAttachment {
     #[doc = " ## Inlined fields"]
     #[doc = ""]
     #[doc = " * `disposition: \"inline\"`"]
-    pub fn new_inline_with_array_buffer(
-        content_id: &str,
-        filename: &str,
-        r#type: &str,
+    pub fn new_inline_with_array_buffer<
+        S: ::wasm_bindgen::JsStringLike,
+        S2: ::wasm_bindgen::JsStringLike,
+        S3: ::wasm_bindgen::JsStringLike,
+    >(
+        content_id: S,
+        filename: S2,
+        r#type: S3,
         content: &ArrayBuffer,
     ) -> EmailAttachment {
-        let inner: Self = JsCast::unchecked_into(js_sys::Object::new());
+        let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_disposition("inline");
         inner.set_content_id(content_id);
         inner.set_filename(filename);
@@ -163,13 +218,21 @@ impl EmailAttachment {
     #[doc = " ## Inlined fields"]
     #[doc = ""]
     #[doc = " * `disposition: \"inline\"`"]
-    pub fn new_inline_with_typed_array<T: ::js_sys::TypedArray>(
-        content_id: &str,
-        filename: &str,
-        r#type: &str,
+    pub fn new_inline_with_typed_array<
+        S: ::wasm_bindgen::JsStringLike,
+        S2: ::wasm_bindgen::JsStringLike,
+        S3: ::wasm_bindgen::JsStringLike,
+        T: ::js_sys::TypedArray,
+    >(
+        content_id: S,
+        filename: S2,
+        r#type: S3,
         content: &T,
-    ) -> EmailAttachment {
-        let inner: Self = JsCast::unchecked_into(js_sys::Object::new());
+    ) -> EmailAttachment
+    where
+        for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
+    {
+        let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_disposition("inline");
         inner.set_content_id(content_id);
         inner.set_filename(filename);
@@ -180,15 +243,26 @@ impl EmailAttachment {
     #[doc = " ## Inlined fields"]
     #[doc = ""]
     #[doc = " * `disposition: \"attachment\"`"]
-    pub fn new_attachment(filename: &str, r#type: &str, content: &str) -> EmailAttachment {
+    pub fn new_attachment<
+        S: ::wasm_bindgen::JsStringLike,
+        S2: ::wasm_bindgen::JsStringLike,
+        S3: ::wasm_bindgen::JsStringLike,
+    >(
+        filename: S,
+        r#type: S2,
+        content: S3,
+    ) -> EmailAttachment {
         Self::builder_attachment(filename, r#type, content).build()
     }
     #[doc = " ## Inlined fields"]
     #[doc = ""]
     #[doc = " * `disposition: \"attachment\"`"]
-    pub fn new_attachment_with_array_buffer(
-        filename: &str,
-        r#type: &str,
+    pub fn new_attachment_with_array_buffer<
+        S: ::wasm_bindgen::JsStringLike,
+        S2: ::wasm_bindgen::JsStringLike,
+    >(
+        filename: S,
+        r#type: S2,
         content: &ArrayBuffer,
     ) -> EmailAttachment {
         Self::builder_attachment_with_array_buffer(filename, r#type, content).build()
@@ -196,22 +270,33 @@ impl EmailAttachment {
     #[doc = " ## Inlined fields"]
     #[doc = ""]
     #[doc = " * `disposition: \"attachment\"`"]
-    pub fn new_attachment_with_typed_array<T: ::js_sys::TypedArray>(
-        filename: &str,
-        r#type: &str,
+    pub fn new_attachment_with_typed_array<
+        S: ::wasm_bindgen::JsStringLike,
+        S2: ::wasm_bindgen::JsStringLike,
+        T: ::js_sys::TypedArray,
+    >(
+        filename: S,
+        r#type: S2,
         content: &T,
-    ) -> EmailAttachment {
+    ) -> EmailAttachment
+    where
+        for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
+    {
         Self::builder_attachment_with_typed_array(filename, r#type, content).build()
     }
     #[doc = " ## Inlined fields"]
     #[doc = ""]
     #[doc = " * `disposition: \"attachment\"`"]
-    pub fn builder_attachment(
-        filename: &str,
-        r#type: &str,
-        content: &str,
+    pub fn builder_attachment<
+        S: ::wasm_bindgen::JsStringLike,
+        S2: ::wasm_bindgen::JsStringLike,
+        S3: ::wasm_bindgen::JsStringLike,
+    >(
+        filename: S,
+        r#type: S2,
+        content: S3,
     ) -> EmailAttachmentBuilder {
-        let inner: Self = JsCast::unchecked_into(js_sys::Object::new());
+        let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_disposition("attachment");
         inner.set_filename(filename);
         inner.set_type(r#type);
@@ -221,12 +306,15 @@ impl EmailAttachment {
     #[doc = " ## Inlined fields"]
     #[doc = ""]
     #[doc = " * `disposition: \"attachment\"`"]
-    pub fn builder_attachment_with_array_buffer(
-        filename: &str,
-        r#type: &str,
+    pub fn builder_attachment_with_array_buffer<
+        S: ::wasm_bindgen::JsStringLike,
+        S2: ::wasm_bindgen::JsStringLike,
+    >(
+        filename: S,
+        r#type: S2,
         content: &ArrayBuffer,
     ) -> EmailAttachmentBuilder {
-        let inner: Self = JsCast::unchecked_into(js_sys::Object::new());
+        let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_disposition("attachment");
         inner.set_filename(filename);
         inner.set_type(r#type);
@@ -236,12 +324,19 @@ impl EmailAttachment {
     #[doc = " ## Inlined fields"]
     #[doc = ""]
     #[doc = " * `disposition: \"attachment\"`"]
-    pub fn builder_attachment_with_typed_array<T: ::js_sys::TypedArray>(
-        filename: &str,
-        r#type: &str,
+    pub fn builder_attachment_with_typed_array<
+        S: ::wasm_bindgen::JsStringLike,
+        S2: ::wasm_bindgen::JsStringLike,
+        T: ::js_sys::TypedArray,
+    >(
+        filename: S,
+        r#type: S2,
         content: &T,
-    ) -> EmailAttachmentBuilder {
-        let inner: Self = JsCast::unchecked_into(js_sys::Object::new());
+    ) -> EmailAttachmentBuilder
+    where
+        for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
+    {
+        let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_disposition("attachment");
         inner.set_filename(filename);
         inner.set_type(r#type);
@@ -253,7 +348,7 @@ pub struct EmailAttachmentBuilder {
     inner: EmailAttachment,
 }
 impl EmailAttachmentBuilder {
-    pub fn content_id(self, val: &str) -> Self {
+    pub fn content_id<S: ::wasm_bindgen::JsStringLike>(self, val: S) -> Self {
         self.inner.set_content_id(val);
         self
     }
@@ -261,45 +356,49 @@ impl EmailAttachmentBuilder {
         self.inner
     }
 }
-#[wasm_bindgen]
+#[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type EmailAddress;
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &EmailAddress) -> String;
+    #[wasm_bindgen(method, getter, js_name = "name")]
+    pub fn name_js_string(this: &EmailAddress) -> JsString;
     #[wasm_bindgen(method, setter)]
-    pub fn set_name(this: &EmailAddress, val: &str);
+    pub fn set_name<S: ::wasm_bindgen::JsStringLike>(this: &EmailAddress, val: S);
     #[wasm_bindgen(method, getter)]
     pub fn email(this: &EmailAddress) -> String;
+    #[wasm_bindgen(method, getter, js_name = "email")]
+    pub fn email_js_string(this: &EmailAddress) -> JsString;
     #[wasm_bindgen(method, setter)]
-    pub fn set_email(this: &EmailAddress, val: &str);
+    pub fn set_email<S: ::wasm_bindgen::JsStringLike>(this: &EmailAddress, val: S);
 }
 impl EmailAddress {
-    pub fn new(name: &str, email: &str) -> EmailAddress {
-        let inner: Self = JsCast::unchecked_into(js_sys::Object::new());
+    pub fn new<S: ::wasm_bindgen::JsStringLike, S2: ::wasm_bindgen::JsStringLike>(
+        name: S,
+        email: S2,
+    ) -> EmailAddress {
+        let inner: EmailAddress = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_name(name);
         inner.set_email(email);
         inner
     }
 }
-#[wasm_bindgen]
+#[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type SendEmail;
     #[wasm_bindgen(method, catch)]
-    pub async fn send(
-        this: &SendEmail,
-        message: &email::EmailMessage,
-    ) -> Result<EmailSendResult, Error>;
+    pub async fn send(this: &SendEmail, message: &EmailMessage) -> Result<EmailSendResult, Error>;
     #[wasm_bindgen(method, catch, js_name = "send")]
     pub async fn send_with_builder(
         this: &SendEmail,
         builder: &SendEmailBuilder,
     ) -> Result<EmailSendResult, Error>;
 }
-#[wasm_bindgen]
+#[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
@@ -307,35 +406,37 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn from(this: &SendEmailBuilder) -> FromKind;
     #[wasm_bindgen(method, setter)]
-    pub fn set_from(this: &SendEmailBuilder, val: &str);
+    pub fn set_from<S: ::wasm_bindgen::JsStringLike>(this: &SendEmailBuilder, val: S);
     #[wasm_bindgen(method, setter, js_name = "from")]
     pub fn set_from_with_email_address(this: &SendEmailBuilder, val: &EmailAddress);
     #[wasm_bindgen(method, getter)]
     pub fn to(this: &SendEmailBuilder) -> ToKind;
     #[wasm_bindgen(method, setter)]
-    pub fn set_to(this: &SendEmailBuilder, val: &str);
+    pub fn set_to<S: ::wasm_bindgen::JsStringLike>(this: &SendEmailBuilder, val: S);
     #[wasm_bindgen(method, setter, slice_to_array, js_name = "to")]
     pub fn set_to_with_slice(this: &SendEmailBuilder, val: &[String]);
     #[wasm_bindgen(method, getter)]
     pub fn subject(this: &SendEmailBuilder) -> String;
+    #[wasm_bindgen(method, getter, js_name = "subject")]
+    pub fn subject_js_string(this: &SendEmailBuilder) -> JsString;
     #[wasm_bindgen(method, setter)]
-    pub fn set_subject(this: &SendEmailBuilder, val: &str);
+    pub fn set_subject<S: ::wasm_bindgen::JsStringLike>(this: &SendEmailBuilder, val: S);
     #[wasm_bindgen(method, getter, js_name = "replyTo")]
     pub fn reply_to(this: &SendEmailBuilder) -> Option<FromKind>;
     #[wasm_bindgen(method, setter, js_name = "replyTo")]
-    pub fn set_reply_to(this: &SendEmailBuilder, val: &str);
+    pub fn set_reply_to<S: ::wasm_bindgen::JsStringLike>(this: &SendEmailBuilder, val: S);
     #[wasm_bindgen(method, setter, js_name = "replyTo")]
     pub fn set_reply_to_with_email_address(this: &SendEmailBuilder, val: &EmailAddress);
     #[wasm_bindgen(method, getter)]
     pub fn cc(this: &SendEmailBuilder) -> Option<ToKind>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_cc(this: &SendEmailBuilder, val: &str);
+    pub fn set_cc<S: ::wasm_bindgen::JsStringLike>(this: &SendEmailBuilder, val: S);
     #[wasm_bindgen(method, setter, slice_to_array, js_name = "cc")]
     pub fn set_cc_with_slice(this: &SendEmailBuilder, val: &[String]);
     #[wasm_bindgen(method, getter)]
     pub fn bcc(this: &SendEmailBuilder) -> Option<ToKind>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_bcc(this: &SendEmailBuilder, val: &str);
+    pub fn set_bcc<S: ::wasm_bindgen::JsStringLike>(this: &SendEmailBuilder, val: S);
     #[wasm_bindgen(method, setter, slice_to_array, js_name = "bcc")]
     pub fn set_bcc_with_slice(this: &SendEmailBuilder, val: &[String]);
     #[wasm_bindgen(method, getter)]
@@ -344,73 +445,109 @@ extern "C" {
     pub fn set_headers(this: &SendEmailBuilder, val: &Object<JsString>);
     #[wasm_bindgen(method, getter)]
     pub fn text(this: &SendEmailBuilder) -> Option<String>;
+    #[wasm_bindgen(method, getter, js_name = "text")]
+    pub fn text_js_string(this: &SendEmailBuilder) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_text(this: &SendEmailBuilder, val: &str);
+    pub fn set_text<S: ::wasm_bindgen::JsStringLike>(this: &SendEmailBuilder, val: S);
     #[wasm_bindgen(method, getter)]
     pub fn html(this: &SendEmailBuilder) -> Option<String>;
+    #[wasm_bindgen(method, getter, js_name = "html")]
+    pub fn html_js_string(this: &SendEmailBuilder) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_html(this: &SendEmailBuilder, val: &str);
+    pub fn set_html<S: ::wasm_bindgen::JsStringLike>(this: &SendEmailBuilder, val: S);
     #[wasm_bindgen(method, getter)]
     pub fn attachments(this: &SendEmailBuilder) -> Option<Vec<EmailAttachment>>;
     #[wasm_bindgen(method, setter, slice_to_array)]
     pub fn set_attachments(this: &SendEmailBuilder, val: &[EmailAttachment]);
 }
 impl SendEmailBuilder {
-    pub fn new(from: &str, to: &str, subject: &str) -> SendEmailBuilder {
+    pub fn new<
+        S: ::wasm_bindgen::JsStringLike,
+        S2: ::wasm_bindgen::JsStringLike,
+        S3: ::wasm_bindgen::JsStringLike,
+    >(
+        from: S,
+        to: S2,
+        subject: S3,
+    ) -> SendEmailBuilder {
         Self::builder(from, to, subject).build()
     }
-    pub fn new_with_str_and_slice(from: &str, to: &[String], subject: &str) -> SendEmailBuilder {
+    pub fn new_with_str_and_slice<
+        S: ::wasm_bindgen::JsStringLike,
+        S2: ::wasm_bindgen::JsStringLike,
+    >(
+        from: S,
+        to: &[String],
+        subject: S2,
+    ) -> SendEmailBuilder {
         Self::builder_with_str_and_slice(from, to, subject).build()
     }
-    pub fn new_with_email_address_and_str(
+    pub fn new_with_email_address_and_str<
+        S: ::wasm_bindgen::JsStringLike,
+        S2: ::wasm_bindgen::JsStringLike,
+    >(
         from: &EmailAddress,
-        to: &str,
-        subject: &str,
+        to: S,
+        subject: S2,
     ) -> SendEmailBuilder {
         Self::builder_with_email_address_and_str(from, to, subject).build()
     }
-    pub fn new_with_email_address_and_slice(
+    pub fn new_with_email_address_and_slice<S: ::wasm_bindgen::JsStringLike>(
         from: &EmailAddress,
         to: &[String],
-        subject: &str,
+        subject: S,
     ) -> SendEmailBuilder {
         Self::builder_with_email_address_and_slice(from, to, subject).build()
     }
-    pub fn builder(from: &str, to: &str, subject: &str) -> SendEmailBuilderBuilder {
-        let inner: Self = JsCast::unchecked_into(js_sys::Object::new());
+    pub fn builder<
+        S: ::wasm_bindgen::JsStringLike,
+        S2: ::wasm_bindgen::JsStringLike,
+        S3: ::wasm_bindgen::JsStringLike,
+    >(
+        from: S,
+        to: S2,
+        subject: S3,
+    ) -> SendEmailBuilderBuilder {
+        let inner: SendEmailBuilder = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_from(from);
         inner.set_to(to);
         inner.set_subject(subject);
         SendEmailBuilderBuilder { inner }
     }
-    pub fn builder_with_str_and_slice(
-        from: &str,
+    pub fn builder_with_str_and_slice<
+        S: ::wasm_bindgen::JsStringLike,
+        S2: ::wasm_bindgen::JsStringLike,
+    >(
+        from: S,
         to: &[String],
-        subject: &str,
+        subject: S2,
     ) -> SendEmailBuilderBuilder {
-        let inner: Self = JsCast::unchecked_into(js_sys::Object::new());
+        let inner: SendEmailBuilder = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_from(from);
         inner.set_to_with_slice(to);
         inner.set_subject(subject);
         SendEmailBuilderBuilder { inner }
     }
-    pub fn builder_with_email_address_and_str(
+    pub fn builder_with_email_address_and_str<
+        S: ::wasm_bindgen::JsStringLike,
+        S2: ::wasm_bindgen::JsStringLike,
+    >(
         from: &EmailAddress,
-        to: &str,
-        subject: &str,
+        to: S,
+        subject: S2,
     ) -> SendEmailBuilderBuilder {
-        let inner: Self = JsCast::unchecked_into(js_sys::Object::new());
+        let inner: SendEmailBuilder = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_from_with_email_address(from);
         inner.set_to(to);
         inner.set_subject(subject);
         SendEmailBuilderBuilder { inner }
     }
-    pub fn builder_with_email_address_and_slice(
+    pub fn builder_with_email_address_and_slice<S: ::wasm_bindgen::JsStringLike>(
         from: &EmailAddress,
         to: &[String],
-        subject: &str,
+        subject: S,
     ) -> SendEmailBuilderBuilder {
-        let inner: Self = JsCast::unchecked_into(js_sys::Object::new());
+        let inner: SendEmailBuilder = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_from_with_email_address(from);
         inner.set_to_with_slice(to);
         inner.set_subject(subject);
@@ -421,7 +558,7 @@ pub struct SendEmailBuilderBuilder {
     inner: SendEmailBuilder,
 }
 impl SendEmailBuilderBuilder {
-    pub fn reply_to(self, val: &str) -> Self {
+    pub fn reply_to<S: ::wasm_bindgen::JsStringLike>(self, val: S) -> Self {
         self.inner.set_reply_to(val);
         self
     }
@@ -429,7 +566,7 @@ impl SendEmailBuilderBuilder {
         self.inner.set_reply_to_with_email_address(val);
         self
     }
-    pub fn cc(self, val: &str) -> Self {
+    pub fn cc<S: ::wasm_bindgen::JsStringLike>(self, val: S) -> Self {
         self.inner.set_cc(val);
         self
     }
@@ -437,7 +574,7 @@ impl SendEmailBuilderBuilder {
         self.inner.set_cc_with_slice(val);
         self
     }
-    pub fn bcc(self, val: &str) -> Self {
+    pub fn bcc<S: ::wasm_bindgen::JsStringLike>(self, val: S) -> Self {
         self.inner.set_bcc(val);
         self
     }
@@ -449,11 +586,11 @@ impl SendEmailBuilderBuilder {
         self.inner.set_headers(val);
         self
     }
-    pub fn text(self, val: &str) -> Self {
+    pub fn text<S: ::wasm_bindgen::JsStringLike>(self, val: S) -> Self {
         self.inner.set_text(val);
         self
     }
-    pub fn html(self, val: &str) -> Self {
+    pub fn html<S: ::wasm_bindgen::JsStringLike>(self, val: S) -> Self {
         self.inner.set_html(val);
         self
     }
@@ -465,38 +602,13 @@ impl SendEmailBuilderBuilder {
         self.inner
     }
 }
-#[wasm_bindgen]
+#[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
     # [wasm_bindgen (extends = ExtendableEvent , extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type EmailEvent;
     #[wasm_bindgen(method, getter)]
     pub fn message(this: &EmailEvent) -> ForwardableEmailMessage;
-}
-pub mod email {
-    use super::*;
-    use js_sys::*;
-    use wasm_bindgen::prelude::*;
-    #[wasm_bindgen(module = "cloudflare:email")]
-    extern "C" {
-        # [wasm_bindgen (extends = Object)]
-        #[derive(Debug, Clone, PartialEq, Eq)]
-        pub type EmailMessage;
-        #[wasm_bindgen(constructor, catch)]
-        pub fn new(from: &str, to: &str, raw: &str) -> Result<EmailMessage, Error>;
-        #[wasm_bindgen(constructor, catch, js_name = "EmailMessage")]
-        pub fn new_with_readable_stream(
-            from: &str,
-            to: &str,
-            raw: &ReadableStream,
-        ) -> Result<EmailMessage, Error>;
-        #[doc = " Envelope From attribute of the email message."]
-        #[wasm_bindgen(method, getter)]
-        pub fn from(this: &EmailMessage) -> String;
-        #[doc = " Envelope To attribute of the email message."]
-        #[wasm_bindgen(method, getter)]
-        pub fn to(this: &EmailMessage) -> String;
-    }
 }
 #[wasm_bindgen]
 pub enum DispositionKind {
