@@ -71,7 +71,7 @@ impl<T: ::wasm_bindgen::convert::IntoWasmAbi> FlagshipEvaluationDetailsBuilder<T
         self.inner
     }
 }
-#[wasm_bindgen]
+#[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
@@ -116,7 +116,7 @@ extern "C" {
         this: &Flagship,
         flag_key: &str,
         default_value: bool,
-    ) -> Result<bool, JsValue>;
+    ) -> Result<Boolean, JsValue>;
     #[doc = " Get a boolean flag value."]
     #[doc = ""]
     #[doc = " * `flagKey` - The key of the flag to evaluate."]
@@ -128,33 +128,33 @@ extern "C" {
         flag_key: &str,
         default_value: bool,
         context: &Object,
-    ) -> Result<bool, JsValue>;
+    ) -> Result<Boolean, JsValue>;
     #[wasm_bindgen(method, catch, js_name = "getStringValue")]
     pub async fn get_string_value(
         this: &Flagship,
         flag_key: &str,
         default_value: &str,
-    ) -> Result<String, JsValue>;
+    ) -> Result<JsString, JsValue>;
     #[wasm_bindgen(method, catch, js_name = "getStringValue")]
     pub async fn get_string_value_with_context(
         this: &Flagship,
         flag_key: &str,
         default_value: &str,
         context: &Object,
-    ) -> Result<String, JsValue>;
+    ) -> Result<JsString, JsValue>;
     #[wasm_bindgen(method, catch, js_name = "getNumberValue")]
     pub async fn get_number_value(
         this: &Flagship,
         flag_key: &str,
         default_value: f64,
-    ) -> Result<f64, JsValue>;
+    ) -> Result<Number, JsValue>;
     #[wasm_bindgen(method, catch, js_name = "getNumberValue")]
     pub async fn get_number_value_with_context(
         this: &Flagship,
         flag_key: &str,
         default_value: f64,
         context: &Object,
-    ) -> Result<f64, JsValue>;
+    ) -> Result<Number, JsValue>;
     #[doc = " Get a boolean flag value with full evaluation details."]
     #[doc = ""]
     #[doc = " * `flagKey` - The key of the flag to evaluate."]
@@ -165,7 +165,7 @@ extern "C" {
         this: &Flagship,
         flag_key: &str,
         default_value: bool,
-    ) -> Result<FlagshipEvaluationDetails<bool>, JsValue>;
+    ) -> Result<FlagshipEvaluationDetails<Boolean>, JsValue>;
     #[doc = " Get a boolean flag value with full evaluation details."]
     #[doc = ""]
     #[doc = " * `flagKey` - The key of the flag to evaluate."]
@@ -177,31 +177,31 @@ extern "C" {
         flag_key: &str,
         default_value: bool,
         context: &Object,
-    ) -> Result<FlagshipEvaluationDetails<bool>, JsValue>;
+    ) -> Result<FlagshipEvaluationDetails<Boolean>, JsValue>;
     #[wasm_bindgen(method, catch, js_name = "getStringDetails")]
     pub async fn get_string_details(
         this: &Flagship,
         flag_key: &str,
         default_value: &str,
-    ) -> Result<FlagshipEvaluationDetails<String>, JsValue>;
+    ) -> Result<FlagshipEvaluationDetails<JsString>, JsValue>;
     #[wasm_bindgen(method, catch, js_name = "getStringDetails")]
     pub async fn get_string_details_with_context(
         this: &Flagship,
         flag_key: &str,
         default_value: &str,
         context: &Object,
-    ) -> Result<FlagshipEvaluationDetails<String>, JsValue>;
+    ) -> Result<FlagshipEvaluationDetails<JsString>, JsValue>;
     #[wasm_bindgen(method, catch, js_name = "getNumberDetails")]
     pub async fn get_number_details(
         this: &Flagship,
         flag_key: &str,
         default_value: f64,
-    ) -> Result<FlagshipEvaluationDetails<f64>, JsValue>;
+    ) -> Result<FlagshipEvaluationDetails<Number>, JsValue>;
     #[wasm_bindgen(method, catch, js_name = "getNumberDetails")]
     pub async fn get_number_details_with_context(
         this: &Flagship,
         flag_key: &str,
         default_value: f64,
         context: &Object,
-    ) -> Result<FlagshipEvaluationDetails<f64>, JsValue>;
+    ) -> Result<FlagshipEvaluationDetails<Number>, JsValue>;
 }
