@@ -137,11 +137,7 @@ pub async fn handle_send_email(req: Request, env: Env, _data: SomeSharedData) ->
 }
 
 async fn dispatch_mime(sender: &SendEmail, scenario: &MimeScenario) -> Result<String> {
-    let message = EmailMessage::new(
-        scenario.envelope_from,
-        scenario.envelope_to,
-        &scenario.raw(),
-    )?;
+    let message = EmailMessage::new(scenario.envelope_from, scenario.envelope_to, scenario.raw())?;
     let result = sender.send(&message).await?;
     Ok(result.message_id())
 }

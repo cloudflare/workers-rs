@@ -44,7 +44,7 @@ async fn email(message: ForwardableEmailMessage, _env: Env, _ctx: Context) -> Re
         .write_to_string()
         .map_err(|e| Error::RustError(e.to_string()))?;
 
-    let reply = email::EmailMessage::new(&to, &from, &raw)?;
+    let reply = email::EmailMessage::new(to, from, raw)?;
     message.reply(&reply).await?;
     Ok(())
 }

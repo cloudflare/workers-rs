@@ -50,6 +50,6 @@ async fn send_raw_mime(sender: &email::SendEmail) -> Result<email::EmailSendResu
         .write_to_string()
         .map_err(|e| Error::RustError(e.to_string()))?;
 
-    let message = email::EmailMessage::new(SENDER, RECIPIENT, &raw)?;
+    let message = email::EmailMessage::new(SENDER, RECIPIENT, raw)?;
     Ok(sender.send(&message).await?)
 }
