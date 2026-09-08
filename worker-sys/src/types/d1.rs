@@ -97,4 +97,13 @@ extern "C" {
 
     #[wasm_bindgen(structural, method, catch, js_class=D1PreparedStatement, js_name=raw)]
     pub fn raw(this: &D1PreparedStatement) -> Result<Promise, JsValue>;
+
+    /// `raw()` with an options object, e.g. `{ columnNames: true }`.
+    ///
+    /// Bound separately because wasm-bindgen cannot overload `raw` on arity.
+    #[wasm_bindgen(structural, method, catch, js_class=D1PreparedStatement, js_name=raw)]
+    pub fn raw_with_options(
+        this: &D1PreparedStatement,
+        options: &::js_sys::Object,
+    ) -> Result<Promise, JsValue>;
 }
