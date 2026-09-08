@@ -551,22 +551,36 @@ root of your project.
 
 ### Step 3: Configure your Miniflare instance in your JavaScript / TypeScript tests
 
-To instantiate the `Miniflare` testing instance in your tests, make sure to
-configure its `scriptPath` option to the relative path of where your JavaScript
-worker entrypoint was generated, and its `moduleRules` so that it is able to
-resolve the `*.wasm` file imported from that JavaScript worker:
+To instantiate the `Miniflare` testing instance, configure an explicit module
+manifest containing the generated JavaScript and WebAssembly modules:
 
 ```js
 // test.mjs
 import assert from "node:assert";
+import { readFileSync } from "node:fs";
 import { Miniflare } from "miniflare";
 
 const mf = new Miniflare({
-  scriptPath: "./build/worker/shim.mjs",
-  modules: true,
-  modulesRules: [
-    { type: "CompiledWasm", include: ["**/*.wasm"], fallthrough: true }
-  ]
+  workers: [{
+    config: {
+      name: "test",
+      type: "worker",
+      compatibilityDate: "2026-08-21",
+      manifest: {
+        mainModule: "build/index.js",
+        modules: {
+          "build/index.js": {
+            type: "esm",
+            contents: readFileSync("./build/index.js", "utf8"),
+          },
+          "build/index_bg.wasm": {
+            type: "wasm",
+            contents: new Uint8Array(readFileSync("./build/index_bg.wasm")),
+          },
+        },
+      },
+    },
+  }],
 });
 
 const res = await mf.dispatchFetch("http://localhost");
