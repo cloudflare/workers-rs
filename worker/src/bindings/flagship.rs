@@ -13,34 +13,65 @@ extern "C" {
     pub type FlagshipEvaluationDetails<T>;
     #[wasm_bindgen(method, getter, js_name = "flagKey")]
     pub fn flag_key<T>(this: &FlagshipEvaluationDetails<T>) -> String;
+    #[wasm_bindgen(method, getter, js_name = "flagKey")]
+    pub fn flag_key_js_string<T>(this: &FlagshipEvaluationDetails<T>) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "flagKey")]
-    pub fn set_flag_key<T>(this: &FlagshipEvaluationDetails<T>, val: &str);
+    pub fn set_flag_key<T, S: ::wasm_bindgen::JsStringLike>(
+        this: &FlagshipEvaluationDetails<T>,
+        val: S,
+    );
     #[wasm_bindgen(method, getter)]
     pub fn value<T>(this: &FlagshipEvaluationDetails<T>) -> T;
     #[wasm_bindgen(method, setter)]
     pub fn set_value<T>(this: &FlagshipEvaluationDetails<T>, val: T);
     #[wasm_bindgen(method, getter)]
     pub fn variant<T>(this: &FlagshipEvaluationDetails<T>) -> Option<String>;
+    #[wasm_bindgen(method, getter, js_name = "variant")]
+    pub fn variant_js_string<T>(this: &FlagshipEvaluationDetails<T>) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_variant<T>(this: &FlagshipEvaluationDetails<T>, val: &str);
+    pub fn set_variant<T, S: ::wasm_bindgen::JsStringLike>(
+        this: &FlagshipEvaluationDetails<T>,
+        val: S,
+    );
     #[wasm_bindgen(method, getter)]
     pub fn reason<T>(this: &FlagshipEvaluationDetails<T>) -> Option<String>;
+    #[wasm_bindgen(method, getter, js_name = "reason")]
+    pub fn reason_js_string<T>(this: &FlagshipEvaluationDetails<T>) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_reason<T>(this: &FlagshipEvaluationDetails<T>, val: &str);
+    pub fn set_reason<T, S: ::wasm_bindgen::JsStringLike>(
+        this: &FlagshipEvaluationDetails<T>,
+        val: S,
+    );
     #[wasm_bindgen(method, getter, js_name = "errorCode")]
     pub fn error_code<T>(this: &FlagshipEvaluationDetails<T>) -> Option<String>;
+    #[wasm_bindgen(method, getter, js_name = "errorCode")]
+    pub fn error_code_js_string<T>(this: &FlagshipEvaluationDetails<T>) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "errorCode")]
-    pub fn set_error_code<T>(this: &FlagshipEvaluationDetails<T>, val: &str);
+    pub fn set_error_code<T, S: ::wasm_bindgen::JsStringLike>(
+        this: &FlagshipEvaluationDetails<T>,
+        val: S,
+    );
     #[wasm_bindgen(method, getter, js_name = "errorMessage")]
     pub fn error_message<T>(this: &FlagshipEvaluationDetails<T>) -> Option<String>;
+    #[wasm_bindgen(method, getter, js_name = "errorMessage")]
+    pub fn error_message_js_string<T>(this: &FlagshipEvaluationDetails<T>) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "errorMessage")]
-    pub fn set_error_message<T>(this: &FlagshipEvaluationDetails<T>, val: &str);
+    pub fn set_error_message<T, S: ::wasm_bindgen::JsStringLike>(
+        this: &FlagshipEvaluationDetails<T>,
+        val: S,
+    );
 }
 impl<T: ::wasm_bindgen::convert::IntoWasmAbi> FlagshipEvaluationDetails<T> {
-    pub fn new(flag_key: &str, value: T) -> FlagshipEvaluationDetails<T> {
+    pub fn new<S: ::wasm_bindgen::JsStringLike>(
+        flag_key: S,
+        value: T,
+    ) -> FlagshipEvaluationDetails<T> {
         Self::builder(flag_key, value).build()
     }
-    pub fn builder(flag_key: &str, value: T) -> FlagshipEvaluationDetailsBuilder<T> {
+    pub fn builder<S: ::wasm_bindgen::JsStringLike>(
+        flag_key: S,
+        value: T,
+    ) -> FlagshipEvaluationDetailsBuilder<T> {
         let inner: FlagshipEvaluationDetails<T> = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_flag_key(flag_key);
         inner.set_value(value);
@@ -51,19 +82,19 @@ pub struct FlagshipEvaluationDetailsBuilder<T: ::wasm_bindgen::convert::IntoWasm
     inner: FlagshipEvaluationDetails<T>,
 }
 impl<T: ::wasm_bindgen::convert::IntoWasmAbi> FlagshipEvaluationDetailsBuilder<T> {
-    pub fn variant(self, val: &str) -> Self {
+    pub fn variant<S: ::wasm_bindgen::JsStringLike>(self, val: S) -> Self {
         self.inner.set_variant(val);
         self
     }
-    pub fn reason(self, val: &str) -> Self {
+    pub fn reason<S: ::wasm_bindgen::JsStringLike>(self, val: S) -> Self {
         self.inner.set_reason(val);
         self
     }
-    pub fn error_code(self, val: &str) -> Self {
+    pub fn error_code<S: ::wasm_bindgen::JsStringLike>(self, val: S) -> Self {
         self.inner.set_error_code(val);
         self
     }
-    pub fn error_message(self, val: &str) -> Self {
+    pub fn error_message<S: ::wasm_bindgen::JsStringLike>(self, val: S) -> Self {
         self.inner.set_error_message(val);
         self
     }
@@ -82,16 +113,19 @@ extern "C" {
     #[doc = " * `defaultValue` - Optional default value returned when evaluation fails."]
     #[doc = " * `context` - Optional evaluation context for targeting rules."]
     #[wasm_bindgen(method, catch)]
-    pub async fn get(this: &Flagship, flag_key: &str) -> Result<JsValue, JsValue>;
+    pub async fn get<S: ::wasm_bindgen::JsStringLike>(
+        this: &Flagship,
+        flag_key: S,
+    ) -> Result<JsValue, JsValue>;
     #[doc = " Get a flag value without type checking."]
     #[doc = ""]
     #[doc = " * `flagKey` - The key of the flag to evaluate."]
     #[doc = " * `defaultValue` - Optional default value returned when evaluation fails."]
     #[doc = " * `context` - Optional evaluation context for targeting rules."]
     #[wasm_bindgen(method, catch, js_name = "get")]
-    pub async fn get_with_default_value(
+    pub async fn get_with_default_value<S: ::wasm_bindgen::JsStringLike>(
         this: &Flagship,
-        flag_key: &str,
+        flag_key: S,
         default_value: &JsValue,
     ) -> Result<JsValue, JsValue>;
     #[doc = " Get a flag value without type checking."]
@@ -100,9 +134,9 @@ extern "C" {
     #[doc = " * `defaultValue` - Optional default value returned when evaluation fails."]
     #[doc = " * `context` - Optional evaluation context for targeting rules."]
     #[wasm_bindgen(method, catch, js_name = "get")]
-    pub async fn get_with_default_value_and_context(
+    pub async fn get_with_default_value_and_context<S: ::wasm_bindgen::JsStringLike>(
         this: &Flagship,
-        flag_key: &str,
+        flag_key: S,
         default_value: &JsValue,
         context: &Object,
     ) -> Result<JsValue, JsValue>;
@@ -112,96 +146,146 @@ extern "C" {
     #[doc = " * `defaultValue` - Default value returned when evaluation fails or the flag type does not match."]
     #[doc = " * `context` - Optional evaluation context for targeting rules."]
     #[wasm_bindgen(method, catch, js_name = "getBooleanValue")]
-    pub async fn get_boolean_value(
+    pub async fn get_boolean_value<S: ::wasm_bindgen::JsStringLike>(
         this: &Flagship,
-        flag_key: &str,
+        flag_key: S,
         default_value: bool,
-    ) -> Result<Boolean, JsValue>;
+    ) -> Result<bool, JsValue>;
     #[doc = " Get a boolean flag value."]
     #[doc = ""]
     #[doc = " * `flagKey` - The key of the flag to evaluate."]
     #[doc = " * `defaultValue` - Default value returned when evaluation fails or the flag type does not match."]
     #[doc = " * `context` - Optional evaluation context for targeting rules."]
     #[wasm_bindgen(method, catch, js_name = "getBooleanValue")]
-    pub async fn get_boolean_value_with_context(
+    pub async fn get_boolean_value_with_context<S: ::wasm_bindgen::JsStringLike>(
         this: &Flagship,
-        flag_key: &str,
+        flag_key: S,
         default_value: bool,
         context: &Object,
-    ) -> Result<Boolean, JsValue>;
+    ) -> Result<bool, JsValue>;
     #[wasm_bindgen(method, catch, js_name = "getStringValue")]
-    pub async fn get_string_value(
+    pub async fn get_string_value<
+        S: ::wasm_bindgen::JsStringLike,
+        S2: ::wasm_bindgen::JsStringLike,
+    >(
         this: &Flagship,
-        flag_key: &str,
-        default_value: &str,
+        flag_key: S,
+        default_value: S2,
+    ) -> Result<String, JsValue>;
+    #[wasm_bindgen(method, catch, js_name = "getStringValue")]
+    pub async fn get_string_value_js_string<
+        S: ::wasm_bindgen::JsStringLike,
+        S2: ::wasm_bindgen::JsStringLike,
+    >(
+        this: &Flagship,
+        flag_key: S,
+        default_value: S2,
     ) -> Result<JsString, JsValue>;
     #[wasm_bindgen(method, catch, js_name = "getStringValue")]
-    pub async fn get_string_value_with_context(
+    pub async fn get_string_value_with_context<
+        S: ::wasm_bindgen::JsStringLike,
+        S2: ::wasm_bindgen::JsStringLike,
+    >(
         this: &Flagship,
-        flag_key: &str,
-        default_value: &str,
+        flag_key: S,
+        default_value: S2,
+        context: &Object,
+    ) -> Result<String, JsValue>;
+    #[wasm_bindgen(method, catch, js_name = "getStringValue")]
+    pub async fn get_string_value_with_context_js_string<
+        S: ::wasm_bindgen::JsStringLike,
+        S2: ::wasm_bindgen::JsStringLike,
+    >(
+        this: &Flagship,
+        flag_key: S,
+        default_value: S2,
         context: &Object,
     ) -> Result<JsString, JsValue>;
     #[wasm_bindgen(method, catch, js_name = "getNumberValue")]
-    pub async fn get_number_value(
+    pub async fn get_number_value<S: ::wasm_bindgen::JsStringLike>(
         this: &Flagship,
-        flag_key: &str,
+        flag_key: S,
         default_value: f64,
-    ) -> Result<Number, JsValue>;
+    ) -> Result<f64, JsValue>;
     #[wasm_bindgen(method, catch, js_name = "getNumberValue")]
-    pub async fn get_number_value_with_context(
+    pub async fn get_number_value_with_context<S: ::wasm_bindgen::JsStringLike>(
         this: &Flagship,
-        flag_key: &str,
+        flag_key: S,
         default_value: f64,
         context: &Object,
-    ) -> Result<Number, JsValue>;
+    ) -> Result<f64, JsValue>;
     #[doc = " Get a boolean flag value with full evaluation details."]
     #[doc = ""]
     #[doc = " * `flagKey` - The key of the flag to evaluate."]
     #[doc = " * `defaultValue` - Default value returned when evaluation fails or the flag type does not match."]
     #[doc = " * `context` - Optional evaluation context for targeting rules."]
     #[wasm_bindgen(method, catch, js_name = "getBooleanDetails")]
-    pub async fn get_boolean_details(
+    pub async fn get_boolean_details<S: ::wasm_bindgen::JsStringLike>(
         this: &Flagship,
-        flag_key: &str,
+        flag_key: S,
         default_value: bool,
-    ) -> Result<FlagshipEvaluationDetails<Boolean>, JsValue>;
+    ) -> Result<FlagshipEvaluationDetails<bool>, JsValue>;
     #[doc = " Get a boolean flag value with full evaluation details."]
     #[doc = ""]
     #[doc = " * `flagKey` - The key of the flag to evaluate."]
     #[doc = " * `defaultValue` - Default value returned when evaluation fails or the flag type does not match."]
     #[doc = " * `context` - Optional evaluation context for targeting rules."]
     #[wasm_bindgen(method, catch, js_name = "getBooleanDetails")]
-    pub async fn get_boolean_details_with_context(
+    pub async fn get_boolean_details_with_context<S: ::wasm_bindgen::JsStringLike>(
         this: &Flagship,
-        flag_key: &str,
+        flag_key: S,
         default_value: bool,
         context: &Object,
-    ) -> Result<FlagshipEvaluationDetails<Boolean>, JsValue>;
+    ) -> Result<FlagshipEvaluationDetails<bool>, JsValue>;
     #[wasm_bindgen(method, catch, js_name = "getStringDetails")]
-    pub async fn get_string_details(
+    pub async fn get_string_details<
+        S: ::wasm_bindgen::JsStringLike,
+        S2: ::wasm_bindgen::JsStringLike,
+    >(
         this: &Flagship,
-        flag_key: &str,
-        default_value: &str,
+        flag_key: S,
+        default_value: S2,
+    ) -> Result<FlagshipEvaluationDetails<String>, JsValue>;
+    #[wasm_bindgen(method, catch, js_name = "getStringDetails")]
+    pub async fn get_string_details_js_string<
+        S: ::wasm_bindgen::JsStringLike,
+        S2: ::wasm_bindgen::JsStringLike,
+    >(
+        this: &Flagship,
+        flag_key: S,
+        default_value: S2,
     ) -> Result<FlagshipEvaluationDetails<JsString>, JsValue>;
     #[wasm_bindgen(method, catch, js_name = "getStringDetails")]
-    pub async fn get_string_details_with_context(
+    pub async fn get_string_details_with_context<
+        S: ::wasm_bindgen::JsStringLike,
+        S2: ::wasm_bindgen::JsStringLike,
+    >(
         this: &Flagship,
-        flag_key: &str,
-        default_value: &str,
+        flag_key: S,
+        default_value: S2,
+        context: &Object,
+    ) -> Result<FlagshipEvaluationDetails<String>, JsValue>;
+    #[wasm_bindgen(method, catch, js_name = "getStringDetails")]
+    pub async fn get_string_details_with_context_js_string<
+        S: ::wasm_bindgen::JsStringLike,
+        S2: ::wasm_bindgen::JsStringLike,
+    >(
+        this: &Flagship,
+        flag_key: S,
+        default_value: S2,
         context: &Object,
     ) -> Result<FlagshipEvaluationDetails<JsString>, JsValue>;
     #[wasm_bindgen(method, catch, js_name = "getNumberDetails")]
-    pub async fn get_number_details(
+    pub async fn get_number_details<S: ::wasm_bindgen::JsStringLike>(
         this: &Flagship,
-        flag_key: &str,
+        flag_key: S,
         default_value: f64,
-    ) -> Result<FlagshipEvaluationDetails<Number>, JsValue>;
+    ) -> Result<FlagshipEvaluationDetails<f64>, JsValue>;
     #[wasm_bindgen(method, catch, js_name = "getNumberDetails")]
-    pub async fn get_number_details_with_context(
+    pub async fn get_number_details_with_context<S: ::wasm_bindgen::JsStringLike>(
         this: &Flagship,
-        flag_key: &str,
+        flag_key: S,
         default_value: f64,
         context: &Object,
-    ) -> Result<FlagshipEvaluationDetails<Number>, JsValue>;
+    ) -> Result<FlagshipEvaluationDetails<f64>, JsValue>;
 }

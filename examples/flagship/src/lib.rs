@@ -7,11 +7,7 @@
 //! * `/details?flag=<key>`   — return the full evaluation details envelope
 
 use serde::{Deserialize, Serialize};
-use worker::wasm_bindgen::convert::FromWasmAbi;
-use worker::{
-    event, Env, EvaluationContext, EvaluationDetails, FlagshipEvaluationDetails, Request, Response,
-    Result, RouteContext, Router, Url,
-};
+use worker::{event, Env, EvaluationContext, Request, Response, Result, RouteContext, Router, Url};
 
 const BINDING: &str = "FLAGS";
 
@@ -19,23 +15,6 @@ const BINDING: &str = "FLAGS";
 struct Theme {
     primary: String,
     secondary: String,
-}
-
-fn native_details<T, U>(
-    details: &FlagshipEvaluationDetails<T>,
-    convert: impl FnOnce(T) -> U,
-) -> EvaluationDetails<U>
-where
-    T: FromWasmAbi,
-{
-    EvaluationDetails {
-        flag_key: details.flag_key(),
-        value: convert(details.value()),
-        variant: details.variant(),
-        reason: details.reason(),
-        error_code: details.error_code(),
-        error_message: details.error_message(),
-    }
 }
 
 #[event(fetch)]
@@ -55,9 +34,8 @@ async fn boolean(req: Request, ctx: RouteContext<()>) -> Result<Response> {
     let flag = query(&url, "flag").unwrap_or_else(|| "example-bool".into());
     let value: bool = env
         .flagship(BINDING)?
-        .get_boolean_value(&flag, false)
-        .await?
-        .into();
+        .get_boolean_value(flag.as_str(), false)
+        .await?;
     Response::from_json(&serde_json::json!({ "flag": flag, "value": value }))
 }
 
@@ -72,11 +50,10 @@ async fn string(req: Request, ctx: RouteContext<()>) -> Result<Response> {
                 .string("userId", &user_id)
                 .string("country", "US");
             flagship
-                .get_string_value_with_context(&flag, "control", ctx.as_ref())
+                .get_string_value_with_context(flag.as_str(), "control", ctx.as_ref())
                 .await?
-                .into()
         }
-        None => flagship.get_string_value(&flag, "control").await?.into(),
+        None => flagship.get_string_value(flag.as_str(), "control").await?,
     };
     Response::from_json(&serde_json::json!({ "flag": flag, "value": value }))
 }
@@ -102,9 +79,9 @@ async fn details(req: Request, ctx: RouteContext<()>) -> Result<Response> {
     let flag = query(&url, "flag").unwrap_or_else(|| "checkout-flow".into());
     let details = env
         .flagship(BINDING)?
-        .get_string_details(&flag, "control")
+        .get_string_details(flag.as_str(), "control")
         .await?;
-    Response::from_json(&native_details(&details, String::from))
+    Response::from_json(&details)
 }
 
 fn query(url: &Url, key: &str) -> Option<String> {

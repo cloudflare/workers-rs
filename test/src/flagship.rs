@@ -1,10 +1,7 @@
 use crate::SomeSharedData;
 use serde::{Deserialize, Serialize};
-use worker::wasm_bindgen::convert::FromWasmAbi;
 use worker::wasm_bindgen::JsValue;
-use worker::{
-    Env, EvaluationContext, EvaluationDetails, FlagshipEvaluationDetails, Request, Response, Result,
-};
+use worker::{Env, EvaluationContext, EvaluationDetails, Request, Response, Result};
 
 const BINDING: &str = "FLAGS";
 
@@ -29,31 +26,13 @@ fn last_segment(req: &Request) -> Result<String> {
         .unwrap_or_default())
 }
 
-fn native_details<T, U>(
-    details: &FlagshipEvaluationDetails<T>,
-    convert: impl FnOnce(T) -> U,
-) -> EvaluationDetails<U>
-where
-    T: FromWasmAbi,
-{
-    EvaluationDetails {
-        flag_key: details.flag_key(),
-        value: convert(details.value()),
-        variant: details.variant(),
-        reason: details.reason(),
-        error_code: details.error_code(),
-        error_message: details.error_message(),
-    }
-}
-
 #[worker::send]
 pub async fn handle_boolean(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let flag = last_segment(&req)?;
     let value: bool = env
         .flagship(BINDING)?
-        .get_boolean_value(&flag, false)
-        .await?
-        .into();
+        .get_boolean_value(flag.as_str(), false)
+        .await?;
     Response::from_json(&serde_json::json!({ "flag": flag, "value": value }))
 }
 
@@ -62,9 +41,8 @@ pub async fn handle_string(req: Request, env: Env, _data: SomeSharedData) -> Res
     let flag = last_segment(&req)?;
     let value: String = env
         .flagship(BINDING)?
-        .get_string_value(&flag, "fallback")
-        .await?
-        .into();
+        .get_string_value(flag.as_str(), "fallback")
+        .await?;
     Response::from_json(&serde_json::json!({ "flag": flag, "value": value }))
 }
 
@@ -73,9 +51,8 @@ pub async fn handle_number(req: Request, env: Env, _data: SomeSharedData) -> Res
     let flag = last_segment(&req)?;
     let value: f64 = env
         .flagship(BINDING)?
-        .get_number_value(&flag, 0.0)
-        .await?
-        .into();
+        .get_number_value(flag.as_str(), 0.0)
+        .await?;
     Response::from_json(&serde_json::json!({ "flag": flag, "value": value }))
 }
 
@@ -95,7 +72,7 @@ pub async fn handle_get(req: Request, env: Env, _data: SomeSharedData) -> Result
     let default = JsValue::from_str("fallback");
     let raw = env
         .flagship(BINDING)?
-        .get_with_default_value(&flag, &default)
+        .get_with_default_value(flag.as_str(), &default)
         .await?;
     let value: serde_json::Value = serde_wasm_bindgen::from_value(raw)?;
     Response::from_json(&serde_json::json!({ "flag": flag, "value": value }))
@@ -111,8 +88,7 @@ pub async fn handle_context(req: Request, env: Env, _data: SomeSharedData) -> Re
     let value: String = env
         .flagship(BINDING)?
         .get_string_value_with_context("user-branch", "default", eval_ctx.as_ref())
-        .await?
-        .into();
+        .await?;
     Response::from_json(&serde_json::json!({ "userId": user_id, "value": value }))
 }
 
@@ -125,9 +101,9 @@ pub async fn handle_boolean_details(
     let flag = last_segment(&req)?;
     let details = env
         .flagship(BINDING)?
-        .get_boolean_details(&flag, false)
+        .get_boolean_details(flag.as_str(), false)
         .await?;
-    Response::from_json(&native_details(&details, bool::from))
+    Response::from_json(&details)
 }
 
 #[worker::send]
@@ -139,9 +115,9 @@ pub async fn handle_string_details(
     let flag = last_segment(&req)?;
     let details = env
         .flagship(BINDING)?
-        .get_string_details(&flag, "fallback")
+        .get_string_details(flag.as_str(), "fallback")
         .await?;
-    Response::from_json(&native_details(&details, String::from))
+    Response::from_json(&details)
 }
 
 #[worker::send]
@@ -153,9 +129,9 @@ pub async fn handle_number_details(
     let flag = last_segment(&req)?;
     let details = env
         .flagship(BINDING)?
-        .get_number_details(&flag, 0.0)
+        .get_number_details(flag.as_str(), 0.0)
         .await?;
-    Response::from_json(&native_details(&details, f64::from))
+    Response::from_json(&details)
 }
 
 #[worker::send]

@@ -172,7 +172,7 @@ where
             error_message,
         } = EvaluationDetails::deserialize(deserializer)?;
 
-        let mut builder = Self::builder(&flag_key, value);
+        let mut builder = Self::builder(flag_key, value);
         if let Some(variant) = variant.as_deref() {
             builder = builder.variant(variant);
         }
