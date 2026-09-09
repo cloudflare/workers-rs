@@ -37,6 +37,18 @@ bindings = [
 dataset = "http"
 binding = "HTTP_ANALYTICS"
 
+# Vectorize has no local Miniflare emulator, so the `/vectorize` route can't be
+# exercised in the vitest suite; this binding documents the config and lets the
+# worker resolve `env.vectorize("VECTORIZE")`. Point `index_name` at a real index:
+#   wrangler vectorize create test-index --dimensions=768 --metric=cosine
+# The handler filters on `genre`, which needs a metadata index (create it before
+# inserting, since only vectors written afterwards are indexed):
+#   wrangler vectorize create-metadata-index test-index --property-name=genre --type=string
+[[vectorize]]
+binding = "VECTORIZE"
+index_name = "test-index"
+remote = true
+
 [[d1_databases]]
 binding = 'DB'
 database_name = 'my_db'
