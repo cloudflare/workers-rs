@@ -1,5 +1,4 @@
 import {describe, test, expect} from "vitest";
-import { connect } from "node:net";
 import { mf, mfUrl } from "./mf-socket";
 
 describe("socket", () => {
@@ -12,15 +11,16 @@ describe("socket", () => {
     expect(resp.status).toBe(200);
   });
   test("inbound connection", async () => {
-    const response = await new Promise<Buffer>((resolve, reject) => {
-      const socket = connect(25001, "127.0.0.1", () => socket.write("ping"));
+    const socket = await mf.dispatchConnect();
+    const response = await new Promise<string>((resolve, reject) => {
       socket.once("data", (data) => {
         socket.destroy();
-        resolve(data);
+        resolve(data.toString());
       });
       socket.once("error", reject);
+      socket.write("ping");
     });
 
-    expect(response.toString()).toBe("ping");
+    expect(response).toBe("ping");
   });
 });
