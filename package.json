@@ -15,7 +15,7 @@
   "homepage": "https://github.com/cloudflare/workers-rs#readme",
   "devDependencies": {
     "@types/node": "^26.2.0",
-    "miniflare": "^4.20260730.0",
+    "miniflare": "5.20260907.0-alpha",
     "typescript": "^7.0.2",
     "uuid": "^14.0.2",
     "vitest": "^4.1.11"
@@ -31,6 +31,6 @@
     "lint:fix": "cargo fmt && cargo clippy --features d1,queue --all-targets --workspace --fix -- -D warnings"
   },
   "allowScripts": {
-    "workerd@1.20260730.1": true
+    "workerd@1.20260907.1": true
   }
 }
