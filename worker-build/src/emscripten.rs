@@ -43,9 +43,6 @@ pub const RUSTFLAGS: &[&str] = &[
 /// setting fatal.
 pub const LINK_ARGS: &[&str] = &[
     "-sBINARYEN_EXTRA_PASSES=--translate-to-exnref",
-    // Drop DWARF at link (names are kept): the exnref translation cannot
-    // update DWARF locations and fails on full-debuginfo builds.
-    "-Wl,--strip-debug",
     "-sWASM_BINDGEN",
     "-sJSPI",
     "-sMODULARIZE=instance",
