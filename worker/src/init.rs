@@ -21,7 +21,9 @@ extern "C" {
     fn set_instance_id(this: &InitState, val: u32);
 }
 
-// On abort -> reinit
+// On abort -> reinit. Emscripten owns instantiation, so there is no
+// instance to reset there.
+#[cfg(not(target_os = "emscripten"))]
 fn on_abort() {
     wasm_bindgen::handler::schedule_reinit();
 }
@@ -45,6 +47,7 @@ fn init() {
         s.set_instance_id(id + 1);
     });
 
+    #[cfg(not(target_os = "emscripten"))]
     wasm_bindgen::handler::set_on_abort(on_abort);
 }
 
