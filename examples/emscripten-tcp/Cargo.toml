@@ -1,0 +1,28 @@
+[package]
+name = "emscripten-tcp"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Standalone: the emscripten target, beta toolchain and dependency patches
+# stay out of the workspace lockfile.
+[workspace]
+
+[dependencies]
+worker = { path = "../../worker" }
+tokio = { version = "1", default-features = false, features = ["rt", "macros", "net", "io-util", "time"] }
+
+[profile.release]
+opt-level = "s"
+
+# wasm32-unknown-emscripten support pending upstream releases (see README).
+[patch.crates-io]
+tokio = { git = "https://github.com/guybedford/tokio", branch = "emscripten-epoll" }
+tokio-macros = { git = "https://github.com/guybedford/tokio", branch = "emscripten-epoll" }
+mio = { git = "https://github.com/guybedford/mio", rev = "a62c9e46833fc255c9217ab9aa362c6221ed4401" }
+libc = { git = "https://github.com/rust-lang/libc", branch = "libc-0.2" }
+# rlib-only: cargo would otherwise also link its cdylib, which emcc cannot produce.
+wasm-streams = { git = "https://github.com/guybedford/wasm-streams", branch = "rlib-only" }
+
+[patch."https://github.com/guybedford/libc"]
+libc = { git = "https://github.com/rust-lang/libc", branch = "libc-0.2" }

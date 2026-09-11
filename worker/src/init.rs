@@ -26,7 +26,7 @@ fn on_abort() {
     wasm_bindgen::handler::schedule_reinit();
 }
 
-#[wasm_bindgen(start)]
+#[wasm_bindgen(start, private)]
 fn init() {
     let default_hook = panic::take_hook();
     panic::set_hook(Box::new(move |info| {

@@ -11,6 +11,7 @@ description = "This is a tool to be used as a custom build command for a Cloudfl
 [dependencies]
 anyhow = "1.0.98"
 binary-install = "0.4.1"
+diffy = "0.5"
 cargo_metadata = "0.23.1"
 # transitive dep of cargo_metadata; 0.3.3 requires rustc 1.91 (MSRV pin)
 cargo-platform = "=0.3.2"

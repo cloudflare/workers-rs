@@ -116,8 +116,8 @@ jobs:
           sed -i '/"examples\/axum",/d' Cargo.toml
           for example in examples/*/; do
               example_name=$(basename "$example")
-              if [ "$example_name" = "coredump" ]; then
-                echo "Skipping coredump example"
+              if [ "$example_name" = "coredump" ] || [ "$example_name" = "emscripten-tcp" ]; then
+                echo "Skipping $example_name example"
                 continue
               fi
               echo "Building $example_name"
@@ -125,6 +125,60 @@ jobs:
               WASM_BINDGEN_BIN='../../wasm-bindgen/target/debug/wasm-bindgen' ../../target/debug/worker-build
               cd ../..
           done
+
+  build-emscripten:
+    name: Emscripten example
+    needs: worker-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dtolnay/rust-toolchain@1.87.0
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry ~/.cargo/git target examples/emscripten-tcp/target
+          key: ${{ runner.os }}-cargo-emscripten-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-emscripten-
+
+      - name: Cache Emscripten SDK
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/worker-build/emsdk-*
+          key: ${{ runner.os }}-emsdk-${{ hashFiles('worker-build/src/versions.rs', 'worker-build/patches/emscripten/*') }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: worker-build
+          path: ./target/debug
+
+      - name: Make worker-build executable
+        run: chmod +x ./target/debug/worker-build
+
+      - name: Build wasm-bindgen
+        run: cd wasm-bindgen && cargo build -p wasm-bindgen-cli --bin wasm-bindgen
+
+      - name: Install emscripten target toolchain
+        run: rustup toolchain install beta --profile minimal --target wasm32-unknown-emscripten
+
+      - name: Build example
+        working-directory: examples/emscripten-tcp
+        run: WASM_BINDGEN_BIN=../../wasm-bindgen/target/debug/wasm-bindgen ../../target/debug/worker-build --emscripten --release
+
+      - name: Smoke test under wrangler
+        working-directory: examples/emscripten-tcp
+        run: |
+          sed '/^\[build\]/,$d' wrangler.toml > wrangler.ci.toml
+          npx -y wrangler@4 dev -c wrangler.ci.toml --port 8787 > wrangler.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8787/ > /dev/null && break
+            sleep 1
+          done
+          curl -sf 'http://localhost:8787/?host=example.com' | tee response.txt
+          grep -q '^HTTP/1.0' response.txt
+          cat wrangler.log
 
   rustfmt:
     name: Formatter
