@@ -118,13 +118,22 @@ fn remove_all_versions(name: &str, target: &str) -> Result<usize> {
     Ok(deleted_count)
 }
 
+/// Root of the worker-build cache directory
+pub(crate) fn cache_root() -> Result<PathBuf> {
+    let path = dirs_next::cache_dir()
+        .unwrap_or_else(std::env::temp_dir)
+        .join("worker-build");
+    if !path.exists() {
+        create_dir_all(&path)
+            .with_context(|| format!("Failed to create cache directory {}", path.display()))?;
+    }
+    Ok(path)
+}
+
 /// Cache path for this binary instance
 fn cache_path(name: &str, version: &str, target: &str) -> Result<PathBuf> {
     let path_name = format!("{name}-{target}-{version}");
-    let path = dirs_next::cache_dir()
-        .unwrap_or_else(std::env::temp_dir)
-        .join("worker-build")
-        .join(&path_name);
+    let path = cache_root()?.join(&path_name);
     if !path.exists() {
         create_dir_all(&path)
             .with_context(|| format!("Failed to create cache directory {}", path.display()))?;
@@ -143,8 +152,8 @@ fn fix_permissions(options: &mut OpenOptions) -> &mut OpenOptions {
     options
 }
 
-/// Download this binary instance into its cache path
-fn download(url: &str, bin_dir: &Path) -> Result<()> {
+/// Download and extract a tar.gz archive, stripping its top-level directory
+pub(crate) fn download(url: &str, bin_dir: &Path) -> Result<()> {
     let agent = ureq::Agent::config_builder()
         .tls_config(
             ureq::tls::TlsConfig::builder()
@@ -168,9 +177,14 @@ fn download(url: &str, bin_dir: &Path) -> Result<()> {
     {
         let mut entry = entry?;
         let path_stripped = entry.path()?.components().skip(1).collect::<PathBuf>();
+        let entry_type = entry.header().entry_type();
+        // Skip the top-level directory itself, pax headers, and links.
+        if path_stripped.as_os_str().is_empty() || !(entry_type.is_dir() || entry_type.is_file()) {
+            continue;
+        }
         let bin_path = bin_dir.join(path_stripped);
 
-        if entry.header().entry_type().is_dir() {
+        if entry_type.is_dir() {
             std::fs::create_dir_all(&bin_path)
                 .with_context(|| format!("Failed to create directory {}", bin_path.display()))?;
         } else {

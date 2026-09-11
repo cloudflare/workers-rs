@@ -11,11 +11,13 @@ use clap::Parser;
 
 const SHIM_FILE: &str = include_str!("./js/shim.js");
 const SHIM_UNWIND_FILE: &str = include_str!("./js/shim-unwind.js");
+const SHIM_EMSCRIPTEN_FILE: &str = include_str!("./js/shim-emscripten.js");
 
 pub(crate) mod binary;
 mod build;
 mod build_lock;
 mod emoji;
+mod emscripten;
 mod lockfile;
 mod main_legacy;
 mod producers;
@@ -85,8 +87,11 @@ pub fn main() -> Result<()> {
 
     builder.init()?;
 
+    let emscripten = builder.emscripten;
     let module_target = !no_panic_recovery && env::var("CUSTOM_SHIM").is_err();
-    if module_target {
+    if emscripten {
+        builder.run()?;
+    } else if module_target {
         builder.extra_args.extend_from_slice(&[
             "--experimental-reset-state-function".into(),
             "--force-enable-abort-handler".into(),
@@ -105,8 +110,10 @@ pub fn main() -> Result<()> {
 
     producers::inject_workers_rs_sdk_metadata(&staging_dir, VERSION)?;
 
-    if module_target {
-        let shim = if builder.panic_unwind {
+    if emscripten || module_target {
+        let shim = if emscripten {
+            SHIM_EMSCRIPTEN_FILE
+        } else if builder.panic_unwind {
             SHIM_UNWIND_FILE
         } else {
             SHIM_FILE
@@ -116,12 +123,12 @@ pub fn main() -> Result<()> {
         fs::write(&shim_path, shim)
             .with_context(|| format!("Failed to write {}", shim_path.display()))?;
 
-        add_export_wrappers(&staging_dir)?;
+        add_export_wrappers(&staging_dir, emscripten)?;
 
         update_package_json(&staging_dir)?;
 
         let esbuild_path = Esbuild.get_binary(None)?.0;
-        bundle(&staging_dir, &esbuild_path)?;
+        bundle(&staging_dir, &esbuild_path, emscripten)?;
 
         fix_wasm_import(&staging_dir)?;
 
@@ -148,9 +155,14 @@ fn generate_handlers(out_dir: &Path) -> Result<String> {
     // This code is specialized to what wasm-bindgen outputs for ESM and is therefore
     // brittle to upstream changes. It is comprehensive to current output patterns though.
     // TODO: Convert this to Wasm binary exports analysis for entry point detection instead.
+    // Emscripten's library expansion indents the wasm-bindgen exports and
+    // emits JSPI exports as `export async function`.
     let mut func_names = Vec::new();
-    for line in content.lines() {
-        if let Some(rest) = line.strip_prefix("export function") {
+    for line in content.lines().map(str::trim_start) {
+        if let Some(rest) = line
+            .strip_prefix("export function")
+            .or_else(|| line.strip_prefix("export async function"))
+        {
             if let Some(bracket_pos) = rest.find("(") {
                 let func_name = rest[..bracket_pos].trim();
                 // strip the exported function (we re-wrap all handlers)
@@ -203,17 +215,24 @@ fn generate_handlers(out_dir: &Path) -> Result<String> {
 
 static SYSTEM_FNS: &[&str] = &["__wbg_reset_state", "__worker_init_state"];
 
-fn add_export_wrappers(out_dir: &Path) -> Result<()> {
+fn add_export_wrappers(out_dir: &Path, plain: bool) -> Result<()> {
     let index_path = output_path(out_dir, "index.js");
     let content = fs::read_to_string(&index_path)
         .with_context(|| format!("Failed to read {}", index_path.display()))?;
 
     let mut class_names = Vec::new();
-    for line in content.lines() {
+    for line in content.lines().map(str::trim_start) {
+        // Emscripten output declares classes as `export var Name = class Name {`.
         if let Some(rest) = line.strip_prefix("export class ") {
             if let Some(brace_pos) = rest.find("{") {
                 let class_name = rest[..brace_pos].trim();
                 class_names.push(class_name.to_string());
+            }
+        } else if let Some(rest) = line.strip_prefix("export var ") {
+            if let Some((class_name, def)) = rest.split_once(" = class ") {
+                if def.contains('{') {
+                    class_names.push(class_name.trim().to_string());
+                }
             }
         }
     }
@@ -222,9 +241,15 @@ fn add_export_wrappers(out_dir: &Path) -> Result<()> {
     let mut output = fs::read_to_string(&shim_path)
         .with_context(|| format!("Failed to read {}", shim_path.display()))?;
     for class_name in class_names {
-        output.push_str(&format!(
-            "export const {class_name} = new Proxy(exports.{class_name}, classProxyHooks);\n"
-        ));
+        if plain {
+            output.push_str(&format!(
+                "export const {class_name} = exports.{class_name};\n"
+            ));
+        } else {
+            output.push_str(&format!(
+                "export const {class_name} = new Proxy(exports.{class_name}, classProxyHooks);\n"
+            ));
+        }
     }
     fs::write(&shim_path, output)
         .with_context(|| format!("Failed to write {}", shim_path.display()))?;
@@ -359,7 +384,7 @@ where
 }
 
 // Bundles the snippets and worker-related code into a single file.
-fn bundle(out_dir: &Path, esbuild_path: &Path) -> Result<()> {
+fn bundle(out_dir: &Path, esbuild_path: &Path, emscripten: bool) -> Result<()> {
     let no_minify = !matches!(env::var("NO_MINIFY"), Err(VarError::NotPresent));
     let path = out_dir
         .canonicalize()
@@ -379,6 +404,12 @@ fn bundle(out_dir: &Path, esbuild_path: &Path) -> Result<()> {
         "--outfile=index.js",
         "--allow-overwrite",
     ]);
+
+    // Emscripten's node environment glue imports Node builtins, served by
+    // nodejs_compat in the runtime.
+    if emscripten {
+        command.args(["--external:node:*", "--platform=node"]);
+    }
 
     if !no_minify {
         command.arg("--minify");
