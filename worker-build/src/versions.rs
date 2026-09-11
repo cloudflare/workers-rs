@@ -14,7 +14,7 @@ pub(crate) static CUR_ESBUILD_VERSION: LazyLock<semver::Version> = version!("0.2
 
 // Minimum required libraries, validated before build
 pub(crate) static MIN_WASM_BINDGEN_LIB_VERSION: LazyLock<semver::Version> = version!("0.2.122");
-// First release with Emscripten reinit support (wasm-bindgen/wasm-bindgen#5332)
+// First release with wasm-bindgen/wasm-bindgen#5328 and #5332
 pub(crate) static MIN_EMSCRIPTEN_WASM_BINDGEN_VERSION: LazyLock<semver::Version> =
     version!("0.2.129");
 pub(crate) static MIN_RUSTC_VERSION: LazyLock<semver::Version> = version!("1.77.0"); // workers-rs MSRV

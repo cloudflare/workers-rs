@@ -543,7 +543,7 @@ impl Build {
             && semver::Version::parse(version)? < *MIN_EMSCRIPTEN_WASM_BINDGEN_VERSION
         {
             bail!(
-                "--emscripten needs a wasm-bindgen CLI with wasm-bindgen/wasm-bindgen#5332, \
+                "--emscripten needs a wasm-bindgen CLI with wasm-bindgen/wasm-bindgen#5328 and #5332, \
                  unreleased as of {version}. Until then build it from main and set WASM_BINDGEN_BIN:\n\n  \
                  cargo install wasm-bindgen-cli --git https://github.com/wasm-bindgen/wasm-bindgen\n  \
                  export WASM_BINDGEN_BIN=~/.cargo/bin/wasm-bindgen"
