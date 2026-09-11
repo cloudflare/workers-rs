@@ -146,7 +146,9 @@ jobs:
       - name: Cache Emscripten SDK
         uses: actions/cache@v4
         with:
-          path: ~/.cache/worker-build/emsdk-*
+          path: |
+            ~/.cache/worker-build/emsdk-*
+            ~/.cache/worker-build/binaryen-*
           key: ${{ runner.os }}-emsdk-${{ hashFiles('worker-build/src/versions.rs', 'worker-build/patches/emscripten/*') }}
 
       - uses: actions/download-artifact@v4

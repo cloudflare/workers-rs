@@ -1,6 +1,6 @@
 use crate::build::PBAR;
 use crate::emoji::{CONFIG, DOWN_ARROW};
-use crate::versions::{CUR_ESBUILD_VERSION, CUR_WASM_OPT_VERSION};
+use crate::versions::{CUR_BINARYEN_JSPI_VERSION, CUR_ESBUILD_VERSION, CUR_WASM_OPT_VERSION};
 use anyhow::{bail, Context, Result};
 use flate2::read::GzDecoder;
 use heck::ToShoutySnakeCase;
@@ -334,6 +334,36 @@ impl BinaryDep for WasmBindgen<'_> {
         Ok(match name {
             None | Some("wasm-bindgen") => format!("wasm-bindgen{MAYBE_EXE}"),
             Some("wasm-bindgen-test-runner") => format!("wasm-bindgen-test-runner{MAYBE_EXE}"),
+            Some(name) => bail!("Unknown binary {name} in {}", self.full_name()),
+        })
+    }
+}
+
+/// Binaryen release with the `jspi-hooks` pass (WebAssembly/binaryen#9102),
+/// used as the emcc backend for `--emscripten`.
+pub struct Binaryen;
+
+impl BinaryDep for Binaryen {
+    fn full_name(&self) -> &'static str {
+        "Binaryen"
+    }
+    fn name(&self) -> &'static str {
+        "binaryen"
+    }
+    fn version(&self) -> String {
+        CUR_BINARYEN_JSPI_VERSION.to_owned()
+    }
+    fn target(&self) -> &'static str {
+        WasmOpt.target()
+    }
+    fn download_url(&self) -> String {
+        let version = self.version();
+        let target = self.target();
+        format!("https://github.com/guybedford/binaryen/releases/download/{version}/binaryen-{version}-{target}.tar.gz")
+    }
+    fn bin_path(&self, name: Option<&str>) -> Result<String> {
+        Ok(match name {
+            None | Some("wasm-opt") => format!("bin/wasm-opt{MAYBE_EXE}"),
             Some(name) => bail!("Unknown binary {name} in {}", self.full_name()),
         })
     }

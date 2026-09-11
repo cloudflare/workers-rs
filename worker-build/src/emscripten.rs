@@ -4,8 +4,9 @@
 //! and the patches in `worker-build/patches/emscripten/` are applied to its
 //! frontend. Patches are backports the Rust link depends on that the pinned
 //! release does not yet contain; each is dropped when the pin moves past it.
+//! Binaryen comes from a separate release carrying the jspi-hooks pass.
 
-use crate::binary::{cache_root, download};
+use crate::binary::{cache_root, download, Binaryen, GetBinary};
 use crate::build::PBAR;
 use crate::emoji::{CONFIG, DOWN_ARROW};
 use crate::versions::CUR_EMSCRIPTEN_VERSION;
@@ -23,6 +24,10 @@ const PATCHES: &[(&str, &str)] = &[
     (
         "noderawsockets-dns.patch",
         include_str!("../patches/emscripten/noderawsockets-dns.patch"),
+    ),
+    (
+        "reentrant-jspi.patch",
+        include_str!("../patches/emscripten/reentrant-jspi.patch"),
     ),
 ];
 
@@ -45,6 +50,9 @@ pub const LINK_ARGS: &[&str] = &[
     "-sBINARYEN_EXTRA_PASSES=--translate-to-exnref",
     "-sWASM_BINDGEN",
     "-sJSPI",
+    // Each JSPI activation runs on its own shadow stack, so a promising export
+    // may be entered while another activation is suspended.
+    "-sREENTRANT_JSPI",
     "-sMODULARIZE=instance",
     "-sEXPORT_ES6",
     "-sAUTO_INIT",
@@ -105,8 +113,24 @@ pub fn provision() -> Result<Toolchain> {
         None => emsdk.join("upstream/emscripten"),
     };
 
+    // -sJSPI_HOOKS runs Binaryen's jspi-hooks pass, which the emsdk release
+    // does not ship yet.
+    let binaryen = match env::var_os("BINARYEN_ROOT") {
+        Some(dir) => {
+            PBAR.info(&format!(
+                "{CONFIG}Using BINARYEN_ROOT: {}",
+                dir.to_string_lossy()
+            ));
+            PathBuf::from(dir)
+        }
+        None => {
+            let (wasm_opt, _) = Binaryen.get_binary(None)?;
+            wasm_opt.parent().unwrap().parent().unwrap().to_path_buf()
+        }
+    };
+
     let em_config = cache_root()?.join(format!("emscripten-{CUR_EMSCRIPTEN_VERSION}.config"));
-    write_config(&em_config, &emsdk)?;
+    write_config(&em_config, &emsdk, &binaryen)?;
 
     Ok(Toolchain {
         emscripten_dir,
@@ -163,6 +187,9 @@ fn provision_emsdk(patch_frontend: bool) -> Result<PathBuf> {
             PBAR.info(&format!("{CONFIG}Applying {name}"));
             apply_patch(&frontend, contents).with_context(|| format!("Applying {name}"))?;
         }
+        // The release ships a populated sysroot; drop its stamp so emcc
+        // reinstalls the system headers the patches add.
+        let _ = fs::remove_file(frontend.join("cache/sysroot_install.stamp"));
         fs::write(&stamp, expected_stamp)?;
     }
     Ok(dir)
@@ -198,8 +225,15 @@ pub fn apply_patch(root: &Path, patch: &str) -> Result<()> {
             .and_then(|p| p.strip_prefix("b/"))
             .ok_or_else(|| anyhow!("Patch chunk without a b/ target path"))?;
         let path = root.join(target);
-        let original = fs::read_to_string(&path)
-            .with_context(|| format!("Failed to read {}", path.display()))?;
+        let original = if file_patch.original() == Some("/dev/null") {
+            if let Some(parent) = path.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            String::new()
+        } else {
+            fs::read_to_string(&path)
+                .with_context(|| format!("Failed to read {}", path.display()))?
+        };
         let patched = diffy::apply(&original, &file_patch)
             .map_err(|e| anyhow!("Failed to apply patch to {target}: {e}"))?;
         fs::write(&path, patched).with_context(|| format!("Failed to write {}", path.display()))?;
@@ -211,15 +245,14 @@ pub fn apply_patch(root: &Path, patch: &str) -> Result<()> {
     Ok(())
 }
 
-fn write_config(path: &Path, emsdk: &Path) -> Result<()> {
+fn write_config(path: &Path, emsdk: &Path, binaryen: &Path) -> Result<()> {
     let node = emsdk_node(emsdk)
         .or_else(|| which::which("node").ok())
         .ok_or_else(|| anyhow!("node is required by emcc and was not found"))?;
-    let upstream = emsdk.join("upstream");
     let contents = format!(
         "LLVM_ROOT = {:?}\nBINARYEN_ROOT = {:?}\nNODE_JS = {:?}\n",
-        upstream.join("bin"),
-        upstream,
+        emsdk.join("upstream/bin"),
+        binaryen,
         node
     );
     if fs::read_to_string(path).ok().as_deref() != Some(&contents) {

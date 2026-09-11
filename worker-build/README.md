@@ -61,15 +61,21 @@ On the first run worker-build downloads the pinned Emscripten SDK release into
 its cache directory (`~/.cache/worker-build/emsdk-<version>`) and applies the
 patches under `worker-build/patches/emscripten/` to the frontend. These are
 backports the Rust link depends on that the pinned release does not yet
-contain; each is removed as the pin moves past it. Installing needs `python3`
-on `PATH`; the SDK ships its own LLVM, Binaryen and Node.
+contain (marker-based `-sWASM_BINDGEN`, hostname resolution under
+`-sNODERAWSOCKETS`, and `-sREENTRANT_JSPI` fiber stacks so promising exports
+can be entered while another activation is suspended); each is removed as the
+pin moves past it. Binaryen comes from a separate release carrying the
+`jspi-hooks` pass those fiber stacks need. Installing needs `python3` on
+`PATH`; the SDK ships its own LLVM and Node.
 
 Overrides for local toolchain development:
 
 - **`EMSCRIPTEN`**: an emscripten frontend checkout (the directory holding
   `emcc`), used as-is without patching.
-- **`EMSDK`**: an emsdk install providing the LLVM/Binaryen backend
-  (`$EMSDK/upstream`) and Node.
+- **`EMSDK`**: an emsdk install providing the LLVM backend (`$EMSDK/upstream`)
+  and Node.
+- **`BINARYEN_ROOT`**: a Binaryen install (the directory holding `bin/wasm-opt`)
+  with the `jspi-hooks` pass.
 
 Until wasm-bindgen 0.2.129, debuginfo builds (`--dev`, `--profiling`) need a
 wasm-bindgen CLI with
