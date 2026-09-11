@@ -10,6 +10,7 @@ macro_rules! version {
 pub(crate) static LATEST_WASM_BINDGEN_VERSION: LazyLock<semver::Version> = version!("0.2.128");
 pub(crate) static CUR_WASM_OPT_VERSION: &str = "132";
 pub(crate) static CUR_EMSCRIPTEN_VERSION: &str = "6.0.9";
+pub(crate) static CUR_BINARYEN_JSPI_VERSION: &str = "version_132_jspi_hooks_1";
 pub(crate) static CUR_ESBUILD_VERSION: LazyLock<semver::Version> = version!("0.28.2");
 
 // Minimum required libraries, validated before build
