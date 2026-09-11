@@ -40,8 +40,6 @@ same block to your own Worker:
 ## Run
 
 ```sh
-cargo install wasm-bindgen-cli --git https://github.com/wasm-bindgen/wasm-bindgen
-export WASM_BINDGEN_BIN=~/.cargo/bin/wasm-bindgen
 npx wrangler dev
 ```
 

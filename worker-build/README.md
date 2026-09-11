@@ -71,12 +71,11 @@ Overrides for local toolchain development:
 - **`EMSDK`**: an emsdk install providing the LLVM/Binaryen backend
   (`$EMSDK/upstream`) and Node.
 
-Until wasm-bindgen 0.2.129, the wasm-bindgen CLI needs
-[wasm-bindgen#5328](https://github.com/wasm-bindgen/wasm-bindgen/pull/5328)
-(DWARF that survives the exnref translation) and
-[wasm-bindgen#5332](https://github.com/wasm-bindgen/wasm-bindgen/pull/5332)
-(Emscripten output for `schedule_reinit()` users); build it from `main` and
-point `WASM_BINDGEN_BIN` at it.
+Until wasm-bindgen 0.2.129, debuginfo builds (`--dev`, `--profiling`) need a
+wasm-bindgen CLI with
+[wasm-bindgen#5328](https://github.com/wasm-bindgen/wasm-bindgen/pull/5328),
+whose DWARF output survives the exnref translation; build it from `main` and
+point `WASM_BINDGEN_BIN` at it. `--release` builds work with the released CLI.
 
 Emscripten networking support in the Rust ecosystem is still landing upstream;
 the [emscripten-tcp example](../examples/emscripten-tcp) lists the

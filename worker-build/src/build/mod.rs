@@ -3,7 +3,7 @@ use crate::emoji;
 use crate::emscripten;
 use crate::lockfile::{DepCheckError, Lockfile};
 use crate::versions::{
-    CUR_WORKER_VERSION, LATEST_WASM_BINDGEN_VERSION, MIN_EMSCRIPTEN_WASM_BINDGEN_VERSION,
+    CUR_WORKER_VERSION, LATEST_WASM_BINDGEN_VERSION, MIN_EMSCRIPTEN_DEBUG_WASM_BINDGEN_VERSION,
     MIN_WASM_BINDGEN_LIB_VERSION, MIN_WORKER_LIB_VERSION,
 };
 
@@ -443,13 +443,15 @@ impl Build {
         let js_path = out.join(format!("{bin}.js"));
         let js = std::fs::read_to_string(&js_path)
             .with_context(|| format!("Failed to read emcc output {}", js_path.display()))?;
+        // `import source wasmModule from "./x.wasm";`, possibly minified.
         let wasm_name = js
-            .lines()
-            .find_map(|line| {
-                let rest = line.trim_start().strip_prefix("import source ")?;
-                let spec = rest.rsplit_once(" from ")?.1;
-                let spec = spec.trim().trim_end_matches(';');
-                let spec = spec.trim_matches(|c| c == '"' || c == '\'');
+            .split("import source ")
+            .skip(1)
+            .find_map(|rest| {
+                let (_, spec) = rest.split_once("from")?;
+                let spec = spec.trim_start();
+                let quote = spec.chars().next().filter(|c| *c == '"' || *c == '\'')?;
+                let spec = &spec[1..spec[1..].find(quote)? + 1];
                 spec.strip_prefix("./").filter(|s| s.ends_with(".wasm"))
             })
             .ok_or_else(|| {
@@ -538,13 +540,16 @@ impl Build {
         use crate::binary::{GetBinary, WasmBindgen};
         let version = self.wasm_bindgen_version.as_ref().unwrap();
         let (bindgen, bindgen_override) = WasmBindgen(version).get_binary(None)?;
+        // emcc runs wasm-bindgen with --keep-debug; before #5328 its DWARF
+        // output fails binaryen's exnref translation.
         if self.emscripten
             && !bindgen_override
-            && semver::Version::parse(version)? < *MIN_EMSCRIPTEN_WASM_BINDGEN_VERSION
+            && !matches!(self.profile, BuildProfile::Release)
+            && semver::Version::parse(version)? < *MIN_EMSCRIPTEN_DEBUG_WASM_BINDGEN_VERSION
         {
             bail!(
-                "--emscripten needs a wasm-bindgen CLI with wasm-bindgen/wasm-bindgen#5328 and #5332, \
-                 unreleased as of {version}. Until then build it from main and set WASM_BINDGEN_BIN:\n\n  \
+                "--emscripten debuginfo builds need a wasm-bindgen CLI with wasm-bindgen/wasm-bindgen#5328, \
+                 unreleased as of {version}. Build with --release, or build the CLI from main and set WASM_BINDGEN_BIN:\n\n  \
                  cargo install wasm-bindgen-cli --git https://github.com/wasm-bindgen/wasm-bindgen\n  \
                  export WASM_BINDGEN_BIN=~/.cargo/bin/wasm-bindgen"
             );

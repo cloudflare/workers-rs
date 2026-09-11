@@ -155,10 +155,10 @@ fn generate_handlers(out_dir: &Path) -> Result<String> {
     // This code is specialized to what wasm-bindgen outputs for ESM and is therefore
     // brittle to upstream changes. It is comprehensive to current output patterns though.
     // TODO: Convert this to Wasm binary exports analysis for entry point detection instead.
-    // Emscripten's library expansion indents the wasm-bindgen exports and
+    // Emscripten output indents (or minifies) the wasm-bindgen exports and
     // emits JSPI exports as `export async function`.
     let mut func_names = Vec::new();
-    for line in content.lines().map(str::trim_start) {
+    for line in export_decls(&content) {
         if let Some(rest) = line
             .strip_prefix("export function")
             .or_else(|| line.strip_prefix("export async function"))
@@ -215,13 +215,26 @@ fn generate_handlers(out_dir: &Path) -> Result<String> {
 
 static SYSTEM_FNS: &[&str] = &["__wbg_reset_state", "__worker_init_state"];
 
+/// Each `export` declaration in the module text, starting at the keyword,
+/// whether the module is one declaration per line or minified.
+fn export_decls(content: &str) -> impl Iterator<Item = &str> {
+    content.match_indices("export ").filter_map(move |(i, _)| {
+        let boundary = i == 0
+            || content[..i]
+                .chars()
+                .next_back()
+                .is_some_and(|c| c.is_whitespace() || c == ';' || c == '}');
+        boundary.then(|| &content[i..])
+    })
+}
+
 fn add_export_wrappers(out_dir: &Path, plain: bool) -> Result<()> {
     let index_path = output_path(out_dir, "index.js");
     let content = fs::read_to_string(&index_path)
         .with_context(|| format!("Failed to read {}", index_path.display()))?;
 
     let mut class_names = Vec::new();
-    for line in content.lines().map(str::trim_start) {
+    for line in export_decls(&content) {
         // Emscripten output declares classes as `export var Name = class Name {`.
         if let Some(rest) = line.strip_prefix("export class ") {
             if let Some(brace_pos) = rest.find("{") {
@@ -229,8 +242,8 @@ fn add_export_wrappers(out_dir: &Path, plain: bool) -> Result<()> {
                 class_names.push(class_name.to_string());
             }
         } else if let Some(rest) = line.strip_prefix("export var ") {
-            if let Some((class_name, def)) = rest.split_once(" = class ") {
-                if def.contains('{') {
+            if let Some((class_name, def)) = rest.split_once("=") {
+                if def.trim_start().starts_with("class") {
                     class_names.push(class_name.trim().to_string());
                 }
             }

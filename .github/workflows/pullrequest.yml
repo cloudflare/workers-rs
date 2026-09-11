@@ -163,9 +163,13 @@ jobs:
       - name: Install emscripten target toolchain
         run: rustup toolchain install beta --profile minimal --target wasm32-unknown-emscripten
 
-      - name: Build example
+      - name: Build example (dev, submodule wasm-bindgen)
         working-directory: examples/emscripten-tcp
-        run: WASM_BINDGEN_BIN=../../wasm-bindgen/target/debug/wasm-bindgen ../../target/debug/worker-build --emscripten --release
+        run: WASM_BINDGEN_BIN=../../wasm-bindgen/target/debug/wasm-bindgen ../../target/debug/worker-build --emscripten --dev
+
+      - name: Build example (release, released wasm-bindgen)
+        working-directory: examples/emscripten-tcp
+        run: ../../target/debug/worker-build --emscripten --release
 
       - name: Smoke test under wrangler
         working-directory: examples/emscripten-tcp
