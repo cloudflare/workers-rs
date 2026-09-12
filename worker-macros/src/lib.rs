@@ -1,3 +1,4 @@
+mod async_export;
 mod durable_object;
 mod event;
 mod send;

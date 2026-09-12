@@ -1,0 +1,250 @@
+Subject: [PATCH] Unify wasm-bindgen output under -sWASM_BINDGEN with marker-based detection
+
+Backport of emscripten-core/emscripten#27208 (commit 8de9aa023) to the
+6.0.9 release, so `-sWASM_BINDGEN` is a plain link switch: emcc detects
+the wasm-bindgen marker section in the linker inputs, runs the CLI as a
+post-link step, keeps wasm-bindgen's self-registered public exports and
+drops its internal expansion glue from the export surface. This is the
+only change between the release frontend and upstream main that the
+Rust bin-crate link depends on; the release backend (LLVM/Binaryen)
+matches this frontend.
+
+Base-commit: 4e4223852a0835923411059a3929907d7df1232e (tag 6.0.9)
+
+---
+diff --git a/src/postamble.js b/src/postamble.js
+index a474aa572..54ab9bbe3 100644
+--- a/src/postamble.js
++++ b/src/postamble.js
+@@ -238,7 +238,14 @@ function checkUnflushedContent() {
+ #endif // EXIT_RUNTIME
+ #endif // ASSERTIONS
+ 
++#if WASM_ESM_INTEGRATION && WASM_BINDGEN
++// wasm-bindgen's glue reaches the wasm exports by name on an aggregate object.
++// TODO: Remove once the minimum wasm-bindgen version uses the per-export
++// receiving bindings instead (wasm-bindgen/wasm-bindgen#5270).
++import * as wasmExports from './{{{ WASM_BINARY_FILE }}}';
++#else
+ var wasmExports;
++#endif
+ #if SPLIT_MODULE
+ var wasmRawExports;
+ #endif
+diff --git a/src/settings.js b/src/settings.js
+index 388a2977d..7ce3dc75e 100644
+--- a/src/settings.js
++++ b/src/settings.js
+@@ -2236,7 +2236,17 @@ var LEGACY_RUNTIME = false;
+ // [link]
+ var SIGNATURE_CONVERSIONS = [];
+ 
+-// Run wasm-bindgen and integrate the rust-exported symbols into the rest of Emscripten's JS output.
++// Run wasm-bindgen and integrate the rust-exported symbols into the rest of
++// Emscripten's JS output.
++// Even with this setting enabled, wasm-bindgen processing is only performed
++// when the linker inputs carry the wasm-bindgen Emscripten marker section
++// (emitted by the wasm-bindgen crate). When the marker is absent the build is
++// unchanged, so -sWASM_BINDGEN can safely be passed unconditionally to
++// non-wasm-bindgen builds, and by toolchains that link via emcc.
++// If EXPORTED_FUNCTIONS is set it is taken as the complete export list and
++// must include every export wasm-bindgen reaches by name (rustc supplies this
++// when driving the link). Otherwise those exports are discovered from the
++// linker inputs.
+ // [link]
+ // [experimental]
+ var WASM_BINDGEN = 0;
+diff --git a/tools/building.py b/tools/building.py
+index fc85d5e61..ff48145bd 100644
+--- a/tools/building.py
++++ b/tools/building.py
+@@ -39,6 +39,7 @@ from .shared import (
+   LLVM_DWARFDUMP,
+   LLVM_NM,
+   LLVM_OBJCOPY,
++  LLVM_OBJDUMP,
+   WASM_LD,
+   asmjs_mangle,
+   check_call,
+@@ -62,6 +63,8 @@ _is_ar_cache: dict[str, bool] = {}
+ user_requested_exports: set[str] = set()
+ # JS library symbols exported via the `__export` decorator.
+ extra_js_exports: set[str] = set()
++# Mangled wasm exports wasm-bindgen's glue reaches by name, kept off the public surface.
++wasm_bindgen_internal_exports: set[str] = set()
+ # A list of feature flags to pass to each binaryen invocation (like `wasm-opt`,
+ # etc.). This is received by the first call to binaryen (e.g. `wasm-emscripten-finalize`)
+ # which reads it using `--detect-features`.
+@@ -307,16 +310,12 @@ def get_wasm_bindgen_exported_symbols(input_files):
+   return symbols
+ 
+ 
+-def lld_flags(args, linker_inputs=None):
++def lld_flags(args):
+   # lld doesn't currently support --start-group/--end-group since the
+   # semantics are more like the windows linker where there is no need for
+   # grouping.
+   args = [a for a in args if a not in {'--start-group', '--end-group'}]
+ 
+-  if settings.WASM_BINDGEN:
+-    exported_symbols = get_wasm_bindgen_exported_symbols(linker_inputs)
+-    args.extend(f'--export={e}' for e in exported_symbols)
+-
+   # Emscripten currently expects linkable output (SIDE_MODULE/MAIN_MODULE) to
+   # include all archive contents.
+   if settings.LINKABLE and (settings.FAKE_DYLIBS or not settings.SIDE_MODULE):
+@@ -345,7 +344,7 @@ def lld_flags(args, linker_inputs=None):
+   return args
+ 
+ 
+-def link_lld(args, target, external_symbols=None, linker_inputs=None):
++def link_lld(args, target, external_symbols=None):
+   # runs lld to link things.
+   if not os.path.exists(WASM_LD):
+     exit_with_error('linker binary not found in LLVM directory: %s', WASM_LD)
+@@ -354,7 +353,7 @@ def link_lld(args, target, external_symbols=None, linker_inputs=None):
+   # normal linker flags that are used when building and executable
+   if '--relocatable' not in args and '-r' not in args:
+     cmd += lld_flags_for_executable(external_symbols)
+-  cmd += lld_flags(args, linker_inputs)
++  cmd += lld_flags(args)
+   cmd = get_command_with_possible_response_file(cmd)
+   if settings.LINK_AS_CXX:
+     check_call(cmd)
+@@ -1319,6 +1318,13 @@ def run_wasm_opt(infile, outfile=None, args=[], **kwargs):  # ruff: ignore[mutab
+   return run_binaryen_command('wasm-opt', infile, outfile, args=args, **kwargs)
+ 
+ 
++def has_wasm_bindgen_marker(input_files):
++  if not input_files:
++    return False
++  result = check_call([LLVM_OBJDUMP, '--section-headers', *input_files], stdout=PIPE)
++  return '__wasm_bindgen_emscripten_marker' in result.stdout
++
++
+ def run_wasm_bindgen(infile):
+   bindgen_out_dir = os.path.join(get_emscripten_temp_dir(), 'bindgen_out')
+ 
+@@ -1333,16 +1339,31 @@ def run_wasm_bindgen(infile):
+       '--out-dir',
+       bindgen_out_dir,
+   ]
++  exports_before = {e.name for e in webassembly.get_exports(infile)}
++
+   check_call(cmd)
+ 
+   # Don't try to predict the .wasm filename that wasm-bindgen outputs. Instead
+   # just grab the .wasm file itself.
+   all_output_files = os.listdir(bindgen_out_dir)
+   new_wasm_file = [x for x in all_output_files if x.endswith('.wasm')][0]
++  new_wasm_path = os.path.join(bindgen_out_dir, new_wasm_file)
++
++  exports_after = {e.name for e in webassembly.get_exports(new_wasm_path)}
++  removed_exports = exports_before - exports_after
++  added_exports = exports_after - exports_before
++
++  shutil.copyfile(new_wasm_path, infile)
+ 
+-  shutil.copyfile(os.path.join(bindgen_out_dir, new_wasm_file), infile)
++  # Only emitted when the crate imports JS snippets.
++  extern_pre_js = os.path.join(bindgen_out_dir, 'library_bindgen.extern-pre.js')
++  if not os.path.exists(extern_pre_js):
++    extern_pre_js = None
++  snippets_dir = os.path.join(bindgen_out_dir, 'snippets')
++  if not os.path.isdir(snippets_dir):
++    snippets_dir = None
+ 
+-  return os.path.join(bindgen_out_dir, 'library_bindgen.js')
++  return os.path.join(bindgen_out_dir, 'library_bindgen.js'), removed_exports, added_exports, extern_pre_js, snippets_dir
+ 
+ 
+ intermediate_counter = 0
+diff --git a/tools/emscripten.py b/tools/emscripten.py
+index f531dee50..3ad4b0f6c 100644
+--- a/tools/emscripten.py
++++ b/tools/emscripten.py
+@@ -610,6 +610,7 @@ def finalize_wasm(infile, outfile, js_syms):
+   expected_exports = set(settings.EXPORTED_FUNCTIONS)
+   expected_exports.update(asmjs_mangle(s) for s in settings.REQUIRED_EXPORTS)
+   expected_exports.update(asmjs_mangle(s) for s in settings.EXPORT_IF_DEFINED)
++  expected_exports.update(building.wasm_bindgen_internal_exports)
+   # Assume that when JS symbol dependencies are exported it is because they
+   # are needed by by a JS symbol and are not being explicitly exported due
+   # to EMSCRIPTEN_KEEPALIVE (llvm.used).
+@@ -637,7 +638,7 @@ def finalize_wasm(infile, outfile, js_syms):
+         metadata.all_exports.remove('main')
+       else:
+         metadata.all_exports.remove('__main_argc_argv')
+-    else:
++    elif '_main' not in building.wasm_bindgen_internal_exports:
+       unexpected_exports.append('_main')
+ 
+   building.user_requested_exports.update(unexpected_exports)
+diff --git a/tools/link.py b/tools/link.py
+index 63ac7476b..7ef1a6562 100644
+--- a/tools/link.py
++++ b/tools/link.py
+@@ -1891,12 +1891,22 @@ def phase_link(linker_args, linker_inputs, wasm_target, js_syms):
+     # TODO(sbc): Remove this double execution of wasm-ld if we ever find a way to
+     # distinguish EMSCRIPTEN_KEEPALIVE exports from `--export-dynamic` exports.
+     settings.LINKABLE = False
+-    building.link_lld(linker_args, wasm_target, external_symbols=js_syms,
+-                      linker_inputs=linker_inputs)
++    building.link_lld(linker_args, wasm_target, external_symbols=js_syms)
+     settings.LINKABLE = True
+     rtn = extract_metadata.extract_metadata(wasm_target)
+ 
+-  building.link_lld(linker_args, wasm_target, external_symbols=js_syms, linker_inputs=linker_inputs)
++  # WASM_BINDGEN is a no-op unless the inputs carry the wasm-bindgen marker section.
++  if settings.WASM_BINDGEN and not building.has_wasm_bindgen_marker(linker_inputs):
++    settings.WASM_BINDGEN = 0
++
++  # If EXPORTED_FUNCTIONS is provided for WASM_BINDGEN, it forms the authoritative
++  # list of exports of the Wasm module (per rustc linking semantics).
++  # Otherwise, discover the symbols directly from the linker inputs for e.g. static
++  # linking Rust.
++  if settings.WASM_BINDGEN and 'EXPORTED_FUNCTIONS' not in user_settings:
++    linker_args += [f'--export={e}' for e in building.get_wasm_bindgen_exported_symbols(linker_inputs)]
++
++  building.link_lld(linker_args, wasm_target, external_symbols=js_syms)
+   return rtn
+ 
+ 
+@@ -1919,8 +1929,24 @@ def phase_post_link(in_wasm, wasm_target, target, js_syms, base_metadata=None):
+   settings.TARGET_JS_NAME = os.path.basename(js_target)
+ 
+   if settings.WASM_BINDGEN:
+-    bindgen_jslib = building.run_wasm_bindgen(in_wasm)
++    bindgen_jslib, removed_exports, added_exports, extern_pre_js, snippets_dir = building.run_wasm_bindgen(in_wasm)
+     settings.JS_LIBRARIES.append(bindgen_jslib)
++    # The exports wasm-bindgen reaches by name (the supplied EXPORTED_FUNCTIONS
++    # plus anything its expansion added) are internal glue only on the Wasm module,
++    # while wasm-bindgen's JS library registers the final user-facing API itself.
++    # Keep EXPORTED_FUNCTIONS off every export layer, and drop the placeholder exports it consumed
++    # (__wbindgen_describe*, etc.) so they aren't reported as undefined.
++    removed = {shared.asmjs_mangle(e) for e in removed_exports}
++    building.wasm_bindgen_internal_exports = (
++      set(settings.USER_EXPORTS) | {shared.asmjs_mangle(e) for e in added_exports})
++    drop = removed | building.wasm_bindgen_internal_exports
++    settings.EXPORTED_FUNCTIONS = [e for e in settings.EXPORTED_FUNCTIONS if e not in drop]
++    settings.USER_EXPORTS = [e for e in settings.USER_EXPORTS if e not in removed]
++    building.user_requested_exports.clear()
++    if extern_pre_js:
++      options.extern_pre_js.append(extern_pre_js)
++    if snippets_dir:
++      shutil.copytree(snippets_dir, os.path.join(os.path.dirname(js_target), 'snippets'), dirs_exist_ok=True)
+ 
+   metadata = phase_emscript(in_wasm, wasm_target, js_syms, base_metadata)
+ 
+diff --git a/tools/shared.py b/tools/shared.py
+index 85d25c86f..7e08205f9 100644
+--- a/tools/shared.py
++++ b/tools/shared.py
+@@ -634,6 +634,7 @@ LLVM_RANLIB = llvm_tool_path('llvm-ranlib')
+ LLVM_NM = llvm_tool_path('llvm-nm')
+ LLVM_DWARFDUMP = llvm_tool_path('llvm-dwarfdump')
+ LLVM_OBJCOPY = llvm_tool_path('llvm-objcopy')
++LLVM_OBJDUMP = llvm_tool_path('llvm-objdump')
+ WASM_LD = llvm_tool_path('wasm-ld')
+ LLVM_PROFDATA = llvm_tool_path('llvm-profdata')
+ LLVM_COV = llvm_tool_path('llvm-cov')

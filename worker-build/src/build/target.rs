@@ -4,6 +4,7 @@ use crate::build::utils;
 use crate::build::BuildProfile;
 use crate::build::PBAR;
 use crate::emoji;
+use crate::emscripten::{self, Toolchain};
 use crate::versions::MIN_RUSTC_VERSION;
 use anyhow::{anyhow, bail, Context, Result};
 use core::str;
@@ -16,7 +17,11 @@ use std::process::Command;
 
 const NIGHTLY_TOOLCHAIN: &str = "nightly";
 
+pub const WASM32_UNKNOWN: &str = "wasm32-unknown-unknown";
+pub const WASM32_EMSCRIPTEN: &str = "wasm32-unknown-emscripten";
+
 struct Wasm32Check {
+    target: &'static str,
     rustc_path: PathBuf,
     sysroot: PathBuf,
     found: bool,
@@ -25,7 +30,7 @@ struct Wasm32Check {
 
 impl fmt::Display for Wasm32Check {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let target = "wasm32-unknown-unknown";
+        let target = self.target;
 
         if !self.found {
             let rustup_string = if self.is_rustup {
@@ -57,14 +62,14 @@ impl fmt::Display for Wasm32Check {
     }
 }
 
-/// Ensure that `rustup` has the `wasm32-unknown-unknown` target installed for
+/// Ensure that `rustup` has the given wasm32 target installed for the
 /// current toolchain
-pub fn check_for_wasm32_target() -> Result<()> {
+pub fn check_for_wasm32_target(target: &'static str) -> Result<()> {
     let msg = format!("{}Checking for the Wasm target...", emoji::TARGET);
     PBAR.info(&msg);
 
     // Check if wasm32 target is present, otherwise bail.
-    match check_wasm32_target() {
+    match check_wasm32_target(target) {
         Ok(ref wasm32_check) if wasm32_check.found => Ok(()),
         Ok(wasm32_check) => bail!("{wasm32_check}"),
         Err(err) => Err(err),
@@ -87,37 +92,32 @@ fn get_rustc_sysroot() -> Result<PathBuf> {
     }
 }
 
-/// Get wasm32-unknown-unknown target libdir
-fn get_rustc_wasm32_unknown_unknown_target_libdir() -> Result<PathBuf> {
+/// Get the target libdir for a wasm32 target
+fn get_rustc_wasm32_target_libdir(target: &str) -> Result<PathBuf> {
     let command = Command::new("rustc")
-        .args([
-            "--target",
-            "wasm32-unknown-unknown",
-            "--print",
-            "target-libdir",
-        ])
+        .args(["--target", target, "--print", "target-libdir"])
         .output()?;
 
     if command.status.success() {
         Ok(String::from_utf8(command.stdout)?.trim().into())
     } else {
         Err(anyhow!(
-            "Getting rustc's wasm32-unknown-unknown target wasn't successful. Got {}",
+            "Getting rustc's {target} target wasn't successful. Got {}",
             command.status
         ))
     }
 }
 
-fn does_wasm32_target_libdir_exist() -> bool {
-    let result = get_rustc_wasm32_unknown_unknown_target_libdir();
+fn does_wasm32_target_libdir_exist(target: &str) -> bool {
+    let result = get_rustc_wasm32_target_libdir(target);
 
     match result {
         Ok(wasm32_target_libdir_path) => {
             if wasm32_target_libdir_path.exists() {
-                info!("Found wasm32-unknown-unknown in {wasm32_target_libdir_path:?}");
+                info!("Found {target} in {wasm32_target_libdir_path:?}");
                 true
             } else {
-                info!("Failed to find wasm32-unknown-unknown in {wasm32_target_libdir_path:?}");
+                info!("Failed to find {target} in {wasm32_target_libdir_path:?}");
                 false
             }
         }
@@ -128,12 +128,13 @@ fn does_wasm32_target_libdir_exist() -> bool {
     }
 }
 
-fn check_wasm32_target() -> Result<Wasm32Check> {
+fn check_wasm32_target(target: &'static str) -> Result<Wasm32Check> {
     let sysroot = get_rustc_sysroot()?;
     let rustc_path = which::which("rustc")?;
 
-    if does_wasm32_target_libdir_exist() {
+    if does_wasm32_target_libdir_exist(target) {
         Ok(Wasm32Check {
+            target,
             rustc_path,
             sysroot,
             found: true,
@@ -142,9 +143,10 @@ fn check_wasm32_target() -> Result<Wasm32Check> {
     // If it doesn't exist, then we need to check if we're using rustup.
     } else {
         // If sysroot contains "rustup", then we can assume we're using rustup
-        // and use rustup to add the wasm32-unknown-unknown target.
+        // and use rustup to add the target.
         if sysroot.to_string_lossy().contains("rustup") {
-            rustup_add_wasm_target().map(|()| Wasm32Check {
+            rustup_add_wasm_target(target).map(|()| Wasm32Check {
+                target,
                 rustc_path,
                 sysroot,
                 found: true,
@@ -152,6 +154,7 @@ fn check_wasm32_target() -> Result<Wasm32Check> {
             })
         } else {
             Ok(Wasm32Check {
+                target,
                 rustc_path,
                 sysroot,
                 found: false,
@@ -161,11 +164,11 @@ fn check_wasm32_target() -> Result<Wasm32Check> {
     }
 }
 
-/// Add wasm32-unknown-unknown using `rustup`.
-fn rustup_add_wasm_target() -> Result<()> {
+/// Add a wasm32 target using `rustup`.
+fn rustup_add_wasm_target(target: &str) -> Result<()> {
     let mut cmd = Command::new("rustup");
-    cmd.arg("target").arg("add").arg("wasm32-unknown-unknown");
-    utils::run(cmd, "rustup").context("Adding the wasm32-unknown-unknown target with rustup")?;
+    cmd.arg("target").arg("add").arg(target);
+    utils::run(cmd, "rustup").with_context(|| format!("Adding the {target} target with rustup"))?;
 
     Ok(())
 }
@@ -319,6 +322,14 @@ pub fn check_rustc_version() -> Result<String> {
     }
 }
 
+/// Append to a space-separated environment variable, preserving user flags.
+fn append_env(name: &str, extra: String) -> String {
+    match std::env::var(name) {
+        Ok(existing) if !existing.is_empty() => format!("{existing} {extra}"),
+        _ => extra,
+    }
+}
+
 // from https://github.com/alexcrichton/proc-macro2/blob/79e40a113b51836f33214c6d00228934b41bd4ad/build.rs#L44-L61
 fn rustc_minor_version() -> Option<u32> {
     macro_rules! otry {
@@ -338,15 +349,27 @@ fn rustc_minor_version() -> Option<u32> {
     otry!(pieces.next()).parse().ok()
 }
 
-/// Run `cargo build` targetting `wasm32-unknown-unknown`.
+/// Emscripten link configuration for `cargo_build_wasm`.
+pub struct EmscriptenBuild<'a> {
+    pub toolchain: &'a Toolchain,
+    pub bin: &'a str,
+    /// Directory containing the `wasm-bindgen` CLI emcc runs post-link.
+    pub bindgen_dir: &'a Path,
+}
+
+/// Run `cargo build` targetting `wasm32-unknown-unknown`, or
+/// `wasm32-unknown-emscripten` with emcc as the linker.
 pub fn cargo_build_wasm(
     path: &Path,
     profile: BuildProfile,
     extra_options: &[String],
     panic_unwind: bool,
+    emscripten: Option<EmscriptenBuild<'_>>,
 ) -> Result<()> {
     let msg = if panic_unwind {
         format!("{}Compiling to Wasm (with panic=unwind)...", emoji::CYCLONE)
+    } else if emscripten.is_some() {
+        format!("{}Compiling to Wasm (emscripten)...", emoji::CYCLONE)
     } else {
         format!("{}Compiling to Wasm...", emoji::CYCLONE)
     };
@@ -359,7 +382,11 @@ pub fn cargo_build_wasm(
         cmd.arg("+nightly");
     }
 
-    cmd.current_dir(path).arg("build").arg("--lib");
+    cmd.current_dir(path).arg("build");
+    match &emscripten {
+        Some(em) => cmd.arg("--bin").arg(em.bin),
+        None => cmd.arg("--lib"),
+    };
 
     if PBAR.quiet() {
         cmd.arg("--quiet");
@@ -386,7 +413,11 @@ pub fn cargo_build_wasm(
         }
     }
 
-    cmd.arg("--target").arg("wasm32-unknown-unknown");
+    cmd.arg("--target").arg(if emscripten.is_some() {
+        WASM32_EMSCRIPTEN
+    } else {
+        WASM32_UNKNOWN
+    });
 
     // Tell wasm-bindgen's proc-macro to use `js_sys::futures` instead of
     // `wasm_bindgen_futures`. We pass this as an environment variable rather
@@ -398,16 +429,45 @@ pub fn cargo_build_wasm(
     // When panic_unwind is enabled, rebuild std with panic=unwind and pass
     // `-Cpanic=unwind`. Combine with any user-provided RUSTFLAGS so we
     // don't clobber their flags.
+    let mut rustflags: Vec<String> = Vec::new();
     if panic_unwind {
         cmd.arg("-Z").arg("build-std=std,panic_unwind");
+        rustflags.push("-Cpanic=unwind".into());
+    }
 
-        let existing_rustflags = std::env::var("RUSTFLAGS").unwrap_or_default();
-        let rustflags = if existing_rustflags.is_empty() {
-            "-Cpanic=unwind".to_string()
-        } else {
-            format!("{existing_rustflags} -Cpanic=unwind")
-        };
-        cmd.env("RUSTFLAGS", rustflags);
+    if let Some(em) = &emscripten {
+        rustflags.extend(emscripten::RUSTFLAGS.iter().map(|f| f.to_string()));
+        rustflags.extend(
+            emscripten::LINK_ARGS
+                .iter()
+                .map(|arg| format!("-Clink-arg={arg}")),
+        );
+        cmd.env(
+            "CARGO_TARGET_WASM32_UNKNOWN_EMSCRIPTEN_LINKER",
+            em.toolchain.emcc(),
+        );
+        cmd.env("EM_CONFIG", &em.toolchain.em_config);
+        cmd.env(
+            "EMCC_CFLAGS",
+            append_env("EMCC_CFLAGS", emscripten::EMCC_CFLAGS.join(" ")),
+        );
+        let mut paths = vec![
+            em.toolchain.emscripten_dir.clone(),
+            em.bindgen_dir.to_path_buf(),
+        ];
+        paths.extend(
+            std::env::var_os("PATH")
+                .map(|p| std::env::split_paths(&p).collect::<Vec<_>>())
+                .unwrap_or_default(),
+        );
+        cmd.env(
+            "PATH",
+            std::env::join_paths(paths).context("Building PATH for emcc")?,
+        );
+    }
+
+    if !rustflags.is_empty() {
+        cmd.env("RUSTFLAGS", append_env("RUSTFLAGS", rustflags.join(" ")));
     }
 
     // The `cargo` command is executed inside the directory at `path`, so relative paths set via extra options won't work.

@@ -1,0 +1,261 @@
+Subject: [PATCH] Real DNS resolution for getaddrinfo under -sNODERAWSOCKETS
+
+Backport of emscripten-core/emscripten#27693 to the 6.0.9 release, without
+its ChangeLog entry and tests. Under -sNODERAWSOCKETS, getaddrinfo resolves
+hostnames through node:dns (suspending on JSPI) instead of handing them to
+net.connect, which rejects non-IP hosts on Workers.
+
+Base-commit: 4e4223852a0835923411059a3929907d7df1232e (tag 6.0.9)
+
+---
+diff --git a/src/lib/libcore.js b/src/lib/libcore.js
+index 5247fbfd06284..4fd4c61a28534 100644
+--- a/src/lib/libcore.js
++++ b/src/lib/libcore.js
+@@ -1007,9 +1007,17 @@ addToLibrary({
+     return inetPton4(DNS.lookup_name(nameString));
+   },
+ 
+-  getaddrinfo__deps: ['$DNS', '$inetPton4', '$inetNtop4', '$inetPton6', '$inetNtop6', '$writeSockaddr', 'malloc', 'htonl'],
+-  getaddrinfo__proxy: 'sync',
+-  getaddrinfo: (node, service, hint, out) => {
++  // Returns an EAI_* code (0 on success, having written the addrinfo list to
++  // *out), or - under NODERAWSOCKETS, for a hostname needing a real DNS lookup -
++  // a thunk producing a Promise of that code, for getaddrinfo to wait on where
++  // the calling stack can suspend.
++  $doGetAddrInfo__internal: true,
++  $doGetAddrInfo__deps: ['$DNS', '$inetPton4', '$inetNtop4', '$inetPton6', '$inetNtop6', '$writeSockaddr', 'malloc', 'htonl',
++#if NODERAWSOCKETS
++    '$nodeSockHelpers',
++#endif
++  ],
++  $doGetAddrInfo: (node, service, hint, out) => {
+     // Note getaddrinfo currently only returns a single addrinfo with ai_next defaulting to NULL. When NULL
+     // hints are specified or ai_family set to AF_UNSPEC or ai_socktype or ai_protocol set to 0 then we
+     // really should provide a linked list of suitable addrinfo values.
+@@ -1055,6 +1063,23 @@ addToLibrary({
+       return ai;
+     }
+ 
++#if NODERAWSOCKETS
++    // Chain one addrinfo per {family, addr} entry, returning the head.
++    function allocaddrinfos(entries) {
++      var head = 0, prev = 0;
++      for (var entry of entries) {
++        var ai = allocaddrinfo(entry.family, type, proto, null, entry.addr, port);
++        if (prev) {
++          {{{ makeSetValue('prev', C_STRUCTS.addrinfo.ai_next, 'ai', '*') }}};
++        } else {
++          head = ai;
++        }
++        prev = ai;
++      }
++      return head;
++    }
++#endif
++
+     if (hint) {
+       flags = {{{ makeGetValue('hint', C_STRUCTS.addrinfo.ai_flags, 'i32') }}};
+       family = {{{ makeGetValue('hint', C_STRUCTS.addrinfo.ai_family, 'i32') }}};
+@@ -1167,6 +1192,21 @@ addToLibrary({
+     //
+     // try as a hostname
+     //
++#if NODERAWSOCKETS
++    // /etc/hosts first (read through emscripten's FS), then a real node:dns
++    // lookup, which is asynchronous: hand the caller a thunk to wait on.
++    var hosts = nodeSockHelpers.readHosts(node).filter((e) =>
++      family === {{{ cDefs.AF_UNSPEC }}} || e.family === family);
++    if (hosts.length) {
++      {{{ makeSetValue('out', '0', 'allocaddrinfos(hosts)', '*') }}};
++      return 0;
++    }
++    return () => nodeSockHelpers.lookupHost(node, family).then((entries) => {
++      if (typeof entries == 'number') return entries;
++      {{{ makeSetValue('out', '0', 'allocaddrinfos(entries)', '*') }}};
++      return 0;
++    });
++#else
+     // resolve the hostname to a temporary fake address
+     node = DNS.lookup_name(node);
+     addr = inetPton4(node);
+@@ -1178,6 +1218,41 @@ addToLibrary({
+     ai = allocaddrinfo(family, type, proto, null, addr, port);
+     {{{ makeSetValue('out', '0', 'ai', '*') }}};
+     return 0;
++#endif
++  },
++
++  getaddrinfo__deps: ['$doGetAddrInfo',
++#if NODERAWSOCKETS && ASYNCIFY
++    '$Asyncify',
++#endif
++  ],
++  getaddrinfo__proxy: 'sync',
++#if NODERAWSOCKETS && (PTHREADS || ASYNCIFY)
++  // A hostname needing a real DNS lookup blocks by returning a Promise, which
++  // a proxied pthread awaits (PROXY_SYNC_ASYNC) and ASYNCIFY/JSPI suspends on.
++  // Every other outcome still returns synchronously.
++  getaddrinfo__async: true,
++#endif
++  getaddrinfo: (node, service, hint, out) => {
++    var ret = doGetAddrInfo(node, service, hint, out);
++#if NODERAWSOCKETS
++    if (typeof ret == 'function') {
++#if PTHREADS
++      if (PThread.currentProxiedOperationCallerThread) return ret();
++#endif
++#if ASYNCIFY
++      return Asyncify.handleAsync(ret);
++#else
++      // No stack that can wait on the lookup (the event-loop thread itself).
++      return {{{ cDefs.EAI_AGAIN }}};
++#endif
++    }
++#if PTHREADS
++    // A sync-proxied caller awaits a thenable even for an immediate result.
++    if (PThread.currentProxiedOperationCallerThread) return Promise.resolve(ret);
++#endif
++#endif
++    return ret;
+   },
+ 
+   getnameinfo__deps: ['$DNS', '$readSockaddr', '$stringToUTF8'],
+diff --git a/src/lib/libsockfs_node.js b/src/lib/libsockfs_node.js
+index 890f3cea6a807..c5422ca021427 100644
+--- a/src/lib/libsockfs_node.js
++++ b/src/lib/libsockfs_node.js
+@@ -56,7 +56,7 @@ null;
+ 
+ var NodeSockFSLibrary = {
+   // Node plumbing shared by the interface methods below.
+-  $nodeSockHelpers__deps: ['$SOCKFS', '$ERRNO_CODES'],
++  $nodeSockHelpers__deps: ['$SOCKFS', '$ERRNO_CODES', '$FS', '$inetPton4', '$inetPton6'],
+   $nodeSockHelpers: {
+     // node builtins, resolved once each. getBuiltinModule works in both
+     // CommonJS and ESM output, with require as the fallback.
+@@ -69,6 +69,62 @@ var NodeSockFSLibrary = {
+     getDgram() {
+       return nodeSockHelpers.dgramModule ??= (process.getBuiltinModule || require)('dgram');
+     },
++    getDns() {
++      return nodeSockHelpers.dnsModule ??= (process.getBuiltinModule || require)('dns');
++    },
++    // Address entries for `name` in /etc/hosts, read fresh through emscripten's
++    // FS on each call so a MEMFS or mounted file is honored as written. A
++    // missing file is simply empty.
++    readHosts(name) {
++      var out = [];
++      var text;
++      try {
++        text = FS.readFile('/etc/hosts', { encoding: 'utf8' });
++      } catch (e) {
++        return out;
++      }
++      for (var line of text.split('\n')) {
++        var hash = line.indexOf('#');
++        if (hash !== -1) line = line.slice(0, hash);
++        var parts = line.split(/\s+/).filter((p) => p.length);
++        if (parts.length < 2 || !parts.slice(1).includes(name)) continue;
++        var addr = inetPton4(parts[0]);
++        if (addr !== null) {
++          out.push({ family: {{{ cDefs.AF_INET }}}, addr });
++        } else if ((addr = inetPton6(parts[0])) !== null) {
++          out.push({ family: {{{ cDefs.AF_INET6 }}}, addr });
++        }
++      }
++      return out;
++    },
++    // Resolve a hostname via node:dns for `family` (AF_UNSPEC for both).
++    // Resolves to a list of {family, addr} entries, or an EAI_* code: node:dns
++    // surfaces either getaddrinfo EAI_* names or libuv codes, of which the
++    // transient ones map to EAI_AGAIN and the rest to "name not found".
++    lookupHost(name, family) {
++      var opts = { all: true };
++      if (family === {{{ cDefs.AF_INET }}}) opts.family = 4;
++      else if (family === {{{ cDefs.AF_INET6 }}}) opts.family = 6;
++      return new Promise((resolve) => {
++        nodeSockHelpers.getDns().lookup(name, opts, (err, addresses) => {
++          if (err) {
++            switch (err.code) {
++              case 'EAI_AGAIN':
++              case 'ETIMEDOUT':
++              case 'ESERVFAIL':
++              case 'EREFUSED':
++                return resolve({{{ cDefs.EAI_AGAIN }}});
++              default:
++                return resolve({{{ cDefs.EAI_NONAME }}});
++            }
++          }
++          if (!addresses.length) return resolve({{{ cDefs.EAI_NONAME }}});
++          resolve(addresses.map((a) => a.family === 6 ?
++            { family: {{{ cDefs.AF_INET6 }}}, addr: inetPton6(a.address) } :
++            { family: {{{ cDefs.AF_INET }}}, addr: inetPton4(a.address) }));
++        });
++      });
++    },
+     // True when node:dgram exposes both synchronous bindSync and connectSync
+     // (a recent addition), letting UDP run entirely on the public API. A runtime
+     // missing either falls back to the private udp_wrap handle, which provides
+diff --git a/src/struct_info.json b/src/struct_info.json
+index be92ff18a8d9c..9d68f3a0f7659 100644
+--- a/src/struct_info.json
++++ b/src/struct_info.json
+@@ -206,7 +206,8 @@
+             "NI_NAMEREQD",
+             "EAI_NONAME",
+             "EAI_SOCKTYPE",
+-            "EAI_BADFLAGS"
++            "EAI_BADFLAGS",
++            "EAI_AGAIN"
+         ],
+         "structs": {
+             "addrinfo": [
+diff --git a/src/struct_info_generated.json b/src/struct_info_generated.json
+index e266b9eb7d2d8..e8cad551d543c 100644
+--- a/src/struct_info_generated.json
++++ b/src/struct_info_generated.json
+@@ -64,6 +64,7 @@
+         "EADV": 122,
+         "EAFNOSUPPORT": 5,
+         "EAGAIN": 6,
++        "EAI_AGAIN": -3,
+         "EAI_BADFLAGS": -1,
+         "EAI_FAMILY": -6,
+         "EAI_NONAME": -2,
+diff --git a/src/struct_info_generated_wasm64.json b/src/struct_info_generated_wasm64.json
+index 115caf29cd902..c08719f390c1f 100644
+--- a/src/struct_info_generated_wasm64.json
++++ b/src/struct_info_generated_wasm64.json
+@@ -64,6 +64,7 @@
+         "EADV": 122,
+         "EAFNOSUPPORT": 5,
+         "EAGAIN": 6,
++        "EAI_AGAIN": -3,
+         "EAI_BADFLAGS": -1,
+         "EAI_FAMILY": -6,
+         "EAI_NONAME": -2,
+diff --git a/system/lib/libc/musl/src/network/freeaddrinfo.c b/system/lib/libc/musl/src/network/freeaddrinfo.c
+index c4016d9f7c246..25d5c8f668530 100644
+--- a/system/lib/libc/musl/src/network/freeaddrinfo.c
++++ b/system/lib/libc/musl/src/network/freeaddrinfo.c
+@@ -7,11 +7,14 @@
+ void freeaddrinfo(struct addrinfo *p)
+ {
+ #if __EMSCRIPTEN__
+-	// Emscripten's usage of this structure is very simple: we always allocate
+-	// ai_addr, and do not use the linked list aspect at all. There is also no
+-	// aliasing with aibuf.
+-	free(p->ai_addr);
+-	free(p);
++	// Emscripten allocates each node and its ai_addr separately (no aibuf
++	// block, no aliasing), so walk the list freeing both.
++	while (p) {
++		struct addrinfo *next = p->ai_next;
++		free(p->ai_addr);
++		free(p);
++		p = next;
++	}
+ #else
+ 	size_t cnt;
+ 	for (cnt=1; p->ai_next; cnt++, p=p->ai_next);

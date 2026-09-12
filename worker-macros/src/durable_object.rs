@@ -20,10 +20,24 @@ impl syn::parse::Parse for DurableObjectType {
 }
 
 mod bindgen_methods {
+    use crate::async_export::async_export;
     use proc_macro2::TokenStream;
     use quote::quote;
 
     pub fn core() -> TokenStream {
+        let fetch = async_export(
+            quote! { js_name = fetch },
+            quote! { fetch(&self, req: ::worker::worker_sys::web_sys::Request) },
+            quote! {
+                let static_self = static_self(self);
+                async move {
+                    <Self as ::worker::DurableObject>::fetch(static_self, req.into()).await
+                        .map(::worker::worker_sys::web_sys::Response::from)
+                        .map(::worker::wasm_bindgen::JsValue::from)
+                        .map_err(::worker::wasm_bindgen::JsValue::from)
+                }
+            },
+        );
         quote! {
             #[wasm_bindgen(constructor, wasm_bindgen=::worker::wasm_bindgen)]
             pub fn new(
@@ -36,114 +50,93 @@ mod bindgen_methods {
                 )
             }
 
-            #[wasm_bindgen(js_name = fetch, wasm_bindgen=::worker::wasm_bindgen)]
-            pub fn fetch(
-                &self,
-                req: ::worker::worker_sys::web_sys::Request
-            ) -> ::worker::js_sys::Promise {
-                // SAFETY:
-                // Durable Object will never be destroyed while there is still
-                // a running promise inside of it, therefore we can let a reference
-                // to the durable object escape into a static-lifetime future.
-                let static_self: &'static Self = unsafe { &*(self as *const _) };
-
-                ::worker::js_sys::futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
-                    <Self as ::worker::DurableObject>::fetch(static_self, req.into()).await
-                        .map(::worker::worker_sys::web_sys::Response::from)
-                        .map(::worker::wasm_bindgen::JsValue::from)
-                        .map_err(::worker::wasm_bindgen::JsValue::from)
-                }))
-            }
+            #fetch
         }
     }
 
     pub fn alarm() -> TokenStream {
-        quote! {
-            #[wasm_bindgen(js_name = alarm, wasm_bindgen=::worker::wasm_bindgen)]
-            pub fn alarm(&self) -> ::worker::js_sys::Promise {
-                // SAFETY:
-                // Durable Object will never be destroyed while there is still
-                // a running promise inside of it, therefore we can let a reference
-                // to the durable object escape into a static-lifetime future.
-                let static_self: &'static Self = unsafe { &*(self as *const _) };
-
-                ::worker::js_sys::futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
+        async_export(
+            quote! { js_name = alarm },
+            quote! { alarm(&self) },
+            quote! {
+                let static_self = static_self(self);
+                async move {
                     <Self as ::worker::DurableObject>::alarm(static_self).await
                         .map(::worker::worker_sys::web_sys::Response::from)
                         .map(::worker::wasm_bindgen::JsValue::from)
                         .map_err(::worker::wasm_bindgen::JsValue::from)
-                }))
-            }
-        }
+                }
+            },
+        )
     }
 
     pub fn websocket() -> TokenStream {
-        quote! {
-            #[wasm_bindgen(js_name = webSocketMessage, wasm_bindgen=::worker::wasm_bindgen)]
-            pub fn websocket_message(
-                &self,
-                ws: ::worker::worker_sys::web_sys::WebSocket,
-                message: ::worker::wasm_bindgen::JsValue
-            ) -> ::worker::js_sys::Promise {
-                let message = match message.as_string() {
-                    Some(message) => ::worker::WebSocketIncomingMessage::String(message),
-                    None => ::worker::WebSocketIncomingMessage::Binary(
-                        ::worker::js_sys::Uint8Array::new(&message).to_vec()
-                    )
-                };
-
-                // SAFETY:
-                // Durable Object will never be destroyed while there is still
-                // a running promise inside of it, therefore we can let a reference
-                // to the durable object escape into a static-lifetime future.
-                let static_self: &'static Self = unsafe { &*(self as *const _) };
-
-                ::worker::js_sys::futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
+        let message = async_export(
+            quote! { js_name = webSocketMessage },
+            quote! {
+                websocket_message(
+                    &self,
+                    ws: ::worker::worker_sys::web_sys::WebSocket,
+                    message: ::worker::wasm_bindgen::JsValue
+                )
+            },
+            quote! {
+                let static_self = static_self(self);
+                async move {
+                    let message = match message.as_string() {
+                        Some(message) => ::worker::WebSocketIncomingMessage::String(message),
+                        None => ::worker::WebSocketIncomingMessage::Binary(
+                            ::worker::js_sys::Uint8Array::new(&message).to_vec()
+                        )
+                    };
                     <Self as ::worker::DurableObject>::websocket_message(static_self, ws.into(), message).await
                         .map(|_| ::worker::wasm_bindgen::JsValue::NULL)
                         .map_err(::worker::wasm_bindgen::JsValue::from)
-                }))
-            }
-
-            #[wasm_bindgen(js_name = webSocketClose, wasm_bindgen=::worker::wasm_bindgen)]
-            pub fn websocket_close(
-                &self,
-                ws: ::worker::worker_sys::web_sys::WebSocket,
-                code: usize,
-                reason: String,
-                was_clean: bool
-            ) -> ::worker::js_sys::Promise {
-                // SAFETY:
-                // Durable Object will never be destroyed while there is still
-                // a running promise inside of it, therefore we can let a reference
-                // to the durable object escape into a static-lifetime future.
-                let static_self: &'static Self = unsafe { &*(self as *const _) };
-
-                ::worker::js_sys::futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
+                }
+            },
+        );
+        let close = async_export(
+            quote! { js_name = webSocketClose },
+            quote! {
+                websocket_close(
+                    &self,
+                    ws: ::worker::worker_sys::web_sys::WebSocket,
+                    code: usize,
+                    reason: String,
+                    was_clean: bool
+                )
+            },
+            quote! {
+                let static_self = static_self(self);
+                async move {
                     <Self as ::worker::DurableObject>::websocket_close(static_self, ws.into(), code, reason, was_clean).await
                         .map(|_| ::worker::wasm_bindgen::JsValue::NULL)
                         .map_err(::worker::wasm_bindgen::JsValue::from)
-                }))
-            }
-
-            #[wasm_bindgen(js_name = webSocketError, wasm_bindgen=::worker::wasm_bindgen)]
-            pub fn websocket_error(
-                &self,
-                ws: ::worker::worker_sys::web_sys::WebSocket,
-                error: ::worker::wasm_bindgen::JsValue
-            ) -> ::worker::js_sys::Promise {
-                // SAFETY:
-                // Durable Object will never be destroyed while there is still
-                // a running promise inside of it, therefore we can let a reference
-                // to the durable object escape into a static-lifetime future.
-                let static_self: &'static Self = unsafe { &*(self as *const _) };
-
-                ::worker::js_sys::futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
+                }
+            },
+        );
+        let error = async_export(
+            quote! { js_name = webSocketError },
+            quote! {
+                websocket_error(
+                    &self,
+                    ws: ::worker::worker_sys::web_sys::WebSocket,
+                    error: ::worker::wasm_bindgen::JsValue
+                )
+            },
+            quote! {
+                let static_self = static_self(self);
+                async move {
                     <Self as ::worker::DurableObject>::websocket_error(static_self, ws.into(), error.into()).await
                         .map(|_| ::worker::wasm_bindgen::JsValue::NULL)
                         .map_err(::worker::wasm_bindgen::JsValue::from)
-                }))
-            }
+                }
+            },
+        );
+        quote! {
+            #message
+            #close
+            #error
         }
     }
 }
@@ -190,6 +183,13 @@ pub fn expand_macro(attr: TokenStream, tokens: TokenStream) -> syn::Result<Token
             use ::worker::wasm_bindgen::prelude::*;
             #[allow(unused_imports)]
             use ::worker::DurableObject;
+
+            // SAFETY: a Durable Object is never destroyed while a promise it
+            // returned is still running, so a reference to it may escape into
+            // a static-lifetime future.
+            fn static_self(this: &#target_name) -> &'static #target_name {
+                unsafe { &*(this as *const _) }
+            }
 
             #[wasm_bindgen(wasm_bindgen=::worker::wasm_bindgen)]
             #[::worker::consume]

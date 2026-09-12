@@ -1,0 +1,1725 @@
+Subject: [PATCH] JSPI lifecycle hooks, REENTRANT_JSPI fiber stacks and epoll listeners
+
+Backport of emscripten-core/emscripten#27698, #27699 and the
+emscripten_epoll_add_listener / emscripten_epoll_remove_listener API to the
+6.0.9 release (the cf-final branch of guybedford/emscripten), without their
+tests and docs. -sREENTRANT_JSPI gives each JSPI activation its own shadow
+stack so promising exports may be re-entered while another is suspended.
+-sJSPI_HOOKS needs a Binaryen with the jspi-hooks pass
+(WebAssembly/binaryen#9102); worker-build supplies one.
+
+Base-commit: 4e4223852a0835923411059a3929907d7df1232e (tag 6.0.9),
+after wasm-bindgen-marker.patch and noderawsockets-dns.patch
+
+---
+diff --git a/src/lib/libasync.js b/src/lib/libasync.js
+index b0d59fa..2063f5f 100644
+--- a/src/lib/libasync.js
++++ b/src/lib/libasync.js
+@@ -160,16 +160,19 @@ addToLibrary({
+ #endif
+ #if ASYNCIFY == 2
+       var exportPattern = {{{ new RegExp(`^(${ASYNCIFY_EXPORTS.join('|').replace(/\*/g, '.*')})$`) }}};
++#if !JSPI_HOOKS
+       Asyncify.asyncExports = new Set();
++#endif
+ #endif
+       var ret = {};
+       for (let [x, original] of Object.entries(exports)) {
+         if (typeof original == 'function') {
+  #if ASYNCIFY == 2
+           // Wrap all exports with a promising WebAssembly function.
+-          let isAsyncifyExport = exportPattern.test(x);
+-          if (isAsyncifyExport) {
++          if (exportPattern.test(x)) {
++#if !JSPI_HOOKS
+             Asyncify.asyncExports.add(original);
++#endif
+             original = Asyncify.makeAsyncFunction(original);
+           }
+           ret[x] = original;
+@@ -453,13 +456,15 @@ addToLibrary({
+     //
+     // JSPI implementation of Asyncify.
+     //
+-
+-    // Stores all the exported raw Wasm functions that are wrapped with async
+-    // WebAssembly.Functions.
++#if !JSPI_HOOKS
++    // The raw wasm exports that were wrapped with WebAssembly.promising; with
++    // the hooks the table holds the unwrapped functions instead, and function
++    // pointers are made promising through the trampolines.
+     asyncExports: null,
+     isAsyncExport(func) {
+       return Asyncify.asyncExports?.has(func);
+     },
++#endif
+     handleAsync: async (startAsync) => {
+       {{{ runtimeKeepalivePush(); }}}
+       try {
+@@ -478,6 +483,23 @@ addToLibrary({
+ #endif
+   },
+ 
++#if REENTRANT_JSPI
++  __jspi_fiber_stack_size__sig: 'p',
++  __jspi_fiber_stack_size: () => {{{ JSPI_FIBER_STACK_SIZE }}},
++  __jspi_fiber_stack_guard__sig: 'p',
++  __jspi_fiber_stack_guard: () => {{{ JSPI_FIBER_STACK_GUARD }}},
++  __jspi_stack_checked__sig: 'i',
++  __jspi_stack_checked: () => {{{ STACK_OVERFLOW_CHECK >= 2 ? 1 : 0 }}},
++  // The bounds the stack-check pass instruments against live in globals it
++  // generates, reachable only through its export.
++  __jspi_set_stack_limits__sig: 'vpp',
++  __jspi_set_stack_limits: (base, end) => {
++#if STACK_OVERFLOW_CHECK >= 2
++    ___set_stack_limits(base, end);
++#endif
++  },
++#endif
++
+   emscripten_sleep__async: 'auto',
+   emscripten_sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+ 
+diff --git a/src/lib/libcore.js b/src/lib/libcore.js
+index 4fd4c61..3e57b11 100644
+--- a/src/lib/libcore.js
++++ b/src/lib/libcore.js
+@@ -1814,7 +1814,11 @@ addToLibrary({
+     var end = _emscripten_stack_get_end();
+     abort(`stack overflow (Attempt to set SP to ${ptrToString(requested)}` +
+           `, with stack limits [${ptrToString(end)} - ${ptrToString(base)}` +
++#if REENTRANT_JSPI
++          ']). If you require more stack space build with -sSTACK_SIZE=<bytes> (or, inside a JSPI activation, -sJSPI_FIBER_STACK_SIZE=<bytes>)');
++#else
+           ']). If you require more stack space build with -sSTACK_SIZE=<bytes>');
++#endif
+   },
+ #endif
+ 
+@@ -1870,14 +1874,37 @@ addToLibrary({
+     var f = dynCalls[sig];
+     return f(ptr, ...args);
+   },
++#endif
++
+   $dynCall__deps: [
+ #if DYNCALLS || !WASM_BIGINT
+     '$dynCallLegacy',
+ #endif
+ #if !DYNCALLS
+     '$getWasmTableEntry',
++#endif
++#if JSPI_HOOKS
++    '$jspiDynCall',
+ #endif
+   ],
++
++#if JSPI_HOOKS
++  // Promising callers of the jspi-hooks trampolines, by signature.
++  $jspiDynCallers: {},
++  $jspiDynCall__deps: ['$jspiDynCallers'],
++  $jspiDynCall: (sig) => {
++    sig = sig.replace(/p/g, {{{ MEMORY64 ? "'j'" : "'i'" }}});
++    var caller = jspiDynCallers[sig];
++    if (!caller) {
++      var trampoline = wasmExports['__jspi_dyncall_' + sig];
++#if ASSERTIONS
++      assert(trampoline, `no JSPI trampoline for function pointer signature '${sig}': no function with that signature was in the table at link time (see JSPI_HOOKS)`);
++#endif
++      var promising = WebAssembly.promising(trampoline);
++      caller = jspiDynCallers[sig] = (ptr, ...args) => promising({{{ toIndexType('ptr') }}}, ...args);
++    }
++    return caller;
++  },
+ #endif
+ 
+   // Used in library code to get JS function from wasm function pointer.
+@@ -1886,7 +1913,7 @@ addToLibrary({
+   $getDynCaller__deps: ['$dynCall'],
+   $getDynCaller: (sig, ptr, promising = false) => {
+ #if ASSERTIONS && !DYNCALLS
+-    assert(sig.includes('j') || sig.includes('p'), 'getDynCaller should only be called with i64 sigs')
++    assert(promising || sig.includes('j') || sig.includes('p'), 'getDynCaller should only be called with i64 sigs')
+ #endif
+     return (...args) => dynCall(sig, ptr, args, promising);
+   },
+@@ -1920,13 +1947,19 @@ addToLibrary({
+ #if ASSERTIONS
+     assert(getWasmTableEntry(ptr), `missing table entry in dynCall: ${ptr}`);
+ #endif
+-    var func = getWasmTableEntry(ptr);
+ #if JSPI
+     if (promising) {
+-      func = WebAssembly.promising(func);
++#if JSPI_HOOKS
++      // Function pointers are made promising through the per-signature
++      // trampoline exports the jspi-hooks pass generates, so that the fiber
++      // gets its lifecycle hooks like any other promising export.
++      return jspiDynCall(sig)(ptr, ...args).then(convert);
++#else
++      return WebAssembly.promising(getWasmTableEntry(ptr))(...args).then(convert);
++#endif
+     }
+ #endif
+-    var rtn = func(...args);
++    var rtn = getWasmTableEntry(ptr)(...args);
+ #endif // DYNCALLS
+ 
+     function convert(rtn) {
+@@ -1939,11 +1972,6 @@ addToLibrary({
+ #endif
+     }
+ 
+-#if JSPI
+-    if (promising) {
+-      return rtn.then(convert);
+-    }
+-#endif
+     return convert(rtn);
+   },
+ 
+@@ -1987,13 +2015,13 @@ addToLibrary({
+     if (!func) {
+       /** @suppress {checkTypes} */
+       wasmTableMirror[funcPtr] = func = wasmTable.get({{{ toIndexType('funcPtr') }}});
+-#if ASYNCIFY == 2
++#if ASYNCIFY == 2 && !JSPI_HOOKS
+       if (Asyncify.isAsyncExport(func)) {
+         wasmTableMirror[funcPtr] = func = Asyncify.makeAsyncFunction(func);
+       }
+ #endif
+     }
+-#if ASSERTIONS && ASYNCIFY != 2 // With JSPI the function stored in the table will be a wrapper.
++#if ASSERTIONS && !(ASYNCIFY == 2 && !JSPI_HOOKS) // Without the hooks the function stored in the table may be a wrapper.
+     /** @suppress {checkTypes} */
+     assert(wasmTable.get({{{ toIndexType('funcPtr') }}}) == func, 'table mirror is out of date');
+ #endif
+diff --git a/src/lib/libembind.js b/src/lib/libembind.js
+index 3542d45..bb0dcfe 100644
+--- a/src/lib/libembind.js
++++ b/src/lib/libembind.js
+@@ -815,7 +815,7 @@ var LibraryEmbind = {
+   },
+ 
+   $embind__requireFunction__deps: ['$AsciiToString', '$throwBindingError'
+-#if DYNCALLS || !WASM_BIGINT || MEMORY64 || CAN_ADDRESS_2GB
++#if DYNCALLS || !WASM_BIGINT || MEMORY64 || CAN_ADDRESS_2GB || JSPI
+     , '$getDynCaller'
+ #endif
+   ],
+@@ -840,13 +840,12 @@ var LibraryEmbind = {
+         return getDynCaller(signature, rawFunction, isAsync);
+       }
+ #endif
+-      var rtn = getWasmTableEntry(rawFunction);
+ #if JSPI
+       if (isAsync) {
+-        rtn = WebAssembly.promising(rtn);
++        return getDynCaller(signature, rawFunction, true);
+       }
+ #endif
+-      return rtn;
++      return getWasmTableEntry(rawFunction);
+ #endif
+     }
+ 
+diff --git a/src/lib/libepoll.js b/src/lib/libepoll.js
+index dffeb7d..d88f84a 100644
+--- a/src/lib/libepoll.js
++++ b/src/lib/libepoll.js
+@@ -4,9 +4,10 @@
+  * SPDX-License-Identifier: MIT
+  */
+ 
+-// epoll(7) for the JS filesystem. The epoll syscalls build on the per-inode
+-// readiness wait-queue (FSNode.addListener/notifyListeners) and the synchronous
+-// readiness derivation ($pollOne) defined in libsyscall.js.
++// epoll(7) for the JS filesystem. The epoll syscalls and the
++// emscripten_epoll_add_listener extension build on the per-inode readiness
++// wait-queue (FSNode.addListener/notifyListeners) and the synchronous readiness
++// derivation ($pollOne) defined in libsyscall.js.
+ 
+ var EpollLibrary = {
+   // An epoll instance's state lives on the stream's `shared` object - the open
+@@ -15,19 +16,19 @@ var EpollLibrary = {
+   // (rdlHead/rdlTail). Each registration arms a persistent listener on the
+   // watched node's wait-queue at EPOLL_CTL_ADD (not per-wait), feeding the ready
+   // list on each edge so readiness can be tracked across waits and up a nesting
+-  // chain. dup(2) yields another fd to the SAME instance (registrations and
+-  // ready list shared); close(2) drops one reference and only the last close
+-  // reclaims it (tearing every registration down). An epoll fd can itself be
+-  // added to another epoll.
++  // chain. dup(2) yields another fd to the SAME instance (registrations, ready
++  // list, and listeners all shared); close(2) drops one reference and only the
++  // last close reclaims it (tearing every registration down). An epoll fd can
++  // itself be added to another epoll.
+ 
+   // Would a wait on this epoll block - i.e. does no listed registration have a
+   // genuine ready event? Walks the ready list (O(ready)), masking out the
+   // reporting-time flags (edge/oneshot/exclusive), and evicts a closed/reused fd
+   // as it goes (so a set only ever probed, never drained, does not accumulate
+-  // dead registrations). This is the readiness derivation behind the epoll fd's
+-  // own poll handler (nesting): a stale ready-list entry (a spurious edge, or
+-  // one left after its fd was drained then closed) is not a ready event, so it
+-  // never reports one.
++  // dead registrations). This is the shared readiness derivation behind the
++  // epoll fd's own poll handler (nesting) and the listeners' fire gate: a stale
++  // ready-list entry (a spurious edge, or one left after its fd was drained then
++  // closed) is not a ready event, so neither fires on it.
+   $epollWouldBlock__internal: true,
+   $epollWouldBlock__deps: ['$FS', '$pollOne', '$epollEvict'],
+   $epollWouldBlock: (ep) => {
+@@ -45,7 +46,7 @@ var EpollLibrary = {
+   },
+ 
+   $epollNewInstance__internal: true,
+-  $epollNewInstance__deps: ['$FS', '$epollWouldBlock'],
++  $epollNewInstance__deps: ['$FS', '$epollWouldBlock', '$epollClearListener', '$epollReconcileKeepalive'],
+   $epollNewInstance: () => {
+     // Its own (detached) node, so the epoll fd can be watched by a parent epoll
+     // (nesting) and carry the readiness wait-queue methods. Shared across dups.
+@@ -66,15 +67,17 @@ var EpollLibrary = {
+           stream.shared.refcount++;
+         },
+         // close(2): drop one reference. Only the last close reclaims the
+-        // instance: drop every registration's listener (a fired EPOLLONESHOT has
+-        // already dropped its own) from its watched node. A surviving dup keeps
+-        // it all live.
++        // instance: remove any readiness listeners, then drop every
++        // registration's listener (a fired EPOLLONESHOT has already dropped its
++        // own) from its watched node. A surviving dup keeps it all live.
+         close(stream) {
+           var ep = stream.shared;
+           // FS.close already fired POLLNVAL on the (shared) node, waking any
+           // parent epoll watching this fd so it re-derives and drops the
+           // now-stale registration (via doEpollWait's shared check).
+           if (--ep.refcount) return;
++          for (var it of ep.interests.values()) epollClearListener(ep, it);
++          epollReconcileKeepalive(ep);
+           for (var reg of ep.epoll.values()) {
+             reg.listener?.listeners.delete(reg.listener.entry);
+           }
+@@ -86,12 +89,78 @@ var EpollLibrary = {
+     Object.assign(stream.shared, {
+       node,
+       epoll: new Map(),
++      // Readiness listeners (emscripten_epoll_add_listener), keyed by
++      // (registering thread, callback).
++      interests: new Map(),
++      // Registrations with a live watched-node listener; keys the listener
++      // keepalive (0 means the set is terminal - it can never fire again).
++      armed: 0,
+       // Open references (fds) to this instance; the last close reclaims it.
+       refcount: 1,
+     });
+     return stream;
+   },
+ 
++  // Drop one readiness listener: remove its wait-queue entry on the epoll node
++  // and release its holds. The caller reconciles the main keepalive.
++  $epollClearListener__internal: true,
++  $epollClearListener__deps: [
++#if PTHREADS
++    '$epollDeliveries', '_emscripten_epoll_keepalive_on_thread',
++#endif
++  ],
++  $epollClearListener: (ep, it) => {
++    ep.interests.delete(it.key);
++    it.cleared = true;
++    it.listener.listeners.delete(it.listener.entry);
++#if PTHREADS
++    if (it.keptAlive && it.ownerThread) {
++      __emscripten_epoll_keepalive_on_thread(it.ownerThread, -1);
++    }
++    it.keptAlive = false;
++    // Retire its delivery token; a still-in-flight cross-thread delivery whose
++    // completion arrives after this finds nothing and is dropped.
++    if (it.token) delete epollDeliveries[it.token];
++#endif
++  },
++
++  // Listeners hold the runtime alive only while the epoll can still fire: at
++  // least one listener and one armed registration (Node.js-style, registered
++  // I/O interest holds the loop open; a terminal set releases it). With
++  // pthreads each listener's owner thread (which runs its deliveries) is held
++  // too.
++  $epollReconcileKeepalive__internal: true,
++  $epollReconcileKeepalive__deps: [
++#if PTHREADS
++    '_emscripten_epoll_keepalive_on_thread',
++#endif
++  ],
++  $epollReconcileKeepalive: (ep) => {
++    var armed = ep.armed > 0;
++#if PTHREADS
++    for (var it of ep.interests.values()) {
++      if (armed != !!it.keptAlive) {
++        it.keptAlive = armed;
++        // ownerThread is 0 when the main thread registered; the main keepalive
++        // below covers it.
++        if (it.ownerThread) {
++          __emscripten_epoll_keepalive_on_thread(it.ownerThread, armed ? 1 : -1);
++        }
++      }
++    }
++#endif
++    var want = armed && ep.interests.size > 0;
++    if (want == !!ep.keepalive) return;
++    ep.keepalive = want;
++#if useRuntimeKeepaliveStack()
++    if (want) {
++      {{{ runtimeKeepalivePush() }}}
++    } else {
++      {{{ runtimeKeepalivePop() }}}
++    }
++#endif
++  },
++
+   // The ready list (Linux's rdllist): registrations whose readiness edge has
+   // fired but not yet been consumed by a wait, linked intrusively through
+   // reg.rdlPrev/reg.rdlNext with head/tail on the epoll stream. Membership
+@@ -125,19 +194,24 @@ var EpollLibrary = {
+   // entry at ctl time, and a closed/reused fd seen at derive time (doEpollWait
+   // or the nesting poll).
+   $epollEvict__internal: true,
+-  $epollEvict__deps: ['$readyListRemove'],
++  $epollEvict__deps: ['$readyListRemove', '$epollReconcileKeepalive'],
+   $epollEvict: (ep, reg) => {
+     readyListRemove(ep, reg);
+-    reg.listener?.listeners.delete(reg.listener.entry);
+-    reg.listener = null;
++    // A fired EPOLLONESHOT already dropped its listener and armed count.
++    if (reg.listener) {
++      reg.listener.listeners.delete(reg.listener.entry);
++      reg.listener = null;
++      ep.armed--;
++    }
+     ep.epoll.delete(reg.fd);
++    epollReconcileKeepalive(ep);
+   },
+ 
+   // The heavy lifting behind the epoll syscalls. The `__syscall_epoll_*` entry
+   // points stay in libsyscall.js (like every other syscall) and resolve the
+   // epoll stream before calling in here, so `ep` is a known-valid epoll stream.
+   $epollCtl__internal: true,
+-  $epollCtl__deps: ['$FS', '$pollOne', '$readyListAdd', '$epollEvict'],
++  $epollCtl__deps: ['$FS', '$pollOne', '$readyListAdd', '$epollEvict', '$epollReconcileKeepalive'],
+   $epollCtl: (ep, op, fd, ev) => {
+     var target = FS.getStream(fd);
+     if (!target) return -{{{ cDefs.EBADF }}};
+@@ -227,6 +301,7 @@ var EpollLibrary = {
+       // EPOLLEXCLUSIVE: when one fd is watched by several epolls, the watched
+       // node wakes only one of them per edge (round-robin), not all.
+       }, !!(events & {{{ cDefs.EPOLLEXCLUSIVE }}}));
++      ep.armed++;
+     }
+     // Arming is itself an event source (ep_insert/ep_modify): a source-based
+     // model only learns readiness from edges, so sample the level now - the
+@@ -235,6 +310,7 @@ var EpollLibrary = {
+       readyListAdd(ep, reg);
+       ep.node.notifyListeners({{{ cDefs.POLLIN }}});
+     }
++    epollReconcileKeepalive(ep);
+     return 0;
+   },
+ 
+@@ -246,8 +322,9 @@ var EpollLibrary = {
+   // EPOLL_CTL_MOD; a no-longer-ready (spurious) edge is dropped; a closed/reused
+   // fd is evicted.
+   $doEpollWait__internal: true,
+-  $doEpollWait__deps: ['$FS', '$pollOne', '$readyListAdd', '$epollEvict'],
++  $doEpollWait__deps: ['$FS', '$pollOne', '$readyListAdd', '$epollEvict', '$epollReconcileKeepalive'],
+   $doEpollWait: (ep, ev, maxevents) => {
++    var disarmed = false;
+     // Detach the list and drain from the head: re-armed level triggers and the
+     // unprocessed remainder go back onto ep's now-empty list, so a single pass
+     // never revisits an entry. O(delivered), not O(registered).
+@@ -278,6 +355,8 @@ var EpollLibrary = {
+             // listener - the watched node stops poking it (no re-arm needed).
+             node.listener.listeners.delete(node.listener.entry);
+             node.listener = null;
++            ep.armed--;
++            disarmed = true;
+           } else if (!(node.events & {{{ cDefs.EPOLLET }}})) {
+             readyListAdd(ep, node); // level: re-list at tail
+           }
+@@ -296,6 +375,8 @@ var EpollLibrary = {
+       else ep.rdlTail = tail;
+       ep.rdlHead = node;
+     }
++    // Evictions above reconciled themselves.
++    if (disarmed) epollReconcileKeepalive(ep);
+     return n;
+   },
+ 
+@@ -345,6 +426,147 @@ var EpollLibrary = {
+ #endif
+     return count;
+   },
++
++  // Register a persistent readiness listener on an existing epoll fd: instead of
++  // blocking in epoll_wait, the runtime invokes `callback` on the event loop
++  // whenever the epoll set has ready events waiting to be collected. The callback
++  // receives only `userdata` and does NOT drain the set - to collect the events
++  // it calls epoll_wait(epfd, ..., 0) (a non-blocking, zero-timeout wait) itself.
++  //
++  // Any number of listeners may be added, keyed by (registering thread,
++  // callback). Every listener is signalled while uncollected ready events remain
++  // (broadcast); collectors race, so per-fd EPOLLET/EPOLLONESHOT items are
++  // collected by exactly one of them - the same load balancing as multiple
++  // blocking epoll_wait callers on one epoll. A level fd left undrained
++  // re-signals every tick, an edge fd once per edge.
++  emscripten_epoll_add_listener__deps: ['$FS', '$epollWouldBlock', '$epollClearListener', '$epollReconcileKeepalive', '$callUserCallback',
++#if PTHREADS
++    '$epollDeliveries', '_emscripten_epoll_run_callback_on_thread',
++#endif
++  ],
++  emscripten_epoll_add_listener__proxy: 'sync',
++  emscripten_epoll_add_listener: (epfd, callback, userdata) => {
++    var stream = FS.getStream(epfd);
++    // This is a direct public API (not a syscall), so it returns a positive
++    // errno rather than the -errno syscall convention.
++    if (!stream?.shared.epoll) return {{{ cDefs.EBADF }}};
++    // Operate on the shared instance so a listener added on one fd sees
++    // registrations made through any dup of it.
++    var ep = stream.shared;
++
++#if PTHREADS
++    // __proxy: 'sync' runs this (and every derivation) on the main thread; each
++    // delivery is back-proxied to the registering thread (0 = the main thread
++    // itself, delivered inline).
++    var callerThread = PThread.currentProxiedOperationCallerThread;
++    var key = callerThread + ':' + callback;
++#else
++    var key = callback;
++#endif
++    // Re-adding the same (thread, callback) identity replaces the registration,
++    // just updating userdata.
++    var prev = ep.interests.get(key);
++    if (prev) epollClearListener(ep, prev);
++
++    var it = {key};
++#if PTHREADS
++    it.ownerThread = callerThread;
++#endif
++    ep.interests.set(key, it);
++    // Producer notifies arrive synchronously (SOCKFS.emit, pipe writes); coalesce
++    // them into one delivery per listener on a microtask (the callback must not
++    // run in the producer's/caller's stack; a microtask avoids the setTimeout
++    // clamp). Fire whenever the set is readable, and re-fire while it stays
++    // readable (whether the callback left a level fd undrained, or a drain
++    // re-listed a still-ready level fd).
++    function deliver() {
++      if (it.cleared) return;
++#if PTHREADS
++      // One cross-thread delivery in flight at a time: the registering thread
++      // collects (drains) inside the callback via a proxied epoll_wait, so firing
++      // again before it completes would just re-see the same still-ready level fd
++      // in a tight spin. The delivery's completion (do_epoll_done ->
++      // epoll_delivery_done) clears this and re-wakes.
++      if (it.inflight) return;
++#endif
++      if (epollWouldBlock(ep)) return; // no genuine uncollected ready event
++#if PTHREADS
++      if (callerThread) {
++        it.inflight = true;
++        __emscripten_epoll_run_callback_on_thread(callerThread, callback, userdata, it.token);
++        return;
++      }
++#endif
++      callUserCallback(() => {{{ makeDynCall('vp', 'callback') }}}(userdata));
++      // Still readable (this callback didn't drain, or a still-ready level fd
++      // re-listed): fire again on the next tick. Note this is NOT a blocking
++      // epoll_wait loop - a level-triggered fd that is structurally always ready
++      // (e.g. EPOLLOUT on a writable socket) will re-schedule a microtask each
++      // tick and so starve the event loop; use EPOLLET or remove the listener
++      // for such fds.
++      if (!it.cleared && !epollWouldBlock(ep)) wake();
++    }
++    function wake() {
++      if (it.scheduled) return;
++      it.scheduled = true;
++      queueMicrotask(() => {
++        it.scheduled = false;
++        deliver();
++      });
++    }
++#if PTHREADS
++    // Resume point for a completed cross-thread delivery, keyed by token so the
++    // C completion can find this listener again.
++    if (callerThread) {
++      it.wake = wake;
++      it.token = epollDeliveries.nextToken++;
++      epollDeliveries[it.token] = it;
++    }
++#endif
++    it.listener = ep.node.addListener(wake);
++    epollReconcileKeepalive(ep);
++    wake(); // deliver initial readiness if the set is already ready
++    return 0;
++  },
++
++  // Remove the calling thread's listener for `callback`. All listeners are also
++  // removed when the last fd to the instance closes.
++  emscripten_epoll_remove_listener__deps: ['$FS', '$epollClearListener', '$epollReconcileKeepalive'],
++  emscripten_epoll_remove_listener__proxy: 'sync',
++  emscripten_epoll_remove_listener: (epfd, callback) => {
++    var stream = FS.getStream(epfd);
++    if (!stream?.shared.epoll) return {{{ cDefs.EBADF }}};
++    var ep = stream.shared;
++#if PTHREADS
++    var key = PThread.currentProxiedOperationCallerThread + ':' + callback;
++#else
++    var key = callback;
++#endif
++    var it = ep.interests.get(key);
++    if (!it) return {{{ cDefs.ENOENT }}};
++    epollClearListener(ep, it);
++    epollReconcileKeepalive(ep);
++    return 0;
++  },
++
++#if PTHREADS
++  // Token -> listener for cross-thread deliveries (numeric keys), plus nextToken:
++  // the next token to hand out. A monotonic token means a stale completion
++  // (listener removed mid-flight) never resolves to a different listener - it
++  // simply finds nothing.
++  $epollDeliveries: {nextToken: 1},
++
++  // Called (on the main thread) by the C helper once a cross-thread delivery
++  // finishes on the registering thread: clear the in-flight gate and re-derive,
++  // so a still-ready set delivers its next batch.
++  _emscripten_epoll_delivery_done__deps: ['$epollDeliveries'],
++  _emscripten_epoll_delivery_done: (token) => {
++    var it = epollDeliveries[token];
++    if (!it) return; // listener was removed while the delivery was in flight
++    it.inflight = false;
++    it.wake();
++  },
++#endif
+ };
+ 
+ addToLibrary(EpollLibrary);
+diff --git a/src/lib/libsigs.js b/src/lib/libsigs.js
+index 89e5cba..3f980d9 100644
+--- a/src/lib/libsigs.js
++++ b/src/lib/libsigs.js
+@@ -330,6 +330,7 @@ sigs = {
+   _emscripten_create_wasm_worker__sig: 'iipip',
+   _emscripten_dlopen_js__sig: 'vpppp',
+   _emscripten_dlsync_threads__sig: 'v',
++  _emscripten_epoll_delivery_done__sig: 'vi',
+   _emscripten_fetch_get_response_headers__sig: 'pipp',
+   _emscripten_fetch_get_response_headers_length__sig: 'pi',
+   _emscripten_fs_load_embedded_files__sig: 'vp',
+@@ -643,6 +644,8 @@ sigs = {
+   emscripten_destroy_web_audio_node__sig: 'vi',
+   emscripten_destroy_worker__sig: 'vi',
+   emscripten_enter_soft_fullscreen__sig: 'ipp',
++  emscripten_epoll_add_listener__sig: 'iipp',
++  emscripten_epoll_remove_listener__sig: 'iip',
+   emscripten_err__sig: 'vp',
+   emscripten_errn__sig: 'vpp',
+   emscripten_exit_fullscreen__sig: 'i',
+diff --git a/src/parseTools.mjs b/src/parseTools.mjs
+index e4acfc1..a313b2c 100644
+--- a/src/parseTools.mjs
++++ b/src/parseTools.mjs
+@@ -692,6 +692,13 @@ function makeDynCall(sig, funcPtr, promising = false) {
+   );
+   assert(!(DYNCALLS && promising), 'DYNCALLS cannot be used with JSPI');
+ 
++  if (promising) {
++    // Routed through $dynCall so that the call goes via the jspi-hooks
++    // trampoline for the signature; direct WebAssembly.promising of a table
++    // entry would run the fiber without its lifecycle hooks.
++    return `getDynCaller("${sig}", ${funcPtr}, true)`;
++  }
++
+   let args = [];
+   for (let i = 1; i < sig.length; ++i) {
+     args.push(`a${i}`);
+@@ -762,21 +769,12 @@ Please update to new syntax.`);
+     return `(() => ${dyncall}(${funcPtr}))`;
+   }
+ 
+-  let getWasmTableEntry = `getWasmTableEntry(${funcPtr})`;
+-  if (promising) {
+-    getWasmTableEntry = `WebAssembly.promising(${getWasmTableEntry})`;
+-  }
+-
++  const getWasmTableEntry = `getWasmTableEntry(${funcPtr})`;
+   if (needArgConversion) {
+     if (needRtnConversion) {
+-      if (promising) {
+-        return `((${args}) => ${getWasmTableEntry}.call(null, ${callArgs}).then(Number))`;
+-      } else {
+-        return `((${args}) => Number(${getWasmTableEntry}.call(null, ${callArgs})))`;
+-      }
+-    } else {
+-      return `((${args}) => ${getWasmTableEntry}.call(null, ${callArgs}))`;
++      return `((${args}) => Number(${getWasmTableEntry}.call(null, ${callArgs})))`;
+     }
++    return `((${args}) => ${getWasmTableEntry}.call(null, ${callArgs}))`;
+   }
+   return getWasmTableEntry;
+ }
+diff --git a/src/settings.js b/src/settings.js
+index 7ce3dc7..dc73734 100644
+--- a/src/settings.js
++++ b/src/settings.js
+@@ -931,7 +931,9 @@ var JSPI = 0;
+ // that will call an asynchronous import (listed in ``JSPI_IMPORTS``) must be
+ // included here.
+ //
+-// By default this includes ``main``.
++// By default this includes ``main``. These exports are also where the
++// :ref:`JSPI lifecycle hooks <jspi_hooks>` see a fiber being entered and
++// exited (see ``JSPI_HOOKS``).
+ // [link]
+ var JSPI_EXPORTS = [];
+ 
+@@ -942,9 +944,49 @@ var JSPI_EXPORTS = [];
+ //
+ // Note when using JS library files, the function can be marked with
+ // ``<function_name>_async:: true`` in the library instead of this setting.
++// These imports are also where the :ref:`JSPI lifecycle hooks <jspi_hooks>`
++// see a fiber being suspended and resumed (see ``JSPI_HOOKS``).
+ // [link]
+ var JSPI_IMPORTS = [];
+ 
++// Instrument the JSPI boundary with the fiber lifecycle hooks of
++// ``<emscripten/jspi.h>`` (see :ref:`jspi_lifecycle_hooks`): a post-link binaryen pass
++// wraps the promising exports and suspending imports, and a small runtime
++// library dispatches the events. Function pointers made promising from JS
++// (``dynCall(sig, ptr, args, true)``, Embind ``async()``) then go through a
++// per-signature trampoline export, which exists only for signatures present
++// in the table at link time, and a JSPI export fetched from the table as a
++// function pointer is no longer made promising automatically. Requires
++// ``JSPI``; implied by ``REENTRANT_JSPI``.
++// [link]
++// [experimental]
++var JSPI_HOOKS = false;
++
++// Run each promising activation on its own shadow stack, so that any number
++// of activations may be suspended at once on a thread and run interleaved
++// (see :ref:`reentrant_jspi_stacks`). Requires ``JSPI`` and implies ``JSPI_HOOKS``;
++// defaults ``STACK_OVERFLOW_CHECK`` to 2 so that a fiber stack overflow traps
++// (set it explicitly to opt out); not supported with dynamic linking.
++// [link]
++// [experimental]
++var REENTRANT_JSPI = false;
++
++// The size of the shadow stack given to each promising activation under
++// ``REENTRANT_JSPI``, in bytes. Every live activation holds one, so tune it
++// independently of ``STACK_SIZE``, which it defaults to.
++// [link]
++var JSPI_FIBER_STACK_SIZE = 0;
++
++// The size of the guard region below each ``REENTRANT_JSPI`` activation
++// stack, in bytes, for builds that opt out of ``STACK_OVERFLOW_CHECK=2``: a
++// stack overflow of up to this size stays inside memory the runtime owns and
++// is reported when the activation next suspends or exits, instead of silently
++// corrupting the heap below. Defaults to 0 with ``STACK_OVERFLOW_CHECK=2``
++// (the bounds check traps at the overflowing store itself) and to 16KB
++// otherwise; 0 disables the guard (the checks at suspension and exit remain).
++// [link]
++var JSPI_FIBER_STACK_GUARD = -1;
++
+ // Runtime elements that are exported on Module by default. We used to export
+ // quite a lot here, but have removed them all. You should use
+ // EXPORTED_RUNTIME_METHODS for things you want to export from the runtime.
+diff --git a/system/include/emscripten/epoll.h b/system/include/emscripten/epoll.h
+new file mode 100644
+index 0000000..7093316
+--- /dev/null
++++ b/system/include/emscripten/epoll.h
+@@ -0,0 +1,75 @@
++/*
++ * Copyright 2026 The Emscripten Authors.  All rights reserved.
++ * Emscripten is available under two separate licenses, the MIT license and the
++ * University of Illinois/NCSA Open Source License.  Both these licenses can be
++ * found in the LICENSE file.
++ */
++
++#pragma once
++
++#include <sys/epoll.h>
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++// EXPERIMENTAL. This API is new and may change (signature or semantics) over the
++// next few releases.
++//
++// Register a persistent readiness listener on an existing epoll fd (built with
++// epoll_create1/epoll_ctl): instead of blocking in epoll_wait, the runtime
++// invokes `callback` on the event loop whenever the epoll set has ready events
++// waiting to be collected. The callback receives only `userdata`; it does not
++// receive the events. To collect them it calls epoll_wait(epfd, ..., 0) itself
++// - a non-blocking, zero-timeout wait - from within the callback (or later).
++// Unlike epoll_wait it never blocks the calling stack, so it works without
++// ASYNCIFY/JSPI. The callback is delivered on the registering thread's event
++// loop: with pthreads the epoll readiness is tracked on the main thread (the
++// syscalls are proxied there), but each delivery is dispatched back to the
++// thread that added the listener.
++//
++// Any number of listeners may be added, from any threads, identified by the
++// (callback, registering thread) pair; re-adding the same identity just updates
++// `userdata`. Every listener is signalled while uncollected ready events remain
++// (broadcast), and listeners race to collect: per-fd trigger modes distribute
++// events across collectors exactly as between multiple blocking epoll_wait
++// callers on one epoll, so an EPOLLET edge or an EPOLLONESHOT firing is
++// collected by exactly one listener (load balancing), while a level fd keeps
++// signalling every listener until drained.
++//
++// A listener fires on the next event-loop tick while the set has ready events
++// that have not yet been collected, and keeps firing while any remain - it only
++// signals that events are pending, so a callback that does not drain them (via
++// epoll_wait) leaves them pending and re-fires. Whether a given fd is
++// re-reported follows its per-fd trigger mode (set via epoll_ctl) exactly as
++// epoll_wait does, so one epoll can mix modes:
++//   - Level-triggered (the default): the fd is reported on the next tick whenever
++//     it is ready, and keeps re-firing while it stays ready. The runtime - not
++//     the application - drives the loop, so an fd that is structurally always
++//     ready (notably EPOLLOUT on a writable socket) will spin the event loop.
++//     Use one of the modes below for such fds.
++//   - EPOLLET (edge-triggered): reported once per readiness edge and not again
++//     until a fresh edge; usually preferable in this model.
++//   - EPOLLONESHOT: reported once, then the registration is disabled until you
++//     re-arm it with epoll_ctl(EPOLL_CTL_MOD).
++//
++// Listeners keep the runtime alive as long as the set can still fire - i.e.
++// while the epoll has at least one open watched fd. This follows the Node.js
++// model, where registered I/O interest holds the event loop open. Once every
++// watched fd is closed the set is terminal (it can never become ready again)
++// and its listeners stop holding the runtime, so no explicit disposal is
++// required in that case.
++//
++// Listeners are shared instance state: they see registrations made through any
++// dup'd fd, and closing the last fd to the instance removes them all. Returns
++// 0, or a positive errno (EBADF if `epfd` is not an epoll fd).
++typedef void (*em_epoll_callback)(void *userdata);
++int emscripten_epoll_add_listener(int epfd, em_epoll_callback callback, void *userdata);
++
++// Remove the calling thread's listener for `callback`. Returns 0, EBADF if
++// `epfd` is not an epoll fd, or ENOENT if no such listener is registered.
++int emscripten_epoll_remove_listener(int epfd, em_epoll_callback callback);
++
++#ifdef __cplusplus
++}
++#endif
+diff --git a/system/include/emscripten/jspi.h b/system/include/emscripten/jspi.h
+new file mode 100644
+index 0000000..e1d971f
+--- /dev/null
++++ b/system/include/emscripten/jspi.h
+@@ -0,0 +1,70 @@
++/*
++ * Copyright 2026 The Emscripten Authors.  All rights reserved.
++ * Emscripten is available under two separate licenses, the MIT license and the
++ * University of Illinois/NCSA Open Source License.  Both these licenses can be
++ * found in the LICENSE file.
++ */
++
++#pragma once
++
++#include <stdint.h>
++
++// Lifecycle hooks for JSPI (-sJSPI) stack-switching fibers (-sJSPI_HOOKS).
++//
++// A fiber is the wasm activation started by a call to a promising export. It
++// is entered once, may be suspended and resumed any number of times while its
++// suspending imports await, and exits once, normally or with an exception.
++// A suspension is a leave of the fiber: while it is suspended other fibers
++// (or the top level) run on the same thread and see the same static storage
++// and shadow stack, so libraries with fiber-affine state stash it on
++// JSPI_SUSPEND and restore it on JSPI_RESUME, with the lifetime bounded by
++// JSPI_ENTER/JSPI_EXIT. Fibers never move between threads.
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++// Hooks run synchronously inside the boundary call, on whatever stack the
++// fiber's code runs on: ENTER before the export body (the fiber is already
++// current), SUSPEND before the import is called with the fiber's frames still
++// live, RESUME after the import returned with the frames live again, and EXIT
++// after the export body returned, with the fiber still current. A trap inside
++// a fiber bypasses the hooks and leaves the JSPI state (and, with
++// REENTRANT_JSPI, the stack pointer) undefined.
++//
++// Events are bit flags so that they combine into the mask for jspi_register.
++typedef enum {
++  // A promising export was called.
++  JSPI_ENTER = 1,
++  // The promising export is returning (or throwing).
++  JSPI_EXIT = 2,
++  // A suspending import is about to be called (it may or may not suspend).
++  JSPI_SUSPEND = 4,
++  // The suspending import has returned (or thrown); the fiber is running again.
++  JSPI_RESUME = 8,
++} jspi_event;
++
++#define JSPI_ALL (JSPI_ENTER | JSPI_EXIT | JSPI_SUSPEND | JSPI_RESUME)
++
++// Called for each event of every fiber, inside the fiber's own frames
++// immediately before/after the boundary call. `token` is the hook's own
++// per-fiber value: NULL at the first event the hook sees for a fiber, then
++// whatever the hook returned at the previous event of that fiber; the return
++// value at JSPI_EXIT is ignored. `error` is nonzero when the export or import
++// completed with an exception (a JS exception, a rejected promise or a wasm
++// exception such as a C++ throw), which is rethrown unchanged after the hooks
++// run; hooks cannot inspect it. Hooks must not throw, suspend, or call
++// promising exports.
++typedef void* (*jspi_hook)(jspi_event event, void* token, int error);
++
++// Registers `fn` for the events in `mask` on the calling thread. Hooks run in
++// registration order. Returns 0, -1 if the program was linked without
++// -sJSPI_HOOKS (no events are ever delivered), or -2 if the table is full
++// (JSPI_MAX_HOOKS registrations per thread).
++int jspi_register(jspi_hook fn, uint32_t mask);
++
++#define JSPI_MAX_HOOKS 64
++
++#ifdef __cplusplus
++}
++#endif
+diff --git a/system/lib/jspi/jspi.c b/system/lib/jspi/jspi.c
+new file mode 100644
+index 0000000..bdf3fab
+--- /dev/null
++++ b/system/lib/jspi/jspi.c
+@@ -0,0 +1,325 @@
++/*
++ * Copyright 2026 The Emscripten Authors.  All rights reserved.
++ * Emscripten is available under two separate licenses, the MIT license and the
++ * University of Illinois/NCSA Open Source License.  Both these licenses can be
++ * found in the LICENSE file.
++ *
++ * Runtime side of the JSPI lifecycle hooks. The __jspi_enter/exit/suspend/
++ * resume exports (shims in jspi_ops.S calling __jspi_hook_impl here) are
++ * called by the wrappers that binaryen's --jspi-hooks pass places around every
++ * promising export and suspending import; see <emscripten/jspi.h> for the
++ * model. With REENTRANT_JSPI it also gives each fiber its own shadow stack.
++ */
++
++#include <emscripten/console.h>
++#include <emscripten/heap.h>
++#include <emscripten/jspi.h>
++#include <emscripten/stack.h>
++#include <stdlib.h>
++
++typedef struct {
++  jspi_hook fn;
++  uint32_t mask;
++} jspi_registration;
++
++static _Thread_local jspi_registration hooks[JSPI_MAX_HOOKS];
++static _Thread_local uint32_t hook_count;
++
++// One record per live fiber, holding each registration's token for it. The
++// record's address is the token the wrappers carry between the events of a
++// pair, and the current record follows the same protocol the stack pointer
++// does: whoever entered or last resumed the fiber is remembered, made current
++// again when the fiber leaves at SUSPEND (the import may return to that code
++// synchronously), refreshed at RESUME and made current at EXIT.
++//
++// With REENTRANT_JSPI each fiber also runs on its own shadow stack, allocated
++// at ENTER and released at EXIT, so any number of fibers can be suspended at
++// once with their frames intact and imports may write through pointers into a
++// suspended fiber's frames. The stack pointer (and the stack limits, for
++// STACK_OVERFLOW_CHECK and emscripten_stack_get_*) are switched at the four
++// events; see site/source/docs/porting/asyncify.rst.
++typedef struct jspi_fiber {
++  struct jspi_fiber* host;
++  void* tokens[JSPI_MAX_HOOKS];
++#if REENTRANT_JSPI
++  uintptr_t sp;      // fiber stack pointer while suspended
++  uintptr_t host_sp; // where the code that entered or resumed us was
++  uintptr_t host_base;
++  uintptr_t host_end;
++  void* stack;
++#endif
++} jspi_fiber;
++
++// Records for the first fibers alive at once come from a per-thread pool (a
++// free record links to the next through `host`; static storage, which a fiber
++// stack overflow into the heap cannot reach); further ones are heap-allocated.
++#define POOL_FIBERS 64
++static _Thread_local jspi_fiber pool[POOL_FIBERS];
++static _Thread_local jspi_fiber* free_list;
++static _Thread_local uint32_t pool_used;
++
++static jspi_fiber* alloc_fiber(void) {
++  jspi_fiber* f = free_list;
++  if (f) {
++    free_list = f->host;
++  } else if (pool_used < POOL_FIBERS) {
++    f = &pool[pool_used++];
++  } else {
++    f = emscripten_builtin_malloc(sizeof(jspi_fiber));
++    if (!f) {
++      emscripten_err("JSPI: out of memory");
++      abort();
++    }
++  }
++  *f = (jspi_fiber){0};
++  return f;
++}
++
++static void free_fiber(jspi_fiber* f) {
++  if (f >= pool && f < pool + POOL_FIBERS) {
++    f->host = free_list;
++    free_list = f;
++  } else {
++    emscripten_builtin_free(f);
++  }
++}
++
++// The current fiber lives in a wasm global (per instance, hence per thread);
++// NULL outside any fiber.
++#ifdef __wasm64__
++#define PTR "i64"
++#else
++#define PTR "i32"
++#endif
++
++// The current fiber lives in a wasm global (per instance, hence per thread);
++// NULL outside any fiber.
++__asm__(".globaltype __jspi_cur_fiber, " PTR "\n"
++        ".globl __jspi_cur_fiber\n"
++        "__jspi_cur_fiber:\n");
++
++static jspi_fiber* get_cur_fiber(void) {
++  jspi_fiber* f;
++  __asm__ volatile("global.get __jspi_cur_fiber\n"
++                   "local.set %0"
++                   : "=r"(f));
++  return f;
++}
++
++static void set_cur_fiber(jspi_fiber* f) {
++  __asm__ volatile("local.get %0\n"
++                   "global.set __jspi_cur_fiber"
++                   :
++                   : "r"(f));
++}
++
++__attribute__((noinline)) static void
++dispatch(jspi_event event, jspi_fiber* f, int error) {
++  for (uint32_t i = 0; i < hook_count; i++) {
++    jspi_registration* r = &hooks[i];
++    if (r->mask & event) {
++      f->tokens[i] = r->fn(event, f->tokens[i], error);
++    }
++  }
++}
++
++#if REENTRANT_JSPI
++// Released fiber stacks kept for reuse.
++#define STACK_POOL 4
++static _Thread_local void* stack_pool[STACK_POOL];
++static _Thread_local int stack_pool_count;
++static _Thread_local size_t stack_size;
++static _Thread_local size_t guard_size;
++
++size_t __jspi_fiber_stack_size(void);
++size_t __jspi_fiber_stack_guard(void);
++int __jspi_stack_checked(void);
++
++// The stack limits to install along with the returned stack pointer, and
++// whether the STACK_OVERFLOW_CHECK=2 bounds also need updating. The shim in
++// jspi_ops.S defines these globals and applies them after the impl returned.
++__asm__(".globaltype __jspi_pending_base, " PTR "\n"
++        ".globaltype __jspi_pending_end, " PTR "\n"
++        ".globaltype __jspi_stack_check, i32\n");
++
++static void set_pending_limits(uintptr_t base, uintptr_t end) {
++  __asm__ volatile("local.get %0\n"
++                   "global.set __jspi_pending_base\n"
++                   "local.get %1\n"
++                   "global.set __jspi_pending_end"
++                   :
++                   : "r"(base), "r"(end));
++}
++
++// Below each fiber stack lies a guard region of JSPI_FIBER_STACK_GUARD bytes
++// that is ours, so an overflow of up to that size corrupts nothing else, and
++// is caught when the fiber leaves its stack at a suspension or exit: the
++// stack pointer must still be inside the stack and the cookies at its low end
++// intact. STACK_OVERFLOW_CHECK=2 catches the overflowing store itself.
++#define COOKIE0 0x4a535049
++#define COOKIE1 0x46494252
++
++static void write_cookies(uintptr_t low) {
++  ((uint32_t*)low)[0] = COOKIE0;
++  ((uint32_t*)low)[1] = COOKIE1;
++}
++
++static void check_overflow(uintptr_t low, uintptr_t sp) {
++  if (sp < low || ((uint32_t*)low)[0] != COOKIE0 ||
++      ((uint32_t*)low)[1] != COOKIE1) {
++    emscripten_err("REENTRANT_JSPI: fiber stack overflow; increase "
++                   "-sJSPI_FIBER_STACK_SIZE");
++    abort();
++  }
++}
++
++// The stack region within a fiber's allocation.
++static uintptr_t stack_low(jspi_fiber* f) {
++  return (uintptr_t)f->stack + guard_size;
++}
++
++#ifdef __EMSCRIPTEN_PTHREADS__
++#include <pthread.h>
++
++static pthread_key_t cleanup_key;
++static pthread_once_t cleanup_once = PTHREAD_ONCE_INIT;
++
++static void thread_cleanup(void* arg) {
++  while (stack_pool_count) {
++    emscripten_builtin_free(stack_pool[--stack_pool_count]);
++  }
++}
++
++static void create_cleanup_key(void) {
++  pthread_key_create(&cleanup_key, thread_cleanup);
++}
++#endif
++
++static void init_thread(void) {
++  stack_size = (__jspi_fiber_stack_size() + 15) & ~(size_t)15;
++  guard_size = (__jspi_fiber_stack_guard() + 15) & ~(size_t)15;
++  __asm__ volatile("local.get %0\n"
++                   "global.set __jspi_stack_check"
++                   :
++                   : "r"(__jspi_stack_checked()));
++#ifdef __EMSCRIPTEN_PTHREADS__
++  pthread_once(&cleanup_once, create_cleanup_key);
++  pthread_setspecific(cleanup_key, (void*)1);
++#endif
++}
++
++static void alloc_stack(jspi_fiber* f) {
++  if (!stack_size) {
++    init_thread();
++  }
++  if (stack_pool_count) {
++    f->stack = stack_pool[--stack_pool_count];
++  } else {
++    f->stack = emscripten_builtin_memalign(16, guard_size + stack_size);
++    if (!f->stack) {
++      emscripten_err("REENTRANT_JSPI: out of memory allocating a fiber stack");
++      abort();
++    }
++    write_cookies(stack_low(f));
++  }
++}
++
++static void release_stack(jspi_fiber* f) {
++  if (stack_pool_count < STACK_POOL) {
++    stack_pool[stack_pool_count++] = f->stack;
++  } else {
++    emscripten_builtin_free(f->stack);
++  }
++}
++
++// Switching to the fiber's stack: remember the host's limits (the host may
++// itself be a fiber) and prepare the fiber's.
++static void switch_to_fiber(jspi_fiber* f, uintptr_t host_sp) {
++  f->host_sp = host_sp;
++  f->host_base = emscripten_stack_get_base();
++  f->host_end = emscripten_stack_get_end();
++  set_pending_limits(stack_low(f) + stack_size, stack_low(f));
++}
++
++static uintptr_t switch_to_host(jspi_fiber* f, uintptr_t sp) {
++  check_overflow(stack_low(f), sp);
++  set_pending_limits(f->host_base, f->host_end);
++  return f->host_sp;
++}
++#endif
++
++// The implementation behind the hook exports (shims in jspi_ops.S):
++// delivers the event (0 ENTER, 1 EXIT, 2 SUSPEND, 3 RESUME), returns the stack
++// pointer to install and leaves the token to return (the fiber) in the
++// __jspi_token global.
++__asm__(".globaltype __jspi_token, i64\n");
++
++static void set_token(jspi_fiber* f) {
++  uint64_t token = (uintptr_t)f;
++  __asm__ volatile("local.get %0\n"
++                   "global.set __jspi_token"
++                   :
++                   : "r"(token));
++}
++
++uintptr_t
++__jspi_hook_impl(uintptr_t sp, uint32_t event, uint64_t token, int error) {
++  jspi_fiber* f = (jspi_fiber*)(uintptr_t)token;
++  set_token(NULL);
++  switch ((jspi_event)(1u << event)) {
++    case JSPI_ENTER:
++      f = alloc_fiber();
++      f->host = get_cur_fiber();
++      set_cur_fiber(f);
++#if REENTRANT_JSPI
++      alloc_stack(f);
++      switch_to_fiber(f, sp);
++      sp = stack_low(f) + stack_size;
++#endif
++      dispatch(JSPI_ENTER, f, 0);
++      set_token(f);
++      break;
++    case JSPI_EXIT:
++      dispatch(JSPI_EXIT, f, error);
++      set_cur_fiber(f->host);
++#if REENTRANT_JSPI
++      sp = switch_to_host(f, sp);
++      release_stack(f);
++#endif
++      free_fiber(f);
++      break;
++    case JSPI_SUSPEND:
++      f = get_cur_fiber();
++      // Without a fiber the import is about to fail with a SuspendError.
++      if (f) {
++        dispatch(JSPI_SUSPEND, f, 0);
++        set_cur_fiber(f->host);
++#if REENTRANT_JSPI
++        f->sp = sp;
++        sp = switch_to_host(f, sp);
++#endif
++      }
++      set_token(f);
++      break;
++    case JSPI_RESUME:
++      if (f) {
++        f->host = get_cur_fiber();
++        set_cur_fiber(f);
++#if REENTRANT_JSPI
++        switch_to_fiber(f, sp);
++        sp = f->sp;
++#endif
++        dispatch(JSPI_RESUME, f, error);
++      }
++      break;
++  }
++  return sp;
++}
++
++int jspi_register(jspi_hook fn, uint32_t mask) {
++  if (hook_count == JSPI_MAX_HOOKS) {
++    return -2;
++  }
++  hooks[hook_count++] = (jspi_registration){fn, mask};
++  return 0;
++}
+diff --git a/system/lib/jspi/jspi_ops.S b/system/lib/jspi/jspi_ops.S
+new file mode 100644
+index 0000000..87acda5
+--- /dev/null
++++ b/system/lib/jspi/jspi_ops.S
+@@ -0,0 +1,128 @@
++/*
++ * Copyright 2026 The Emscripten Authors.  All rights reserved.
++ * Emscripten is available under two separate licenses, the MIT license and the
++ * University of Illinois/NCSA Open Source License.  Both these licenses can be
++ * found in the LICENSE file.
++ *
++ * The JSPI hook exports. Each passes the current __stack_pointer and its event
++ * to the C implementation in jspi.c and installs the stack pointer it returns,
++ * which a C function could not do itself since its epilogue restores the stack
++ * pointer it entered with. Under REENTRANT_JSPI the C side also leaves the stack limits
++ * to install in the __jspi_pending_* globals; they are applied here, after the
++ * C code has fully returned, since with STACK_OVERFLOW_CHECK=2 any C epilogue
++ * running between the limits switch and the stack pointer switch would be
++ * checked against the wrong limits. The token to return is left in the
++ * __jspi_token global.
++ */
++
++#ifdef __wasm64__
++#define PTR i64
++#else
++#define PTR i32
++#endif
++
++.globaltype __stack_pointer, PTR
++
++.functype __jspi_hook_impl (PTR, i32, i64, i32) -> (PTR)
++
++.section .globals,"",@
++
++.globl __jspi_token
++.globaltype __jspi_token, i64
++__jspi_token:
++
++#ifdef REENTRANT_JSPI
++.functype emscripten_stack_set_limits (PTR, PTR) -> ()
++.functype __jspi_set_stack_limits (PTR, PTR) -> ()
++
++.globl __jspi_pending_base
++.globaltype __jspi_pending_base, PTR
++__jspi_pending_base:
++.globl __jspi_pending_end
++.globaltype __jspi_pending_end, PTR
++__jspi_pending_end:
++# Nonzero when STACK_OVERFLOW_CHECK=2 instrumented the module, whose bounds
++# globals are only reachable through its export, via JS.
++.globl __jspi_stack_check
++.globaltype __jspi_stack_check, i32
++__jspi_stack_check:
++#endif
++
++.section .text,"",@
++
++# Common tail: takes the stack pointer the impl returned, installs it (and the
++# pending limits) and returns the token. Called from frameless shims, so the
++# switch is in effect when they return.
++__jspi_finish:
++  .functype __jspi_finish (PTR) -> (i64)
++#ifdef REENTRANT_JSPI
++  # Install the pending stack limits, if any.
++  block
++    global.get __jspi_pending_base
++    PTR.eqz
++    br_if 0
++    global.get __jspi_pending_base
++    global.get __jspi_pending_end
++    call emscripten_stack_set_limits
++    block
++      global.get __jspi_stack_check
++      i32.eqz
++      br_if 0
++      global.get __jspi_pending_base
++      global.get __jspi_pending_end
++      call __jspi_set_stack_limits
++    end_block
++    PTR.const 0
++    global.set __jspi_pending_base
++  end_block
++#endif
++  local.get 0
++  global.set __stack_pointer
++  global.get __jspi_token
++  end_function
++
++.globl __jspi_enter
++__jspi_enter:
++  .functype __jspi_enter () -> (i64)
++  global.get __stack_pointer
++  i32.const 0
++  i64.const 0
++  i32.const 0
++  call __jspi_hook_impl
++  call __jspi_finish
++  end_function
++
++.globl __jspi_exit
++__jspi_exit:
++  .functype __jspi_exit (i64, i32) -> ()
++  global.get __stack_pointer
++  i32.const 1
++  local.get 0
++  local.get 1
++  call __jspi_hook_impl
++  call __jspi_finish
++  drop
++  end_function
++
++.globl __jspi_suspend
++__jspi_suspend:
++  .functype __jspi_suspend () -> (i64)
++  global.get __stack_pointer
++  i32.const 2
++  i64.const 0
++  i32.const 0
++  call __jspi_hook_impl
++  call __jspi_finish
++  end_function
++
++.globl __jspi_resume
++__jspi_resume:
++  .functype __jspi_resume (i64, i32) -> ()
++  global.get __stack_pointer
++  i32.const 3
++  local.get 0
++  local.get 1
++  call __jspi_hook_impl
++  call __jspi_finish
++  drop
++  end_function
+diff --git a/system/lib/jspi/jspi_stub.c b/system/lib/jspi/jspi_stub.c
+new file mode 100644
+index 0000000..76e0ae6
+--- /dev/null
++++ b/system/lib/jspi/jspi_stub.c
+@@ -0,0 +1,12 @@
++/*
++ * Copyright 2026 The Emscripten Authors.  All rights reserved.
++ * Emscripten is available under two separate licenses, the MIT license and the
++ * University of Illinois/NCSA Open Source License.  Both these licenses can be
++ * found in the LICENSE file.
++ *
++ * Linked in place of jspi.c when JSPI_HOOKS is off: no events are delivered.
++ */
++
++#include <emscripten/jspi.h>
++
++int jspi_register(jspi_hook fn, uint32_t mask) { return -1; }
+diff --git a/system/lib/libc/emscripten_internal.h b/system/lib/libc/emscripten_internal.h
+index 55ca0fa..8052c61 100644
+--- a/system/lib/libc/emscripten_internal.h
++++ b/system/lib/libc/emscripten_internal.h
+@@ -67,6 +67,10 @@ emscripten_stack_unwind_buffer(uintptr_t pc, uintptr_t* buffer, uint32_t depth);
+ 
+ bool _emscripten_get_now_is_monotonic(void);
+ 
++// Defined in library.js; called by emscripten_epoll_callback.c to report a
++// completed cross-thread epoll callback delivery back to the main thread.
++void _emscripten_epoll_delivery_done(int token);
++
+ void _emscripten_get_progname(char*, int);
+ 
+ // Not defined in musl, but defined in library.js.  Included here for
+diff --git a/system/lib/pthread/emscripten_epoll_callback.c b/system/lib/pthread/emscripten_epoll_callback.c
+new file mode 100644
+index 0000000..3cf0670
+--- /dev/null
++++ b/system/lib/pthread/emscripten_epoll_callback.c
+@@ -0,0 +1,82 @@
++/*
++ * Copyright 2026 The Emscripten Authors.  All rights reserved.
++ * Emscripten is available under two separate licenses, the MIT license and the
++ * University of Illinois/NCSA Open Source License.  Both these licenses can be
++ * found in the LICENSE file.
++ */
++
++// Backs emscripten_epoll_add_listener under PTHREADS: the epoll readiness lives
++// on the main thread (the epoll syscalls are proxied there), but the user
++// callback must run on the thread that registered it. This mirrors
++// _emscripten_run_callback_on_thread in html5/callback.c, but reports back to
++// the main thread when a delivery completes so it can pace the next one - the
++// callback collects the ready events (via a proxied epoll_wait) itself, so the
++// main thread must wait for that before firing again, or it would spin
++// re-signalling the same still-ready level fd.
++
++#include <assert.h>
++#include <pthread.h>
++#include <stdint.h>
++#include <stdlib.h>
++
++#include <emscripten/eventloop.h>
++#include <emscripten/proxying.h>
++
++#include "emscripten_internal.h"
++
++typedef void (*em_epoll_callback)(void* userdata);
++
++typedef struct epoll_callback_args_t {
++  em_epoll_callback callback;
++  void* userdata;
++  int token;
++} epoll_callback_args_t;
++
++// Runs on the registering thread: signal the user callback that events are
++// pending (it collects them itself via epoll_wait).
++static void do_epoll_callback(void* arg) {
++  epoll_callback_args_t* args = (epoll_callback_args_t*)arg;
++  args->callback(args->userdata);
++}
++
++// Runs back on the main thread once the delivery above has finished (or was
++// cancelled because the target thread went away): let the JS layer re-derive.
++static void do_epoll_done(void* arg) {
++  epoll_callback_args_t* args = (epoll_callback_args_t*)arg;
++  _emscripten_epoll_delivery_done(args->token);
++  free(arg);
++}
++
++void _emscripten_epoll_run_callback_on_thread(pthread_t t,
++                                              em_epoll_callback callback,
++                                              void* userdata,
++                                              int token) {
++  em_proxying_queue* q = emscripten_proxy_get_system_queue();
++  epoll_callback_args_t* args = malloc(sizeof(epoll_callback_args_t));
++  args->callback = callback;
++  args->userdata = userdata;
++  args->token = token;
++
++  if (!emscripten_proxy_callback(
++        q, t, do_epoll_callback, do_epoll_done, do_epoll_done, args)) {
++    assert(false && "emscripten_proxy_callback failed");
++  }
++}
++
++// Adjust the owner thread's (thread-local) runtime keepalive so the epoll
++// callback holds the thread it was registered on, not the main thread.
++static void do_epoll_keepalive(void* arg) {
++  if ((intptr_t)arg > 0) {
++    emscripten_runtime_keepalive_push();
++  } else {
++    emscripten_runtime_keepalive_pop();
++  }
++}
++
++void _emscripten_epoll_keepalive_on_thread(pthread_t t, int delta) {
++  em_proxying_queue* q = emscripten_proxy_get_system_queue();
++  if (!emscripten_proxy_async(
++        q, t, do_epoll_keepalive, (void*)(intptr_t)delta)) {
++    assert(false && "emscripten_proxy_async failed");
++  }
++}
+diff --git a/tools/building.py b/tools/building.py
+index ff48145..ad960c2 100644
+--- a/tools/building.py
++++ b/tools/building.py
+@@ -63,6 +63,8 @@ _is_ar_cache: dict[str, bool] = {}
+ user_requested_exports: set[str] = set()
+ # JS library symbols exported via the `__export` decorator.
+ extra_js_exports: set[str] = set()
++# JS library symbols (mangled) that were emitted into the JS output.
++js_library_symbols: set[str] = set()
+ # Mangled wasm exports wasm-bindgen's glue reaches by name, kept off the public surface.
+ wasm_bindgen_internal_exports: set[str] = set()
+ # A list of feature flags to pass to each binaryen invocation (like `wasm-opt`,
+diff --git a/tools/emscripten.py b/tools/emscripten.py
+index 3ad4b0f..8c08c98 100644
+--- a/tools/emscripten.py
++++ b/tools/emscripten.py
+@@ -127,8 +127,11 @@ def update_settings_glue(wasm_file, metadata, base_metadata):
+ 
+   # start with the MVP features, and add any detected features.
+   building.binaryen_features = ['--mvp-features', *metadata.features]
+-  if settings.ASYNCIFY == 2:
++  if settings.JSPI:
+     building.binaryen_features += ['--enable-reference-types']
++  if settings.JSPI_HOOKS:
++    # The jspi-hooks pass adds exception handling to the module.
++    building.binaryen_features += ['--enable-exception-handling']
+ 
+   if settings.PTHREADS:
+     assert '--enable-threads' in building.binaryen_features
+@@ -456,6 +459,7 @@ def emscript(in_wasm, out_wasm, outfile_js, js_syms, finalize=True, base_metadat
+     pre += "}\n"
+ 
+   report_missing_exports(forwarded_json['librarySymbols'])
++  building.js_library_symbols.update(forwarded_json['librarySymbols'])
+ 
+   building.extra_js_exports.update(forwarded_json['extraExports'])
+ 
+diff --git a/tools/link.py b/tools/link.py
+index 7ef1a65..4cee57e 100644
+--- a/tools/link.py
++++ b/tools/link.py
+@@ -386,6 +386,29 @@ def get_binaryen_passes():
+       check_human_readable_list(settings.ASYNCIFY_ONLY)
+       passes += ['--pass-arg=asyncify-onlylist@%s' % ','.join(settings.ASYNCIFY_ONLY)]
+ 
++  if settings.JSPI_HOOKS:
++    if not settings.WASM_LEGACY_EXCEPTIONS:
++      # The hook wrappers use the module's exception handling flavor, so a
++      # module targeting exnref must not still carry legacy instructions from
++      # prebuilt inputs when the pass runs.
++      passes += ['--translate-to-exnref']
++    # Wrap the promising exports and suspending imports (exactly the sets the
++    # JS wraps in WebAssembly.promising / WebAssembly.Suspending) with the
++    # fiber lifecycle hooks provided by libjspi, plus trampolines for making
++    # function pointers promising. Side modules are not instrumented: their
++    # direct imports of suspending JS functions run without hooks.
++    passes += ['--jspi-hooks']
++    # The JS matches suspending imports by base name only (see
++    # instrumentWasmImports), so match any module here too.
++    jspi_imports = ['*.' + i.split('.', 1)[1] for i in settings.ASYNCIFY_IMPORTS]
++    passes += [f"--pass-arg=jspi-imports@{','.join(jspi_imports)}"]
++    passes += [f"--pass-arg=jspi-exports@{','.join(settings.ASYNCIFY_EXPORTS)}"]
++    # The trampolines keep every table entry of their signatures alive, so only
++    # emit them when the JS can actually make function pointers promising,
++    # which is only done through $dynCall.
++    if 'dynCall' in building.js_library_symbols:
++      passes += ['--pass-arg=jspi-dyncalls']
++
+   if settings.MEMORY64 == 2:
+     passes += ['--memory64-lowering', '--table64-lowering']
+ 
+@@ -1008,6 +1031,46 @@ def phase_linker_setup(linker_args):  # ruff: ignore[complex-structure, too-many
+     else:
+       default_setting('INCOMING_MODULE_JS_API', [])
+ 
++  # JSPI and ASYNCIFY=2 are the same mode.
++  if settings.ASYNCIFY == 2:
++    settings.JSPI = 1
++  if settings.JSPI:
++    settings.ASYNCIFY = 2
++  if settings.SIDE_MODULE:
++    # The hooks and fiber stacks belong to the main module's runtime; a side
++    # module contributes no imports or exports to wrap. Like JSPI itself, the
++    # settings are accepted so one flag set serves every link of a build.
++    settings.JSPI_HOOKS = 0
++    settings.REENTRANT_JSPI = 0
++  if settings.REENTRANT_JSPI:
++    diagnostics.warning('experimental', 'REENTRANT_JSPI is experimental')
++    if not settings.JSPI:
++      exit_with_error('REENTRANT_JSPI requires JSPI')
++    if 'JSPI_HOOKS' in user_settings and not settings.JSPI_HOOKS:
++      exit_with_error('REENTRANT_JSPI requires JSPI_HOOKS')
++    if settings.MAIN_MODULE:
++      exit_with_error('REENTRANT_JSPI is not compatible with dynamic linking')
++    settings.JSPI_HOOKS = 1
++  if settings.JSPI_HOOKS:
++    if not settings.REENTRANT_JSPI:
++      diagnostics.warning('experimental', 'JSPI_HOOKS is experimental')
++    if not settings.JSPI:
++      exit_with_error('JSPI_HOOKS requires JSPI')
++    if not settings.WASM_BIGINT:
++      # The hook export takes and returns the fiber token as an i64.
++      exit_with_error('JSPI_HOOKS requires WASM_BIGINT')
++
++  if settings.REENTRANT_JSPI:
++    # Fiber stacks live in the heap, so the only way to make an overflow trap
++    # at the overflowing store is the bounds check; -sSTACK_OVERFLOW_CHECK=1 or
++    # 0 opts out, leaving the guard region and the checks at suspension/exit.
++    default_setting('STACK_OVERFLOW_CHECK', 2)
++    if not settings.JSPI_FIBER_STACK_SIZE:
++      settings.JSPI_FIBER_STACK_SIZE = settings.STACK_SIZE
++    if settings.JSPI_FIBER_STACK_GUARD < 0:
++      settings.JSPI_FIBER_STACK_GUARD = 0 if settings.STACK_OVERFLOW_CHECK >= 2 else 16 * 1024
++    settings.DEFAULT_LIBRARY_FUNCS_TO_INCLUDE += ['__jspi_fiber_stack_size', '__jspi_fiber_stack_guard', '__jspi_stack_checked', '__jspi_set_stack_limits']
++
+   if settings.ASYNCIFY == 1:
+     # ASYNCIFY=1 wraps only wasm exports so we need to enable legacy
+     # dyncalls via dynCall_xxx exports.
+@@ -1726,11 +1789,15 @@ def phase_linker_setup(linker_args):  # ruff: ignore[complex-structure, too-many
+   if not settings.DISABLE_EXCEPTION_CATCHING:
+     settings.REQUIRED_EXPORTS += ['setThrew']
+ 
++  if settings.JSPI_HOOKS:
++    settings.REQUIRED_EXPORTS += ['__jspi_enter', '__jspi_exit', '__jspi_suspend', '__jspi_resume']
++
+   if settings.ASYNCIFY:
+-    if not settings.ASYNCIFY_IGNORE_INDIRECT:
++    if settings.ASYNCIFY == 1 and not settings.ASYNCIFY_IGNORE_INDIRECT:
+       # if we are not ignoring indirect calls, then we must treat invoke_* as if
+       # they are indirect calls, since that is what they do - we can't see their
+-      # targets statically.
++      # targets statically. (JSPI cannot suspend across the JS frame of an
++      # invoke, so there they are never suspending.)
+       settings.ASYNCIFY_IMPORTS += ['invoke_*']
+     # add the default imports
+     settings.ASYNCIFY_IMPORTS += DEFAULT_ASYNCIFY_IMPORTS
+@@ -2352,6 +2419,13 @@ def phase_binaryen(target, wasm_target):
+                             args=passes,
+                             debug=intermediate_debug_info)
+       building.save_intermediate(wasm_target, 'byn.wasm')
++    if '--pass-arg=jspi-dyncalls' in passes:
++      # The jspi-hooks pass adds the __jspi_dyncall_* trampoline exports, which
++      # the JS looks up by signature at runtime; keep them through metadce.
++      for e in webassembly.get_exports(wasm_target):
++        if e.name.startswith('__jspi_dyncall_'):
++          settings.WASM_EXPORTS.append(e.name)
++          building.user_requested_exports.add(shared.asmjs_mangle(e.name))
+ 
+   if settings.EVAL_CTORS:
+     with ToolchainProfiler.profile_block('eval_ctors'):
+diff --git a/tools/native_sigs.py b/tools/native_sigs.py
+index 20a459d..551e3c2 100644
+--- a/tools/native_sigs.py
++++ b/tools/native_sigs.py
+@@ -530,6 +530,8 @@ native_sigs = {
+   '__year_to_secs': '__p',
+   '_embind_register_bindings': '_p',
+   '_emscripten_dlsync_self_async': '_p',
++  '_emscripten_epoll_keepalive_on_thread': '_p_',
++  '_emscripten_epoll_run_callback_on_thread': '_ppp_',
+   '_emscripten_find_dylib': 'ppppp',
+   '_emscripten_memcpy_bulkmem': 'pppp',
+   '_emscripten_memset_bulkmem': 'pp_p',
+@@ -1126,6 +1128,7 @@ native_sigs = {
+   'iswxdigit_l': '__p',
+   'isxdigit_l': '__p',
+   'jrand48': 'pp',
++  'jspi_register': '_p_',
+   'l64a': 'pp',
+   'labs': 'pp',
+   'lchmod': '_p_',
+diff --git a/tools/settings.py b/tools/settings.py
+index f7cda5e..c935f86 100644
+--- a/tools/settings.py
++++ b/tools/settings.py
+@@ -24,6 +24,8 @@ MEM_SIZE_SETTINGS = {
+     'MAXIMUM_MEMORY',
+     'DEFAULT_PTHREAD_STACK_SIZE',
+     'ASYNCIFY_STACK_SIZE',
++    'JSPI_FIBER_STACK_SIZE',
++    'JSPI_FIBER_STACK_GUARD',
+ }
+ 
+ PORTS_SETTINGS = {
+diff --git a/tools/system_libs.py b/tools/system_libs.py
+index 9ccda61..6b922d9 100644
+--- a/tools/system_libs.py
++++ b/tools/system_libs.py
+@@ -1018,6 +1018,43 @@ class libnoexit(Library):
+   src_files = ['atexit_dummy.c']
+ 
+ 
++class libjspi(MTLibrary):
++  name = 'libjspi'
++  src_dir = 'system/lib/jspi'
++
++  def __init__(self, **kwargs):
++    self.hooks = kwargs.pop('hooks')
++    self.is_reentrant = kwargs.pop('is_reentrant')
++    super().__init__(**kwargs)
++
++  def get_cflags(self):
++    cflags = super().get_cflags()
++    if self.is_reentrant:
++      cflags += ['-DREENTRANT_JSPI']
++    return cflags
++
++  @classmethod
++  def vary_on(cls):
++    return super().vary_on() + ['hooks', 'is_reentrant']
++
++  def get_base_name(self):
++    name = super().get_base_name()
++    if not self.hooks:
++      name += '-stub'
++    elif self.is_reentrant:
++      name += '-reentrant'
++    return name
++
++  def get_files(self):
++    if not self.hooks:
++      return [utils.path_from_root('system/lib/jspi/jspi_stub.c')]
++    return files_in_path(path='system/lib/jspi', filenames=['jspi.c', 'jspi_ops.S'])
++
++  @classmethod
++  def get_default_variation(cls, **kwargs):
++    return super().get_default_variation(hooks=settings.JSPI_HOOKS, is_reentrant=settings.REENTRANT_JSPI, **kwargs)
++
++
+ class llvmlibc(DebugLibrary, AsanInstrumentedLibrary, MTLibrary):
+   name = 'libllvmlibc'
+   never_force = True
+@@ -1223,6 +1260,7 @@ class libc(MuslInternalLibrary,
+           'em_task_queue.c',
+           'proxying.c',
+           'proxying_legacy.c',
++          'emscripten_epoll_callback.c',
+           'thread_mailbox.c',
+           'pthread_create.c',
+           'pthread_kill.c',
+@@ -2493,6 +2531,8 @@ def get_libs_to_link():
+   else:
+     add_library('libsockets')
+ 
++  add_library('libjspi')
++
+   if settings.WASM_WORKERS and (not settings.SINGLE_FILE and not settings.MAIN_MODULE):
+     # When we include libwasm_workers we use `--whole-archive` to ensure
+     # that the static constructor (`emscripten_wasm_worker_main_thread_initialize`)

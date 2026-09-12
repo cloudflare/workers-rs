@@ -11,6 +11,7 @@ description = "This is a tool to be used as a custom build command for a Cloudfl
 [dependencies]
 anyhow = "1.0.98"
 binary-install = "0.4.1"
+diffy = "0.5"
 cargo_metadata = "0.23.1"
 clap = { version = "4.5", features = ['derive'] }
 console = "0.16.0"
