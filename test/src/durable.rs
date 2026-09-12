@@ -4,13 +4,14 @@ use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::panic::AssertUnwindSafe;
 use std::rc::Rc;
+use std::time::Duration;
 use worker::DurableObject;
 
 use worker::{
     durable_object,
     js_sys::{self, Uint8Array},
     wasm_bindgen::JsValue,
-    Env, Method, ObjectNamespace, Request, RequestInit, Response, Result, State,
+    Delay, Env, Method, ObjectNamespace, Request, RequestInit, Response, Result, State,
 };
 
 #[durable_object]
@@ -30,11 +31,12 @@ impl DurableObject for MyClass {
         let limit = Rc::new(Cell::new(0));
         // The JS constructor idiom: call block_concurrency_while without awaiting it. The
         // runtime gates delivery of all events until the init future completes, so the first
-        // request must observe the loaded limit, never the 0 sentinel. The second await inside
-        // the closure verifies the gate holds across multiple suspension points.
+        // request must observe the loaded limit, never the 0 sentinel. The delay is a
+        // non-storage await, since storage ops already hold the input gate implicitly.
         let (runs, l, storage) = (init_runs.clone(), limit.clone(), state.storage());
-        let _init = state.block_concurrency_while(move || async move {
+        let _init = state.block_concurrency_while(async move {
             runs.set(runs.get() + 1);
+            Delay::from(Duration::from_millis(200)).await;
             let stored: u64 = storage.get("limit").await?.unwrap_or(100);
             storage.put("init_probe", stored).await?;
             l.set(stored);
@@ -213,7 +215,7 @@ impl DurableObject for MyClass {
                     let storage = self.state.storage();
                     let count: usize = self
                         .state
-                        .block_concurrency_while(move || async move {
+                        .block_concurrency_while(async move {
                             let current: usize = storage.get("bcw_count").await?.unwrap_or(0);
                             let next = current + 1;
                             storage.put("bcw_count", next).await?;
@@ -233,7 +235,7 @@ impl DurableObject for MyClass {
                     let storage = self.state.storage();
                     let outcome: std::result::Result<String, String> = self
                         .state
-                        .block_concurrency_while(move || async move {
+                        .block_concurrency_while(async move {
                             let _seen: Option<usize> =
                                 storage.get("bcw_count").await.ok().flatten();
                             Ok(Err("simulated transient failure".to_string()))
@@ -253,7 +255,7 @@ impl DurableObject for MyClass {
                 "/block-concurrency-reset-trigger" => {
                     // Returning `Err` rejects the promise and resets the object.
                     self.state
-                        .block_concurrency_while(move || async move {
+                        .block_concurrency_while(async move {
                             Err::<(), _>(worker::Error::RustError("intentional reset".into()))
                         })
                         .await?;

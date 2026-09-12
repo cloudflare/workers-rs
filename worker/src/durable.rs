@@ -281,14 +281,16 @@ impl State {
             .unwrap()
     }
 
-    /// Executes an async closure while blocking delivery of any other events to the Durable Object
-    /// until it completes, guaranteeing ordering. Binds the runtime's
+    /// Runs a future while blocking delivery of any other events to the Durable Object until it
+    /// completes, guaranteeing ordering. Binds the runtime's
     /// [`blockConcurrencyWhile`](https://developers.cloudflare.com/durable-objects/api/state/#blockconcurrencywhile),
     /// with the same call-time semantics as JavaScript: the gate closes as a side effect of the
     /// *call*, and the returned future only observes completion.
     ///
-    /// Awaiting the future yields the closure's value. Discarding it instead gives the JavaScript
-    /// constructor idiom, gating all event delivery until async initialization completes:
+    /// Awaiting the returned future yields the inner future's value. Discarding it instead gives
+    /// the JavaScript constructor idiom, gating all event delivery until async initialization
+    /// completes. Bind it to a `_`-prefixed name: the `unused_must_use` and clippy
+    /// `let_underscore_future` lints do not apply here since the gate is already active:
     ///
     /// ```no_run
     /// # use std::{cell::Cell, rc::Rc};
@@ -296,36 +298,35 @@ impl State {
     /// # fn example(state: State) {
     /// let limit = Rc::new(Cell::new(0));
     /// let (l, storage) = (limit.clone(), state.storage());
-    /// let _init = state.block_concurrency_while(move || async move {
+    /// let _init = state.block_concurrency_while(async move {
     ///     l.set(storage.get("limit").await?.unwrap_or(100));
     ///     Ok(())
     /// });
     /// # }
     /// ```
     ///
-    /// **If the closure returns `Err`, the Durable Object is terminated and reset**, as with
+    /// **If the future returns `Err`, the Durable Object is terminated and reset**, as with
     /// throwing in the JavaScript callback. To treat errors as values instead, return them inside
-    /// `Ok` (`T = Result<Outcome, MyError>`). The runtime also resets the object if the closure
+    /// `Ok` (`T = Result<Outcome, MyError>`). The runtime also resets the object if the future
     /// exceeds a 30 second timeout.
     ///
-    /// The closure must be `'static`, so it cannot borrow `&self`; move owned values (such as
+    /// The future must be `'static`, so it cannot borrow `&self`; move owned values (such as
     /// `state.storage()` or a cloned `Env`) in instead.
     ///
     /// # Errors
     ///
-    /// Errors if the `blockConcurrencyWhile` call fails, the closure returns `Err`, or the callback
+    /// Errors if the `blockConcurrencyWhile` call fails, the future returns `Err`, or the callback
     /// does not run.
-    pub fn block_concurrency_while<F, Fut, T>(&self, closure: F) -> impl Future<Output = Result<T>>
+    pub fn block_concurrency_while<F, T>(&self, future: F) -> impl Future<Output = Result<T>>
     where
-        F: FnOnce() -> Fut + 'static,
-        Fut: Future<Output = Result<T>> + 'static,
+        F: Future<Output = Result<T>> + 'static,
         T: 'static,
     {
         let output: Rc<RefCell<Option<T>>> = Rc::new(RefCell::new(None));
         let slot = output.clone();
         let callback = wasm_bindgen::closure::Closure::once_into_js(AssertUnwindSafe(move || {
             future_to_promise(AssertUnwindSafe(async move {
-                let value = closure().await.map_err(JsValue::from)?;
+                let value = future.await.map_err(JsValue::from)?;
                 *slot.borrow_mut() = Some(value);
                 Ok(JsValue::NULL)
             }))
