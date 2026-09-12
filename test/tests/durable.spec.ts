@@ -29,19 +29,77 @@ describe("durable", () => {
       calledClose = true;
     });
 
+    const waitForCnt = async (n: number) => {
+      for (let i = 0; i < 100 && cnt < n; i++)
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(cnt).toBe(n);
+    };
+
     socket.send("hi, can you ++?");
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    expect(cnt).toBe(1);
+    await waitForCnt(1);
 
     socket.send("hi again, more ++?");
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    expect(cnt).toBe(2);
+    await waitForCnt(2);
 
     socket.close();
 
     // TODO: Investigate why this is not passing
     // await new Promise(resolve => setTimeout(resolve, 1000));
     // expect(calledClose).toBe(true);
+  });
+
+  test("block-concurrency-while", async () => {
+    const first = await mf.dispatchFetch(`${mfUrl}durable/block-concurrency`);
+    expect(first.status).toBe(200);
+    expect(await first.text()).toBe("1");
+
+    const second = await mf.dispatchFetch(`${mfUrl}durable/block-concurrency`);
+    expect(second.status).toBe(200);
+    expect(await second.text()).toBe("2");
+  });
+
+  // Errors returned inside Ok flow back as values; the incrementing counter
+  // proves the object was not reset.
+  test("block-concurrency-while errors as values do not reset", async () => {
+    const first = await mf.dispatchFetch(`${mfUrl}durable/block-concurrency-errors-as-values`);
+    expect(first.status).toBe(200);
+    expect(await first.text()).toBe("err:simulated transient failure:1");
+
+    const second = await mf.dispatchFetch(`${mfUrl}durable/block-concurrency-errors-as-values`);
+    expect(second.status).toBe(200);
+    expect(await second.text()).toBe("err:simulated transient failure:2");
+  });
+
+  // Closures returning Err reset the object: the in-memory counter persists across
+  // requests (1 -> 2), then drops back to 1 after the reset.
+  test("block-concurrency-while resets the object on error", async () => {
+    const count = () =>
+      mf
+        .dispatchFetch(`${mfUrl}durable/block-concurrency-reset-count`)
+        .then((r) => r.text());
+
+    expect(await count()).toBe("1");
+    expect(await count()).toBe("2");
+
+    const triggered = await mf.dispatchFetch(
+      `${mfUrl}durable/block-concurrency-reset-trigger`,
+    );
+    expect(triggered.status).toBe(500);
+
+    expect(await count()).toBe("1");
+  });
+
+  // Constructor-gated async init: new() fires block_concurrency_while without awaiting
+  // it, so the very first request must already observe the loaded limit rather than the
+  // 0 sentinel, and the init closure runs exactly once.
+  test("constructor async initialization gates event delivery", async () => {
+    const first = await mf.dispatchFetch(`${mfUrl}durable/constructor-init`);
+    expect(first.status).toBe(200);
+    expect(await first.text()).toBe("limit:100:1");
+
+    const second = await mf.dispatchFetch(`${mfUrl}durable/constructor-init`);
+    expect(second.status).toBe(200);
+    expect(await second.text()).toBe("limit:100:1");
   });
 
   test("get-by-name", async () => {
