@@ -68,6 +68,7 @@ pub fn durable_object(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// * `scheduled`: [Scheduled Handler](https://developers.cloudflare.com/workers/runtime-apis/handlers/scheduled/)
 /// * `queue`: [Queue Handler](https://developers.cloudflare.com/queues/reference/javascript-apis/#consumer)
 ///   * This attribute is only available when the `queue` feature is enabled.
+/// * `connect`: [TCP Socket Connect Handler](https://developers.cloudflare.com/workers/runtime-apis/tcp-sockets/)
 /// * `start`: merely creates a [wasm-bindgen start function](https://rustwasm.github.io/wasm-bindgen/reference/attributes/on-rust-exports/start.html)
 /// * `respond_with_errors`: if this attribute is present, the function will return a `Response` object with a 500 status code and the status text of the error message, if an error occurs
 ///

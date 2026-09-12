@@ -1,7 +1,16 @@
 use crate::SomeSharedData;
 use tokio::io::AsyncReadExt;
 use tokio::io::AsyncWriteExt;
-use worker::{ConnectionBuilder, Env, Error, Request, Response, Result};
+use worker::{ConnectionBuilder, Context, Env, Error, Request, Response, Result, Socket};
+
+#[worker::event(connect)]
+pub async fn handle_connect(mut socket: Socket, _env: Env, _ctx: Context) -> Result<()> {
+    let mut request = [0; 4];
+    socket.read_exact(&mut request).await?;
+    socket.write_all(&request).await?;
+    socket.flush().await?;
+    Ok(())
+}
 
 #[worker::send]
 pub async fn handle_socket_failed(
