@@ -6,3 +6,10 @@ compatibility_flags = ["nodejs_compat", "new_module_registry"]
 
 [build]
 command = "cargo install -q worker-build && worker-build --emscripten --release"
+
+[durable_objects]
+bindings = [{ name = "PROBE", class_name = "Probe" }]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["Probe"]
