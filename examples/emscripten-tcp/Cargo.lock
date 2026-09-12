@@ -561,7 +561,7 @@ dependencies = [
 [[package]]
 name = "tokio"
 version = "1.53.1"
-source = "git+https://github.com/guybedford/tokio?branch=emscripten-epoll#8d0a2a845c546e93a4cf0e8ff2c21ac50a3d1931"
+source = "git+https://github.com/guybedford/tokio?branch=emscripten-jspi-hooks#5e7090a7953ffab402b784f939c6e9a6fa07e30f"
 dependencies = [
  "bytes",
  "libc",
@@ -575,7 +575,7 @@ dependencies = [
 [[package]]
 name = "tokio-macros"
 version = "2.7.2"
-source = "git+https://github.com/guybedford/tokio?branch=emscripten-epoll#8d0a2a845c546e93a4cf0e8ff2c21ac50a3d1931"
+source = "git+https://github.com/guybedford/tokio?branch=emscripten-jspi-hooks#5e7090a7953ffab402b784f939c6e9a6fa07e30f"
 dependencies = [
  "proc-macro2",
  "quote",

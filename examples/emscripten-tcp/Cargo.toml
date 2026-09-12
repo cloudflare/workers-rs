@@ -17,8 +17,8 @@ opt-level = "s"
 
 # wasm32-unknown-emscripten support pending upstream releases (see README).
 [patch.crates-io]
-tokio = { git = "https://github.com/guybedford/tokio", branch = "emscripten-epoll" }
-tokio-macros = { git = "https://github.com/guybedford/tokio", branch = "emscripten-epoll" }
+tokio = { git = "https://github.com/guybedford/tokio", branch = "emscripten-jspi-hooks" }
+tokio-macros = { git = "https://github.com/guybedford/tokio", branch = "emscripten-jspi-hooks" }
 mio = { git = "https://github.com/guybedford/mio", rev = "a62c9e46833fc255c9217ab9aa362c6221ed4401" }
 libc = { git = "https://github.com/rust-lang/libc", branch = "libc-0.2" }
 # rlib-only: cargo would otherwise also link its cdylib, which emcc cannot produce.

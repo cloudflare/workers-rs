@@ -1,6 +1,0 @@
-name = "emscripten-tcp"
-main = "build/index.js"
-compatibility_date = "2026-06-02"
-# new_module_registry gives the Emscripten glue `import.meta.url`.
-compatibility_flags = ["nodejs_compat", "new_module_registry"]
-

@@ -36,7 +36,7 @@ same block to your own Worker:
 
 | Crate | Source | Why |
 | --- | --- | --- |
-| tokio, tokio-macros | `guybedford/tokio` branch `emscripten-epoll` | JSPI parking and the `net` feature on emscripten (tokio-rs/tokio#8281 follow-ons) |
+| tokio, tokio-macros | `guybedford/tokio` branch `emscripten-jspi-hooks` | JSPI parking, the `net` feature and fiber-owned runtime context on emscripten (tokio-rs/tokio#8281 follow-ons) |
 | mio | `guybedford/mio` rev `a62c9e4` | epoll selector on emscripten (tokio-rs/mio#1969) |
 | libc | `rust-lang/libc` branch `libc-0.2` | emscripten epoll bindings, unreleased |
 | wasm-streams | `guybedford/wasm-streams` branch `rlib-only` | rlib-only: cargo would otherwise link its cdylib, which emcc cannot produce |
