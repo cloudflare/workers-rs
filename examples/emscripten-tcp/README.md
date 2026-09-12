@@ -21,6 +21,10 @@ which runs `wasm-bindgen` as a post-link step. So handlers live in
 `#[wasm_bindgen(jspi)]` export returns a Promise to the runtime while the Rust
 side stays synchronous.
 
+The toolchain links `-sREENTRANT_JSPI`, so each activation of `fetch` runs on
+its own shadow stack and concurrent requests to one isolate each drive their
+own runtime.
+
 `rust-toolchain.toml` selects `beta` (`OwnedFd::try_clone` on emscripten,
 used by mio's registry, lands in 1.99).
 
