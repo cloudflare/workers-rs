@@ -41,6 +41,9 @@ pub const RUSTFLAGS: &[&str] = &[
     // translated at link, and wasm-bindgen's JSPI wrappers use try_table.
     // V8 rejects a module mixing the two encodings.
     "-Cllvm-args=-wasm-use-legacy-eh=false",
+    // Tokio's emscripten port owns its runtime context per JSPI fiber through
+    // the lifecycle hooks the link provides.
+    "--cfg=tokio_jspi_hooks",
 ];
 
 /// emcc settings for the final link. Kept out of EMCC_CFLAGS so they do not
