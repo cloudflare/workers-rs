@@ -11,6 +11,7 @@ pub fn expand_macro(_attr: TokenStream, stream: TokenStream) -> TokenStream {
         vis,
         sig,
         block,
+        ..
     } = input;
     let stmts = &block.stmts;
 

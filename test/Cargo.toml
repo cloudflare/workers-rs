@@ -39,18 +39,18 @@ chrono = { version = "0.4", default-features = false, features = [
     "clock",
 ] }
 cfg-if = "1.0"
-getrandom = { version = "0.3", features = ["wasm_js"] }
+getrandom = { version = "0.4", features = ["wasm_js"] }
 hex = "0.4"
 http.workspace = true
 regex = "1.8.4"
 serde.workspace = true
 serde_json.workspace = true
 worker.workspace = true
-rand = "0.9.1"
+rand = "0.10.2"
 uuid = { version = "1.17", features = ["v4", "serde", "js"] }
 serde-wasm-bindgen.workspace = true
 wasm-bindgen.workspace = true
-md5 = "0.7.0"
+md5 = "0.8.1"
 tokio-stream = "0.1"
 tokio = { version = "1.45", default-features = false, features = ['io-util'] }
 axum = { version = "0.8", optional = true, default-features = false }
@@ -65,5 +65,5 @@ futures-util = { version = "0.3", default-features = false, features = [
     "sink",
 ] }
 tokio = { version = "1.45", features = ["macros", "rt", "test-util"] }
-tungstenite = "0.27"
+tungstenite = "0.30"
 retry = "2.1"

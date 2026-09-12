@@ -29,13 +29,14 @@ fn wit_type_to_str(ty: &wit_parser::Type) -> anyhow::Result<String> {
         wit_parser::Type::F64 => "f64".to_string(),
         wit_parser::Type::Char => "char".to_string(),
         wit_parser::Type::String => "String".to_string(),
-        wit_parser::Type::Id(t) => anyhow::bail!("Unsupported type: '{t:?}'"),
+        t => anyhow::bail!("Unsupported type: '{t:?}'"),
     })
 }
 
 fn expand_args(method: &wit_parser::Function) -> anyhow::Result<Vec<syn::FnArg>> {
     let mut args = Vec::with_capacity(method.params.len());
-    for (arg_name, arg) in &method.params {
+    for param in &method.params {
+        let (arg_name, arg) = (&param.name, &param.ty);
         let param = syn::FnArg::Typed(syn::PatType {
             attrs: vec![],
             pat: Box::new(syn::Pat::Ident(syn::PatIdent {
@@ -63,10 +64,10 @@ fn expand_trait(interface: &Interface, interface_name: &Ident) -> anyhow::Result
 
     for (name, method) in &interface.functions {
         let ident = format_ident!("{}", name.to_case(Case::Snake));
-        let ret_type = if let wit_parser::Results::Anon(ty) = &method.results {
+        let ret_type = if let Some(ty) = &method.result {
             format_ident!("{}", wit_type_to_str(ty)?)
         } else {
-            anyhow::bail!("Unsupported return type: '{:?}'", method.results);
+            anyhow::bail!("Unsupported return type: '{:?}'", method.result);
         };
 
         let method_raw = quote!(
@@ -119,7 +120,8 @@ fn expand_rpc_impl(
         let ident = format_ident!("{}", name.to_case(Case::Snake));
         let invocation_raw = quote!(self.0.#ident());
         let mut invocation_item: syn::ExprMethodCall = syn::parse2(invocation_raw)?;
-        for (arg_name, _) in &method.params {
+        for param in &method.params {
+            let arg_name = &param.name;
             let mut segments = syn::punctuated::Punctuated::new();
             segments.push(syn::PathSegment {
                 ident: format_ident!("{}", arg_name),
@@ -135,10 +137,10 @@ fn expand_rpc_impl(
             }));
         }
 
-        let ret_type = if let wit_parser::Results::Anon(ty) = &method.results {
+        let ret_type = if let Some(ty) = &method.result {
             format_ident!("{}", wit_type_to_str(ty)?)
         } else {
-            anyhow::bail!("Unsupported return type: '{:?}'", method.results);
+            anyhow::bail!("Unsupported return type: '{:?}'", method.result);
         };
 
         let method_raw = quote!(
@@ -235,6 +237,7 @@ fn expand_wit(path: &str) -> anyhow::Result<syn::File> {
 
     let rust_file = syn::File {
         shebang: None,
+        frontmatter: None,
         attrs: vec![],
         items,
     };

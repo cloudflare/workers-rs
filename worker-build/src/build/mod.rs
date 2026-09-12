@@ -461,7 +461,21 @@ impl Build {
             Some(args) => args,
             None => return Ok(()),
         };
-        args.push("--all-features".into());
+        // Explicit feature set rather than --all-features so that new binaryen
+        // encodings (e.g. compact imports) are never emitted before workerd
+        // supports them. Covers rustc wasm32-unknown-unknown defaults plus the
+        // exception handling used by wasm-bindgen catch wrappers.
+        for feature in [
+            "mutable-globals",
+            "sign-ext",
+            "nontrapping-float-to-int",
+            "bulk-memory",
+            "multivalue",
+            "reference-types",
+            "exception-handling",
+        ] {
+            args.push(format!("--enable-{feature}"));
+        }
         // Keep the Wasm names section
         args.push("--debuginfo".into());
         info!("executing wasm-opt with {args:?}");

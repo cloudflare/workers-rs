@@ -14,5 +14,5 @@ crate-type = ["cdylib"]
 # `wasm32-unknown-unknown`, so disable it. The remaining core API is enough
 # to assemble a message as long as we set `date` and `message_id` ourselves
 # (the auto-generated ones rely on `SystemTime::now()` / `gethostname`).
-mail-builder = { version = "0.4", default-features = false }
+mail-builder = { version = "0.5", default-features = false }
 worker.workspace = true

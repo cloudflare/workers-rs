@@ -1,6 +1,6 @@
 use super::SomeSharedData;
 use futures_util::stream::StreamExt;
-use rand::Rng;
+use rand::RngExt;
 use std::{borrow::ToOwned, time::Duration};
 use worker::{
     console_log, ok, Cache, Date, Delay, Env, Request, Response, ResponseBuilder, Result,
