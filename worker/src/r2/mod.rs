@@ -541,3 +541,29 @@ impl From<Data> for JsValue {
         }
     }
 }
+
+#[cfg(test)]
+mod send_check {
+    // Every R2 handle wraps a `JsValue`-backed extern type, and `JsValue` is
+    // unconditionally `Send + Sync` outside of atomics builds (see
+    // `wasm_bindgen::JsValue`), so these hold without needing manual `unsafe
+    // impl`s. This compile-time check guards against a regression, since
+    // losing `Send` here breaks holding a `Bucket` in `axum` router state
+    // (see https://github.com/cloudflare/workers-rs/issues/485).
+    use super::{Bucket, MultipartUpload, Object, Objects, UploadedPart};
+    fn _assert_send<T: Send>() {}
+    fn _assert_sync<T: Sync>() {}
+    #[allow(dead_code)]
+    fn _check() {
+        _assert_send::<Bucket>();
+        _assert_sync::<Bucket>();
+        _assert_send::<Object>();
+        _assert_sync::<Object>();
+        _assert_send::<Objects>();
+        _assert_sync::<Objects>();
+        _assert_send::<MultipartUpload>();
+        _assert_sync::<MultipartUpload>();
+        _assert_send::<UploadedPart>();
+        _assert_sync::<UploadedPart>();
+    }
+}
