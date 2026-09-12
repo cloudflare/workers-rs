@@ -8,18 +8,18 @@ curl 'http://localhost:8787/?host=example.com'
 ```
 
 connects to port 80 of the host from inside the Worker and returns the HEAD
-response. `fetch` is a plain synchronous Rust function: it builds a
-current-thread Tokio runtime and `block_on`s the request; every blocking wait
-suspends the Wasm stack via JSPI and resumes when the runtime delivers the
-socket readiness, DNS result or timer.
+response; `/do?host=...` does the same from inside a Durable Object. The
+handler builds a current-thread Tokio runtime and `block_on`s the request;
+every blocking wait suspends the Wasm stack via JSPI and resumes when the
+runtime delivers the socket readiness, DNS result or timer.
 
 ## Layout
 
 An emscripten build links a **bin** target: rustc drives `emcc` as the linker,
 which runs `wasm-bindgen` as a post-link step. So handlers live in
 `src/main.rs` with an empty `fn main() {}`, and there is no `cdylib`. The
-`#[wasm_bindgen(jspi)]` export returns a Promise to the runtime while the Rust
-side stays synchronous.
+`#[event]` and `#[durable_object]` macros export the handlers as
+`#[wasm_bindgen(jspi)]` functions on this target.
 
 The toolchain links `-sREENTRANT_JSPI`, so each activation of `fetch` runs on
 its own shadow stack and concurrent requests to one isolate each drive their
