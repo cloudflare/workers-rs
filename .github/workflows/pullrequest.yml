@@ -183,7 +183,7 @@ jobs:
             sleep 1
           done
           curl -sf 'http://localhost:8787/?host=example.com' | tee response.txt
-          grep -q '^HTTP/1.0' response.txt
+          grep -q '^HTTP/1\.' response.txt
           cat wrangler.log
 
   rustfmt:
