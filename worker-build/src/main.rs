@@ -255,8 +255,11 @@ fn add_export_wrappers(out_dir: &Path, plain: bool) -> Result<()> {
         .with_context(|| format!("Failed to read {}", shim_path.display()))?;
     for class_name in class_names {
         if plain {
+            // The runtime only exposes RPC on classes deriving from DurableObject.
             output.push_str(&format!(
-                "export const {class_name} = exports.{class_name};\n"
+                "Object.setPrototypeOf(exports.{class_name}.prototype, DurableObject.prototype);\n\
+                 Object.setPrototypeOf(exports.{class_name}, DurableObject);\n\
+                 export const {class_name} = exports.{class_name};\n"
             ));
         } else {
             output.push_str(&format!(
