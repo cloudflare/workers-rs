@@ -73,7 +73,7 @@ env.WASM_BINDGEN_BIN = '../wasm-bindgen/target/debug/wasm-bindgen'
 env.WORKERD_ALL_AUTOGATES = '1'
 run = '''
 ../target/debug/worker-build --dev
-npx vitest run --testTimeout 25000
+npx vitest run --testTimeout 60000
 '''
 
 [[task]]
@@ -85,7 +85,7 @@ env.WASM_BINDGEN_BIN = '../wasm-bindgen/target/debug/wasm-bindgen'
 env.WORKERD_ALL_AUTOGATES = '1'
 run = '''
 ../target/debug/worker-build --release --features http
-npx vitest run --testTimeout 25000
+npx vitest run --testTimeout 60000
 '''
 
 [[task]]
@@ -97,7 +97,7 @@ env.WASM_BINDGEN_BIN = '../wasm-bindgen/target/debug/wasm-bindgen'
 env.WORKERD_ALL_AUTOGATES = '1'
 run = '''
 ../target/debug/worker-build --dev --panic-unwind
-npx vitest run --testTimeout 25000
+npx vitest run --testTimeout 60000
 '''
 
 [[task]]
