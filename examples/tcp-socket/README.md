@@ -13,4 +13,4 @@ npm run dev
 
 ## Handler
 
-The `connect` handler receives a [`Socket`](worker::Socket) for each inbound TCP connection and can read/write data using the standard `tokio::io` traits.
+The `connect` handler receives a [`Socket`](https://docs.rs/worker/latest/worker/struct.Socket.html) for each inbound TCP connection and can read/write data using the standard `tokio::io` traits.

@@ -313,7 +313,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                                 match #input_fn_ident(socket, env, ctx).await {
                                     Ok(()) => {},
                                     Err(e) => {
-                                        ::worker::console_log!("{}", &e);
+                                        ::worker::console_error!("{}", &e);
                                         panic!("{}", e);
                                     }
                                 }
