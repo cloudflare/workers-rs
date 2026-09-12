@@ -29,13 +29,17 @@ describe("durable", () => {
       calledClose = true;
     });
 
+    const waitForCnt = async (n: number) => {
+      for (let i = 0; i < 100 && cnt < n; i++)
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(cnt).toBe(n);
+    };
+
     socket.send("hi, can you ++?");
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    expect(cnt).toBe(1);
+    await waitForCnt(1);
 
     socket.send("hi again, more ++?");
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    expect(cnt).toBe(2);
+    await waitForCnt(2);
 
     socket.close();
 
