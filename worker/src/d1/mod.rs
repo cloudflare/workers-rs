@@ -17,6 +17,7 @@ use worker_sys::types::D1Database as D1DatabaseSys;
 use worker_sys::types::D1DatabaseSession as D1DatabaseSessionSys;
 use worker_sys::types::D1ExecResult;
 use worker_sys::types::D1PreparedStatement as D1PreparedStatementSys;
+use worker_sys::types::D1PreparedStatementRawOptions as D1PreparedStatementRawOptionsSys;
 use worker_sys::types::D1Result as D1ResultSys;
 
 use crate::env::EnvBinding;
@@ -448,8 +449,8 @@ impl D1PreparedStatement {
     where
         T: for<'a> Deserialize<'a>,
     {
-        let options = js_sys::Object::new();
-        js_sys::Reflect::set(&options, &JsValue::from_str("columnNames"), &JsValue::TRUE)?;
+        let options = D1PreparedStatementRawOptionsSys::new();
+        options.set_column_names(true);
 
         let result = JsFuture::from(self.0.raw_with_options(&options)?).await;
         let result = cast_to_d1_error(result)?;
