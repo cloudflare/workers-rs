@@ -33,6 +33,7 @@ mod request;
 mod router;
 mod secret_store;
 mod send_email;
+mod serde_repro;
 mod service;
 mod signal;
 mod socket;
