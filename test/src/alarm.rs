@@ -29,10 +29,10 @@ impl DurableObject for AlarmObject {
         Response::ok(alarmed.to_string())
     }
 
-    async fn alarm(&self) -> Result<Response> {
+    async fn alarm(&self) -> Result<()> {
         self.state.storage().put("alarmed", true).await?;
         console_log!("Alarm has been triggered!");
-        Response::ok("ALARMED")
+        Ok(())
     }
 }
 

@@ -69,8 +69,7 @@ mod bindgen_methods {
 
                 ::worker::js_sys::futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
                     <Self as ::worker::DurableObject>::alarm(static_self).await
-                        .map(::worker::worker_sys::web_sys::Response::from)
-                        .map(::worker::wasm_bindgen::JsValue::from)
+                        .map(|_| ::worker::wasm_bindgen::JsValue::NULL)
                         .map_err(::worker::wasm_bindgen::JsValue::from)
                 }))
             }
