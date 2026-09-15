@@ -97,4 +97,40 @@ extern "C" {
 
     #[wasm_bindgen(structural, method, catch, js_class=D1PreparedStatement, js_name=raw)]
     pub fn raw(this: &D1PreparedStatement) -> Result<Promise, JsValue>;
+
+    /// `raw()` with an options object.
+    ///
+    /// Bound separately because wasm-bindgen cannot overload `raw` on arity.
+    #[wasm_bindgen(structural, method, catch, js_class=D1PreparedStatement, js_name=raw)]
+    pub fn raw_with_options(
+        this: &D1PreparedStatement,
+        options: &D1PreparedStatementRawOptions,
+    ) -> Result<Promise, JsValue>;
+}
+
+#[wasm_bindgen]
+extern "C" {
+    /// Options accepted by `D1PreparedStatement.raw`.
+    #[wasm_bindgen(extends=::js_sys::Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type D1PreparedStatementRawOptions;
+
+    /// Whether the column names are returned as the first row of the result.
+    #[wasm_bindgen(method, getter, js_name=columnNames)]
+    pub fn column_names(this: &D1PreparedStatementRawOptions) -> bool;
+
+    #[wasm_bindgen(method, setter, js_name=columnNames)]
+    pub fn set_column_names(this: &D1PreparedStatementRawOptions, val: bool);
+}
+
+impl D1PreparedStatementRawOptions {
+    pub fn new() -> Self {
+        JsCast::unchecked_into(::js_sys::Object::new())
+    }
+}
+
+impl Default for D1PreparedStatementRawOptions {
+    fn default() -> Self {
+        Self::new()
+    }
 }
