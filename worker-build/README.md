@@ -44,3 +44,18 @@ cargo +stable build --manifest-path wasm-bindgen/Cargo.toml -p wasm-bindgen-cli 
 export WASM_BINDGEN_BIN="$PWD/wasm-bindgen/target/debug/wasm-bindgen"
 worker-build --release
 ```
+
+## Split WebAssembly debug information
+
+To retain DWARF without embedding it in the runtime WebAssembly module, enable
+debug splitting for the profile used by `worker-build`:
+
+```toml
+[package.metadata.wasm-pack.profile.release.wasm-bindgen]
+split-debug-info = true
+```
+
+`worker-build` keeps debug information through `wasm-opt`, then writes the
+optimized module to `index_bg.debug.wasm`. The runtime `index_bg.wasm` has its
+`.debug_*` sections removed and points to the sidecar through an
+`external_debug_info` custom section.

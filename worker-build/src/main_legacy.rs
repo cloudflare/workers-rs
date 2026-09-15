@@ -132,6 +132,8 @@ fn copy_generated_code_to_worker_dir(out_dir: &Path) -> Result<()> {
 
     let wasm_src = output_path(out_dir, format!("{OUT_NAME}_bg.wasm"));
     let wasm_dest = worker_path(out_dir, format!("{OUT_NAME}.wasm"));
+    let debug_wasm_src = output_path(out_dir, format!("{OUT_NAME}_bg.debug.wasm"));
+    let debug_wasm_dest = worker_path(out_dir, format!("{OUT_NAME}_bg.debug.wasm"));
 
     // wasm-bindgen supports adding arbitrary JavaScript for a library, so we need to move that as well.
     // https://rustwasm.github.io/wasm-bindgen/reference/js-snippets.html
@@ -141,6 +143,7 @@ fn copy_generated_code_to_worker_dir(out_dir: &Path) -> Result<()> {
     for (src, dest) in [
         (glue_src, glue_dest),
         (wasm_src, wasm_dest),
+        (debug_wasm_src, debug_wasm_dest),
         (snippets_src, snippets_dest),
     ] {
         if !src.exists() {
@@ -227,4 +230,31 @@ fn worker_path(out_dir: &Path, name: impl AsRef<str>) -> PathBuf {
 
 fn output_path(out_dir: &Path, name: impl AsRef<str>) -> PathBuf {
     out_dir.join(name.as_ref())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use super::{copy_generated_code_to_worker_dir, create_worker_dir};
+
+    #[test]
+    fn moves_debug_sidecar_next_to_renamed_runtime_module() {
+        let out_dir = tempfile::tempdir().unwrap();
+        fs::write(out_dir.path().join("index_bg.wasm"), b"runtime").unwrap();
+        fs::write(out_dir.path().join("index_bg.debug.wasm"), b"debug").unwrap();
+
+        create_worker_dir(out_dir.path()).unwrap();
+        copy_generated_code_to_worker_dir(out_dir.path()).unwrap();
+
+        assert_eq!(
+            fs::read(out_dir.path().join("worker/index.wasm")).unwrap(),
+            b"runtime"
+        );
+        assert_eq!(
+            fs::read(out_dir.path().join("worker/index_bg.debug.wasm")).unwrap(),
+            b"debug"
+        );
+        assert!(!out_dir.path().join("index_bg.debug.wasm").exists());
+    }
 }

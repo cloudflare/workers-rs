@@ -310,7 +310,7 @@ impl Build {
             steps.extend(steps![step_run_wasm_opt]);
         }
 
-        steps.extend(steps![step_create_json,]);
+        steps.extend(steps![step_split_debug_info, step_create_json,]);
         steps
     }
 
@@ -348,11 +348,16 @@ impl Build {
 
     fn step_build_wasm(&mut self) -> Result<()> {
         info!("Building wasm...");
+        let keep_debug_info = self
+            .crate_data
+            .configured_profile(self.profile.clone())
+            .wasm_bindgen_keep_debug_info();
         target::cargo_build_wasm(
             &self.crate_path,
             self.profile.clone(),
             &self.extra_options,
             self.panic_unwind,
+            keep_debug_info,
         )?;
 
         info!(
@@ -471,6 +476,19 @@ impl Build {
             )
         })
     }
+
+    fn step_split_debug_info(&mut self) -> Result<()> {
+        if !self
+            .crate_data
+            .configured_profile(self.profile.clone())
+            .wasm_bindgen_split_debug_info()
+        {
+            return Ok(());
+        }
+
+        info!("Splitting WebAssembly debug information...");
+        crate::debug_info::split_debug_info(&self.out_dir)
+    }
 }
 
 /// Run the `wasm-bindgen` CLI to generate bindings for the current crate's
@@ -535,7 +553,7 @@ pub fn wasm_bindgen_build(
     if !profile.wasm_bindgen_demangle_name_section() {
         cmd.arg("--no-demangle");
     }
-    if profile.wasm_bindgen_dwarf_debug_info() {
+    if profile.wasm_bindgen_keep_debug_info() {
         cmd.arg("--keep-debug");
     }
     if profile.wasm_bindgen_omit_default_module_path() {
@@ -576,4 +594,28 @@ pub fn wasm_opt_run(out_dir: &Path, args: &[String]) -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Build;
+
+    #[test]
+    fn debug_split_is_the_final_wasm_transform() {
+        let optimized = Build::get_process_steps(false)
+            .into_iter()
+            .map(|(name, _)| name)
+            .collect::<Vec<_>>();
+        assert!(optimized
+            .windows(2)
+            .any(|steps| steps == ["step_run_wasm_opt", "step_split_debug_info"]));
+
+        let unoptimized = Build::get_process_steps(true)
+            .into_iter()
+            .map(|(name, _)| name)
+            .collect::<Vec<_>>();
+        assert!(unoptimized
+            .windows(2)
+            .any(|steps| steps == ["step_run_wasm_bindgen", "step_split_debug_info"]));
+    }
 }

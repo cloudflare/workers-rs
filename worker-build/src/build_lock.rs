@@ -116,6 +116,8 @@ impl BuildLock {
         // Stop heartbeat
         self.stop_heartbeat();
 
+        remove_stale_debug_sidecars(&self.out_dir, &self.tmp_dir)?;
+
         // Move each entry from .tmp/ into out_dir/
         for entry in fs::read_dir(&self.tmp_dir).with_context(|| {
             format!(
@@ -199,9 +201,57 @@ impl BuildLock {
     }
 }
 
+fn remove_stale_debug_sidecars(out_dir: &Path, tmp_dir: &Path) -> Result<()> {
+    for entry in fs::read_dir(out_dir)
+        .with_context(|| format!("Failed to read output directory {}", out_dir.display()))?
+    {
+        let entry = entry?;
+        let name = entry.file_name();
+        if name
+            .to_str()
+            .is_some_and(|name| name.ends_with(".debug.wasm"))
+            && entry.path().is_file()
+            && !tmp_dir.join(&name).exists()
+        {
+            fs::remove_file(entry.path()).with_context(|| {
+                format!(
+                    "Failed to remove stale debug sidecar {}",
+                    entry.path().display()
+                )
+            })?;
+        }
+    }
+    Ok(())
+}
+
 impl Drop for BuildLock {
     fn drop(&mut self) {
         // Ensure heartbeat is stopped even on error/panic
         self.stop_heartbeat();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use super::remove_stale_debug_sidecars;
+
+    #[test]
+    fn removes_only_debug_sidecars_absent_from_staging() {
+        let root = tempfile::tempdir().unwrap();
+        let out_dir = root.path().join("build");
+        let tmp_dir = out_dir.join(".tmp");
+        fs::create_dir_all(&tmp_dir).unwrap();
+        fs::write(out_dir.join("stale.debug.wasm"), b"stale").unwrap();
+        fs::write(out_dir.join("current.debug.wasm"), b"old").unwrap();
+        fs::write(tmp_dir.join("current.debug.wasm"), b"new").unwrap();
+        fs::write(out_dir.join("keep.wasm"), b"runtime").unwrap();
+
+        remove_stale_debug_sidecars(&out_dir, &tmp_dir).unwrap();
+
+        assert!(!out_dir.join("stale.debug.wasm").exists());
+        assert!(out_dir.join("current.debug.wasm").exists());
+        assert!(out_dir.join("keep.wasm").exists());
     }
 }

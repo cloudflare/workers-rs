@@ -15,6 +15,7 @@ const SHIM_UNWIND_FILE: &str = include_str!("./js/shim-unwind.js");
 pub(crate) mod binary;
 mod build;
 mod build_lock;
+mod debug_info;
 mod emoji;
 mod lockfile;
 mod main_legacy;

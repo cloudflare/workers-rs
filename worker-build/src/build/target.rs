@@ -344,6 +344,7 @@ pub fn cargo_build_wasm(
     profile: BuildProfile,
     extra_options: &[String],
     panic_unwind: bool,
+    keep_debug_info: bool,
 ) -> Result<()> {
     let msg = if panic_unwind {
         format!("{}Compiling to Wasm (with panic=unwind)...", emoji::CYCLONE)
@@ -363,6 +364,18 @@ pub fn cargo_build_wasm(
 
     if PBAR.quiet() {
         cmd.arg("--quiet");
+    }
+
+    let cargo_profile = match &profile {
+        BuildProfile::Dev => "dev",
+        BuildProfile::Release | BuildProfile::Profiling => "release",
+        BuildProfile::Custom(profile) => profile,
+    };
+    if keep_debug_info {
+        cmd.arg("--config")
+            .arg(format!("profile.{cargo_profile}.debug=true"))
+            .arg("--config")
+            .arg(format!("profile.{cargo_profile}.strip=false"));
     }
 
     match profile {
