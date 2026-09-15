@@ -3369,6 +3369,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ef4c5d3d2cdf5c54f4231181768f5510842e350db025faf1f7163b1030ed928"
 dependencies = [
  "js-sys",
+ "tokio",
  "wasm-bindgen",
 ]
 
