@@ -286,7 +286,10 @@ impl<'a> From<&'a D1Type<'a>> for JsValue {
             D1Type::Integer(i) => JsValue::from_f64(i as f64),
             D1Type::Text(s) => JsValue::from_str(s),
             D1Type::Boolean(b) => JsValue::from_bool(b),
-            D1Type::Blob(a) => serde_wasm_bindgen::to_value(a).unwrap(),
+            // D1's documented BLOB representation is an `ArrayBuffer`; copying
+            // through a `Uint8Array` crosses the JS boundary once instead of
+            // serializing element-by-element into a number array.
+            D1Type::Blob(a) => js_sys::Uint8Array::from(a).buffer().into(),
         }
     }
 }
