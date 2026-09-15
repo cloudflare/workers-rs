@@ -1,19 +1,20 @@
 Subject: [PATCH] JSPI lifecycle hooks, REENTRANT_JSPI fiber stacks and epoll listeners
 
-Backport of emscripten-core/emscripten#27698, #27699 and the
-emscripten_epoll_add_listener / emscripten_epoll_remove_listener API to the
-6.0.9 release (the cf-final branch of guybedford/emscripten), without their
-tests and docs. -sREENTRANT_JSPI gives each JSPI activation its own shadow
-stack so promising exports may be re-entered while another is suspended.
--sJSPI_HOOKS needs a Binaryen with the jspi-hooks pass
-(WebAssembly/binaryen#9102); worker-build supplies one.
+Backport of emscripten-core/emscripten#27698, #27699 and #27547 (their
+current heads, 5e7c6bca0..0be344623 and 8c6c08189..6f08c0e47) to the 6.0.9
+release, without tests, docs and codesize baselines. -sREENTRANT_JSPI gives
+each JSPI activation its own shadow stack so promising exports may be
+re-entered while another is suspended; emscripten_epoll_add_listener
+delivers epoll readiness as a host macrotask. -sJSPI_HOOKS needs a Binaryen
+with the jspi-hooks pass (WebAssembly/binaryen#9102); worker-build supplies
+one.
 
 Base-commit: 4e4223852a0835923411059a3929907d7df1232e (tag 6.0.9),
-after wasm-bindgen-marker.patch and noderawsockets-dns.patch
+after wasm-bindgen-marker.patch. The tools/settings.py hunk is re-indented
+for the release.
 
 ---
 diff --git a/src/lib/libasync.js b/src/lib/libasync.js
-index b0d59fa..2063f5f 100644
 --- a/src/lib/libasync.js
 +++ b/src/lib/libasync.js
 @@ -160,16 +160,19 @@ addToLibrary({
@@ -82,10 +83,9 @@ index b0d59fa..2063f5f 100644
    emscripten_sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
  
 diff --git a/src/lib/libcore.js b/src/lib/libcore.js
-index 4fd4c61..3e57b11 100644
 --- a/src/lib/libcore.js
 +++ b/src/lib/libcore.js
-@@ -1814,7 +1814,11 @@ addToLibrary({
+@@ -1739,7 +1739,11 @@ addToLibrary({
      var end = _emscripten_stack_get_end();
      abort(`stack overflow (Attempt to set SP to ${ptrToString(requested)}` +
            `, with stack limits [${ptrToString(end)} - ${ptrToString(base)}` +
@@ -97,7 +97,7 @@ index 4fd4c61..3e57b11 100644
    },
  #endif
  
-@@ -1870,14 +1874,37 @@ addToLibrary({
+@@ -1795,14 +1799,37 @@ addToLibrary({
      var f = dynCalls[sig];
      return f(ptr, ...args);
    },
@@ -135,7 +135,7 @@ index 4fd4c61..3e57b11 100644
  #endif
  
    // Used in library code to get JS function from wasm function pointer.
-@@ -1886,7 +1913,7 @@ addToLibrary({
+@@ -1811,7 +1838,7 @@ addToLibrary({
    $getDynCaller__deps: ['$dynCall'],
    $getDynCaller: (sig, ptr, promising = false) => {
  #if ASSERTIONS && !DYNCALLS
@@ -144,7 +144,7 @@ index 4fd4c61..3e57b11 100644
  #endif
      return (...args) => dynCall(sig, ptr, args, promising);
    },
-@@ -1920,13 +1947,19 @@ addToLibrary({
+@@ -1845,13 +1872,19 @@ addToLibrary({
  #if ASSERTIONS
      assert(getWasmTableEntry(ptr), `missing table entry in dynCall: ${ptr}`);
  #endif
@@ -167,7 +167,7 @@ index 4fd4c61..3e57b11 100644
  #endif // DYNCALLS
  
      function convert(rtn) {
-@@ -1939,11 +1972,6 @@ addToLibrary({
+@@ -1864,11 +1897,6 @@ addToLibrary({
  #endif
      }
  
@@ -179,7 +179,7 @@ index 4fd4c61..3e57b11 100644
      return convert(rtn);
    },
  
-@@ -1987,13 +2015,13 @@ addToLibrary({
+@@ -1912,13 +1940,13 @@ addToLibrary({
      if (!func) {
        /** @suppress {checkTypes} */
        wasmTableMirror[funcPtr] = func = wasmTable.get({{{ toIndexType('funcPtr') }}});
@@ -196,7 +196,6 @@ index 4fd4c61..3e57b11 100644
      assert(wasmTable.get({{{ toIndexType('funcPtr') }}}) == func, 'table mirror is out of date');
  #endif
 diff --git a/src/lib/libembind.js b/src/lib/libembind.js
-index 3542d45..bb0dcfe 100644
 --- a/src/lib/libembind.js
 +++ b/src/lib/libembind.js
 @@ -815,7 +815,7 @@ var LibraryEmbind = {
@@ -225,7 +224,6 @@ index 3542d45..bb0dcfe 100644
      }
  
 diff --git a/src/lib/libepoll.js b/src/lib/libepoll.js
-index dffeb7d..d88f84a 100644
 --- a/src/lib/libepoll.js
 +++ b/src/lib/libepoll.js
 @@ -4,9 +4,10 @@
@@ -300,16 +298,16 @@ index dffeb7d..d88f84a 100644
            for (var reg of ep.epoll.values()) {
              reg.listener?.listeners.delete(reg.listener.entry);
            }
-@@ -86,12 +89,78 @@ var EpollLibrary = {
+@@ -86,12 +89,105 @@ var EpollLibrary = {
      Object.assign(stream.shared, {
        node,
        epoll: new Map(),
 +      // Readiness listeners (emscripten_epoll_add_listener), keyed by
 +      // (registering thread, callback).
 +      interests: new Map(),
-+      // Registrations with a live watched-node listener; keys the listener
-+      // keepalive (0 means the set is terminal - it can never fire again).
-+      armed: 0,
++      // Armed registrations on host-backed fds (epollHostBacked); keys the
++      // listener keepalive (0 means nothing the host can do makes the set ready).
++      hostArmed: 0,
        // Open references (fds) to this instance; the last close reclaims it.
        refcount: 1,
      });
@@ -321,7 +319,7 @@ index dffeb7d..d88f84a 100644
 +  $epollClearListener__internal: true,
 +  $epollClearListener__deps: [
 +#if PTHREADS
-+    '$epollDeliveries', '_emscripten_epoll_keepalive_on_thread',
++    '$epollDeliveries', '$epollKeepalive', '_emscripten_epoll_keepalive_on_thread',
 +#endif
 +  ],
 +  $epollClearListener: (ep, it) => {
@@ -334,24 +332,57 @@ index dffeb7d..d88f84a 100644
 +    }
 +    it.keptAlive = false;
 +    // Retire its delivery token; a still-in-flight cross-thread delivery whose
-+    // completion arrives after this finds nothing and is dropped.
++    // completion arrives after this finds nothing and is dropped - so release
++    // its hold here.
 +    if (it.token) delete epollDeliveries[it.token];
++    if (it.inflight) {
++      it.inflight = false;
++      epollKeepalive(-1);
++    }
 +#endif
 +  },
 +
-+  // Listeners hold the runtime alive only while the epoll can still fire: at
-+  // least one listener and one armed registration (Node.js-style, registered
-+  // I/O interest holds the loop open; a terminal set releases it). With
-+  // pthreads each listener's owner thread (which runs its deliveries) is held
-+  // too.
++  // Every main-runtime keepalive hold taken by this library goes through here.
++  // exitRuntime only runs once the counter is 0 - naturally, or forfeited by
++  // emscripten_force_exit - and its FS.quit closes the epoll fds; that release
++  // (or a delivery landing after exit) is of an already-forfeited hold, not an
++  // underflow.
++  $epollKeepalive__internal: true,
++  $epollKeepalive__deps: [
++#if useRuntimeKeepaliveStack()
++    '$runtimeKeepaliveCounter', '$runtimeKeepalivePush', '$runtimeKeepalivePop',
++#endif
++  ],
++  $epollKeepalive: (delta) => {
++#if useRuntimeKeepaliveStack()
++    if (delta > 0) runtimeKeepalivePush();
++    else if (runtimeKeepaliveCounter > 0) runtimeKeepalivePop();
++#endif
++  },
++
++  // Can readiness on this watched fd arrive from the host (the JS event loop),
++  // with no wasm running? A socket's can. A pipe is only ever written by wasm,
++  // so whatever runs that write already holds the runtime - the registration
++  // itself need not. A nested epoll is counted conservatively (it may hold
++  // sockets).
++  $epollHostBacked__internal: true,
++  $epollHostBacked__deps: ['$FS'],
++  $epollHostBacked: (target) => FS.isSocket(target.node.mode) || !!target.shared.epoll,
++
++  // Listeners hold the runtime alive only while the host can still make the
++  // epoll ready: at least one listener and one armed host-backed registration
++  // (Node.js-style, registered I/O interest holds the loop open; a set the host
++  // cannot fire releases it). A pending delivery holds it separately (see
++  // wake()). With pthreads each listener's owner thread (which runs its
++  // deliveries) is held too.
 +  $epollReconcileKeepalive__internal: true,
-+  $epollReconcileKeepalive__deps: [
++  $epollReconcileKeepalive__deps: ['$epollKeepalive',
 +#if PTHREADS
 +    '_emscripten_epoll_keepalive_on_thread',
 +#endif
 +  ],
 +  $epollReconcileKeepalive: (ep) => {
-+    var armed = ep.armed > 0;
++    var armed = ep.hostArmed > 0;
 +#if PTHREADS
 +    for (var it of ep.interests.values()) {
 +      if (armed != !!it.keptAlive) {
@@ -367,19 +398,13 @@ index dffeb7d..d88f84a 100644
 +    var want = armed && ep.interests.size > 0;
 +    if (want == !!ep.keepalive) return;
 +    ep.keepalive = want;
-+#if useRuntimeKeepaliveStack()
-+    if (want) {
-+      {{{ runtimeKeepalivePush() }}}
-+    } else {
-+      {{{ runtimeKeepalivePop() }}}
-+    }
-+#endif
++    epollKeepalive(want ? 1 : -1);
 +  },
 +
    // The ready list (Linux's rdllist): registrations whose readiness edge has
    // fired but not yet been consumed by a wait, linked intrusively through
    // reg.rdlPrev/reg.rdlNext with head/tail on the epoll stream. Membership
-@@ -125,19 +194,24 @@ var EpollLibrary = {
+@@ -125,19 +221,24 @@ var EpollLibrary = {
    // entry at ctl time, and a closed/reused fd seen at derive time (doEpollWait
    // or the nesting poll).
    $epollEvict__internal: true,
@@ -393,7 +418,7 @@ index dffeb7d..d88f84a 100644
 +    if (reg.listener) {
 +      reg.listener.listeners.delete(reg.listener.entry);
 +      reg.listener = null;
-+      ep.armed--;
++      ep.hostArmed -= reg.host;
 +    }
      ep.epoll.delete(reg.fd);
 +    epollReconcileKeepalive(ep);
@@ -404,19 +429,30 @@ index dffeb7d..d88f84a 100644
    // epoll stream before calling in here, so `ep` is a known-valid epoll stream.
    $epollCtl__internal: true,
 -  $epollCtl__deps: ['$FS', '$pollOne', '$readyListAdd', '$epollEvict'],
-+  $epollCtl__deps: ['$FS', '$pollOne', '$readyListAdd', '$epollEvict', '$epollReconcileKeepalive'],
++  $epollCtl__deps: ['$FS', '$pollOne', '$readyListAdd', '$epollEvict', '$epollReconcileKeepalive', '$epollHostBacked'],
    $epollCtl: (ep, op, fd, ev) => {
      var target = FS.getStream(fd);
      if (!target) return -{{{ cDefs.EBADF }}};
-@@ -227,6 +301,7 @@ var EpollLibrary = {
+@@ -221,12 +322,16 @@ var EpollLibrary = {
+     // (ep_poll_callback: on an edge, list the reg and wake any waiter on this
+     // epoll - and through ep.node any parent epoll nesting it.)
+     if (!reg.listener) {
+-      reg.listener = target.node.addListener(() => {
++      reg.listener = target.node.addListener((flags) => {
+         readyListAdd(ep, reg);
+-        ep.node.notifyListeners({{{ cDefs.POLLIN }}});
++        // Readiness wakes the epoll as POLLIN; a closing fd (POLLNVAL) wakes
++        // it as a teardown, so listeners can tell an eviction from an event.
++        ep.node.notifyListeners(flags & {{{ cDefs.POLLNVAL }}} ? {{{ cDefs.POLLNVAL }}} : {{{ cDefs.POLLIN }}});
        // EPOLLEXCLUSIVE: when one fd is watched by several epolls, the watched
        // node wakes only one of them per edge (round-robin), not all.
        }, !!(events & {{{ cDefs.EPOLLEXCLUSIVE }}}));
-+      ep.armed++;
++      reg.host = +epollHostBacked(target);
++      ep.hostArmed += reg.host;
      }
      // Arming is itself an event source (ep_insert/ep_modify): a source-based
      // model only learns readiness from edges, so sample the level now - the
-@@ -235,6 +310,7 @@ var EpollLibrary = {
+@@ -235,6 +340,7 @@ var EpollLibrary = {
        readyListAdd(ep, reg);
        ep.node.notifyListeners({{{ cDefs.POLLIN }}});
      }
@@ -424,7 +460,7 @@ index dffeb7d..d88f84a 100644
      return 0;
    },
  
-@@ -246,8 +322,9 @@ var EpollLibrary = {
+@@ -246,8 +352,9 @@ var EpollLibrary = {
    // EPOLL_CTL_MOD; a no-longer-ready (spurious) edge is dropped; a closed/reused
    // fd is evicted.
    $doEpollWait__internal: true,
@@ -435,16 +471,16 @@ index dffeb7d..d88f84a 100644
      // Detach the list and drain from the head: re-armed level triggers and the
      // unprocessed remainder go back onto ep's now-empty list, so a single pass
      // never revisits an entry. O(delivered), not O(registered).
-@@ -278,6 +355,8 @@ var EpollLibrary = {
+@@ -278,6 +385,8 @@ var EpollLibrary = {
              // listener - the watched node stops poking it (no re-arm needed).
              node.listener.listeners.delete(node.listener.entry);
              node.listener = null;
-+            ep.armed--;
++            ep.hostArmed -= node.host;
 +            disarmed = true;
            } else if (!(node.events & {{{ cDefs.EPOLLET }}})) {
              readyListAdd(ep, node); // level: re-list at tail
            }
-@@ -296,6 +375,8 @@ var EpollLibrary = {
+@@ -296,6 +405,8 @@ var EpollLibrary = {
        else ep.rdlTail = tail;
        ep.rdlHead = node;
      }
@@ -453,7 +489,7 @@ index dffeb7d..d88f84a 100644
      return n;
    },
  
-@@ -345,6 +426,149 @@ var EpollLibrary = {
+@@ -345,6 +456,173 @@ var EpollLibrary = {
  #endif
      return count;
    },
@@ -470,7 +506,7 @@ index dffeb7d..d88f84a 100644
 +  // collected by exactly one of them - the same load balancing as multiple
 +  // blocking epoll_wait callers on one epoll. A level fd left undrained
 +  // re-signals every tick, an edge fd once per edge.
-+  emscripten_epoll_add_listener__deps: ['$FS', '$epollWouldBlock', '$epollClearListener', '$epollReconcileKeepalive', '$callUserCallback', '$emSetImmediate',
++  emscripten_epoll_add_listener__deps: ['$FS', '$epollWouldBlock', '$epollClearListener', '$epollReconcileKeepalive', '$epollKeepalive', '$callUserCallback', '$emSetImmediate',
 +#if PTHREADS
 +    '$epollDeliveries', '_emscripten_epoll_run_callback_on_thread',
 +#endif
@@ -499,7 +535,7 @@ index dffeb7d..d88f84a 100644
 +    var prev = ep.interests.get(key);
 +    if (prev) epollClearListener(ep, prev);
 +
-+    var it = {key};
++    var it = {key, ep};
 +#if PTHREADS
 +    it.ownerThread = callerThread;
 +#endif
@@ -524,26 +560,49 @@ index dffeb7d..d88f84a 100644
 +#if PTHREADS
 +      if (callerThread) {
 +        it.inflight = true;
++        epollKeepalive(1); // held until the completion lands back here
 +        __emscripten_epoll_run_callback_on_thread(callerThread, callback, userdata, it.token);
 +        return;
 +      }
 +#endif
-+      callUserCallback(() => {{{ makeDynCall('vp', 'callback') }}}(userdata));
-+      // Still readable (this callback didn't drain, or a still-ready level fd
-+      // re-listed): fire again on the next turn. Note this is NOT a blocking
-+      // epoll_wait loop - a level-triggered fd that is structurally always ready
-+      // (e.g. EPOLLOUT on a writable socket) will re-schedule each turn and so
-+      // starve the event loop; use EPOLLET or remove the listener for such fds.
-+      if (!it.cleared && !epollWouldBlock(ep)) wake();
++      callUserCallback(() => {
++        {{{ makeDynCall('vp', 'callback') }}}(userdata);
++        // Still readable (this callback didn't drain, or a still-ready level fd
++        // re-listed): fire again on the next turn. Note this is NOT a blocking
++        // epoll_wait loop - a level-triggered fd that is structurally always
++        // ready (e.g. EPOLLOUT on a writable socket) will re-schedule every
++        // turn and so starve the event loop; use EPOLLET or remove the
++        // listener for such fds. Inside the wrapper so the re-wake's hold is
++        // taken before callUserCallback's maybeExit.
++        if (!it.cleared && !epollWouldBlock(ep)) wake(true);
++      });
 +    }
-+    // Delivery is a macrotask: hosts may drain microtasks synchronously inside
-+    // other calls (e.g. a builtin module load during connect()), which would
-+    // run the callback re-entrantly under the caller's frames.
-+    function wake() {
++    // A scheduled delivery is pending work and holds the runtime until it runs
++    // (like safeSetTimeout), independent of what the set watches: a pipe write
++    // from a callback's last act must still deliver. A teardown wake holds
++    // nothing: a watched fd closing (POLLNVAL) only evicts, and once FS.quit
++    // has begun (exitRuntime: FS.initialized cleared, every open fd closed,
++    // pipe peers reporting POLLHUP on the way) no delivery can run, while a
++    // hold taken there would outlive the exit, leaving keepRuntimeAlive() set
++    // at _proc_exit and onExit skipped.
++    //
++    // Delivery is a macrotask, not a microtask: hosts drain microtasks
++    // synchronously inside other calls (Node's module loader does so on a
++    // first builtin load, e.g. from connect()), which would run the callback
++    // re-entrantly under the caller's frames.
++    function wake(held) {
++      if (held && FS.initialized && !it.held) {
++        it.held = true;
++        epollKeepalive(1);
++      }
 +      if (it.scheduled) return;
 +      it.scheduled = true;
 +      emSetImmediate(() => {
 +        it.scheduled = false;
++        if (it.held) {
++          it.held = false;
++          epollKeepalive(-1);
++        }
 +        deliver();
 +      });
 +    }
@@ -556,9 +615,9 @@ index dffeb7d..d88f84a 100644
 +      epollDeliveries[it.token] = it;
 +    }
 +#endif
-+    it.listener = ep.node.addListener(wake);
++    it.listener = ep.node.addListener((flags) => wake(!(flags & {{{ cDefs.POLLNVAL }}})));
 +    epollReconcileKeepalive(ep);
-+    wake(); // deliver initial readiness if the set is already ready
++    wake(!epollWouldBlock(ep)); // deliver initial readiness if the set is already ready
 +    return 0;
 +  },
 +
@@ -592,19 +651,19 @@ index dffeb7d..d88f84a 100644
 +  // Called (on the main thread) by the C helper once a cross-thread delivery
 +  // finishes on the registering thread: clear the in-flight gate and re-derive,
 +  // so a still-ready set delivers its next batch.
-+  _emscripten_epoll_delivery_done__deps: ['$epollDeliveries'],
++  _emscripten_epoll_delivery_done__deps: ['$epollDeliveries', '$epollKeepalive', '$epollWouldBlock'],
 +  _emscripten_epoll_delivery_done: (token) => {
 +    var it = epollDeliveries[token];
 +    if (!it) return; // listener was removed while the delivery was in flight
 +    it.inflight = false;
-+    it.wake();
++    it.wake(!epollWouldBlock(it.ep));
++    epollKeepalive(-1);
 +  },
 +#endif
  };
  
  addToLibrary(EpollLibrary);
 diff --git a/src/lib/libsigs.js b/src/lib/libsigs.js
-index 89e5cba..3f980d9 100644
 --- a/src/lib/libsigs.js
 +++ b/src/lib/libsigs.js
 @@ -330,6 +330,7 @@ sigs = {
@@ -625,7 +684,6 @@ index 89e5cba..3f980d9 100644
    emscripten_errn__sig: 'vpp',
    emscripten_exit_fullscreen__sig: 'i',
 diff --git a/src/parseTools.mjs b/src/parseTools.mjs
-index e4acfc1..a313b2c 100644
 --- a/src/parseTools.mjs
 +++ b/src/parseTools.mjs
 @@ -692,6 +692,13 @@ function makeDynCall(sig, funcPtr, promising = false) {
@@ -668,7 +726,6 @@ index e4acfc1..a313b2c 100644
    return getWasmTableEntry;
  }
 diff --git a/src/settings.js b/src/settings.js
-index 7ce3dc7..dc73734 100644
 --- a/src/settings.js
 +++ b/src/settings.js
 @@ -931,7 +931,9 @@ var JSPI = 0;
@@ -734,10 +791,9 @@ index 7ce3dc7..dc73734 100644
  // EXPORTED_RUNTIME_METHODS for things you want to export from the runtime.
 diff --git a/system/include/emscripten/epoll.h b/system/include/emscripten/epoll.h
 new file mode 100644
-index 0000000..7093316
 --- /dev/null
 +++ b/system/include/emscripten/epoll.h
-@@ -0,0 +1,75 @@
+@@ -0,0 +1,78 @@
 +/*
 + * Copyright 2026 The Emscripten Authors.  All rights reserved.
 + * Emscripten is available under two separate licenses, the MIT license and the
@@ -777,8 +833,9 @@ index 0000000..7093316
 +// collected by exactly one listener (load balancing), while a level fd keeps
 +// signalling every listener until drained.
 +//
-+// A listener fires on the next event-loop tick while the set has ready events
-+// that have not yet been collected, and keeps firing while any remain - it only
++// A listener fires on the next event-loop tick (as a macrotask, never from
++// within a running wasm call) while the set has ready events that have not yet
++// been collected, and keeps firing while any remain - it only
 +// signals that events are pending, so a callback that does not drain them (via
 +// epoll_wait) leaves them pending and re-fires. Whether a given fd is
 +// re-reported follows its per-fd trigger mode (set via epoll_ctl) exactly as
@@ -793,12 +850,14 @@ index 0000000..7093316
 +//   - EPOLLONESHOT: reported once, then the registration is disabled until you
 +//     re-arm it with epoll_ctl(EPOLL_CTL_MOD).
 +//
-+// Listeners keep the runtime alive as long as the set can still fire - i.e.
-+// while the epoll has at least one open watched fd. This follows the Node.js
-+// model, where registered I/O interest holds the event loop open. Once every
-+// watched fd is closed the set is terminal (it can never become ready again)
-+// and its listeners stop holding the runtime, so no explicit disposal is
-+// required in that case.
++// Listeners keep the runtime alive as long as the host can still make the set
++// ready - i.e. while the epoll has at least one armed registration on a
++// host-backed fd (a socket). This follows the Node.js model, where registered
++// I/O interest holds the event loop open. Once every such fd is closed (or
++// disarmed) the listeners stop holding the runtime, so no explicit disposal is
++// required in that case. A pipe does not count: it can only be written by wasm
++// code, which is already running (and so already held) when it does; a
++// delivery that write schedules is itself held until it runs.
 +//
 +// Listeners are shared instance state: they see registrations made through any
 +// dup'd fd, and closing the last fd to the instance removes them all. Returns
@@ -815,7 +874,6 @@ index 0000000..7093316
 +#endif
 diff --git a/system/include/emscripten/jspi.h b/system/include/emscripten/jspi.h
 new file mode 100644
-index 0000000..e1d971f
 --- /dev/null
 +++ b/system/include/emscripten/jspi.h
 @@ -0,0 +1,70 @@
@@ -891,7 +949,6 @@ index 0000000..e1d971f
 +#endif
 diff --git a/system/lib/jspi/jspi.c b/system/lib/jspi/jspi.c
 new file mode 100644
-index 0000000..bdf3fab
 --- /dev/null
 +++ b/system/lib/jspi/jspi.c
 @@ -0,0 +1,325 @@
@@ -1222,7 +1279,6 @@ index 0000000..bdf3fab
 +}
 diff --git a/system/lib/jspi/jspi_ops.S b/system/lib/jspi/jspi_ops.S
 new file mode 100644
-index 0000000..87acda5
 --- /dev/null
 +++ b/system/lib/jspi/jspi_ops.S
 @@ -0,0 +1,128 @@
@@ -1356,7 +1412,6 @@ index 0000000..87acda5
 +  end_function
 diff --git a/system/lib/jspi/jspi_stub.c b/system/lib/jspi/jspi_stub.c
 new file mode 100644
-index 0000000..76e0ae6
 --- /dev/null
 +++ b/system/lib/jspi/jspi_stub.c
 @@ -0,0 +1,12 @@
@@ -1373,7 +1428,6 @@ index 0000000..76e0ae6
 +
 +int jspi_register(jspi_hook fn, uint32_t mask) { return -1; }
 diff --git a/system/lib/libc/emscripten_internal.h b/system/lib/libc/emscripten_internal.h
-index 55ca0fa..8052c61 100644
 --- a/system/lib/libc/emscripten_internal.h
 +++ b/system/lib/libc/emscripten_internal.h
 @@ -67,6 +67,10 @@ emscripten_stack_unwind_buffer(uintptr_t pc, uintptr_t* buffer, uint32_t depth);
@@ -1389,7 +1443,6 @@ index 55ca0fa..8052c61 100644
  // Not defined in musl, but defined in library.js.  Included here for
 diff --git a/system/lib/pthread/emscripten_epoll_callback.c b/system/lib/pthread/emscripten_epoll_callback.c
 new file mode 100644
-index 0000000..3cf0670
 --- /dev/null
 +++ b/system/lib/pthread/emscripten_epoll_callback.c
 @@ -0,0 +1,82 @@
@@ -1476,7 +1529,6 @@ index 0000000..3cf0670
 +  }
 +}
 diff --git a/tools/building.py b/tools/building.py
-index ff48145..ad960c2 100644
 --- a/tools/building.py
 +++ b/tools/building.py
 @@ -63,6 +63,8 @@ _is_ar_cache: dict[str, bool] = {}
@@ -1489,7 +1541,6 @@ index ff48145..ad960c2 100644
  wasm_bindgen_internal_exports: set[str] = set()
  # A list of feature flags to pass to each binaryen invocation (like `wasm-opt`,
 diff --git a/tools/emscripten.py b/tools/emscripten.py
-index 3ad4b0f..8c08c98 100644
 --- a/tools/emscripten.py
 +++ b/tools/emscripten.py
 @@ -127,8 +127,11 @@ def update_settings_glue(wasm_file, metadata, base_metadata):
@@ -1514,7 +1565,6 @@ index 3ad4b0f..8c08c98 100644
    building.extra_js_exports.update(forwarded_json['extraExports'])
  
 diff --git a/tools/link.py b/tools/link.py
-index 7ef1a65..4cee57e 100644
 --- a/tools/link.py
 +++ b/tools/link.py
 @@ -386,6 +386,29 @@ def get_binaryen_passes():
@@ -1627,7 +1677,6 @@ index 7ef1a65..4cee57e 100644
    if settings.EVAL_CTORS:
      with ToolchainProfiler.profile_block('eval_ctors'):
 diff --git a/tools/native_sigs.py b/tools/native_sigs.py
-index 20a459d..551e3c2 100644
 --- a/tools/native_sigs.py
 +++ b/tools/native_sigs.py
 @@ -530,6 +530,8 @@ native_sigs = {
@@ -1648,7 +1697,6 @@ index 20a459d..551e3c2 100644
    'labs': 'pp',
    'lchmod': '_p_',
 diff --git a/tools/settings.py b/tools/settings.py
-index f7cda5e..c935f86 100644
 --- a/tools/settings.py
 +++ b/tools/settings.py
 @@ -24,6 +24,8 @@ MEM_SIZE_SETTINGS = {
@@ -1661,7 +1709,6 @@ index f7cda5e..c935f86 100644
  
  PORTS_SETTINGS = {
 diff --git a/tools/system_libs.py b/tools/system_libs.py
-index 9ccda61..6b922d9 100644
 --- a/tools/system_libs.py
 +++ b/tools/system_libs.py
 @@ -1018,6 +1018,43 @@ class libnoexit(Library):

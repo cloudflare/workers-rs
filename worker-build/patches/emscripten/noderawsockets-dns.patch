@@ -1,15 +1,15 @@
 Subject: [PATCH] Real DNS resolution for getaddrinfo under -sNODERAWSOCKETS
 
-Backport of emscripten-core/emscripten#27693 to the 6.0.9 release, without
-its ChangeLog entry and tests. Under -sNODERAWSOCKETS, getaddrinfo resolves
-hostnames through node:dns (suspending on JSPI) instead of handing them to
-net.connect, which rejects non-IP hosts on Workers.
+Backport of emscripten-core/emscripten#27693 (head 6df784bea) to the 6.0.9
+release, without its ChangeLog entry and tests. Under -sNODERAWSOCKETS,
+getaddrinfo resolves hostnames through node:dns (suspending on JSPI) instead
+of handing them to net.connect, which rejects non-IP hosts on Workers.
 
-Base-commit: 4e4223852a0835923411059a3929907d7df1232e (tag 6.0.9)
+Base-commit: 4e4223852a0835923411059a3929907d7df1232e (tag 6.0.9),
+after wasm-bindgen-marker.patch and reentrant-jspi.patch
 
 ---
 diff --git a/src/lib/libcore.js b/src/lib/libcore.js
-index 5247fbfd06284..4fd4c61a28534 100644
 --- a/src/lib/libcore.js
 +++ b/src/lib/libcore.js
 @@ -1007,9 +1007,17 @@ addToLibrary({
@@ -57,19 +57,13 @@ index 5247fbfd06284..4fd4c61a28534 100644
      if (hint) {
        flags = {{{ makeGetValue('hint', C_STRUCTS.addrinfo.ai_flags, 'i32') }}};
        family = {{{ makeGetValue('hint', C_STRUCTS.addrinfo.ai_family, 'i32') }}};
-@@ -1167,6 +1192,21 @@ addToLibrary({
+@@ -1167,6 +1192,15 @@ addToLibrary({
      //
      // try as a hostname
      //
 +#if NODERAWSOCKETS
-+    // /etc/hosts first (read through emscripten's FS), then a real node:dns
-+    // lookup, which is asynchronous: hand the caller a thunk to wait on.
-+    var hosts = nodeSockHelpers.readHosts(node).filter((e) =>
-+      family === {{{ cDefs.AF_UNSPEC }}} || e.family === family);
-+    if (hosts.length) {
-+      {{{ makeSetValue('out', '0', 'allocaddrinfos(hosts)', '*') }}};
-+      return 0;
-+    }
++    // A real node:dns lookup (which honors the host's /etc/hosts). It is
++    // asynchronous: hand the caller a thunk to wait on.
 +    return () => nodeSockHelpers.lookupHost(node, family).then((entries) => {
 +      if (typeof entries == 'number') return entries;
 +      {{{ makeSetValue('out', '0', 'allocaddrinfos(entries)', '*') }}};
@@ -79,7 +73,7 @@ index 5247fbfd06284..4fd4c61a28534 100644
      // resolve the hostname to a temporary fake address
      node = DNS.lookup_name(node);
      addr = inetPton4(node);
-@@ -1178,6 +1218,41 @@ addToLibrary({
+@@ -1178,6 +1212,41 @@ addToLibrary({
      ai = allocaddrinfo(family, type, proto, null, addr, port);
      {{{ makeSetValue('out', '0', 'ai', '*') }}};
      return 0;
@@ -122,7 +116,6 @@ index 5247fbfd06284..4fd4c61a28534 100644
  
    getnameinfo__deps: ['$DNS', '$readSockaddr', '$stringToUTF8'],
 diff --git a/src/lib/libsockfs_node.js b/src/lib/libsockfs_node.js
-index 890f3cea6a807..c5422ca021427 100644
 --- a/src/lib/libsockfs_node.js
 +++ b/src/lib/libsockfs_node.js
 @@ -56,7 +56,7 @@ null;
@@ -130,41 +123,16 @@ index 890f3cea6a807..c5422ca021427 100644
  var NodeSockFSLibrary = {
    // Node plumbing shared by the interface methods below.
 -  $nodeSockHelpers__deps: ['$SOCKFS', '$ERRNO_CODES'],
-+  $nodeSockHelpers__deps: ['$SOCKFS', '$ERRNO_CODES', '$FS', '$inetPton4', '$inetPton6'],
++  $nodeSockHelpers__deps: ['$SOCKFS', '$ERRNO_CODES', '$inetPton4', '$inetPton6'],
    $nodeSockHelpers: {
      // node builtins, resolved once each. getBuiltinModule works in both
      // CommonJS and ESM output, with require as the fallback.
-@@ -69,6 +69,62 @@ var NodeSockFSLibrary = {
+@@ -69,6 +69,37 @@ var NodeSockFSLibrary = {
      getDgram() {
        return nodeSockHelpers.dgramModule ??= (process.getBuiltinModule || require)('dgram');
      },
 +    getDns() {
 +      return nodeSockHelpers.dnsModule ??= (process.getBuiltinModule || require)('dns');
-+    },
-+    // Address entries for `name` in /etc/hosts, read fresh through emscripten's
-+    // FS on each call so a MEMFS or mounted file is honored as written. A
-+    // missing file is simply empty.
-+    readHosts(name) {
-+      var out = [];
-+      var text;
-+      try {
-+        text = FS.readFile('/etc/hosts', { encoding: 'utf8' });
-+      } catch (e) {
-+        return out;
-+      }
-+      for (var line of text.split('\n')) {
-+        var hash = line.indexOf('#');
-+        if (hash !== -1) line = line.slice(0, hash);
-+        var parts = line.split(/\s+/).filter((p) => p.length);
-+        if (parts.length < 2 || !parts.slice(1).includes(name)) continue;
-+        var addr = inetPton4(parts[0]);
-+        if (addr !== null) {
-+          out.push({ family: {{{ cDefs.AF_INET }}}, addr });
-+        } else if ((addr = inetPton6(parts[0])) !== null) {
-+          out.push({ family: {{{ cDefs.AF_INET6 }}}, addr });
-+        }
-+      }
-+      return out;
 +    },
 +    // Resolve a hostname via node:dns for `family` (AF_UNSPEC for both).
 +    // Resolves to a list of {family, addr} entries, or an EAI_* code: node:dns
@@ -198,7 +166,6 @@ index 890f3cea6a807..c5422ca021427 100644
      // (a recent addition), letting UDP run entirely on the public API. A runtime
      // missing either falls back to the private udp_wrap handle, which provides
 diff --git a/src/struct_info.json b/src/struct_info.json
-index be92ff18a8d9c..9d68f3a0f7659 100644
 --- a/src/struct_info.json
 +++ b/src/struct_info.json
 @@ -206,7 +206,8 @@
@@ -212,7 +179,6 @@ index be92ff18a8d9c..9d68f3a0f7659 100644
          "structs": {
              "addrinfo": [
 diff --git a/src/struct_info_generated.json b/src/struct_info_generated.json
-index e266b9eb7d2d8..e8cad551d543c 100644
 --- a/src/struct_info_generated.json
 +++ b/src/struct_info_generated.json
 @@ -64,6 +64,7 @@
@@ -224,7 +190,6 @@ index e266b9eb7d2d8..e8cad551d543c 100644
          "EAI_FAMILY": -6,
          "EAI_NONAME": -2,
 diff --git a/src/struct_info_generated_wasm64.json b/src/struct_info_generated_wasm64.json
-index 115caf29cd902..c08719f390c1f 100644
 --- a/src/struct_info_generated_wasm64.json
 +++ b/src/struct_info_generated_wasm64.json
 @@ -64,6 +64,7 @@
@@ -236,7 +201,6 @@ index 115caf29cd902..c08719f390c1f 100644
          "EAI_FAMILY": -6,
          "EAI_NONAME": -2,
 diff --git a/system/lib/libc/musl/src/network/freeaddrinfo.c b/system/lib/libc/musl/src/network/freeaddrinfo.c
-index c4016d9f7c246..25d5c8f668530 100644
 --- a/system/lib/libc/musl/src/network/freeaddrinfo.c
 +++ b/system/lib/libc/musl/src/network/freeaddrinfo.c
 @@ -7,11 +7,14 @@

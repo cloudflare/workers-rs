@@ -22,12 +22,12 @@ const PATCHES: &[(&str, &str)] = &[
         include_str!("../patches/emscripten/wasm-bindgen-marker.patch"),
     ),
     (
-        "noderawsockets-dns.patch",
-        include_str!("../patches/emscripten/noderawsockets-dns.patch"),
-    ),
-    (
         "reentrant-jspi.patch",
         include_str!("../patches/emscripten/reentrant-jspi.patch"),
+    ),
+    (
+        "noderawsockets-dns.patch",
+        include_str!("../patches/emscripten/noderawsockets-dns.patch"),
     ),
 ];
 
