@@ -47,8 +47,20 @@ main = "build/index.js"
 compatibility_flags = ["nodejs_compat", "new_module_registry"]
 
 [build]
-command = "cargo install -q worker-build && worker-build --emscripten --release"
+command = "cargo install -q worker-build && worker-build --emscripten --tokio --release"
 ```
+
+`--tokio` selects how Tokio meets the host event loop. With `--tokio`, the
+`#[event]` and `#[durable_object]` handlers are scheduled on a Tokio
+event-loop runtime per invocation, whose wait *is* the host event loop, so
+`tokio::net`, `tokio::time` and `tokio::spawn` work in plain async handlers
+with no stack switching. With `--tokio=jspi`, each handler is a JSPI export on
+its own fiber and blocks on a runtime you build inside it; the runtime parks by
+suspending the Wasm stack. Both take Tokio from the branches listed in the
+[emscripten-tcp example](../examples/emscripten-tcp). Hostname resolution
+(`getaddrinfo`) is a suspending call and currently needs `--tokio=jspi`.
+The selected mode is visible to crates as `cfg(worker_tokio = "event_loop")`
+or `cfg(worker_tokio = "jspi")`.
 
 The build links a **bin** target rather than a `cdylib`: rustc drives `emcc`
 as the linker, and `emcc` runs `wasm-bindgen` over the linked program as a

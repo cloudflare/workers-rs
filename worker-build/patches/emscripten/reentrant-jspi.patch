@@ -453,7 +453,7 @@ index dffeb7d..d88f84a 100644
      return n;
    },
  
-@@ -345,6 +426,147 @@ var EpollLibrary = {
+@@ -345,6 +426,149 @@ var EpollLibrary = {
  #endif
      return count;
    },
@@ -470,7 +470,7 @@ index dffeb7d..d88f84a 100644
 +  // collected by exactly one of them - the same load balancing as multiple
 +  // blocking epoll_wait callers on one epoll. A level fd left undrained
 +  // re-signals every tick, an edge fd once per edge.
-+  emscripten_epoll_add_listener__deps: ['$FS', '$epollWouldBlock', '$epollClearListener', '$epollReconcileKeepalive', '$callUserCallback',
++  emscripten_epoll_add_listener__deps: ['$FS', '$epollWouldBlock', '$epollClearListener', '$epollReconcileKeepalive', '$callUserCallback', '$emSetImmediate',
 +#if PTHREADS
 +    '$epollDeliveries', '_emscripten_epoll_run_callback_on_thread',
 +#endif
@@ -530,17 +530,19 @@ index dffeb7d..d88f84a 100644
 +#endif
 +      callUserCallback(() => {{{ makeDynCall('vp', 'callback') }}}(userdata));
 +      // Still readable (this callback didn't drain, or a still-ready level fd
-+      // re-listed): fire again on the next tick. Note this is NOT a blocking
++      // re-listed): fire again on the next turn. Note this is NOT a blocking
 +      // epoll_wait loop - a level-triggered fd that is structurally always ready
-+      // (e.g. EPOLLOUT on a writable socket) will re-schedule a microtask each
-+      // tick and so starve the event loop; use EPOLLET or remove the listener
-+      // for such fds.
++      // (e.g. EPOLLOUT on a writable socket) will re-schedule each turn and so
++      // starve the event loop; use EPOLLET or remove the listener for such fds.
 +      if (!it.cleared && !epollWouldBlock(ep)) wake();
 +    }
++    // Delivery is a macrotask: hosts may drain microtasks synchronously inside
++    // other calls (e.g. a builtin module load during connect()), which would
++    // run the callback re-entrantly under the caller's frames.
 +    function wake() {
 +      if (it.scheduled) return;
 +      it.scheduled = true;
-+      queueMicrotask(() => {
++      emSetImmediate(() => {
 +        it.scheduled = false;
 +        deliver();
 +      });

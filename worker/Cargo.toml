@@ -45,6 +45,11 @@ web-sys.workspace = true
 worker-macros.workspace = true
 worker-sys.workspace = true
 
+# Tokio integration for `#[wasm_bindgen(tokio)]` handlers under
+# `worker-build --emscripten --tokio`; inert without `--cfg tokio_unstable`.
+[target.'cfg(target_os = "emscripten")'.dependencies]
+wasm-bindgen-futures = { workspace = true, features = ["tokio"] }
+
 [features]
 queue = ["worker-macros/queue", "worker-sys/queue"]
 d1 = ["worker-sys/d1"]

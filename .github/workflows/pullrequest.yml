@@ -165,18 +165,37 @@ jobs:
       - name: Install emscripten target toolchain
         run: rustup toolchain install beta --profile minimal --target wasm32-unknown-emscripten
 
-      - name: Build example (dev)
+      - name: Build example (dev, --tokio=jspi)
         working-directory: examples/emscripten-tcp
-        run: WASM_BINDGEN_BIN=../../wasm-bindgen/target/debug/wasm-bindgen ../../target/debug/worker-build --emscripten --dev
+        run: WASM_BINDGEN_BIN=../../wasm-bindgen/target/debug/wasm-bindgen ../../target/debug/worker-build --emscripten --tokio=jspi --dev
 
-      - name: Build example (release)
+      - name: Build example (release, --tokio)
         working-directory: examples/emscripten-tcp
-        run: WASM_BINDGEN_BIN=../../wasm-bindgen/target/debug/wasm-bindgen ../../target/debug/worker-build --emscripten --release
+        run: WASM_BINDGEN_BIN=../../wasm-bindgen/target/debug/wasm-bindgen ../../target/debug/worker-build --emscripten --tokio --release
 
-      - name: Smoke test under wrangler
+      - name: Smoke test under wrangler (--tokio)
         working-directory: examples/emscripten-tcp
         run: |
-          sed '/^\[build\]/,$d' wrangler.toml > wrangler.ci.toml
+          sed '/^\[build\]/,/^$/d' wrangler.toml > wrangler.ci.toml
+          npx -y wrangler@4 dev -c wrangler.ci.toml --port 8788 > wrangler-el.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8788/ > /dev/null && break
+            sleep 1
+          done
+          curl -sf 'http://localhost:8788/?host=1.1.1.1' | tee response-el.txt
+          grep -q '^HTTP/1\.' response-el.txt
+          curl -sf 'http://localhost:8788/do?host=1.1.1.1' | grep -q '^HTTP/1\.'
+          kill %1
+          cat wrangler-el.log
+
+      - name: Build example (release, --tokio=jspi)
+        working-directory: examples/emscripten-tcp
+        run: WASM_BINDGEN_BIN=../../wasm-bindgen/target/debug/wasm-bindgen ../../target/debug/worker-build --emscripten --tokio=jspi --release
+
+      - name: Smoke test under wrangler (--tokio=jspi)
+        working-directory: examples/emscripten-tcp
+        run: |
+          sed '/^\[build\]/,/^$/d' wrangler.toml > wrangler.ci.toml
           npx -y wrangler@4 dev -c wrangler.ci.toml --port 8787 > wrangler.log 2>&1 &
           for i in $(seq 1 30); do
             curl -sf http://localhost:8787/ > /dev/null && break
@@ -184,6 +203,7 @@ jobs:
           done
           curl -sf 'http://localhost:8787/?host=example.com' | tee response.txt
           grep -q '^HTTP/1\.' response.txt
+          curl -sf 'http://localhost:8787/do?host=example.com' | grep -q '^HTTP/1\.'
           cat wrangler.log
 
   rustfmt:

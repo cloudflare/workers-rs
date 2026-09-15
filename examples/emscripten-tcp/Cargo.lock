@@ -561,7 +561,7 @@ dependencies = [
 [[package]]
 name = "tokio"
 version = "1.53.1"
-source = "git+https://github.com/guybedford/tokio?branch=emscripten-jspi-hooks#5e7090a7953ffab402b784f939c6e9a6fa07e30f"
+source = "git+https://github.com/guybedford/tokio?branch=emscripten-tokio#d9e81367815629d0d42129d087d95ecc13f4333c"
 dependencies = [
  "bytes",
  "libc",
@@ -575,7 +575,7 @@ dependencies = [
 [[package]]
 name = "tokio-macros"
 version = "2.7.2"
-source = "git+https://github.com/guybedford/tokio?branch=emscripten-jspi-hooks#5e7090a7953ffab402b784f939c6e9a6fa07e30f"
+source = "git+https://github.com/guybedford/tokio?branch=emscripten-tokio#d9e81367815629d0d42129d087d95ecc13f4333c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -628,6 +628,7 @@ name = "wasm-bindgen-futures"
 version = "0.4.78"
 dependencies = [
  "js-sys",
+ "tokio",
  "wasm-bindgen",
 ]
 

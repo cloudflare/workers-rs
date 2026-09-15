@@ -41,10 +41,41 @@ pub const RUSTFLAGS: &[&str] = &[
     // translated at link, and wasm-bindgen's JSPI wrappers use try_table.
     // V8 rejects a module mixing the two encodings.
     "-Cllvm-args=-wasm-use-legacy-eh=false",
-    // Tokio's emscripten port owns its runtime context per JSPI fiber through
-    // the lifecycle hooks the link provides.
-    "--cfg=tokio_jspi_hooks",
+    // `worker_tokio` selects how the worker macros export async handlers.
+    "--check-cfg=cfg(worker_tokio,values(\"jspi\",\"event_loop\"))",
 ];
+
+/// How `--tokio` integrates Tokio with the host event loop.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, clap::ValueEnum)]
+pub enum TokioMode {
+    /// Handlers are `#[wasm_bindgen(tokio)]` exports scheduled on Tokio's
+    /// `EventLoopRuntime`, whose wait is the host event loop.
+    EventLoop,
+    /// Handlers are `#[wasm_bindgen(jspi)]` exports that block on a Tokio
+    /// runtime, parking by suspending the Wasm stack; each activation runs
+    /// on its own fiber.
+    Jspi,
+}
+
+impl TokioMode {
+    pub fn rustflags(self) -> &'static [&'static str] {
+        match self {
+            TokioMode::EventLoop => &["--cfg=tokio_unstable", "--cfg=worker_tokio=\"event_loop\""],
+            // Tokio's emscripten port owns its runtime context per JSPI fiber
+            // through the lifecycle hooks the link provides.
+            TokioMode::Jspi => &["--cfg=tokio_jspi_hooks", "--cfg=worker_tokio=\"jspi\""],
+        }
+    }
+
+    pub fn link_args(self) -> &'static [&'static str] {
+        match self {
+            TokioMode::EventLoop => &[],
+            // Each JSPI activation runs on its own shadow stack, so a promising
+            // export may be entered while another activation is suspended.
+            TokioMode::Jspi => &["-sREENTRANT_JSPI"],
+        }
+    }
+}
 
 /// emcc settings for the final link. Kept out of EMCC_CFLAGS so they do not
 /// reach C compiles of crates like `ring`, where `-Werror` makes an unused link
@@ -53,9 +84,6 @@ pub const LINK_ARGS: &[&str] = &[
     "-sBINARYEN_EXTRA_PASSES=--translate-to-exnref",
     "-sWASM_BINDGEN",
     "-sJSPI",
-    // Each JSPI activation runs on its own shadow stack, so a promising export
-    // may be entered while another activation is suspended.
-    "-sREENTRANT_JSPI",
     "-sMODULARIZE=instance",
     "-sEXPORT_ES6",
     "-sAUTO_INIT",
