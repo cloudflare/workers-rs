@@ -12,12 +12,19 @@ deps = ['install:ts-gen']
 # `worker::bindings::email::email::EmailMessage`). The file `--export`
 # is required alongside because once any `--export` is specified the
 # implicit "every input is its own export" default is disabled.
-run = '''ts-gen --input types/email.d.ts --output worker/src/bindings/email.rs \
+#
+# Vectorize needs no `--export`/`--external`: every declaration is global
+# (no `cloudflare:` module) and nothing references a project-specific type.
+run = '''
+ts-gen --input types/email.d.ts --output worker/src/bindings/email.rs \
   --errors-as-error \
   --export types/email.d.ts \
   --export cloudflare:email \
   --external "Env=crate::Env" \
-  --external "ExecutionContext=crate::Context"'''
+  --external "ExecutionContext=crate::Context"
+ts-gen --input types/vectorize.d.ts --output worker/src/bindings/vectorize.rs \
+  --errors-as-error
+'''
 
 [[task]]
 name = 'install:ts-gen'

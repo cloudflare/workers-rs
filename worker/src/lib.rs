@@ -197,6 +197,7 @@ pub use crate::schedule::*;
 pub use crate::secret_store::SecretStore;
 pub use crate::socket::*;
 pub use crate::streams::*;
+pub use crate::vectorize::*;
 pub use crate::version::*;
 pub use crate::websocket::*;
 
@@ -257,6 +258,7 @@ pub mod signal;
 mod socket;
 mod sql;
 mod streams;
+pub mod vectorize;
 mod version;
 mod websocket;
 

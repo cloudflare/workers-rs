@@ -6,6 +6,7 @@ use crate::d1::D1Database;
 use crate::email::SendEmail;
 use crate::kv::KvStore;
 use crate::rate_limit::RateLimiter;
+use crate::vectorize::Vectorize;
 use crate::Ai;
 #[cfg(feature = "queue")]
 use crate::Queue;
@@ -117,6 +118,12 @@ impl Env {
     }
 
     pub fn hyperdrive(&self, binding: &str) -> Result<Hyperdrive> {
+        self.get_binding(binding)
+    }
+
+    /// Access a [Vectorize](https://developers.cloudflare.com/vectorize/) index
+    /// by the binding name configured in your wrangler.toml file.
+    pub fn vectorize(&self, binding: &str) -> Result<Vectorize> {
         self.get_binding(binding)
     }
 
