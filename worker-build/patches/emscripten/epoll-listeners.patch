@@ -1,7 +1,7 @@
 Subject: [PATCH] epoll readiness listeners and timeout keepalive release
 
-Backport of emscripten-core/emscripten#27547 (head 25efd364c) and #27720
-(head 214518578) to the 6.0.9 release, without tests, docs, ChangeLog and
+Backport of emscripten-core/emscripten#27547 (head 7a5cdabf0) and #27720
+(head 2f4be7e48) to the 6.0.9 release, without tests, docs, ChangeLog and
 codesize baselines. emscripten_epoll_add_listener delivers epoll readiness as
 a host macrotask while holding the runtime alive for the listener's owner
 thread; emscripten_clear_timeout releases its keepalive and clearing is
