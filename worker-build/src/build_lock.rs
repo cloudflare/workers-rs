@@ -238,7 +238,7 @@ mod tests {
     use super::remove_stale_debug_sidecars;
 
     #[test]
-    fn removes_only_debug_sidecars_absent_from_staging() {
+    fn disabled_builds_remove_stale_external_dwarf_sidecars() {
         let root = tempfile::tempdir().unwrap();
         let out_dir = root.path().join("build");
         let tmp_dir = out_dir.join(".tmp");

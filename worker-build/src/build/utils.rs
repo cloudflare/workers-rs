@@ -61,7 +61,9 @@ pub fn elapsed(duration: Duration) -> String {
 pub fn run(mut command: Command, command_name: &str) -> Result<()> {
     info!("Running {command:?}");
 
-    let status = command.status()?;
+    let status = command
+        .status()
+        .with_context(|| format!("failed to start `{command_name}`; full command: {command:?}"))?;
 
     if status.success() {
         Ok(())
@@ -69,5 +71,26 @@ pub fn run(mut command: Command, command_name: &str) -> Result<()> {
         bail!(
             "failed to execute `{command_name}`: exited with {status}\n  full command: {command:?}",
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::process::Command;
+
+    use super::run;
+
+    #[test]
+    fn missing_tools_produce_an_actionable_error() {
+        let command = Command::new("worker-build-tool-that-does-not-exist");
+
+        let error = run(command, "external DWARF prerequisite").unwrap_err();
+
+        let message = format!("{error:#}");
+        assert!(message.contains("external DWARF prerequisite"), "{message}");
+        assert!(
+            message.contains("worker-build-tool-that-does-not-exist"),
+            "{message}"
+        );
     }
 }
