@@ -297,11 +297,21 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             // rename the original attributed fn
             input_fn.sig.ident = input_fn_ident.clone();
 
-            // Use a synchronous wrapper that returns a Promise via future_to_promise
-            // with AssertUnwindSafe to support panic=unwind.
-            let wrapper_fn = quote! {
-                pub fn #wrapper_fn_ident(socket: ::worker::worker_sys::Socket, env: ::worker::Env, ctx: ::worker::worker_sys::Context) -> ::worker::js_sys::Promise {
-                    ::worker::js_sys::futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
+            let glue = async_export_mod(
+                &format_ident!("_worker_connect"),
+                quote! {
+                    use ::worker::{wasm_bindgen, js_sys};
+                    use super::#input_fn_ident;
+                },
+                quote! {
+                    #wrapper_fn_ident(
+                        socket: ::worker::worker_sys::Socket,
+                        env: ::worker::Env,
+                        ctx: ::worker::worker_sys::Context
+                    )
+                },
+                quote! {
+                    async move {
                         let ctx = worker::Context::new(ctx);
                         match ::worker::FromSocket::from_raw(socket) {
                             Ok(socket) => {
@@ -320,21 +330,13 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                             }
                         }
                         Ok(::worker::wasm_bindgen::JsValue::UNDEFINED)
-                    }))
-                }
-            };
-            let wasm_bindgen_code =
-                wasm_bindgen_macro_support::expand(TokenStream::new().into(), wrapper_fn)
-                    .expect("wasm_bindgen macro failed to expand");
+                    }
+                },
+            );
 
             let output = quote! {
                 #input_fn
-
-                mod _worker_connect {
-                    use ::worker::wasm_bindgen;
-                    use super::#input_fn_ident;
-                    #wasm_bindgen_code
-                }
+                #glue
             };
 
             TokenStream::from(output)
