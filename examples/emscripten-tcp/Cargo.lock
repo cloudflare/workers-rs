@@ -306,8 +306,8 @@ checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 
 [[package]]
 name = "mio"
-version = "1.2.2"
-source = "git+https://github.com/guybedford/mio?rev=a62c9e46833fc255c9217ab9aa362c6221ed4401#a62c9e46833fc255c9217ab9aa362c6221ed4401"
+version = "1.2.3"
+source = "git+https://github.com/guybedford/mio?branch=emscripten#0788dbb67883cb6191503af999471def54e3fb77"
 dependencies = [
  "libc",
  "wasi",
@@ -561,7 +561,7 @@ dependencies = [
 [[package]]
 name = "tokio"
 version = "1.53.1"
-source = "git+https://github.com/guybedford/tokio?branch=emscripten-tokio#d9e81367815629d0d42129d087d95ecc13f4333c"
+source = "git+https://github.com/guybedford/tokio?branch=emscripten-event-loop-host#8ec263d614fab25ef99f0d418c8fcd7f336416d4"
 dependencies = [
  "bytes",
  "libc",
@@ -575,7 +575,7 @@ dependencies = [
 [[package]]
 name = "tokio-macros"
 version = "2.7.2"
-source = "git+https://github.com/guybedford/tokio?branch=emscripten-tokio#d9e81367815629d0d42129d087d95ecc13f4333c"
+source = "git+https://github.com/guybedford/tokio?branch=emscripten-event-loop-host#8ec263d614fab25ef99f0d418c8fcd7f336416d4"
 dependencies = [
  "proc-macro2",
  "quote",

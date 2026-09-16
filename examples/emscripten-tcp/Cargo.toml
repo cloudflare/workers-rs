@@ -17,13 +17,13 @@ opt-level = "s"
 
 # wasm32-unknown-emscripten support pending upstream releases (see README).
 [patch.crates-io]
-tokio = { git = "https://github.com/guybedford/tokio", branch = "emscripten-tokio" }
-tokio-macros = { git = "https://github.com/guybedford/tokio", branch = "emscripten-tokio" }
-mio = { git = "https://github.com/guybedford/mio", rev = "a62c9e46833fc255c9217ab9aa362c6221ed4401" }
+tokio = { git = "https://github.com/guybedford/tokio", branch = "emscripten-event-loop-host" }
+tokio-macros = { git = "https://github.com/guybedford/tokio", branch = "emscripten-event-loop-host" }
+mio = { git = "https://github.com/guybedford/mio", branch = "emscripten" }
 libc = { git = "https://github.com/rust-lang/libc", branch = "libc-0.2" }
 # rlib-only: cargo would otherwise also link its cdylib, which emcc cannot produce.
 wasm-streams = { git = "https://github.com/guybedford/wasm-streams", branch = "rlib-only" }
-# JSPI on emscripten through its lifecycle hooks (wasm-bindgen/wasm-bindgen#5333).
+# #[wasm_bindgen(tokio)] exports (wasm-bindgen/wasm-bindgen#5334).
 wasm-bindgen = { path = "../../wasm-bindgen" }
 wasm-bindgen-macro-support = { path = "../../wasm-bindgen/crates/macro-support" }
 wasm-bindgen-shared = { path = "../../wasm-bindgen/crates/shared" }
@@ -35,4 +35,4 @@ web-sys = { path = "../../wasm-bindgen/crates/web-sys" }
 libc = { git = "https://github.com/rust-lang/libc", branch = "libc-0.2" }
 
 [lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(worker_tokio, values("event_loop", "jspi"))'] }
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(worker_tokio, values("event_loop"))'] }

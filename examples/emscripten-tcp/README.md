@@ -1,29 +1,20 @@
 # Emscripten TCP example
 
-A `worker-build --emscripten` Worker: stock `tokio::net::TcpStream` on
-`wasm32-unknown-emscripten`, parking through JSPI on the host event loop.
+A `worker-build --emscripten --tokio` Worker: stock `tokio::net::TcpStream`
+on `wasm32-unknown-emscripten`, driven by the host event loop.
 
 ```sh
-curl 'http://localhost:8787/?host=example.com'
+curl 'http://localhost:8787/?host=1.1.1.1'
 ```
 
 connects to port 80 of the host from inside the Worker and returns the HEAD
 response; `/do?host=...` does the same from inside a Durable Object, and
 `host=sleep` exercises a Tokio timer.
 
-The build command selects the Tokio integration:
-
-* `worker-build --emscripten --tokio=jspi` (the default here): each handler is
-  a `#[wasm_bindgen(jspi)]` export on its own fiber and blocks on a
-  current-thread runtime; every blocking wait suspends the Wasm stack and
-  resumes when the host delivers socket readiness, a DNS result or a timer.
-* `worker-build --emscripten --tokio`: the handler is scheduled on a Tokio
-  event-loop runtime per invocation, whose wait is the host event loop, so the
-  plain async handler runs with no stack switching. Hostname resolution still
-  needs JSPI; use IP hosts in this mode.
-
-`head` in `src/main.rs` shows the one difference visible to the handler,
-under `cfg(worker_tokio = "jspi")`.
+Each handler is scheduled on a Tokio event loop per invocation, whose wait is
+the host event loop, so the plain async handler runs with no stack switching.
+Hostname resolution has nothing to block on and fails with `EAI_AGAIN`; use IP
+hosts.
 
 ## Layout
 
@@ -42,8 +33,8 @@ same block to your own Worker:
 
 | Crate | Source | Why |
 | --- | --- | --- |
-| tokio, tokio-macros | `guybedford/tokio` branch `emscripten-tokio` | The `net` feature, JSPI parking with fiber-owned runtime context, and the `EventLoopRuntime` on emscripten (tokio-rs/tokio#8281, #8479 follow-ons) |
-| mio | `guybedford/mio` rev `a62c9e4` | epoll selector on emscripten (tokio-rs/mio#1969) |
+| tokio, tokio-macros | `guybedford/tokio` branch `emscripten-event-loop-host` | The `net` feature and host-driven event loops on emscripten (tokio-rs/tokio#8484) |
+| mio | `guybedford/mio` branch `emscripten` | epoll selector on emscripten (tokio-rs/mio#1969) |
 | libc | `rust-lang/libc` branch `libc-0.2` | emscripten epoll bindings, unreleased |
 | wasm-streams | `guybedford/wasm-streams` branch `rlib-only` | rlib-only: cargo would otherwise link its cdylib, which emcc cannot produce |
 
