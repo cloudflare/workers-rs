@@ -75,11 +75,12 @@ patches under `worker-build/patches/emscripten/` to the frontend. These are
 backports the Rust link depends on that the pinned release does not yet
 contain, taken from the current heads of the upstream pull requests:
 marker-based `-sWASM_BINDGEN` (emscripten-core/emscripten#27208, released in
-6.0.10), JSPI lifecycle hooks and `-sREENTRANT_JSPI` fiber stacks so promising
-exports can be entered while another activation is suspended (#27698,
-#27699), `emscripten_epoll_add_listener` readiness callbacks (#27547) and
-hostname resolution under `-sNODERAWSOCKETS` (#27693); each is removed as the
-pin moves past it. Binaryen comes from a separate release carrying the
+6.0.10), `emscripten_epoll_add_listener` readiness callbacks and timeout
+keepalive release (#27547, #27720), hostname resolution under
+`-sNODERAWSOCKETS` (#27693), and for `--tokio=jspi` only, JSPI lifecycle hooks
+and `-sREENTRANT_JSPI` fiber stacks so promising exports can be entered while
+another activation is suspended (#27698, #27699); each is removed as the pin
+moves past it. Binaryen comes from a separate release carrying the
 `jspi-hooks` pass those fiber stacks need. Installing needs `python3` on
 `PATH`; the SDK ships its own LLVM and Node.
 

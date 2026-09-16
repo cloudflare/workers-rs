@@ -1,12 +1,14 @@
 Subject: [PATCH] Real DNS resolution for getaddrinfo under -sNODERAWSOCKETS
 
-Backport of emscripten-core/emscripten#27693 (head 6df784bea) to the 6.0.9
-release, without its ChangeLog entry and tests. Under -sNODERAWSOCKETS,
+Backport of emscripten-core/emscripten#27693 (as rebased in 4a98deb11) to the
+6.0.9 release, without its ChangeLog entry and tests. Under -sNODERAWSOCKETS,
 getaddrinfo resolves hostnames through node:dns (suspending on JSPI) instead
-of handing them to net.connect, which rejects non-IP hosts on Workers.
+of handing them to net.connect, which rejects non-IP hosts on Workers. The
+$nodeSockHelpers dependency list omits the $warnOnce entry that #27717 added
+after the release.
 
 Base-commit: 4e4223852a0835923411059a3929907d7df1232e (tag 6.0.9),
-after wasm-bindgen-marker.patch and reentrant-jspi.patch
+after wasm-bindgen-marker.patch and epoll-listeners.patch
 
 ---
 diff --git a/src/lib/libcore.js b/src/lib/libcore.js
