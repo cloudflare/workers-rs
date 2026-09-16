@@ -1,7 +1,7 @@
 Subject: [PATCH] epoll readiness listeners and timeout keepalive release
 
-Backport of emscripten-core/emscripten#27547 (head 7a5cdabf0) and #27720
-(head 2f4be7e48) to the 6.0.9 release, without tests, docs, ChangeLog and
+Backport of emscripten-core/emscripten#27547 (head 11b475c3b) and #27720
+(head 28b62a88c) to the 6.0.9 release, without tests, docs, ChangeLog and
 codesize baselines. emscripten_epoll_add_listener delivers epoll readiness as
 a host macrotask while holding the runtime alive for the listener's owner
 thread; emscripten_clear_timeout releases its keepalive and clearing is
@@ -948,14 +948,14 @@ diff --git a/tools/native_sigs.py b/tools/native_sigs.py
    '_emscripten_find_dylib': 'ppppp',
    '_emscripten_memcpy_bulkmem': 'pppp',
    '_emscripten_memset_bulkmem': 'pp_p',
-@@ -544,6 +545,7 @@ native_sigs = {
-   '_emscripten_thread_exit': '_p',
+@@ -545,6 +546,7 @@ native_sigs = {
    '_emscripten_thread_free_data': '_p',
    '_emscripten_thread_init': '_p_____',
-+  '_emscripten_thread_keepalive': '_p_',
    '_emscripten_thread_is_valid': '_p',
++  '_emscripten_thread_keepalive': '_p_',
    '_emscripten_thread_mailbox_init': '_p',
    '_emscripten_thread_mailbox_shutdown': '_p',
+   '_emscripten_thread_notify': '_p',
 diff --git a/tools/system_libs.py b/tools/system_libs.py
 --- a/tools/system_libs.py
 +++ b/tools/system_libs.py

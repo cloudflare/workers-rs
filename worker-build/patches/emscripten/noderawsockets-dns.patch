@@ -1,6 +1,6 @@
 Subject: [PATCH] Real DNS resolution for getaddrinfo under -sNODERAWSOCKETS
 
-Backport of emscripten-core/emscripten#27693 (as rebased in 992399f9c) to the
+Backport of emscripten-core/emscripten#27693 (as rebased in 706a71278) to the
 6.0.9 release, without its ChangeLog entry and tests. Under -sNODERAWSOCKETS,
 getaddrinfo resolves hostnames through node:dns (suspending on JSPI) instead
 of handing them to net.connect, which rejects non-IP hosts on Workers. The
