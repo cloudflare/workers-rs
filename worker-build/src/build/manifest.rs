@@ -144,6 +144,9 @@ struct CargoWasmPackProfileWasmBindgen {
     #[serde(default, rename = "dwarf-debug-info")]
     dwarf_debug_info: Option<bool>,
 
+    #[serde(default, rename = "split-debug-info")]
+    split_debug_info: Option<bool>,
+
     #[serde(default, rename = "omit-default-module-path")]
     omit_default_module_path: Option<bool>,
 
@@ -171,6 +174,7 @@ impl CargoWasmPackProfile {
                 debug_js_glue: Some(true),
                 demangle_name_section: Some(true),
                 dwarf_debug_info: Some(false),
+                split_debug_info: Some(false),
                 omit_default_module_path: Some(false),
                 split_linked_modules: Some(false),
             },
@@ -184,6 +188,7 @@ impl CargoWasmPackProfile {
                 debug_js_glue: Some(false),
                 demangle_name_section: Some(true),
                 dwarf_debug_info: Some(false),
+                split_debug_info: Some(false),
                 omit_default_module_path: Some(false),
                 split_linked_modules: Some(false),
             },
@@ -197,6 +202,7 @@ impl CargoWasmPackProfile {
                 debug_js_glue: Some(false),
                 demangle_name_section: Some(true),
                 dwarf_debug_info: Some(false),
+                split_debug_info: Some(false),
                 omit_default_module_path: Some(false),
                 split_linked_modules: Some(false),
             },
@@ -210,6 +216,7 @@ impl CargoWasmPackProfile {
                 debug_js_glue: Some(false),
                 demangle_name_section: Some(true),
                 dwarf_debug_info: Some(false),
+                split_debug_info: Some(false),
                 omit_default_module_path: Some(false),
                 split_linked_modules: Some(false),
             },
@@ -262,6 +269,7 @@ impl CargoWasmPackProfile {
         d!(wasm_bindgen.debug_js_glue);
         d!(wasm_bindgen.demangle_name_section);
         d!(wasm_bindgen.dwarf_debug_info);
+        d!(wasm_bindgen.split_debug_info);
         d!(wasm_bindgen.omit_default_module_path);
         d!(wasm_bindgen.split_linked_modules);
 
@@ -283,6 +291,16 @@ impl CargoWasmPackProfile {
     /// Get this profile's configured `[wasm-bindgen.dwarf-debug-info]` value.
     pub fn wasm_bindgen_dwarf_debug_info(&self) -> bool {
         self.wasm_bindgen.dwarf_debug_info.unwrap()
+    }
+
+    /// Get this profile's configured `[wasm-bindgen.split-debug-info]` value.
+    pub fn wasm_bindgen_split_debug_info(&self) -> bool {
+        self.wasm_bindgen.split_debug_info.unwrap()
+    }
+
+    /// Whether `wasm-bindgen` must retain DWARF in its output.
+    pub fn wasm_bindgen_keep_debug_info(&self) -> bool {
+        self.wasm_bindgen_dwarf_debug_info() || self.wasm_bindgen_split_debug_info()
     }
 
     /// Get this profile's configured `[wasm-bindgen.omit-default-module-path]` value.
@@ -613,5 +631,48 @@ impl CrateData {
             keywords: data.keywords,
             dependencies,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::CargoManifest;
+
+    #[test]
+    fn split_debug_info_defaults_to_false() {
+        let manifest: CargoManifest = toml::from_str(
+            r#"
+                [package]
+                name = "example"
+            "#,
+        )
+        .unwrap();
+
+        assert!(!manifest
+            .package
+            .metadata
+            .wasm_pack
+            .profile
+            .release
+            .wasm_bindgen_split_debug_info());
+    }
+
+    #[test]
+    fn parses_split_debug_info_setting() {
+        let manifest: CargoManifest = toml::from_str(
+            r#"
+                [package]
+                name = "example"
+
+                [package.metadata.wasm-pack.profile.release.wasm-bindgen]
+                split-debug-info = true
+            "#,
+        )
+        .unwrap();
+
+        let profile = &manifest.package.metadata.wasm_pack.profile.release;
+        assert!(profile.wasm_bindgen_split_debug_info());
+        assert!(!profile.wasm_bindgen_dwarf_debug_info());
+        assert!(profile.wasm_bindgen_keep_debug_info());
     }
 }

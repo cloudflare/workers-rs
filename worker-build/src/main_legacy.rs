@@ -132,6 +132,8 @@ fn copy_generated_code_to_worker_dir(out_dir: &Path) -> Result<()> {
 
     let wasm_src = output_path(out_dir, format!("{OUT_NAME}_bg.wasm"));
     let wasm_dest = worker_path(out_dir, format!("{OUT_NAME}.wasm"));
+    let debug_wasm_src = output_path(out_dir, format!("{OUT_NAME}_bg.debug.wasm"));
+    let debug_wasm_dest = worker_path(out_dir, format!("{OUT_NAME}_bg.debug.wasm"));
 
     // wasm-bindgen supports adding arbitrary JavaScript for a library, so we need to move that as well.
     // https://rustwasm.github.io/wasm-bindgen/reference/js-snippets.html
@@ -141,6 +143,7 @@ fn copy_generated_code_to_worker_dir(out_dir: &Path) -> Result<()> {
     for (src, dest) in [
         (glue_src, glue_dest),
         (wasm_src, wasm_dest),
+        (debug_wasm_src, debug_wasm_dest),
         (snippets_src, snippets_dest),
     ] {
         if !src.exists() {
@@ -227,4 +230,64 @@ fn worker_path(out_dir: &Path, name: impl AsRef<str>) -> PathBuf {
 
 fn output_path(out_dir: &Path, name: impl AsRef<str>) -> PathBuf {
     out_dir.join(name.as_ref())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use super::{copy_generated_code_to_worker_dir, create_worker_dir};
+    use wasmparser::{BinaryReader, Parser, Payload};
+
+    fn section(id: u8, contents: &[u8]) -> Vec<u8> {
+        let mut section = vec![id, contents.len() as u8];
+        section.extend_from_slice(contents);
+        section
+    }
+
+    fn custom_section(name: &str, data: &[u8]) -> Vec<u8> {
+        let mut contents = vec![name.len() as u8];
+        contents.extend_from_slice(name.as_bytes());
+        contents.extend_from_slice(data);
+        section(0, &contents)
+    }
+
+    fn module_with_dwarf() -> Vec<u8> {
+        let mut wasm = b"\0asm\x01\0\0\0".to_vec();
+        wasm.extend(section(1, &[1, 0x60, 0, 0]));
+        wasm.extend(section(3, &[1, 0]));
+        wasm.extend(section(10, &[1, 2, 0, 0x0b]));
+        wasm.extend(custom_section(".debug_info", b"dwarf"));
+        wasm
+    }
+
+    #[test]
+    fn moves_debug_sidecar_next_to_renamed_runtime_module() {
+        let out_dir = tempfile::tempdir().unwrap();
+        fs::write(out_dir.path().join("index_bg.wasm"), module_with_dwarf()).unwrap();
+        crate::debug_info::split_debug_info(out_dir.path()).unwrap();
+
+        create_worker_dir(out_dir.path()).unwrap();
+        copy_generated_code_to_worker_dir(out_dir.path()).unwrap();
+
+        let runtime = fs::read(out_dir.path().join("worker/index.wasm")).unwrap();
+        let sidecar = fs::read(out_dir.path().join("worker/index_bg.debug.wasm")).unwrap();
+        wasmparser::validate(&runtime).unwrap();
+        wasmparser::validate(&sidecar).unwrap();
+        let reference = Parser::new(0)
+            .parse_all(&runtime)
+            .find_map(|payload| match payload.unwrap() {
+                Payload::CustomSection(section) if section.name() == "external_debug_info" => Some(
+                    BinaryReader::new(section.data(), 0)
+                        .read_string()
+                        .unwrap()
+                        .to_owned(),
+                ),
+                _ => None,
+            })
+            .unwrap();
+        assert_eq!(reference, "index_bg.debug.wasm");
+        assert!(out_dir.path().join("worker").join(reference).is_file());
+        assert!(!out_dir.path().join("index_bg.debug.wasm").exists());
+    }
 }

@@ -14,23 +14,16 @@ describe("websocket", () => {
     const socket = resp.webSocket!;
     socket.accept();
 
-    let cnt = 0;
-    socket.addEventListener("message", function (_event: MessageEvent) {
-      cnt++;
+    const message = new Promise<MessageEvent>((resolve) => {
+      socket.addEventListener("message", resolve, { once: true });
     });
-    let calledClose = false;
-    socket.addEventListener("close", function (_event: CloseEvent) {
-      calledClose = true;
+    const close = new Promise<CloseEvent>((resolve) => {
+      socket.addEventListener("close", resolve, { once: true });
     });
 
     socket.send("Hello, world!");
-
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    expect(cnt).toBe(1);
+    expect((await message).data).toBe("Hello, world!");
     socket.close();
-
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    expect(calledClose).toBe(true);
+    await close;
   });
 });

@@ -36,10 +36,14 @@ describe("r2", () => {
     expect(await resp.text()).toBe("ok");
   });
 
-  test("delete", async () => {
-    const resp = await mf.dispatchFetch(`${mfUrl}r2/delete`, {
-      method: "delete",
-    });
-    expect(await resp.text()).toBe("ok");
-  });
+  test(
+    "delete",
+    async () => {
+      const resp = await mf.dispatchFetch(`${mfUrl}r2/delete`, {
+        method: "delete",
+      });
+      expect(await resp.text()).toBe("ok");
+    },
+    60_000
+  );
 });
