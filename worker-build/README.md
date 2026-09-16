@@ -37,8 +37,8 @@ worker-build --release
 ## Emscripten
 
 `worker-build --emscripten` builds for `wasm32-unknown-emscripten`, giving
-Workers a libc, epoll-backed sockets and JSPI-suspending blocking calls, so
-crates like stock Tokio `net` run unmodified. The output has the same shape
+Workers a libc and epoll-backed sockets, so crates like stock Tokio `net` run
+unmodified. The output has the same shape
 as a regular build (`build/index.js` plus the Wasm), so `wrangler.toml` only
 changes the build command:
 
@@ -50,17 +50,14 @@ compatibility_flags = ["nodejs_compat", "new_module_registry"]
 command = "cargo install -q worker-build && worker-build --emscripten --tokio --release"
 ```
 
-`--tokio` selects how Tokio meets the host event loop. With `--tokio`, the
-`#[event]` and `#[durable_object]` handlers are scheduled on a Tokio
-event-loop runtime per invocation, whose wait *is* the host event loop, so
+With `--tokio`, the `#[event]` and `#[durable_object]` handlers are scheduled
+on a Tokio event loop per invocation, whose wait *is* the host event loop, so
 `tokio::net`, `tokio::time` and `tokio::spawn` work in plain async handlers
-with no stack switching. With `--tokio=jspi`, each handler is a JSPI export on
-its own fiber and blocks on a runtime you build inside it; the runtime parks by
-suspending the Wasm stack. Both take Tokio from the branches listed in the
+with no stack switching. Tokio comes from the branches listed in the
 [emscripten-tcp example](../examples/emscripten-tcp). Hostname resolution
-(`getaddrinfo`) is a suspending call and currently needs `--tokio=jspi`.
-The selected mode is visible to crates as `cfg(worker_tokio = "event_loop")`
-or `cfg(worker_tokio = "jspi")`.
+(`getaddrinfo`) is a blocking call with nothing to block on, so it fails with
+`EAI_AGAIN`; connect to IP addresses. The mode is visible to crates as
+`cfg(worker_tokio = "event_loop")`.
 
 The build links a **bin** target rather than a `cdylib`: rustc drives `emcc`
 as the linker, and `emcc` runs `wasm-bindgen` over the linked program as a
@@ -77,21 +74,16 @@ contain, taken from the current heads of the upstream pull requests:
 marker-based `-sWASM_BINDGEN` (emscripten-core/emscripten#27208, released in
 6.0.10), `emscripten_epoll_add_listener` readiness callbacks and timeout
 keepalive release (#27547, #27720), hostname resolution under
-`-sNODERAWSOCKETS` (#27693), and for `--tokio=jspi` only, JSPI lifecycle hooks
-and `-sREENTRANT_JSPI` fiber stacks so promising exports can be entered while
-another activation is suspended (#27698, #27699); each is removed as the pin
-moves past it. Binaryen comes from a separate release carrying the
-`jspi-hooks` pass those fiber stacks need. Installing needs `python3` on
-`PATH`; the SDK ships its own LLVM and Node.
+`-sNODERAWSOCKETS` (#27693); each is removed as the pin moves past it.
+Installing needs `python3` on `PATH`; the SDK ships its own LLVM, Binaryen and
+Node.
 
 Overrides for local toolchain development:
 
 - **`EMSCRIPTEN`**: an emscripten frontend checkout (the directory holding
   `emcc`), used as-is without patching.
-- **`EMSDK`**: an emsdk install providing the LLVM backend (`$EMSDK/upstream`)
-  and Node.
-- **`BINARYEN_ROOT`**: a Binaryen install (the directory holding `bin/wasm-opt`)
-  with the `jspi-hooks` pass.
+- **`EMSDK`**: an emsdk install providing the LLVM and Binaryen backend
+  (`$EMSDK/upstream`) and Node.
 
 Until wasm-bindgen 0.2.129, debuginfo builds (`--dev`, `--profiling`) need a
 wasm-bindgen CLI with

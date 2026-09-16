@@ -18,20 +18,12 @@ async fn head_request(host: &str) -> std::io::Result<String> {
     Ok(out)
 }
 
-/// Stock `tokio::net` and `tokio::time` on Workers. Under `--tokio` the
-/// handler already runs on Tokio's event-loop runtime; under `--tokio=jspi`
-/// it blocks on its own current-thread runtime, which parks by suspending the
-/// Wasm stack.
+/// Stock `tokio::net` and `tokio::time` on Workers: under `--tokio` the
+/// handler already runs on a Tokio event loop driven by the host.
 async fn head(host: &str) -> Result<String> {
-    #[cfg(worker_tokio = "jspi")]
-    let body = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .map_err(|e| Error::RustError(e.to_string()))?
-        .block_on(head_request(host));
-    #[cfg(not(worker_tokio = "jspi"))]
-    let body = head_request(host).await;
-    body.map_err(|e| Error::RustError(e.to_string()))
+    head_request(host)
+        .await
+        .map_err(|e| Error::RustError(e.to_string()))
 }
 
 #[event(fetch)]
@@ -42,7 +34,7 @@ async fn fetch(req: Request, env: Env, _ctx: Context) -> Result<Response> {
         .find(|(k, _)| k == "host")
         .map(|(_, v)| v.into_owned())
     else {
-        return Response::ok("usage: /?host=example.com or /do?host=example.com");
+        return Response::ok("usage: /?host=1.1.1.1 or /do?host=1.1.1.1");
     };
     if url.path() == "/do" {
         let stub = env.durable_object("PROBE")?.id_from_name(&host)?.get_stub()?;

@@ -5,12 +5,9 @@ use quote::quote;
 /// block resolving to `Result<JsValue, JsValue>`) to a JS Promise.
 ///
 /// Normally a synchronous export returning `future_to_promise(body)`. Under
-/// `worker-build --emscripten --tokio` the `worker_tokio` cfg selects the
-/// Tokio integration instead: `event_loop` schedules the future on a Tokio
-/// event-loop runtime, whose wait is the host event loop; `jspi` exports a
-/// JSPI promising function that suspends on the future's promise, so the
-/// activation runs on its own fiber and blocking waits inside it (Tokio parks,
-/// `epoll_wait`) suspend the stack.
+/// `worker-build --emscripten --tokio` the `worker_tokio = "event_loop"` cfg
+/// schedules the future on a Tokio event loop whose wait is the host event
+/// loop instead.
 pub fn async_export(opts: TokenStream, sig: TokenStream, body: TokenStream) -> TokenStream {
     let opts = if opts.is_empty() {
         opts
@@ -18,7 +15,7 @@ pub fn async_export(opts: TokenStream, sig: TokenStream, body: TokenStream) -> T
         quote! { #opts, }
     };
     quote! {
-        #[cfg(not(any(worker_tokio = "event_loop", worker_tokio = "jspi")))]
+        #[cfg(not(worker_tokio = "event_loop"))]
         #[wasm_bindgen(#opts wasm_bindgen=::worker::wasm_bindgen)]
         pub fn #sig -> ::worker::js_sys::Promise {
             ::worker::js_sys::futures::future_to_promise(::std::panic::AssertUnwindSafe({ #body }))
@@ -28,15 +25,6 @@ pub fn async_export(opts: TokenStream, sig: TokenStream, body: TokenStream) -> T
         #[wasm_bindgen(#opts wasm_bindgen=::worker::wasm_bindgen)]
         pub fn #sig -> ::worker::js_sys::Promise {
             ::worker::__tokio_promise(::std::panic::AssertUnwindSafe({ #body }))
-        }
-
-        #[cfg(worker_tokio = "jspi")]
-        #[allow(deprecated)]
-        #[wasm_bindgen(jspi, #opts wasm_bindgen=::worker::wasm_bindgen)]
-        pub fn #sig -> ::std::result::Result<::worker::wasm_bindgen::JsValue, ::worker::wasm_bindgen::JsValue> {
-            ::worker::js_sys::futures::jspi_block_on_promise(
-                &::worker::js_sys::futures::future_to_promise(::std::panic::AssertUnwindSafe({ #body }))
-            )
         }
     }
 }

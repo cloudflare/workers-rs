@@ -51,7 +51,7 @@ pub struct Build {
     pub panic_unwind: bool,
     pub emscripten: bool,
     pub bin: Option<String>,
-    pub tokio: Option<emscripten::TokioMode>,
+    pub tokio: bool,
     pub emscripten_toolchain: Option<emscripten::Toolchain>,
 }
 
@@ -184,18 +184,10 @@ pub struct BuildOptions {
     /// The bin target to link for --emscripten when the package has several.
     pub bin: Option<String>,
 
-    #[clap(
-        long = "tokio",
-        requires = "emscripten",
-        value_name = "MODE",
-        num_args = 0..=1,
-        require_equals = true,
-        default_missing_value = "event-loop"
-    )]
+    #[clap(long = "tokio", requires = "emscripten")]
     /// Integrate Tokio with the host event loop for --emscripten: handlers
-    /// run on Tokio's event-loop runtime, or with `--tokio=jspi` block on a
-    /// runtime that parks by suspending through JSPI.
-    pub tokio: Option<emscripten::TokioMode>,
+    /// run on a Tokio event loop driven by the host.
+    pub tokio: bool,
 }
 
 type BuildStep = fn(&mut Build) -> Result<()>;

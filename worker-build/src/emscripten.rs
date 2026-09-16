@@ -4,9 +4,8 @@
 //! and the patches in `worker-build/patches/emscripten/` are applied to its
 //! frontend. Patches are backports the Rust link depends on that the pinned
 //! release does not yet contain; each is dropped when the pin moves past it.
-//! Binaryen comes from a separate release carrying the jspi-hooks pass.
 
-use crate::binary::{cache_root, download, Binaryen, GetBinary};
+use crate::binary::{cache_root, download};
 use crate::build::PBAR;
 use crate::emoji::{CONFIG, DOWN_ARROW};
 use crate::versions::CUR_EMSCRIPTEN_VERSION;
@@ -29,10 +28,6 @@ const PATCHES: &[(&str, &str)] = &[
         "noderawsockets-dns.patch",
         include_str!("../patches/emscripten/noderawsockets-dns.patch"),
     ),
-    (
-        "jspi-hooks.patch",
-        include_str!("../patches/emscripten/jspi-hooks.patch"),
-    ),
 ];
 
 const STAMP: &str = ".worker-build-patches";
@@ -42,44 +37,15 @@ pub const RUSTFLAGS: &[&str] = &[
     "-Crelocation-model=static",
     // exnref exception handling throughout: EMCC_CFLAGS gives the C side
     // `-fwasm-exceptions -sWASM_LEGACY_EXCEPTIONS=0`, the prebuilt std is
-    // translated at link, and wasm-bindgen's JSPI wrappers use try_table.
-    // V8 rejects a module mixing the two encodings.
+    // translated at link. V8 rejects a module mixing the two encodings.
     "-Cllvm-args=-wasm-use-legacy-eh=false",
     // `worker_tokio` selects how the worker macros export async handlers.
-    "--check-cfg=cfg(worker_tokio,values(\"jspi\",\"event_loop\"))",
+    "--check-cfg=cfg(worker_tokio,values(\"event_loop\"))",
 ];
 
-/// How `--tokio` integrates Tokio with the host event loop.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, clap::ValueEnum)]
-pub enum TokioMode {
-    /// Handlers are `#[wasm_bindgen(tokio)]` exports scheduled on Tokio's
-    /// `EventLoopRuntime`, whose wait is the host event loop.
-    EventLoop,
-    /// Handlers are `#[wasm_bindgen(jspi)]` exports that block on a Tokio
-    /// runtime, parking by suspending the Wasm stack; each activation runs
-    /// on its own fiber.
-    Jspi,
-}
-
-impl TokioMode {
-    pub fn rustflags(self) -> &'static [&'static str] {
-        match self {
-            TokioMode::EventLoop => &["--cfg=tokio_unstable", "--cfg=worker_tokio=\"event_loop\""],
-            // Tokio's emscripten port owns its runtime context per JSPI fiber
-            // through the lifecycle hooks the link provides.
-            TokioMode::Jspi => &["--cfg=tokio_jspi_hooks", "--cfg=worker_tokio=\"jspi\""],
-        }
-    }
-
-    pub fn link_args(self) -> &'static [&'static str] {
-        match self {
-            TokioMode::EventLoop => &[],
-            // Each JSPI activation runs on its own shadow stack, so a promising
-            // export may be entered while another activation is suspended.
-            TokioMode::Jspi => &["-sREENTRANT_JSPI"],
-        }
-    }
-}
+/// Codegen flags for `--tokio`: handlers are `#[wasm_bindgen(tokio)]` exports
+/// scheduled on a Tokio event loop whose wait is the host event loop.
+pub const TOKIO_RUSTFLAGS: &[&str] = &["--cfg=tokio_unstable", "--cfg=worker_tokio=\"event_loop\""];
 
 /// emcc settings for the final link. Kept out of EMCC_CFLAGS so they do not
 /// reach C compiles of crates like `ring`, where `-Werror` makes an unused link
@@ -87,7 +53,6 @@ impl TokioMode {
 pub const LINK_ARGS: &[&str] = &[
     "-sBINARYEN_EXTRA_PASSES=--translate-to-exnref",
     "-sWASM_BINDGEN",
-    "-sJSPI",
     "-sMODULARIZE=instance",
     "-sEXPORT_ES6",
     "-sAUTO_INIT",
@@ -148,24 +113,8 @@ pub fn provision() -> Result<Toolchain> {
         None => emsdk.join("upstream/emscripten"),
     };
 
-    // -sJSPI_HOOKS runs Binaryen's jspi-hooks pass, which the emsdk release
-    // does not ship yet.
-    let binaryen = match env::var_os("BINARYEN_ROOT") {
-        Some(dir) => {
-            PBAR.info(&format!(
-                "{CONFIG}Using BINARYEN_ROOT: {}",
-                dir.to_string_lossy()
-            ));
-            PathBuf::from(dir)
-        }
-        None => {
-            let (wasm_opt, _) = Binaryen.get_binary(None)?;
-            wasm_opt.parent().unwrap().parent().unwrap().to_path_buf()
-        }
-    };
-
     let em_config = cache_root()?.join(format!("emscripten-{CUR_EMSCRIPTEN_VERSION}.config"));
-    write_config(&em_config, &emsdk, &binaryen)?;
+    write_config(&em_config, &emsdk)?;
 
     Ok(Toolchain {
         emscripten_dir,
@@ -280,14 +229,14 @@ pub fn apply_patch(root: &Path, patch: &str) -> Result<()> {
     Ok(())
 }
 
-fn write_config(path: &Path, emsdk: &Path, binaryen: &Path) -> Result<()> {
+fn write_config(path: &Path, emsdk: &Path) -> Result<()> {
     let node = emsdk_node(emsdk)
         .or_else(|| which::which("node").ok())
         .ok_or_else(|| anyhow!("node is required by emcc and was not found"))?;
     let contents = format!(
         "LLVM_ROOT = {:?}\nBINARYEN_ROOT = {:?}\nNODE_JS = {:?}\n",
         emsdk.join("upstream/bin"),
-        binaryen,
+        emsdk.join("upstream"),
         node
     );
     if fs::read_to_string(path).ok().as_deref() != Some(&contents) {

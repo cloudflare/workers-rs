@@ -155,8 +155,7 @@ fn generate_handlers(out_dir: &Path) -> Result<String> {
     // This code is specialized to what wasm-bindgen outputs for ESM and is therefore
     // brittle to upstream changes. It is comprehensive to current output patterns though.
     // TODO: Convert this to Wasm binary exports analysis for entry point detection instead.
-    // Emscripten output indents (or minifies) the wasm-bindgen exports and
-    // emits JSPI exports as `export async function`.
+    // Emscripten output indents (or minifies) the wasm-bindgen exports.
     let mut func_names = Vec::new();
     for line in export_decls(&content) {
         if let Some(rest) = line

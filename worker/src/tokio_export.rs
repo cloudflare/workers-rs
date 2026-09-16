@@ -1,5 +1,5 @@
 //! Handler exports under `worker-build --emscripten --tokio`: the future is
-//! scheduled as the root of a fresh Tokio event-loop runtime owned by the
+//! scheduled as the root of a fresh Tokio event loop owned by the
 //! invocation, whose wait is the host event loop, so `tokio::spawn`, timers
 //! and I/O work inside it without JSPI. Each request gets its own reactor,
 //! torn down once the root settles.
