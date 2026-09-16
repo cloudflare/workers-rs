@@ -1,7 +1,7 @@
 Subject: [PATCH] epoll readiness listeners and timeout keepalive release
 
-Backport of emscripten-core/emscripten#27547 (head 34e2cc057) and #27720
-(head ba1547d6a) to the 6.0.9 release, without tests, docs, ChangeLog and
+Backport of emscripten-core/emscripten#27547 (head 25efd364c) and #27720
+(head 214518578) to the 6.0.9 release, without tests, docs, ChangeLog and
 codesize baselines. emscripten_epoll_add_listener delivers epoll readiness as
 a host macrotask while holding the runtime alive for the listener's owner
 thread; emscripten_clear_timeout releases its keepalive and clearing is
@@ -359,7 +359,7 @@ diff --git a/src/lib/libepoll.js b/src/lib/libepoll.js
      return n;
    },
  
-@@ -345,6 +480,205 @@ var EpollLibrary = {
+@@ -345,6 +480,212 @@ var EpollLibrary = {
  #endif
      return count;
    },
@@ -376,7 +376,10 @@ diff --git a/src/lib/libepoll.js b/src/lib/libepoll.js
 +  // collected by exactly one of them - the same load balancing as multiple
 +  // blocking epoll_wait callers on one epoll. A level fd left undrained
 +  // re-signals every tick, an edge fd once per edge.
-+  emscripten_epoll_add_listener__deps: ['$FS', '$epollWouldBlock', '$epollClearListener', '$epollReconcileKeepalive', '$epollHold', '$callUserCallback', '$emSetImmediate', '$maybeExit',
++  emscripten_epoll_add_listener__deps: ['$FS', '$epollWouldBlock', '$epollClearListener', '$epollReconcileKeepalive', '$epollHold', '$callUserCallback', '$emSetImmediate',
++#if !MINIMAL_RUNTIME
++    '$maybeExit',
++#endif
 +#if PTHREADS
 +    '$epollDeliveries', '_emscripten_epoll_run_callback_on_thread',
 +#endif
@@ -488,7 +491,9 @@ diff --git a/src/lib/libepoll.js b/src/lib/libepoll.js
 +        // released may have been what deferred main's exit.
 +        if (it.cleared || epollWouldBlock(ep)) {
 +          release();
++#if !MINIMAL_RUNTIME
 +          maybeExit();
++#endif
 +          return;
 +        }
 +#if PTHREADS
@@ -498,7 +503,9 @@ diff --git a/src/lib/libepoll.js b/src/lib/libepoll.js
 +        if (callerThread) {
 +          deliver();
 +          release();
++#if !MINIMAL_RUNTIME
 +          maybeExit();
++#endif
 +          return;
 +        }
 +#endif
