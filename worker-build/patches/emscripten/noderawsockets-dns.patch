@@ -1,11 +1,12 @@
 Subject: [PATCH] Real DNS resolution for getaddrinfo under -sNODERAWSOCKETS
 
-Backport of emscripten-core/emscripten#27693 (as rebased in 706a71278) to the
+Backport of emscripten-core/emscripten#27693 (main commit e0e87f56d) to the
 6.0.9 release, without its ChangeLog entry and tests. Under -sNODERAWSOCKETS,
-getaddrinfo resolves hostnames through node:dns (suspending on JSPI) instead
-of handing them to net.connect, which rejects non-IP hosts on Workers. The
-$nodeSockHelpers dependency list omits the $warnOnce entry that #27717 added
-after the release.
+getaddrinfo resolves hostnames through node:dns where the calling stack can
+suspend and otherwise fails with EAI_AGAIN, instead of handing them to
+net.connect, which rejects non-IP hosts on Workers. The $nodeSockHelpers
+dependency list omits the $warnOnce entry that #27717 added after the
+release.
 
 Base-commit: 4e4223852a0835923411059a3929907d7df1232e (tag 6.0.9),
 after wasm-bindgen-marker.patch and epoll-listeners.patch
@@ -14,34 +15,39 @@ after wasm-bindgen-marker.patch and epoll-listeners.patch
 diff --git a/src/lib/libcore.js b/src/lib/libcore.js
 --- a/src/lib/libcore.js
 +++ b/src/lib/libcore.js
-@@ -1007,9 +1007,17 @@ addToLibrary({
+@@ -1007,8 +1007,21 @@ addToLibrary({
      return inetPton4(DNS.lookup_name(nameString));
    },
  
 -  getaddrinfo__deps: ['$DNS', '$inetPton4', '$inetNtop4', '$inetPton6', '$inetNtop6', '$writeSockaddr', 'malloc', 'htonl'],
--  getaddrinfo__proxy: 'sync',
--  getaddrinfo: (node, service, hint, out) => {
-+  // Returns an EAI_* code (0 on success, having written the addrinfo list to
-+  // *out), or - under NODERAWSOCKETS, for a hostname needing a real DNS lookup -
-+  // a thunk producing a Promise of that code, for getaddrinfo to wait on where
-+  // the calling stack can suspend.
-+  $doGetAddrInfo__internal: true,
-+  $doGetAddrInfo__deps: ['$DNS', '$inetPton4', '$inetNtop4', '$inetPton6', '$inetNtop6', '$writeSockaddr', 'malloc', 'htonl',
++  getaddrinfo__deps: ['$DNS', '$inetPton4', '$inetNtop4', '$inetPton6', '$inetNtop6', '$writeSockaddr', 'malloc', 'htonl',
 +#if NODERAWSOCKETS
 +    '$nodeSockHelpers',
 +#endif
++#if NODERAWSOCKETS && ASYNCIFY
++    '$Asyncify',
++#endif
 +  ],
-+  $doGetAddrInfo: (node, service, hint, out) => {
+   getaddrinfo__proxy: 'sync',
++#if NODERAWSOCKETS && (PTHREADS || ASYNCIFY)
++  // Returns an EAI_* code synchronously, or - for a hostname needing a real
++  // DNS lookup - a Promise of one, which a sync-proxied pthread awaits and
++  // ASYNCIFY/JSPI suspend on.
++  getaddrinfo__async: true,
++#endif
+   getaddrinfo: (node, service, hint, out) => {
      // Note getaddrinfo currently only returns a single addrinfo with ai_next defaulting to NULL. When NULL
      // hints are specified or ai_family set to AF_UNSPEC or ai_socktype or ai_protocol set to 0 then we
-     // really should provide a linked list of suitable addrinfo values.
-@@ -1055,6 +1063,23 @@ addToLibrary({
+@@ -1055,6 +1068,27 @@ addToLibrary({
        return ai;
      }
  
 +#if NODERAWSOCKETS
-+    // Chain one addrinfo per {family, addr} entry, returning the head.
-+    function allocaddrinfos(entries) {
++    // Resolve via node:dns (which honors the host's /etc/hosts), chaining one
++    // addrinfo per {family, addr} result into *out.
++    async function lookupHostname() {
++      var entries = await nodeSockHelpers.lookupHost(node, family);
++      if (typeof entries == 'number') return entries;
 +      var head = 0, prev = 0;
 +      for (var entry of entries) {
 +        var ai = allocaddrinfo(entry.family, type, proto, null, entry.addr, port);
@@ -52,71 +58,61 @@ diff --git a/src/lib/libcore.js b/src/lib/libcore.js
 +        }
 +        prev = ai;
 +      }
-+      return head;
++      {{{ makeSetValue('out', '0', 'head', '*') }}};
++      return 0;
 +    }
 +#endif
 +
      if (hint) {
        flags = {{{ makeGetValue('hint', C_STRUCTS.addrinfo.ai_flags, 'i32') }}};
        family = {{{ makeGetValue('hint', C_STRUCTS.addrinfo.ai_family, 'i32') }}};
-@@ -1167,6 +1192,15 @@ addToLibrary({
+@@ -1167,6 +1201,25 @@ addToLibrary({
      //
      // try as a hostname
      //
 +#if NODERAWSOCKETS
-+    // A real node:dns lookup (which honors the host's /etc/hosts). It is
-+    // asynchronous: hand the caller a thunk to wait on.
-+    return () => nodeSockHelpers.lookupHost(node, family).then((entries) => {
-+      if (typeof entries == 'number') return entries;
-+      {{{ makeSetValue('out', '0', 'allocaddrinfos(entries)', '*') }}};
-+      return 0;
-+    });
++    // The lookup is asynchronous, so only start it where the calling stack can
++    // wait on the Promise: a sync-proxied pthread (PROXY_SYNC_ASYNC) awaits it,
++    // ASYNCIFY/JSPI suspend on it. Otherwise (the event-loop thread itself) it
++    // must not start at all, since it would write to *out after we have
++    // returned.
++#if PTHREADS
++    if (PThread.currentProxiedOperationCallerThread) return lookupHostname();
++#endif
++#if ASYNCIFY
++    // handleAsync holds a runtime keepalive across the suspension, so a user
++    // callback completing meanwhile does not exit the runtime under main().
++    // Everything above this point is pure, so the ASYNCIFY rewind re-running
++    // this body reaches handleAsync again and takes the stored result.
++    return Asyncify.handleAsync(lookupHostname);
++#else
++    return {{{ cDefs.EAI_AGAIN }}};
++#endif
 +#else
      // resolve the hostname to a temporary fake address
      node = DNS.lookup_name(node);
      addr = inetPton4(node);
-@@ -1178,6 +1212,41 @@ addToLibrary({
+@@ -1178,6 +1231,7 @@ addToLibrary({
      ai = allocaddrinfo(family, type, proto, null, addr, port);
      {{{ makeSetValue('out', '0', 'ai', '*') }}};
      return 0;
 +#endif
-+  },
-+
-+  getaddrinfo__deps: ['$doGetAddrInfo',
-+#if NODERAWSOCKETS && ASYNCIFY
-+    '$Asyncify',
-+#endif
-+  ],
-+  getaddrinfo__proxy: 'sync',
-+#if NODERAWSOCKETS && (PTHREADS || ASYNCIFY)
-+  // A hostname needing a real DNS lookup blocks by returning a Promise, which
-+  // a proxied pthread awaits (PROXY_SYNC_ASYNC) and ASYNCIFY/JSPI suspends on.
-+  // Every other outcome still returns synchronously.
-+  getaddrinfo__async: true,
-+#endif
-+  getaddrinfo: (node, service, hint, out) => {
-+    var ret = doGetAddrInfo(node, service, hint, out);
-+#if NODERAWSOCKETS
-+    if (typeof ret == 'function') {
-+#if PTHREADS
-+      if (PThread.currentProxiedOperationCallerThread) return ret();
-+#endif
-+#if ASYNCIFY
-+      return Asyncify.handleAsync(ret);
-+#else
-+      // No stack that can wait on the lookup (the event-loop thread itself).
-+      return {{{ cDefs.EAI_AGAIN }}};
-+#endif
-+    }
-+#if PTHREADS
-+    // A sync-proxied caller awaits a thenable even for an immediate result.
-+    if (PThread.currentProxiedOperationCallerThread) return Promise.resolve(ret);
-+#endif
-+#endif
-+    return ret;
    },
  
    getnameinfo__deps: ['$DNS', '$readSockaddr', '$stringToUTF8'],
+diff --git a/src/lib/libpthread.js b/src/lib/libpthread.js
+--- a/src/lib/libpthread.js
++++ b/src/lib/libpthread.js
+@@ -1089,7 +1089,8 @@ var LibraryPThread = {
+     var rtn = func(...proxiedJSCallArgs);
+     PThread.currentProxiedOperationCallerThread = 0;
+     if (ctx) {
+-      rtn.then((rtn) => __emscripten_run_js_on_main_thread_done(ctx, ctxArgs, rtn));
++      // A PROXY_SYNC_ASYNC function may complete synchronously with a plain value.
++      Promise.resolve(rtn).then((rtn) => __emscripten_run_js_on_main_thread_done(ctx, ctxArgs, rtn));
+       return;
+     }
+ 
 diff --git a/src/lib/libsockfs_node.js b/src/lib/libsockfs_node.js
 --- a/src/lib/libsockfs_node.js
 +++ b/src/lib/libsockfs_node.js

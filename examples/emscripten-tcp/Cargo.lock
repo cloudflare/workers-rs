@@ -561,7 +561,7 @@ dependencies = [
 [[package]]
 name = "tokio"
 version = "1.53.1"
-source = "git+https://github.com/guybedford/tokio?branch=emscripten-event-loop-host#8ec263d614fab25ef99f0d418c8fcd7f336416d4"
+source = "git+https://github.com/guybedford/tokio?branch=emscripten-event-loop-host#5ef5ab3ddd10dbfa181a362a19ec0f155dcea37d"
 dependencies = [
  "bytes",
  "libc",
@@ -575,7 +575,7 @@ dependencies = [
 [[package]]
 name = "tokio-macros"
 version = "2.7.2"
-source = "git+https://github.com/guybedford/tokio?branch=emscripten-event-loop-host#8ec263d614fab25ef99f0d418c8fcd7f336416d4"
+source = "git+https://github.com/guybedford/tokio?branch=emscripten-event-loop-host#5ef5ab3ddd10dbfa181a362a19ec0f155dcea37d"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -695,7 +695,7 @@ dependencies = [
 
 [[package]]
 name = "worker"
-version = "0.8.5"
+version = "0.8.6"
 dependencies = [
  "async-trait",
  "bytes",
@@ -724,7 +724,7 @@ dependencies = [
 
 [[package]]
 name = "worker-macros"
-version = "0.8.5"
+version = "0.8.6"
 dependencies = [
  "async-trait",
  "proc-macro2",
@@ -738,7 +738,7 @@ dependencies = [
 
 [[package]]
 name = "worker-sys"
-version = "0.8.5"
+version = "0.8.6"
 dependencies = [
  "cfg-if",
  "js-sys",
