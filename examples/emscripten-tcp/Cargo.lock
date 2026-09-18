@@ -284,7 +284,7 @@ dependencies = [
 [[package]]
 name = "libc"
 version = "0.2.189"
-source = "git+https://github.com/rust-lang/libc?branch=libc-0.2#31503352774deadf65cc53257b59ee4f3299f644"
+source = "git+https://github.com/rust-lang/libc?branch=libc-0.2#b02fb9c863e05c9a8a2720bbbc35cc8c06238bc1"
 
 [[package]]
 name = "litemap"
@@ -561,7 +561,7 @@ dependencies = [
 [[package]]
 name = "tokio"
 version = "1.53.1"
-source = "git+https://github.com/guybedford/tokio?branch=emscripten-event-loop-host#5ef5ab3ddd10dbfa181a362a19ec0f155dcea37d"
+source = "git+https://github.com/guybedford/tokio?branch=emscripten-event-loop-host#067f92b60cbba5c9fea585806af4b07fd838427e"
 dependencies = [
  "bytes",
  "libc",
@@ -575,7 +575,7 @@ dependencies = [
 [[package]]
 name = "tokio-macros"
 version = "2.7.2"
-source = "git+https://github.com/guybedford/tokio?branch=emscripten-event-loop-host#5ef5ab3ddd10dbfa181a362a19ec0f155dcea37d"
+source = "git+https://github.com/guybedford/tokio?branch=emscripten-event-loop-host#067f92b60cbba5c9fea585806af4b07fd838427e"
 dependencies = [
  "proc-macro2",
  "quote",
