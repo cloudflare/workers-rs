@@ -1,6 +1,6 @@
 Subject: [PATCH] epoll readiness listeners and timeout keepalive release
 
-Backport of emscripten-core/emscripten#27547 (head 25f46ad34) and #27720
+Backport of emscripten-core/emscripten#27547 (head 41885a08b) and #27720
 (main commit d602fa6cc) to the 6.0.9 release, without tests, docs, ChangeLog
 and codesize baselines. emscripten_epoll_add_listener delivers epoll
 readiness as a host macrotask through unref'd handles, so a listener alone

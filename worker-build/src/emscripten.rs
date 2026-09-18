@@ -28,6 +28,10 @@ const PATCHES: &[(&str, &str)] = &[
         "noderawsockets-dns.patch",
         include_str!("../patches/emscripten/noderawsockets-dns.patch"),
     ),
+    (
+        "accept-blocking.patch",
+        include_str!("../patches/emscripten/accept-blocking.patch"),
+    ),
 ];
 
 const STAMP: &str = ".worker-build-patches";
