@@ -155,6 +155,11 @@ pub use wasm_bindgen;
 pub use wasm_bindgen_futures;
 pub use web_sys;
 
+#[cfg(worker_tokio = "event_loop")]
+mod tokio_export;
+#[cfg(worker_tokio = "event_loop")]
+pub use tokio_export::__tokio_promise;
+
 pub use cf::{Cf, CfResponseProperties, TlsClientAuth};
 pub use worker_macros::{consume, durable_object, event, send};
 #[doc(hidden)]
