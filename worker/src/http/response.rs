@@ -10,6 +10,9 @@ use crate::response::EncodeBody;
 use crate::CfResponseProperties;
 use crate::Headers;
 use crate::ResponseBuilder;
+use crate::{Error, FixedLengthStream};
+use futures_util::TryStreamExt;
+use js_sys::Uint8Array;
 use worker_sys::ext::ResponseExt;
 
 /// **Requires** `http` feature. Convert generic [`http::Response<B>`](crate::HttpResponse)
@@ -41,8 +44,21 @@ where
     let readable_stream = if body.is_end_stream() {
         None
     } else {
+        let exact_length = body.size_hint().exact();
         let stream = BodyStream::new(body);
-        Some(wasm_streams::ReadableStream::from_stream(stream).into_raw())
+
+        if let Some(exact_length) = exact_length {
+            let stream = stream
+                .map_ok(|value| Uint8Array::from(value).to_vec())
+                .map_err(Error::from);
+
+            let fixed = FixedLengthStream::wrap(stream, exact_length);
+            let fixed: worker_sys::FixedLengthStream = fixed.into();
+
+            Some(fixed.readable().into())
+        } else {
+            Some(wasm_streams::ReadableStream::from_stream(stream).into_raw())
+        }
     };
 
     Ok(web_sys::Response::new_with_opt_readable_stream_and_init(

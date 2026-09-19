@@ -241,3 +241,15 @@ pub async fn handle_wait_delay(req: Request, _env: Env, _data: SomeSharedData) -
 
     Response::ok("Waited!\n")
 }
+
+#[cfg(feature = "http")]
+pub async fn handle_exact_length_response(
+    _req: Request,
+    _env: Env,
+    _data: SomeSharedData,
+) -> Result<http::Response<axum::body::Body>, worker::Error> {
+    Ok(http::Response::builder()
+        .status(http::StatusCode::OK)
+        .body(axum::body::Body::from("exact-length"))
+        .unwrap())
+}
