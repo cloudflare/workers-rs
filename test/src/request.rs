@@ -298,3 +298,15 @@ pub fn handle_cf_timezone_name(req: Request, _env: Env, _data: SomeSharedData) -
     };
     Response::ok(cf.timezone_name().unwrap_or_else(|| "none".to_string()))
 }
+
+#[cfg(feature = "http")]
+pub async fn handle_exact_length_response(
+    _req: Request,
+    _env: Env,
+    _data: SomeSharedData,
+) -> Result<http::Response<axum::body::Body>, worker::Error> {
+    Ok(http::Response::builder()
+        .status(http::StatusCode::OK)
+        .body(axum::body::Body::from("exact-length"))
+        .unwrap())
+}

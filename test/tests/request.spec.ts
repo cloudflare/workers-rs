@@ -288,3 +288,15 @@ test("request signal", async () => {
     "incoming aborted: false, constructed aborted: true, reason: stop"
   );
 });
+
+test("http response with exact body length", async () => {
+  const resp = await mf.dispatchFetch(`${mfUrl}http-exact-length`, {
+    headers: {
+      "Accept-Encoding": "identity",
+    },
+  });
+
+  expect(resp.status).toBe(200);
+  expect(resp.headers.get("content-length")).toBe("12");
+  expect(await resp.text()).toBe("exact-length");
+});
