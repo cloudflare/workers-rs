@@ -9,7 +9,7 @@ publish = false
 [workspace]
 
 [dependencies]
-worker = { path = "../../worker" }
+worker = { path = "../../worker", features = ["tokio"] }
 tokio = { version = "1", default-features = false, features = ["rt", "macros", "net", "io-util", "time"] }
 
 [profile.release]
@@ -33,6 +33,3 @@ web-sys = { path = "../../wasm-bindgen/crates/web-sys" }
 
 [patch."https://github.com/guybedford/libc"]
 libc = { git = "https://github.com/rust-lang/libc", branch = "libc-0.2" }
-
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(worker_tokio, values("event_loop"))'] }

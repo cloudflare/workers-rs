@@ -164,7 +164,6 @@ pub fn expand_macro(attr: TokenStream, tokens: TokenStream) -> syn::Result<Token
 
         impl ::worker::has_durable_object_attribute for #target_name {}
 
-        #[allow(unexpected_cfgs)]
         const _: () = {
             use ::worker::wasm_bindgen::prelude::*;
             #[allow(unused_imports)]

@@ -51,7 +51,6 @@ pub struct Build {
     pub panic_unwind: bool,
     pub emscripten: bool,
     pub bin: Option<String>,
-    pub tokio: bool,
     pub emscripten_toolchain: Option<emscripten::Toolchain>,
 }
 
@@ -183,11 +182,6 @@ pub struct BuildOptions {
     #[clap(long = "bin", requires = "emscripten")]
     /// The bin target to link for --emscripten when the package has several.
     pub bin: Option<String>,
-
-    #[clap(long = "tokio", requires = "emscripten")]
-    /// Integrate Tokio with the host event loop for --emscripten: handlers
-    /// run on a Tokio event loop driven by the host.
-    pub tokio: bool,
 }
 
 type BuildStep = fn(&mut Build) -> Result<()>;
@@ -248,7 +242,6 @@ impl Build {
             panic_unwind: build_opts.panic_unwind,
             emscripten: build_opts.emscripten,
             bin: build_opts.bin,
-            tokio: build_opts.tokio,
             emscripten_toolchain: None,
         })
     }
@@ -410,7 +403,6 @@ impl Build {
                 .map(|toolchain| target::EmscriptenBuild {
                     toolchain,
                     bin: self.bin.as_deref().unwrap(),
-                    tokio: self.tokio,
                     bindgen_dir: self.bindgen.as_ref().unwrap().parent().unwrap(),
                 });
         target::cargo_build_wasm(

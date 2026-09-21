@@ -47,17 +47,17 @@ main = "build/index.js"
 compatibility_flags = ["nodejs_compat", "new_module_registry"]
 
 [build]
-command = "cargo install -q worker-build && worker-build --emscripten --tokio --release"
+command = "cargo install -q worker-build && worker-build --emscripten --release"
 ```
 
-With `--tokio`, the `#[event]` and `#[durable_object]` handlers are scheduled
-on a Tokio event loop per invocation, whose wait *is* the host event loop, so
-`tokio::net`, `tokio::time` and `tokio::spawn` work in plain async handlers
-with no stack switching. Tokio comes from the branches listed in the
+With the `worker` crate's `tokio` feature, the `#[event]` and
+`#[durable_object]` handlers are scheduled on a Tokio event loop per
+invocation, whose wait *is* the host event loop, so `tokio::net`,
+`tokio::time` and `tokio::spawn` work in plain async handlers with no stack
+switching. Tokio comes from the branches listed in the
 [emscripten-tcp example](../examples/emscripten-tcp). Hostname resolution
 (`getaddrinfo`) is a blocking call with nothing to block on, so it fails with
-`EAI_AGAIN`; connect to IP addresses. The mode is visible to crates as
-`cfg(worker_tokio = "event_loop")`.
+`EAI_AGAIN`; connect to IP addresses.
 
 The build links a **bin** target rather than a `cdylib`: rustc drives `emcc`
 as the linker, and `emcc` runs `wasm-bindgen` over the linked program as a

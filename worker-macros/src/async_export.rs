@@ -6,18 +6,17 @@ use quote::quote;
 /// requires it of the exported future, and handler futures hold
 /// `worker::Error`.
 ///
-/// Under `worker-build --emscripten --tokio` the `worker_tokio = "event_loop"`
-/// cfg adds `tokio = "isolated"`, driving each invocation on its own Tokio
-/// event loop.
+/// With the `tokio` feature each invocation is driven on its own Tokio event
+/// loop.
 pub fn async_export(opts: TokenStream, sig: TokenStream, body: TokenStream) -> TokenStream {
     let opts = if opts.is_empty() {
         opts
     } else {
         quote! { #opts, }
     };
+    let tokio = cfg!(feature = "tokio").then(|| quote! { tokio = "isolated" });
     quote! {
-        #[cfg_attr(not(worker_tokio = "event_loop"), wasm_bindgen(#opts))]
-        #[cfg_attr(worker_tokio = "event_loop", wasm_bindgen(#opts tokio = "isolated"))]
+        #[wasm_bindgen(#opts #tokio)]
         pub async fn #sig -> ::std::result::Result<::worker::wasm_bindgen::JsValue, ::worker::wasm_bindgen::JsValue> {
             ::std::panic::AssertUnwindSafe(async move { #body }).await
         }
@@ -25,8 +24,6 @@ pub fn async_export(opts: TokenStream, sig: TokenStream, body: TokenStream) -> T
 }
 
 /// The same for a free function, placed in `mod_name` with `uses` in scope.
-/// `worker_tokio` is set by worker-build and unknown to the crate's check-cfg
-/// otherwise.
 pub fn async_export_mod(
     mod_name: &proc_macro2::Ident,
     uses: TokenStream,
@@ -43,7 +40,6 @@ pub fn async_export_mod(
         body,
     );
     quote! {
-        #[allow(unexpected_cfgs)]
         mod #mod_name {
             use ::worker::wasm_bindgen::prelude::wasm_bindgen;
             #uses

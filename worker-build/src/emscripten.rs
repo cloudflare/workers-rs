@@ -43,13 +43,10 @@ pub const RUSTFLAGS: &[&str] = &[
     // `-fwasm-exceptions -sWASM_LEGACY_EXCEPTIONS=0`, the prebuilt std is
     // translated at link. V8 rejects a module mixing the two encodings.
     "-Cllvm-args=-wasm-use-legacy-eh=false",
-    // `worker_tokio` selects how the worker macros export async handlers.
-    "--check-cfg=cfg(worker_tokio,values(\"event_loop\"))",
+    // Tokio's host-driven event loop, used by the `worker/tokio` feature, is
+    // an unstable API.
+    "--cfg=tokio_unstable",
 ];
-
-/// Codegen flags for `--tokio`: handlers are `#[wasm_bindgen(tokio)]` exports
-/// scheduled on a Tokio event loop whose wait is the host event loop.
-pub const TOKIO_RUSTFLAGS: &[&str] = &["--cfg=tokio_unstable", "--cfg=worker_tokio=\"event_loop\""];
 
 /// emcc settings for the final link. Kept out of EMCC_CFLAGS so they do not
 /// reach C compiles of crates like `ring`, where `-Werror` makes an unused link

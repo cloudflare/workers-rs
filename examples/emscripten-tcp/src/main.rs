@@ -18,8 +18,8 @@ async fn head_request(host: &str) -> std::io::Result<String> {
     Ok(out)
 }
 
-/// Stock `tokio::net` and `tokio::time` on Workers: under `--tokio` the
-/// handler already runs on a Tokio event loop driven by the host.
+/// Stock `tokio::net` and `tokio::time` on Workers: with the `worker/tokio`
+/// feature the handler already runs on a Tokio event loop driven by the host.
 async fn head(host: &str) -> Result<String> {
     head_request(host)
         .await

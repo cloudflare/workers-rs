@@ -1,6 +1,6 @@
 # Emscripten TCP example
 
-A `worker-build --emscripten --tokio` Worker: stock `tokio::net::TcpStream`
+A `worker-build --emscripten` Worker with the `worker/tokio` feature: stock `tokio::net::TcpStream`
 on `wasm32-unknown-emscripten`, driven by the host event loop.
 
 ```sh

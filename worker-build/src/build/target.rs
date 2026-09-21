@@ -353,7 +353,6 @@ fn rustc_minor_version() -> Option<u32> {
 pub struct EmscriptenBuild<'a> {
     pub toolchain: &'a Toolchain,
     pub bin: &'a str,
-    pub tokio: bool,
     /// Directory containing the `wasm-bindgen` CLI emcc runs post-link.
     pub bindgen_dir: &'a Path,
 }
@@ -443,9 +442,6 @@ pub fn cargo_build_wasm(
                 .iter()
                 .map(|arg| format!("-Clink-arg={arg}")),
         );
-        if em.tokio {
-            rustflags.extend(emscripten::TOKIO_RUSTFLAGS.iter().map(|f| f.to_string()));
-        }
         cmd.env(
             "CARGO_TARGET_WASM32_UNKNOWN_EMSCRIPTEN_LINKER",
             em.toolchain.emcc(),
