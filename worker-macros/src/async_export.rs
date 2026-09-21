@@ -2,6 +2,9 @@ use proc_macro2::TokenStream;
 use quote::quote;
 
 /// An async wasm-bindgen export resolving to `Result<JsValue, JsValue>`.
+/// The body is asserted unwind-safe as under `panic = "unwind"` wasm-bindgen
+/// requires it of the exported future, and handler futures hold
+/// `worker::Error`.
 ///
 /// Under `worker-build --emscripten --tokio` the `worker_tokio = "event_loop"`
 /// cfg adds `tokio = "isolated"`, driving each invocation on its own Tokio
@@ -16,7 +19,7 @@ pub fn async_export(opts: TokenStream, sig: TokenStream, body: TokenStream) -> T
         #[cfg_attr(not(worker_tokio = "event_loop"), wasm_bindgen(#opts))]
         #[cfg_attr(worker_tokio = "event_loop", wasm_bindgen(#opts tokio = "isolated"))]
         pub async fn #sig -> ::std::result::Result<::worker::wasm_bindgen::JsValue, ::worker::wasm_bindgen::JsValue> {
-            #body
+            ::std::panic::AssertUnwindSafe(async move { #body }).await
         }
     }
 }
