@@ -29,13 +29,10 @@ mod bindgen_methods {
             quote! { js_name = fetch },
             quote! { fetch(&self, req: ::worker::worker_sys::web_sys::Request) },
             quote! {
-                let static_self = static_self(self);
-                async move {
-                    <Self as ::worker::DurableObject>::fetch(static_self, req.into()).await
-                        .map(::worker::worker_sys::web_sys::Response::from)
-                        .map(::worker::wasm_bindgen::JsValue::from)
-                        .map_err(::worker::wasm_bindgen::JsValue::from)
-                }
+                <Self as ::worker::DurableObject>::fetch(self, req.into()).await
+                    .map(::worker::worker_sys::web_sys::Response::from)
+                    .map(::worker::wasm_bindgen::JsValue::from)
+                    .map_err(::worker::wasm_bindgen::JsValue::from)
             },
         );
         quote! {
@@ -59,13 +56,10 @@ mod bindgen_methods {
             quote! { js_name = alarm },
             quote! { alarm(&self) },
             quote! {
-                let static_self = static_self(self);
-                async move {
-                    <Self as ::worker::DurableObject>::alarm(static_self).await
-                        .map(::worker::worker_sys::web_sys::Response::from)
-                        .map(::worker::wasm_bindgen::JsValue::from)
-                        .map_err(::worker::wasm_bindgen::JsValue::from)
-                }
+                <Self as ::worker::DurableObject>::alarm(self).await
+                    .map(::worker::worker_sys::web_sys::Response::from)
+                    .map(::worker::wasm_bindgen::JsValue::from)
+                    .map_err(::worker::wasm_bindgen::JsValue::from)
             },
         )
     }
@@ -81,18 +75,15 @@ mod bindgen_methods {
                 )
             },
             quote! {
-                let static_self = static_self(self);
-                async move {
-                    let message = match message.as_string() {
-                        Some(message) => ::worker::WebSocketIncomingMessage::String(message),
-                        None => ::worker::WebSocketIncomingMessage::Binary(
-                            ::worker::js_sys::Uint8Array::new(&message).to_vec()
-                        )
-                    };
-                    <Self as ::worker::DurableObject>::websocket_message(static_self, ws.into(), message).await
-                        .map(|_| ::worker::wasm_bindgen::JsValue::NULL)
-                        .map_err(::worker::wasm_bindgen::JsValue::from)
-                }
+                let message = match message.as_string() {
+                    Some(message) => ::worker::WebSocketIncomingMessage::String(message),
+                    None => ::worker::WebSocketIncomingMessage::Binary(
+                        ::worker::js_sys::Uint8Array::new(&message).to_vec()
+                    )
+                };
+                <Self as ::worker::DurableObject>::websocket_message(self, ws.into(), message).await
+                    .map(|_| ::worker::wasm_bindgen::JsValue::NULL)
+                    .map_err(::worker::wasm_bindgen::JsValue::from)
             },
         );
         let close = async_export(
@@ -107,12 +98,9 @@ mod bindgen_methods {
                 )
             },
             quote! {
-                let static_self = static_self(self);
-                async move {
-                    <Self as ::worker::DurableObject>::websocket_close(static_self, ws.into(), code, reason, was_clean).await
-                        .map(|_| ::worker::wasm_bindgen::JsValue::NULL)
-                        .map_err(::worker::wasm_bindgen::JsValue::from)
-                }
+                <Self as ::worker::DurableObject>::websocket_close(self, ws.into(), code, reason, was_clean).await
+                    .map(|_| ::worker::wasm_bindgen::JsValue::NULL)
+                    .map_err(::worker::wasm_bindgen::JsValue::from)
             },
         );
         let error = async_export(
@@ -125,12 +113,9 @@ mod bindgen_methods {
                 )
             },
             quote! {
-                let static_self = static_self(self);
-                async move {
-                    <Self as ::worker::DurableObject>::websocket_error(static_self, ws.into(), error.into()).await
-                        .map(|_| ::worker::wasm_bindgen::JsValue::NULL)
-                        .map_err(::worker::wasm_bindgen::JsValue::from)
-                }
+                <Self as ::worker::DurableObject>::websocket_error(self, ws.into(), error.into()).await
+                    .map(|_| ::worker::wasm_bindgen::JsValue::NULL)
+                    .map_err(::worker::wasm_bindgen::JsValue::from)
             },
         );
         quote! {
@@ -183,14 +168,7 @@ pub fn expand_macro(attr: TokenStream, tokens: TokenStream) -> syn::Result<Token
         const _: () = {
             use ::worker::wasm_bindgen::prelude::*;
             #[allow(unused_imports)]
-            use ::worker::DurableObject;
-
-            // SAFETY: a Durable Object is never destroyed while a promise it
-            // returned is still running, so a reference to it may escape into
-            // a static-lifetime future.
-            fn static_self(this: &#target_name) -> &'static #target_name {
-                unsafe { &*(this as *const _) }
-            }
+            use ::worker::{js_sys, wasm_bindgen_futures, DurableObject};
 
             #[wasm_bindgen(wasm_bindgen=::worker::wasm_bindgen)]
             #[::worker::consume]
