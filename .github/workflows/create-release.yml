@@ -7,31 +7,113 @@ on:
 
 name: Create Release
 
+permissions: {}
+
+concurrency:
+  group: release-${{ github.event.pull_request.head.ref }}
+  cancel-in-progress: false
+
+# Flow: release version -> platform archives -> draft GitHub release.
 jobs:
-  github-release:
-    name: Github Release
-    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'releases/') && github.event.pull_request.head.repo.full_name == 'cloudflare/workers-rs'
+  # Share the version from the merged releases/v<VERSION> branch with both jobs.
+  # It must match the published worker-build crate for Binstall to find assets.
+  release-version:
+    name: Release version
+    if: >-
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'releases/v') &&
+      github.event.pull_request.head.repo.full_name == 'cloudflare/workers-rs'
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.extract_version.outputs.version }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          submodules: true
       - name: Extract version
         id: extract_version
-        run: |
-          BRANCH="${{ github.event.pull_request.head.ref }}"
-          VERSION=${BRANCH:10}
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: echo "version=${BRANCH#releases/v}" >> "$GITHUB_OUTPUT"
+
+  # Build both crate binaries for each host target and stage Binstall archives.
+  worker-build-binaries:
+    name: Build worker-build (${{ matrix.target }})
+    needs: release-version
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            runner: ubuntu-26.04
+          - target: aarch64-unknown-linux-gnu
+            runner: ubuntu-26.04-arm
+          - target: x86_64-apple-darwin
+            runner: macos-26-intel
+          - target: aarch64-apple-darwin
+            runner: macos-26
+          - target: x86_64-pc-windows-msvc
+            runner: windows-2025
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+    steps:
+      # Build the same commit that the final job tags, even when main has a merge commit.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          tag_name: v${{ steps.extract_version.outputs.version }}
-          release_name: Release v${{ steps.extract_version.outputs.version }}
-          draft: true
-          prerelease: false
-          generate_release_notes: true
-          commitish: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          submodules: true
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master
+        with:
+          toolchain: 1.93.0
+      - name: Build binaries
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+        run: cargo build --locked --release -p worker-build --bins --target "$TARGET"
+      - name: Package binaries
+        shell: bash
+        env:
+          VERSION: ${{ needs.release-version.outputs.version }}
+          TARGET: ${{ matrix.target }}
+          BINARY_EXT: ${{ runner.os == 'Windows' && '.exe' || '' }}
+        run: |
+          # Match the archive URL and binary paths in worker-build/Cargo.toml.
+          # Cargo Binstall installs both binaries by default.
+          package="worker-build-${TARGET}-v${VERSION}"
+          mkdir -p "dist/${package}"
+          for binary in worker-build worker-codegen; do
+            cp "target/${TARGET}/release/${binary}${BINARY_EXT}" "dist/${package}/"
+          done
+          tar -czf "dist/${package}.tgz" -C dist "${package}"
+      - name: Upload binary archive
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: worker-build-${{ matrix.target }}
+          path: dist/*.tgz
+          if-no-files-found: error
+
+  # Gather all platform archives before creating the draft release with assets.
+  github-release:
+    name: GitHub Release
+    needs: [release-version, worker-build-binaries]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Create the draft release and its tag.
+    steps:
+      - name: Download binary archives
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: worker-build-*
+          path: dist
+          merge-multiple: true
+      - name: Create draft release with binaries
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.release-version.outputs.version }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # An asset upload failure may leave a partial draft to inspect before rerunning.
+          gh release create "v${VERSION}" dist/*.tgz \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$HEAD_SHA" \
+            --title "Release v${VERSION}" \
+            --draft \
+            --generate-notes
