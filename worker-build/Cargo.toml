@@ -2,7 +2,7 @@
 authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
 edition = "2021"
 name = "worker-build"
-version = "0.8.5"
+version = "0.8.6"
 license = "Apache-2.0"
 repository = "https://github.com/cloudflare/workers-rs/tree/main/worker-build"
 readme = "README.md"
@@ -12,6 +12,8 @@ description = "This is a tool to be used as a custom build command for a Cloudfl
 anyhow = "1.0.98"
 binary-install = "0.4.1"
 cargo_metadata = "0.23.1"
+# transitive dep of cargo_metadata; 0.3.3 requires rustc 1.91 (MSRV pin)
+cargo-platform = "=0.3.2"
 clap = { version = "4.5", features = ['derive'] }
 console = "0.16.0"
 dirs-next = "2.0"

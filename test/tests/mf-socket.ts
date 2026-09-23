@@ -29,6 +29,7 @@ export const mf = new Miniflare({
           },
         },
       },
+      triggers: [{ type: "connect", protocol: "tcp", port: 0 }],
     },
   }],
 });

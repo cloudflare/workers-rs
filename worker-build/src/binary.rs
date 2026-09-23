@@ -47,7 +47,7 @@ pub trait GetBinary: BinaryDep {
         let url = self.download_url();
         let _ = remove_all_versions(name, target);
         PBAR.info(&format!("{DOWN_ARROW}Downloading {full_name}@{version}..."));
-        download(&url, &cache_path)?;
+        download_with_retries(&url, &cache_path, full_name)?;
         if !bin_path.exists() {
             bail!(
                 "Unable to locate binary {} in {full_name}",
@@ -143,6 +143,34 @@ fn fix_permissions(options: &mut OpenOptions) -> &mut OpenOptions {
     options
 }
 
+/// Maximum number of download attempts before giving up
+const MAX_DOWNLOAD_ATTEMPTS: u32 = 5;
+
+/// Download this binary instance into its cache path, retrying transient
+/// failures with exponential backoff
+fn download_with_retries(url: &str, bin_dir: &Path, full_name: &str) -> Result<()> {
+    let mut attempt = 1;
+    loop {
+        match download(url, bin_dir) {
+            Ok(()) => return Ok(()),
+            Err(err) => {
+                if attempt >= MAX_DOWNLOAD_ATTEMPTS {
+                    return Err(err).context(format!(
+                        "Failed to download {full_name} after {MAX_DOWNLOAD_ATTEMPTS} attempts"
+                    ));
+                }
+                let delay = std::time::Duration::from_secs(1 << attempt);
+                PBAR.warn(&format!(
+                    "Failed to download {full_name} (attempt {attempt}/{MAX_DOWNLOAD_ATTEMPTS}): {err:#}. Retrying in {}s...",
+                    delay.as_secs()
+                ));
+                std::thread::sleep(delay);
+                attempt += 1;
+            }
+        }
+    }
+}
+
 /// Download this binary instance into its cache path
 fn download(url: &str, bin_dir: &Path) -> Result<()> {
     let agent = ureq::Agent::config_builder()
@@ -184,6 +212,7 @@ fn download(url: &str, bin_dir: &Path) -> Result<()> {
             let mut file = options
                 .create(true)
                 .write(true)
+                .truncate(true)
                 .open(&bin_path)
                 .with_context(|| format!("Failed to create file {}", bin_path.display()))?;
             std::io::copy(&mut entry, &mut file)
