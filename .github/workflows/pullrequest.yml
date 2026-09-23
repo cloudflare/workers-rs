@@ -155,7 +155,7 @@ jobs:
         run: cargo clippy --all-features --package worker-sandbox --all-targets -- -D warnings
 
       - name: Check for errors
-        run: cargo check
+        run: cargo check --locked
 
   test:
     name: Test
