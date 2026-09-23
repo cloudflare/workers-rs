@@ -1,0 +1,36 @@
+[package]
+name = "emscripten-tokio"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Standalone: the emscripten target, beta toolchain and dependency patches
+# stay out of the workspace lockfile.
+[workspace]
+
+[dependencies]
+worker = { path = "../../worker", features = ["tokio"] }
+tokio = { version = "1", default-features = false, features = ["rt", "macros", "sync", "time"] }
+serde = { version = "1", features = ["derive"] }
+
+[profile.release]
+opt-level = "s"
+
+# wasm32-unknown-emscripten support pending upstream releases (see README).
+[patch.crates-io]
+tokio = { git = "https://github.com/guybedford/tokio", branch = "emscripten-event-loop-host" }
+tokio-macros = { git = "https://github.com/guybedford/tokio", branch = "emscripten-event-loop-host" }
+mio = { git = "https://github.com/guybedford/mio", branch = "emscripten" }
+libc = { git = "https://github.com/rust-lang/libc", branch = "libc-0.2" }
+# rlib-only: cargo would otherwise also link its cdylib, which emcc cannot produce.
+wasm-streams = { git = "https://github.com/guybedford/wasm-streams", branch = "rlib-only" }
+# #[wasm_bindgen(tokio)] exports (wasm-bindgen/wasm-bindgen#5334).
+wasm-bindgen = { path = "../../wasm-bindgen" }
+wasm-bindgen-macro-support = { path = "../../wasm-bindgen/crates/macro-support" }
+wasm-bindgen-shared = { path = "../../wasm-bindgen/crates/shared" }
+wasm-bindgen-futures = { path = "../../wasm-bindgen/crates/futures" }
+js-sys = { path = "../../wasm-bindgen/crates/js-sys" }
+web-sys = { path = "../../wasm-bindgen/crates/web-sys" }
+
+[patch."https://github.com/guybedford/libc"]
+libc = { git = "https://github.com/rust-lang/libc", branch = "libc-0.2" }

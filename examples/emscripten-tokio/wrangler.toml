@@ -1,4 +1,4 @@
-name = "emscripten-tcp"
+name = "emscripten-tokio"
 main = "build/index.js"
 compatibility_date = "2026-06-02"
 # new_module_registry gives the Emscripten glue `import.meta.url`.
@@ -6,10 +6,3 @@ compatibility_flags = ["nodejs_compat", "new_module_registry"]
 
 [build]
 command = "cargo install -q worker-build && worker-build --emscripten --release"
-
-[durable_objects]
-bindings = [{ name = "PROXY", class_name = "Proxy" }]
-
-[[migrations]]
-tag = "v1"
-new_classes = ["Proxy"]

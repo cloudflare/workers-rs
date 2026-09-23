@@ -54,10 +54,13 @@ With the `worker` crate's `tokio` feature, the `#[event]` and
 `#[durable_object]` handlers are scheduled on a Tokio event loop per
 invocation, whose wait *is* the host event loop, so `tokio::net`,
 `tokio::time` and `tokio::spawn` work in plain async handlers with no stack
-switching. Tokio comes from the branches listed in the
-[emscripten-tcp example](../examples/emscripten-tcp). Hostname resolution
-(`getaddrinfo`) is a blocking call with nothing to block on, so it fails with
-`EAI_AGAIN`; connect to IP addresses.
+switching. Hostname resolution (`getaddrinfo`) is a blocking call with nothing
+to block on, so it fails with `EAI_AGAIN`; connect to IP addresses.
+
+The [emscripten](../examples/emscripten), [emscripten-tokio](../examples/emscripten-tokio)
+and [emscripten-tcp](../examples/emscripten-tcp) examples build up from
+`std::fs` on the in-memory filesystem, through Tokio timers, tasks and
+channels, to raw TCP.
 
 The build links a **bin** target rather than a `cdylib`: rustc drives `emcc`
 as the linker, and `emcc` runs `wasm-bindgen` over the linked program as a
@@ -93,6 +96,6 @@ whose DWARF output survives the exnref translation; build it from `main` and
 point `WASM_BINDGEN_BIN` at it. `--release` builds work with the released CLI.
 
 Emscripten networking support in the Rust ecosystem is still landing upstream;
-the [emscripten-tcp example](../examples/emscripten-tcp) lists the
+the [emscripten-tokio example](../examples/emscripten-tokio) lists the
 `[patch.crates-io]` entries a Worker currently adds for Tokio, mio, libc and
 wasm-streams.
