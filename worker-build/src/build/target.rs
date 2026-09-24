@@ -353,6 +353,8 @@ fn rustc_minor_version() -> Option<u32> {
 pub struct EmscriptenBuild<'a> {
     pub toolchain: &'a Toolchain,
     pub bin: &'a str,
+    /// The `worker/tokio` feature is enabled: pass the unstable cfgs it builds on.
+    pub tokio: bool,
     /// Directory containing the `wasm-bindgen` CLI emcc runs post-link.
     pub bindgen_dir: &'a Path,
 }
@@ -437,6 +439,9 @@ pub fn cargo_build_wasm(
 
     if let Some(em) = &emscripten {
         rustflags.extend(emscripten::RUSTFLAGS.iter().map(|f| f.to_string()));
+        if em.tokio {
+            rustflags.extend(emscripten::TOKIO_RUSTFLAGS.iter().map(|f| f.to_string()));
+        }
         rustflags.extend(
             emscripten::LINK_ARGS
                 .iter()

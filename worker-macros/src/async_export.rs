@@ -14,7 +14,7 @@ pub fn async_export(opts: TokenStream, sig: TokenStream, body: TokenStream) -> T
     } else {
         quote! { #opts, }
     };
-    let tokio = cfg!(feature = "tokio").then(|| quote! { tokio = "isolated" });
+    let tokio = cfg!(feature = "tokio").then(|| quote! { experimental_tokio = "isolated" });
     quote! {
         #[wasm_bindgen(#opts #tokio)]
         pub async fn #sig -> ::std::result::Result<::worker::wasm_bindgen::JsValue, ::worker::wasm_bindgen::JsValue> {

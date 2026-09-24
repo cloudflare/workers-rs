@@ -283,11 +283,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "libc"
-version = "0.2.189"
-source = "git+https://github.com/rust-lang/libc?branch=libc-0.2#b29beb056cb7cea51dd1b9e68342e30a956951a9"
-
-[[package]]
 name = "litemap"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -304,16 +299,6 @@ name = "memchr"
 version = "2.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
-
-[[package]]
-name = "mio"
-version = "1.2.3"
-source = "git+https://github.com/guybedford/mio?branch=emscripten#0788dbb67883cb6191503af999471def54e3fb77"
-dependencies = [
- "libc",
- "wasi",
- "windows-sys",
-]
 
 [[package]]
 name = "num-traits"
@@ -480,16 +465,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba467056f1b547ed52077911161fc86985becbc60e8e1857c8a144dab0def891"
 
 [[package]]
-name = "socket2"
-version = "0.6.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3d1e2c7f27f8d4cb10542a02c49005dbd6e93095799d6f3be745fae9f8fedd4"
-dependencies = [
- "libc",
- "windows-sys",
-]
-
-[[package]]
 name = "stable_deref_trait"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -562,20 +537,16 @@ dependencies = [
 [[package]]
 name = "tokio"
 version = "1.53.1"
-source = "git+https://github.com/guybedford/tokio?branch=emscripten-event-loop-host#067f92b60cbba5c9fea585806af4b07fd838427e"
+source = "git+https://github.com/guybedford/tokio?tag=1.53.1-cf.emscripten#c32b68c4198c50af8cf358965a05a34e0618de46"
 dependencies = [
- "libc",
- "mio",
  "pin-project-lite",
- "socket2",
  "tokio-macros",
- "windows-sys",
 ]
 
 [[package]]
 name = "tokio-macros"
 version = "2.7.2"
-source = "git+https://github.com/guybedford/tokio?branch=emscripten-event-loop-host#067f92b60cbba5c9fea585806af4b07fd838427e"
+source = "git+https://github.com/guybedford/tokio?tag=1.53.1-cf.emscripten#c32b68c4198c50af8cf358965a05a34e0618de46"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -605,12 +576,6 @@ name = "utf8_iter"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6c140620e7ffbb22c2dee59cafe6084a59b5ffc27a8859a5f0d494b5d52b6be"
-
-[[package]]
-name = "wasi"
-version = "0.11.1+wasi-snapshot-preview1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ccf3ec651a847eb01de73ccad15eb7d99f80485de043efb2f370cd654f4ea44b"
 
 [[package]]
 name = "wasm-bindgen"
@@ -676,21 +641,6 @@ version = "0.3.105"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
-]
-
-[[package]]
-name = "windows-link"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0805222e57f7521d6a62e36fa9163bc891acd422f971defe97d64e70d0a4fe5"
-
-[[package]]
-name = "windows-sys"
-version = "0.61.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae137229bcbd6cdf0f7b80a31df61766145077ddf49416a728b02cb3921ff3fc"
-dependencies = [
- "windows-link",
 ]
 
 [[package]]
@@ -834,3 +784,18 @@ name = "zmij"
 version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
+
+[[patch.unused]]
+name = "libc"
+version = "0.2.189"
+source = "git+https://github.com/rust-lang/libc?branch=libc-0.2#b29beb056cb7cea51dd1b9e68342e30a956951a9"
+
+[[patch.unused]]
+name = "mio"
+version = "1.2.3"
+source = "git+https://github.com/guybedford/mio?tag=1.2.3-cf.emscripten#0788dbb67883cb6191503af999471def54e3fb77"
+
+[[patch.unused]]
+name = "libc"
+version = "0.2.189"
+source = "git+https://github.com/rust-lang/libc?branch=libc-0.2#b29beb056cb7cea51dd1b9e68342e30a956951a9"

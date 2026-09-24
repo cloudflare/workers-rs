@@ -54,13 +54,18 @@ With the `worker` crate's `tokio` feature, the `#[event]` and
 `#[durable_object]` handlers are scheduled on a Tokio event loop per
 invocation, whose wait *is* the host event loop, so `tokio::net`,
 `tokio::time` and `tokio::spawn` work in plain async handlers with no stack
-switching. Hostname resolution (`getaddrinfo`) is a blocking call with nothing
-to block on, so it fails with `EAI_AGAIN`; connect to IP addresses.
+switching. This is unstable end to end: it needs Tokio and mio from the
+`guybedford` forks' `1.53.1-cf.emscripten` / `1.2.3-cf.emscripten` tags,
+wasm-bindgen's `experimental_tokio` exports, and the Emscripten patches
+described below; worker-build passes the `tokio_unstable` and
+`wasm_bindgen_unstable_tokio` cfgs. Hostname resolution (`getaddrinfo`) is a
+blocking call with nothing to block on, so it fails with `EAI_AGAIN`; connect
+to IP addresses. A Worker without the feature needs none of this.
 
 The [emscripten](../examples/emscripten), [emscripten-tokio](../examples/emscripten-tokio)
 and [emscripten-tcp](../examples/emscripten-tcp) examples build up from
 `std::fs` on the in-memory filesystem, through Tokio timers, tasks and
-channels, to raw TCP.
+channels, to raw TCP; the tokio one lists the `[patch.crates-io]` block.
 
 The build links a **bin** target rather than a `cdylib`: rustc drives `emcc`
 as the linker, and `emcc` runs `wasm-bindgen` over the linked program as a
@@ -72,13 +77,13 @@ cannot produce one from a static Rust build.
 On the first run worker-build downloads the pinned Emscripten SDK release into
 its cache directory (`~/.cache/worker-build/emsdk-<version>`) and applies the
 patches under `worker-build/patches/emscripten/` to the frontend. These are
-backports the Rust link depends on that the pinned release does not yet
-contain, taken from the current heads of the upstream pull requests:
-marker-based `-sWASM_BINDGEN` (emscripten-core/emscripten#27208, released in
-6.0.10), `emscripten_epoll_add_listener` readiness callbacks and timeout
-keepalive release (#27547, #27720), hostname resolution under
-`-sNODERAWSOCKETS` (#27693, #27742) and pending socket errors surfacing from
-`recv` (#27724); each is removed as the pin moves past it.
+the Emscripten changes Tokio's host-driven event loop depends on that are not
+yet released: `emscripten_epoll_add_listener` readiness callbacks
+(emscripten-core/emscripten#27547) and `emscripten_dns_lookup_async`
+(#27742), as carried by the `guybedford/emscripten` tag
+`6.0.10-cf.emscripten` (the 6.0.10 release plus those two pull requests).
+Each is removed as the pin moves past it. A Worker that does not use Tokio
+needs nothing from them; the patched frontend is a superset of the release.
 Installing needs `python3` on `PATH`; the SDK ships its own LLVM, Binaryen and
 Node.
 
@@ -97,5 +102,4 @@ point `WASM_BINDGEN_BIN` at it. `--release` builds work with the released CLI.
 
 Emscripten networking support in the Rust ecosystem is still landing upstream;
 the [emscripten-tokio example](../examples/emscripten-tokio) lists the
-`[patch.crates-io]` entries a Worker currently adds for Tokio, mio, libc and
-wasm-streams.
+`[patch.crates-io]` entries a Worker using the `tokio` feature currently adds.

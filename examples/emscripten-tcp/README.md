@@ -21,5 +21,9 @@ through the same event loop that drives the handler.
 Hostname resolution has nothing to block on and fails with `EAI_AGAIN`; use IP
 hosts.
 
-The `tokio` `net` and `io-util` features join the ones the tokio example
-enables; the dependency patches are the same as there.
+## What this needs
+
+The same as the [emscripten-tokio example](../emscripten-tokio#what-this-needs):
+the tagged Tokio and mio forks, wasm-bindgen's `experimental_tokio` exports,
+and the Emscripten patches worker-build applies. The `tokio` `net` and
+`io-util` features join the ones enabled there.

@@ -14,11 +14,11 @@ worker = { path = "../../worker" }
 [profile.release]
 opt-level = "s"
 
-# wasm32-unknown-emscripten support pending upstream releases (see README).
+# No Tokio, so none of the Tokio, mio or Emscripten patches the other emscripten
+# examples carry. Only wasm-bindgen must match the CLI emcc runs post-link, and
+# wasm-streams is taken rlib-only since emcc cannot link its cdylib.
 [patch.crates-io]
-# rlib-only: cargo would otherwise also link its cdylib, which emcc cannot produce.
 wasm-streams = { git = "https://github.com/guybedford/wasm-streams", branch = "rlib-only" }
-# The wasm-bindgen CLI emcc runs post-link must match the crate.
 wasm-bindgen = { path = "../../wasm-bindgen" }
 wasm-bindgen-macro-support = { path = "../../wasm-bindgen/crates/macro-support" }
 wasm-bindgen-shared = { path = "../../wasm-bindgen/crates/shared" }

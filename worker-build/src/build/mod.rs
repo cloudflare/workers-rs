@@ -403,6 +403,7 @@ impl Build {
                 .map(|toolchain| target::EmscriptenBuild {
                     toolchain,
                     bin: self.bin.as_deref().unwrap(),
+                    tokio: self.crate_data.worker_tokio_feature(),
                     bindgen_dir: self.bindgen.as_ref().unwrap().parent().unwrap(),
                 });
         target::cargo_build_wasm(

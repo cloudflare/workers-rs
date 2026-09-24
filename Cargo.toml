@@ -12,6 +12,8 @@ members = [
 exclude = [
     "examples/coredump",
     "examples/axum",
+    "examples/emscripten",
+    "examples/emscripten-tokio",
     "examples/emscripten-tcp",
     "templates/*",
     "wasm-bindgen",

@@ -15,15 +15,19 @@ tokio = { version = "1", default-features = false, features = ["rt", "macros", "
 [profile.release]
 opt-level = "s"
 
-# wasm32-unknown-emscripten support pending upstream releases (see README).
+# Pending upstream releases: Tokio's host-driven event loop on emscripten
+# (tokio-rs/tokio#8484) and mio's epoll selector (tokio-rs/mio#1969), from
+# the `guybedford` forks' tags; libc's emscripten epoll bindings, unreleased;
+# `#[wasm_bindgen(experimental_tokio)]` exports (wasm-bindgen/wasm-bindgen#5334).
+# The Emscripten side (emscripten-core/emscripten#27547, #27742) is applied by
+# worker-build to the SDK it installs. See README.
 [patch.crates-io]
-tokio = { git = "https://github.com/guybedford/tokio", branch = "emscripten-event-loop-host" }
-tokio-macros = { git = "https://github.com/guybedford/tokio", branch = "emscripten-event-loop-host" }
-mio = { git = "https://github.com/guybedford/mio", branch = "emscripten" }
+tokio = { git = "https://github.com/guybedford/tokio", tag = "1.53.1-cf.emscripten" }
+tokio-macros = { git = "https://github.com/guybedford/tokio", tag = "1.53.1-cf.emscripten" }
+mio = { git = "https://github.com/guybedford/mio", tag = "1.2.3-cf.emscripten" }
 libc = { git = "https://github.com/rust-lang/libc", branch = "libc-0.2" }
 # rlib-only: cargo would otherwise also link its cdylib, which emcc cannot produce.
 wasm-streams = { git = "https://github.com/guybedford/wasm-streams", branch = "rlib-only" }
-# #[wasm_bindgen(tokio)] exports (wasm-bindgen/wasm-bindgen#5334).
 wasm-bindgen = { path = "../../wasm-bindgen" }
 wasm-bindgen-macro-support = { path = "../../wasm-bindgen/crates/macro-support" }
 wasm-bindgen-shared = { path = "../../wasm-bindgen/crates/shared" }

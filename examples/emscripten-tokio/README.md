@@ -31,16 +31,26 @@ curl http://localhost:8787/channels
 
 Each response carries the measured `elapsed_ms`, showing the work overlapping.
 
-## Dependency patches
+## What this needs
 
-Tokio's host-driven event loop is pending upstream releases. The example's
-`[patch.crates-io]` carries the branches; add the same block to your own
-Worker:
+Tokio's host-driven event loop is not yet released, so this example (and
+[emscripten-tcp](../emscripten-tcp)) needs three things beyond the
+[emscripten example](../emscripten):
 
-| Crate | Source | Why |
-| --- | --- | --- |
-| tokio, tokio-macros | `guybedford/tokio` branch `emscripten-event-loop-host` | Host-driven event loops on emscripten (tokio-rs/tokio#8484) |
-| mio | `guybedford/mio` branch `emscripten` | epoll selector on emscripten (tokio-rs/mio#1969) |
-| libc | `rust-lang/libc` branch `libc-0.2` | emscripten epoll bindings, unreleased |
-| wasm-bindgen | this repository's checkout | `#[wasm_bindgen(tokio)]` exports (wasm-bindgen/wasm-bindgen#5334) |
-| wasm-streams | `guybedford/wasm-streams` branch `rlib-only` | cargo would otherwise link its `cdylib`, which emcc cannot produce |
+1. **Tokio and mio from tagged forks.** The `[patch.crates-io]` block pins
+   `guybedford/tokio` tag `1.53.1-cf.emscripten` (Tokio 1.53.1 plus
+   tokio-rs/tokio#8484) and `guybedford/mio` tag `1.2.3-cf.emscripten` (mio
+   1.2.3 plus tokio-rs/mio#1969), together with libc's unreleased emscripten
+   epoll bindings. Copy the block into your own Worker.
+2. **wasm-bindgen with `experimental_tokio` exports**
+   (wasm-bindgen/wasm-bindgen#5334), which the `worker` crate's `tokio`
+   feature emits on every handler; the block points at this repository's
+   checkout.
+3. **A patched Emscripten.** `emscripten_epoll_add_listener` (#27547) and
+   `emscripten_dns_lookup_async` (#27742) are what the event loop is built on.
+   worker-build applies them to the 6.0.10 SDK it installs, matching the
+   `guybedford/emscripten` tag `6.0.10-cf.emscripten`; nothing to do unless
+   you point `EMSCRIPTEN` at your own checkout, which then needs the same.
+
+worker-build itself passes the unstable cfgs both crates gate this behind
+(`tokio_unstable`, `wasm_bindgen_unstable_tokio`).

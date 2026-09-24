@@ -17,20 +17,12 @@ use std::process::Command;
 
 const PATCHES: &[(&str, &str)] = &[
     (
-        "wasm-bindgen-marker.patch",
-        include_str!("../patches/emscripten/wasm-bindgen-marker.patch"),
-    ),
-    (
         "epoll-listeners.patch",
         include_str!("../patches/emscripten/epoll-listeners.patch"),
     ),
     (
         "noderawsockets-dns.patch",
         include_str!("../patches/emscripten/noderawsockets-dns.patch"),
-    ),
-    (
-        "accept-blocking.patch",
-        include_str!("../patches/emscripten/accept-blocking.patch"),
     ),
 ];
 
@@ -43,10 +35,12 @@ pub const RUSTFLAGS: &[&str] = &[
     // `-fwasm-exceptions -sWASM_LEGACY_EXCEPTIONS=0`, the prebuilt std is
     // translated at link. V8 rejects a module mixing the two encodings.
     "-Cllvm-args=-wasm-use-legacy-eh=false",
-    // Tokio's host-driven event loop, used by the `worker/tokio` feature, is
-    // an unstable API.
-    "--cfg=tokio_unstable",
 ];
+
+/// Added when the `worker/tokio` feature is enabled: it builds on Tokio's
+/// host-driven event loop and wasm-bindgen's `experimental_tokio` exports,
+/// both unstable.
+pub const TOKIO_RUSTFLAGS: &[&str] = &["--cfg=tokio_unstable", "--cfg=wasm_bindgen_unstable_tokio"];
 
 /// emcc settings for the final link. Kept out of EMCC_CFLAGS so they do not
 /// reach C compiles of crates like `ring`, where `-Werror` makes an unused link

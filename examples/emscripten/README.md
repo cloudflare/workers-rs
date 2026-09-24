@@ -24,6 +24,13 @@ which runs `wasm-bindgen` as a post-link step. So handlers live in
 `wasm-bindgen` at the checkout matching the CLI emcc runs (and takes an
 rlib-only `wasm-streams`, since cargo would otherwise also link its `cdylib`).
 
-The first build downloads the Emscripten SDK into the worker-build cache. See
-the [worker-build README](../../worker-build/README.md#emscripten) for the
+## What this needs
+
+Only `worker-build --emscripten`. Without Tokio there is no dependency on the
+Tokio and mio forks or on the Emscripten patches that the
+[emscripten-tokio](../emscripten-tokio) and [emscripten-tcp](../emscripten-tcp)
+examples rely on: the stock Emscripten 6.0.10 release is enough. worker-build
+installs that release into its cache on the first build (with the Tokio
+patches applied, which are inert here). See the
+[worker-build README](../../worker-build/README.md#emscripten) for the
 toolchain details and overrides.
