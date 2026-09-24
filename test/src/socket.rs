@@ -1,7 +1,9 @@
 use crate::SomeSharedData;
 use tokio::io::AsyncReadExt;
 use tokio::io::AsyncWriteExt;
-use worker::{ConnectionBuilder, Context, Env, Error, Request, Response, Result, Socket};
+use worker::{
+    ConnectionBuilder, Context, Env, Error, Request, Response, Result, Socket, UdpSocket,
+};
 
 #[worker::event(connect)]
 pub async fn handle_connect(mut socket: Socket, _env: Env, _ctx: Context) -> Result<()> {
@@ -9,6 +11,14 @@ pub async fn handle_connect(mut socket: Socket, _env: Env, _ctx: Context) -> Res
     socket.read_exact(&mut request).await?;
     socket.write_all(&request).await?;
     socket.flush().await?;
+    Ok(())
+}
+
+#[worker::event(connect(udp))]
+pub async fn handle_udp_connect(mut socket: UdpSocket, _env: Env, _ctx: Context) -> Result<()> {
+    while let Some(datagram) = socket.recv().await? {
+        socket.send(&datagram).await?;
+    }
     Ok(())
 }
 

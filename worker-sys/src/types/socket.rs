@@ -21,6 +21,9 @@ extern "C" {
     #[wasm_bindgen(method, catch, getter)]
     pub fn opened(this: &Socket) -> Result<js_sys::Promise, JsValue>;
 
+    #[wasm_bindgen(method, getter)]
+    pub fn protocol(this: &Socket) -> Option<String>;
+
     #[wasm_bindgen(method, catch, js_name=startTls)]
     pub fn start_tls(this: &Socket) -> Result<Socket, JsValue>;
 
@@ -29,4 +32,14 @@ extern "C" {
 
     #[wasm_bindgen(method, catch, getter)]
     pub fn writable(this: &Socket) -> Result<web_sys::WritableStream, JsValue>;
+
+    #[wasm_bindgen(extends=js_sys::Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type Datagram;
+
+    #[wasm_bindgen(constructor)]
+    pub fn new(data: &js_sys::Uint8Array) -> Datagram;
+
+    #[wasm_bindgen(method, getter)]
+    pub fn data(this: &Datagram) -> js_sys::Uint8Array;
 }
