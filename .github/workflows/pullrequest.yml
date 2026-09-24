@@ -116,10 +116,11 @@ jobs:
           sed -i '/"examples\/axum",/d' Cargo.toml
           for example in examples/*/; do
               example_name=$(basename "$example")
-              if [ "$example_name" = "coredump" ] || [ "$example_name" = "emscripten-tcp" ]; then
+              case "$example_name" in coredump|emscripten|emscripten-tokio|emscripten-tcp)
                 echo "Skipping $example_name example"
                 continue
-              fi
+                ;;
+              esac
               echo "Building $example_name"
               cd "$example"
               WASM_BINDGEN_BIN='../../wasm-bindgen/target/debug/wasm-bindgen' ../../target/debug/worker-build
