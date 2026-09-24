@@ -1,7 +1,7 @@
 use crate::async_export::async_export_mod;
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use syn::{parse_macro_input, punctuated::Punctuated, token::Comma, Ident, ItemFn};
+use syn::{parse_macro_input, punctuated::Punctuated, token::Comma, Ident, ItemFn, Meta};
 
 #[derive(strum::EnumString, strum::Display)]
 #[strum(serialize_all = "snake_case")]
@@ -43,22 +43,40 @@ fn validate_event_fn(
 }
 
 pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let attrs: Punctuated<Ident, Comma> =
-        parse_macro_input!(attr with Punctuated::parse_terminated);
+    let attrs: Punctuated<Meta, Comma> = parse_macro_input!(attr with Punctuated::parse_terminated);
 
     use HandlerType::*;
 
     let mut handler_type = None;
     let mut respond_with_errors = false;
+    let mut udp_connect = false;
 
     for attr in attrs {
-        let attr_str = attr.to_string();
-        if attr_str == "respond_with_errors" {
-            respond_with_errors = true;
-        } else if let Ok(ht) = attr_str.parse() {
-            handler_type = Some(ht);
-        } else {
-            panic!("Invalid attribute: {attr}");
+        match attr {
+            Meta::Path(path) => {
+                let attr = path
+                    .get_ident()
+                    .unwrap_or_else(|| panic!("Invalid event attribute"));
+                let attr_str = attr.to_string();
+                if attr_str == "respond_with_errors" {
+                    respond_with_errors = true;
+                } else if let Ok(ht) = attr_str.parse() {
+                    handler_type = Some(ht);
+                } else {
+                    panic!("Invalid attribute: {attr}");
+                }
+            }
+            Meta::List(list) if list.path.is_ident("connect") => {
+                let protocols = list
+                    .parse_args_with(Punctuated::<Ident, Comma>::parse_terminated)
+                    .unwrap_or_else(|_| panic!("invalid connect protocol"));
+                if protocols.len() != 1 || (protocols[0] != "tcp" && protocols[0] != "udp") {
+                    panic!("the supported connect protocols are `tcp` and `udp`");
+                }
+                handler_type = Some(Connect);
+                udp_connect = protocols[0] == "udp";
+            }
+            _ => panic!("Invalid event attribute"),
         }
     }
     let handler_type = handler_type.expect(
@@ -285,12 +303,23 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                 &(input_fn.sig.ident.to_string() + "_connect_glue"),
                 input_fn.sig.ident.span(),
             );
-            let wrapper_fn_ident = Ident::new("connect", input_fn.sig.ident.span());
+            let wrapper_fn_ident = Ident::new(
+                if udp_connect {
+                    "connect_udp"
+                } else {
+                    "connect"
+                },
+                input_fn.sig.ident.span(),
+            );
+            let module_ident = Ident::new(
+                &format!("_worker_{wrapper_fn_ident}"),
+                input_fn.sig.ident.span(),
+            );
             // rename the original attributed fn
             input_fn.sig.ident = input_fn_ident.clone();
 
             let glue = async_export_mod(
-                &format_ident!("_worker_connect"),
+                &module_ident,
                 quote! {
                     use ::worker::wasm_bindgen;
                     use super::#input_fn_ident;
