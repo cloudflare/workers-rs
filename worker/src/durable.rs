@@ -14,6 +14,7 @@ use std::{
     cell::RefCell, fmt::Display, ops::Deref, panic::AssertUnwindSafe, rc::Rc, time::Duration,
 };
 
+use crate::r2::js_object;
 use crate::{
     container::Container,
     date::Date,
@@ -21,8 +22,9 @@ use crate::{
     error::Error,
     request::Request,
     response::Response,
-    Result, WebSocket,
+    Result, Socket, WebSocket,
 };
+use js_sys::{Boolean as JsBoolean, JsString, Object as JsObject};
 
 use chrono::{DateTime, Utc};
 use futures_util::Future;
@@ -58,6 +60,17 @@ impl Stub {
         let promise = self.inner.fetch_with_str(url)?;
         let response = JsFuture::from(promise).await?;
         Ok(response.dyn_into::<web_sys::Response>()?.into())
+    }
+
+    /// Opens a TCP connection to the Durable Object, served by its
+    /// [`DurableObject::connect`] handler. `address` is the `host:port` the
+    /// object sees as the connection's local address.
+    pub fn connect(&self, address: &str) -> Result<Socket> {
+        let options: JsValue = js_object!(
+            "allowHalfOpen" => JsBoolean::from(true)
+        )
+        .into();
+        Ok(Socket::new(self.inner.connect(address, options)?))
     }
 
     pub fn into_rpc<T: JsCast>(self) -> T {
@@ -958,6 +971,14 @@ pub trait DurableObject: has_durable_object_attribute {
     fn new(state: State, env: Env) -> Self;
 
     async fn fetch(&self, req: Request) -> Result<Response>;
+
+    /// Serves a TCP connection opened with [`Stub::connect`]. The future
+    /// completes when the connection is done.
+    #[allow(unused_variables, clippy::diverging_sub_expression)]
+    async fn connect(&self, socket: Socket) -> Result<()> {
+        worker_sys::console_error!("connect() handler not implemented");
+        unimplemented!("connect() handler")
+    }
 
     #[allow(clippy::diverging_sub_expression)]
     async fn alarm(&self) -> Result<Response> {

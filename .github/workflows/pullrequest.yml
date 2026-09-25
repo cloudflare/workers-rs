@@ -116,7 +116,7 @@ jobs:
           sed -i '/"examples\/axum",/d' Cargo.toml
           for example in examples/*/; do
               example_name=$(basename "$example")
-              case "$example_name" in coredump|emscripten|emscripten-tokio|emscripten-tcp)
+              case "$example_name" in coredump|emscripten|emscripten-tokio|emscripten-tcp|emscripten-incoming-tcp)
                 echo "Skipping $example_name example"
                 continue
                 ;;
@@ -166,7 +166,7 @@ jobs:
 
       - name: Build examples
         run: |
-          for example in emscripten emscripten-tokio emscripten-tcp; do
+          for example in emscripten emscripten-tokio emscripten-tcp emscripten-incoming-tcp; do
             (cd examples/$example && WASM_BINDGEN_BIN=../../wasm-bindgen/target/debug/wasm-bindgen ../../target/debug/worker-build --emscripten --release)
           done
           (cd examples/emscripten-tcp && WASM_BINDGEN_BIN=../../wasm-bindgen/target/debug/wasm-bindgen ../../target/debug/worker-build --emscripten --dev)
@@ -198,6 +198,13 @@ jobs:
           curl -sf 'http://localhost:8787/?host=example.com' | grep -q '^HTTP/1\.'
           curl -sf 'http://localhost:8787/do?host=one.one.one.one' | grep -q '^HTTP/1\.'
           stop emscripten-tcp
+
+          serve emscripten-incoming-tcp
+          for i in 1 2 3; do
+            printf 'hello\nquit\n' | timeout 10 nc -q 2 127.0.0.1 7000 | tee tcp$i.txt
+            grep -q '^HELLO$' tcp$i.txt && grep -q '^bye$' tcp$i.txt
+          done
+          stop emscripten-incoming-tcp
 
   rustfmt:
     name: Formatter

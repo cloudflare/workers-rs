@@ -6,6 +6,7 @@ enum DurableObjectType {
     Fetch,
     Alarm,
     WebSocket,
+    Connect,
 }
 impl syn::parse::Parse for DurableObjectType {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
@@ -14,18 +15,20 @@ impl syn::parse::Parse for DurableObjectType {
             "fetch" => Ok(Self::Fetch),
             "alarm" => Ok(Self::Alarm),
             "websocket" => Ok(Self::WebSocket),
-            _ => Err(Error::new(ident.span(), "must have either 'fetch', 'alarm' or 'websocket' attribute, e.g. #[durable_object(websocket)]"))
+            "connect" => Ok(Self::Connect),
+            _ => Err(Error::new(ident.span(), "must have either 'fetch', 'alarm', 'websocket' or 'connect' attribute, e.g. #[durable_object(websocket)]"))
         }
     }
 }
 
 mod bindgen_methods {
-    use crate::async_export::async_export;
+    use crate::async_export::{async_export, Tokio};
     use proc_macro2::TokenStream;
     use quote::quote;
 
     pub fn core() -> TokenStream {
         let fetch = async_export(
+            Tokio::Ambient,
             quote! { js_name = fetch },
             quote! { fetch(&self, req: ::worker::worker_sys::web_sys::Request) },
             quote! {
@@ -53,6 +56,7 @@ mod bindgen_methods {
 
     pub fn alarm() -> TokenStream {
         async_export(
+            Tokio::Ambient,
             quote! { js_name = alarm },
             quote! { alarm(&self) },
             quote! {
@@ -64,8 +68,22 @@ mod bindgen_methods {
         )
     }
 
+    pub fn connect() -> TokenStream {
+        async_export(
+            Tokio::Ambient,
+            quote! { js_name = connect },
+            quote! { connect(&self, socket: ::worker::worker_sys::Socket) },
+            quote! {
+                <Self as ::worker::DurableObject>::connect(self, ::worker::Socket::from(socket)).await
+                    .map(|_| ::worker::wasm_bindgen::JsValue::UNDEFINED)
+                    .map_err(::worker::wasm_bindgen::JsValue::from)
+            },
+        )
+    }
+
     pub fn websocket() -> TokenStream {
         let message = async_export(
+            Tokio::Ambient,
             quote! { js_name = webSocketMessage },
             quote! {
                 websocket_message(
@@ -87,6 +105,7 @@ mod bindgen_methods {
             },
         );
         let close = async_export(
+            Tokio::Ambient,
             quote! { js_name = webSocketClose },
             quote! {
                 websocket_close(
@@ -104,6 +123,7 @@ mod bindgen_methods {
             },
         );
         let error = async_export(
+            Tokio::Ambient,
             quote! { js_name = webSocketError },
             quote! {
                 websocket_error(
@@ -148,6 +168,7 @@ pub fn expand_macro(attr: TokenStream, tokens: TokenStream) -> syn::Result<Token
             bindgen_methods::core(),
             bindgen_methods::alarm(),
             bindgen_methods::websocket(),
+            bindgen_methods::connect(),
         ],
 
         // if specified, bindgen only related methods.
@@ -155,6 +176,9 @@ pub fn expand_macro(attr: TokenStream, tokens: TokenStream) -> syn::Result<Token
         Some(DurableObjectType::Alarm) => vec![bindgen_methods::core(), bindgen_methods::alarm()],
         Some(DurableObjectType::WebSocket) => {
             vec![bindgen_methods::core(), bindgen_methods::websocket()]
+        }
+        Some(DurableObjectType::Connect) => {
+            vec![bindgen_methods::core(), bindgen_methods::connect()]
         }
     };
 

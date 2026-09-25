@@ -1,0 +1,20 @@
+name = "emscripten-incoming-tcp"
+main = "build/index.js"
+compatibility_date = "2026-06-02"
+# new_module_registry gives the Emscripten glue `import.meta.url`.
+compatibility_flags = ["nodejs_compat", "new_module_registry"]
+
+[build]
+command = "cargo install -q worker-build && worker-build --emscripten --release"
+
+# Inbound TCP on this port reaches the Worker's `connect` handler.
+[[connect]]
+protocol = "tcp"
+port = 7000
+
+[durable_objects]
+bindings = [{ name = "ECHO", class_name = "Echo" }]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["Echo"]

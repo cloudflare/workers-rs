@@ -30,4 +30,12 @@ extern "C" {
 
     #[wasm_bindgen(method, catch, js_name=fetch)]
     pub fn fetch_with_str(this: &DurableObject, url: &str) -> Result<js_sys::Promise, JsValue>;
+
+    /// Opens a TCP connection served by the object's `connect` handler.
+    #[wasm_bindgen(method, catch)]
+    pub fn connect(
+        this: &DurableObject,
+        address: &str,
+        options: JsValue,
+    ) -> Result<crate::types::Socket, JsValue>;
 }

@@ -6,6 +6,14 @@ extern "C" {
     pub fn connect(address: JsValue, options: JsValue) -> Result<Socket, JsValue>;
 }
 
+#[wasm_bindgen(module = "cloudflare:node")]
+extern "C" {
+    /// Routes an inbound socket to the Node-style server listening on its
+    /// local port; resolves once the connection closes.
+    #[wasm_bindgen(js_name = handleAsNodeConnection, catch)]
+    pub fn handle_as_node_connection(socket: &Socket) -> Result<js_sys::Promise, JsValue>;
+}
+
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(extends=js_sys::Object)]

@@ -15,6 +15,7 @@ exclude = [
     "examples/emscripten",
     "examples/emscripten-tokio",
     "examples/emscripten-tcp",
+    "examples/emscripten-incoming-tcp",
     "templates/*",
     "wasm-bindgen",
     "wasm-streams",
