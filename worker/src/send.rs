@@ -16,8 +16,11 @@ use std::task::Poll;
 /// Wrap any future to make it `Send`.
 ///
 /// ```rust
+/// # use worker::{js_sys, send::SendFuture, wasm_bindgen::JsValue, wasm_bindgen_futures::JsFuture};
+/// # async fn example(promise: js_sys::Promise) -> Result<JsValue, JsValue> {
 /// let fut = SendFuture::new(JsFuture::from(promise));
 /// fut.await
+/// # }
 /// ```
 pub struct SendFuture<F> {
     #[pin]
@@ -45,8 +48,11 @@ impl<F: Future> Future for SendFuture<F> {
 /// Trait for SendFuture. Implemented for any type that implements Future.
 ///
 /// ```rust
+/// # use worker::{js_sys, send::IntoSendFuture, wasm_bindgen::JsValue, wasm_bindgen_futures::JsFuture};
+/// # async fn example(promise: js_sys::Promise) -> Result<JsValue, JsValue> {
 /// let fut = JsFuture::from(promise).into_send();
 /// fut.await
+/// # }
 /// ```
 pub trait IntoSendFuture {
     type Output;
@@ -68,8 +74,11 @@ where
 /// Wrap any type to make it `Send`.
 ///
 /// ```rust
+/// # use worker::{js_sys, send::SendWrapper};
+/// # fn example(promise: js_sys::Promise) {
 /// // js_sys::Promise is !Send
 /// let send_promise = SendWrapper::new(promise);
+/// # }
 /// ```
 pub struct SendWrapper<T>(pub T);
 

@@ -198,7 +198,7 @@ impl AnalyticsEngineDataPointBuilder {
     ///  let point = AnalyticsEngineDataPointBuilder::new()
     ///     .indexes(["index1"])
     ///     .add_double(1) // value will be replaced by the following line
-    ///     .doubles([1, 2, 3]) // sets double1, double2 and double3
+    ///     .doubles([1.0, 2.0, 3.0]) // sets double1, double2 and double3
     ///     .build();
     ///  println!("{:?}", point);
     /// ```
@@ -288,7 +288,7 @@ impl AnalyticsEngineDataPointBuilder {
     ///  use worker::{Env, AnalyticsEngineDataPointBuilder, Response};
     ///  use std::io::Error;
     ///
-    ///  fn main(env: Env) -> worker::Result<Response> {
+    ///  fn handle(env: Env) -> worker::Result<Response> {
     ///     let dataset = match env.analytics_engine("HTTP_ANALYTICS") {
     ///         Ok(dataset) => dataset,
     ///         Err(err) => return Response::error(format!("Failed to get dataset: {err:?}"), 500),

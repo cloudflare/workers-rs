@@ -12,11 +12,17 @@
 //! Enables `queue` event type in [`[event]`](worker_macros::event) macro.
 //!
 //! ```
+//! # #[cfg(feature = "queue")]
+//! # mod example {
+//! # use worker::*;
+//! # #[derive(serde::Deserialize)]
+//! # struct MyType;
 //! // Consume messages from a queue
 //! #[event(queue)]
-//! pub async fn main(message_batch: MessageBatch<MyType>, env: Env, _ctx: Context) -> Result<()> {
+//! pub async fn main(_message_batch: MessageBatch<MyType>, _env: Env, _ctx: Context) -> Result<()> {
 //!     Ok(())
 //! }
+//! # }
 //! ```
 //!
 //! ## `http`
@@ -34,7 +40,7 @@
 //!
 //! The end result is being able to use frameworks like `axum` directly (see [example](./examples/axum)):
 //!
-//! ```rust
+//! ```rust,ignore
 //! pub async fn root() -> &'static str {
 //!     "Hello Axum!"
 //! }
@@ -66,23 +72,33 @@
 //! 1. [`send::SendFuture`] - wraps any `Future` and marks it as `Send`:
 //!
 //! ```rust
+//! # use worker::{js_sys, send, wasm_bindgen_futures::JsFuture};
+//! # async fn example(promise: js_sys::Promise) {
 //! // `fut` is `Send`
 //! let fut = send::SendFuture::new(async move {
 //!     // `JsFuture` is not `Send`
 //!     JsFuture::from(promise).await
 //! });
+//! # let _ = fut.await;
+//! # }
 //! ```
 //!
 //! 2. [`send::SendWrapper`] - Marks an arbitrary object as `Send` and implements `Deref` and `DerefMut`, as well as `Clone`, `Debug`, and `Display` if the
 //!    inner type does. This is useful for attaching types as state to an `axum` `Router`:
 //!
 //! ```rust
+//! # #[cfg(feature = "axum")]
+//! # fn example(env: worker::Env) -> worker::Result<()> {
+//! # use worker::send;
+//! # use axum::Extension;
 //! // `KvStore` is not `Send`
 //! let store = env.kv("FOO")?;
 //! // `state` is `Send`
 //! let state = send::SendWrapper::new(store);
-//! let router = axum::Router::new()
+//! let router: axum::Router = axum::Router::new()
 //!     .layer(Extension(state));
+//! # Ok(())
+//! # }
 //! ```
 //!
 //! 3. [`[worker::send]`](macro@crate::send) - Macro to make any `async` function `Send`. This can be a little tricky to identify as the problem, but
@@ -90,17 +106,23 @@
 //!    between threads.
 //!
 //! ```rust
+//! # #[cfg(feature = "axum")]
+//! # mod example {
+//! # use axum::{routing::get, Extension, Router};
+//! # use worker::Env;
 //! // This macro makes the whole function (i.e. the `Future` it returns) `Send`.
 //! #[worker::send]
-//! async fn handler(Extension(env): Extension<Env>) -> Response<String> {
-//!     let kv = env.kv("FOO").unwrap()?;
+//! async fn handler(Extension(env): Extension<Env>) -> String {
+//!     let kv = env.kv("FOO").unwrap();
 //!     // Holding `kv`, which is not `Send` across `await` boundary would mark this function as `!Send`
-//!     let value = kv.get("foo").text().await?;
-//!     Ok(format!("Got value: {:?}", value));
+//!     let value = kv.get("foo").text().await.unwrap();
+//!     format!("Got value: {:?}", value)
 //! }
 //!
-//! let router = axum::Router::new()
-//!     .route("/", get(handler))
+//! fn router() -> Router {
+//!     Router::new().route("/", get(handler))
+//! }
+//! # }
 //! ```
 //!
 //! # RPC Support
