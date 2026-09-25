@@ -145,6 +145,9 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-
 
+      - name: Check for errors
+        run: cargo check --locked
+
       - name: Check Formatting
         run: cargo fmt --all -- --check
 
@@ -153,9 +156,6 @@ jobs:
 
       - name: Check for idiomatic code (http)
         run: cargo clippy --all-features --package worker-sandbox --all-targets -- -D warnings
-
-      - name: Check for errors
-        run: cargo check
 
   test:
     name: Test
