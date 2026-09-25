@@ -282,6 +282,12 @@ impl State {
         self.inner.container().map(|inner| Container { inner })
     }
 
+    /// The underlying `DurableObjectState`, for JavaScript APIs that take it
+    /// directly.
+    pub fn as_raw(&self) -> &DurableObjectState {
+        &self.inner
+    }
+
     pub fn wait_until<F>(&self, future: F)
     where
         F: Future<Output = ()> + 'static,
@@ -650,6 +656,19 @@ impl Storage {
     // Add new method to access SQLite APIs
     pub fn sql(&self) -> crate::sql::SqlStorage {
         crate::sql::SqlStorage::new(self.inner.sql())
+    }
+
+    /// Waits for all writes issued so far to be committed to disk. Binds
+    /// [`storage.sync()`](https://developers.cloudflare.com/durable-objects/api/storage-api/#sync).
+    pub async fn sync(&self) -> Result<()> {
+        JsFuture::from(self.inner.sync()?).await?;
+        Ok(())
+    }
+
+    /// The underlying `DurableObjectStorage`, for JavaScript APIs that take it
+    /// directly.
+    pub fn as_raw(&self) -> &DurableObjectStorage {
+        &self.inner
     }
 }
 

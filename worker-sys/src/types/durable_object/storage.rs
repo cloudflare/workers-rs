@@ -77,4 +77,7 @@ extern "C" {
 
     #[wasm_bindgen(method, getter)]
     pub fn sql(this: &DurableObjectStorage) -> crate::types::SqlStorage;
+
+    #[wasm_bindgen(method, catch)]
+    pub fn sync(this: &DurableObjectStorage) -> Result<js_sys::Promise, JsValue>;
 }
