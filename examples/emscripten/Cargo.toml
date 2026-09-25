@@ -4,8 +4,12 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
-[package.metadata.release]
-release = false
+# Standalone: the emscripten target, beta toolchain and dependency patches
+# stay out of the workspace lockfile.
+[workspace]
 
 [dependencies]
 worker = { path = "../../worker" }
+
+[profile.release]
+opt-level = "s"

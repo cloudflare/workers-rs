@@ -24,7 +24,7 @@ jobs:
       - name: Cache Rust dependencies
         uses: actions/cache@v4
         with:
-          path: ~/.cargo/registry ~/.cargo/git target
+          path: ~/.cargo/registry ~/.cargo/git target examples/emscripten*/target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-
       - run: cargo test -p worker-build

@@ -12,6 +12,9 @@ members = [
 exclude = [
     "examples/coredump",
     "examples/axum",
+    "examples/emscripten",
+    "examples/emscripten-tokio",
+    "examples/emscripten-tcp",
     "templates/*",
     "wasm-bindgen",
     "wasm-streams",
@@ -118,16 +121,3 @@ wasm-bindgen-shared = { version = "0.2.128", path = "./wasm-bindgen/crates/share
 wasm-bindgen-test = { version = "0.3.78", path = "./wasm-bindgen/crates/test" }
 web-sys = { version = "0.3.105", path = './wasm-bindgen/crates/web-sys' }
 
-# wasm32-unknown-emscripten (worker-build --emscripten) support pending
-# upstream releases: Tokio's host-driven event loop and mio's epoll selector
-# from the guybedford forks' tags (tokio-rs/tokio#8484, tokio-rs/mio#1969),
-# libc's unreleased emscripten epoll bindings, and an rlib-only wasm-streams,
-# since emcc cannot link a cdylib.
-tokio = { git = "https://github.com/guybedford/tokio", tag = "1.53.1-cf.emscripten" }
-tokio-macros = { git = "https://github.com/guybedford/tokio", tag = "1.53.1-cf.emscripten" }
-mio = { git = "https://github.com/guybedford/mio", tag = "1.2.3-cf.emscripten" }
-libc = { git = "https://github.com/rust-lang/libc", branch = "libc-0.2" }
-wasm-streams = { git = "https://github.com/guybedford/wasm-streams", branch = "rlib-only" }
-
-[patch."https://github.com/guybedford/libc"]
-libc = { git = "https://github.com/rust-lang/libc", branch = "libc-0.2" }
