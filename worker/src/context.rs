@@ -2,7 +2,7 @@ use std::future::Future;
 use std::panic::AssertUnwindSafe;
 
 use crate::worker_sys::Context as JsContext;
-use crate::Result;
+use crate::{Exports, Result};
 
 use js_sys::futures::future_to_promise;
 use serde::de::DeserializeOwned;
@@ -89,6 +89,15 @@ impl Context {
     /// See: <https://developers.cloudflare.com/workers/runtime-apis/context/#props>
     pub fn props<T: DeserializeOwned>(&self) -> Result<T> {
         Ok(serde_wasm_bindgen::from_value(self.inner.props())?)
+    }
+
+    /// Returns loopback bindings for this Worker's exported entrypoints.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `ctx.exports` is unavailable in the runtime configuration.
+    pub fn exports(&self) -> Exports {
+        Exports::new(self.inner.exports()).unwrap()
     }
 }
 
