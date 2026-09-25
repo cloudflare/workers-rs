@@ -167,13 +167,17 @@ pub fn expand_macro(attr: TokenStream, tokens: TokenStream) -> syn::Result<Token
         const _: () = {
             use ::worker::wasm_bindgen::prelude::*;
             #[allow(unused_imports)]
-            use ::worker::{js_sys, wasm_bindgen_futures, DurableObject};
+            use ::worker::DurableObject;
 
             #[wasm_bindgen(wasm_bindgen=::worker::wasm_bindgen)]
             #[::worker::consume]
             #target
 
-            #[wasm_bindgen(wasm_bindgen=::worker::wasm_bindgen)]
+            #[wasm_bindgen(
+                wasm_bindgen=::worker::wasm_bindgen,
+                wasm_bindgen_futures=::worker::wasm_bindgen_futures,
+                js_sys=::worker::js_sys
+            )]
             impl #target_name {
                 #(#bindgen_methods)*
             }
