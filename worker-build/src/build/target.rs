@@ -456,6 +456,11 @@ pub fn cargo_build_wasm(
             "EMCC_CFLAGS",
             append_env("EMCC_CFLAGS", emscripten::EMCC_CFLAGS.join(" ")),
         );
+        // Binaryen's worker threads get small stacks on macOS and overflow on
+        // large modules; the main thread's stack is fine.
+        if cfg!(target_os = "macos") && std::env::var_os("BINARYEN_CORES").is_none() {
+            cmd.env("BINARYEN_CORES", "1");
+        }
         let mut paths = vec![
             em.toolchain.emscripten_dir.clone(),
             em.bindgen_dir.to_path_buf(),
