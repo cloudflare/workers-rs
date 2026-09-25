@@ -49,7 +49,7 @@ wasm-bindgen-futures = { version = "0.4.78" }
 wasm-bindgen-macro-support = { version = "0.2.128" }
 wasm-bindgen-shared = { version = "0.2.128" }
 wasm-bindgen-test = { version = "0.3.78" }
-wasm-streams = { version = "0.6.0" }
+wasm-streams = { version = "0.7.0" }
 web-sys = { version = "0.3.105", features = [
     "AbortController",
     "AbortSignal",

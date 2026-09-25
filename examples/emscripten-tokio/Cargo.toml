@@ -16,25 +16,24 @@ serde = { version = "1", features = ["derive"] }
 [profile.release]
 opt-level = "s"
 
-# Pending upstream releases: Tokio's host-driven event loop on emscripten
-# (tokio-rs/tokio#8484) and mio's epoll selector (tokio-rs/mio#1969), from
-# the `guybedford` forks' tags; libc's emscripten epoll bindings, unreleased;
-# `#[wasm_bindgen(experimental_tokio)]` exports (wasm-bindgen/wasm-bindgen#5334).
-# The Emscripten side (emscripten-core/emscripten#27547, #27742) is applied by
-# worker-build to the SDK it installs. See README.
+# REQUIRED Patchset - Tokio patchset, pending upstream PRs
+# Pending libc@0.2.190
+[patch."https://github.com/guybedford/libc"]
+libc = { git = "https://github.com/rust-lang/libc", branch = "libc-0.2" }
 [patch.crates-io]
+libc = { git = "https://github.com/rust-lang/libc", branch = "libc-0.2" }
+
+# Pending https://github.com/tokio-rs/tokio/pull/8484
 tokio = { git = "https://github.com/guybedford/tokio", tag = "1.53.1-cf.emscripten" }
 tokio-macros = { git = "https://github.com/guybedford/tokio", tag = "1.53.1-cf.emscripten" }
+
+# Pending https://github.com/tokio-rs/mio/pull/1969
 mio = { git = "https://github.com/guybedford/mio", tag = "1.2.3-cf.emscripten" }
-libc = { git = "https://github.com/rust-lang/libc", branch = "libc-0.2" }
-# rlib-only: cargo would otherwise also link its cdylib, which emcc cannot produce.
-wasm-streams = { git = "https://github.com/guybedford/wasm-streams", branch = "rlib-only" }
+
+# IGNORE - Local workers-rs repo patches only
 wasm-bindgen = { path = "../../wasm-bindgen" }
 wasm-bindgen-macro-support = { path = "../../wasm-bindgen/crates/macro-support" }
 wasm-bindgen-shared = { path = "../../wasm-bindgen/crates/shared" }
 wasm-bindgen-futures = { path = "../../wasm-bindgen/crates/futures" }
 js-sys = { path = "../../wasm-bindgen/crates/js-sys" }
 web-sys = { path = "../../wasm-bindgen/crates/web-sys" }
-
-[patch."https://github.com/guybedford/libc"]
-libc = { git = "https://github.com/rust-lang/libc", branch = "libc-0.2" }

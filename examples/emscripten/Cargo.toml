@@ -14,11 +14,7 @@ worker = { path = "../../worker" }
 [profile.release]
 opt-level = "s"
 
-# No Tokio, so none of the Tokio, mio or Emscripten patches the other emscripten
-# examples carry. Only wasm-bindgen must match the CLI emcc runs post-link, and
-# wasm-streams is taken rlib-only since emcc cannot link its cdylib.
-[patch.crates-io]
-wasm-streams = { git = "https://github.com/guybedford/wasm-streams", branch = "rlib-only" }
+# IGNORE - Local workers-rs repo patches only
 wasm-bindgen = { path = "../../wasm-bindgen" }
 wasm-bindgen-macro-support = { path = "../../wasm-bindgen/crates/macro-support" }
 wasm-bindgen-shared = { path = "../../wasm-bindgen/crates/shared" }
