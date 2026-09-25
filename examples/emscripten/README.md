@@ -29,8 +29,7 @@ which runs `wasm-bindgen` as a post-link step. So handlers live in
 `src/main.rs` with an empty `fn main() {}`, and there is no `cdylib`.
 
 `rust-toolchain.toml` selects `beta`, and the `[patch.crates-io]` block points
-`wasm-bindgen` at the checkout matching the CLI emcc runs (and takes an
-rlib-only `wasm-streams`, since cargo would otherwise also link its `cdylib`).
+`wasm-bindgen` at the checkout matching the CLI emcc runs.
 
 ## What's Next
 
@@ -38,5 +37,4 @@ Take a look at the [emscripten-tokio](../emscripten-tokio) and
 [emscripten-tcp](../emscripten-tcp) examples for async IO and TCP sockets
 examples.
 
-See the [README](../../worker-build/README.md#emscripten) for the
-toolchain details.
+See the [README](../../worker-build/README.md#emscripten, or [wasm-bindgen Emscripten documentation](https://wasm-bindgen.github.io/wasm-bindgen/reference/emscripten.html) for the toolchain details.

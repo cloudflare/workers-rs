@@ -29,4 +29,4 @@ applied by worker-build), which Tokio's `ToSocketAddrs` uses on this target.
 
 ## What's Next
 
-See the [emscripten-incoming-tcp](../emscripten-tcp/README.md) example for receiving TCP connections with native accept with Emscripten and Tokio.
+See the [emscripten-incoming-tcp](../emscripten-incoming-tcp/README.md) example for using a native `accept` to receive a TCP connection.

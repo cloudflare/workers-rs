@@ -36,7 +36,3 @@ connection's I/O runs within its own request. `#[event(connect)]` gives a
 handler such a per-invocation runtime directly; the raw
 `#[wasm_bindgen(experimental_tokio)]` export here is the shared one the
 listener needs.
-
-## What this needs
-
-The same as the [emscripten-tokio example](../emscripten-tokio#what-this-needs).

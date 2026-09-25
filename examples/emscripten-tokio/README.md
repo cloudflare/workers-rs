@@ -25,18 +25,18 @@ passes the unstable cfgs both crates gate this behind (`tokio_unstable`, `wasm_b
 
 ```sh
 npx wrangler dev
-curl http://localhost:8787/spawn
-curl http://localhost:8787/channels
 ```
+
+Then try some of the example routes demonstrating Tokio functionality:
 
 | Route | Shows |
 | --- | --- |
-| `/spawn` | `tokio::spawn` and awaiting `JoinHandle`s |
-| `/sleep?ms=100` | `tokio::time::sleep` |
-| `/timeout` | `tokio::time::timeout` completing and elapsing |
-| `/channels` | `mpsc` between spawned producers and the handler |
-| `/mutex` | `tokio::sync::Mutex` shared across tasks |
-| `/join` | `tokio::join!` over concurrent futures |
+| `curl http://localhost:8787/spawn` | `tokio::spawn` and awaiting `JoinHandle`s |
+| `curl http://localhost:8787/sleep?ms=100` | `tokio::time::sleep` |
+| `curl http://localhost:8787/timeout` | `tokio::time::timeout` completing and elapsing |
+| `curl http://localhost:8787/channels` | `mpsc` between spawned producers and the handler |
+| `curl http://localhost:8787/mutex` | `tokio::sync::Mutex` shared across tasks |
+| `curl http://localhost:8787/join` | `tokio::join!` over concurrent futures |
 
 Each response carries the measured `elapsed_ms`, showing the work overlapping.
 
