@@ -23,4 +23,26 @@ describe("socket", () => {
 
     expect(response).toBe("ping");
   });
+  test("inbound connection closed when handler returns", async () => {
+    const socket = await mf.dispatchConnect();
+    const response = await new Promise<string>((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      const timer = setTimeout(() => {
+        socket.destroy();
+        reject(new Error("socket was not closed within 5s"));
+      }, 5_000);
+      socket.on("data", (data) => chunks.push(data));
+      socket.once("end", () => {
+        clearTimeout(timer);
+        resolve(Buffer.concat(chunks).toString());
+      });
+      socket.once("error", (err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+      socket.write("ping");
+    });
+
+    expect(response).toBe("ping");
+  }, 10_000);
 });
