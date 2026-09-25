@@ -82,7 +82,25 @@ impl FromSocket for Socket {
     fn from_raw(
         socket: worker_sys::Socket,
     ) -> std::result::Result<Self, impl Into<Box<dyn std::error::Error>>> {
+        if socket.protocol().as_deref() == Some("udp") {
+            return Err(Error::RustError(
+                "received a UDP socket in a TCP connect handler".into(),
+            ));
+        }
         Ok::<Socket, Error>(Socket::new(socket))
+    }
+}
+
+impl FromSocket for UdpSocket {
+    fn from_raw(
+        socket: worker_sys::Socket,
+    ) -> std::result::Result<Self, impl Into<Box<dyn std::error::Error>>> {
+        if socket.protocol().as_deref() != Some("udp") {
+            return Err(Error::RustError(
+                "received a non-UDP socket in a UDP connect handler".into(),
+            ));
+        }
+        Ok(UdpSocket::new(socket))
     }
 }
 
@@ -310,6 +328,120 @@ impl AsyncWrite for Socket {
         };
         self.close = Some(new_closing);
         poll
+    }
+}
+
+/// Represents an inbound UDP socket connection.
+#[derive(Debug)]
+pub struct UdpSocket {
+    inner: worker_sys::Socket,
+    receiver: UdpSocketReceiver,
+    sender: UdpSocketSender,
+}
+
+/// The receiving half of an inbound UDP socket.
+#[derive(Debug)]
+pub struct UdpSocketReceiver {
+    pending: Option<JsFuture>,
+    reader: ReadableStreamDefaultReader,
+}
+
+/// The sending half of an inbound UDP socket.
+#[derive(Debug)]
+pub struct UdpSocketSender {
+    writer: WritableStreamDefaultWriter,
+}
+
+unsafe impl Send for UdpSocket {}
+unsafe impl Sync for UdpSocket {}
+
+impl UdpSocket {
+    fn new(inner: worker_sys::Socket) -> Self {
+        let writer = inner.writable().unwrap().get_writer().unwrap();
+        let reader = inner.readable().unwrap().get_reader().dyn_into().unwrap();
+        Self {
+            inner,
+            receiver: UdpSocketReceiver {
+                pending: None,
+                reader,
+            },
+            sender: UdpSocketSender { writer },
+        }
+    }
+
+    /// Receives one datagram, or `None` when the UDP flow has ended.
+    pub async fn recv(&mut self) -> Result<Option<Vec<u8>>> {
+        self.receiver.recv().await
+    }
+
+    /// Sends one datagram.
+    pub async fn send(&mut self, data: impl AsRef<[u8]>) -> Result<()> {
+        self.sender.send(data).await
+    }
+
+    /// Returns independently borrowable receiving and sending halves.
+    ///
+    /// [`recv`](Self::recv) and [`send`](Self::send) both take `&mut self`, so they
+    /// cannot run concurrently on a `UdpSocket`. The halves can be borrowed at the
+    /// same time, allowing a datagram to be sent while a receive is pending.
+    pub fn split(&mut self) -> (&mut UdpSocketReceiver, &mut UdpSocketSender) {
+        (&mut self.receiver, &mut self.sender)
+    }
+
+    /// Closes the UDP socket.
+    pub async fn close(&mut self) -> Result<()> {
+        JsFuture::from(self.inner.close()?).await?;
+        Ok(())
+    }
+
+    /// Resolves when the UDP socket is closed.
+    pub async fn closed(&self) -> Result<()> {
+        JsFuture::from(self.inner.closed()?).await?;
+        Ok(())
+    }
+
+    /// Resolves when the UDP socket is opened.
+    pub async fn opened(&self) -> Result<SocketInfo> {
+        let value = JsFuture::from(self.inner.opened()?).await?;
+        value.try_into()
+    }
+}
+
+impl UdpSocketReceiver {
+    /// Receives one datagram, or `None` when the UDP flow has ended.
+    pub async fn recv(&mut self) -> Result<Option<Vec<u8>>> {
+        if self.pending.is_none() {
+            self.pending = Some(JsFuture::from(self.reader.read()));
+        }
+        let result = self.pending.as_mut().unwrap().await;
+        self.pending = None;
+        let value = result?;
+
+        let done = Reflect::get(&value, &JsValue::from_str("done"))?
+            .as_bool()
+            .unwrap_or(false);
+        if done {
+            return Ok(None);
+        }
+
+        let value = Reflect::get(&value, &JsValue::from_str("value"))?;
+        let datagram: worker_sys::Datagram = value.dyn_into().map_err(|value| {
+            Error::RustError(format!(
+                "UDP stream returned a non-Datagram value: {value:?}"
+            ))
+        })?;
+        Ok(Some(datagram.data().to_vec()))
+    }
+}
+
+impl UdpSocketSender {
+    /// Sends one datagram.
+    pub async fn send(&mut self, data: impl AsRef<[u8]>) -> Result<()> {
+        let data = Uint8Array::from(data.as_ref());
+        let datagram = worker_sys::Datagram::new(&data);
+        let value: JsValue = datagram.into();
+        JsFuture::from(self.writer.write_with_chunk(&value)).await?;
+        Ok(())
     }
 }
 

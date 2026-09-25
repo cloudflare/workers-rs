@@ -144,6 +144,10 @@ fn generate_handlers(out_dir: &Path) -> Result<String> {
     let content = fs::read_to_string(&index_path)
         .with_context(|| format!("Failed to read {}", index_path.display()))?;
 
+    Ok(generate_handlers_from_content(&content))
+}
+
+fn generate_handlers_from_content(content: &str) -> String {
     // Extract ESM function exports from the wasm-bindgen generated output.
     // This code is specialized to what wasm-bindgen outputs for ESM and is therefore
     // brittle to upstream changes. It is comprehensive to current output patterns though.
@@ -171,8 +175,13 @@ fn generate_handlers(out_dir: &Path) -> Result<String> {
         }
     }
 
+    let has_tcp_connect = func_names.contains(&"connect");
+    let has_udp_connect = func_names.contains(&"connect_udp");
     let mut handlers = String::new();
     for func_name in func_names {
+        if func_name == "connect" || func_name == "connect_udp" {
+            continue;
+        }
         if func_name == "fetch" && env::var("RUN_TO_COMPLETION").is_ok() {
             handlers += "Entrypoint.prototype.fetch = async function fetch(request) {
   let response = exports.fetch(request, this.env, this.ctx);
@@ -184,7 +193,6 @@ fn generate_handlers(out_dir: &Path) -> Result<String> {
             || func_name == "queue"
             || func_name == "scheduled"
             || func_name == "email"
-            || func_name == "connect"
         {
             // TODO: Switch these over to https://github.com/wasm-bindgen/wasm-bindgen/pull/4757
             // once that lands.
@@ -199,7 +207,75 @@ fn generate_handlers(out_dir: &Path) -> Result<String> {
         }
     }
 
-    Ok(handlers)
+    // TCP and UDP connections share a single `connect` entrypoint, dispatched by socket protocol.
+    match (has_tcp_connect, has_udp_connect) {
+        (true, true) => {
+            handlers += "Entrypoint.prototype.connect = function connect (arg) {
+  if (arg.protocol === \"udp\") {
+    return exports.connect_udp.call(this, arg, this.env, this.ctx);
+  } else {
+    return exports.connect.call(this, arg, this.env, this.ctx);
+  }
+}
+";
+        }
+        (true, false) => {
+            handlers += "Entrypoint.prototype.connect = function connect (arg) {
+  if (arg.protocol === \"udp\") {
+    throw new TypeError(\"No UDP connect handler is defined\");
+  } else {
+    return exports.connect.call(this, arg, this.env, this.ctx);
+  }
+}
+";
+        }
+        (false, true) => {
+            handlers += "Entrypoint.prototype.connect = function connect (arg) {
+  if (arg.protocol === \"udp\") {
+    return exports.connect_udp.call(this, arg, this.env, this.ctx);
+  } else {
+    throw new TypeError(\"No TCP connect handler is defined\");
+  }
+}
+";
+        }
+        (false, false) => {}
+    }
+
+    handlers
+}
+
+#[cfg(test)]
+mod handler_tests {
+    use super::generate_handlers_from_content;
+
+    #[test]
+    fn generates_tcp_and_udp_connect_dispatch() {
+        let handlers = generate_handlers_from_content(
+            "export function connect() {}\nexport function connect_udp() {}\n",
+        );
+        assert!(handlers.contains("arg.protocol === \"udp\""));
+        assert!(handlers.contains("exports.connect_udp.call"));
+        assert!(handlers.contains("exports.connect.call"));
+        assert!(!handlers.contains("Entrypoint.prototype.connect_udp"));
+    }
+
+    #[test]
+    fn generates_udp_only_connect_handler() {
+        let handlers = generate_handlers_from_content("export function connect_udp() {}\n");
+        assert!(handlers.contains("Entrypoint.prototype.connect ="));
+        assert!(handlers.contains("arg.protocol === \"udp\""));
+        assert!(handlers.contains("No TCP connect handler is defined"));
+        assert!(handlers.contains("exports.connect_udp.call"));
+    }
+
+    #[test]
+    fn generates_tcp_only_connect_handler() {
+        let handlers = generate_handlers_from_content("export function connect() {}\n");
+        assert!(handlers.contains("arg.protocol === \"udp\""));
+        assert!(handlers.contains("No UDP connect handler is defined"));
+        assert!(handlers.contains("exports.connect.call"));
+    }
 }
 
 static SYSTEM_FNS: &[&str] = &["__wbg_reset_state", "__worker_init_state"];
