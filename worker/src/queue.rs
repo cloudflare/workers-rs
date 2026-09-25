@@ -590,12 +590,16 @@ impl Queue {
     ///
     /// ## Example
     /// ```no_run
+    /// # use serde::Serialize;
     /// #[derive(Serialize)]
     /// pub struct MyMessage {
     ///     my_data: u32,
     /// }
     ///
+    /// # async fn example(queue: worker::Queue) -> worker::Result<()> {
     /// queue.send(MyMessage{ my_data: 1}).await?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub async fn send<T, U: Into<SendMessage<T>>>(&self, message: U) -> Result<()>
     where
@@ -629,12 +633,16 @@ impl Queue {
     ///
     /// ## Example
     /// ```no_run
+    /// # use serde::Serialize;
     /// #[derive(Serialize)]
     /// pub struct MyMessage {
     ///     my_data: u32,
     /// }
     ///
+    /// # async fn example(queue: worker::Queue) -> worker::Result<()> {
     /// queue.send_batch(vec![MyMessage{ my_data: 1}]).await?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub async fn send_batch<T: Serialize, U: Into<BatchSendMessage<T>>>(
         &self,

@@ -4,6 +4,7 @@ version = "0.2.0"
 authors = ["Cloudflare Workers Team <workers@cloudflare.com>"]
 repository = "https://github.com/cloudflare/workers-rs/tree/main/worker-codegen"
 edition = "2021"
+rust-version.workspace = true
 license = "Apache-2.0"
 description = "Functions to generate Rust code from various formats such as WIT."
 

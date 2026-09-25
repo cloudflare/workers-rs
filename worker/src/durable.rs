@@ -465,15 +465,15 @@ impl Storage {
     /// Takes an object and stores each of its keys and values to storage.
     ///
     /// ```no_run
-    /// # use worker::Storage;
-    /// use worker::JsValue;
+    /// # use worker::{js_sys, Storage};
+    /// use worker::wasm_bindgen::JsValue;
     ///
-    /// # let storage: Storage = todo!();
-    ///
+    /// # async fn example(storage: Storage) -> worker::Result<()> {
     /// let obj = js_sys::Object::new();
-    /// js_sys::Reflect::set(&obj, &JsValue::from_str("foo"), JsValue::from_u64(1));
+    /// js_sys::Reflect::set(&obj, &JsValue::from_str("foo"), &JsValue::from_f64(1.0))?;
     ///
-    /// storage.put_multiple_raw(obj);
+    /// storage.put_multiple_raw(obj).await
+    /// # }
     /// ```
     pub async fn put_multiple_raw(&self, values: Object) -> Result<()> {
         JsFuture::from(self.inner.put_multiple(values.into())?)
@@ -922,6 +922,8 @@ to the struct.
 ## Example
 ```no_run
 use worker::*;
+# struct User;
+# struct Message;
 
 #[durable_object]
 pub struct Chatroom {
