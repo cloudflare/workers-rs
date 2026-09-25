@@ -1,7 +1,6 @@
-//! Raw TCP from a Worker with stock `tokio::net`. The Worker is a small TCP
-//! proxy: whatever is POSTed to `/?host=1.1.1.1&port=80` is written to that
-//! address and the reply is returned; `/do?...` does the same from inside a
-//! Durable Object.
+//! Raw TCP from a Worker with `tokio::net`: `/?host=example.com` sends
+//! an HTTP HEAD request to port 80 of the host over a `TcpStream` and returns
+//! the reply; `/do?host=...` does the same from inside a Durable Object.
 
 use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -11,82 +10,61 @@ use worker::*;
 fn main() {}
 
 #[event(fetch)]
-async fn fetch(mut req: Request, env: Env, _ctx: Context) -> Result<Response> {
+async fn fetch(req: Request, env: Env, _ctx: Context) -> Result<Response> {
     let url = req.url()?;
-    if !url.query().is_some_and(|q| q.contains("host=")) {
-        return Response::ok(
-            "GET  /?host=1.1.1.1[&port=80]   HEAD request to the host, reply returned\n\
-             POST /?host=...                 body sent verbatim, reply returned\n\
-             .../do?host=...                 the same from inside a Durable Object\n",
-        );
-    }
+    let Some(host) = url
+        .query_pairs()
+        .find(|(k, _)| k == "host")
+        .map(|(_, v)| v.into_owned())
+    else {
+        return Response::ok("usage: /?host=example.com or /do?host=example.com\n");
+    };
     if url.path() == "/do" {
         let stub = env
-            .durable_object("PROXY")?
-            .id_from_name("proxy")?
+            .durable_object("PROBE")?
+            .id_from_name(&host)?
             .get_stub()?;
-        return stub.fetch_with_request(req).await;
+        return stub
+            .fetch_with_str(&format!("https://do/?host={host}"))
+            .await;
     }
-    let target = Target::from_url(&url)?;
-    let payload = payload(&mut req, &target).await?;
-    Response::from_bytes(target.exchange(&payload).await?)
+    Response::ok(head(&host).await?)
 }
 
 #[durable_object]
-pub struct Proxy;
+pub struct Probe;
 
-impl DurableObject for Proxy {
+impl DurableObject for Probe {
     fn new(_state: State, _env: Env) -> Self {
         Self
     }
 
-    async fn fetch(&self, mut req: Request) -> Result<Response> {
-        let target = Target::from_url(&req.url()?)?;
-        let payload = payload(&mut req, &target).await?;
-        Response::from_bytes(target.exchange(&payload).await?)
+    async fn fetch(&self, req: Request) -> Result<Response> {
+        let host = req
+            .url()?
+            .query_pairs()
+            .find(|(k, _)| k == "host")
+            .map(|(_, v)| v.into_owned())
+            .ok_or_else(|| Error::RustError("missing host".into()))?;
+        Response::ok(head(&host).await?)
     }
 }
 
-struct Target {
-    host: String,
-    port: u16,
-}
-
-impl Target {
-    fn from_url(url: &Url) -> Result<Self> {
-        let get = |key| url.query_pairs().find(|(k, _)| k == key).map(|(_, v)| v);
-        let host = get("host")
-            .ok_or_else(|| Error::RustError("missing ?host=".into()))?
-            .into_owned();
-        let port = match get("port") {
-            Some(p) => p
-                .parse()
-                .map_err(|_| Error::RustError(format!("bad port {p}")))?,
-            None => 80,
-        };
-        Ok(Self { host, port })
-    }
-
-    /// Sends `payload` and reads until the peer closes, within 5 seconds.
-    async fn exchange(&self, payload: &[u8]) -> Result<Vec<u8>> {
-        let io = async {
-            let mut stream = TcpStream::connect((self.host.as_str(), self.port)).await?;
-            stream.write_all(payload).await?;
-            let mut reply = Vec::new();
-            stream.read_to_end(&mut reply).await?;
-            Ok::<_, std::io::Error>(reply)
-        };
-        match tokio::time::timeout(Duration::from_secs(5), io).await {
-            Ok(reply) => reply.map_err(|e| Error::RustError(e.to_string())),
-            Err(_) => Err(Error::RustError("timed out".into())),
-        }
-    }
-}
-
-/// The payload to send: the POST body, or an HTTP HEAD request for a GET.
-async fn payload(req: &mut Request, target: &Target) -> Result<Vec<u8>> {
-    match req.method() {
-        Method::Post => req.bytes().await,
-        _ => Ok(format!("HEAD / HTTP/1.0\r\nHost: {}\r\n\r\n", target.host).into_bytes()),
+/// An HTTP HEAD request over a plain TCP connection, within 5 seconds. The
+/// hostname resolves through Emscripten's asynchronous getaddrinfo
+/// (emscripten-core/emscripten#27742, applied by worker-build).
+async fn head(host: &str) -> Result<String> {
+    let io = async {
+        let mut stream = TcpStream::connect((host, 80)).await?;
+        stream
+            .write_all(format!("HEAD / HTTP/1.0\r\nHost: {host}\r\n\r\n").as_bytes())
+            .await?;
+        let mut reply = String::new();
+        stream.read_to_string(&mut reply).await?;
+        Ok::<_, std::io::Error>(reply)
+    };
+    match tokio::time::timeout(Duration::from_secs(5), io).await {
+        Ok(reply) => reply.map_err(|e| Error::RustError(e.to_string())),
+        Err(_) => Err(Error::RustError("timed out".into())),
     }
 }

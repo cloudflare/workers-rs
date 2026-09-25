@@ -537,7 +537,7 @@ dependencies = [
 [[package]]
 name = "tokio"
 version = "1.53.1"
-source = "git+https://github.com/guybedford/tokio?tag=1.53.1-cf.emscripten#5711470698c337e39a3a90a2a4e2f05baddf7ada"
+source = "git+https://github.com/guybedford/tokio?tag=1.53.1-cf.emscripten#dad3acd6ee528ab90fda84058317eac4d7f3704a"
 dependencies = [
  "pin-project-lite",
  "tokio-macros",
@@ -546,7 +546,7 @@ dependencies = [
 [[package]]
 name = "tokio-macros"
 version = "2.7.2"
-source = "git+https://github.com/guybedford/tokio?tag=1.53.1-cf.emscripten#5711470698c337e39a3a90a2a4e2f05baddf7ada"
+source = "git+https://github.com/guybedford/tokio?tag=1.53.1-cf.emscripten#dad3acd6ee528ab90fda84058317eac4d7f3704a"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -625,8 +625,9 @@ dependencies = [
 
 [[package]]
 name = "wasm-streams"
-version = "0.6.0"
-source = "git+https://github.com/guybedford/wasm-streams?branch=rlib-only#073b6497be60d7e91fc5b1f23f24c825296b4c88"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "94ce9bdac782bbca70d6ac48a3ba18b873c848a706d6dc3bd9a03c1b96f04693"
 dependencies = [
  "futures-util",
  "js-sys",

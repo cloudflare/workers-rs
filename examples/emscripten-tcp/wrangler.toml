@@ -8,8 +8,8 @@ compatibility_flags = ["nodejs_compat", "new_module_registry"]
 command = "cargo install -q worker-build && worker-build --emscripten --release"
 
 [durable_objects]
-bindings = [{ name = "PROXY", class_name = "Proxy" }]
+bindings = [{ name = "PROBE", class_name = "Probe" }]
 
 [[migrations]]
 tag = "v1"
-new_classes = ["Proxy"]
+new_classes = ["Probe"]

@@ -195,8 +195,8 @@ jobs:
 
           serve emscripten-tcp
           curl -sf 'http://localhost:8787/?host=1.1.1.1' | grep -q '^HTTP/1\.'
-          curl -sf 'http://localhost:8787/do?host=1.1.1.1' | grep -q '^HTTP/1\.'
-          curl -sf -X POST --data-binary $'HEAD / HTTP/1.0\r\nHost: 1.0.0.1\r\n\r\n' 'http://localhost:8787/?host=1.0.0.1&port=80' | grep -q '^HTTP/1\.'
+          curl -sf 'http://localhost:8787/?host=example.com' | grep -q '^HTTP/1\.'
+          curl -sf 'http://localhost:8787/do?host=one.one.one.one' | grep -q '^HTTP/1\.'
           stop emscripten-tcp
 
   rustfmt:

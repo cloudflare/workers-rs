@@ -1,4 +1,4 @@
-//! Stock Tokio on Workers. With the `worker` crate's `tokio` feature every
+//! Tokio on Workers. With the `worker` crate's `tokio` feature every
 //! `#[event]` handler runs on its own Tokio event loop, whose wait is the
 //! Workers event loop, so `tokio::spawn`, timers and sync primitives work as
 //! they do natively: no `#[tokio::main]`, no runtime setup.
