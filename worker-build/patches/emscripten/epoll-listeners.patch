@@ -1,6 +1,6 @@
 Subject: [PATCH] epoll readiness listeners
 
-emscripten-core/emscripten#27547 (head 60aea0fde) as carried by the
+emscripten-core/emscripten#27547 (head d5f28fb96) as carried by the
 guybedford/emscripten tag 6.0.10-cf.emscripten, without tests, docs,
 ChangeLog and codesize baselines. emscripten_epoll_add_listener /
 emscripten_epoll_remove_listener deliver epoll readiness as a host
@@ -175,6 +175,34 @@ diff --git a/src/lib/libsigs.js b/src/lib/libsigs.js
    emscripten_err__sig: 'vp',
    emscripten_errn__sig: 'vpp',
    emscripten_exit_fullscreen__sig: 'i',
+diff --git a/src/lib/libsockfs_node.js b/src/lib/libsockfs_node.js
+--- a/src/lib/libsockfs_node.js
++++ b/src/lib/libsockfs_node.js
+@@ -703,10 +703,20 @@ var NodeSockFSLibrary = {
+         }
+         nodeSockHelpers.wireConnection(newsock, conn);
+         conn.resume(); // paused by pauseOnConnect
+-        sock.pending.push(newsock);
+-        SOCKFS.emit('connection', newsock.stream.fd);
+-        // A queued client makes the listening socket readable (POLLIN).
+-        sock.stream.node.notifyListeners({{{ cDefs.POLLRDNORM }}} | {{{ cDefs.POLLIN }}});
++        // Accept queue of depth one, filled on a fresh turn: a client is queued
++        // and signalled only once the previous one has been accepted, from a
++        // turn of its own (a host that scopes work to a request binds the
++        // immediate to this client's context), so one accept drive takes
++        // exactly one client, in that client's context, cold or warm.
++        var enqueue = () => {
++          if (!sock.server) return conn.destroy();
++          if (sock.pending.length) return setImmediate(enqueue);
++          sock.pending.push(newsock);
++          SOCKFS.emit('connection', newsock.stream.fd);
++          // A queued client makes the listening socket readable (POLLIN).
++          sock.stream.node.notifyListeners({{{ cDefs.POLLRDNORM }}} | {{{ cDefs.POLLIN }}});
++        };
++        setImmediate(enqueue);
+       });
+       server.on('error', (e) => {
+         sock.error = nodeSockHelpers.nodeErrToErrno(e);
 diff --git a/system/include/emscripten/epoll.h b/system/include/emscripten/epoll.h
 new file mode 100644
 --- /dev/null

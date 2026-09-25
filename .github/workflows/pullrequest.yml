@@ -177,9 +177,10 @@ jobs:
             sed '/^\[build\]/,/^$/d' examples/$1/wrangler.toml > examples/$1/wrangler.ci.toml
             (cd examples/$1 && npx -y wrangler@4 dev -c wrangler.ci.toml --port 8787 > wrangler.log 2>&1 &)
             for i in $(seq 1 30); do
-              curl -sf http://localhost:8787/ > /dev/null && break
+              grep -q 'Ready on' examples/$1/wrangler.log && break
               sleep 1
             done
+            sleep 1
           }
           stop() { pkill -f wrangler-dist || true; sleep 1; cat examples/$1/wrangler.log; ! grep -q 'wrangler:error' examples/$1/wrangler.log; }
 
@@ -196,7 +197,6 @@ jobs:
           serve emscripten-tcp
           curl -sf 'http://localhost:8787/?host=1.1.1.1' | grep -q '^HTTP/1\.'
           curl -sf 'http://localhost:8787/?host=example.com' | grep -q '^HTTP/1\.'
-          curl -sf 'http://localhost:8787/do?host=one.one.one.one' | grep -q '^HTTP/1\.'
           stop emscripten-tcp
 
           serve emscripten-incoming-tcp
@@ -205,6 +205,31 @@ jobs:
             grep -q '^HELLO$' tcp$i.txt && grep -q '^bye$' tcp$i.txt
           done
           stop emscripten-incoming-tcp
+
+      # Concurrent connections as the first traffic of a fresh Worker: the
+      # second one stalls until the hosted tokio drive consumes its pending
+      # wake on a synchronous drive (tokio `LocalEventLoop::drive() -> bool`
+      # and wasm-bindgen-futures driving to quiescence at export exit).
+      - name: Cold concurrent connections (incoming-tcp)
+        if: false
+        run: |
+          serve() {
+            (cd examples/$1 && npx -y wrangler@4 dev -c wrangler.ci.toml --port 8787 > wrangler.log 2>&1 &)
+            for i in $(seq 1 30); do
+              grep -q 'Ready on' examples/$1/wrangler.log && break
+              sleep 1
+            done
+            sleep 1
+          }
+          serve emscripten-incoming-tcp
+          for i in 1 2 3; do
+            (printf 'hello\n'; sleep 0.3; printf 'quit\n'; sleep 0.3) | timeout 10 nc -N 127.0.0.1 7000 > cold$i.txt &
+          done
+          wait
+          for i in 1 2 3; do
+            grep -q '^HELLO$' cold$i.txt && grep -q '^bye$' cold$i.txt
+          done
+          pkill -f wrangler-dist || true
 
   rustfmt:
     name: Formatter

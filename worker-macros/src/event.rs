@@ -304,23 +304,17 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                 },
                 quote! {
                     let ctx = worker::Context::new(ctx);
+                    // A failed connection rejects, closing only that socket.
                     match ::worker::FromSocket::from_raw(socket) {
-                        Ok(socket) => {
-                            match #input_fn_ident(socket, env, ctx).await {
-                                Ok(()) => {},
-                                Err(e) => {
-                                    ::worker::console_error!("{}", &e);
-                                    panic!("{}", e);
-                                }
-                            }
-                        }
+                        Ok(socket) => match #input_fn_ident(socket, env, ctx).await {
+                            Ok(()) => Ok(::worker::wasm_bindgen::JsValue::UNDEFINED),
+                            Err(e) => Err(::worker::wasm_bindgen::JsValue::from(e)),
+                        },
                         Err(err) => {
                             let e: Box<dyn std::error::Error> = err.into();
-                            ::worker::console_error!("Error converting socket: {}", &e);
-                            panic!("{}", e);
+                            Err(::worker::js_sys::Error::new(&format!("Error converting socket: {e}")).into())
                         }
                     }
-                    Ok(::worker::wasm_bindgen::JsValue::UNDEFINED)
                 },
             );
 

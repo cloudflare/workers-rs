@@ -12,12 +12,11 @@ Raw TCP from a Worker with `tokio::net`, using the Emscripten Tokio patchset
 (the `guybedford/tokio` tag pinned in `Cargo.toml`, tokio-rs/tokio#8438).
 Building on the [emscripten-tokio example](../emscripten-tokio), the Worker
 connects to port 80 of a host, sends an HTTP `HEAD` request and returns the
-reply; `/do` does the same from inside a Durable Object.
+reply.
 
 ```sh
 npx wrangler dev
 curl 'http://localhost:8787/?host=example.com'
-curl 'http://localhost:8787/do?host=1.1.1.1'
 ```
 
 `TcpStream::connect((host, 80))`, `write_all` and `read_to_string` are the
@@ -27,3 +26,7 @@ readiness flows through the same event loop that drives the handler. The
 hostname resolves through Emscripten's asynchronous `getaddrinfo`
 ([emscripten#27742](https://github.com/emscripten-core/emscripten/pull/27742),
 applied by worker-build), which Tokio's `ToSocketAddrs` uses on this target.
+
+## What's Next
+
+See the [emscripten-incoming-tcp](../emscripten-tcp/README.md) example for receiving TCP connections with native accept with Emscripten and Tokio.
