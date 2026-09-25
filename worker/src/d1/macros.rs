@@ -6,13 +6,16 @@
 ///
 /// # Example
 ///
-/// ```
+/// ```no_run
+/// # fn example(d1: worker::D1Database, min: u32, max: u32) -> worker::Result<()> {
 /// let query = worker::query!(
 ///   &d1,
 ///   "SELECT * FROM things WHERE num > ?1 AND num < ?2",
 ///   &min,
 ///   &max,
 /// )?;
+/// # Ok(())
+/// # }
 /// ```
 #[macro_export]
 macro_rules! query {
