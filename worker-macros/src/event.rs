@@ -1,5 +1,6 @@
+use crate::async_export::async_export_mod;
 use proc_macro::TokenStream;
-use quote::quote;
+use quote::{format_ident, quote};
 use syn::{parse_macro_input, punctuated::Punctuated, token::Comma, Ident, ItemFn};
 
 #[derive(strum::EnumString, strum::Display)]
@@ -87,60 +88,56 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
 
             // create a new "main" function that takes the worker_sys::Request, and calls the
             // original attributed function, passing in a converted worker::Request.
-            // We use a synchronous wrapper that returns a Promise via future_to_promise
-            // with AssertUnwindSafe to support panic=unwind.
-            let wrapper_fn = quote! {
-                pub fn #wrapper_fn_ident(
-                    req: ::worker::worker_sys::web_sys::Request,
-                    env: ::worker::Env,
-                    ctx: ::worker::worker_sys::Context
-                ) -> ::worker::js_sys::Promise {
-                    ::worker::js_sys::futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
-                        let ctx = worker::Context::new(ctx);
-                        let response: ::worker::worker_sys::web_sys::Response = match ::worker::FromRequest::from_raw(req) {
-                            Ok(req) => {
-                                let result = #input_fn_ident(req, env, ctx).await;
-                                // get the worker::Result<worker::Response> by calling the original fn
-                                match result {
-                                    Ok(raw_res) => {
-                                        match ::worker::IntoResponse::into_raw(raw_res) {
-                                            Ok(res) => res,
-                                            Err(err) => {
-                                                let e: Box<dyn std::error::Error> = err.into();
-                                                ::worker::console_error!("Error converting response: {}", &e);
-                                                #error_handling
-                                            }
+            let glue = async_export_mod(
+                &format_ident!("_worker_fetch"),
+                quote! {
+                    use ::worker::wasm_bindgen;
+                    use super::#input_fn_ident;
+                },
+                quote! {
+                    #wrapper_fn_ident(
+                        req: ::worker::worker_sys::web_sys::Request,
+                        env: ::worker::Env,
+                        ctx: ::worker::worker_sys::Context
+                    )
+                },
+                quote! {
+                    let ctx = worker::Context::new(ctx);
+                    let response: ::worker::worker_sys::web_sys::Response = match ::worker::FromRequest::from_raw(req) {
+                        Ok(req) => {
+                            let result = #input_fn_ident(req, env, ctx).await;
+                            // get the worker::Result<worker::Response> by calling the original fn
+                            match result {
+                                Ok(raw_res) => {
+                                    match ::worker::IntoResponse::into_raw(raw_res) {
+                                        Ok(res) => res,
+                                        Err(err) => {
+                                            let e: Box<dyn std::error::Error> = err.into();
+                                            ::worker::console_error!("Error converting response: {}", &e);
+                                            #error_handling
                                         }
-                                    },
-                                    Err(err) => {
-                                        let e: Box<dyn std::error::Error> = err.into();
-                                        ::worker::console_error!("{}", &e);
-                                        #error_handling
                                     }
+                                },
+                                Err(err) => {
+                                    let e: Box<dyn std::error::Error> = err.into();
+                                    ::worker::console_error!("{}", &e);
+                                    #error_handling
                                 }
-                            },
-                            Err(err) => {
-                                let e: Box<dyn std::error::Error> = err.into();
-                                ::worker::console_error!("Error converting request: {}", &e);
-                                #error_handling
                             }
-                        };
-                        Ok(::worker::wasm_bindgen::JsValue::from(response))
-                    }))
-                }
-            };
-            let wasm_bindgen_code =
-                wasm_bindgen_macro_support::expand(TokenStream::new().into(), wrapper_fn)
-                    .expect("wasm_bindgen macro failed to expand");
+                        },
+                        Err(err) => {
+                            let e: Box<dyn std::error::Error> = err.into();
+                            ::worker::console_error!("Error converting request: {}", &e);
+                            #error_handling
+                        }
+                    };
+                    Ok(::worker::wasm_bindgen::JsValue::from(response))
+                },
+            );
 
             let output = quote! {
                 #input_fn
-
-                mod _worker_fetch {
-                    use ::worker::{wasm_bindgen, js_sys};
-                    use super::#input_fn_ident;
-                    #wasm_bindgen_code
-                }
+                #glue
             };
 
             TokenStream::from(output)
@@ -156,29 +153,25 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             // rename the original attributed fn
             input_fn.sig.ident = input_fn_ident.clone();
 
-            // Use a synchronous wrapper that returns a Promise via future_to_promise
-            // with AssertUnwindSafe to support panic=unwind.
-            let wrapper_fn = quote! {
-                pub fn #wrapper_fn_ident(event: ::worker::worker_sys::ScheduledEvent, env: ::worker::Env, ctx: ::worker::worker_sys::ScheduleContext) -> ::worker::js_sys::Promise {
-                    ::worker::js_sys::futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
-                        // call the original fn
-                        #input_fn_ident(::worker::ScheduledEvent::from(event), env, ::worker::ScheduleContext::from(ctx)).await;
-                        Ok(::worker::wasm_bindgen::JsValue::UNDEFINED)
-                    }))
-                }
-            };
-            let wasm_bindgen_code =
-                wasm_bindgen_macro_support::expand(TokenStream::new().into(), wrapper_fn)
-                    .expect("wasm_bindgen macro failed to expand");
+            let glue = async_export_mod(
+                &format_ident!("_worker_scheduled"),
+                quote! {
+                    use ::worker::wasm_bindgen;
+                    use super::#input_fn_ident;
+                },
+                quote! {
+                    #wrapper_fn_ident(event: ::worker::worker_sys::ScheduledEvent, env: ::worker::Env, ctx: ::worker::worker_sys::ScheduleContext)
+                },
+                quote! {
+                    // call the original fn
+                    #input_fn_ident(::worker::ScheduledEvent::from(event), env, ::worker::ScheduleContext::from(ctx)).await;
+                    Ok(::worker::wasm_bindgen::JsValue::UNDEFINED)
+                },
+            );
 
             let output = quote! {
                 #input_fn
-
-                mod _worker_scheduled {
-                    use ::worker::wasm_bindgen;
-                    use super::#input_fn_ident;
-                    #wasm_bindgen_code
-                }
+                #glue
             };
 
             TokenStream::from(output)
@@ -195,36 +188,32 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             // rename the original attributed fn
             input_fn.sig.ident = input_fn_ident.clone();
 
-            // Use a synchronous wrapper that returns a Promise via future_to_promise
-            // with AssertUnwindSafe to support panic=unwind.
-            let wrapper_fn = quote! {
-                pub fn #wrapper_fn_ident(event: ::worker::worker_sys::MessageBatch, env: ::worker::Env, ctx: ::worker::worker_sys::Context) -> ::worker::js_sys::Promise {
-                    ::worker::js_sys::futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
-                        // call the original fn
-                        let ctx = worker::Context::new(ctx);
-                        match #input_fn_ident(::worker::MessageBatch::from(event), env, ctx).await {
-                            Ok(()) => {},
-                            Err(e) => {
-                                ::worker::console_log!("{}", &e);
-                                panic!("{}", e);
-                            }
+            let glue = async_export_mod(
+                &format_ident!("_worker_queue"),
+                quote! {
+                    use ::worker::wasm_bindgen;
+                    use super::#input_fn_ident;
+                },
+                quote! {
+                    #wrapper_fn_ident(event: ::worker::worker_sys::MessageBatch, env: ::worker::Env, ctx: ::worker::worker_sys::Context)
+                },
+                quote! {
+                    // call the original fn
+                    let ctx = worker::Context::new(ctx);
+                    match #input_fn_ident(::worker::MessageBatch::from(event), env, ctx).await {
+                        Ok(()) => {},
+                        Err(e) => {
+                            ::worker::console_log!("{}", &e);
+                            panic!("{}", e);
                         }
-                        Ok(::worker::wasm_bindgen::JsValue::UNDEFINED)
-                    }))
-                }
-            };
-            let wasm_bindgen_code =
-                wasm_bindgen_macro_support::expand(TokenStream::new().into(), wrapper_fn)
-                    .expect("wasm_bindgen macro failed to expand");
+                    }
+                    Ok(::worker::wasm_bindgen::JsValue::UNDEFINED)
+                },
+            );
 
             let output = quote! {
                 #input_fn
-
-                mod _worker_queue {
-                    use ::worker::wasm_bindgen;
-                    use super::#input_fn_ident;
-                    #wasm_bindgen_code
-                }
+                #glue
             };
 
             TokenStream::from(output)
@@ -261,33 +250,31 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             // rename the original attributed fn
             input_fn.sig.ident = input_fn_ident.clone();
 
-            let wrapper_fn = quote! {
-                pub fn #wrapper_fn_ident(message: ::worker::ForwardableEmailMessage, env: ::worker::Env, ctx: ::worker::worker_sys::Context) -> ::worker::js_sys::Promise {
-                    ::worker::js_sys::futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
-                        let ctx = worker::Context::new(ctx);
-                        match #input_fn_ident(message, env, ctx).await {
-                            Ok(()) => {},
-                            Err(e) => {
-                                ::worker::console_log!("{}", &e);
-                                panic!("{}", e);
-                            }
+            let glue = async_export_mod(
+                &format_ident!("_worker_email"),
+                quote! {
+                    use ::worker::wasm_bindgen;
+                    use super::#input_fn_ident;
+                },
+                quote! {
+                    #wrapper_fn_ident(message: ::worker::ForwardableEmailMessage, env: ::worker::Env, ctx: ::worker::worker_sys::Context)
+                },
+                quote! {
+                    let ctx = worker::Context::new(ctx);
+                    match #input_fn_ident(message, env, ctx).await {
+                        Ok(()) => {},
+                        Err(e) => {
+                            ::worker::console_log!("{}", &e);
+                            panic!("{}", e);
                         }
-                        Ok(::worker::wasm_bindgen::JsValue::UNDEFINED)
-                    }))
-                }
-            };
-            let wasm_bindgen_code =
-                wasm_bindgen_macro_support::expand(TokenStream::new().into(), wrapper_fn)
-                    .expect("wasm_bindgen macro failed to expand");
+                    }
+                    Ok(::worker::wasm_bindgen::JsValue::UNDEFINED)
+                },
+            );
 
             let output = quote! {
                 #input_fn
-
-                mod _worker_email {
-                    use ::worker::wasm_bindgen;
-                    use super::#input_fn_ident;
-                    #wasm_bindgen_code
-                }
+                #glue
             };
             TokenStream::from(output)
         }
@@ -302,44 +289,38 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             // rename the original attributed fn
             input_fn.sig.ident = input_fn_ident.clone();
 
-            // Use a synchronous wrapper that returns a Promise via future_to_promise
-            // with AssertUnwindSafe to support panic=unwind.
-            let wrapper_fn = quote! {
-                pub fn #wrapper_fn_ident(socket: ::worker::worker_sys::Socket, env: ::worker::Env, ctx: ::worker::worker_sys::Context) -> ::worker::js_sys::Promise {
-                    ::worker::js_sys::futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
-                        let ctx = worker::Context::new(ctx);
-                        match ::worker::FromSocket::from_raw(socket) {
-                            Ok(socket) => {
-                                match #input_fn_ident(socket, env, ctx).await {
-                                    Ok(()) => {},
-                                    Err(e) => {
-                                        ::worker::console_error!("{}", &e);
-                                        panic!("{}", e);
-                                    }
-                                }
-                            }
-                            Err(err) => {
-                                let e: Box<dyn std::error::Error> = err.into();
-                                ::worker::console_error!("Error converting socket: {}", &e);
-                                panic!("{}", e);
-                            }
+            let glue = async_export_mod(
+                &format_ident!("_worker_connect"),
+                quote! {
+                    use ::worker::wasm_bindgen;
+                    use super::#input_fn_ident;
+                },
+                quote! {
+                    #wrapper_fn_ident(
+                        socket: ::worker::worker_sys::Socket,
+                        env: ::worker::Env,
+                        ctx: ::worker::worker_sys::Context
+                    )
+                },
+                quote! {
+                    let ctx = worker::Context::new(ctx);
+                    // A failed connection rejects, closing only that socket.
+                    match ::worker::FromSocket::from_raw(socket) {
+                        Ok(socket) => match #input_fn_ident(socket, env, ctx).await {
+                            Ok(()) => Ok(::worker::wasm_bindgen::JsValue::UNDEFINED),
+                            Err(e) => Err(::worker::wasm_bindgen::JsValue::from(e)),
+                        },
+                        Err(err) => {
+                            let e: Box<dyn std::error::Error> = err.into();
+                            Err(::worker::js_sys::Error::new(&format!("Error converting socket: {e}")).into())
                         }
-                        Ok(::worker::wasm_bindgen::JsValue::UNDEFINED)
-                    }))
-                }
-            };
-            let wasm_bindgen_code =
-                wasm_bindgen_macro_support::expand(TokenStream::new().into(), wrapper_fn)
-                    .expect("wasm_bindgen macro failed to expand");
+                    }
+                },
+            );
 
             let output = quote! {
                 #input_fn
-
-                mod _worker_connect {
-                    use ::worker::wasm_bindgen;
-                    use super::#input_fn_ident;
-                    #wasm_bindgen_code
-                }
+                #glue
             };
 
             TokenStream::from(output)

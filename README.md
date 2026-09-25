@@ -459,6 +459,29 @@ pub fn do_work () {
 
 See [Signal Example](examples/signals) for a full end-to-end workflow.
 
+## Emscripten
+
+The experimental `worker-build --emscripten` flag can be used to build for
+`wasm32-unknown-emscripten`, giving Workers a libc and epoll-backed sockets.
+
+Just update the build command to add this flag, and the Emscripten toolchain
+will be installed automatically:
+
+```toml
+main = "build/index.js"
+
+[build]
+command = "cargo install -q worker-build && worker-build --emscripten --release"
+```
+
+The build links a **bin** target rather than a `cdylib`, so the package must have
+a bin target (e.g. `src/main.rs` with an empty `fn main() {}`).
+
+See the [emscripten](examples/emscripten), [emscripten-tokio](examples/emscripten-tokio)
+and [emscripten-tcp](examples/emscripten-tcp) examples, which build up from
+`std::fs` on the in-memory filesystem, through Tokio timers, tasks and
+channels, to raw TCP.
+
 ## Panic Recovery with `--panic-unwind`
 
 By default, Rust panics in Workers compile with `panic=abort`, which terminates the WebAssembly

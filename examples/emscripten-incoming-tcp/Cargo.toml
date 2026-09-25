@@ -1,0 +1,33 @@
+[package]
+name = "emscripten-incoming-tcp"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Standalone: the emscripten target, beta toolchain and dependency patches
+# stay out of the workspace lockfile.
+[workspace]
+
+[dependencies]
+worker = { path = "../../worker", features = ["experimental_tokio"] }
+tokio = { version = "1", default-features = false, features = ["rt", "macros", "net", "io-util"] }
+wasm-bindgen = "0.2.129"
+js-sys = "0.3.106"
+wasm-bindgen-futures = "0.4.79"
+
+[profile.release]
+opt-level = "s"
+
+# REQUIRED Patchset - Tokio patchset, pending upstream PRs
+# Pending libc@0.2.190
+[patch."https://github.com/guybedford/libc"]
+libc = { git = "https://github.com/rust-lang/libc", branch = "libc-0.2" }
+[patch.crates-io]
+libc = { git = "https://github.com/rust-lang/libc", branch = "libc-0.2" }
+
+# Pending https://github.com/tokio-rs/tokio/pull/8484
+tokio = { git = "https://github.com/guybedford/tokio", tag = "1.53.1-cf.emscripten" }
+tokio-macros = { git = "https://github.com/guybedford/tokio", tag = "1.53.1-cf.emscripten" }
+
+# Pending https://github.com/tokio-rs/mio/pull/1969
+mio = { git = "https://github.com/guybedford/mio", tag = "1.2.3-cf.emscripten" }

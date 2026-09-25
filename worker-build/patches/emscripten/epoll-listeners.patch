@@ -1,0 +1,285 @@
+Subject: [PATCH] epoll readiness listeners
+
+emscripten-core/emscripten#27547 (head d5f28fb96) as carried by the
+guybedford/emscripten tag 6.0.10-cf.emscripten, without tests, docs,
+ChangeLog and codesize baselines. emscripten_epoll_add_listener /
+emscripten_epoll_remove_listener deliver epoll readiness as a host
+macrotask through unref'd handles, so a listener alone does not keep the
+runtime alive; Tokio's host-driven event loop is built on them.
+
+Base-commit: d6c521a7f (tag 6.0.10)
+
+---
+diff --git a/src/lib/libepoll.js b/src/lib/libepoll.js
+--- a/src/lib/libepoll.js
++++ b/src/lib/libepoll.js
+@@ -45,7 +45,7 @@ var EpollLibrary = {
+   },
+ 
+   $epollNewInstance__internal: true,
+-  $epollNewInstance__deps: ['$FS', '$epollWouldBlock'],
++  $epollNewInstance__deps: ['$FS', '$epollWouldBlock', '$epollClearListener'],
+   $epollNewInstance: () => {
+     // Its own (detached) node, so the epoll fd can be watched by a parent epoll
+     // (nesting) and carry the readiness wait-queue methods. Shared across dups.
+@@ -75,6 +75,9 @@ var EpollLibrary = {
+           // parent epoll watching this fd so it re-derives and drops the
+           // now-stale registration (via doEpollWait's shared check).
+           if (--ep.refcount) return;
++          for (var it of ep.interests.values()) {
++            epollClearListener(ep, it);
++          }
+           for (var reg of ep.epoll.values()) {
+             reg.listener?.listeners.delete(reg.listener.entry);
+           }
+@@ -86,6 +89,7 @@ var EpollLibrary = {
+     Object.assign(stream.shared, {
+       node,
+       epoll: new Map(),
++      interests: new Map(), // emscripten_epoll_add_listener listeners
+       // Open references (fds) to this instance; the last close reclaims it.
+       refcount: 1,
+     });
+@@ -221,9 +225,10 @@ var EpollLibrary = {
+     // (ep_poll_callback: on an edge, list the reg and wake any waiter on this
+     // epoll - and through ep.node any parent epoll nesting it.)
+     if (!reg.listener) {
+-      reg.listener = target.node.addListener(() => {
++      reg.listener = target.node.addListener((flags) => {
+         readyListAdd(ep, reg);
+-        ep.node.notifyListeners({{{ cDefs.POLLIN }}});
++        // A closing fd (POLLNVAL) wakes the epoll as a teardown, not readiness.
++        ep.node.notifyListeners(flags & {{{ cDefs.POLLNVAL }}} ? {{{ cDefs.POLLNVAL }}} : {{{ cDefs.POLLIN }}});
+       // EPOLLEXCLUSIVE: when one fd is watched by several epolls, the watched
+       // node wakes only one of them per edge (round-robin), not all.
+       }, !!(events & {{{ cDefs.EPOLLEXCLUSIVE }}}));
+@@ -345,6 +350,109 @@ var EpollLibrary = {
+ #endif
+     return count;
+   },
++
++  $epollClearListener__internal: true,
++  $epollClearListener: (ep, it) => {
++    ep.interests.delete(it.key);
++    it.cleared = true;
++    it.listener.listeners.delete(it.listener.entry);
++  },
++
++  // See <emscripten/epoll.h>. A listener is keyed by (callback, userdata),
++  // signals the callback while the set has uncollected ready events, and holds
++  // nothing itself: the only keepalive taken is for a scheduled delivery, which
++  // is pending work like a safeSetTimeout callback.
++  emscripten_epoll_add_listener__deps: ['$FS', '$epollWouldBlock', '$epollClearListener', '$callUserCallback', '$emSetImmediate',
++#if !MINIMAL_RUNTIME
++    '$maybeExit',
++#endif
++  ],
++  emscripten_epoll_add_listener__proxy: 'sync',
++  emscripten_epoll_add_listener: (epfd, callback, userdata) => {
++#if PTHREADS
++    // Readiness is tracked on the main thread and the callback runs there.
++    if (PThread.currentProxiedOperationCallerThread) return {{{ cDefs.ENOTSUP }}};
++#endif
++    var stream = FS.getStream(epfd);
++    // A public API, not a syscall: positive errno.
++    if (!stream?.shared.epoll) return {{{ cDefs.EBADF }}};
++    var ep = stream.shared;
++    var key = callback + ':' + userdata;
++    if (ep.interests.has(key)) return {{{ cDefs.EEXIST }}};
++    var it = {key};
++    ep.interests.set(key, it);
++
++    // Hold the runtime for the delivery scheduled on the next turn. Not once
++    // FS.quit has begun: no delivery can follow and the hold would outlive the
++    // exit.
++    function hold() {
++      if (FS.initialized && !it.held) {
++        it.held = true;
++        {{{ runtimeKeepalivePush() }}}
++      }
++    }
++    // Runs the callback, taking the hold for the next turn if the set is still
++    // ready (undrained, or a re-listed level fd) before callUserCallback's
++    // maybeExit.
++    function deliver() {
++      callUserCallback(() => {
++        {{{ makeDynCall('vp', 'callback') }}}(userdata);
++        if (!it.cleared && !epollWouldBlock(ep)) hold();
++      });
++    }
++    // Runs one turn: releases the turn's hold and, if the set is ready,
++    // delivers.
++    function turn() {
++      if (it.held) {
++        it.held = false;
++        {{{ runtimeKeepalivePop() }}}
++      }
++      if (it.cleared || epollWouldBlock(ep)) {
++        // Not delivering: callUserCallback's maybeExit will not run, and
++        // the hold just released may have been what deferred main's exit.
++        // Deferred: this microtask can run between main returning and
++        // callMain's own exit (under JSPI callMain resumes in a microtask), and
++        // exiting here would re-enter exitRuntime there.
++#if !MINIMAL_RUNTIME
++        emSetImmediate(maybeExit);
++#endif
++        return;
++      }
++      deliver();
++      // The delivery took the hold if it left the set ready: another turn, as
++      // a macrotask so a still-ready level fd yields to I/O.
++      if (it.held) emSetImmediate(turn);
++    }
++    // An edge delivers as a microtask: after the notifying stack (a host event
++    // or a wasm call) unwinds, but in the same host turn. A macrotask would
++    // leave that turn, and hosts that scope work to a request (Workers) drop
++    // immediates left over when the request settles, which would silence the
++    // listener. Every wake schedules its own turn; one that finds nothing to
++    // deliver is a no-op. A readiness wake holds the runtime for its turn; a
++    // teardown wake (POLLNVAL) does not.
++    function wake(held) {
++      if (held) hold();
++      queueMicrotask(turn);
++    }
++    it.listener = ep.node.addListener((flags) => wake(!(flags & {{{ cDefs.POLLNVAL }}})));
++    wake(!epollWouldBlock(ep));
++    return 0;
++  },
++
++  emscripten_epoll_remove_listener__deps: ['$FS', '$epollClearListener'],
++  emscripten_epoll_remove_listener__proxy: 'sync',
++  emscripten_epoll_remove_listener: (epfd, callback, userdata) => {
++#if PTHREADS
++    if (PThread.currentProxiedOperationCallerThread) return {{{ cDefs.ENOTSUP }}};
++#endif
++    var stream = FS.getStream(epfd);
++    if (!stream?.shared.epoll) return {{{ cDefs.EBADF }}};
++    var ep = stream.shared;
++    var it = ep.interests.get(callback + ':' + userdata);
++    if (!it) return {{{ cDefs.ENOENT }}};
++    epollClearListener(ep, it);
++    return 0;
++  },
+ };
+ 
+ addToLibrary(EpollLibrary);
+diff --git a/src/lib/libsigs.js b/src/lib/libsigs.js
+--- a/src/lib/libsigs.js
++++ b/src/lib/libsigs.js
+@@ -643,6 +643,8 @@ sigs = {
+   emscripten_destroy_web_audio_node__sig: 'vi',
+   emscripten_destroy_worker__sig: 'vi',
+   emscripten_enter_soft_fullscreen__sig: 'ipp',
++  emscripten_epoll_add_listener__sig: 'iipp',
++  emscripten_epoll_remove_listener__sig: 'iipp',
+   emscripten_err__sig: 'vp',
+   emscripten_errn__sig: 'vpp',
+   emscripten_exit_fullscreen__sig: 'i',
+diff --git a/src/lib/libsockfs_node.js b/src/lib/libsockfs_node.js
+--- a/src/lib/libsockfs_node.js
++++ b/src/lib/libsockfs_node.js
+@@ -703,10 +703,20 @@ var NodeSockFSLibrary = {
+         }
+         nodeSockHelpers.wireConnection(newsock, conn);
+         conn.resume(); // paused by pauseOnConnect
+-        sock.pending.push(newsock);
+-        SOCKFS.emit('connection', newsock.stream.fd);
+-        // A queued client makes the listening socket readable (POLLIN).
+-        sock.stream.node.notifyListeners({{{ cDefs.POLLRDNORM }}} | {{{ cDefs.POLLIN }}});
++        // Accept queue of depth one, filled on a fresh turn: a client is queued
++        // and signalled only once the previous one has been accepted, from a
++        // turn of its own (a host that scopes work to a request binds the
++        // immediate to this client's context), so one accept drive takes
++        // exactly one client, in that client's context, cold or warm.
++        var enqueue = () => {
++          if (!sock.server) return conn.destroy();
++          if (sock.pending.length) return setImmediate(enqueue);
++          sock.pending.push(newsock);
++          SOCKFS.emit('connection', newsock.stream.fd);
++          // A queued client makes the listening socket readable (POLLIN).
++          sock.stream.node.notifyListeners({{{ cDefs.POLLRDNORM }}} | {{{ cDefs.POLLIN }}});
++        };
++        setImmediate(enqueue);
+       });
+       server.on('error', (e) => {
+         sock.error = nodeSockHelpers.nodeErrToErrno(e);
+diff --git a/system/include/emscripten/epoll.h b/system/include/emscripten/epoll.h
+new file mode 100644
+--- /dev/null
++++ b/system/include/emscripten/epoll.h
+@@ -0,0 +1,75 @@
++/*
++ * Copyright 2026 The Emscripten Authors.  All rights reserved.
++ * Emscripten is available under two separate licenses, the MIT license and the
++ * University of Illinois/NCSA Open Source License.  Both these licenses can be
++ * found in the LICENSE file.
++ */
++
++#pragma once
++
++#include <sys/epoll.h>
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++// EXPERIMENTAL. This API is new and may change (signature or semantics) over the
++// next few releases.
++//
++// Register a persistent readiness listener on an existing epoll fd (built with
++// epoll_create1/epoll_ctl): instead of blocking in epoll_wait, the runtime
++// invokes `callback` on the event loop whenever the epoll set has ready events
++// waiting to be collected. The callback receives only `userdata`; it does not
++// receive the events. To collect them it calls epoll_wait(epfd, ..., 0) itself
++// - a non-blocking, zero-timeout wait - from within the callback (or later).
++// Unlike epoll_wait it never blocks the calling stack, so it works without
++// ASYNCIFY/JSPI.
++//
++// Listeners must be added from, and are delivered on, the main thread; with
++// pthreads, a call from any other thread fails with ENOTSUP.
++//
++// Any number of listeners may be added, identified by the (callback, userdata)
++// pair; adding a pair that is already registered fails with EEXIST. Every
++// listener is signalled while uncollected ready events remain (broadcast), and
++// listeners race to collect: per-fd trigger modes distribute events across
++// collectors exactly as between multiple blocking epoll_wait callers on one
++// epoll, so an EPOLLET edge or an EPOLLONESHOT firing is collected by exactly
++// one listener (load balancing), while a level fd keeps signalling every
++// listener until drained.
++//
++// A listener fires once the call that made the set ready has returned (as a
++// microtask: never from within a running wasm call, and before the host's next
++// turn) while the set has ready events that have not yet been collected, and keeps firing while any remain: it only signals that
++// events are pending, so a callback that does not drain them (via epoll_wait)
++// leaves them pending and re-fires. Whether a given fd is re-reported follows
++// its per-fd trigger mode (set via epoll_ctl) exactly as epoll_wait does. Note
++// that for a level-triggered fd the runtime, not the application, drives the
++// loop, so an fd that is structurally always ready (notably EPOLLOUT on a
++// writable socket) will spin the event loop; use EPOLLET or EPOLLONESHOT for
++// such fds.
++//
++// A listener is an unref'd handle (like Node's handle.unref()): while the
++// runtime is alive, readiness is delivered to it, but it never keeps the
++// runtime alive by itself. A program whose only reason to stay alive is a
++// listener holds the runtime itself:
++//
++//   emscripten_runtime_keepalive_push();  // e.g. before main() returns
++//   ...
++//   emscripten_runtime_keepalive_pop();   // e.g. from the callback, when done
++//
++// Likewise emscripten_epoll_remove_listener and the last close of the epoll fd
++// release nothing, since nothing was held.
++//
++// Listeners are shared instance state: they see registrations made through any
++// dup'd fd, and closing the last fd to the instance removes them all. Returns
++// 0, or a positive errno (EBADF if `epfd` is not an epoll fd).
++typedef void (*em_epoll_callback)(void *userdata);
++int emscripten_epoll_add_listener(int epfd, em_epoll_callback callback, void *userdata);
++
++// Remove the listener for the (callback, userdata) pair. Returns 0, EBADF if
++// `epfd` is not an epoll fd, or ENOENT if no such listener is registered.
++int emscripten_epoll_remove_listener(int epfd, em_epoll_callback callback, void *userdata);
++
++#ifdef __cplusplus
++}
++#endif

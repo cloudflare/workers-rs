@@ -78,6 +78,12 @@ impl FromSocket for worker_sys::Socket {
     }
 }
 
+impl From<worker_sys::Socket> for Socket {
+    fn from(socket: worker_sys::Socket) -> Self {
+        Socket::new(socket)
+    }
+}
+
 impl FromSocket for Socket {
     fn from_raw(
         socket: worker_sys::Socket,
@@ -113,6 +119,15 @@ impl Socket {
             write: None,
             close: None,
         }
+    }
+
+    /// Hands this inbound socket to the Node-style server listening on its
+    /// local port, such as a Tokio `TcpListener` bound there, and resolves
+    /// once the connection closes. Await it as the tail of the `connect`
+    /// handler: the handler's completion closes the socket.
+    pub async fn handle_as_node_connection(self) -> Result<()> {
+        JsFuture::from(worker_sys::handle_as_node_connection(&self.inner)?).await?;
+        Ok(())
     }
 
     /// Closes the TCP socket. Both the readable and writable streams are forcibly closed.

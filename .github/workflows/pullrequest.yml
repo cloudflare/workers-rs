@@ -24,7 +24,7 @@ jobs:
       - name: Cache Rust dependencies
         uses: actions/cache@v4
         with:
-          path: ~/.cargo/registry ~/.cargo/git target
+          path: ~/.cargo/registry ~/.cargo/git target examples/emscripten*/target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-
       - run: cargo test -p worker-build
@@ -116,15 +116,120 @@ jobs:
           sed -i '/"examples\/axum",/d' Cargo.toml
           for example in examples/*/; do
               example_name=$(basename "$example")
-              if [ "$example_name" = "coredump" ]; then
-                echo "Skipping coredump example"
+              case "$example_name" in coredump|emscripten|emscripten-tokio|emscripten-tcp|emscripten-incoming-tcp)
+                echo "Skipping $example_name example"
                 continue
-              fi
+                ;;
+              esac
               echo "Building $example_name"
               cd "$example"
               WASM_BINDGEN_BIN='../../wasm-bindgen/target/debug/wasm-bindgen' ../../target/debug/worker-build
               cd ../..
           done
+
+  build-emscripten:
+    name: Emscripten example
+    needs: worker-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dtolnay/rust-toolchain@1.87.0
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry ~/.cargo/git target examples/emscripten*/target
+          key: ${{ runner.os }}-cargo-emscripten-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-emscripten-
+
+      - name: Cache Emscripten SDK
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/worker-build/emsdk-*
+          key: ${{ runner.os }}-emsdk-${{ hashFiles('worker-build/src/versions.rs', 'worker-build/patches/emscripten/*') }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: worker-build
+          path: ./target/debug
+
+      - name: Make worker-build executable
+        run: chmod +x ./target/debug/worker-build
+
+      - name: Build wasm-bindgen
+        run: cd wasm-bindgen && cargo build -p wasm-bindgen-cli --bin wasm-bindgen
+
+      - name: Install emscripten target toolchain
+        run: rustup toolchain install beta --profile minimal --target wasm32-unknown-emscripten
+
+      - name: Build examples
+        run: |
+          for example in emscripten emscripten-tokio emscripten-tcp emscripten-incoming-tcp; do
+            (cd examples/$example && WASM_BINDGEN_BIN=../../wasm-bindgen/target/debug/wasm-bindgen ../../target/debug/worker-build --emscripten --release)
+          done
+          (cd examples/emscripten-tcp && WASM_BINDGEN_BIN=../../wasm-bindgen/target/debug/wasm-bindgen ../../target/debug/worker-build --emscripten --dev)
+
+      - name: Smoke test under wrangler
+        run: |
+          serve() {
+            sed '/^\[build\]/,/^$/d' examples/$1/wrangler.toml > examples/$1/wrangler.ci.toml
+            (cd examples/$1 && npx -y wrangler@4 dev -c wrangler.ci.toml --port 8787 > wrangler.log 2>&1 &)
+            for i in $(seq 1 30); do
+              grep -q 'Ready on' examples/$1/wrangler.log && break
+              sleep 1
+            done
+            sleep 1
+          }
+          stop() { pkill -f wrangler-dist || true; sleep 1; cat examples/$1/wrangler.log; ! grep -q 'wrangler:error' examples/$1/wrangler.log; }
+
+          serve emscripten
+          curl -sf -X POST --data-binary 'a b a' http://localhost:8787/ | grep -q '^   2 a$'
+          stop emscripten
+
+          serve emscripten-tokio
+          curl -sf http://localhost:8787/join | grep -q '"result":"abc"'
+          curl -sf http://localhost:8787/channels | grep -q '"result":"\[1, 6, 2, 7, 3, 8, 4, 9, 5, 10\]"'
+          curl -sf http://localhost:8787/timeout | grep -q 'fast: completed, slow: timed out'
+          stop emscripten-tokio
+
+          serve emscripten-tcp
+          curl -sf 'http://localhost:8787/?host=1.1.1.1' | grep -q '^HTTP/1\.'
+          curl -sf 'http://localhost:8787/?host=example.com' | grep -q '^HTTP/1\.'
+          stop emscripten-tcp
+
+          serve emscripten-incoming-tcp
+          for i in 1 2 3; do
+            (printf 'hello\n'; sleep 0.3; printf 'quit\n'; sleep 0.3) | timeout 10 nc -N 127.0.0.1 7000 | tee tcp$i.txt
+            grep -q '^HELLO$' tcp$i.txt && grep -q '^bye$' tcp$i.txt
+          done
+          stop emscripten-incoming-tcp
+
+      # Concurrent connections as the first traffic of a fresh Worker: the
+      # second one stalls until the hosted tokio drive consumes its pending
+      # wake on a synchronous drive (tokio `LocalEventLoop::drive() -> bool`
+      # and wasm-bindgen-futures driving to quiescence at export exit).
+      - name: Cold concurrent connections (incoming-tcp)
+        if: false
+        run: |
+          serve() {
+            (cd examples/$1 && npx -y wrangler@4 dev -c wrangler.ci.toml --port 8787 > wrangler.log 2>&1 &)
+            for i in $(seq 1 30); do
+              grep -q 'Ready on' examples/$1/wrangler.log && break
+              sleep 1
+            done
+            sleep 1
+          }
+          serve emscripten-incoming-tcp
+          for i in 1 2 3; do
+            (printf 'hello\n'; sleep 0.3; printf 'quit\n'; sleep 0.3) | timeout 10 nc -N 127.0.0.1 7000 > cold$i.txt &
+          done
+          wait
+          for i in 1 2 3; do
+            grep -q '^HELLO$' cold$i.txt && grep -q '^bye$' cold$i.txt
+          done
+          pkill -f wrangler-dist || true
 
   rustfmt:
     name: Formatter

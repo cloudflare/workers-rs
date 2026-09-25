@@ -47,6 +47,10 @@ worker-sys.workspace = true
 
 [features]
 queue = ["worker-macros/queue", "worker-sys/queue"]
+# Handlers run on a Tokio event loop driven by the host; `worker-build
+# --emscripten` only, which sees the feature and supplies the unstable cfgs
+# wasm-bindgen and Tokio gate it behind.
+experimental_tokio = ["worker-macros/experimental_tokio"]
 d1 = ["worker-sys/d1"]
 http = ["worker-macros/http"]
 axum = ["dep:axum"]
