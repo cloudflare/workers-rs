@@ -22,7 +22,9 @@ Inbound TCP on port 7000 (`[[connect]]` in `wrangler.toml`) reaches the
 Worker's `connect` handler, which on the first connection binds a
 `TcpListener` on that port and spawns its accept loop, and hands every
 connection to the listener with `Socket::handle_as_node_connection`. The
-accept loop then serves connections like any Tokio server.
+accept loop then serves connections like any Tokio server. The handler
+awaits the hand-off to completion: its return closes the socket, so
+spawning it or returning early would drop the connection.
 
 ## Two runtimes
 

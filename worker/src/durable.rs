@@ -991,8 +991,11 @@ pub trait DurableObject: has_durable_object_attribute {
 
     async fn fetch(&self, req: Request) -> Result<Response>;
 
-    /// Serves a TCP connection opened with [`Stub::connect`]. The future
-    /// completes when the connection is done.
+    /// Serves a TCP connection opened with [`Stub::connect`]. The socket is
+    /// closed when this future completes, so it must live for the whole
+    /// connection: when handing the socket to a listener, await
+    /// [`Socket::handle_as_node_connection`] rather than spawning it or
+    /// returning early.
     #[allow(unused_variables, clippy::diverging_sub_expression)]
     async fn connect(&self, socket: Socket) -> Result<()> {
         worker_sys::console_error!("connect() handler not implemented");

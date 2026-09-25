@@ -123,7 +123,8 @@ impl Socket {
 
     /// Hands this inbound socket to the Node-style server listening on its
     /// local port, such as a Tokio `TcpListener` bound there, and resolves
-    /// once the connection closes.
+    /// once the connection closes. Await it as the tail of the `connect`
+    /// handler: the handler's completion closes the socket.
     pub async fn handle_as_node_connection(self) -> Result<()> {
         JsFuture::from(worker_sys::handle_as_node_connection(&self.inner)?).await?;
         Ok(())
