@@ -21,7 +21,7 @@ run = '''ts-gen --input types/email.d.ts --output worker/src/bindings/email.rs \
 
 [[task]]
 name = 'install:ts-gen'
-# ts-gen pulls in oxc which needs a newer rustc than the workspace's pinned 1.88;
+# ts-gen pulls in oxc which needs a newer rustc than the workspace's pinned 1.90;
 # build with the user's stable toolchain instead so it ignores rust-toolchain.toml.
 run = 'cargo +stable install --path ts-gen'
 
