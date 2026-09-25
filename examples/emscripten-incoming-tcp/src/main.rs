@@ -1,80 +1,78 @@
-//! An inbound TCP server with `tokio::net::TcpListener`, running inside a
-//! Durable Object: a line-echo that greets, echoes each line back upper-cased
-//! and hangs up on `quit`.
+//! An inbound TCP server with `tokio::net::TcpListener`: a line-echo that
+//! greets, echoes each line back upper-cased and hangs up on `quit`.
 //!
-//! The Worker's `connect` handler forwards each inbound connection to the
-//! object, whose `connect` handler hands it to a Tokio listener bound on the
-//! same port, so an existing Tokio server accepts it as usual. A Durable
-//! Object is one I/O context, so its handlers share one Tokio runtime and the
-//! listener outlives any single connection; a Worker's handlers each run on a
-//! runtime of their own for the duration of that connection.
+//! Two tiers of Tokio runtime mirror the platform. The thread's shared
+//! (ambient) event loop hosts only the listener and its accept loop, doing no
+//! I/O of its own, like a Worker's top level. Each accepted connection is
+//! handed to an event loop of its own, created inside the `connect` invocation
+//! that delivered the connection, so all of that connection's I/O runs within
+//! its own request.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::{TcpListener, TcpStream};
-use worker::*;
+use wasm_bindgen::prelude::*;
+use wasm_bindgen_futures::tokio::schedule_isolated;
+use worker::{console_error, worker_sys, Env, Socket};
 
 fn main() {}
 
 /// The port `wrangler.toml` declares under `[[connect]]`.
 const PORT: u16 = 7000;
 
-/// Pipes the inbound connection to the object's server.
-#[event(connect)]
-async fn connect(socket: Socket, env: Env, _ctx: Context) -> Result<()> {
-    let stub = env
-        .durable_object("ECHO")?
-        .id_from_name("echo")?
-        .get_stub()?;
-    let upstream = stub.connect(&format!("127.0.0.1:{PORT}"))?;
-    let (mut client_read, mut client_write) = tokio::io::split(socket);
-    let (mut server_read, mut server_write) = tokio::io::split(upstream);
-    tokio::select! {
-        r = tokio::io::copy(&mut client_read, &mut server_write) => r,
-        r = tokio::io::copy(&mut server_read, &mut client_write) => r,
-    }?;
-    Ok(())
+static LISTENING: AtomicBool = AtomicBool::new(false);
+
+/// Routes each inbound connection to the listener, binding it first. Runs on
+/// the ambient event loop, so the listener outlives any one connection;
+/// worker-build exports it as the entrypoint's `connect` handler.
+#[wasm_bindgen(experimental_tokio)]
+pub async fn connect(
+    socket: worker_sys::Socket,
+    _env: Env,
+    _ctx: JsValue,
+) -> std::result::Result<(), JsValue> {
+    if !LISTENING.swap(true, Ordering::Relaxed) {
+        let listener = TcpListener::bind(("0.0.0.0", PORT))
+            .await
+            .map_err(|e| js_sys::Error::new(&e.to_string()))?;
+        tokio::spawn(accept_loop(listener));
+    }
+    Socket::from(socket)
+        .handle_as_node_connection()
+        .await
+        .map_err(|e| js_sys::Error::new(&e.to_string()).into())
 }
 
-#[durable_object(connect)]
-pub struct Echo {
-    listening: AtomicBool,
-}
-
-impl DurableObject for Echo {
-    fn new(_state: State, _env: Env) -> Self {
-        Self {
-            listening: AtomicBool::new(false),
-        }
-    }
-
-    async fn fetch(&self, _req: Request) -> Result<Response> {
-        Response::ok("tcp only\n")
-    }
-
-    /// Binds the listener on the first connection; every connection is then
-    /// accepted by it.
-    async fn connect(&self, socket: Socket) -> Result<()> {
-        if !self.listening.swap(true, Ordering::Relaxed) {
-            let listener = TcpListener::bind(("0.0.0.0", PORT))
-                .await
-                .map_err(|e| Error::RustError(e.to_string()))?;
-            tokio::spawn(async move {
-                loop {
-                    match listener.accept().await {
-                        Ok((stream, peer)) => {
-                            tokio::spawn(async move {
-                                if let Err(e) = echo(stream).await {
-                                    console_error!("{peer}: {e}");
-                                }
-                            });
-                        }
-                        Err(e) => console_error!("accept failed: {e}"),
+/// Accepts on the ambient loop and moves each connection onto its own.
+async fn accept_loop(listener: TcpListener) {
+    loop {
+        match listener.accept().await {
+            Ok((stream, peer)) => {
+                // Deregister from the ambient reactor; the connection's own
+                // event loop registers it again on first use.
+                let std = match stream.into_std() {
+                    Ok(std) => std,
+                    Err(e) => {
+                        console_error!("{peer}: {e}");
+                        continue;
                     }
-                }
-            });
+                };
+                // Create a new isolated event loop for the connection handler
+                // This avoids cross-context IO between different incoming requests
+                schedule_isolated(
+                    async move {
+                        let stream = TcpStream::from_std(std)?;
+                        echo(stream).await
+                    },
+                    move |out| match out {
+                        Ok(Err(e)) => console_error!("{peer}: {e}"),
+                        Err(join) => console_error!("{peer}: connection task failed: {join}"),
+                        Ok(Ok(())) => {}
+                    },
+                );
+            }
+            Err(e) => console_error!("accept failed: {e}"),
         }
-        socket.handle_as_node_connection().await
     }
 }
 

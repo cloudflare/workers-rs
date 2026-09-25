@@ -11,28 +11,31 @@ npx wrangler dev
 An inbound TCP server with `tokio::net::TcpListener`, using the Emscripten
 Tokio patchset (the `guybedford/tokio` tag pinned in `Cargo.toml`,
 tokio-rs/tokio#8438). Building on the [emscripten-tcp example](../emscripten-tcp),
-a Tokio line-echo server runs inside a Durable Object: it greets each
-connection, echoes every line back upper-cased and hangs up on `quit`.
+a Tokio line-echo server greets each connection, echoes every line back
+upper-cased and hangs up on `quit`.
 
 ```sh
 nc 127.0.0.1 7000
 ```
 
 Inbound TCP on port 7000 (`[[connect]]` in `wrangler.toml`) reaches the
-Worker's `#[event(connect)]` handler, which opens a connection to the object
-with `Stub::connect` and pipes the two sockets together. The object's
-`#[durable_object(connect)]` handler binds a `TcpListener` on the same port on
-the first connection and hands every connection to it with
-`Socket::handle_as_node_connection`, so the listener's `accept` loop serves
-them like any Tokio server.
+Worker's `connect` handler, which on the first connection binds a
+`TcpListener` on that port and spawns its accept loop, and hands every
+connection to the listener with `Socket::handle_as_node_connection`. The
+accept loop then serves connections like any Tokio server.
 
-## Why the Durable Object
+## Two runtimes
 
-A Durable Object is one I/O context, so its handlers share one Tokio runtime
-(the thread's ambient event loop) and a listener outlives any single
-connection. A Worker's handlers each run on a runtime of their own for the
-duration of that request, which is right for serving the connection in hand
-but cannot host a listener that other requests' connections arrive on.
+The handler mirrors how Workers themselves run. A Worker's top level does no
+I/O; each request does its own, inside its own I/O context. So the `connect`
+export runs on the thread's shared (ambient) Tokio event loop, which hosts
+only the listener and the accept loop, and each accepted connection is moved
+onto an event loop of its own with `wasm_bindgen_futures::tokio::schedule_isolated`,
+created inside the `connect` invocation that delivered it: all of that
+connection's I/O runs within its own request. `#[event(connect)]` gives a
+handler such a per-invocation runtime directly; the raw
+`#[wasm_bindgen(experimental_tokio)]` export here is the shared one the
+listener needs.
 
 ## What this needs
 

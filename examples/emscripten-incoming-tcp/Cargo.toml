@@ -11,6 +11,9 @@ publish = false
 [dependencies]
 worker = { path = "../../worker", features = ["experimental_tokio"] }
 tokio = { version = "1", default-features = false, features = ["rt", "macros", "net", "io-util"] }
+wasm-bindgen = "0.2.129"
+js-sys = "0.3.106"
+wasm-bindgen-futures = "0.4.79"
 
 [profile.release]
 opt-level = "s"

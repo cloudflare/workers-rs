@@ -12,9 +12,3 @@ command = "cargo install -q worker-build && worker-build --emscripten --release"
 protocol = "tcp"
 port = 7000
 
-[durable_objects]
-bindings = [{ name = "ECHO", class_name = "Echo" }]
-
-[[migrations]]
-tag = "v1"
-new_classes = ["Echo"]

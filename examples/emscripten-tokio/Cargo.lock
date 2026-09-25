@@ -539,7 +539,7 @@ dependencies = [
 [[package]]
 name = "tokio"
 version = "1.53.1"
-source = "git+https://github.com/guybedford/tokio?tag=1.53.1-cf.emscripten#dad3acd6ee528ab90fda84058317eac4d7f3704a"
+source = "git+https://github.com/guybedford/tokio?tag=1.53.1-cf.emscripten#d56f1eff2c3fd72a946e1e536a3b93e32b002a80"
 dependencies = [
  "pin-project-lite",
  "tokio-macros",
@@ -548,7 +548,7 @@ dependencies = [
 [[package]]
 name = "tokio-macros"
 version = "2.7.2"
-source = "git+https://github.com/guybedford/tokio?tag=1.53.1-cf.emscripten#dad3acd6ee528ab90fda84058317eac4d7f3704a"
+source = "git+https://github.com/guybedford/tokio?tag=1.53.1-cf.emscripten#d56f1eff2c3fd72a946e1e536a3b93e32b002a80"
 dependencies = [
  "proc-macro2",
  "quote",

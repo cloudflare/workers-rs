@@ -1,6 +1,6 @@
 Subject: [PATCH] epoll readiness listeners
 
-emscripten-core/emscripten#27547 (head a356171a4) as carried by the
+emscripten-core/emscripten#27547 (head 60aea0fde) as carried by the
 guybedford/emscripten tag 6.0.10-cf.emscripten, without tests, docs,
 ChangeLog and codesize baselines. emscripten_epoll_add_listener /
 emscripten_epoll_remove_listener deliver epoll readiness as a host
@@ -53,7 +53,7 @@ diff --git a/src/lib/libepoll.js b/src/lib/libepoll.js
        // EPOLLEXCLUSIVE: when one fd is watched by several epolls, the watched
        // node wakes only one of them per edge (round-robin), not all.
        }, !!(events & {{{ cDefs.EPOLLEXCLUSIVE }}}));
-@@ -345,6 +350,104 @@ var EpollLibrary = {
+@@ -345,6 +350,109 @@ var EpollLibrary = {
  #endif
      return count;
    },
@@ -107,34 +107,39 @@ diff --git a/src/lib/libepoll.js b/src/lib/libepoll.js
 +        if (!it.cleared && !epollWouldBlock(ep)) hold();
 +      });
 +    }
-+    // Each delivery is a macrotask (a microtask could run re-entrantly: hosts
-+    // drain microtasks inside other calls, e.g. Node's module loader on a first
-+    // builtin load; and a still-ready level fd would never yield to I/O). Every
-+    // wake schedules its own turn rather than coalescing onto a pending one: a
-+    // host may drop a scheduled immediate (Workers cancels those left over when
-+    // the request that scheduled them settles), which must not silence the
-+    // listener. A turn that finds nothing to deliver is a no-op, so the extra
-+    // turns of a burst cost only the immediates. A readiness wake holds the
-+    // runtime for its turn; a teardown wake (POLLNVAL) does not.
++    // Runs one turn: releases the turn's hold and, if the set is ready,
++    // delivers.
++    function turn() {
++      if (it.held) {
++        it.held = false;
++        {{{ runtimeKeepalivePop() }}}
++      }
++      if (it.cleared || epollWouldBlock(ep)) {
++        // Not delivering: callUserCallback's maybeExit will not run, and
++        // the hold just released may have been what deferred main's exit.
++        // Deferred: this microtask can run between main returning and
++        // callMain's own exit (under JSPI callMain resumes in a microtask), and
++        // exiting here would re-enter exitRuntime there.
++#if !MINIMAL_RUNTIME
++        emSetImmediate(maybeExit);
++#endif
++        return;
++      }
++      deliver();
++      // The delivery took the hold if it left the set ready: another turn, as
++      // a macrotask so a still-ready level fd yields to I/O.
++      if (it.held) emSetImmediate(turn);
++    }
++    // An edge delivers as a microtask: after the notifying stack (a host event
++    // or a wasm call) unwinds, but in the same host turn. A macrotask would
++    // leave that turn, and hosts that scope work to a request (Workers) drop
++    // immediates left over when the request settles, which would silence the
++    // listener. Every wake schedules its own turn; one that finds nothing to
++    // deliver is a no-op. A readiness wake holds the runtime for its turn; a
++    // teardown wake (POLLNVAL) does not.
 +    function wake(held) {
 +      if (held) hold();
-+      emSetImmediate(() => {
-+        if (it.held) {
-+          it.held = false;
-+          {{{ runtimeKeepalivePop() }}}
-+        }
-+        if (it.cleared || epollWouldBlock(ep)) {
-+          // Not delivering: callUserCallback's maybeExit will not run, and
-+          // the hold just released may have been what deferred main's exit.
-+#if !MINIMAL_RUNTIME
-+          maybeExit();
-+#endif
-+          return;
-+        }
-+        deliver();
-+        // The delivery took the hold if it left the set ready: another turn.
-+        if (it.held) wake(false);
-+      });
++      queueMicrotask(turn);
 +    }
 +    it.listener = ep.node.addListener((flags) => wake(!(flags & {{{ cDefs.POLLNVAL }}})));
 +    wake(!epollWouldBlock(ep));
@@ -214,9 +219,9 @@ new file mode 100644
 +// one listener (load balancing), while a level fd keeps signalling every
 +// listener until drained.
 +//
-+// A listener fires on the next event-loop tick (as a macrotask, never from
-+// within a running wasm call) while the set has ready events that have not yet
-+// been collected, and keeps firing while any remain: it only signals that
++// A listener fires once the call that made the set ready has returned (as a
++// microtask: never from within a running wasm call, and before the host's next
++// turn) while the set has ready events that have not yet been collected, and keeps firing while any remain: it only signals that
 +// events are pending, so a callback that does not drain them (via epoll_wait)
 +// leaves them pending and re-fires. Whether a given fd is re-reported follows
 +// its per-fd trigger mode (set via epoll_ctl) exactly as epoll_wait does. Note
