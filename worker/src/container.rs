@@ -44,6 +44,30 @@ impl Container {
             .map(|f| f.into())
             .map_err(|e| e.into())
     }
+
+    pub async fn intercept_outbound_http(&self, target: &str, worker: &Fetcher) -> Result<()> {
+        let promise = self
+            .inner
+            .intercept_outbound_http(target, worker.as_ref().unchecked_ref())?;
+        JsFuture::from(promise).await?;
+        Ok(())
+    }
+
+    pub async fn intercept_all_outbound_http(&self, worker: &Fetcher) -> Result<()> {
+        let promise = self
+            .inner
+            .intercept_all_outbound_http(worker.as_ref().unchecked_ref())?;
+        JsFuture::from(promise).await?;
+        Ok(())
+    }
+
+    pub async fn intercept_outbound_https(&self, target: &str, worker: &Fetcher) -> Result<()> {
+        let promise = self
+            .inner
+            .intercept_outbound_https(target, worker.as_ref().unchecked_ref())?;
+        JsFuture::from(promise).await?;
+        Ok(())
+    }
 }
 
 unsafe impl Sync for Container {}
