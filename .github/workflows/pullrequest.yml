@@ -201,7 +201,7 @@ jobs:
 
           serve emscripten-incoming-tcp
           for i in 1 2 3; do
-            printf 'hello\nquit\n' | timeout 10 nc -q 2 127.0.0.1 7000 | tee tcp$i.txt
+            (printf 'hello\n'; sleep 0.3; printf 'quit\n'; sleep 0.3) | timeout 10 nc -N 127.0.0.1 7000 | tee tcp$i.txt
             grep -q '^HELLO$' tcp$i.txt && grep -q '^bye$' tcp$i.txt
           done
           stop emscripten-incoming-tcp
