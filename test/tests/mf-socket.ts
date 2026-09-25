@@ -14,7 +14,6 @@ export const mf = new Miniflare({
   workers: [{
     config: {
       name: "socket-test",
-      type: "worker",
       compatibilityDate: "2024-12-05",
       manifest: {
         mainModule: "build/index.js",
