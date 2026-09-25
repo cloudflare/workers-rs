@@ -1,7 +1,7 @@
 name = "udp-socket-on-workers"
 main = "build/index.js"
 compatibility_date = "2026-09-23"
-compatibility_flags = ["workerd_experimental"]
+compatibility_flags = ["experimental"]
 
 [build]
 command = "cargo install \"worker-build@^0.8\" && worker-build --release"
