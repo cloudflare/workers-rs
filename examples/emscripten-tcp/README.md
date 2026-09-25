@@ -2,6 +2,12 @@
 
 > **Experimental Preview**
 
+```sh
+git clone https://github.com/cloudflare/workers-rs
+cd workers-rs/examples/emscripten-tcp
+npx wrangler dev
+```
+
 Raw TCP from a Worker with `tokio::net`, using the Emscripten Tokio patchset
 (the `guybedford/tokio` tag pinned in `Cargo.toml`, tokio-rs/tokio#8438).
 Building on the [emscripten-tokio example](../emscripten-tokio), the Worker

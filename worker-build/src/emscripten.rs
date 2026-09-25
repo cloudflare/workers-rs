@@ -37,7 +37,7 @@ pub const RUSTFLAGS: &[&str] = &[
     "-Cllvm-args=-wasm-use-legacy-eh=false",
 ];
 
-/// Added when the `worker/tokio` feature is enabled: it builds on Tokio's
+/// Added when the `worker/experimental_tokio` feature is enabled: it builds on Tokio's
 /// host-driven event loop and wasm-bindgen's `experimental_tokio` exports,
 /// both unstable.
 pub const TOKIO_RUSTFLAGS: &[&str] = &["--cfg=tokio_unstable", "--cfg=wasm_bindgen_unstable_tokio"];

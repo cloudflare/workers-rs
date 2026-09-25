@@ -823,6 +823,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "252afb9ae5eaa683babdc6a068b3f5726eb19e05070c731f9b2a23a7c3e8ed34"
 
 [[package]]
+name = "emscripten"
+version = "0.1.0"
+dependencies = [
+ "worker",
+]
+
+[[package]]
+name = "emscripten-tcp"
+version = "0.1.0"
+dependencies = [
+ "tokio",
+ "worker",
+]
+
+[[package]]
+name = "emscripten-tokio"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "tokio",
+ "worker",
+]
+
+[[package]]
 name = "encode_unicode"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1491,8 +1515,7 @@ checksum = "09edd9e8b54e49e587e4f6295a7d29c3ea94d469cb40ab8ca70b288248a81db2"
 [[package]]
 name = "libc"
 version = "0.2.189"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3eaf3ede3fee6db1a4c2ee091bf8a8b4dccdc6d17f656fb07896ee72867612f2"
+source = "git+https://github.com/rust-lang/libc?branch=libc-0.2#b29beb056cb7cea51dd1b9e68342e30a956951a9"
 
 [[package]]
 name = "libm"
@@ -1638,8 +1661,7 @@ dependencies = [
 [[package]]
 name = "mio"
 version = "1.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b18443e9c262bfe8fa82f51666e2642c53393f7e5c27b3e1aeab922cff5b9d8"
+source = "git+https://github.com/guybedford/mio?tag=1.2.3-cf.emscripten#0788dbb67883cb6191503af999471def54e3fb77"
 dependencies = [
  "libc",
  "wasi 0.11.1+wasi-snapshot-preview1",
@@ -2788,8 +2810,7 @@ checksum = "fd3ca314f692efd6c868f8408f53fe444634a845f96c028b97d35f6a1f79f0ee"
 [[package]]
 name = "tokio"
 version = "1.53.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "202caea871b69668250d242070849eb495be178ed697a3e98aebce5bc81a0bed"
+source = "git+https://github.com/guybedford/tokio?tag=1.53.1-cf.emscripten#dad3acd6ee528ab90fda84058317eac4d7f3704a"
 dependencies = [
  "bytes",
  "libc",
@@ -2805,8 +2826,7 @@ dependencies = [
 [[package]]
 name = "tokio-macros"
 version = "2.7.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78773a2a397f451582ce068015985c33193cf6dea8b74d2a639fe457b2f07b0e"
+source = "git+https://github.com/guybedford/tokio?tag=1.53.1-cf.emscripten#dad3acd6ee528ab90fda84058317eac4d7f3704a"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4178,3 +4198,8 @@ dependencies = [
  "cc",
  "pkg-config",
 ]
+
+[[patch.unused]]
+name = "wasm-streams"
+version = "0.6.0"
+source = "git+https://github.com/guybedford/wasm-streams?branch=rlib-only#073b6497be60d7e91fc5b1f23f24c825296b4c88"

@@ -2,6 +2,12 @@
 
 > **Experimental Preview**
 
+```sh
+git clone https://github.com/cloudflare/workers-rs
+cd workers-rs/examples/emscripten
+npx wrangler dev
+```
+
 A Worker built with `worker-build --emscripten` for `wasm32-unknown-emscripten`.
 The target brings Emscripten's libc and in-memory filesystem, so `std::fs`,
 `std::io` and code written around files work unchanged.

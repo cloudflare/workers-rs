@@ -28,4 +28,4 @@ trybuild.workspace = true
 [features]
 queue = []
 http = []
-tokio = []
+experimental_tokio = []

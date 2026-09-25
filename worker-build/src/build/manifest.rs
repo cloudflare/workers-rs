@@ -490,14 +490,17 @@ impl CrateData {
         &self.data.packages[self.current_idx]
     }
 
-    /// Whether the `worker` crate resolves with its `tokio` feature.
+    /// Whether the `worker` crate resolves with its `experimental_tokio` feature.
     pub fn worker_tokio_feature(&self) -> bool {
         let Some(resolve) = &self.data.resolve else {
             return false;
         };
         resolve.nodes.iter().any(|node| {
             self.data[&node.id].name.as_ref() == "worker"
-                && node.features.iter().any(|f| f.as_str() == "tokio")
+                && node
+                    .features
+                    .iter()
+                    .any(|f| f.as_str() == "experimental_tokio")
         })
     }
 

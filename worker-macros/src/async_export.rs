@@ -6,7 +6,7 @@ use quote::quote;
 /// requires it of the exported future, and handler futures hold
 /// `worker::Error`.
 ///
-/// With the `tokio` feature each invocation is driven on its own Tokio event
+/// With the `experimental_tokio` feature each invocation is driven on its own Tokio event
 /// loop.
 pub fn async_export(opts: TokenStream, sig: TokenStream, body: TokenStream) -> TokenStream {
     let opts = if opts.is_empty() {
@@ -14,9 +14,17 @@ pub fn async_export(opts: TokenStream, sig: TokenStream, body: TokenStream) -> T
     } else {
         quote! { #opts, }
     };
-    let tokio = cfg!(feature = "tokio").then(|| quote! { experimental_tokio = "isolated" });
+    let attr = if cfg!(feature = "experimental_tokio") {
+        // The event loop exists on emscripten alone; elsewhere the feature is inert.
+        quote! {
+            #[cfg_attr(target_os = "emscripten", wasm_bindgen(#opts experimental_tokio = "isolated"))]
+            #[cfg_attr(not(target_os = "emscripten"), wasm_bindgen(#opts))]
+        }
+    } else {
+        quote! { #[wasm_bindgen(#opts)] }
+    };
     quote! {
-        #[wasm_bindgen(#opts #tokio)]
+        #attr
         pub async fn #sig -> ::std::result::Result<::worker::wasm_bindgen::JsValue, ::worker::wasm_bindgen::JsValue> {
             ::std::panic::AssertUnwindSafe(async move { #body }).await
         }

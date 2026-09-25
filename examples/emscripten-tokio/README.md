@@ -2,6 +2,12 @@
 
 > **Experimental Preview**
 
+```sh
+git clone https://github.com/cloudflare/workers-rs
+cd workers-rs/examples/emscripten-tokio
+npx wrangler dev
+```
+
 This uses an `experimental_tokio` [Tokio event loop on wasm-bindgen](https://wasm-bindgen.github.io/wasm-bindgen/reference/emscripten.html#tokio) to support Tokio inside of workers.
 
 While upstream PRs are still in progress, a Tokio patchset is needed to run

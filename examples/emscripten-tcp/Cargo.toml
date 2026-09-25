@@ -4,35 +4,9 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
-# Standalone: the emscripten target, beta toolchain and dependency patches
-# stay out of the workspace lockfile.
-[workspace]
+[package.metadata.release]
+release = false
 
 [dependencies]
-worker = { path = "../../worker", features = ["tokio"] }
+worker = { path = "../../worker", features = ["experimental_tokio"] }
 tokio = { version = "1", default-features = false, features = ["rt", "macros", "net", "io-util", "time"] }
-
-[profile.release]
-opt-level = "s"
-
-# REQUIRED Patchset - Tokio patchset, pending upstream PRs
-# Pending libc@0.2.190
-[patch."https://github.com/guybedford/libc"]
-libc = { git = "https://github.com/rust-lang/libc", branch = "libc-0.2" }
-[patch.crates-io]
-libc = { git = "https://github.com/rust-lang/libc", branch = "libc-0.2" }
-
-# Pending https://github.com/tokio-rs/tokio/pull/8484
-tokio = { git = "https://github.com/guybedford/tokio", tag = "1.53.1-cf.emscripten" }
-tokio-macros = { git = "https://github.com/guybedford/tokio", tag = "1.53.1-cf.emscripten" }
-
-# Pending https://github.com/tokio-rs/mio/pull/1969
-mio = { git = "https://github.com/guybedford/mio", tag = "1.2.3-cf.emscripten" }
-
-# IGNORE - Local workers-rs repo patches only
-wasm-bindgen = { path = "../../wasm-bindgen" }
-wasm-bindgen-macro-support = { path = "../../wasm-bindgen/crates/macro-support" }
-wasm-bindgen-shared = { path = "../../wasm-bindgen/crates/shared" }
-wasm-bindgen-futures = { path = "../../wasm-bindgen/crates/futures" }
-js-sys = { path = "../../wasm-bindgen/crates/js-sys" }
-web-sys = { path = "../../wasm-bindgen/crates/web-sys" }

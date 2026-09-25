@@ -353,7 +353,7 @@ fn rustc_minor_version() -> Option<u32> {
 pub struct EmscriptenBuild<'a> {
     pub toolchain: &'a Toolchain,
     pub bin: &'a str,
-    /// The `worker/tokio` feature is enabled: pass the unstable cfgs it builds on.
+    /// The `worker/experimental_tokio` feature is enabled: pass the unstable cfgs it builds on.
     pub tokio: bool,
     /// Directory containing the `wasm-bindgen` CLI emcc runs post-link.
     pub bindgen_dir: &'a Path,
