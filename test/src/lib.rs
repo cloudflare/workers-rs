@@ -2,7 +2,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::sync::{
     atomic::{AtomicBool, Ordering},
-    LazyLock, Mutex,
+    Arc, LazyLock, Mutex,
 };
 #[cfg(feature = "http")]
 use tower_service::Service;
@@ -23,6 +23,7 @@ mod counter;
 mod custom_spans;
 mod d1;
 mod durable;
+mod exports;
 mod fetch;
 mod form;
 mod js_snippets;
@@ -54,6 +55,7 @@ struct ApiData {
 #[derive(Clone)]
 pub struct SomeSharedData {
     regex: &'static Regex,
+    context: Arc<worker::Context>,
 }
 
 static GLOBAL_STATE: AtomicBool = AtomicBool::new(false);
@@ -98,9 +100,12 @@ type HandlerResponse = Response;
 pub async fn main(
     request: HandlerRequest,
     env: Env,
-    _ctx: worker::Context,
+    ctx: worker::Context,
 ) -> Result<HandlerResponse> {
-    let data = SomeSharedData { regex: &DATA_REGEX };
+    let data = SomeSharedData {
+        regex: &DATA_REGEX,
+        context: Arc::new(ctx),
+    };
 
     #[cfg(feature = "http")]
     let res = {
@@ -115,4 +120,13 @@ pub async fn main(
     };
 
     res
+}
+
+#[event(fetch, entrypoint = "Loopback")]
+pub async fn loopback(
+    _request: HandlerRequest,
+    env: Env,
+    ctx: worker::Context,
+) -> Result<HandlerResponse> {
+    exports::loopback(env, ctx)
 }
