@@ -93,6 +93,9 @@ impl FromSocket for Socket {
 }
 
 /// Represents a TCP socket connection.
+///
+/// Inbound sockets passed to an `#[event(connect)]` handler are closed by the runtime
+/// when the handler returns. Any later reads or writes (e.g. from `wait_until`) will fail.
 #[derive(Debug)]
 pub struct Socket {
     inner: worker_sys::Socket,
