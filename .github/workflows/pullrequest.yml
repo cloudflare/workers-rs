@@ -206,12 +206,9 @@ jobs:
           done
           stop emscripten-incoming-tcp
 
-      # Concurrent connections as the first traffic of a fresh Worker: the
-      # second one stalls until the hosted tokio drive consumes its pending
-      # wake on a synchronous drive (tokio `LocalEventLoop::drive() -> bool`
-      # and wasm-bindgen-futures driving to quiescence at export exit).
+      # Concurrent connections as the first traffic of a fresh Worker: each
+      # must be accepted in the request that delivered it.
       - name: Cold concurrent connections (incoming-tcp)
-        if: false
         run: |
           serve() {
             (cd examples/$1 && npx -y wrangler@4 dev -c wrangler.ci.toml --port 8787 > wrangler.log 2>&1 &)
