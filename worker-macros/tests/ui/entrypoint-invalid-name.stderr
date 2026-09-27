@@ -1,0 +1,11 @@
+error: entrypoint must be an ASCII identifier other than `default`; omit entrypoint for the default handler
+ --> tests/ui/entrypoint-invalid-name.rs:3:29
+  |
+3 | #[event(fetch, entrypoint = "not-an-identifier")]
+  |                             ^^^^^^^^^^^^^^^^^^^
+
+error: entrypoint must be an ASCII identifier other than `default`; omit entrypoint for the default handler
+ --> tests/ui/entrypoint-invalid-name.rs:6:29
+  |
+6 | #[event(fetch, entrypoint = "default")]
+  |                             ^^^^^^^^^

@@ -18,6 +18,7 @@ mod build;
 mod build_lock;
 mod emoji;
 mod emscripten;
+mod entrypoints;
 mod lockfile;
 mod main_legacy;
 mod producers;
@@ -156,31 +157,9 @@ fn generate_handlers(out_dir: &Path) -> Result<String> {
     // brittle to upstream changes. It is comprehensive to current output patterns though.
     // TODO: Convert this to Wasm binary exports analysis for entry point detection instead.
     // Emscripten output indents (or minifies) the wasm-bindgen exports.
-    let mut func_names = Vec::new();
-    for line in export_decls(&content) {
-        if let Some(rest) = line
-            .strip_prefix("export function")
-            .or_else(|| line.strip_prefix("export async function"))
-        {
-            if let Some(bracket_pos) = rest.find("(") {
-                let func_name = rest[..bracket_pos].trim();
-                // strip the exported function (we re-wrap all handlers)
-                if !SYSTEM_FNS.contains(&func_name) {
-                    func_names.push(func_name);
-                }
-            }
-        } else if let Some(rest) = line.strip_prefix("export {") {
-            if let Some(as_pos) = rest.find(" as ") {
-                let rest = &rest[as_pos + 4..];
-                if let Some(brace_pos) = rest.find("}") {
-                    let func_name = rest[..brace_pos].trim();
-                    if !SYSTEM_FNS.contains(&func_name) {
-                        func_names.push(func_name);
-                    }
-                }
-            }
-        }
-    }
+    let func_names = entrypoints::function_exports(&content)
+        .into_iter()
+        .filter(|name| !SYSTEM_FNS.contains(name) && !entrypoints::is_named_handler(name));
 
     let mut handlers = String::new();
     for func_name in func_names {
@@ -233,27 +212,12 @@ fn add_export_wrappers(out_dir: &Path, plain: bool) -> Result<()> {
     let content = fs::read_to_string(&index_path)
         .with_context(|| format!("Failed to read {}", index_path.display()))?;
 
-    let mut class_names = Vec::new();
-    for line in export_decls(&content) {
-        // Emscripten output declares classes as `export var Name = class Name {`.
-        if let Some(rest) = line.strip_prefix("export class ") {
-            if let Some(brace_pos) = rest.find("{") {
-                let class_name = rest[..brace_pos].trim();
-                class_names.push(class_name.to_string());
-            }
-        } else if let Some(rest) = line.strip_prefix("export var ") {
-            if let Some((class_name, def)) = rest.split_once("=") {
-                if def.trim_start().starts_with("class") {
-                    class_names.push(class_name.trim().to_string());
-                }
-            }
-        }
-    }
+    let named_entrypoints = entrypoints::NamedEntrypoints::parse(&content)?;
 
     let shim_path = output_path(out_dir, "shim.js");
     let mut output = fs::read_to_string(&shim_path)
         .with_context(|| format!("Failed to read {}", shim_path.display()))?;
-    for class_name in class_names {
+    for class_name in entrypoints::class_exports(&content) {
         if plain {
             // The runtime only exposes RPC on classes deriving from DurableObject.
             output.push_str(&format!(
@@ -267,6 +231,11 @@ fn add_export_wrappers(out_dir: &Path, plain: bool) -> Result<()> {
             ));
         }
     }
+    output.push_str(&named_entrypoints.generate(
+        "exports",
+        !plain,
+        env::var("RUN_TO_COMPLETION").is_ok(),
+    ));
     fs::write(&shim_path, output)
         .with_context(|| format!("Failed to write {}", shim_path.display()))?;
     Ok(())

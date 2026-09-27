@@ -1,7 +1,10 @@
 use crate::async_export::async_export_mod;
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use syn::{parse_macro_input, punctuated::Punctuated, token::Comma, Ident, ItemFn};
+use syn::{
+    parse_macro_input, punctuated::Punctuated, token::Comma, Expr, ExprLit, Ident, ItemFn, Lit,
+    Meta,
+};
 
 #[derive(strum::EnumString, strum::Display)]
 #[strum(serialize_all = "snake_case")]
@@ -43,15 +46,61 @@ fn validate_event_fn(
 }
 
 pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let attrs: Punctuated<Ident, Comma> =
-        parse_macro_input!(attr with Punctuated::parse_terminated);
+    let attrs: Punctuated<Meta, Comma> = parse_macro_input!(attr with Punctuated::parse_terminated);
 
     use HandlerType::*;
 
     let mut handler_type = None;
     let mut respond_with_errors = false;
+    let mut entrypoint = None;
 
     for attr in attrs {
+        if let Meta::NameValue(option) = &attr {
+            if option.path.is_ident("entrypoint") {
+                if entrypoint.is_some() {
+                    return syn::Error::new_spanned(
+                        option,
+                        "entrypoint may only be specified once",
+                    )
+                    .into_compile_error()
+                    .into();
+                }
+                if let Expr::Lit(ExprLit {
+                    lit: Lit::Str(name),
+                    ..
+                }) = &option.value
+                {
+                    let value = name.value();
+                    let mut characters = value.chars();
+                    let valid = characters.next().is_some_and(|character| {
+                        character.is_ascii_alphabetic() || character == '_'
+                    }) && characters
+                        .all(|character| character.is_ascii_alphanumeric() || character == '_');
+                    if !valid || value == "default" {
+                        return syn::Error::new_spanned(name, "entrypoint must be an ASCII identifier other than `default`; omit entrypoint for the default handler")
+                            .into_compile_error().into();
+                    }
+                    entrypoint = Some(name.clone());
+                    continue;
+                }
+                return syn::Error::new_spanned(
+                    &option.value,
+                    "entrypoint must be a string literal",
+                )
+                .into_compile_error()
+                .into();
+            }
+        }
+        let Meta::Path(path) = &attr else {
+            return syn::Error::new_spanned(attr, "invalid event attribute")
+                .into_compile_error()
+                .into();
+        };
+        let Some(attr) = path.get_ident() else {
+            return syn::Error::new_spanned(path, "invalid event attribute")
+                .into_compile_error()
+                .into();
+        };
         let attr_str = attr.to_string();
         if attr_str == "respond_with_errors" {
             respond_with_errors = true;
@@ -64,6 +113,16 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
     let handler_type = handler_type.expect(
         "must have either 'fetch', 'scheduled', 'queue', 'email', 'connect', or 'start' attribute, e.g. #[event(fetch)]",
     );
+    if let Some(name) = &entrypoint {
+        if !matches!(handler_type, Fetch) {
+            return syn::Error::new_spanned(
+                name,
+                "entrypoint is only supported for fetch handlers",
+            )
+            .into_compile_error()
+            .into();
+        }
+    }
 
     // create new var using syn item of the attributed fn
     let mut input_fn = parse_macro_input!(item as ItemFn);
@@ -76,7 +135,14 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                 &(input_fn.sig.ident.to_string() + "_fetch_glue"),
                 input_fn.sig.ident.span(),
             );
-            let wrapper_fn_ident = Ident::new("fetch", input_fn.sig.ident.span());
+            let (module_ident, export_name) = match entrypoint {
+                Some(name) => (
+                    format_ident!("_worker_fetch_{}", input_fn.sig.ident),
+                    format!("__worker_entrypoint__fetch__{}", name.value()),
+                ),
+                None => (format_ident!("_worker_fetch"), "fetch".to_owned()),
+            };
+            let wrapper_fn_ident = Ident::new(&export_name, input_fn.sig.ident.span());
             // rename the original attributed fn
             input_fn.sig.ident = input_fn_ident.clone();
 
@@ -89,7 +155,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
             // create a new "main" function that takes the worker_sys::Request, and calls the
             // original attributed function, passing in a converted worker::Request.
             let glue = async_export_mod(
-                &format_ident!("_worker_fetch"),
+                &module_ident,
                 quote! {
                     use ::worker::wasm_bindgen;
                     use super::#input_fn_ident;
@@ -137,6 +203,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
 
             let output = quote! {
                 #input_fn
+                #[allow(non_snake_case)]
                 #glue
             };
 

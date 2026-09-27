@@ -72,13 +72,17 @@ pub fn durable_object(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// * `connect`: [TCP Socket Connect Handler](https://developers.cloudflare.com/workers/runtime-apis/tcp-sockets/)
 /// * `start`: merely creates a [wasm-bindgen start function](https://rustwasm.github.io/wasm-bindgen/reference/attributes/on-rust-exports/start.html)
 /// * `respond_with_errors`: if this attribute is present, the function will return a `Response` object with a 500 status code and the status text of the error message, if an error occurs
+/// * `entrypoint = "Name"`: exports a named `WorkerEntrypoint` instead of the default
+///   entrypoint. Currently supported only with `fetch`. The name must contain only
+///   ASCII letters, digits, and underscores, must not start with a digit, and must
+///   not be `default` or conflict with another export.
 ///
 /// The macro is expanded into a different function signature, depending on the attributes used
 ///
 /// # Fetch
 ///
 /// At a high-level, the `fetch` handler is used to handle incoming HTTP requests. The function signature for a `fetch` handler is conceptually something like:
-///  
+///
 /// ```rust
 /// async fn fetch(req: impl From<web_sys::Request>, env: Env, ctx: Context) -> Result<impl Into<web_sys::Response>, impl Into<Box<dyn Error>>>
 /// ```
@@ -86,6 +90,20 @@ pub fn durable_object(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// In other words, it takes some "request" object that can be derived *from* a `web_sys::Request` (into whatever concrete Request type you like),
 /// and returns some "response" object that can be converted *into* a `web_sys::Response` (from whatever concrete Response type you like).
 /// Error types can be any type that implements [`std::error::Error`].
+///
+/// ### Named entrypoints
+///
+/// ```rust
+/// #[event(fetch, entrypoint = "OutboundProxy")]
+/// async fn outbound(req: worker::Request, env: Env, ctx: Context) -> Result<worker::Response> {
+///     worker::Response::ok("Hello from OutboundProxy")
+/// }
+/// ```
+///
+/// The generated entrypoint receives its own `Context`, including any `props`
+/// supplied through a service binding or `ctx.exports`. Handlers without an
+/// `entrypoint` attribute continue to use the default entrypoint.
+/// This requires a version of `worker-build` that supports named entrypoints.
 ///
 /// In practice, the "request" and "response" objects are usually one of these concrete types, supported out of the box:
 ///
