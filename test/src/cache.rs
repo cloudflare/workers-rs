@@ -2,10 +2,20 @@ use super::SomeSharedData;
 use futures_util::stream::StreamExt;
 use rand::RngExt;
 use std::{borrow::ToOwned, time::Duration};
+use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 use worker::{
     console_log, ok, Cache, CachePurgeOptions, Date, Delay, Env, Request, Response,
     ResponseBuilder, Result,
 };
+
+#[wasm_bindgen(inline_js = "
+    import { cache } from 'cloudflare:workers';
+    export function isWorkersCache(value) { return value === cache; }
+")]
+extern "C" {
+    #[wasm_bindgen(js_name = isWorkersCache)]
+    fn is_workers_cache(value: &JsValue) -> bool;
+}
 
 #[worker::send]
 pub async fn handle_workers_cache(
@@ -13,11 +23,14 @@ pub async fn handle_workers_cache(
     _env: Env,
     data: SomeSharedData,
 ) -> Result<Response> {
-    let error = worker::cache()
+    let cache = worker::cache();
+    let module_matches_native = is_workers_cache(cache.as_ref().as_ref());
+    let error = cache
         .purge(CachePurgeOptions::everything())
         .await
         .expect_err("Workers Cache purge is unavailable in Miniflare");
     Response::from_json(&serde_json::json!({
+        "module_matches_native": module_matches_native,
         "context_available": data.cache.is_some(),
         "module_purge_error": error.to_string(),
     }))
