@@ -3,8 +3,25 @@ use futures_util::stream::StreamExt;
 use rand::RngExt;
 use std::{borrow::ToOwned, time::Duration};
 use worker::{
-    console_log, ok, Cache, Date, Delay, Env, Request, Response, ResponseBuilder, Result,
+    console_log, ok, Cache, CachePurgeOptions, Date, Delay, Env, Request, Response,
+    ResponseBuilder, Result,
 };
+
+#[worker::send]
+pub async fn handle_workers_cache(
+    _req: Request,
+    _env: Env,
+    data: SomeSharedData,
+) -> Result<Response> {
+    let error = worker::cache()
+        .purge(CachePurgeOptions::everything())
+        .await
+        .expect_err("Workers Cache purge is unavailable in Miniflare");
+    Response::from_json(&serde_json::json!({
+        "context_available": data.cache.is_some(),
+        "module_purge_error": error.to_string(),
+    }))
+}
 
 fn key(req: &Request) -> Result<Option<String>> {
     let uri = req.url()?;

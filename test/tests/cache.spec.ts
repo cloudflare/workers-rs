@@ -2,6 +2,19 @@ import { describe, test, expect } from "vitest";
 import { mf, mfUrl } from "./mf";
 
 describe("cache", () => {
+  test("Workers Cache reports unavailable context and propagates module errors locally", async () => {
+    const resp = await mf.dispatchFetch(`${mfUrl}workers-cache`);
+    expect(resp.status).toBe(200);
+    const result = (await resp.json()) as {
+      context_available: boolean;
+      module_purge_error: string;
+    };
+
+    // Miniflare implements the Cache API, but not the Workers Cache purge service.
+    expect(result.context_available).toBe(false);
+    expect(result.module_purge_error).toMatch(/purge.*not a function/);
+  });
+
   test("cache example", async () => {
     const resp = await mf.dispatchFetch(`${mfUrl}cache-example`);
     const { timestamp } = (await resp.json()) as { timestamp: unknown };

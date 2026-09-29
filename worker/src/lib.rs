@@ -188,6 +188,9 @@ pub use crate::abort::*;
 pub use crate::ai::*;
 pub use crate::analytics_engine::*;
 pub use crate::cache::{Cache, CacheDeletionOutcome, CacheKey};
+pub use crate::cache_context::{
+    cache, CacheContext, CachePurgeError, CachePurgeOptions, CachePurgeResult,
+};
 pub use crate::container::*;
 pub use crate::context::Context;
 pub use crate::cors::Cors;
@@ -240,6 +243,7 @@ mod abort;
 mod ai;
 mod analytics_engine;
 mod cache;
+mod cache_context;
 mod cf;
 mod container;
 mod context;
