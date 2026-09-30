@@ -4,9 +4,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 rm -rf build
-RUSTFLAGS="-Ctarget-feature=+simd128 -Clink-arg=--profiling-funcs" EMCC_CFLAGS="-msimd128" \
+RUSTFLAGS="-Ctarget-feature=+simd128 -Clink-arg=-sSTACK_SIZE=1048576 -Clink-arg=--profiling-funcs" EMCC_CFLAGS="-msimd128 -DEMSCRIPTEN" \
   worker-build --emscripten --release
 rm -rf build-simd && mv build build-simd
-RUSTFLAGS="-Clink-arg=--profiling-funcs" worker-build --emscripten --release
+RUSTFLAGS="-Clink-arg=-sSTACK_SIZE=1048576 -Clink-arg=--profiling-funcs" worker-build --emscripten --release
 rm -rf build-scalar && mv build build-scalar
 ls -la build-*/index_bg.wasm

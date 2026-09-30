@@ -23,9 +23,9 @@ async function run(body, headers, stage, n) {
   for (let i = 0; i < samples; i++) {
     const start = performance.now();
     res = await fetch(`${url}/?stage=${stage}&repeat=${n}`, { method: "POST", body, headers });
-    await res.arrayBuffer();
+    const out = await res.arrayBuffer();
     times.push(performance.now() - start);
-    if (!res.ok) throw new Error(`${stage}: ${res.status} ${await res.text()}`);
+    if (!res.ok) throw new Error(`${stage}: ${res.status} ${new TextDecoder().decode(out)}`);
   }
   return { ms: median(times), mem: Number(res.headers.get("x-wasm-memory-bytes")), info: res.headers.get("x-image-info") };
 }

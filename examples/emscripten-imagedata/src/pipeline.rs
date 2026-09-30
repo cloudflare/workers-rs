@@ -7,6 +7,9 @@ use fast_image_resize as fir;
 use image::metadata::Orientation;
 use image::{DynamicImage, ImageDecoder, ImageFormat, ImageReader, Limits, RgbImage};
 use serde::Serialize;
+use zune_core::bytestream::ZCursor;
+use zune_core::colorspace::ColorSpace;
+use zune_core::options::DecoderOptions;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Options {
@@ -169,8 +172,8 @@ fn resize(rgb: RgbImage, out_w: u32, out_h: u32) -> Result<RgbImage, Error> {
     let opts = fir::ResizeOptions::new()
         .resize_alg(fir::ResizeAlg::Convolution(fir::FilterType::Lanczos3));
     let mut resizer = fir::Resizer::new();
-    // fir assumes simd128 on every wasm32 target; keep a build without the
-    // target feature genuinely scalar so the comparison is meaningful.
+    // fir selects simd128 on every wasm32 build; keep a build without the
+    // target feature genuinely scalar so the benchmark comparison holds.
     if cfg!(target_arch = "wasm32") && !cfg!(target_feature = "simd128") {
         unsafe { resizer.set_cpu_extensions(fir::CpuExtensions::None) };
     }
@@ -193,11 +196,130 @@ fn encode(rgb: &RgbImage, quality: u8) -> Result<Vec<u8>, Error> {
     Ok(out)
 }
 
+/// Header-only dimensions, then the decoded RGB image with its EXIF
+/// orientation. Each decoder is asked for dimensions before any pixel
+/// allocation so the pixel budget is enforced up front.
+struct Decoded {
+    rgb: RgbImage,
+    orientation: Orientation,
+}
+
+fn check_budget(width: u32, height: u32, opts: &Options) -> Result<(), Error> {
+    if width == 0 || height == 0 || width as u64 * height as u64 > opts.max_pixels {
+        return Err(Error::TooLarge { width, height });
+    }
+    Ok(())
+}
+
+fn decode_jpeg(input: &[u8], opts: &Options) -> Result<Decoded, Error> {
+    let options = DecoderOptions::new_fast()
+        .jpeg_set_out_colorspace(ColorSpace::RGB)
+        .set_max_width(u16::MAX as usize)
+        .set_max_height(u16::MAX as usize);
+    let mut decoder = zune_jpeg::JpegDecoder::new_with_options(ZCursor::new(input), options);
+    decoder
+        .decode_headers()
+        .map_err(|e| Error::Decode(e.to_string()))?;
+    let info = decoder
+        .info()
+        .ok_or_else(|| Error::Decode("no header".into()))?;
+    let (width, height) = (u32::from(info.width), u32::from(info.height));
+    check_budget(width, height, opts)?;
+    let orientation = decoder
+        .exif()
+        .and_then(|exif| Orientation::from_exif_chunk(exif))
+        .unwrap_or(Orientation::NoTransforms);
+
+    let pixels = decoder.decode().map_err(|e| Error::Decode(e.to_string()))?;
+    let rgb = match decoder.output_colorspace() {
+        Some(ColorSpace::RGB) => RgbImage::from_raw(width, height, pixels),
+        Some(ColorSpace::Luma) => RgbImage::from_raw(
+            width,
+            height,
+            pixels.iter().flat_map(|&l| [l, l, l]).collect(),
+        ),
+        Some(ColorSpace::RGBA) => Some(to_rgb(DynamicImage::ImageRgba8(
+            image::RgbaImage::from_raw(width, height, pixels)
+                .ok_or_else(|| Error::Decode("short buffer".into()))?,
+        ))),
+        other => return Err(Error::Decode(format!("colorspace {other:?}"))),
+    }
+    .ok_or_else(|| Error::Decode("short buffer".into()))?;
+    Ok(Decoded { rgb, orientation })
+}
+
+fn decode_webp(input: &[u8], opts: &Options) -> Result<Decoded, Error> {
+    use libwebp_sys as webp;
+    let mut features = webp::WebPBitstreamFeatures {
+        width: 0,
+        height: 0,
+        has_alpha: 0,
+        has_animation: 0,
+        format: 0,
+        pad: [0; 5],
+    };
+    // SAFETY: `input` is a valid byte slice for the call duration, `features` is
+    // a valid out-pointer sized for the pinned ABI version.
+    let status = unsafe { webp::WebPGetFeatures(input.as_ptr(), input.len(), &mut features) };
+    if status != webp::VP8StatusCode::VP8_STATUS_OK {
+        return Err(Error::Decode(format!("webp header {status:?}")));
+    }
+    let (width, height) = (features.width as u32, features.height as u32);
+    check_budget(width, height, opts)?;
+
+    // The simple API decodes only the first frame of an animation, which is
+    // the intended sanitisation behaviour.
+    let (mut w, mut h) = (0, 0);
+    let channels = if features.has_alpha != 0 { 4 } else { 3 };
+    // SAFETY: as above; the returned buffer is `w * h * channels` bytes owned
+    // by libwebp until WebPFree.
+    let rgb = unsafe {
+        let ptr = if channels == 4 {
+            webp::WebPDecodeRGBA(input.as_ptr(), input.len(), &mut w, &mut h)
+        } else {
+            webp::WebPDecodeRGB(input.as_ptr(), input.len(), &mut w, &mut h)
+        };
+        if ptr.is_null() {
+            return Err(Error::Decode("webp bitstream".into()));
+        }
+        let len = w as usize * h as usize * channels;
+        let pixels = std::slice::from_raw_parts(ptr, len).to_vec();
+        webp::WebPFree(ptr.cast());
+        if channels == 4 {
+            to_rgb(DynamicImage::ImageRgba8(
+                image::RgbaImage::from_raw(w as u32, h as u32, pixels).unwrap(),
+            ))
+        } else {
+            RgbImage::from_raw(w as u32, h as u32, pixels).unwrap()
+        }
+    };
+    Ok(Decoded {
+        rgb,
+        orientation: Orientation::NoTransforms,
+    })
+}
+
+/// PNG and GIF via `image`; animated GIFs yield their first frame.
+fn decode_image(input: &[u8], format: ImageFormat, opts: &Options) -> Result<Decoded, Error> {
+    let mut reader = ImageReader::with_format(Cursor::new(input), format);
+    let mut limits = Limits::no_limits();
+    limits.max_alloc = Some(opts.max_pixels * 4 + (16 << 20));
+    reader.limits(limits);
+    let mut decoder = reader
+        .into_decoder()
+        .map_err(|e| Error::Decode(e.to_string()))?;
+    let (width, height) = decoder.dimensions();
+    check_budget(width, height, opts)?;
+    let orientation = decoder.orientation().unwrap_or(Orientation::NoTransforms);
+    let img = DynamicImage::from_decoder(decoder).map_err(|e| Error::Decode(e.to_string()))?;
+    Ok(Decoded {
+        rgb: to_rgb(img),
+        orientation,
+    })
+}
+
 pub fn process(input: &[u8], opts: &Options) -> Result<Processed, Error> {
-    let mut reader = ImageReader::new(Cursor::new(input))
-        .with_guessed_format()
-        .map_err(|_| Error::Format)?;
-    let format = reader.format().ok_or(Error::Format)?;
+    let format = image::guess_format(input).map_err(|_| Error::Format)?;
     if !matches!(
         format,
         ImageFormat::Jpeg | ImageFormat::Png | ImageFormat::WebP | ImageFormat::Gif
@@ -205,40 +327,56 @@ pub fn process(input: &[u8], opts: &Options) -> Result<Processed, Error> {
         return Err(Error::Format);
     }
 
-    let mut limits = Limits::no_limits();
-    limits.max_alloc = Some(opts.max_pixels * 4 + (16 << 20));
-    reader.limits(limits);
-
-    // Header only: reject before any pixel allocation happens.
-    let mut decoder = reader
-        .into_decoder()
-        .map_err(|e| Error::Decode(e.to_string()))?;
-    let (width, height) = decoder.dimensions();
-    if width as u64 * height as u64 > opts.max_pixels || width == 0 || height == 0 {
-        return Err(Error::TooLarge { width, height });
-    }
-    let orientation = decoder.orientation().unwrap_or(Orientation::NoTransforms);
-
     let mut info = Info {
         format: format_name(format),
-        width,
-        height,
-        out_width: width,
-        out_height: height,
+        width: 0,
+        height: 0,
+        out_width: 0,
+        out_height: 0,
         in_bytes: input.len(),
         out_bytes: 0,
         stage: opts.stage,
     };
+
     if opts.stage == Stage::Sniff {
-        return Ok(Processed {
-            info,
-            jpeg: Vec::new(),
-        });
+        // Header parse only, through the same budget check as the real decode.
+        let probe = Options {
+            max_pixels: 0,
+            ..*opts
+        };
+        match match format {
+            ImageFormat::Jpeg => decode_jpeg(input, &probe),
+            ImageFormat::WebP => decode_webp(input, &probe),
+            other => decode_image(input, other, &probe),
+        } {
+            Err(Error::TooLarge { width, height }) => {
+                check_budget(width, height, opts)?;
+                info.width = width;
+                info.height = height;
+                return Ok(Processed {
+                    info,
+                    jpeg: Vec::new(),
+                });
+            }
+            Err(e) => return Err(e),
+            Ok(_) => unreachable!(),
+        }
     }
 
-    let mut img = DynamicImage::from_decoder(decoder).map_err(|e| Error::Decode(e.to_string()))?;
-    img.apply_orientation(orientation);
-    let mut rgb = to_rgb(img);
+    let Decoded { rgb, orientation } = match format {
+        ImageFormat::Jpeg => decode_jpeg(input, opts)?,
+        ImageFormat::WebP => decode_webp(input, opts)?,
+        other => decode_image(input, other, opts)?,
+    };
+    info.width = rgb.width();
+    info.height = rgb.height();
+    let mut rgb = if orientation == Orientation::NoTransforms {
+        rgb
+    } else {
+        let mut img = DynamicImage::ImageRgb8(rgb);
+        img.apply_orientation(orientation);
+        img.into_rgb8()
+    };
     if opts.stage == Stage::Decode {
         return Ok(Processed {
             info,
@@ -268,7 +406,7 @@ pub fn process(input: &[u8], opts: &Options) -> Result<Processed, Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use image::{GenericImageView, ImageEncoder, Rgba, RgbaImage};
+    use image::{ImageEncoder, Rgba, RgbaImage};
 
     fn png(w: u32, h: u32) -> Vec<u8> {
         let img = RgbaImage::from_fn(w, h, |x, y| {
@@ -286,16 +424,91 @@ mod tests {
         out
     }
 
+    fn decode(jpeg: &[u8]) -> RgbImage {
+        let out = process(
+            jpeg,
+            &Options {
+                stage: Stage::Decode,
+                max_edge: u32::MAX,
+                ..Options::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(out.info.format, "jpeg");
+        // Decode-only leaves no JPEG, so re-run the real path at full size.
+        let full = process(
+            jpeg,
+            &Options {
+                max_edge: u32::MAX,
+                quality: 100,
+                ..Options::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            (full.info.out_width, full.info.out_height),
+            (out.info.width, out.info.height)
+        );
+        decode_jpeg(jpeg, &Options::default()).unwrap().rgb
+    }
+
     #[test]
     fn downscales_and_reencodes() {
-        let out = process(&png(4000, 2000), &Options::default()).unwrap();
+        let out = process(
+            &png(4000, 2000),
+            &Options {
+                quality: 100,
+                ..Options::default()
+            },
+        )
+        .unwrap();
         assert_eq!(out.info.format, "png");
         assert_eq!((out.info.out_width, out.info.out_height), (1568, 784));
-        let back = image::load_from_memory(&out.jpeg).unwrap();
+        let back = decode(&out.jpeg);
         assert_eq!(back.dimensions(), (1568, 784));
         // Transparent half flattened onto white.
-        let px = back.to_rgb8().get_pixel(1500, 400).0;
+        let px = back.get_pixel(1500, 400).0;
         assert!(px.iter().all(|c| *c > 240), "{px:?}");
+        // Opaque half keeps its constant blue channel.
+        let px = back.get_pixel(100, 100).0;
+        assert!((px[2] as i32 - 128).abs() < 4, "{px:?}");
+    }
+
+    #[test]
+    fn jpeg_in_jpeg_out() {
+        let first = process(&png(2000, 1000), &Options::default()).unwrap();
+        let again = process(
+            &first.jpeg,
+            &Options {
+                max_edge: 800,
+                ..Options::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(again.info.format, "jpeg");
+        assert_eq!((again.info.width, again.info.height), (1568, 784));
+        assert_eq!((again.info.out_width, again.info.out_height), (800, 400));
+        assert_eq!(decode(&again.jpeg).dimensions(), (800, 400));
+    }
+
+    #[test]
+    fn webp_in() {
+        let rgba = RgbaImage::from_fn(300, 200, |x, _| {
+            Rgba([x as u8, 90, 200, if x < 150 { 255 } else { 0 }])
+        });
+        let mut out: *mut u8 = std::ptr::null_mut();
+        let len = unsafe {
+            libwebp_sys::WebPEncodeLosslessRGBA(rgba.as_raw().as_ptr(), 300, 200, 1200, &mut out)
+        };
+        let webp = unsafe { std::slice::from_raw_parts(out, len).to_vec() };
+        unsafe { libwebp_sys::WebPFree(out.cast()) };
+
+        let res = process(&webp, &Options::default()).unwrap();
+        assert_eq!(res.info.format, "webp");
+        assert_eq!((res.info.width, res.info.height), (300, 200));
+        let back = decode(&res.jpeg);
+        assert!(back.get_pixel(250, 100).0.iter().all(|c| *c > 240));
+        assert!(back.get_pixel(50, 100).0[2] > 180);
     }
 
     #[test]

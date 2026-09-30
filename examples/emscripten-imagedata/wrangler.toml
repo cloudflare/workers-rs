@@ -6,5 +6,8 @@ compatibility_flags = ["new_module_registry"]
 
 [build]
 # simd128 for the Rust crates (worker-build appends RUSTFLAGS) and for the C
-# side and the emcc link so Binaryen accepts the SIMD ops.
-command = "cargo install -q worker-build && RUSTFLAGS=\"-Ctarget-feature=+simd128 $RUSTFLAGS\" EMCC_CFLAGS=\"-msimd128 $EMCC_CFLAGS\" worker-build --emscripten --release"
+# side and the emcc link so Binaryen accepts the SIMD ops. Emscripten's default
+# 64 KiB stack is too small for the decoders; use Rust's usual 1 MiB.
+# -DEMSCRIPTEN: libwebp before v1.6.0-167 selects its SIMD paths on the legacy
+# macro emcc no longer defines.
+command = "cargo install -q worker-build && RUSTFLAGS=\"-Ctarget-feature=+simd128 -Clink-arg=-sSTACK_SIZE=1048576 $RUSTFLAGS\" EMCC_CFLAGS=\"-msimd128 -DEMSCRIPTEN $EMCC_CFLAGS\" worker-build --emscripten --release"
