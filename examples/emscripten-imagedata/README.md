@@ -47,7 +47,7 @@ Accepted formats are JPEG, PNG, WebP and GIF. The pipeline is:
 | Stage           | Crate                                                | wasm SIMD                              |
 | --------------- | ---------------------------------------------------- | -------------------------------------- |
 | base64          | `base64-simd`                                        | yes                                    |
-| JPEG decode     | `zune-jpeg` ([patched](../../zune-image))            | IDCT, colour conversion, upsampling    |
+| JPEG decode     | `zune-jpeg` ([patched](../../zune-image))            | IDCT, colour conversion, upsampling via `portable_simd` |
 | WebP decode     | `libwebp-sys` ([patched](../../libwebp-sys))         | libwebp's SSE2 paths via Emscripten    |
 | PNG, GIF decode | `image`                                              | autovectorisation only                 |
 | resize          | `fast_image_resize`                                  | yes                                    |
@@ -61,8 +61,11 @@ its SIMD path from the compile-time target feature.
 Two of these are git submodules at the repository root on branches pending
 upstream pull requests:
 
-* `zune-image`: wasm32 simd128 IDCT, YCbCr conversion and chroma upsampling
-  for `zune-jpeg`, translated from its NEON routines.
+* `zune-image`: portable SIMD (`core::simd`, nightly) IDCT and YCbCr
+  conversion for `zune-jpeg`, joining its existing portable SIMD upsamplers.
+  This is why `rust-toolchain.toml` selects `nightly`. A hand-written
+  `core::arch::wasm32` version measured 4% faster on decode; the portable
+  version was kept since one implementation serves every architecture.
 * `libwebp-sys`: an Emscripten build arm enabling libwebp's SSE2 code paths
   when the simd128 target feature is set.
 
@@ -85,11 +88,11 @@ downscaled to 1568 px):
 
 | stage           | native (AVX2) | wasm simd128 | wasm scalar |
 | --------------- | ------------: | -----------: | ----------: |
-| decode          |            64 |          114 |         157 |
-| resize          |            11 |           23 |         145 |
-| encode          |            11 |           18 |          21 |
-| base64 (5.6 MB) |             3 |            7 |          13 |
-| total           |            88 |          162 |         336 |
+| decode          |            64 |           99 |         155 |
+| resize          |            11 |           33 |         149 |
+| encode          |            11 |           16 |          20 |
+| base64 (5.6 MB) |             3 |           10 |          18 |
+| total           |            88 |          158 |         342 |
 
 Run-to-run noise is around 10%. A 4 MP WebP decodes in 110 ms with libwebp's SSE2 paths, from 181 ms with the
 pure-Rust `image-webp` decoder.

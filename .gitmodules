@@ -7,7 +7,7 @@
 [submodule "zune-image"]
 	path = zune-image
 	url = https://github.com/guybedford/zune-image
-	branch = wasm-simd128
+	branch = portable-simd-jpeg
 [submodule "libwebp-sys"]
 	path = libwebp-sys
 	url = https://github.com/guybedford/libwebp-sys
