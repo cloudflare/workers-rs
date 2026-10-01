@@ -10,8 +10,8 @@ publish = false
 
 [dependencies]
 image = { version = "0.25", default-features = false, features = ["png", "gif"] }
-zune-jpeg = { path = "../../zune-image/crates/zune-jpeg", features = ["portable_simd"] }
-zune-core = { path = "../../zune-image/crates/zune-core" }
+zune-jpeg = "0.5"
+zune-core = "0.5"
 fast_image_resize = "6"
 # use_wide (fDCT via the wide crate, which lowers to simd128) is unreleased.
 jpeg-encoder = { git = "https://github.com/vstroebel/jpeg-encoder", rev = "b2bbd6f78d576a51fd80321d94f120290f9f3b9a", features = ["simd", "use_wide"] }

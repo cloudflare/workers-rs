@@ -47,7 +47,7 @@ Accepted formats are JPEG, PNG, WebP and GIF. The pipeline is:
 | Stage           | Crate                                                | wasm SIMD                              |
 | --------------- | ---------------------------------------------------- | -------------------------------------- |
 | base64          | `base64-simd`                                        | yes                                    |
-| JPEG decode     | `zune-jpeg` ([patched](../../zune-image))            | IDCT, colour conversion, upsampling via `portable_simd` |
+| JPEG decode     | `zune-jpeg`                                          | autovectorisation only                 |
 | WebP decode     | `libwebp-sys` ([patched](../../libwebp-sys))         | libwebp's SSE2 paths via Emscripten    |
 | PNG, GIF decode | `image`                                              | autovectorisation only                 |
 | resize          | `fast_image_resize`                                  | yes                                    |
@@ -58,19 +58,17 @@ The `simd128` target feature is enabled for the Rust crates through
 `wrangler.toml`). Wasm has no runtime feature detection, so every crate takes
 its SIMD path from the compile-time target feature.
 
-Two of these are git submodules at the repository root on branches pending
-upstream pull requests:
-
-* `zune-image`: portable SIMD (`core::simd`, nightly) IDCT and YCbCr
-  conversion for `zune-jpeg`, joining its existing portable SIMD upsamplers.
-  This is why `rust-toolchain.toml` selects `nightly`. A hand-written
-  `core::arch::wasm32` version measured 4% faster on decode; the portable
-  version was kept since one implementation serves every architecture.
-* `libwebp-sys`: an Emscripten build arm enabling libwebp's SSE2 code paths
-  when the simd128 target feature is set.
-
+`libwebp-sys` is a git submodule at the repository root on a branch pending
+an upstream pull request: an Emscripten build arm enabling libwebp's SSE2
+code paths (lowered to simd128 by Emscripten) when the simd128 target
+feature is set. No Rust WebP decoder has SIMD on any architecture, and
+`image-webp` measured 181 ms for a 4 MP decode against libwebp's 110 ms.
 `jpeg-encoder` is a git dependency on upstream for its unreleased `use_wide`
-feature, and `fast_image_resize` already has simd128 paths on crates.io.
+feature, which lowers its fDCT to simd128.
+
+`zune-jpeg` is used unpatched: with `+simd128` LLVM autovectorises its
+scalar IDCT and colour conversion. A hand-written simd128 port was measured
+at a further 15% on decode and left out to stay on a stable toolchain.
 
 ## Benchmark
 
@@ -88,11 +86,11 @@ downscaled to 1568 px):
 
 | stage           | native (AVX2) | wasm simd128 | wasm scalar |
 | --------------- | ------------: | -----------: | ----------: |
-| decode          |            64 |           99 |         155 |
-| resize          |            11 |           33 |         149 |
-| encode          |            11 |           16 |          20 |
-| base64 (5.6 MB) |             3 |           10 |          18 |
-| total           |            88 |          158 |         342 |
+| decode          |            64 |          117 |         157 |
+| resize          |            11 |           31 |         139 |
+| encode          |            11 |           18 |          21 |
+| base64 (5.6 MB) |             3 |           15 |          18 |
+| total           |            88 |          181 |         335 |
 
 Run-to-run noise is around 10%. A 4 MP WebP decodes in 110 ms with libwebp's SSE2 paths, from 181 ms with the
 pure-Rust `image-webp` decoder.

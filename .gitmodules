@@ -4,10 +4,6 @@
 [submodule "ts-gen"]
 	path = ts-gen
 	url = https://github.com/wasm-bindgen/ts-gen
-[submodule "zune-image"]
-	path = zune-image
-	url = https://github.com/guybedford/zune-image
-	branch = portable-simd-jpeg
 [submodule "libwebp-sys"]
 	path = libwebp-sys
 	url = https://github.com/guybedford/libwebp-sys

@@ -17,7 +17,6 @@ exclude = [
     "examples/emscripten-tcp",
     "examples/emscripten-incoming-tcp",
     "examples/emscripten-imagedata",
-    "zune-image",
     "libwebp-sys",
     "templates/*",
     "wasm-bindgen",
