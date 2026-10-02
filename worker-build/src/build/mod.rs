@@ -471,9 +471,10 @@ impl Build {
         )?;
         // wasm-bindgen inline JS snippets are written beside the link output,
         // which cargo does not uplift alongside the js and wasm.
-        let snippets = out.join("deps/snippets");
-        if snippets.is_dir() {
-            copy_dir(&snippets, &self.out_dir.join("snippets"))?;
+        if let Some(snippets) = link_dir(&out, &format!("{bin}.js"))?.map(|d| d.join("snippets")) {
+            if snippets.is_dir() {
+                copy_dir(&snippets, &self.out_dir.join("snippets"))?;
+            }
         }
         Ok(())
     }
@@ -611,6 +612,24 @@ impl Build {
             )
         })
     }
+}
+
+/// The directory cargo linked `name` in, found by matching the uplifted copy
+/// in the profile directory against candidates. Older cargo links into
+/// `deps/`; newer cargo links bins into `build/<crate>/<hash>/out/`.
+fn link_dir(profile_dir: &Path, name: &str) -> Result<Option<PathBuf>> {
+    let uplifted = std::fs::read(profile_dir.join(name))?;
+    let mut candidates = vec![profile_dir.join("deps")];
+    if let Ok(crates) = std::fs::read_dir(profile_dir.join("build")) {
+        for krate in crates.flatten() {
+            if let Ok(hashes) = std::fs::read_dir(krate.path()) {
+                candidates.extend(hashes.flatten().map(|h| h.path().join("out")));
+            }
+        }
+    }
+    Ok(candidates
+        .into_iter()
+        .find(|dir| std::fs::read(dir.join(name)).is_ok_and(|linked| linked == uplifted)))
 }
 
 fn copy_dir(from: &Path, to: &Path) -> Result<()> {
