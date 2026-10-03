@@ -161,7 +161,7 @@ fn generate_handlers_from_content(content: &str) -> String {
     // TODO: Convert this to Wasm binary exports analysis for entry point detection instead.
     // Emscripten output indents (or minifies) the wasm-bindgen exports.
     let mut func_names = Vec::new();
-    for line in export_decls(&content) {
+    for line in export_decls(content) {
         if let Some(rest) = line
             .strip_prefix("export function")
             .or_else(|| line.strip_prefix("export async function"))
