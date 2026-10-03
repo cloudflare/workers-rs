@@ -173,6 +173,7 @@ macro_rules! add_routes (
     add_route!($obj, get, "/custom-response-body", request::handle_custom_response_body);
     add_route!($obj, get, "/init-called", handle_init_called);
     add_route!($obj, get, "/cache-example", cache::handle_cache_example);
+    add_route!($obj, get, "/workers-cache", cache::handle_workers_cache);
     add_route!($obj, get, format_route!("/cache-api/get/{}", "key"), cache::handle_cache_api_get);
     add_route!($obj, put, format_route!("/cache-api/put/{}", "key"), cache::handle_cache_api_put);
     add_route!($obj, post, format_route!("/cache-api/delete/{}", "key"), cache::handle_cache_api_delete);
