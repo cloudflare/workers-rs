@@ -99,6 +99,16 @@ impl<T> Message<T> {
     pub fn raw_body(&self) -> JsValue {
         self.inner().body().unwrap()
     }
+
+    /// The content type of the message.
+    pub fn content_type(&self) -> Option<QueueContentType> {
+        self.inner.content_type().unwrap().map(|s| {
+            s.as_string()
+                .unwrap()
+                .parse()
+                .unwrap_or(QueueContentType::V8)
+        })
+    }
 }
 
 impl<T> TryFrom<RawMessage> for Message<T>
@@ -126,6 +136,24 @@ impl RawMessage {
     /// The body of the message.
     pub fn body(&self) -> JsValue {
         self.inner.body().unwrap()
+    }
+
+    /// The content type of the message.
+    pub fn content_type(&self) -> Option<QueueContentType> {
+        self.inner.content_type().unwrap().map(|s| {
+            s.as_string()
+                .unwrap()
+                .parse()
+                .unwrap_or(QueueContentType::V8)
+        })
+    }
+
+    /// deserialize the body as json using serde_json
+    pub fn body_json<T: DeserializeOwned>(&self) -> Result<T> {
+        let json_str = js_sys::JSON::stringify(&self.body())?
+            .as_string()
+            .ok_or_else(|| Error::RustError("failed to stringify body".into()))?;
+        Ok(serde_json::from_str(&json_str)?)
     }
 }
 
@@ -345,7 +373,8 @@ impl AsRef<JsValue> for Queue {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, strum::EnumString, strum::Display)]
+#[strum(serialize_all = "lowercase")]
 pub enum QueueContentType {
     /// Send a JavaScript object that can be JSON-serialized. This content type can be previewed from the Cloudflare dashboard.
     Json,
@@ -360,11 +389,7 @@ impl Serialize for QueueContentType {
     where
         S: serde::Serializer,
     {
-        serializer.serialize_str(match self {
-            Self::Json => "json",
-            Self::Text => "text",
-            Self::V8 => "v8",
-        })
+        serializer.serialize_str(&self.to_string())
     }
 }
 

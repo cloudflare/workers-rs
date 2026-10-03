@@ -34,6 +34,9 @@ extern "C" {
     #[wasm_bindgen(method, catch, getter)]
     pub fn body(this: &Message) -> Result<JsValue, JsValue>;
 
+    #[wasm_bindgen(method, catch, getter, js_name = contentType)]
+    pub fn content_type(this: &Message) -> Result<Option<js_sys::JsString>, JsValue>;
+
     #[wasm_bindgen(method, catch)]
     pub fn retry(this: &Message, options: JsValue) -> Result<(), JsValue>;
 
