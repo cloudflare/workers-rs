@@ -699,6 +699,16 @@ please [take a look](https://www.cloudflare.com/careers/).
 1. A draft GitHub release will be created. Author release notes and publish when ready.
 1. Crates (`worker-sys`, `worker-macros`, `worker`) will be published automatically. 
 
+The release PR workflow creates a `releases/v<VERSION>` branch. After it
+merges, `create-release.yml` builds `worker-build` and `worker-codegen` for
+Linux (x64 and ARM64), macOS (Intel and Apple Silicon), and Windows (x64).
+Each build uploads an archive named for its Rust target. The release job waits
+for all archives, then attaches them while creating the draft GitHub release.
+The archive names and contents must match the Cargo Binstall metadata in
+`worker-build/Cargo.toml` so `cargo binstall worker-build` can find both
+executables. The matching `worker-build` crate must also be published to
+crates.io so Cargo Binstall can read that metadata.
+
 # Contributing
 
 Your feedback is welcome and appreciated! Please use the issue tracker to talk about potential
