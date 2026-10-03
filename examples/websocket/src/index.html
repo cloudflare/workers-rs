@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>WS Chat</title>
+    <link
+      rel="icon"
+      href="data:image/x-icon;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQEAYAAABPYyMiAAAABmJLR0T///////8JWPfcAAAACXBIWXMAAABIAAAASABGyWs+AAAAF0lEQVRIx2NgGAWjYBSMglEwCkbBSAcACBAAAeaR9cIAAAAASUVORK5CYII="
+    />
+  </head>
+
+  <body>
+    <h1>WS Chat</h1>
+    <div>
+      <div id="chat">
+        <p><em>Connecting...</em></p>
+      </div>
+      <div style="display: flex; margin-top: 5px" id="parent">
+        <input style="margin-right: 5px" type="text" id="text" value="" />
+        <button type="button" id="submit">Connect</button>
+      </div>
+    </div>
+
+    <script>
+      const chat = document.getElementById("chat");
+      const msg = document.getElementById("msg");
+      const submit = document.getElementById("submit");
+
+      let currentView;
+      let ws;
+
+      function connected(e) {
+        const message = new Message(e.data);
+        chat.innerHTML = `<p><em>Connected! Your name is <em style="color:${message.color};">${message.name}!</em></em></p>`;
+      }
+
+      function connect(input) {
+        ws = new WebSocket(
+          `${location.protocol === "http:" ? "ws" : "wss"}://${
+            location.host
+          }/chat/${input.value}`
+        );
+
+        ws.onopen = () => {
+          ws.addEventListener("message", connected, { once: true });
+          document.getElementById("submit").innerHTML = "Send";
+          input.value = "";
+        };
+
+        function heartBeat() {
+          setTimeout(pong, 2500);
+          function pong() {
+            ws.send("pong");
+          }
+        }
+
+        ws.onmessage = (msg) => {
+          if (msg.data === "ping") {
+            heartBeat();
+            return;
+          }
+          const message = new Message(msg.data);
+          chat.appendChild(message.newElement());
+        };
+      }
+
+      submit.onclick = () => {
+        const input = document.getElementById("text");
+
+        if (input.value.length > 0) {
+          if (!ws) {
+            connect(input);
+          } else {
+            ws.send(input.value);
+            input.value = "";
+          }
+        }
+      };
+
+      class Message {
+        /**
+         * @constructor
+         * @param {string} message
+         */
+        constructor(message) {
+          const msg = JSON.parse(message);
+          /**
+           * @type {string?}
+           */
+          this.color = msg.color;
+          /**
+           * @type {number?}
+           */
+          this.count = msg.count;
+          /**
+           * @type {string?}
+           */
+          this.message = msg.message;
+          /**
+           * @type {string}
+           */
+          this.name = msg.name;
+        }
+
+        newElement() {
+          const container = document.createElement("div");
+          container.style.display = "flex";
+
+          if (this.count) {
+            const nameElement = `<em style="color: ${this.color};">${this.name} </em>`;
+            const content = `<em>has ${
+              !currentView || currentView < this.count ? "joined" : "left"
+            } the chat! There are ${this.count} users online now.</em>`;
+            currentView = this.count;
+            container.innerHTML = `<div style="color: #a5a5a5;">${nameElement}${content}</div>`;
+          } else {
+            const nameElement = this.#nameElement();
+            const separator = this.#sepElement();
+            const content = this.#msgElement();
+
+            container.innerHTML = `<div style="display: flex;">${nameElement}${separator}${content}</div>`;
+          }
+
+          return container;
+        }
+
+        #nameElement() {
+          return `<div style="color: ${this.color};">${this.name}</div>`;
+        }
+
+        #sepElement() {
+          return `<div style="margin-left: 3px; margin-right: 10px;">:</div>`;
+        }
+
+        #msgElement() {
+          return `<div style="color: #406bb3">${this.message}</div>`;
+        }
+      }
+    </script>
+  </body>
+</html>
