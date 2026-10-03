@@ -46,7 +46,6 @@ const mf_instance = new Miniflare({
     {
       config: {
         name: "test",
-        type: "worker",
         compatibilityDate: "2025-07-24",
         cache: { enabled: true },
         manifest,

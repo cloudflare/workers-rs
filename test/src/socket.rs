@@ -2,7 +2,9 @@ use crate::SomeSharedData;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use tokio::io::AsyncReadExt;
 use tokio::io::AsyncWriteExt;
-use worker::{ConnectionBuilder, Context, Env, Error, Request, Response, Result, Socket};
+use worker::{
+    ConnectionBuilder, Context, Env, Error, Request, Response, Result, Socket, UdpSocket,
+};
 
 /// Connections handled by this Wasm instance; resets if the instance is reinitialized.
 static CONNECTIONS: AtomicUsize = AtomicUsize::new(0);
@@ -18,6 +20,14 @@ pub async fn handle_connect(mut socket: Socket, _env: Env, _ctx: Context) -> Res
         _ => socket.write_all(&request).await?,
     }
     socket.flush().await?;
+    Ok(())
+}
+
+#[worker::event(connect(udp))]
+pub async fn handle_udp_connect(mut socket: UdpSocket, _env: Env, _ctx: Context) -> Result<()> {
+    while let Some(datagram) = socket.recv().await? {
+        socket.send(&datagram).await?;
+    }
     Ok(())
 }
 
