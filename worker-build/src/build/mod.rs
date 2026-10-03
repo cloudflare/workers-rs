@@ -471,8 +471,13 @@ impl Build {
         )?;
         // wasm-bindgen inline JS snippets are written beside the link output,
         // which cargo does not uplift alongside the js and wasm.
-        let snippets = out.join("deps/snippets");
-        if snippets.is_dir() {
+        if js.contains("./snippets/") {
+            let snippets = snippets_dir(&out, &js).ok_or_else(|| {
+                anyhow!(
+                    "emcc output imports wasm-bindgen snippets but none were found under {}",
+                    out.display()
+                )
+            })?;
             copy_dir(&snippets, &self.out_dir.join("snippets"))?;
         }
         Ok(())
@@ -611,6 +616,33 @@ impl Build {
             )
         })
     }
+}
+
+/// The `snippets` directory wasm-bindgen wrote beside cargo's link output.
+/// Older cargo links into `deps/`; newer cargo links bins into
+/// `build/<crate>/<hash>/out/`. The js names the snippet directories it
+/// imports, so the candidate holding every one of them is the right one.
+fn snippets_dir(profile_dir: &Path, js: &str) -> Option<PathBuf> {
+    let wanted: Vec<&str> = js
+        .split("./snippets/")
+        .skip(1)
+        .filter_map(|rest| rest.split('/').next())
+        .collect();
+    if wanted.is_empty() {
+        return None;
+    }
+    let mut candidates = vec![profile_dir.join("deps")];
+    if let Ok(crates) = std::fs::read_dir(profile_dir.join("build")) {
+        for krate in crates.flatten() {
+            if let Ok(hashes) = std::fs::read_dir(krate.path()) {
+                candidates.extend(hashes.flatten().map(|h| h.path().join("out")));
+            }
+        }
+    }
+    candidates
+        .into_iter()
+        .map(|dir| dir.join("snippets"))
+        .find(|dir| wanted.iter().all(|w| dir.join(w).is_dir()))
 }
 
 fn copy_dir(from: &Path, to: &Path) -> Result<()> {
