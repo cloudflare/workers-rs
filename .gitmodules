@@ -4,3 +4,7 @@
 [submodule "ts-gen"]
 	path = ts-gen
 	url = https://github.com/wasm-bindgen/ts-gen
+[submodule "libwebp-sys"]
+	path = libwebp-sys
+	url = https://github.com/guybedford/libwebp-sys
+	branch = emscripten-simd
