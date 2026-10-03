@@ -264,6 +264,7 @@ mod headers;
 mod http;
 mod hyperdrive;
 pub mod kv;
+pub mod observability;
 #[cfg(feature = "queue")]
 mod queue;
 mod r2;
