@@ -21,10 +21,10 @@ impl Ai {
         model: impl AsRef<str>,
         input: T,
     ) -> Result<U> {
-        let fut = SendFuture::new(JsFuture::from(
-            self.0
-                .run(model.as_ref(), serde_wasm_bindgen::to_value(&input)?),
-        ));
+        let fut = SendFuture::new(JsFuture::from(self.0.run(
+            model.as_ref(),
+            input.serialize(&serde_wasm_bindgen::Serializer::json_compatible())?,
+        )));
         match fut.await {
             Ok(output) => Ok(serde_wasm_bindgen::from_value(output)?),
             Err(err) => Err(Error::from(err)),
@@ -115,10 +115,10 @@ impl Ai {
         model: impl AsRef<str>,
         input: T,
     ) -> Result<ByteStream> {
-        let fut = SendFuture::new(JsFuture::from(
-            self.0
-                .run(model.as_ref(), serde_wasm_bindgen::to_value(&input)?),
-        ));
+        let fut = SendFuture::new(JsFuture::from(self.0.run(
+            model.as_ref(),
+            input.serialize(&serde_wasm_bindgen::Serializer::json_compatible())?,
+        )));
         match fut.await {
             Ok(output) => {
                 if output.is_instance_of::<ReadableStream>() {
