@@ -18,6 +18,9 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn container(this: &DurableObjectState) -> Option<Container>;
 
+    #[wasm_bindgen(method, getter)]
+    pub fn exports(this: &DurableObjectState) -> JsValue;
+
     #[wasm_bindgen(method, catch, js_name=waitUntil)]
     pub fn wait_until(this: &DurableObjectState, promise: &js_sys::Promise) -> Result<(), JsValue>;
 
