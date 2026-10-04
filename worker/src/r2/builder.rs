@@ -329,7 +329,7 @@ impl CreateMultipartUploadOptionsBuilder<'_> {
 }
 
 /// Metadata that's automatically rendered into R2 HTTP API endpoints.
-/// ```
+/// ```text
 /// * contentType -> content-type
 /// * contentLanguage -> content-language
 /// etc...
@@ -425,13 +425,18 @@ impl ListOptionsBuilder<'_> {
     /// rather than having logic like
     ///
     /// ```no_run
-    /// while listed.len() < limit {
+    /// # use worker::*;
+    /// # async fn example(bucket: Bucket, limit: u32) -> Result<()> {
+    /// let mut listed = bucket.list().execute().await?;
+    /// while (listed.objects().len() as u32) < limit {
     ///     listed = bucket.list()
-    ///         .limit(limit),
+    ///         .limit(limit)
     ///         .include(vec![Include::CustomMetadata])
     ///         .execute()
     ///         .await?;
     /// }
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn include(mut self, include: Vec<Include>) -> Self {
         self.include = Some(include);

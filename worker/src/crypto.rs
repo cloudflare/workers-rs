@@ -8,6 +8,8 @@ use crate::send::SendFuture;
 ///
 /// Example usage:
 /// ```rust
+/// # use worker::{crypto::{DigestStream, DigestStreamAlgorithm}, wasm_bindgen::JsValue, web_sys};
+/// # async fn example() {
 /// let digest_stream = DigestStream::new(DigestStreamAlgorithm::Sha256);
 ///
 /// // create a ReadableStream from a string
@@ -22,6 +24,7 @@ use crate::send::SendFuture;
 /// let _ = body.pipe_to(digest_stream.raw());
 ///
 /// let bytes:Vec<u8> = digest_stream.digest().await.unwrap().to_vec();
+/// # }
 /// ```
 #[derive(Debug)]
 pub struct DigestStream {

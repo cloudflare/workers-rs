@@ -384,10 +384,13 @@ impl ResponseBuilder {
     /// Sets this response's cors headers from the `Cors` struct.
     /// Example usage:
     /// ```
-    /// let cors = Cors::default();
-    /// ResponseBuilder::new()
-    ///     .with_cors(&cors)
-    ///     .empty()
+    /// use worker::*;
+    /// fn fetch() -> worker::Result<Response> {
+    ///     let cors = Cors::default();
+    ///     Ok(ResponseBuilder::new()
+    ///         .with_cors(&cors)?
+    ///         .empty())
+    /// }
     /// ```
     pub fn with_cors(self, cors: &Cors) -> Result<Self> {
         let mut headers = self.headers.clone();

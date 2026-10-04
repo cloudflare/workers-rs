@@ -426,6 +426,48 @@ impl CrateData {
         Ok(())
     }
 
+    /// Resolve the bin target linked by an emscripten build: `--bin NAME`, or
+    /// the package's only bin target.
+    pub fn resolve_bin_target(&self, bin: Option<&str>) -> Result<String> {
+        let pkg = self.pkg();
+        // Cargo links every crate type of a lib target when building a bin
+        // that depends on it, and a cdylib link is a PIC shared object emcc
+        // cannot produce from a static Rust build.
+        if pkg
+            .targets
+            .iter()
+            .any(|t| t.crate_types.contains(&CrateType::CDyLib))
+        {
+            bail!(
+                "crate-type cdylib cannot be linked for wasm32-unknown-emscripten. \
+                 Use `crate-type = [\"rlib\"]` in [lib], or move the handlers into the bin target."
+            );
+        }
+        let bins: Vec<&str> = pkg
+            .targets
+            .iter()
+            .filter(|t| t.kind.contains(&TargetKind::Bin))
+            .map(|t| t.name.as_str())
+            .collect();
+        match (bin, bins.as_slice()) {
+            (Some(name), _) if bins.contains(&name) => Ok(name.to_string()),
+            (Some(name), _) => bail!("No bin target named `{name}` in this package"),
+            (None, [only]) => Ok(only.to_string()),
+            (None, []) => bail!(
+                "An emscripten build links a bin target: emcc runs wasm-bindgen over the \
+                 linked program. Add src/main.rs with your handlers and an empty `fn main() {{}}`, \
+                 or alongside an rlib lib:\n\n\
+                 use {} as _;\n\
+                 fn main() {{}}",
+                self.crate_name()
+            ),
+            (None, _) => bail!(
+                "Multiple bin targets found ({}); select one with --bin NAME",
+                bins.join(", ")
+            ),
+        }
+    }
+
     fn check_crate_type(&self) -> Result<()> {
         let pkg = &self.data.packages[self.current_idx];
         let any_cdylib = pkg
@@ -446,6 +488,20 @@ impl CrateData {
 
     fn pkg(&self) -> &cargo_metadata::Package {
         &self.data.packages[self.current_idx]
+    }
+
+    /// Whether the `worker` crate resolves with its `experimental_tokio` feature.
+    pub fn worker_tokio_feature(&self) -> bool {
+        let Some(resolve) = &self.data.resolve else {
+            return false;
+        };
+        resolve.nodes.iter().any(|node| {
+            self.data[&node.id].name.as_ref() == "worker"
+                && node
+                    .features
+                    .iter()
+                    .any(|f| f.as_str() == "experimental_tokio")
+        })
     }
 
     /// Get the crate name for the crate at the given path.

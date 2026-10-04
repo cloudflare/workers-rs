@@ -14,6 +14,7 @@ use std::{
     cell::RefCell, fmt::Display, ops::Deref, panic::AssertUnwindSafe, rc::Rc, time::Duration,
 };
 
+use crate::r2::js_object;
 use crate::{
     container::Container,
     date::Date,
@@ -21,8 +22,9 @@ use crate::{
     error::Error,
     request::Request,
     response::Response,
-    Result, WebSocket,
+    Result, Socket, WebSocket,
 };
+use js_sys::{Boolean as JsBoolean, JsString, Object as JsObject};
 
 use chrono::{DateTime, Utc};
 use futures_util::Future;
@@ -58,6 +60,17 @@ impl Stub {
         let promise = self.inner.fetch_with_str(url)?;
         let response = JsFuture::from(promise).await?;
         Ok(response.dyn_into::<web_sys::Response>()?.into())
+    }
+
+    /// Opens a TCP connection to the Durable Object, served by its
+    /// [`DurableObject::connect`] handler. `address` is the `host:port` the
+    /// object sees as the connection's local address.
+    pub fn connect(&self, address: &str) -> Result<Socket> {
+        let options: JsValue = js_object!(
+            "allowHalfOpen" => JsBoolean::from(true)
+        )
+        .into();
+        Ok(Socket::new(self.inner.connect(address, options)?))
     }
 
     pub fn into_rpc<T: JsCast>(self) -> T {
@@ -269,6 +282,12 @@ impl State {
         self.inner.container().map(|inner| Container { inner })
     }
 
+    /// The underlying `DurableObjectState`, for JavaScript APIs that take it
+    /// directly.
+    pub fn as_raw(&self) -> &DurableObjectState {
+        &self.inner
+    }
+
     pub fn wait_until<F>(&self, future: F)
     where
         F: Future<Output = ()> + 'static,
@@ -465,15 +484,15 @@ impl Storage {
     /// Takes an object and stores each of its keys and values to storage.
     ///
     /// ```no_run
-    /// # use worker::Storage;
-    /// use worker::JsValue;
+    /// # use worker::{js_sys, Storage};
+    /// use worker::wasm_bindgen::JsValue;
     ///
-    /// # let storage: Storage = todo!();
-    ///
+    /// # async fn example(storage: Storage) -> worker::Result<()> {
     /// let obj = js_sys::Object::new();
-    /// js_sys::Reflect::set(&obj, &JsValue::from_str("foo"), JsValue::from_u64(1));
+    /// js_sys::Reflect::set(&obj, &JsValue::from_str("foo"), &JsValue::from_f64(1.0))?;
     ///
-    /// storage.put_multiple_raw(obj);
+    /// storage.put_multiple_raw(obj).await
+    /// # }
     /// ```
     pub async fn put_multiple_raw(&self, values: Object) -> Result<()> {
         JsFuture::from(self.inner.put_multiple(values.into())?)
@@ -637,6 +656,19 @@ impl Storage {
     // Add new method to access SQLite APIs
     pub fn sql(&self) -> crate::sql::SqlStorage {
         crate::sql::SqlStorage::new(self.inner.sql())
+    }
+
+    /// Waits for all writes issued so far to be committed to disk. Binds
+    /// [`storage.sync()`](https://developers.cloudflare.com/durable-objects/api/storage-api/#sync).
+    pub async fn sync(&self) -> Result<()> {
+        JsFuture::from(self.inner.sync()?).await?;
+        Ok(())
+    }
+
+    /// The underlying `DurableObjectStorage`, for JavaScript APIs that take it
+    /// directly.
+    pub fn as_raw(&self) -> &DurableObjectStorage {
+        &self.inner
     }
 }
 
@@ -922,6 +954,8 @@ to the struct.
 ## Example
 ```no_run
 use worker::*;
+# struct User;
+# struct Message;
 
 #[durable_object]
 pub struct Chatroom {
@@ -956,6 +990,17 @@ pub trait DurableObject: has_durable_object_attribute {
     fn new(state: State, env: Env) -> Self;
 
     async fn fetch(&self, req: Request) -> Result<Response>;
+
+    /// Serves a TCP connection opened with [`Stub::connect`]. The socket is
+    /// closed when this future completes, so it must live for the whole
+    /// connection: when handing the socket to a listener, await
+    /// [`Socket::handle_as_node_connection`] rather than spawning it or
+    /// returning early.
+    #[allow(unused_variables, clippy::diverging_sub_expression)]
+    async fn connect(&self, socket: Socket) -> Result<()> {
+        worker_sys::console_error!("connect() handler not implemented");
+        unimplemented!("connect() handler")
+    }
 
     #[allow(clippy::diverging_sub_expression)]
     async fn alarm(&self) -> Result<Response> {
