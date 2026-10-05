@@ -502,7 +502,7 @@ impl D1Result {
         if let Some(results) = self.0.results()? {
             let mut vec = Vec::with_capacity(results.length() as usize);
             for result in results.iter() {
-                let result = serde_wasm_bindgen::from_value(result).unwrap();
+                let result = serde_wasm_bindgen::from_value(result)?;
                 vec.push(result);
             }
             Ok(vec)

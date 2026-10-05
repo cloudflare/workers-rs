@@ -381,3 +381,27 @@ pub async fn retrive_first_none(
 
     Response::ok("ok")
 }
+
+#[worker::send]
+pub async fn deserialize_with_type_mismatch(
+    _req: Request,
+    env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
+    let db = env.d1("DB")?;
+
+    let error = worker::query!(&db, "SELECT 'hello' AS id")
+        .await?
+        .results::<NullablePerson>();
+
+    if let Err(error) = error {
+        assert_eq!(
+            error.to_string(),
+            "Error: invalid type: string \"hello\", expected u32"
+        );
+    } else {
+        panic!("Expected .results() to propagate its error");
+    }
+
+    Response::ok("ok")
+}
