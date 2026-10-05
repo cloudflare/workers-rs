@@ -2,6 +2,8 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{Error, ItemImpl, ItemStruct};
 
+use crate::async_export::{async_export, Tokio};
+
 pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
     let target = match syn::parse2::<ItemStruct>(tokens.clone()) {
         Ok(s) => s,
@@ -18,6 +20,27 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
     let target_name = &target.ident;
     let marker_fn_name = format_ident!("__wf_{}", target_name);
     let marker_js_name = format!("__wf_{target_name}");
+    let run = async_export(
+        Tokio::Isolated,
+        quote! { js_name = run },
+        quote! {
+            run(
+                &self,
+                event: ::worker::wasm_bindgen::JsValue,
+                step: ::worker::worker_sys::WorkflowStep
+            )
+        },
+        quote! {
+            let event: ::worker::WorkflowEvent<<Self as ::worker::WorkflowEntrypoint>::Input> =
+                ::worker::WorkflowEvent::from_js(event)
+                    .map_err(|e| ::worker::wasm_bindgen::JsValue::from_str(&e.to_string()))?;
+            let step = ::worker::WorkflowStep::from(step);
+            let output = <Self as ::worker::WorkflowEntrypoint>::run(self, event, step).await
+                .map_err(::worker::wasm_bindgen::JsValue::from)?;
+            ::worker::serialize_as_object(&output)
+                .map_err(|e| ::worker::wasm_bindgen::JsValue::from_str(&e.to_string()))
+        },
+    );
 
     Ok(quote! {
         #target
@@ -39,7 +62,11 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
             #[::worker::consume]
             #target
 
-            #[wasm_bindgen(wasm_bindgen=::worker::wasm_bindgen)]
+            #[wasm_bindgen(
+                wasm_bindgen=::worker::wasm_bindgen,
+                wasm_bindgen_futures=::worker::wasm_bindgen_futures,
+                js_sys=::worker::js_sys
+            )]
             impl #target_name {
                 #[wasm_bindgen(constructor, wasm_bindgen=::worker::wasm_bindgen)]
                 pub fn new(
@@ -52,28 +79,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                     )
                 }
 
-                #[wasm_bindgen(js_name = run, wasm_bindgen=::worker::wasm_bindgen)]
-                pub fn run(
-                    &self,
-                    event: ::worker::wasm_bindgen::JsValue,
-                    step: ::worker::worker_sys::WorkflowStep
-                ) -> ::worker::js_sys::Promise {
-                    // SAFETY: widen `&Self` to `&'static Self`. The Workers runtime keeps
-                    // `self` alive until the returned Promise settles, which is the
-                    // lifecycle contract for Workflow instances.
-                    let static_self: &'static Self = unsafe { &*(self as *const _) };
-
-                    ::worker::wasm_bindgen_futures::future_to_promise(::std::panic::AssertUnwindSafe(async move {
-                        let event: ::worker::WorkflowEvent<<Self as ::worker::WorkflowEntrypoint>::Input> =
-                            ::worker::WorkflowEvent::from_js(event)
-                                .map_err(|e| ::worker::wasm_bindgen::JsValue::from_str(&e.to_string()))?;
-                        let step = ::worker::WorkflowStep::from(step);
-                        let output = <Self as ::worker::WorkflowEntrypoint>::run(static_self, event, step).await
-                            .map_err(::worker::wasm_bindgen::JsValue::from)?;
-                        ::worker::serialize_as_object(&output)
-                            .map_err(|e| ::worker::wasm_bindgen::JsValue::from_str(&e.to_string()))
-                    }))
-                }
+                #run
             }
         };
     })
