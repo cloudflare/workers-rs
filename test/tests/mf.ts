@@ -15,6 +15,19 @@ const manifest = {
   },
 };
 
+// The workflow worker's entry is the generated WorkflowEntrypoint wrapper,
+// which re-exports the main build.
+const workflowManifest = {
+  mainModule: "build/worker/shim.mjs",
+  modules: {
+    ...manifest.modules,
+    "build/worker/shim.mjs": {
+      type: "esm" as const,
+      contents: readFileSync("./build/worker/shim.mjs", "utf8"),
+    },
+  },
+};
+
 async function outboundFetch(request: Request): Promise<Response> {
   const url = new URL(request.url);
   if (url.origin === "https://cloudflare.com") {
@@ -61,6 +74,7 @@ const mf_instance = new Miniflare({
           SOME_NAMESPACE: { type: "kv", id: "SOME_NAMESPACE" },
           FILE_SIZES: { type: "kv", id: "FILE_SIZES" },
           TEST: { type: "kv", id: "TEST" },
+          ROLLBACK_KV: { type: "kv", id: "ROLLBACK_KV" },
           EMPTY_BUCKET: { type: "r2", name: "EMPTY_BUCKET" },
           PUT_BUCKET: { type: "r2", name: "PUT_BUCKET" },
           SEEDED_BUCKET: { type: "r2", name: "SEEDED_BUCKET" },
@@ -91,6 +105,30 @@ const mf_instance = new Miniflare({
             allowedSenderAddresses: ["allowed-sender@example.com"],
             allowedDestinationAddresses: ["allowed-recipient@example.com"],
           },
+          TEST_WORKFLOW: {
+            type: "workflow",
+            name: "test-workflow",
+            worker: "workflow-worker",
+            exportName: "TestWorkflow",
+          },
+          EVENT_WORKFLOW: {
+            type: "workflow",
+            name: "event-workflow",
+            worker: "workflow-worker",
+            exportName: "EventWorkflow",
+          },
+          LIFECYCLE_WORKFLOW: {
+            type: "workflow",
+            name: "lifecycle-workflow",
+            worker: "workflow-worker",
+            exportName: "LifecycleWorkflow",
+          },
+          ROLLBACK_WORKFLOW: {
+            type: "workflow",
+            name: "rollback-workflow",
+            worker: "workflow-worker",
+            exportName: "RollbackWorkflow",
+          },
         },
         exports: {
           Counter: { type: "durable-object", storage: "legacy-kv" },
@@ -113,6 +151,19 @@ const mf_instance = new Miniflare({
       },
       dev: {
         outboundService: { type: "fetcher", handler: outboundFetch },
+      },
+    },
+    {
+      // Dedicated worker for the test workflows; uses the generated JS class wrapper.
+      config: {
+        name: "workflow-worker",
+        compatibilityDate: "2025-07-24",
+        manifest: workflowManifest,
+        env: {
+          // Shared with the main worker (same namespace id) so the RollbackWorkflow's
+          // rollback handler can record a marker the test reads back.
+          ROLLBACK_KV: { type: "kv", id: "ROLLBACK_KV" },
+        },
       },
     },
   ],
