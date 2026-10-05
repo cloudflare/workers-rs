@@ -10,8 +10,11 @@
 //! [Learn more](https://developers.cloudflare.com/workers/learning/using-durable-objects) about
 //! using Durable Objects.
 
-use std::{fmt::Display, ops::Deref, panic::AssertUnwindSafe, time::Duration};
+use std::{
+    cell::RefCell, fmt::Display, ops::Deref, panic::AssertUnwindSafe, rc::Rc, time::Duration,
+};
 
+use crate::r2::js_object;
 use crate::{
     container::Container,
     date::Date,
@@ -19,8 +22,9 @@ use crate::{
     error::Error,
     request::Request,
     response::Response,
-    Result, WebSocket,
+    Result, Socket, WebSocket,
 };
+use js_sys::{Boolean as JsBoolean, JsString, Object as JsObject};
 
 use chrono::{DateTime, Utc};
 use futures_util::Future;
@@ -56,6 +60,17 @@ impl Stub {
         let promise = self.inner.fetch_with_str(url)?;
         let response = JsFuture::from(promise).await?;
         Ok(response.dyn_into::<web_sys::Response>()?.into())
+    }
+
+    /// Opens a TCP connection to the Durable Object, served by its
+    /// [`DurableObject::connect`] handler. `address` is the `host:port` the
+    /// object sees as the connection's local address.
+    pub fn connect(&self, address: &str) -> Result<Socket> {
+        let options: JsValue = js_object!(
+            "allowHalfOpen" => JsBoolean::from(true)
+        )
+        .into();
+        Ok(Socket::new(self.inner.connect(address, options)?))
     }
 
     pub fn into_rpc<T: JsCast>(self) -> T {
@@ -267,6 +282,12 @@ impl State {
         self.inner.container().map(|inner| Container { inner })
     }
 
+    /// The underlying `DurableObjectState`, for JavaScript APIs that take it
+    /// directly.
+    pub fn as_raw(&self) -> &DurableObjectState {
+        &self.inner
+    }
+
     pub fn wait_until<F>(&self, future: F)
     where
         F: Future<Output = ()> + 'static,
@@ -277,6 +298,66 @@ impl State {
                 Ok(JsValue::UNDEFINED)
             })))
             .unwrap()
+    }
+
+    /// Runs a future while blocking delivery of any other events to the Durable Object until it
+    /// completes, guaranteeing ordering. Binds the runtime's
+    /// [`blockConcurrencyWhile`](https://developers.cloudflare.com/durable-objects/api/state/#blockconcurrencywhile),
+    /// with the same call-time semantics as JavaScript: the gate closes as a side effect of the
+    /// *call*, and the returned future only observes completion.
+    ///
+    /// Awaiting the returned future yields the inner future's value. Discarding it instead gives
+    /// the JavaScript constructor idiom, gating all event delivery until async initialization
+    /// completes. Bind it to a `_`-prefixed name: the `unused_must_use` and clippy
+    /// `let_underscore_future` lints do not apply here since the gate is already active:
+    ///
+    /// ```no_run
+    /// # use std::{cell::Cell, rc::Rc};
+    /// # use worker::*;
+    /// # fn example(state: State) {
+    /// let limit = Rc::new(Cell::new(0));
+    /// let (l, storage) = (limit.clone(), state.storage());
+    /// let _init = state.block_concurrency_while(async move {
+    ///     l.set(storage.get("limit").await?.unwrap_or(100));
+    ///     Ok(())
+    /// });
+    /// # }
+    /// ```
+    ///
+    /// **If the future returns `Err`, the Durable Object is terminated and reset**, as with
+    /// throwing in the JavaScript callback. To treat errors as values instead, return them inside
+    /// `Ok` (`T = Result<Outcome, MyError>`). The runtime also resets the object if the future
+    /// exceeds a 30 second timeout.
+    ///
+    /// The future must be `'static`, so it cannot borrow `&self`; move owned values (such as
+    /// `state.storage()` or a cloned `Env`) in instead.
+    ///
+    /// # Errors
+    ///
+    /// Errors if the `blockConcurrencyWhile` call fails, the future returns `Err`, or the callback
+    /// does not run.
+    pub fn block_concurrency_while<F, T>(&self, future: F) -> impl Future<Output = Result<T>>
+    where
+        F: Future<Output = Result<T>> + 'static,
+        T: 'static,
+    {
+        let output: Rc<RefCell<Option<T>>> = Rc::new(RefCell::new(None));
+        let slot = output.clone();
+        let callback = wasm_bindgen::closure::Closure::once_into_js(AssertUnwindSafe(move || {
+            future_to_promise(AssertUnwindSafe(async move {
+                let value = future.await.map_err(JsValue::from)?;
+                *slot.borrow_mut() = Some(value);
+                Ok(JsValue::NULL)
+            }))
+        }));
+        let promise = self.inner.block_concurrency_while(callback.unchecked_ref());
+        async move {
+            JsFuture::from(promise?).await.map_err(Error::from)?;
+            let value = output.borrow_mut().take();
+            value.ok_or_else(|| {
+                Error::RustError("block_concurrency_while callback did not run".into())
+            })
+        }
     }
 
     // needs to be accessed by the `#[durable_object]` macro in a conversion step
@@ -403,15 +484,15 @@ impl Storage {
     /// Takes an object and stores each of its keys and values to storage.
     ///
     /// ```no_run
-    /// # use worker::Storage;
-    /// use worker::JsValue;
+    /// # use worker::{js_sys, Storage};
+    /// use worker::wasm_bindgen::JsValue;
     ///
-    /// # let storage: Storage = todo!();
-    ///
+    /// # async fn example(storage: Storage) -> worker::Result<()> {
     /// let obj = js_sys::Object::new();
-    /// js_sys::Reflect::set(&obj, &JsValue::from_str("foo"), JsValue::from_u64(1));
+    /// js_sys::Reflect::set(&obj, &JsValue::from_str("foo"), &JsValue::from_f64(1.0))?;
     ///
-    /// storage.put_multiple_raw(obj);
+    /// storage.put_multiple_raw(obj).await
+    /// # }
     /// ```
     pub async fn put_multiple_raw(&self, values: Object) -> Result<()> {
         JsFuture::from(self.inner.put_multiple(values.into())?)
@@ -575,6 +656,19 @@ impl Storage {
     // Add new method to access SQLite APIs
     pub fn sql(&self) -> crate::sql::SqlStorage {
         crate::sql::SqlStorage::new(self.inner.sql())
+    }
+
+    /// Waits for all writes issued so far to be committed to disk. Binds
+    /// [`storage.sync()`](https://developers.cloudflare.com/durable-objects/api/storage-api/#sync).
+    pub async fn sync(&self) -> Result<()> {
+        JsFuture::from(self.inner.sync()?).await?;
+        Ok(())
+    }
+
+    /// The underlying `DurableObjectStorage`, for JavaScript APIs that take it
+    /// directly.
+    pub fn as_raw(&self) -> &DurableObjectStorage {
+        &self.inner
     }
 }
 
@@ -860,6 +954,8 @@ to the struct.
 ## Example
 ```no_run
 use worker::*;
+# struct User;
+# struct Message;
 
 #[durable_object]
 pub struct Chatroom {
@@ -888,9 +984,23 @@ impl DurableObject for Chatroom {
 */
 #[allow(async_fn_in_trait)] // Send is not needed
 pub trait DurableObject: has_durable_object_attribute {
+    /// Constructs the Durable Object. This is synchronous; there is no async constructor. For async
+    /// setup, call [`State::block_concurrency_while`] here without awaiting it: the runtime blocks
+    /// delivery of all events until the initialization future completes.
     fn new(state: State, env: Env) -> Self;
 
     async fn fetch(&self, req: Request) -> Result<Response>;
+
+    /// Serves a TCP connection opened with [`Stub::connect`]. The socket is
+    /// closed when this future completes, so it must live for the whole
+    /// connection: when handing the socket to a listener, await
+    /// [`Socket::handle_as_node_connection`] rather than spawning it or
+    /// returning early.
+    #[allow(unused_variables, clippy::diverging_sub_expression)]
+    async fn connect(&self, socket: Socket) -> Result<()> {
+        worker_sys::console_error!("connect() handler not implemented");
+        unimplemented!("connect() handler")
+    }
 
     #[allow(clippy::diverging_sub_expression)]
     async fn alarm(&self) -> Result<Response> {

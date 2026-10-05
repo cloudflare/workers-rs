@@ -10,9 +10,15 @@ use crate::{env::EnvBinding, Fetcher, Result};
 /// # Example:
 ///
 /// ```no_run
+/// # use worker::*;
+/// # #[cfg(not(feature = "http"))] type Req = Request;
+/// # #[cfg(feature = "http")] type Req = HttpRequest;
+/// # async fn example(env: Env, req: Req) -> Result<()> {
 /// let dispatcher = env.dynamic_dispatcher("DISPATCHER")?;
 /// let fetcher = dispatcher.get("namespaced-worker-name")?;
 /// let resp = fetcher.fetch_request(req).await?;
+/// # Ok(())
+/// # }
 /// ```
 #[derive(Debug, Clone)]
 pub struct DynamicDispatcher(DynamicDispatcherSys);

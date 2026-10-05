@@ -9,7 +9,7 @@
  */
 
 import { Miniflare } from 'miniflare';
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 
 async function runBenchmark() {
   console.log('🚀 Starting workers-rs benchmark suite\n');
@@ -19,14 +19,27 @@ async function runBenchmark() {
   const mf = new Miniflare({
     workers: [
       {
-        name: 'benchmark',
-        scriptPath: './build/index.js',
-        compatibilityDate: '2025-01-06',
-        modules: true,
-        modulesRules: [
-          { type: 'CompiledWasm', include: ['**/*.wasm'], fallthrough: true }
-        ],
-        outboundService: 'benchmark',
+        config: {
+          name: 'benchmark',
+          type: 'worker',
+          compatibilityDate: '2025-01-06',
+          manifest: {
+            mainModule: 'build/index.js',
+            modules: {
+              'build/index.js': {
+                type: 'esm',
+                contents: readFileSync('./build/index.js', 'utf8'),
+              },
+              'build/index_bg.wasm': {
+                type: 'wasm',
+                contents: new Uint8Array(readFileSync('./build/index_bg.wasm')),
+              },
+            },
+          },
+        },
+        dev: {
+          outboundService: { type: 'worker', worker: 'benchmark' },
+        },
       }
     ]
   });
