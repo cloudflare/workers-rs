@@ -1,0 +1,26 @@
+[package]
+name = "emscripten-sqlx"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Standalone: the emscripten target, beta toolchain and dependency patches
+# stay out of the workspace lockfile.
+[workspace]
+
+[dependencies]
+worker = { path = "../../worker", features = ["experimental_tokio"] }
+tokio = { version = "1", default-features = false, features = ["rt", "macros", "sync", "time"] }
+sqlx = { version = "0.9.0", default-features = false, features = ["postgres", "runtime-tokio"] }
+
+[profile.release]
+opt-level = "s"
+
+# REQUIRED Patchset - Tokio patchset, pending upstream PRs
+[patch.crates-io]
+# Pending https://github.com/tokio-rs/tokio/pull/8484
+tokio = { git = "https://github.com/guybedford/tokio", tag = "1.53.1-cf.emscripten" }
+tokio-macros = { git = "https://github.com/guybedford/tokio", tag = "1.53.1-cf.emscripten" }
+
+# Pending release of https://github.com/tokio-rs/mio/pull/1969 
+mio = { git = "https://github.com/tokio-rs/mio" }

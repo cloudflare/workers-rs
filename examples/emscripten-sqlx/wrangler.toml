@@ -1,0 +1,13 @@
+name = "emscripten-sqlx"
+main = "build/index.js"
+compatibility_date = "2026-09-02"
+# new_module_registry gives the Emscripten glue `import.meta.url`.
+compatibility_flags = ["new_module_registry"]
+
+[build]
+command = "cargo install -q worker-build && worker-build --emscripten --release"
+
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "your-hyperdrive-id-here"
+localConnectionString = "postgresql://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable"
