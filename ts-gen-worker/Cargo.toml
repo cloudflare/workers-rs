@@ -1,0 +1,13 @@
+[package]
+name = "ts-gen-worker"
+version = "0.1.0"
+edition = "2021"
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Cloudflare Workers bindings generated from TypeScript declarations with ts-gen"
+repository = "https://github.com/cloudflare/workers-rs"
+
+[dependencies]
+js-sys.workspace = true
+wasm-bindgen.workspace = true
+wasm-bindgen-futures.workspace = true

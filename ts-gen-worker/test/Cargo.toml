@@ -1,0 +1,17 @@
+[package]
+name = "ts-gen-worker-test"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[package.metadata.release]
+release = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+js-sys.workspace = true
+ts-gen-worker = { path = ".." }
+wasm-bindgen.workspace = true
+wasm-bindgen-futures.workspace = true

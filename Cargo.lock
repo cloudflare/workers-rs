@@ -3066,6 +3066,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "ts-gen-worker"
+version = "0.1.0"
+dependencies = [
+ "js-sys",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+]
+
+[[package]]
+name = "ts-gen-worker-test"
+version = "0.0.0"
+dependencies = [
+ "js-sys",
+ "ts-gen-worker",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+]
+
+[[package]]
 name = "tungstenite"
 version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

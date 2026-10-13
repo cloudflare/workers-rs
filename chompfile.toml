@@ -26,6 +26,26 @@ name = 'install:ts-gen'
 run = 'cargo +stable install --path ts-gen'
 
 [[task]]
+name = 'build:ts-gen-worker:types'
+deps = ['install:ts-gen']
+run = '''ts-gen --input ts-gen-worker/types/worker.d.ts --output ts-gen-worker/src/bindings.rs
+ts-gen --input ts-gen-worker/test/types/env.d.ts --output ts-gen-worker/test/src/env.rs'''
+
+[[task]]
+name = 'build:ts-gen-worker'
+deps = ['build:wasm-bindgen']
+run = '''cargo build -p ts-gen-worker-test --target wasm32-unknown-unknown
+wasm-bindgen/target/debug/wasm-bindgen --target module --out-name index \
+  --out-dir ts-gen-worker/test/build target/wasm32-unknown-unknown/debug/ts_gen_worker_test.wasm'''
+
+[[task]]
+name = 'test:ts-gen-worker'
+deps = ['build:ts-gen-worker']
+cwd = 'ts-gen-worker/test'
+env.NODE_OPTIONS = '--experimental-vm-modules'
+run = 'npx vitest run --root .'
+
+[[task]]
 name = 'build:wasm-bindgen'
 cwd = 'wasm-bindgen'
 run = 'cargo build -p wasm-bindgen-cli --bin wasm-bindgen'

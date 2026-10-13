@@ -8,6 +8,8 @@ members = [
     "examples/*",
     "test/container-echo",
     "benchmark",
+    "ts-gen-worker",
+    "ts-gen-worker/test",
 ]
 exclude = [
     "examples/coredump",
