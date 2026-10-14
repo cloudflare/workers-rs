@@ -30,6 +30,10 @@ is the merged index.
 Items agents could not resolve without a decision. Each has a proposal. Details in the linked
 file.
 
+- **`JsException` dispatch is `instanceof`-only.** Cloudflare binding errors (`ImagesError`,
+  `ArtifactsError`, …) are `interface X extends Error { readonly name: "X" }` with no constructor,
+  so when they enter the `--export` roots the enum needs a `name`-discriminated arm. Out of
+  scope today (no `worker` surface uses them); ts-gen change when it comes.
 - **How authoritative must `@throws` be?** Only Fetch-spec-pinned classes are annotated so far.
   Runtime-specific throws (KV/R2/D1, `DOMException` names) need a policy; a wrong annotation lands
   the value in `JsException::Other`, never a wrong variant. (`parity/errors.md`)
