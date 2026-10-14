@@ -3,6 +3,8 @@
 #[allow(dead_code)]
 use ::ts_gen_worker::AnalyticsEngineDataset;
 #[allow(dead_code)]
+use ::ts_gen_worker::D1Database;
+#[allow(dead_code)]
 use ::ts_gen_worker::DurableObjectNamespace;
 #[allow(dead_code)]
 use ::ts_gen_worker::Fetcher;
@@ -11,9 +13,13 @@ use ::ts_gen_worker::KVNamespace;
 #[allow(dead_code)]
 use ::ts_gen_worker::Queue;
 #[allow(dead_code)]
+use ::ts_gen_worker::R2Bucket;
+#[allow(dead_code)]
 use ::ts_gen_worker::RateLimit;
 #[allow(dead_code)]
 use ::ts_gen_worker::SecretsStoreSecret;
+#[allow(dead_code)]
+use ::ts_gen_worker::SendEmail;
 #[allow(unused_imports)]
 use js_sys::*;
 #[allow(unused_imports)]
@@ -44,9 +50,9 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "SOME_OBJECT_VARIABLE")]
     pub fn set_some_object_variable(this: &Env, val: &Object);
     #[wasm_bindgen(method, getter, js_name = "DB")]
-    pub fn db(this: &Env) -> JsValue;
+    pub fn db(this: &Env) -> D1Database;
     #[wasm_bindgen(method, setter, js_name = "DB")]
-    pub fn set_db(this: &Env, val: &JsValue);
+    pub fn set_db(this: &Env, val: &D1Database);
     #[wasm_bindgen(method, getter, js_name = "SOME_NAMESPACE")]
     pub fn some_namespace(this: &Env) -> KVNamespace;
     #[wasm_bindgen(method, setter, js_name = "SOME_NAMESPACE")]
@@ -60,21 +66,21 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "TEST")]
     pub fn set_test(this: &Env, val: &KVNamespace);
     #[wasm_bindgen(method, getter, js_name = "EMPTY_BUCKET")]
-    pub fn empty_bucket(this: &Env) -> JsValue;
+    pub fn empty_bucket(this: &Env) -> R2Bucket;
     #[wasm_bindgen(method, setter, js_name = "EMPTY_BUCKET")]
-    pub fn set_empty_bucket(this: &Env, val: &JsValue);
+    pub fn set_empty_bucket(this: &Env, val: &R2Bucket);
     #[wasm_bindgen(method, getter, js_name = "PUT_BUCKET")]
-    pub fn put_bucket(this: &Env) -> JsValue;
+    pub fn put_bucket(this: &Env) -> R2Bucket;
     #[wasm_bindgen(method, setter, js_name = "PUT_BUCKET")]
-    pub fn set_put_bucket(this: &Env, val: &JsValue);
+    pub fn set_put_bucket(this: &Env, val: &R2Bucket);
     #[wasm_bindgen(method, getter, js_name = "SEEDED_BUCKET")]
-    pub fn seeded_bucket(this: &Env) -> JsValue;
+    pub fn seeded_bucket(this: &Env) -> R2Bucket;
     #[wasm_bindgen(method, setter, js_name = "SEEDED_BUCKET")]
-    pub fn set_seeded_bucket(this: &Env, val: &JsValue);
+    pub fn set_seeded_bucket(this: &Env, val: &R2Bucket);
     #[wasm_bindgen(method, getter, js_name = "DELETE_BUCKET")]
-    pub fn delete_bucket(this: &Env) -> JsValue;
+    pub fn delete_bucket(this: &Env) -> R2Bucket;
     #[wasm_bindgen(method, setter, js_name = "DELETE_BUCKET")]
-    pub fn set_delete_bucket(this: &Env, val: &JsValue);
+    pub fn set_delete_bucket(this: &Env, val: &R2Bucket);
     #[wasm_bindgen(method, getter)]
     pub fn my_queue(this: &Env) -> Queue;
     #[wasm_bindgen(method, setter)]
@@ -132,9 +138,9 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "TEST_RATE_LIMITER")]
     pub fn set_test_rate_limiter(this: &Env, val: &RateLimit);
     #[wasm_bindgen(method, getter, js_name = "EMAIL")]
-    pub fn email(this: &Env) -> JsValue;
+    pub fn email(this: &Env) -> SendEmail;
     #[wasm_bindgen(method, setter, js_name = "EMAIL")]
-    pub fn set_email(this: &Env, val: &JsValue);
+    pub fn set_email(this: &Env, val: &SendEmail);
 }
 impl Env {
     pub fn new(
@@ -143,14 +149,14 @@ impl Env {
         some_secret: &str,
         some_variable: &str,
         some_object_variable: &Object,
-        db: &JsValue,
+        db: &D1Database,
         some_namespace: &KVNamespace,
         file_sizes: &KVNamespace,
         test: &KVNamespace,
-        empty_bucket: &JsValue,
-        put_bucket: &JsValue,
-        seeded_bucket: &JsValue,
-        delete_bucket: &JsValue,
+        empty_bucket: &R2Bucket,
+        put_bucket: &R2Bucket,
+        seeded_bucket: &R2Bucket,
+        delete_bucket: &R2Bucket,
         my_queue: &Queue,
         remote: &Fetcher,
         counter: &DurableObjectNamespace,
@@ -165,7 +171,7 @@ impl Env {
         missing_secret: &SecretsStoreSecret,
         http_analytics: &AnalyticsEngineDataset,
         test_rate_limiter: &RateLimit,
-        email: &JsValue,
+        email: &SendEmail,
     ) -> Env {
         let inner: Env = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_greeting(greeting);

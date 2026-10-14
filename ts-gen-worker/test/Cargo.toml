@@ -16,6 +16,7 @@ futures-channel.workspace = true
 futures-util.workspace = true
 hex = "0.4"
 js-sys.workspace = true
+md5 = "0.8.1"
 regex = "1.8.4"
 serde.workspace = true
 serde_json.workspace = true

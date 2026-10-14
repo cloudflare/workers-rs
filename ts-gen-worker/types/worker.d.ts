@@ -1158,3 +1158,283 @@ declare module "cloudflare:sockets" {
   ): Socket;
   export { _connect as connect };
 }
+
+interface EmailSendResult {
+  /**
+   * The Email Message ID
+   */
+  messageId: string;
+}
+// EDIT: upstream splits `EmailMessage` into a global `interface
+// EmailMessage` (the instance shape) and a `let _EmailMessage: { new(): EmailMessage }`
+// inside `declare module "cloudflare:email"`, exported as `EmailMessage`.
+// At runtime they are the same type — TS only splits them because module
+// declarations cannot directly declare a class with both a constructor
+// and an instance shape readable from the outer scope.
+//
+// In Rust + wasm-bindgen, a single `pub type EmailMessage` with a
+// `#[wasm_bindgen(constructor)]` fn naturally covers both roles, so we
+// collapse the upstream pattern into one `class EmailMessage` inside the
+// module declaration. Everything that referenced upstream's global
+// `EmailMessage` now imports from `cloudflare:email`.
+declare module "cloudflare:email" {
+  /**
+   * An email message that can be sent from a Worker.
+   */
+  class EmailMessage {
+    constructor(from: string, to: string, raw: string | ReadableStream);
+    /**
+     * Envelope From attribute of the email message.
+     */
+    readonly from: string;
+    /**
+     * Envelope To attribute of the email message.
+     */
+    readonly to: string;
+  }
+  export { EmailMessage };
+}
+import { EmailMessage } from "cloudflare:email";
+
+/**
+ * An email message that is sent to a consumer Worker and can be rejected/forwarded.
+ */
+type EmailAttachment =
+  | {
+      disposition: "inline";
+      contentId: string;
+      filename: string;
+      type: string;
+      content: string | ArrayBuffer | ArrayBufferView;
+    }
+  | {
+      disposition: "attachment";
+      contentId?: undefined;
+      filename: string;
+      type: string;
+      content: string | ArrayBuffer | ArrayBufferView;
+    };
+/** An Email Address */
+interface EmailAddress {
+  name: string;
+  email: string;
+}
+/**
+ * A binding that allows a Worker to send email messages.
+ */
+interface SendEmail {
+  send(message: EmailMessage): Promise<EmailSendResult>;
+  send(builder: {
+    from: string | EmailAddress;
+    to: string | string[];
+    subject: string;
+    replyTo?: string | EmailAddress;
+    cc?: string | string[];
+    bcc?: string | string[];
+    headers?: Record<string, string>;
+    text?: string;
+    html?: string;
+    attachments?: EmailAttachment[];
+  }): Promise<EmailSendResult>;
+}
+
+interface D1Meta {
+  duration: number;
+  size_after: number;
+  rows_read: number;
+  rows_written: number;
+  last_row_id: number;
+  changed_db: boolean;
+  changes: number;
+  served_by_region?: string;
+  served_by_colo?: string;
+  served_by_primary?: boolean;
+  total_attempts?: number;
+}
+// Upstream: `type D1Result<T> = D1Response & { results: T[] }` with
+// `success: true; error?: never`. Flattened to one interface pending
+// intersection-type support in ts-gen.
+interface D1Result {
+  success: boolean;
+  meta: D1Meta;
+  error?: string;
+  results: any[];
+}
+interface D1ExecResult {
+  count: number;
+  duration: number;
+}
+type D1SessionConstraint =
+  // Indicates that the first query should go to the primary, and the rest queries
+  // using the same D1DatabaseSession will go to any replica that is consistent with
+  // the bookmark maintained by the session (returned by the first query).
+  | "first-primary"
+  // Indicates that the first query can go anywhere (primary or replica), and the rest queries
+  // using the same D1DatabaseSession will go to any replica that is consistent with
+  // the bookmark maintained by the session (returned by the first query).
+  | "first-unconstrained";
+type D1SessionBookmark = string;
+declare abstract class D1Database {
+  prepare(query: string): D1PreparedStatement;
+  batch(statements: D1PreparedStatement[]): Promise<D1Result[]>;
+  exec(query: string): Promise<D1ExecResult>;
+  withSession(
+    constraintOrBookmark?: D1SessionBookmark | D1SessionConstraint,
+  ): D1DatabaseSession;
+  dump(): Promise<ArrayBuffer>;
+}
+declare abstract class D1DatabaseSession {
+  prepare(query: string): D1PreparedStatement;
+  batch(statements: D1PreparedStatement[]): Promise<D1Result[]>;
+  getBookmark(): D1SessionBookmark | null;
+}
+declare abstract class D1PreparedStatement {
+  bind(...values: unknown[]): D1PreparedStatement;
+  first(colName: string): Promise<any>;
+  first(): Promise<any>;
+  run(): Promise<D1Result>;
+  all(): Promise<D1Result>;
+  raw(options?: { columnNames?: boolean }): Promise<any[]>;
+}
+
+interface R2ListOptions {
+  limit?: number;
+  prefix?: string;
+  cursor?: string;
+  delimiter?: string;
+  startAfter?: string;
+  include?: ("httpMetadata" | "customMetadata")[];
+}
+// Upstream overloads `get`/`put` on `R2GetOptions & { onlyIf }` intersections
+// and types `R2Objects` as an intersection with a `truncated` discriminant;
+// both are flattened pending intersection-type support in ts-gen.
+interface R2Bucket {
+  head(key: string): Promise<R2Object | null>;
+  get(key: string, options?: R2GetOptions): Promise<R2ObjectBody | null>;
+  put(
+    key: string,
+    value:
+      ReadableStream | ArrayBuffer | ArrayBufferView | string | null | Blob,
+    options?: R2PutOptions,
+  ): Promise<R2Object | null>;
+  createMultipartUpload(
+    key: string,
+    options?: R2MultipartOptions,
+  ): Promise<R2MultipartUpload>;
+  resumeMultipartUpload(key: string, uploadId: string): R2MultipartUpload;
+  delete(keys: string | string[]): Promise<void>;
+  list(options?: R2ListOptions): Promise<R2Objects>;
+}
+interface R2MultipartUpload {
+  readonly key: string;
+  readonly uploadId: string;
+  uploadPart(
+    partNumber: number,
+    value: ReadableStream | (ArrayBuffer | ArrayBufferView) | string | Blob,
+    options?: R2UploadPartOptions,
+  ): Promise<R2UploadedPart>;
+  abort(): Promise<void>;
+  complete(uploadedParts: R2UploadedPart[]): Promise<R2Object>;
+}
+interface R2UploadedPart {
+  partNumber: number;
+  etag: string;
+}
+declare abstract class R2Object {
+  readonly key: string;
+  readonly version: string;
+  readonly size: number;
+  readonly etag: string;
+  readonly httpEtag: string;
+  readonly checksums: R2Checksums;
+  readonly uploaded: Date;
+  readonly httpMetadata?: R2HTTPMetadata;
+  readonly customMetadata?: Record<string, string>;
+  readonly range?: R2Range;
+  readonly storageClass: string;
+  readonly ssecKeyMd5?: string;
+  writeHttpMetadata(headers: Headers): void;
+}
+declare abstract class R2ObjectBody extends R2Object {
+  get body(): ReadableStream;
+  get bodyUsed(): boolean;
+  arrayBuffer(): Promise<ArrayBuffer>;
+  bytes(): Promise<Uint8Array>;
+  text(): Promise<string>;
+  json(): Promise<any>;
+  blob(): Promise<Blob>;
+}
+type R2Range =
+  | {
+      offset: number;
+      length?: number;
+    }
+  | {
+      offset?: number;
+      length: number;
+    }
+  | {
+      suffix: number;
+    };
+interface R2Conditional {
+  etagMatches?: string;
+  etagDoesNotMatch?: string;
+  uploadedBefore?: Date;
+  uploadedAfter?: Date;
+  secondsGranularity?: boolean;
+}
+interface R2GetOptions {
+  onlyIf?: R2Conditional | Headers;
+  range?: R2Range | Headers;
+  ssecKey?: ArrayBuffer | string;
+}
+interface R2PutOptions {
+  onlyIf?: R2Conditional | Headers;
+  httpMetadata?: R2HTTPMetadata | Headers;
+  customMetadata?: Record<string, string>;
+  md5?: (ArrayBuffer | ArrayBufferView) | string;
+  sha1?: (ArrayBuffer | ArrayBufferView) | string;
+  sha256?: (ArrayBuffer | ArrayBufferView) | string;
+  sha384?: (ArrayBuffer | ArrayBufferView) | string;
+  sha512?: (ArrayBuffer | ArrayBufferView) | string;
+  storageClass?: string;
+  ssecKey?: ArrayBuffer | string;
+}
+interface R2MultipartOptions {
+  httpMetadata?: R2HTTPMetadata | Headers;
+  customMetadata?: Record<string, string>;
+  storageClass?: string;
+  ssecKey?: ArrayBuffer | string;
+}
+interface R2Checksums {
+  readonly md5?: ArrayBuffer;
+  readonly sha1?: ArrayBuffer;
+  readonly sha256?: ArrayBuffer;
+  readonly sha384?: ArrayBuffer;
+  readonly sha512?: ArrayBuffer;
+  toJSON(): R2StringChecksums;
+}
+interface R2StringChecksums {
+  md5?: string;
+  sha1?: string;
+  sha256?: string;
+  sha384?: string;
+  sha512?: string;
+}
+interface R2HTTPMetadata {
+  contentType?: string;
+  contentLanguage?: string;
+  contentDisposition?: string;
+  contentEncoding?: string;
+  cacheControl?: string;
+  cacheExpiry?: Date;
+}
+interface R2Objects {
+  objects: R2Object[];
+  delimitedPrefixes: string[];
+  truncated: boolean;
+  cursor?: string;
+}
+interface R2UploadPartOptions {
+  ssecKey?: ArrayBuffer | string;
+}

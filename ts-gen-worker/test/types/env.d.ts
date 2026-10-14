@@ -4,14 +4,14 @@ interface Env {
   SOME_SECRET: string;
   SOME_VARIABLE: string;
   SOME_OBJECT_VARIABLE: { foo: number; bar: string };
-  DB: any;
+  DB: D1Database;
   SOME_NAMESPACE: KVNamespace;
   FILE_SIZES: KVNamespace;
   TEST: KVNamespace;
-  EMPTY_BUCKET: any;
-  PUT_BUCKET: any;
-  SEEDED_BUCKET: any;
-  DELETE_BUCKET: any;
+  EMPTY_BUCKET: R2Bucket;
+  PUT_BUCKET: R2Bucket;
+  SEEDED_BUCKET: R2Bucket;
+  DELETE_BUCKET: R2Bucket;
   my_queue: Queue;
   remote: Fetcher;
   COUNTER: DurableObjectNamespace;
@@ -26,5 +26,5 @@ interface Env {
   MISSING_SECRET: SecretsStoreSecret;
   HTTP_ANALYTICS: AnalyticsEngineDataset;
   TEST_RATE_LIMITER: RateLimit;
-  EMAIL: any;
+  EMAIL: SendEmail;
 }

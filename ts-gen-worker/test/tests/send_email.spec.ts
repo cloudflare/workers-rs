@@ -19,10 +19,7 @@ function expectSuccess(result: SendResult) {
   expect(result.messageId).toBeTruthy();
 }
 
-// GAP: `cloudflare:email` (`EmailMessage`, `SendEmail`, `SendEmailBuilder`,
-// `EmailAttachment`) is generated into `worker` from types/email.d.ts but not
-// yet part of ts-gen-worker's declarations.
-describe.skip("send email (raw MIME)", () => {
+describe("send email (raw MIME)", () => {
   test("sends a valid email through the binding", async () => {
     expectSuccess(await runScenario("mime-ok"));
   });
@@ -43,8 +40,7 @@ describe.skip("send email (raw MIME)", () => {
   });
 });
 
-// GAP: see above.
-describe.skip("send email (structured builder)", () => {
+describe("send email (structured builder)", () => {
   test("sends a plain-text email", async () => {
     expectSuccess(await runScenario("structured-ok"));
   });

@@ -37,7 +37,7 @@ deps = ['install:ts-gen']
 # the crate by name.
 run = '''ts-gen --input ts-gen-worker/types/worker.d.ts --output ts-gen-worker/src/bindings.rs \
   --fallible --error-type crate::Error --error-enum JsException \
-  --export ts-gen-worker/types/worker.d.ts --export cloudflare:sockets
+  --export ts-gen-worker/types/worker.d.ts --export cloudflare:sockets --export cloudflare:email
 ts-gen --input ts-gen-worker/test/types/env.d.ts --output ts-gen-worker/test/src/env.rs \
   --fallible --error-type ts_gen_worker::Error \
   --external "KVNamespace=::ts_gen_worker::KVNamespace" \
@@ -46,7 +46,10 @@ ts-gen --input ts-gen-worker/test/types/env.d.ts --output ts-gen-worker/test/src
   --external "DurableObjectNamespace=::ts_gen_worker::DurableObjectNamespace" \
   --external "SecretsStoreSecret=::ts_gen_worker::SecretsStoreSecret" \
   --external "AnalyticsEngineDataset=::ts_gen_worker::AnalyticsEngineDataset" \
-  --external "RateLimit=::ts_gen_worker::RateLimit"'''
+  --external "RateLimit=::ts_gen_worker::RateLimit" \
+  --external "SendEmail=::ts_gen_worker::SendEmail" \
+  --external "D1Database=::ts_gen_worker::D1Database" \
+  --external "R2Bucket=::ts_gen_worker::R2Bucket"'''
 
 [[task]]
 name = 'build:ts-gen-worker'

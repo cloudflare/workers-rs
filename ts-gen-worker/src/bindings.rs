@@ -3328,6 +3328,1722 @@ extern "C" {
     ) -> Result<Socket, crate::Error>;
 }
 #[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type EmailSendResult;
+    #[doc = " The Email Message ID"]
+    #[wasm_bindgen(method, getter, js_name = "messageId")]
+    pub fn message_id(this: &EmailSendResult) -> String;
+    #[wasm_bindgen(method, setter, js_name = "messageId")]
+    pub fn set_message_id(this: &EmailSendResult, val: &str);
+}
+impl EmailSendResult {
+    #[doc = " * `message_id` - The Email Message ID"]
+    pub fn new(message_id: &str) -> EmailSendResult {
+        let inner: EmailSendResult = JsCast::unchecked_into(js_sys::Object::new());
+        inner.set_message_id(message_id);
+        inner
+    }
+}
+#[wasm_bindgen(module = "cloudflare:email")]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type EmailMessage;
+    #[wasm_bindgen(constructor, catch)]
+    pub fn new(from: &str, to: &str, raw: &str) -> Result<EmailMessage, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "EmailMessage")]
+    pub fn new_with_readable_stream(
+        from: &str,
+        to: &str,
+        raw: &ReadableStream,
+    ) -> Result<EmailMessage, crate::Error>;
+    #[doc = " Envelope From attribute of the email message."]
+    #[wasm_bindgen(method, getter)]
+    pub fn from(this: &EmailMessage) -> String;
+    #[doc = " Envelope To attribute of the email message."]
+    #[wasm_bindgen(method, getter)]
+    pub fn to(this: &EmailMessage) -> String;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type EmailAttachment;
+    #[wasm_bindgen(method, getter)]
+    pub fn disposition(this: &EmailAttachment) -> DispositionKind;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_disposition(this: &EmailAttachment, val: &str);
+    #[wasm_bindgen(method, getter, js_name = "contentId")]
+    pub fn content_id(this: &EmailAttachment) -> Option<String>;
+    #[wasm_bindgen(method, setter, js_name = "contentId")]
+    pub fn set_content_id(this: &EmailAttachment, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn filename(this: &EmailAttachment) -> String;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_filename(this: &EmailAttachment, val: &str);
+    #[wasm_bindgen(method, getter, js_name = "type")]
+    pub fn type_(this: &EmailAttachment) -> String;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_type(this: &EmailAttachment, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn content(this: &EmailAttachment) -> ContentKind;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_content(this: &EmailAttachment, val: &str);
+    #[wasm_bindgen(method, setter, js_name = "content")]
+    pub fn set_content_with_array_buffer(this: &EmailAttachment, val: &ArrayBuffer);
+    #[wasm_bindgen(method, setter, js_name = "content")]
+    pub fn set_content_with_typed_array<T: ::js_sys::TypedArray>(this: &EmailAttachment, val: &T);
+}
+impl EmailAttachment {
+    #[doc = " ## Inlined fields"]
+    #[doc = ""]
+    #[doc = " * `disposition: \"inline\"`"]
+    pub fn new_inline(
+        content_id: &str,
+        filename: &str,
+        r#type: &str,
+        content: &str,
+    ) -> EmailAttachment {
+        let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
+        inner.set_disposition("inline");
+        inner.set_content_id(content_id);
+        inner.set_filename(filename);
+        inner.set_type(r#type);
+        inner.set_content(content);
+        inner
+    }
+    #[doc = " ## Inlined fields"]
+    #[doc = ""]
+    #[doc = " * `disposition: \"inline\"`"]
+    pub fn new_inline_with_array_buffer(
+        content_id: &str,
+        filename: &str,
+        r#type: &str,
+        content: &ArrayBuffer,
+    ) -> EmailAttachment {
+        let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
+        inner.set_disposition("inline");
+        inner.set_content_id(content_id);
+        inner.set_filename(filename);
+        inner.set_type(r#type);
+        inner.set_content_with_array_buffer(content);
+        inner
+    }
+    #[doc = " ## Inlined fields"]
+    #[doc = ""]
+    #[doc = " * `disposition: \"inline\"`"]
+    pub fn new_inline_with_typed_array<T: ::js_sys::TypedArray>(
+        content_id: &str,
+        filename: &str,
+        r#type: &str,
+        content: &T,
+    ) -> EmailAttachment {
+        let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
+        inner.set_disposition("inline");
+        inner.set_content_id(content_id);
+        inner.set_filename(filename);
+        inner.set_type(r#type);
+        inner.set_content_with_typed_array(content);
+        inner
+    }
+    #[doc = " ## Inlined fields"]
+    #[doc = ""]
+    #[doc = " * `disposition: \"attachment\"`"]
+    pub fn new_attachment(filename: &str, r#type: &str, content: &str) -> EmailAttachment {
+        Self::builder_attachment(filename, r#type, content).build()
+    }
+    #[doc = " ## Inlined fields"]
+    #[doc = ""]
+    #[doc = " * `disposition: \"attachment\"`"]
+    pub fn new_attachment_with_array_buffer(
+        filename: &str,
+        r#type: &str,
+        content: &ArrayBuffer,
+    ) -> EmailAttachment {
+        Self::builder_attachment_with_array_buffer(filename, r#type, content).build()
+    }
+    #[doc = " ## Inlined fields"]
+    #[doc = ""]
+    #[doc = " * `disposition: \"attachment\"`"]
+    pub fn new_attachment_with_typed_array<T: ::js_sys::TypedArray>(
+        filename: &str,
+        r#type: &str,
+        content: &T,
+    ) -> EmailAttachment {
+        Self::builder_attachment_with_typed_array(filename, r#type, content).build()
+    }
+    #[doc = " ## Inlined fields"]
+    #[doc = ""]
+    #[doc = " * `disposition: \"attachment\"`"]
+    pub fn builder_attachment(
+        filename: &str,
+        r#type: &str,
+        content: &str,
+    ) -> EmailAttachmentBuilder {
+        let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
+        inner.set_disposition("attachment");
+        inner.set_filename(filename);
+        inner.set_type(r#type);
+        inner.set_content(content);
+        EmailAttachmentBuilder { inner }
+    }
+    #[doc = " ## Inlined fields"]
+    #[doc = ""]
+    #[doc = " * `disposition: \"attachment\"`"]
+    pub fn builder_attachment_with_array_buffer(
+        filename: &str,
+        r#type: &str,
+        content: &ArrayBuffer,
+    ) -> EmailAttachmentBuilder {
+        let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
+        inner.set_disposition("attachment");
+        inner.set_filename(filename);
+        inner.set_type(r#type);
+        inner.set_content_with_array_buffer(content);
+        EmailAttachmentBuilder { inner }
+    }
+    #[doc = " ## Inlined fields"]
+    #[doc = ""]
+    #[doc = " * `disposition: \"attachment\"`"]
+    pub fn builder_attachment_with_typed_array<T: ::js_sys::TypedArray>(
+        filename: &str,
+        r#type: &str,
+        content: &T,
+    ) -> EmailAttachmentBuilder {
+        let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
+        inner.set_disposition("attachment");
+        inner.set_filename(filename);
+        inner.set_type(r#type);
+        inner.set_content_with_typed_array(content);
+        EmailAttachmentBuilder { inner }
+    }
+}
+pub struct EmailAttachmentBuilder {
+    inner: EmailAttachment,
+}
+impl EmailAttachmentBuilder {
+    pub fn content_id(self, val: &str) -> Self {
+        self.inner.set_content_id(val);
+        self
+    }
+    pub fn build(self) -> EmailAttachment {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type EmailAddress;
+    #[wasm_bindgen(method, getter)]
+    pub fn name(this: &EmailAddress) -> String;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_name(this: &EmailAddress, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn email(this: &EmailAddress) -> String;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_email(this: &EmailAddress, val: &str);
+}
+impl EmailAddress {
+    pub fn new(name: &str, email: &str) -> EmailAddress {
+        let inner: EmailAddress = JsCast::unchecked_into(js_sys::Object::new());
+        inner.set_name(name);
+        inner.set_email(email);
+        inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type SendEmail;
+    #[wasm_bindgen(method, catch)]
+    pub async fn send(
+        this: &SendEmail,
+        message: &EmailMessage,
+    ) -> Result<EmailSendResult, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "send")]
+    pub async fn send_with_builder(
+        this: &SendEmail,
+        builder: &SendEmailBuilder,
+    ) -> Result<EmailSendResult, crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type SendEmailBuilder;
+    #[wasm_bindgen(method, getter)]
+    pub fn from(this: &SendEmailBuilder) -> FromKind;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_from(this: &SendEmailBuilder, val: &str);
+    #[wasm_bindgen(method, setter, js_name = "from")]
+    pub fn set_from_with_email_address(this: &SendEmailBuilder, val: &EmailAddress);
+    #[wasm_bindgen(method, getter)]
+    pub fn to(this: &SendEmailBuilder) -> ToKind;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_to(this: &SendEmailBuilder, val: &str);
+    #[wasm_bindgen(method, setter, slice_to_array, js_name = "to")]
+    pub fn set_to_with_slice(this: &SendEmailBuilder, val: &[String]);
+    #[wasm_bindgen(method, getter)]
+    pub fn subject(this: &SendEmailBuilder) -> String;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_subject(this: &SendEmailBuilder, val: &str);
+    #[wasm_bindgen(method, getter, js_name = "replyTo")]
+    pub fn reply_to(this: &SendEmailBuilder) -> Option<FromKind>;
+    #[wasm_bindgen(method, setter, js_name = "replyTo")]
+    pub fn set_reply_to(this: &SendEmailBuilder, val: &str);
+    #[wasm_bindgen(method, setter, js_name = "replyTo")]
+    pub fn set_reply_to_with_email_address(this: &SendEmailBuilder, val: &EmailAddress);
+    #[wasm_bindgen(method, getter)]
+    pub fn cc(this: &SendEmailBuilder) -> Option<ToKind>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_cc(this: &SendEmailBuilder, val: &str);
+    #[wasm_bindgen(method, setter, slice_to_array, js_name = "cc")]
+    pub fn set_cc_with_slice(this: &SendEmailBuilder, val: &[String]);
+    #[wasm_bindgen(method, getter)]
+    pub fn bcc(this: &SendEmailBuilder) -> Option<ToKind>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_bcc(this: &SendEmailBuilder, val: &str);
+    #[wasm_bindgen(method, setter, slice_to_array, js_name = "bcc")]
+    pub fn set_bcc_with_slice(this: &SendEmailBuilder, val: &[String]);
+    #[wasm_bindgen(method, getter)]
+    pub fn headers(this: &SendEmailBuilder) -> Option<Object<JsString>>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_headers(this: &SendEmailBuilder, val: &Object<JsString>);
+    #[wasm_bindgen(method, getter)]
+    pub fn text(this: &SendEmailBuilder) -> Option<String>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_text(this: &SendEmailBuilder, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn html(this: &SendEmailBuilder) -> Option<String>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_html(this: &SendEmailBuilder, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn attachments(this: &SendEmailBuilder) -> Option<Vec<EmailAttachment>>;
+    #[wasm_bindgen(method, setter, slice_to_array)]
+    pub fn set_attachments(this: &SendEmailBuilder, val: &[EmailAttachment]);
+}
+impl SendEmailBuilder {
+    pub fn new(from: &str, to: &str, subject: &str) -> SendEmailBuilder {
+        Self::builder(from, to, subject).build()
+    }
+    pub fn new_with_str_and_slice(from: &str, to: &[String], subject: &str) -> SendEmailBuilder {
+        Self::builder_with_str_and_slice(from, to, subject).build()
+    }
+    pub fn new_with_email_address_and_str(
+        from: &EmailAddress,
+        to: &str,
+        subject: &str,
+    ) -> SendEmailBuilder {
+        Self::builder_with_email_address_and_str(from, to, subject).build()
+    }
+    pub fn new_with_email_address_and_slice(
+        from: &EmailAddress,
+        to: &[String],
+        subject: &str,
+    ) -> SendEmailBuilder {
+        Self::builder_with_email_address_and_slice(from, to, subject).build()
+    }
+    pub fn builder(from: &str, to: &str, subject: &str) -> SendEmailBuilderBuilder {
+        let inner: SendEmailBuilder = JsCast::unchecked_into(js_sys::Object::new());
+        inner.set_from(from);
+        inner.set_to(to);
+        inner.set_subject(subject);
+        SendEmailBuilderBuilder { inner }
+    }
+    pub fn builder_with_str_and_slice(
+        from: &str,
+        to: &[String],
+        subject: &str,
+    ) -> SendEmailBuilderBuilder {
+        let inner: SendEmailBuilder = JsCast::unchecked_into(js_sys::Object::new());
+        inner.set_from(from);
+        inner.set_to_with_slice(to);
+        inner.set_subject(subject);
+        SendEmailBuilderBuilder { inner }
+    }
+    pub fn builder_with_email_address_and_str(
+        from: &EmailAddress,
+        to: &str,
+        subject: &str,
+    ) -> SendEmailBuilderBuilder {
+        let inner: SendEmailBuilder = JsCast::unchecked_into(js_sys::Object::new());
+        inner.set_from_with_email_address(from);
+        inner.set_to(to);
+        inner.set_subject(subject);
+        SendEmailBuilderBuilder { inner }
+    }
+    pub fn builder_with_email_address_and_slice(
+        from: &EmailAddress,
+        to: &[String],
+        subject: &str,
+    ) -> SendEmailBuilderBuilder {
+        let inner: SendEmailBuilder = JsCast::unchecked_into(js_sys::Object::new());
+        inner.set_from_with_email_address(from);
+        inner.set_to_with_slice(to);
+        inner.set_subject(subject);
+        SendEmailBuilderBuilder { inner }
+    }
+}
+pub struct SendEmailBuilderBuilder {
+    inner: SendEmailBuilder,
+}
+impl SendEmailBuilderBuilder {
+    pub fn reply_to(self, val: &str) -> Self {
+        self.inner.set_reply_to(val);
+        self
+    }
+    pub fn reply_to_with_email_address(self, val: &EmailAddress) -> Self {
+        self.inner.set_reply_to_with_email_address(val);
+        self
+    }
+    pub fn cc(self, val: &str) -> Self {
+        self.inner.set_cc(val);
+        self
+    }
+    pub fn cc_with_slice(self, val: &[String]) -> Self {
+        self.inner.set_cc_with_slice(val);
+        self
+    }
+    pub fn bcc(self, val: &str) -> Self {
+        self.inner.set_bcc(val);
+        self
+    }
+    pub fn bcc_with_slice(self, val: &[String]) -> Self {
+        self.inner.set_bcc_with_slice(val);
+        self
+    }
+    pub fn headers(self, val: &Object<JsString>) -> Self {
+        self.inner.set_headers(val);
+        self
+    }
+    pub fn text(self, val: &str) -> Self {
+        self.inner.set_text(val);
+        self
+    }
+    pub fn html(self, val: &str) -> Self {
+        self.inner.set_html(val);
+        self
+    }
+    pub fn attachments(self, val: &[EmailAttachment]) -> Self {
+        self.inner.set_attachments(val);
+        self
+    }
+    pub fn build(self) -> SendEmailBuilder {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type D1Meta;
+    #[wasm_bindgen(method, getter)]
+    pub fn duration(this: &D1Meta) -> f64;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_duration(this: &D1Meta, val: f64);
+    #[wasm_bindgen(method, getter)]
+    pub fn size_after(this: &D1Meta) -> f64;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_size_after(this: &D1Meta, val: f64);
+    #[wasm_bindgen(method, getter)]
+    pub fn rows_read(this: &D1Meta) -> f64;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_rows_read(this: &D1Meta, val: f64);
+    #[wasm_bindgen(method, getter)]
+    pub fn rows_written(this: &D1Meta) -> f64;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_rows_written(this: &D1Meta, val: f64);
+    #[wasm_bindgen(method, getter)]
+    pub fn last_row_id(this: &D1Meta) -> f64;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_last_row_id(this: &D1Meta, val: f64);
+    #[wasm_bindgen(method, getter)]
+    pub fn changed_db(this: &D1Meta) -> bool;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_changed_db(this: &D1Meta, val: bool);
+    #[wasm_bindgen(method, getter)]
+    pub fn changes(this: &D1Meta) -> f64;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_changes(this: &D1Meta, val: f64);
+    #[wasm_bindgen(method, getter)]
+    pub fn served_by_region(this: &D1Meta) -> Option<String>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_served_by_region(this: &D1Meta, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn served_by_colo(this: &D1Meta) -> Option<String>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_served_by_colo(this: &D1Meta, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn served_by_primary(this: &D1Meta) -> Option<bool>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_served_by_primary(this: &D1Meta, val: bool);
+    #[wasm_bindgen(method, getter)]
+    pub fn total_attempts(this: &D1Meta) -> Option<f64>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_total_attempts(this: &D1Meta, val: f64);
+}
+impl D1Meta {
+    pub fn new(
+        duration: f64,
+        size_after: f64,
+        rows_read: f64,
+        rows_written: f64,
+        last_row_id: f64,
+        changed_db: bool,
+        changes: f64,
+    ) -> D1Meta {
+        Self::builder(
+            duration,
+            size_after,
+            rows_read,
+            rows_written,
+            last_row_id,
+            changed_db,
+            changes,
+        )
+        .build()
+    }
+    pub fn builder(
+        duration: f64,
+        size_after: f64,
+        rows_read: f64,
+        rows_written: f64,
+        last_row_id: f64,
+        changed_db: bool,
+        changes: f64,
+    ) -> D1MetaBuilder {
+        let inner: D1Meta = JsCast::unchecked_into(js_sys::Object::new());
+        inner.set_duration(duration);
+        inner.set_size_after(size_after);
+        inner.set_rows_read(rows_read);
+        inner.set_rows_written(rows_written);
+        inner.set_last_row_id(last_row_id);
+        inner.set_changed_db(changed_db);
+        inner.set_changes(changes);
+        D1MetaBuilder { inner }
+    }
+}
+pub struct D1MetaBuilder {
+    inner: D1Meta,
+}
+impl D1MetaBuilder {
+    pub fn served_by_region(self, val: &str) -> Self {
+        self.inner.set_served_by_region(val);
+        self
+    }
+    pub fn served_by_colo(self, val: &str) -> Self {
+        self.inner.set_served_by_colo(val);
+        self
+    }
+    pub fn served_by_primary(self, val: bool) -> Self {
+        self.inner.set_served_by_primary(val);
+        self
+    }
+    pub fn total_attempts(self, val: f64) -> Self {
+        self.inner.set_total_attempts(val);
+        self
+    }
+    pub fn build(self) -> D1Meta {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type D1Result;
+    #[wasm_bindgen(method, getter)]
+    pub fn success(this: &D1Result) -> bool;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_success(this: &D1Result, val: bool);
+    #[wasm_bindgen(method, getter)]
+    pub fn meta(this: &D1Result) -> D1Meta;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_meta(this: &D1Result, val: &D1Meta);
+    #[wasm_bindgen(method, getter)]
+    pub fn error(this: &D1Result) -> Option<String>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_error(this: &D1Result, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn results(this: &D1Result) -> Vec<JsValue>;
+    #[wasm_bindgen(method, setter, slice_to_array)]
+    pub fn set_results(this: &D1Result, val: &[JsValue]);
+}
+impl D1Result {
+    pub fn new(success: bool, meta: &D1Meta, results: &[JsValue]) -> D1Result {
+        Self::builder(success, meta, results).build()
+    }
+    pub fn builder(success: bool, meta: &D1Meta, results: &[JsValue]) -> D1ResultBuilder {
+        let inner: D1Result = JsCast::unchecked_into(js_sys::Object::new());
+        inner.set_success(success);
+        inner.set_meta(meta);
+        inner.set_results(results);
+        D1ResultBuilder { inner }
+    }
+}
+pub struct D1ResultBuilder {
+    inner: D1Result,
+}
+impl D1ResultBuilder {
+    pub fn error(self, val: &str) -> Self {
+        self.inner.set_error(val);
+        self
+    }
+    pub fn build(self) -> D1Result {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type D1ExecResult;
+    #[wasm_bindgen(method, getter)]
+    pub fn count(this: &D1ExecResult) -> f64;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_count(this: &D1ExecResult, val: f64);
+    #[wasm_bindgen(method, getter)]
+    pub fn duration(this: &D1ExecResult) -> f64;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_duration(this: &D1ExecResult, val: f64);
+}
+impl D1ExecResult {
+    pub fn new(count: f64, duration: f64) -> D1ExecResult {
+        let inner: D1ExecResult = JsCast::unchecked_into(js_sys::Object::new());
+        inner.set_count(count);
+        inner.set_duration(duration);
+        inner
+    }
+}
+#[wasm_bindgen]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum D1SessionConstraint {
+    FirstPrimary = "first-primary",
+    FirstUnconstrained = "first-unconstrained",
+}
+#[allow(dead_code)]
+pub type D1SessionBookmark = JsString;
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type D1Database;
+    #[wasm_bindgen(method, catch)]
+    pub fn prepare(this: &D1Database, query: &str) -> Result<D1PreparedStatement, crate::Error>;
+    #[wasm_bindgen(method, catch, slice_to_array)]
+    pub async fn batch(
+        this: &D1Database,
+        statements: &[D1PreparedStatement],
+    ) -> Result<Array<D1Result>, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub async fn exec(this: &D1Database, query: &str) -> Result<D1ExecResult, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "withSession")]
+    pub fn with_session(this: &D1Database) -> Result<D1DatabaseSession, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "withSession")]
+    pub fn with_session_with_str(
+        this: &D1Database,
+        constraint_or_bookmark: &str,
+    ) -> Result<D1DatabaseSession, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "withSession")]
+    pub fn with_session_with_d1_session_constraint(
+        this: &D1Database,
+        constraint_or_bookmark: D1SessionConstraint,
+    ) -> Result<D1DatabaseSession, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub async fn dump(this: &D1Database) -> Result<ArrayBuffer, crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type D1DatabaseSession;
+    #[wasm_bindgen(method, catch)]
+    pub fn prepare(
+        this: &D1DatabaseSession,
+        query: &str,
+    ) -> Result<D1PreparedStatement, crate::Error>;
+    #[wasm_bindgen(method, catch, slice_to_array)]
+    pub async fn batch(
+        this: &D1DatabaseSession,
+        statements: &[D1PreparedStatement],
+    ) -> Result<Array<D1Result>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "getBookmark")]
+    pub fn get_bookmark(this: &D1DatabaseSession) -> Result<Option<String>, crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type D1PreparedStatement;
+    #[wasm_bindgen(method, variadic, catch, slice_to_array)]
+    pub fn bind(
+        this: &D1PreparedStatement,
+        values: &[JsValue],
+    ) -> Result<D1PreparedStatement, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub async fn first(this: &D1PreparedStatement, col_name: &str)
+        -> Result<JsValue, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "first")]
+    pub async fn first_2(this: &D1PreparedStatement) -> Result<JsValue, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub async fn run(this: &D1PreparedStatement) -> Result<D1Result, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub async fn all(this: &D1PreparedStatement) -> Result<D1Result, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub async fn raw(this: &D1PreparedStatement) -> Result<Array, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "raw")]
+    pub async fn raw_with_options(
+        this: &D1PreparedStatement,
+        options: &D1PreparedStatementOptions,
+    ) -> Result<Array, crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type D1PreparedStatementOptions;
+    #[wasm_bindgen(method, getter, js_name = "columnNames")]
+    pub fn column_names(this: &D1PreparedStatementOptions) -> Option<bool>;
+    #[wasm_bindgen(method, setter, js_name = "columnNames")]
+    pub fn set_column_names(this: &D1PreparedStatementOptions, val: bool);
+}
+impl D1PreparedStatementOptions {
+    pub fn new() -> D1PreparedStatementOptions {
+        Self::builder().build()
+    }
+    pub fn builder() -> D1PreparedStatementOptionsBuilder {
+        D1PreparedStatementOptionsBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct D1PreparedStatementOptionsBuilder {
+    inner: D1PreparedStatementOptions,
+}
+impl D1PreparedStatementOptionsBuilder {
+    pub fn column_names(self, val: bool) -> Self {
+        self.inner.set_column_names(val);
+        self
+    }
+    pub fn build(self) -> D1PreparedStatementOptions {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type R2ListOptions;
+    #[wasm_bindgen(method, getter)]
+    pub fn limit(this: &R2ListOptions) -> Option<f64>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_limit(this: &R2ListOptions, val: f64);
+    #[wasm_bindgen(method, getter)]
+    pub fn prefix(this: &R2ListOptions) -> Option<String>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_prefix(this: &R2ListOptions, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn cursor(this: &R2ListOptions) -> Option<String>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_cursor(this: &R2ListOptions, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn delimiter(this: &R2ListOptions) -> Option<String>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_delimiter(this: &R2ListOptions, val: &str);
+    #[wasm_bindgen(method, getter, js_name = "startAfter")]
+    pub fn start_after(this: &R2ListOptions) -> Option<String>;
+    #[wasm_bindgen(method, setter, js_name = "startAfter")]
+    pub fn set_start_after(this: &R2ListOptions, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn include(this: &R2ListOptions) -> Option<Vec<String>>;
+    #[wasm_bindgen(method, setter, slice_to_array)]
+    pub fn set_include(this: &R2ListOptions, val: &[String]);
+}
+impl R2ListOptions {
+    pub fn new() -> R2ListOptions {
+        Self::builder().build()
+    }
+    pub fn builder() -> R2ListOptionsBuilder {
+        R2ListOptionsBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct R2ListOptionsBuilder {
+    inner: R2ListOptions,
+}
+impl R2ListOptionsBuilder {
+    pub fn limit(self, val: f64) -> Self {
+        self.inner.set_limit(val);
+        self
+    }
+    pub fn prefix(self, val: &str) -> Self {
+        self.inner.set_prefix(val);
+        self
+    }
+    pub fn cursor(self, val: &str) -> Self {
+        self.inner.set_cursor(val);
+        self
+    }
+    pub fn delimiter(self, val: &str) -> Self {
+        self.inner.set_delimiter(val);
+        self
+    }
+    pub fn start_after(self, val: &str) -> Self {
+        self.inner.set_start_after(val);
+        self
+    }
+    pub fn include(self, val: &[String]) -> Self {
+        self.inner.set_include(val);
+        self
+    }
+    pub fn build(self) -> R2ListOptions {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type R2Bucket;
+    #[wasm_bindgen(method, catch)]
+    pub async fn head(this: &R2Bucket, key: &str) -> Result<JsOption<R2Object>, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub async fn get(this: &R2Bucket, key: &str) -> Result<JsOption<R2ObjectBody>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "get")]
+    pub async fn get_with_options(
+        this: &R2Bucket,
+        key: &str,
+        options: &R2GetOptions,
+    ) -> Result<JsOption<R2ObjectBody>, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub async fn put(
+        this: &R2Bucket,
+        key: &str,
+        value: &ReadableStream,
+    ) -> Result<JsOption<R2Object>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    pub async fn put_with_array_buffer(
+        this: &R2Bucket,
+        key: &str,
+        value: &ArrayBuffer,
+    ) -> Result<JsOption<R2Object>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    pub async fn put_with_typed_array(
+        this: &R2Bucket,
+        key: &str,
+        value: &Object,
+    ) -> Result<JsOption<R2Object>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    pub async fn put_with_str(
+        this: &R2Bucket,
+        key: &str,
+        value: &str,
+    ) -> Result<JsOption<R2Object>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    pub async fn put_with_blob(
+        this: &R2Bucket,
+        key: &str,
+        value: &Blob,
+    ) -> Result<JsOption<R2Object>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    pub async fn put_with_readable_stream_and_options(
+        this: &R2Bucket,
+        key: &str,
+        value: &ReadableStream,
+        options: &R2PutOptions,
+    ) -> Result<JsOption<R2Object>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    pub async fn put_with_array_buffer_and_options(
+        this: &R2Bucket,
+        key: &str,
+        value: &ArrayBuffer,
+        options: &R2PutOptions,
+    ) -> Result<JsOption<R2Object>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    pub async fn put_with_typed_array_and_options(
+        this: &R2Bucket,
+        key: &str,
+        value: &Object,
+        options: &R2PutOptions,
+    ) -> Result<JsOption<R2Object>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    pub async fn put_with_str_and_options(
+        this: &R2Bucket,
+        key: &str,
+        value: &str,
+        options: &R2PutOptions,
+    ) -> Result<JsOption<R2Object>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    pub async fn put_with_blob_and_options(
+        this: &R2Bucket,
+        key: &str,
+        value: &Blob,
+        options: &R2PutOptions,
+    ) -> Result<JsOption<R2Object>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "createMultipartUpload")]
+    pub async fn create_multipart_upload(
+        this: &R2Bucket,
+        key: &str,
+    ) -> Result<R2MultipartUpload, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "createMultipartUpload")]
+    pub async fn create_multipart_upload_with_options(
+        this: &R2Bucket,
+        key: &str,
+        options: &R2MultipartOptions,
+    ) -> Result<R2MultipartUpload, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "resumeMultipartUpload")]
+    pub fn resume_multipart_upload(
+        this: &R2Bucket,
+        key: &str,
+        upload_id: &str,
+    ) -> Result<R2MultipartUpload, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub async fn delete(this: &R2Bucket, keys: &str) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, slice_to_array, js_name = "delete")]
+    pub async fn delete_with_slice(
+        this: &R2Bucket,
+        keys: &[String],
+    ) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub async fn list(this: &R2Bucket) -> Result<R2Objects, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "list")]
+    pub async fn list_with_options(
+        this: &R2Bucket,
+        options: &R2ListOptions,
+    ) -> Result<R2Objects, crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type R2MultipartUpload;
+    #[wasm_bindgen(method, getter)]
+    pub fn key(this: &R2MultipartUpload) -> String;
+    #[wasm_bindgen(method, getter, js_name = "uploadId")]
+    pub fn upload_id(this: &R2MultipartUpload) -> String;
+    #[wasm_bindgen(method, catch, js_name = "uploadPart")]
+    pub async fn upload_part(
+        this: &R2MultipartUpload,
+        part_number: f64,
+        value: &ReadableStream,
+    ) -> Result<R2UploadedPart, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "uploadPart")]
+    pub async fn upload_part_with_array_buffer(
+        this: &R2MultipartUpload,
+        part_number: f64,
+        value: &ArrayBuffer,
+    ) -> Result<R2UploadedPart, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "uploadPart")]
+    pub async fn upload_part_with_typed_array(
+        this: &R2MultipartUpload,
+        part_number: f64,
+        value: &Object,
+    ) -> Result<R2UploadedPart, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "uploadPart")]
+    pub async fn upload_part_with_str(
+        this: &R2MultipartUpload,
+        part_number: f64,
+        value: &str,
+    ) -> Result<R2UploadedPart, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "uploadPart")]
+    pub async fn upload_part_with_blob(
+        this: &R2MultipartUpload,
+        part_number: f64,
+        value: &Blob,
+    ) -> Result<R2UploadedPart, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "uploadPart")]
+    pub async fn upload_part_with_readable_stream_and_options(
+        this: &R2MultipartUpload,
+        part_number: f64,
+        value: &ReadableStream,
+        options: &R2UploadPartOptions,
+    ) -> Result<R2UploadedPart, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "uploadPart")]
+    pub async fn upload_part_with_array_buffer_and_options(
+        this: &R2MultipartUpload,
+        part_number: f64,
+        value: &ArrayBuffer,
+        options: &R2UploadPartOptions,
+    ) -> Result<R2UploadedPart, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "uploadPart")]
+    pub async fn upload_part_with_typed_array_and_options(
+        this: &R2MultipartUpload,
+        part_number: f64,
+        value: &Object,
+        options: &R2UploadPartOptions,
+    ) -> Result<R2UploadedPart, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "uploadPart")]
+    pub async fn upload_part_with_str_and_options(
+        this: &R2MultipartUpload,
+        part_number: f64,
+        value: &str,
+        options: &R2UploadPartOptions,
+    ) -> Result<R2UploadedPart, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "uploadPart")]
+    pub async fn upload_part_with_blob_and_options(
+        this: &R2MultipartUpload,
+        part_number: f64,
+        value: &Blob,
+        options: &R2UploadPartOptions,
+    ) -> Result<R2UploadedPart, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub async fn abort(this: &R2MultipartUpload) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, slice_to_array)]
+    pub async fn complete(
+        this: &R2MultipartUpload,
+        uploaded_parts: &[R2UploadedPart],
+    ) -> Result<R2Object, crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type R2UploadedPart;
+    #[wasm_bindgen(method, getter, js_name = "partNumber")]
+    pub fn part_number(this: &R2UploadedPart) -> f64;
+    #[wasm_bindgen(method, setter, js_name = "partNumber")]
+    pub fn set_part_number(this: &R2UploadedPart, val: f64);
+    #[wasm_bindgen(method, getter)]
+    pub fn etag(this: &R2UploadedPart) -> String;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_etag(this: &R2UploadedPart, val: &str);
+}
+impl R2UploadedPart {
+    pub fn new(part_number: f64, etag: &str) -> R2UploadedPart {
+        let inner: R2UploadedPart = JsCast::unchecked_into(js_sys::Object::new());
+        inner.set_part_number(part_number);
+        inner.set_etag(etag);
+        inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type R2Object;
+    #[wasm_bindgen(method, getter)]
+    pub fn key(this: &R2Object) -> String;
+    #[wasm_bindgen(method, getter)]
+    pub fn version(this: &R2Object) -> String;
+    #[wasm_bindgen(method, getter)]
+    pub fn size(this: &R2Object) -> f64;
+    #[wasm_bindgen(method, getter)]
+    pub fn etag(this: &R2Object) -> String;
+    #[wasm_bindgen(method, getter, js_name = "httpEtag")]
+    pub fn http_etag(this: &R2Object) -> String;
+    #[wasm_bindgen(method, getter)]
+    pub fn checksums(this: &R2Object) -> R2Checksums;
+    #[wasm_bindgen(method, getter)]
+    pub fn uploaded(this: &R2Object) -> Date;
+    #[wasm_bindgen(method, getter, js_name = "httpMetadata")]
+    pub fn http_metadata(this: &R2Object) -> Option<R2HTTPMetadata>;
+    #[wasm_bindgen(method, getter, js_name = "customMetadata")]
+    pub fn custom_metadata(this: &R2Object) -> Option<Object<JsString>>;
+    #[wasm_bindgen(method, getter)]
+    pub fn range(this: &R2Object) -> Option<R2Range>;
+    #[wasm_bindgen(method, getter, js_name = "storageClass")]
+    pub fn storage_class(this: &R2Object) -> String;
+    #[wasm_bindgen(method, getter, js_name = "ssecKeyMd5")]
+    pub fn ssec_key_md5(this: &R2Object) -> Option<String>;
+    #[wasm_bindgen(method, catch, js_name = "writeHttpMetadata")]
+    pub fn write_http_metadata(this: &R2Object, headers: &Headers) -> Result<(), crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = R2Object , extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type R2ObjectBody;
+    #[wasm_bindgen(method, getter)]
+    pub fn body(this: &R2ObjectBody) -> ReadableStream;
+    #[wasm_bindgen(method, getter, js_name = "bodyUsed")]
+    pub fn body_used(this: &R2ObjectBody) -> bool;
+    #[wasm_bindgen(method, catch, js_name = "arrayBuffer")]
+    pub async fn array_buffer(this: &R2ObjectBody) -> Result<ArrayBuffer, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub async fn bytes(this: &R2ObjectBody) -> Result<Uint8Array, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub async fn text(this: &R2ObjectBody) -> Result<JsString, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub async fn json(this: &R2ObjectBody) -> Result<JsValue, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub async fn blob(this: &R2ObjectBody) -> Result<Blob, crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type R2Range;
+    #[wasm_bindgen(method, getter)]
+    pub fn offset(this: &R2Range) -> Option<f64>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_offset(this: &R2Range, val: f64);
+    #[wasm_bindgen(method, getter)]
+    pub fn length(this: &R2Range) -> Option<f64>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_length(this: &R2Range, val: f64);
+    #[wasm_bindgen(method, getter)]
+    pub fn suffix(this: &R2Range) -> Option<f64>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_suffix(this: &R2Range, val: f64);
+}
+impl R2Range {
+    pub fn new() -> R2Range {
+        Self::builder().build()
+    }
+    pub fn builder() -> R2RangeBuilder {
+        R2RangeBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct R2RangeBuilder {
+    inner: R2Range,
+}
+impl R2RangeBuilder {
+    pub fn offset(self, val: f64) -> Self {
+        self.inner.set_offset(val);
+        self
+    }
+    pub fn length(self, val: f64) -> Self {
+        self.inner.set_length(val);
+        self
+    }
+    pub fn suffix(self, val: f64) -> Self {
+        self.inner.set_suffix(val);
+        self
+    }
+    pub fn build(self) -> R2Range {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type R2Conditional;
+    #[wasm_bindgen(method, getter, js_name = "etagMatches")]
+    pub fn etag_matches(this: &R2Conditional) -> Option<String>;
+    #[wasm_bindgen(method, setter, js_name = "etagMatches")]
+    pub fn set_etag_matches(this: &R2Conditional, val: &str);
+    #[wasm_bindgen(method, getter, js_name = "etagDoesNotMatch")]
+    pub fn etag_does_not_match(this: &R2Conditional) -> Option<String>;
+    #[wasm_bindgen(method, setter, js_name = "etagDoesNotMatch")]
+    pub fn set_etag_does_not_match(this: &R2Conditional, val: &str);
+    #[wasm_bindgen(method, getter, js_name = "uploadedBefore")]
+    pub fn uploaded_before(this: &R2Conditional) -> Option<Date>;
+    #[wasm_bindgen(method, setter, js_name = "uploadedBefore")]
+    pub fn set_uploaded_before(this: &R2Conditional, val: &Date);
+    #[wasm_bindgen(method, getter, js_name = "uploadedAfter")]
+    pub fn uploaded_after(this: &R2Conditional) -> Option<Date>;
+    #[wasm_bindgen(method, setter, js_name = "uploadedAfter")]
+    pub fn set_uploaded_after(this: &R2Conditional, val: &Date);
+    #[wasm_bindgen(method, getter, js_name = "secondsGranularity")]
+    pub fn seconds_granularity(this: &R2Conditional) -> Option<bool>;
+    #[wasm_bindgen(method, setter, js_name = "secondsGranularity")]
+    pub fn set_seconds_granularity(this: &R2Conditional, val: bool);
+}
+impl R2Conditional {
+    pub fn new() -> R2Conditional {
+        Self::builder().build()
+    }
+    pub fn builder() -> R2ConditionalBuilder {
+        R2ConditionalBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct R2ConditionalBuilder {
+    inner: R2Conditional,
+}
+impl R2ConditionalBuilder {
+    pub fn etag_matches(self, val: &str) -> Self {
+        self.inner.set_etag_matches(val);
+        self
+    }
+    pub fn etag_does_not_match(self, val: &str) -> Self {
+        self.inner.set_etag_does_not_match(val);
+        self
+    }
+    pub fn uploaded_before(self, val: &Date) -> Self {
+        self.inner.set_uploaded_before(val);
+        self
+    }
+    pub fn uploaded_after(self, val: &Date) -> Self {
+        self.inner.set_uploaded_after(val);
+        self
+    }
+    pub fn seconds_granularity(self, val: bool) -> Self {
+        self.inner.set_seconds_granularity(val);
+        self
+    }
+    pub fn build(self) -> R2Conditional {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type R2GetOptions;
+    #[wasm_bindgen(method, getter, js_name = "onlyIf")]
+    pub fn only_if(this: &R2GetOptions) -> Option<OnlyIfKind>;
+    #[wasm_bindgen(method, setter, js_name = "onlyIf")]
+    pub fn set_only_if(this: &R2GetOptions, val: &R2Conditional);
+    #[wasm_bindgen(method, setter, js_name = "onlyIf")]
+    pub fn set_only_if_with_headers(this: &R2GetOptions, val: &Headers);
+    #[wasm_bindgen(method, getter)]
+    pub fn range(this: &R2GetOptions) -> Option<RangeKind>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_range(this: &R2GetOptions, val: &R2Range);
+    #[wasm_bindgen(method, setter, js_name = "range")]
+    pub fn set_range_with_headers(this: &R2GetOptions, val: &Headers);
+    #[wasm_bindgen(method, getter, js_name = "ssecKey")]
+    pub fn ssec_key(this: &R2GetOptions) -> Option<DataKind>;
+    #[wasm_bindgen(method, setter, js_name = "ssecKey")]
+    pub fn set_ssec_key(this: &R2GetOptions, val: &ArrayBuffer);
+    #[wasm_bindgen(method, setter, js_name = "ssecKey")]
+    pub fn set_ssec_key_with_str(this: &R2GetOptions, val: &str);
+}
+impl R2GetOptions {
+    pub fn new() -> R2GetOptions {
+        Self::builder().build()
+    }
+    pub fn builder() -> R2GetOptionsBuilder {
+        R2GetOptionsBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct R2GetOptionsBuilder {
+    inner: R2GetOptions,
+}
+impl R2GetOptionsBuilder {
+    pub fn only_if(self, val: &R2Conditional) -> Self {
+        self.inner.set_only_if(val);
+        self
+    }
+    pub fn only_if_with_headers(self, val: &Headers) -> Self {
+        self.inner.set_only_if_with_headers(val);
+        self
+    }
+    pub fn range(self, val: &R2Range) -> Self {
+        self.inner.set_range(val);
+        self
+    }
+    pub fn range_with_headers(self, val: &Headers) -> Self {
+        self.inner.set_range_with_headers(val);
+        self
+    }
+    pub fn ssec_key(self, val: &ArrayBuffer) -> Self {
+        self.inner.set_ssec_key(val);
+        self
+    }
+    pub fn ssec_key_with_str(self, val: &str) -> Self {
+        self.inner.set_ssec_key_with_str(val);
+        self
+    }
+    pub fn build(self) -> R2GetOptions {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type R2PutOptions;
+    #[wasm_bindgen(method, getter, js_name = "onlyIf")]
+    pub fn only_if(this: &R2PutOptions) -> Option<OnlyIfKind>;
+    #[wasm_bindgen(method, setter, js_name = "onlyIf")]
+    pub fn set_only_if(this: &R2PutOptions, val: &R2Conditional);
+    #[wasm_bindgen(method, setter, js_name = "onlyIf")]
+    pub fn set_only_if_with_headers(this: &R2PutOptions, val: &Headers);
+    #[wasm_bindgen(method, getter, js_name = "httpMetadata")]
+    pub fn http_metadata(this: &R2PutOptions) -> Option<HttpMetadataKind>;
+    #[wasm_bindgen(method, setter, js_name = "httpMetadata")]
+    pub fn set_http_metadata(this: &R2PutOptions, val: &R2HTTPMetadata);
+    #[wasm_bindgen(method, setter, js_name = "httpMetadata")]
+    pub fn set_http_metadata_with_headers(this: &R2PutOptions, val: &Headers);
+    #[wasm_bindgen(method, getter, js_name = "customMetadata")]
+    pub fn custom_metadata(this: &R2PutOptions) -> Option<Object<JsString>>;
+    #[wasm_bindgen(method, setter, js_name = "customMetadata")]
+    pub fn set_custom_metadata(this: &R2PutOptions, val: &Object<JsString>);
+    #[wasm_bindgen(method, getter)]
+    pub fn md5(this: &R2PutOptions) -> Option<Md5Kind>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_md5(this: &R2PutOptions, val: &ArrayBuffer);
+    #[wasm_bindgen(method, setter, js_name = "md5")]
+    pub fn set_md5_with_typed_array<T: ::js_sys::TypedArray>(this: &R2PutOptions, val: &T);
+    #[wasm_bindgen(method, setter, js_name = "md5")]
+    pub fn set_md5_with_str(this: &R2PutOptions, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn sha1(this: &R2PutOptions) -> Option<Md5Kind>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_sha1(this: &R2PutOptions, val: &ArrayBuffer);
+    #[wasm_bindgen(method, setter, js_name = "sha1")]
+    pub fn set_sha1_with_typed_array<T: ::js_sys::TypedArray>(this: &R2PutOptions, val: &T);
+    #[wasm_bindgen(method, setter, js_name = "sha1")]
+    pub fn set_sha1_with_str(this: &R2PutOptions, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn sha256(this: &R2PutOptions) -> Option<Md5Kind>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_sha256(this: &R2PutOptions, val: &ArrayBuffer);
+    #[wasm_bindgen(method, setter, js_name = "sha256")]
+    pub fn set_sha256_with_typed_array<T: ::js_sys::TypedArray>(this: &R2PutOptions, val: &T);
+    #[wasm_bindgen(method, setter, js_name = "sha256")]
+    pub fn set_sha256_with_str(this: &R2PutOptions, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn sha384(this: &R2PutOptions) -> Option<Md5Kind>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_sha384(this: &R2PutOptions, val: &ArrayBuffer);
+    #[wasm_bindgen(method, setter, js_name = "sha384")]
+    pub fn set_sha384_with_typed_array<T: ::js_sys::TypedArray>(this: &R2PutOptions, val: &T);
+    #[wasm_bindgen(method, setter, js_name = "sha384")]
+    pub fn set_sha384_with_str(this: &R2PutOptions, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn sha512(this: &R2PutOptions) -> Option<Md5Kind>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_sha512(this: &R2PutOptions, val: &ArrayBuffer);
+    #[wasm_bindgen(method, setter, js_name = "sha512")]
+    pub fn set_sha512_with_typed_array<T: ::js_sys::TypedArray>(this: &R2PutOptions, val: &T);
+    #[wasm_bindgen(method, setter, js_name = "sha512")]
+    pub fn set_sha512_with_str(this: &R2PutOptions, val: &str);
+    #[wasm_bindgen(method, getter, js_name = "storageClass")]
+    pub fn storage_class(this: &R2PutOptions) -> Option<String>;
+    #[wasm_bindgen(method, setter, js_name = "storageClass")]
+    pub fn set_storage_class(this: &R2PutOptions, val: &str);
+    #[wasm_bindgen(method, getter, js_name = "ssecKey")]
+    pub fn ssec_key(this: &R2PutOptions) -> Option<DataKind>;
+    #[wasm_bindgen(method, setter, js_name = "ssecKey")]
+    pub fn set_ssec_key(this: &R2PutOptions, val: &ArrayBuffer);
+    #[wasm_bindgen(method, setter, js_name = "ssecKey")]
+    pub fn set_ssec_key_with_str(this: &R2PutOptions, val: &str);
+}
+impl R2PutOptions {
+    pub fn new() -> R2PutOptions {
+        Self::builder().build()
+    }
+    pub fn builder() -> R2PutOptionsBuilder {
+        R2PutOptionsBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct R2PutOptionsBuilder {
+    inner: R2PutOptions,
+}
+impl R2PutOptionsBuilder {
+    pub fn only_if(self, val: &R2Conditional) -> Self {
+        self.inner.set_only_if(val);
+        self
+    }
+    pub fn only_if_with_headers(self, val: &Headers) -> Self {
+        self.inner.set_only_if_with_headers(val);
+        self
+    }
+    pub fn http_metadata(self, val: &R2HTTPMetadata) -> Self {
+        self.inner.set_http_metadata(val);
+        self
+    }
+    pub fn http_metadata_with_headers(self, val: &Headers) -> Self {
+        self.inner.set_http_metadata_with_headers(val);
+        self
+    }
+    pub fn custom_metadata(self, val: &Object<JsString>) -> Self {
+        self.inner.set_custom_metadata(val);
+        self
+    }
+    pub fn md5(self, val: &ArrayBuffer) -> Self {
+        self.inner.set_md5(val);
+        self
+    }
+    pub fn md5_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self {
+        self.inner.set_md5_with_typed_array(val);
+        self
+    }
+    pub fn md5_with_str(self, val: &str) -> Self {
+        self.inner.set_md5_with_str(val);
+        self
+    }
+    pub fn sha1(self, val: &ArrayBuffer) -> Self {
+        self.inner.set_sha1(val);
+        self
+    }
+    pub fn sha1_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self {
+        self.inner.set_sha1_with_typed_array(val);
+        self
+    }
+    pub fn sha1_with_str(self, val: &str) -> Self {
+        self.inner.set_sha1_with_str(val);
+        self
+    }
+    pub fn sha256(self, val: &ArrayBuffer) -> Self {
+        self.inner.set_sha256(val);
+        self
+    }
+    pub fn sha256_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self {
+        self.inner.set_sha256_with_typed_array(val);
+        self
+    }
+    pub fn sha256_with_str(self, val: &str) -> Self {
+        self.inner.set_sha256_with_str(val);
+        self
+    }
+    pub fn sha384(self, val: &ArrayBuffer) -> Self {
+        self.inner.set_sha384(val);
+        self
+    }
+    pub fn sha384_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self {
+        self.inner.set_sha384_with_typed_array(val);
+        self
+    }
+    pub fn sha384_with_str(self, val: &str) -> Self {
+        self.inner.set_sha384_with_str(val);
+        self
+    }
+    pub fn sha512(self, val: &ArrayBuffer) -> Self {
+        self.inner.set_sha512(val);
+        self
+    }
+    pub fn sha512_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self {
+        self.inner.set_sha512_with_typed_array(val);
+        self
+    }
+    pub fn sha512_with_str(self, val: &str) -> Self {
+        self.inner.set_sha512_with_str(val);
+        self
+    }
+    pub fn storage_class(self, val: &str) -> Self {
+        self.inner.set_storage_class(val);
+        self
+    }
+    pub fn ssec_key(self, val: &ArrayBuffer) -> Self {
+        self.inner.set_ssec_key(val);
+        self
+    }
+    pub fn ssec_key_with_str(self, val: &str) -> Self {
+        self.inner.set_ssec_key_with_str(val);
+        self
+    }
+    pub fn build(self) -> R2PutOptions {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type R2MultipartOptions;
+    #[wasm_bindgen(method, getter, js_name = "httpMetadata")]
+    pub fn http_metadata(this: &R2MultipartOptions) -> Option<HttpMetadataKind>;
+    #[wasm_bindgen(method, setter, js_name = "httpMetadata")]
+    pub fn set_http_metadata(this: &R2MultipartOptions, val: &R2HTTPMetadata);
+    #[wasm_bindgen(method, setter, js_name = "httpMetadata")]
+    pub fn set_http_metadata_with_headers(this: &R2MultipartOptions, val: &Headers);
+    #[wasm_bindgen(method, getter, js_name = "customMetadata")]
+    pub fn custom_metadata(this: &R2MultipartOptions) -> Option<Object<JsString>>;
+    #[wasm_bindgen(method, setter, js_name = "customMetadata")]
+    pub fn set_custom_metadata(this: &R2MultipartOptions, val: &Object<JsString>);
+    #[wasm_bindgen(method, getter, js_name = "storageClass")]
+    pub fn storage_class(this: &R2MultipartOptions) -> Option<String>;
+    #[wasm_bindgen(method, setter, js_name = "storageClass")]
+    pub fn set_storage_class(this: &R2MultipartOptions, val: &str);
+    #[wasm_bindgen(method, getter, js_name = "ssecKey")]
+    pub fn ssec_key(this: &R2MultipartOptions) -> Option<DataKind>;
+    #[wasm_bindgen(method, setter, js_name = "ssecKey")]
+    pub fn set_ssec_key(this: &R2MultipartOptions, val: &ArrayBuffer);
+    #[wasm_bindgen(method, setter, js_name = "ssecKey")]
+    pub fn set_ssec_key_with_str(this: &R2MultipartOptions, val: &str);
+}
+impl R2MultipartOptions {
+    pub fn new() -> R2MultipartOptions {
+        Self::builder().build()
+    }
+    pub fn builder() -> R2MultipartOptionsBuilder {
+        R2MultipartOptionsBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct R2MultipartOptionsBuilder {
+    inner: R2MultipartOptions,
+}
+impl R2MultipartOptionsBuilder {
+    pub fn http_metadata(self, val: &R2HTTPMetadata) -> Self {
+        self.inner.set_http_metadata(val);
+        self
+    }
+    pub fn http_metadata_with_headers(self, val: &Headers) -> Self {
+        self.inner.set_http_metadata_with_headers(val);
+        self
+    }
+    pub fn custom_metadata(self, val: &Object<JsString>) -> Self {
+        self.inner.set_custom_metadata(val);
+        self
+    }
+    pub fn storage_class(self, val: &str) -> Self {
+        self.inner.set_storage_class(val);
+        self
+    }
+    pub fn ssec_key(self, val: &ArrayBuffer) -> Self {
+        self.inner.set_ssec_key(val);
+        self
+    }
+    pub fn ssec_key_with_str(self, val: &str) -> Self {
+        self.inner.set_ssec_key_with_str(val);
+        self
+    }
+    pub fn build(self) -> R2MultipartOptions {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type R2Checksums;
+    #[wasm_bindgen(method, getter)]
+    pub fn md5(this: &R2Checksums) -> Option<ArrayBuffer>;
+    #[wasm_bindgen(method, getter)]
+    pub fn sha1(this: &R2Checksums) -> Option<ArrayBuffer>;
+    #[wasm_bindgen(method, getter)]
+    pub fn sha256(this: &R2Checksums) -> Option<ArrayBuffer>;
+    #[wasm_bindgen(method, getter)]
+    pub fn sha384(this: &R2Checksums) -> Option<ArrayBuffer>;
+    #[wasm_bindgen(method, getter)]
+    pub fn sha512(this: &R2Checksums) -> Option<ArrayBuffer>;
+    #[wasm_bindgen(method, catch, js_name = "toJSON")]
+    pub fn to_json(this: &R2Checksums) -> Result<R2StringChecksums, crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type R2StringChecksums;
+    #[wasm_bindgen(method, getter)]
+    pub fn md5(this: &R2StringChecksums) -> Option<String>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_md5(this: &R2StringChecksums, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn sha1(this: &R2StringChecksums) -> Option<String>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_sha1(this: &R2StringChecksums, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn sha256(this: &R2StringChecksums) -> Option<String>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_sha256(this: &R2StringChecksums, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn sha384(this: &R2StringChecksums) -> Option<String>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_sha384(this: &R2StringChecksums, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn sha512(this: &R2StringChecksums) -> Option<String>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_sha512(this: &R2StringChecksums, val: &str);
+}
+impl R2StringChecksums {
+    pub fn new() -> R2StringChecksums {
+        Self::builder().build()
+    }
+    pub fn builder() -> R2StringChecksumsBuilder {
+        R2StringChecksumsBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct R2StringChecksumsBuilder {
+    inner: R2StringChecksums,
+}
+impl R2StringChecksumsBuilder {
+    pub fn md5(self, val: &str) -> Self {
+        self.inner.set_md5(val);
+        self
+    }
+    pub fn sha1(self, val: &str) -> Self {
+        self.inner.set_sha1(val);
+        self
+    }
+    pub fn sha256(self, val: &str) -> Self {
+        self.inner.set_sha256(val);
+        self
+    }
+    pub fn sha384(self, val: &str) -> Self {
+        self.inner.set_sha384(val);
+        self
+    }
+    pub fn sha512(self, val: &str) -> Self {
+        self.inner.set_sha512(val);
+        self
+    }
+    pub fn build(self) -> R2StringChecksums {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type R2HTTPMetadata;
+    #[wasm_bindgen(method, getter, js_name = "contentType")]
+    pub fn content_type(this: &R2HTTPMetadata) -> Option<String>;
+    #[wasm_bindgen(method, setter, js_name = "contentType")]
+    pub fn set_content_type(this: &R2HTTPMetadata, val: &str);
+    #[wasm_bindgen(method, getter, js_name = "contentLanguage")]
+    pub fn content_language(this: &R2HTTPMetadata) -> Option<String>;
+    #[wasm_bindgen(method, setter, js_name = "contentLanguage")]
+    pub fn set_content_language(this: &R2HTTPMetadata, val: &str);
+    #[wasm_bindgen(method, getter, js_name = "contentDisposition")]
+    pub fn content_disposition(this: &R2HTTPMetadata) -> Option<String>;
+    #[wasm_bindgen(method, setter, js_name = "contentDisposition")]
+    pub fn set_content_disposition(this: &R2HTTPMetadata, val: &str);
+    #[wasm_bindgen(method, getter, js_name = "contentEncoding")]
+    pub fn content_encoding(this: &R2HTTPMetadata) -> Option<String>;
+    #[wasm_bindgen(method, setter, js_name = "contentEncoding")]
+    pub fn set_content_encoding(this: &R2HTTPMetadata, val: &str);
+    #[wasm_bindgen(method, getter, js_name = "cacheControl")]
+    pub fn cache_control(this: &R2HTTPMetadata) -> Option<String>;
+    #[wasm_bindgen(method, setter, js_name = "cacheControl")]
+    pub fn set_cache_control(this: &R2HTTPMetadata, val: &str);
+    #[wasm_bindgen(method, getter, js_name = "cacheExpiry")]
+    pub fn cache_expiry(this: &R2HTTPMetadata) -> Option<Date>;
+    #[wasm_bindgen(method, setter, js_name = "cacheExpiry")]
+    pub fn set_cache_expiry(this: &R2HTTPMetadata, val: &Date);
+}
+impl R2HTTPMetadata {
+    pub fn new() -> R2HTTPMetadata {
+        Self::builder().build()
+    }
+    pub fn builder() -> R2HTTPMetadataBuilder {
+        R2HTTPMetadataBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct R2HTTPMetadataBuilder {
+    inner: R2HTTPMetadata,
+}
+impl R2HTTPMetadataBuilder {
+    pub fn content_type(self, val: &str) -> Self {
+        self.inner.set_content_type(val);
+        self
+    }
+    pub fn content_language(self, val: &str) -> Self {
+        self.inner.set_content_language(val);
+        self
+    }
+    pub fn content_disposition(self, val: &str) -> Self {
+        self.inner.set_content_disposition(val);
+        self
+    }
+    pub fn content_encoding(self, val: &str) -> Self {
+        self.inner.set_content_encoding(val);
+        self
+    }
+    pub fn cache_control(self, val: &str) -> Self {
+        self.inner.set_cache_control(val);
+        self
+    }
+    pub fn cache_expiry(self, val: &Date) -> Self {
+        self.inner.set_cache_expiry(val);
+        self
+    }
+    pub fn build(self) -> R2HTTPMetadata {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type R2Objects;
+    #[wasm_bindgen(method, getter)]
+    pub fn objects(this: &R2Objects) -> Vec<R2Object>;
+    #[wasm_bindgen(method, setter, slice_to_array)]
+    pub fn set_objects(this: &R2Objects, val: &[R2Object]);
+    #[wasm_bindgen(method, getter, js_name = "delimitedPrefixes")]
+    pub fn delimited_prefixes(this: &R2Objects) -> Vec<String>;
+    #[wasm_bindgen(method, setter, slice_to_array, js_name = "delimitedPrefixes")]
+    pub fn set_delimited_prefixes(this: &R2Objects, val: &[String]);
+    #[wasm_bindgen(method, getter)]
+    pub fn truncated(this: &R2Objects) -> bool;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_truncated(this: &R2Objects, val: bool);
+    #[wasm_bindgen(method, getter)]
+    pub fn cursor(this: &R2Objects) -> Option<String>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_cursor(this: &R2Objects, val: &str);
+}
+impl R2Objects {
+    pub fn new(objects: &[R2Object], delimited_prefixes: &[String], truncated: bool) -> R2Objects {
+        Self::builder(objects, delimited_prefixes, truncated).build()
+    }
+    pub fn builder(
+        objects: &[R2Object],
+        delimited_prefixes: &[String],
+        truncated: bool,
+    ) -> R2ObjectsBuilder {
+        let inner: R2Objects = JsCast::unchecked_into(js_sys::Object::new());
+        inner.set_objects(objects);
+        inner.set_delimited_prefixes(delimited_prefixes);
+        inner.set_truncated(truncated);
+        R2ObjectsBuilder { inner }
+    }
+}
+pub struct R2ObjectsBuilder {
+    inner: R2Objects,
+}
+impl R2ObjectsBuilder {
+    pub fn cursor(self, val: &str) -> Self {
+        self.inner.set_cursor(val);
+        self
+    }
+    pub fn build(self) -> R2Objects {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type R2UploadPartOptions;
+    #[wasm_bindgen(method, getter, js_name = "ssecKey")]
+    pub fn ssec_key(this: &R2UploadPartOptions) -> Option<DataKind>;
+    #[wasm_bindgen(method, setter, js_name = "ssecKey")]
+    pub fn set_ssec_key(this: &R2UploadPartOptions, val: &ArrayBuffer);
+    #[wasm_bindgen(method, setter, js_name = "ssecKey")]
+    pub fn set_ssec_key_with_str(this: &R2UploadPartOptions, val: &str);
+}
+impl R2UploadPartOptions {
+    pub fn new() -> R2UploadPartOptions {
+        Self::builder().build()
+    }
+    pub fn builder() -> R2UploadPartOptionsBuilder {
+        R2UploadPartOptionsBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct R2UploadPartOptionsBuilder {
+    inner: R2UploadPartOptions,
+}
+impl R2UploadPartOptionsBuilder {
+    pub fn ssec_key(self, val: &ArrayBuffer) -> Self {
+        self.inner.set_ssec_key(val);
+        self
+    }
+    pub fn ssec_key_with_str(self, val: &str) -> Self {
+        self.inner.set_ssec_key_with_str(val);
+        self
+    }
+    pub fn build(self) -> R2UploadPartOptions {
+        self.inner
+    }
+}
+#[wasm_bindgen]
 pub enum EncodeBodyKind {
     Automatic = "automatic",
     Manual = "manual",
@@ -3352,6 +5068,47 @@ pub enum SecureTransportKind {
     On = "on",
     Off = "off",
     Starttls = "starttls",
+}
+#[wasm_bindgen]
+pub enum DispositionKind {
+    Inline = "inline",
+    Attachment = "attachment",
+}
+#[wasm_bindgen]
+pub enum ContentKind {
+    String(String),
+    ArrayBuffer(ArrayBuffer),
+    Uint8Array(Uint8Array),
+}
+#[wasm_bindgen]
+pub enum FromKind {
+    String(String),
+    EmailAddress(EmailAddress),
+}
+#[wasm_bindgen]
+pub enum ToKind {
+    String(String),
+    VecOfString(Vec<String>),
+}
+#[wasm_bindgen]
+pub enum OnlyIfKind {
+    R2Conditional(R2Conditional),
+    Headers(Headers),
+}
+#[wasm_bindgen]
+pub enum RangeKind {
+    R2Range(R2Range),
+    Headers(Headers),
+}
+#[wasm_bindgen]
+pub enum HttpMetadataKind {
+    R2HttpMetadata(R2HTTPMetadata),
+    Headers(Headers),
+}
+#[wasm_bindgen]
+pub enum Md5Kind {
+    JsValue(JsValue),
+    String(String),
 }
 #[doc = " Every JS error class named by a `@throws` in these bindings; `Other` is any other thrown value. `Display` is the error's `message`."]
 #[derive(Debug, Clone)]

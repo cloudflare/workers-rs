@@ -18,6 +18,7 @@ mod assets;
 mod auto_response;
 mod cache;
 mod counter;
+mod d1;
 mod durable;
 mod fetch;
 mod form;
@@ -25,9 +26,11 @@ mod js_snippets;
 mod kv;
 mod put_raw;
 mod queue;
+mod r2;
 mod rate_limit;
 mod request;
 mod secret_store;
+mod send_email;
 mod service;
 mod socket;
 mod sql;
@@ -63,6 +66,7 @@ static DATA_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\d{4}-\d{2}-
 // `#[wasm_bindgen(start)]`, so both are driven from it.
 #[wasm_bindgen(start)]
 pub fn start() {
+    std::panic::set_hook(Box::new(|info| console::error(&[info.to_string().into()])));
     GLOBAL_STATE.store(true, Ordering::SeqCst);
     second_start();
 }
@@ -325,6 +329,43 @@ async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response
         ("POST", ["queue", "send", _]) => queue::handle_queue_send(req, env, data).await,
         ("POST", ["queue", "send_batch"]) => queue::handle_batch_send(req, env, data).await,
         ("GET", ["queue"]) => queue::handle_queue(req, env, data).await,
+        ("GET", ["d1", "prepared"]) => d1::prepared_statement(req, env, data).await,
+        ("GET", ["d1", "batch"]) => d1::batch(req, env, data).await,
+        ("GET", ["d1", "session_prepare_and_batch"]) => {
+            d1::session_prepare_and_batch(req, env, data).await
+        }
+        ("GET", ["d1", "session_bookmark_roundtrip"]) => {
+            d1::session_bookmark_roundtrip(req, env, data).await
+        }
+        ("GET", ["d1", "dump"]) => d1::dump(req, env, data).await,
+        ("POST", ["d1", "exec"]) => d1::exec(req, env, data).await,
+        ("GET", ["d1", "error"]) => d1::error(req, env, data).await,
+        ("GET", ["d1", "jsvalue_null_is_null"]) => d1::jsvalue_null_is_null(req, env, data).await,
+        ("GET", ["d1", "serialize_optional_none"]) => {
+            d1::serialize_optional_none(req, env, data).await
+        }
+        ("GET", ["d1", "serialize_optional_some"]) => {
+            d1::serialize_optional_some(req, env, data).await
+        }
+        ("GET", ["d1", "deserialize_optional_none"]) => {
+            d1::deserialize_optional_none(req, env, data).await
+        }
+        ("GET", ["d1", "insert_and_retrieve_optional_none"]) => {
+            d1::insert_and_retrieve_optional_none(req, env, data).await
+        }
+        ("GET", ["d1", "insert_and_retrieve_optional_some"]) => {
+            d1::insert_and_retrieve_optional_some(req, env, data).await
+        }
+        ("GET", ["d1", "retrieve_optional_none"]) => {
+            d1::retrieve_optional_none(req, env, data).await
+        }
+        ("GET", ["d1", "retrieve_optional_some"]) => {
+            d1::retrieve_optional_some(req, env, data).await
+        }
+        ("GET", ["d1", "retrive_first_none"]) => d1::retrive_first_none(req, env, data).await,
+        ("GET", ["d1", "deserialize_with_type_mismatch"]) => {
+            d1::deserialize_with_type_mismatch(req, env, data).await
+        }
         ("GET", ["kv", "get"]) => kv::get(req, env, data).await,
         ("GET", ["kv", "get-not-found"]) => kv::get_not_found(req, env, data).await,
         ("GET", ["kv", "list-keys"]) => kv::list_keys(req, env, data).await,
@@ -335,6 +376,14 @@ async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response
         ("GET", ["kv", "get-bulk"]) => kv::get_bulk(req, env, data).await,
         ("GET", ["kv", "get-bulk-empty"]) => kv::get_bulk_empty(req, env, data).await,
         ("GET", ["kv", "get-bulk-limit"]) => kv::get_bulk_limit(req, env, data).await,
+        ("GET", ["r2", "list-empty"]) => r2::list_empty(req, env, data).await,
+        ("GET", ["r2", "list"]) => r2::list(req, env, data).await,
+        ("GET", ["r2", "get-empty"]) => r2::get_empty(req, env, data).await,
+        ("GET", ["r2", "get"]) => r2::get(req, env, data).await,
+        ("PUT", ["r2", "put"]) => r2::put(req, env, data).await,
+        ("PUT", ["r2", "put-properties"]) => r2::put_properties(req, env, data).await,
+        ("PUT", ["r2", "put-multipart"]) => r2::put_multipart(req, env, data).await,
+        ("DELETE", ["r2", "delete"]) => r2::delete(req, env, data).await,
         ("GET", ["socket", "failed"]) => socket::handle_socket_failed(req, env, data).await,
         ("GET", ["socket", "read"]) => socket::handle_socket_read(req, env, data).await,
         ("GET", ["js_snippets", "now"]) => js_snippets::performance_now(req, env, data).await,
@@ -363,6 +412,7 @@ async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response
         ("GET", ["rate-limit", "reset"]) => {
             rate_limit::handle_rate_limit_reset(req, env, data).await
         }
+        ("GET", ["send-email"]) => send_email::handle_send_email(req, env, data).await,
         _ => catchall(req, env, data).await,
     }
 }

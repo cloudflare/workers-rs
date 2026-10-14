@@ -12,9 +12,7 @@ async function exec(query: string): Promise<number> {
   return Number(body);
 }
 
-// GAP: D1 (`D1Database`, `D1PreparedStatement`, `query!`, `D1Type`, sessions,
-// `Error::D1`, serde results) is not declared in worker.d.ts yet.
-describe.skip("d1", () => {
+describe("d1", () => {
   test("create table", async () => {
     const query = `CREATE TABLE IF NOT EXISTS uniqueTable (
       id INTEGER PRIMARY KEY,

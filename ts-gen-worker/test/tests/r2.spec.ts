@@ -1,9 +1,7 @@
 import { describe, test, expect } from "vitest";
 import { mf, mfUrl } from "./mf";
 
-// GAP: R2 (`Bucket`, `Object`, `HttpMetadata`, `Conditional`, `Include`,
-// multipart, `FixedLengthStream` bodies) is not declared in worker.d.ts yet.
-describe.skip("r2", () => {
+describe("r2", () => {
   test("list empty", async () => {
     const resp = await mf.dispatchFetch(`${mfUrl}r2/list-empty`);
     expect(await resp.text()).toBe("ok");
