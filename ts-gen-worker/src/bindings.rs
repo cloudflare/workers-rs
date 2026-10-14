@@ -457,6 +457,11 @@ impl CachePurgeOptionsBuilder {
         self.inner
     }
 }
+impl From<CachePurgeOptions> for CachePurgeOptionsBuilder {
+    fn from(inner: CachePurgeOptions) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -622,6 +627,13 @@ impl DurableObjectNamespaceNewUniqueIdOptionsBuilder {
         self.inner
     }
 }
+impl From<DurableObjectNamespaceNewUniqueIdOptions>
+    for DurableObjectNamespaceNewUniqueIdOptionsBuilder
+{
+    fn from(inner: DurableObjectNamespaceNewUniqueIdOptions) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DurableObjectLocationHint {
@@ -690,6 +702,13 @@ impl DurableObjectNamespaceGetDurableObjectOptionsBuilder {
     }
     pub fn build(self) -> DurableObjectNamespaceGetDurableObjectOptions {
         self.inner
+    }
+}
+impl From<DurableObjectNamespaceGetDurableObjectOptions>
+    for DurableObjectNamespaceGetDurableObjectOptionsBuilder
+{
+    fn from(inner: DurableObjectNamespaceGetDurableObjectOptions) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -1493,6 +1512,11 @@ impl DurableObjectListOptionsBuilder {
         self.inner
     }
 }
+impl From<DurableObjectListOptions> for DurableObjectListOptionsBuilder {
+    fn from(inner: DurableObjectListOptions) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -1533,6 +1557,11 @@ impl DurableObjectGetOptionsBuilder {
         self.inner
     }
 }
+impl From<DurableObjectGetOptions> for DurableObjectGetOptionsBuilder {
+    fn from(inner: DurableObjectGetOptions) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -1563,6 +1592,11 @@ impl DurableObjectGetAlarmOptionsBuilder {
     }
     pub fn build(self) -> DurableObjectGetAlarmOptions {
         self.inner
+    }
+}
+impl From<DurableObjectGetAlarmOptions> for DurableObjectGetAlarmOptionsBuilder {
+    fn from(inner: DurableObjectGetAlarmOptions) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -1613,6 +1647,11 @@ impl DurableObjectPutOptionsBuilder {
         self.inner
     }
 }
+impl From<DurableObjectPutOptions> for DurableObjectPutOptionsBuilder {
+    fn from(inner: DurableObjectPutOptions) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -1651,6 +1690,11 @@ impl DurableObjectSetAlarmOptionsBuilder {
     }
     pub fn build(self) -> DurableObjectSetAlarmOptions {
         self.inner
+    }
+}
+impl From<DurableObjectSetAlarmOptions> for DurableObjectSetAlarmOptionsBuilder {
+    fn from(inner: DurableObjectSetAlarmOptions) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -1744,6 +1788,11 @@ impl<T: ::wasm_bindgen::JsGeneric> FacetStartupOptionsBuilder<T> {
         self.inner
     }
 }
+impl<T: ::wasm_bindgen::JsGeneric> From<FacetStartupOptions<T>> for FacetStartupOptionsBuilder<T> {
+    fn from(inner: FacetStartupOptions<T>) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -1803,6 +1852,11 @@ impl AnalyticsEngineDataPointBuilder {
     }
     pub fn build(self) -> AnalyticsEngineDataPoint {
         self.inner
+    }
+}
+impl From<AnalyticsEngineDataPoint> for AnalyticsEngineDataPointBuilder {
+    fn from(inner: AnalyticsEngineDataPoint) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -1963,6 +2017,11 @@ impl EventInitBuilder {
     }
     pub fn build(self) -> EventInit {
         self.inner
+    }
+}
+impl From<EventInit> for EventInitBuilder {
+    fn from(inner: EventInit) -> Self {
+        Self { inner }
     }
 }
 #[allow(dead_code)]
@@ -2168,6 +2227,11 @@ impl EventTargetEventListenerOptionsBuilder {
         self.inner
     }
 }
+impl From<EventTargetEventListenerOptions> for EventTargetEventListenerOptionsBuilder {
+    fn from(inner: EventTargetEventListenerOptions) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -2222,6 +2286,11 @@ impl EventTargetAddEventListenerOptionsBuilder {
     }
     pub fn build(self) -> EventTargetAddEventListenerOptions {
         self.inner
+    }
+}
+impl From<EventTargetAddEventListenerOptions> for EventTargetAddEventListenerOptionsBuilder {
+    fn from(inner: EventTargetAddEventListenerOptions) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -2424,6 +2493,11 @@ impl BlobOptionsBuilder {
         self.inner
     }
 }
+impl From<BlobOptions> for BlobOptionsBuilder {
+    fn from(inner: BlobOptions) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Blob , extends = Object)]
@@ -2491,6 +2565,11 @@ impl FileOptionsBuilder {
     }
     pub fn build(self) -> FileOptions {
         self.inner
+    }
+}
+impl From<FileOptions> for FileOptionsBuilder {
+    fn from(inner: FileOptions) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -2712,6 +2791,11 @@ impl CacheQueryOptionsBuilder {
     }
     pub fn build(self) -> CacheQueryOptions {
         self.inner
+    }
+}
+impl From<CacheQueryOptions> for CacheQueryOptionsBuilder {
+    fn from(inner: CacheQueryOptions) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -4116,6 +4200,11 @@ impl JsonWebKeyBuilder {
         self.inner
     }
 }
+impl From<JsonWebKey> for JsonWebKeyBuilder {
+    fn from(inner: JsonWebKey) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -4162,6 +4251,11 @@ impl RsaOtherPrimesInfoBuilder {
     }
     pub fn build(self) -> RsaOtherPrimesInfo {
         self.inner
+    }
+}
+impl From<RsaOtherPrimesInfo> for RsaOtherPrimesInfoBuilder {
+    fn from(inner: RsaOtherPrimesInfo) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -4257,6 +4351,11 @@ impl SubtleCryptoDeriveKeyAlgorithmBuilder {
     }
     pub fn build(self) -> SubtleCryptoDeriveKeyAlgorithm {
         self.inner
+    }
+}
+impl From<SubtleCryptoDeriveKeyAlgorithm> for SubtleCryptoDeriveKeyAlgorithmBuilder {
+    fn from(inner: SubtleCryptoDeriveKeyAlgorithm) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -4371,6 +4470,11 @@ impl SubtleCryptoEncryptAlgorithmBuilder {
         self.inner
     }
 }
+impl From<SubtleCryptoEncryptAlgorithm> for SubtleCryptoEncryptAlgorithmBuilder {
+    fn from(inner: SubtleCryptoEncryptAlgorithm) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -4455,6 +4559,11 @@ impl SubtleCryptoGenerateKeyAlgorithmBuilder {
     }
     pub fn build(self) -> SubtleCryptoGenerateKeyAlgorithm {
         self.inner
+    }
+}
+impl From<SubtleCryptoGenerateKeyAlgorithm> for SubtleCryptoGenerateKeyAlgorithmBuilder {
+    fn from(inner: SubtleCryptoGenerateKeyAlgorithm) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -4543,6 +4652,11 @@ impl SubtleCryptoImportKeyAlgorithmBuilder {
         self.inner
     }
 }
+impl From<SubtleCryptoImportKeyAlgorithm> for SubtleCryptoImportKeyAlgorithmBuilder {
+    fn from(inner: SubtleCryptoImportKeyAlgorithm) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -4602,6 +4716,11 @@ impl SubtleCryptoSignAlgorithmBuilder {
     }
     pub fn build(self) -> SubtleCryptoSignAlgorithm {
         self.inner
+    }
+}
+impl From<SubtleCryptoSignAlgorithm> for SubtleCryptoSignAlgorithmBuilder {
+    fn from(inner: SubtleCryptoSignAlgorithm) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -4747,6 +4866,11 @@ impl CryptoKeyRsaKeyAlgorithmBuilder {
         self.inner
     }
 }
+impl From<CryptoKeyRsaKeyAlgorithm> for CryptoKeyRsaKeyAlgorithmBuilder {
+    fn from(inner: CryptoKeyRsaKeyAlgorithm) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -4819,6 +4943,11 @@ impl CryptoKeyArbitraryKeyAlgorithmBuilder {
     }
     pub fn build(self) -> CryptoKeyArbitraryKeyAlgorithm {
         self.inner
+    }
+}
+impl From<CryptoKeyArbitraryKeyAlgorithm> for CryptoKeyArbitraryKeyAlgorithmBuilder {
+    fn from(inner: CryptoKeyArbitraryKeyAlgorithm) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -4937,6 +5066,11 @@ impl ErrorEventErrorEventInitBuilder {
     }
     pub fn build(self) -> ErrorEventErrorEventInit {
         self.inner
+    }
+}
+impl From<ErrorEventErrorEventInit> for ErrorEventErrorEventInitBuilder {
+    fn from(inner: ErrorEventErrorEventInit) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -5526,6 +5660,11 @@ impl ResponseInitBuilder {
         self.inner
     }
 }
+impl From<ResponseInit> for ResponseInitBuilder {
+    fn from(inner: ResponseInit) -> Self {
+        Self { inner }
+    }
+}
 #[allow(dead_code)]
 pub type RequestInfo = JsValue;
 #[wasm_bindgen]
@@ -5933,6 +6072,11 @@ impl<Cf: ::wasm_bindgen::JsGeneric> RequestInitBuilder<Cf> {
         self.inner
     }
 }
+impl<Cf: ::wasm_bindgen::JsGeneric> From<RequestInit<Cf>> for RequestInitBuilder<Cf> {
+    fn from(inner: RequestInit<Cf>) -> Self {
+        Self { inner }
+    }
+}
 #[allow(dead_code)]
 pub type Service = JsValue;
 #[wasm_bindgen]
@@ -6107,6 +6251,13 @@ impl<Metadata: ::wasm_bindgen::JsGeneric> KVNamespaceListKeyBuilder<Metadata> {
         self.inner
     }
 }
+impl<Metadata: ::wasm_bindgen::JsGeneric> From<KVNamespaceListKey<Metadata>>
+    for KVNamespaceListKeyBuilder<Metadata>
+{
+    fn from(inner: KVNamespaceListKey<Metadata>) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -6209,6 +6360,13 @@ impl<Metadata: ::wasm_bindgen::JsGeneric> KVNamespaceListResultBuilder<Metadata>
     }
     pub fn build(self) -> KVNamespaceListResult<Metadata> {
         self.inner
+    }
+}
+impl<Metadata: ::wasm_bindgen::JsGeneric> From<KVNamespaceListResult<Metadata>>
+    for KVNamespaceListResultBuilder<Metadata>
+{
+    fn from(inner: KVNamespaceListResult<Metadata>) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -6847,6 +7005,11 @@ impl KVNamespaceListOptionsBuilder {
         self.inner
     }
 }
+impl From<KVNamespaceListOptions> for KVNamespaceListOptionsBuilder {
+    fn from(inner: KVNamespaceListOptions) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -6903,6 +7066,13 @@ impl<Type: ::wasm_bindgen::JsGeneric> KVNamespaceGetOptionsBuilder<Type> {
     }
     pub fn build(self) -> KVNamespaceGetOptions<Type> {
         self.inner
+    }
+}
+impl<Type: ::wasm_bindgen::JsGeneric> From<KVNamespaceGetOptions<Type>>
+    for KVNamespaceGetOptionsBuilder<Type>
+{
+    fn from(inner: KVNamespaceGetOptions<Type>) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -6965,6 +7135,11 @@ impl KVNamespacePutOptionsBuilder {
     }
     pub fn build(self) -> KVNamespacePutOptions {
         self.inner
+    }
+}
+impl From<KVNamespacePutOptions> for KVNamespacePutOptionsBuilder {
+    fn from(inner: KVNamespacePutOptions) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -7167,6 +7342,11 @@ impl QueueSendMetricsBuilder {
         self.inner
     }
 }
+impl From<QueueSendMetrics> for QueueSendMetricsBuilder {
+    fn from(inner: QueueSendMetrics) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -7240,6 +7420,11 @@ impl QueueSendBatchMetricsBuilder {
     }
     pub fn build(self) -> QueueSendBatchMetrics {
         self.inner
+    }
+}
+impl From<QueueSendBatchMetrics> for QueueSendBatchMetricsBuilder {
+    fn from(inner: QueueSendBatchMetrics) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -7316,6 +7501,11 @@ impl QueueSendOptionsBuilder {
         self.inner
     }
 }
+impl From<QueueSendOptions> for QueueSendOptionsBuilder {
+    fn from(inner: QueueSendOptions) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -7346,6 +7536,11 @@ impl QueueSendBatchOptionsBuilder {
     }
     pub fn build(self) -> QueueSendBatchOptions {
         self.inner
+    }
+}
+impl From<QueueSendBatchOptions> for QueueSendBatchOptionsBuilder {
+    fn from(inner: QueueSendBatchOptions) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -7408,6 +7603,13 @@ impl<Body: ::wasm_bindgen::JsGeneric> MessageSendRequestBuilder<Body> {
         self.inner
     }
 }
+impl<Body: ::wasm_bindgen::JsGeneric> From<MessageSendRequest<Body>>
+    for MessageSendRequestBuilder<Body>
+{
+    fn from(inner: MessageSendRequest<Body>) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -7449,6 +7651,11 @@ impl QueueMetricsBuilder {
         self.inner
     }
 }
+impl From<QueueMetrics> for QueueMetricsBuilder {
+    fn from(inner: QueueMetrics) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -7488,6 +7695,11 @@ impl MessageBatchMetricsBuilder {
     }
     pub fn build(self) -> MessageBatchMetrics {
         self.inner
+    }
+}
+impl From<MessageBatchMetrics> for MessageBatchMetricsBuilder {
+    fn from(inner: MessageBatchMetrics) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -7537,6 +7749,11 @@ impl QueueRetryOptionsBuilder {
     }
     pub fn build(self) -> QueueRetryOptions {
         self.inner
+    }
+}
+impl From<QueueRetryOptions> for QueueRetryOptionsBuilder {
+    fn from(inner: QueueRetryOptions) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -7674,6 +7891,11 @@ impl R2ListOptionsBuilder {
     }
     pub fn build(self) -> R2ListOptions {
         self.inner
+    }
+}
+impl From<R2ListOptions> for R2ListOptionsBuilder {
+    fn from(inner: R2ListOptions) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -8067,6 +8289,11 @@ impl R2BucketOptionsBuilder {
         self.inner
     }
 }
+impl From<R2BucketOptions> for R2BucketOptionsBuilder {
+    fn from(inner: R2BucketOptions) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = R2PutOptions , extends = Object)]
@@ -8187,6 +8414,11 @@ impl R2BucketOptions2Builder {
     }
     pub fn build(self) -> R2BucketOptions2 {
         self.inner
+    }
+}
+impl From<R2BucketOptions2> for R2BucketOptions2Builder {
+    fn from(inner: R2BucketOptions2) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -8484,6 +8716,11 @@ impl R2RangeBuilder {
         self.inner
     }
 }
+impl From<R2Range> for R2RangeBuilder {
+    fn from(inner: R2Range) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -8546,6 +8783,11 @@ impl R2ConditionalBuilder {
     }
     pub fn build(self) -> R2Conditional {
         self.inner
+    }
+}
+impl From<R2Conditional> for R2ConditionalBuilder {
+    fn from(inner: R2Conditional) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -8612,6 +8854,11 @@ impl R2GetOptionsBuilder {
     }
     pub fn build(self) -> R2GetOptions {
         self.inner
+    }
+}
+impl From<R2GetOptions> for R2GetOptionsBuilder {
+    fn from(inner: R2GetOptions) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -8796,6 +9043,11 @@ impl R2PutOptionsBuilder {
         self.inner
     }
 }
+impl From<R2PutOptions> for R2PutOptionsBuilder {
+    fn from(inner: R2PutOptions) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -8862,6 +9114,11 @@ impl R2MultipartOptionsBuilder {
     }
     pub fn build(self) -> R2MultipartOptions {
         self.inner
+    }
+}
+impl From<R2MultipartOptions> for R2MultipartOptionsBuilder {
+    fn from(inner: R2MultipartOptions) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -8946,6 +9203,11 @@ impl R2StringChecksumsBuilder {
         self.inner
     }
 }
+impl From<R2StringChecksums> for R2StringChecksumsBuilder {
+    fn from(inner: R2StringChecksums) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -9018,6 +9280,11 @@ impl R2HTTPMetadataBuilder {
         self.inner
     }
 }
+impl From<R2HTTPMetadata> for R2HTTPMetadataBuilder {
+    fn from(inner: R2HTTPMetadata) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -9086,6 +9353,11 @@ impl R2ObjectsBuilder {
         self.inner
     }
 }
+impl From<R2Objects> for R2ObjectsBuilder {
+    fn from(inner: R2Objects) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -9122,6 +9394,11 @@ impl R2UploadPartOptionsBuilder {
     }
     pub fn build(self) -> R2UploadPartOptions {
         self.inner
+    }
+}
+impl From<R2UploadPartOptions> for R2UploadPartOptionsBuilder {
+    fn from(inner: R2UploadPartOptions) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -9196,6 +9473,11 @@ impl<T: ::wasm_bindgen::JsGeneric> QueuingStrategyBuilder<T> {
     }
     pub fn build(self) -> QueuingStrategy<T> {
         self.inner
+    }
+}
+impl<T: ::wasm_bindgen::JsGeneric> From<QueuingStrategy<T>> for QueuingStrategyBuilder<T> {
+    fn from(inner: QueuingStrategy<T>) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -9292,6 +9574,11 @@ impl<W: ::wasm_bindgen::JsGeneric> UnderlyingSinkBuilder<W> {
     }
     pub fn build(self) -> UnderlyingSink<W> {
         self.inner
+    }
+}
+impl<W: ::wasm_bindgen::JsGeneric> From<UnderlyingSink<W>> for UnderlyingSinkBuilder<W> {
+    fn from(inner: UnderlyingSink<W>) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -9394,6 +9681,11 @@ impl<R: ::wasm_bindgen::JsGeneric> UnderlyingSourceBuilder<R> {
     }
     pub fn build(self) -> UnderlyingSource<R> {
         self.inner
+    }
+}
+impl<R: ::wasm_bindgen::JsGeneric> From<UnderlyingSource<R>> for UnderlyingSourceBuilder<R> {
+    fn from(inner: UnderlyingSource<R>) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -9529,6 +9821,13 @@ impl<I: ::wasm_bindgen::JsGeneric, O: ::wasm_bindgen::JsGeneric> TransformerBuil
         self.inner
     }
 }
+impl<I: ::wasm_bindgen::JsGeneric, O: ::wasm_bindgen::JsGeneric> From<Transformer<I, O>>
+    for TransformerBuilder<I, O>
+{
+    fn from(inner: Transformer<I, O>) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -9600,6 +9899,11 @@ impl StreamPipeOptionsBuilder {
         self.inner
     }
 }
+impl From<StreamPipeOptions> for StreamPipeOptionsBuilder {
+    fn from(inner: StreamPipeOptions) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -9655,6 +9959,13 @@ impl<R: ::wasm_bindgen::JsGeneric> ReadableStreamReadResultBuilder<R> {
     }
     pub fn build(self) -> ReadableStreamReadResult<R> {
         self.inner
+    }
+}
+impl<R: ::wasm_bindgen::JsGeneric> From<ReadableStreamReadResult<R>>
+    for ReadableStreamReadResultBuilder<R>
+{
+    fn from(inner: ReadableStreamReadResult<R>) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -10444,6 +10755,13 @@ impl IdentityTransformStreamQueuingStrategyBuilder {
         self.inner
     }
 }
+impl From<IdentityTransformStreamQueuingStrategy>
+    for IdentityTransformStreamQueuingStrategyBuilder
+{
+    fn from(inner: IdentityTransformStreamQueuingStrategy) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -10474,6 +10792,11 @@ impl ReadableStreamValuesOptionsBuilder {
     }
     pub fn build(self) -> ReadableStreamValuesOptions {
         self.inner
+    }
+}
+impl From<ReadableStreamValuesOptions> for ReadableStreamValuesOptionsBuilder {
+    fn from(inner: ReadableStreamValuesOptions) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -10815,6 +11138,11 @@ impl CloseEventInitBuilder {
         self.inner
     }
 }
+impl From<CloseEventInit> for CloseEventInitBuilder {
+    fn from(inner: CloseEventInit) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -11004,6 +11332,11 @@ impl WebSocketAcceptOptionsBuilder {
         self.inner
     }
 }
+impl From<WebSocketAcceptOptions> for WebSocketAcceptOptionsBuilder {
+    fn from(inner: WebSocketAcceptOptions) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -11127,6 +11460,13 @@ impl<T: ::wasm_bindgen::JsGeneric> SqlStorageCursorNextReturnBuilder<T> {
         self.inner
     }
 }
+impl<T: ::wasm_bindgen::JsGeneric> From<SqlStorageCursorNextReturn<T>>
+    for SqlStorageCursorNextReturnBuilder<T>
+{
+    fn from(inner: SqlStorageCursorNextReturn<T>) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -11206,6 +11546,11 @@ impl SocketOptionsBuilder {
         self.inner
     }
 }
+impl From<SocketOptions> for SocketOptionsBuilder {
+    fn from(inner: SocketOptions) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -11260,6 +11605,11 @@ impl TlsOptionsBuilder {
         self.inner
     }
 }
+impl From<TlsOptions> for TlsOptionsBuilder {
+    fn from(inner: TlsOptions) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -11298,6 +11648,11 @@ impl SocketInfoBuilder {
     }
     pub fn build(self) -> SocketInfo {
         self.inner
+    }
+}
+impl From<SocketInfo> for SocketInfoBuilder {
+    fn from(inner: SocketInfo) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -11424,6 +11779,11 @@ impl ContainerExecOptionsBuilder {
         self.inner
     }
 }
+impl From<ContainerExecOptions> for ContainerExecOptionsBuilder {
+    fn from(inner: ContainerExecOptions) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -11462,6 +11822,11 @@ impl ContainerExecPtyOptionsBuilder {
     }
     pub fn build(self) -> ContainerExecPtyOptions {
         self.inner
+    }
+}
+impl From<ContainerExecPtyOptions> for ContainerExecPtyOptionsBuilder {
+    fn from(inner: ContainerExecPtyOptions) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -11665,6 +12030,11 @@ impl ContainerDirectorySnapshotBuilder {
         self.inner
     }
 }
+impl From<ContainerDirectorySnapshot> for ContainerDirectorySnapshotBuilder {
+    fn from(inner: ContainerDirectorySnapshot) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -11700,6 +12070,11 @@ impl ContainerDirectorySnapshotOptionsBuilder {
     }
     pub fn build(self) -> ContainerDirectorySnapshotOptions {
         self.inner
+    }
+}
+impl From<ContainerDirectorySnapshotOptions> for ContainerDirectorySnapshotOptionsBuilder {
+    fn from(inner: ContainerDirectorySnapshotOptions) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -11744,6 +12119,13 @@ impl ContainerDirectorySnapshotRestoreParamsBuilder {
         self.inner
     }
 }
+impl From<ContainerDirectorySnapshotRestoreParams>
+    for ContainerDirectorySnapshotRestoreParamsBuilder
+{
+    fn from(inner: ContainerDirectorySnapshotRestoreParams) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -11783,6 +12165,11 @@ impl ContainerSnapshotBuilder {
     }
     pub fn build(self) -> ContainerSnapshot {
         self.inner
+    }
+}
+impl From<ContainerSnapshot> for ContainerSnapshotBuilder {
+    fn from(inner: ContainerSnapshot) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -11832,6 +12219,11 @@ impl ContainerSnapshotOptionsBuilder {
     }
     pub fn build(self) -> ContainerSnapshotOptions {
         self.inner
+    }
+}
+impl From<ContainerSnapshotOptions> for ContainerSnapshotOptionsBuilder {
+    fn from(inner: ContainerSnapshotOptions) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -11912,6 +12304,11 @@ impl ContainerStartupOptionsBuilder {
         self.inner
     }
 }
+impl From<ContainerStartupOptions> for ContainerStartupOptionsBuilder {
+    fn from(inner: ContainerStartupOptions) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = EventTarget , extends = Object)]
@@ -11990,6 +12387,11 @@ impl MessagePortPostMessageOptionsBuilder {
     }
     pub fn build(self) -> MessagePortPostMessageOptions {
         self.inner
+    }
+}
+impl From<MessagePortPostMessageOptions> for MessagePortPostMessageOptionsBuilder {
+    fn from(inner: MessagePortPostMessageOptions) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -12105,6 +12507,11 @@ impl SyncKvListOptionsBuilder {
     }
     pub fn build(self) -> SyncKvListOptions {
         self.inner
+    }
+}
+impl From<SyncKvListOptions> for SyncKvListOptionsBuilder {
+    fn from(inner: SyncKvListOptions) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -12411,6 +12818,11 @@ impl PerformanceMarkOptionsBuilder {
         self.inner
     }
 }
+impl From<PerformanceMarkOptions> for PerformanceMarkOptionsBuilder {
+    fn from(inner: PerformanceMarkOptions) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -12465,6 +12877,11 @@ impl PerformanceMeasureOptionsBuilder {
     }
     pub fn build(self) -> PerformanceMeasureOptions {
         self.inner
+    }
+}
+impl From<PerformanceMeasureOptions> for PerformanceMeasureOptionsBuilder {
+    fn from(inner: PerformanceMeasureOptions) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -12720,6 +13137,11 @@ impl CloudflareAccessIdentityBuilder {
         self.inner
     }
 }
+impl From<CloudflareAccessIdentity> for CloudflareAccessIdentityBuilder {
+    fn from(inner: CloudflareAccessIdentity) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -12969,6 +13391,11 @@ impl RequestInitCfPropertiesBuilder {
         self.inner
     }
 }
+impl From<RequestInitCfProperties> for RequestInitCfPropertiesBuilder {
+    fn from(inner: RequestInitCfProperties) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RequestInitCfPropertiesVaryAction {
@@ -13024,6 +13451,11 @@ impl RequestInitCfPropertiesVaryBuilder {
     }
     pub fn build(self) -> RequestInitCfPropertiesVary {
         self.inner
+    }
+}
+impl From<RequestInitCfPropertiesVary> for RequestInitCfPropertiesVaryBuilder {
+    fn from(inner: RequestInitCfPropertiesVary) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -13091,6 +13523,13 @@ impl RequestInitCfPropertiesVaryAcceptHeaderBuilder {
         self.inner
     }
 }
+impl From<RequestInitCfPropertiesVaryAcceptHeader>
+    for RequestInitCfPropertiesVaryAcceptHeaderBuilder
+{
+    fn from(inner: RequestInitCfPropertiesVaryAcceptHeader) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = RequestInitCfPropertiesVaryHeader , extends = Object)]
@@ -13131,6 +13570,13 @@ impl RequestInitCfPropertiesVaryAcceptLanguageHeaderBuilder {
     }
     pub fn build(self) -> RequestInitCfPropertiesVaryAcceptLanguageHeader {
         self.inner
+    }
+}
+impl From<RequestInitCfPropertiesVaryAcceptLanguageHeader>
+    for RequestInitCfPropertiesVaryAcceptLanguageHeaderBuilder
+{
+    fn from(inner: RequestInitCfPropertiesVaryAcceptLanguageHeader) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -13181,6 +13627,11 @@ impl RequestInitCfPropertiesVaryHeadersBuilder {
     }
     pub fn build(self) -> RequestInitCfPropertiesVaryHeaders {
         self.inner
+    }
+}
+impl From<RequestInitCfPropertiesVaryHeaders> for RequestInitCfPropertiesVaryHeadersBuilder {
+    fn from(inner: RequestInitCfPropertiesVaryHeaders) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -13474,6 +13925,11 @@ impl BasicImageTransformationsBuilder {
         self.inner
     }
 }
+impl From<BasicImageTransformations> for BasicImageTransformationsBuilder {
+    fn from(inner: BasicImageTransformations) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -13520,6 +13976,13 @@ impl BasicImageTransformationsGravityCoordinatesBuilder {
     }
     pub fn build(self) -> BasicImageTransformationsGravityCoordinates {
         self.inner
+    }
+}
+impl From<BasicImageTransformationsGravityCoordinates>
+    for BasicImageTransformationsGravityCoordinatesBuilder
+{
+    fn from(inner: BasicImageTransformationsGravityCoordinates) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -13725,6 +14188,11 @@ impl RequestInitCfPropertiesImageDrawBuilder {
     }
     pub fn build(self) -> RequestInitCfPropertiesImageDraw {
         self.inner
+    }
+}
+impl From<RequestInitCfPropertiesImageDraw> for RequestInitCfPropertiesImageDrawBuilder {
+    fn from(inner: RequestInitCfPropertiesImageDraw) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -13943,6 +14411,11 @@ impl RequestInitCfPropertiesImageBuilder {
         self.inner
     }
 }
+impl From<RequestInitCfPropertiesImage> for RequestInitCfPropertiesImageBuilder {
+    fn from(inner: RequestInitCfPropertiesImage) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -13991,6 +14464,11 @@ impl RequestInitCfPropertiesImageMinifyBuilder {
         self.inner
     }
 }
+impl From<RequestInitCfPropertiesImageMinify> for RequestInitCfPropertiesImageMinifyBuilder {
+    fn from(inner: RequestInitCfPropertiesImageMinify) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -14022,6 +14500,11 @@ impl RequestInitCfPropertiesR2Builder {
     }
     pub fn build(self) -> RequestInitCfPropertiesR2 {
         self.inner
+    }
+}
+impl From<RequestInitCfPropertiesR2> for RequestInitCfPropertiesR2Builder {
+    fn from(inner: RequestInitCfPropertiesR2) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -16011,6 +16494,13 @@ impl<HostMetadata: ::wasm_bindgen::JsGeneric> IncomingRequestCfPropertiesBuilder
         self.inner
     }
 }
+impl<HostMetadata: ::wasm_bindgen::JsGeneric> From<IncomingRequestCfProperties<HostMetadata>>
+    for IncomingRequestCfPropertiesBuilder<HostMetadata>
+{
+    fn from(inner: IncomingRequestCfProperties<HostMetadata>) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -16706,6 +17196,11 @@ impl IncomingRequestCfPropertiesBaseBuilder {
         self.inner
     }
 }
+impl From<IncomingRequestCfPropertiesBase> for IncomingRequestCfPropertiesBaseBuilder {
+    fn from(inner: IncomingRequestCfPropertiesBase) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -16898,6 +17393,14 @@ impl<HostMetadata: ::wasm_bindgen::JsGeneric>
     }
     pub fn build(self) -> IncomingRequestCfPropertiesCloudflareForSaaSEnterprise<HostMetadata> {
         self.inner
+    }
+}
+impl<HostMetadata: ::wasm_bindgen::JsGeneric>
+    From<IncomingRequestCfPropertiesCloudflareForSaaSEnterprise<HostMetadata>>
+    for IncomingRequestCfPropertiesCloudflareForSaaSEnterpriseBuilder<HostMetadata>
+{
+    fn from(inner: IncomingRequestCfPropertiesCloudflareForSaaSEnterprise<HostMetadata>) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -17227,6 +17730,13 @@ impl IncomingRequestCfPropertiesGeographicInformationBuilder {
     }
     pub fn build(self) -> IncomingRequestCfPropertiesGeographicInformation {
         self.inner
+    }
+}
+impl From<IncomingRequestCfPropertiesGeographicInformation>
+    for IncomingRequestCfPropertiesGeographicInformationBuilder
+{
+    fn from(inner: IncomingRequestCfPropertiesGeographicInformation) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -18228,6 +18738,11 @@ impl D1MetaBuilder {
         self.inner
     }
 }
+impl From<D1Meta> for D1MetaBuilder {
+    fn from(inner: D1Meta) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -18275,6 +18790,11 @@ impl D1ResponseBuilder {
         self.inner
     }
 }
+impl From<D1Response> for D1ResponseBuilder {
+    fn from(inner: D1Response) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = D1Response , extends = Object)]
@@ -18319,6 +18839,11 @@ impl<T: ::wasm_bindgen::JsGeneric> D1ResultBuilder<T> {
     }
     pub fn build(self) -> D1Result<T> {
         self.inner
+    }
+}
+impl<T: ::wasm_bindgen::JsGeneric> From<D1Result<T>> for D1ResultBuilder<T> {
+    fn from(inner: D1Result<T>) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -18547,6 +19072,11 @@ impl D1PreparedStatementOptions2Builder {
     }
     pub fn build(self) -> D1PreparedStatementOptions2 {
         self.inner
+    }
+}
+impl From<D1PreparedStatementOptions2> for D1PreparedStatementOptions2Builder {
+    fn from(inner: D1PreparedStatementOptions2) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -18842,6 +19372,11 @@ impl EmailAttachmentBuilder {
         self.inner
     }
 }
+impl From<EmailAttachment> for EmailAttachmentBuilder {
+    fn from(inner: EmailAttachment) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -18948,6 +19483,11 @@ impl EmailDestinationsBuilder {
         self.inner
     }
 }
+impl From<EmailDestinations> for EmailDestinationsBuilder {
+    fn from(inner: EmailDestinations) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -19039,6 +19579,11 @@ impl EmailReplyMessageBuilderBuilder {
     }
     pub fn build(self) -> EmailReplyMessageBuilder {
         self.inner
+    }
+}
+impl From<EmailReplyMessageBuilder> for EmailReplyMessageBuilderBuilder {
+    fn from(inner: EmailReplyMessageBuilder) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -19160,6 +19705,11 @@ impl EmailMessageBuilderBuilder {
     }
     pub fn build(self) -> EmailMessageBuilder {
         self.inner
+    }
+}
+impl From<EmailMessageBuilder> for EmailMessageBuilderBuilder {
+    fn from(inner: EmailMessageBuilder) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
@@ -19435,6 +19985,11 @@ impl DynamicDispatchLimitsBuilder {
         self.inner
     }
 }
+impl From<DynamicDispatchLimits> for DynamicDispatchLimitsBuilder {
+    fn from(inner: DynamicDispatchLimits) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -19475,6 +20030,11 @@ impl DynamicDispatchOptionsBuilder {
     }
     pub fn build(self) -> DynamicDispatchOptions {
         self.inner
+    }
+}
+impl From<DynamicDispatchOptions> for DynamicDispatchOptionsBuilder {
+    fn from(inner: DynamicDispatchOptions) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]

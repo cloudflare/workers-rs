@@ -314,6 +314,11 @@ impl EmailAttachmentBuilder {
         self.inner
     }
 }
+impl From<EmailAttachment> for EmailAttachmentBuilder {
+    fn from(inner: EmailAttachment) -> Self {
+        Self { inner }
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -523,6 +528,11 @@ impl SendEmailBuilderBuilder {
     }
     pub fn build(self) -> SendEmailBuilder {
         self.inner
+    }
+}
+impl From<SendEmailBuilder> for SendEmailBuilderBuilder {
+    fn from(inner: SendEmailBuilder) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen]
