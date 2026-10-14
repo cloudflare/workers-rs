@@ -22,7 +22,7 @@ is the merged index.
 | --- | --- | --- |
 | Error model (`--error-type`, `--fallible`, `@throws` enum) | integrated | `parity/errors.md` |
 | Input from `@cloudflare/workers-types` | in progress | `parity/workers-types.md` |
-| `Error`, `#[event]` macros, ergonomic impls | in progress | `parity/crate.md` |
+| `Error`, `#[event]` macros, ergonomic impls | integrated (`ext/`, `ts-gen-worker-macros`, `Router`, `#[durable_object]`); port adoption pending | `parity/crate.md` |
 | Test suite port | integrated: 22/25 spec files, 161 tests green; `panic`, `signal`, `container` skipped | `parity/test-port.md` |
 
 ## Open problems for Guy
@@ -49,6 +49,11 @@ file.
 - **`signal`/`panic` specs depend on worker-build shim state** (`is_registered`,
   `is_near_cpu_limit`, panic recovery). No binding corresponds; the shim story for ts-gen-worker
   is undecided. (`parity/test-port.md`)
+- **Feature `http` differs from `worker`'s**: there it switches the fetch handler to
+  `http::Request`/`Response`; here it only adds `HeaderMap` conversions. The `http` half of the
+  test suite is blocked on porting those conversions. (`parity/crate.md`)
+- **No guard that a `DurableObject` impl is exported** without `#[durable_object]`. Proposal: the
+  hidden marker supertrait `worker` uses. (`parity/crate.md`)
 - **`@throws {never}` on constructors is ignored** (constructors always catch). Proposal: honor it,
   since wasm-bindgen accepts a non-`catch` constructor. Low priority. (`parity/errors.md`)
 
@@ -63,5 +68,8 @@ Creative choices made by agents, with justification. Guy reviews these.
   policies** since there is no `try_` form for getters. (`parity/errors.md`)
 - **Single-type `@throws` routes through the enum when `--error-enum` is on**: one `?`-able type
   everywhere, per-method precision lives in the rendered `## Errors` doc. (`parity/errors.md`)
+- **`Error` `Display` for `Js` is `Name: message`** (master): `worker::Error` renders that way and
+  migrating specs assert on it (`sqlite.spec.ts`), so `respond_with_errors` can replace the
+  port's hand-rolled handler. (`parity/crate.md`)
 - **`--errors-as-error` emits `::js_sys::Error` fully qualified**, so an input declaring its own
   `Error` class cannot rebind it. (`parity/errors.md`)
