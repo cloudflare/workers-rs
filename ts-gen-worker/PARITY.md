@@ -21,7 +21,7 @@ is the merged index.
 | Area | State | Notes |
 | --- | --- | --- |
 | Error model (`--error-type`, `--fallible`, `@throws` enum) | integrated; plus `JsNullable` results, `_with_null` forms, `_promise` companions | `parity/errors.md` |
-| Input from `@cloudflare/workers-types` | in progress | `parity/workers-types.md` |
+| Input from `@cloudflare/workers-types` | integrated: bindings generated from `node_modules/@cloudflare/workers-types/index.d.ts` + `types/annotations.d.ts` (`--annotate`: `@throws`, `@rust` integer hints, type-parameter defaults); `types/worker.d.ts` deleted; 19.8k generated lines | `parity/workers-types.md` |
 | `Error`, `#[event]` macros, ergonomic impls | integrated; test worker migrated onto the layer (`#[event]`, `#[durable_object]`, shortcuts); `http` feature with `http::Request/Response` handlers, 176 tests green on both | `parity/crate.md` |
 | Test suite port | integrated: 22/25 spec files, 161 tests green; `panic`, `signal`, `container` skipped | `parity/test-port.md` |
 
@@ -30,6 +30,12 @@ is the merged index.
 Items agents could not resolve without a decision. Each has a proposal. Details in the linked
 file.
 
+- **Uninferrable method type parameters** (`run::<JsValue>()`, `list::<JsValue>()` at every call).
+  Options in `parity/workers-types.md`; a rule keyed on "T is the whole return vs nested" is
+  proposed. Needs a call.
+- **Multi-`extends` member reachability**: members of parents after the first are only reachable
+  through `AsRef`. Proposal: flatten later parents' members into the child's extern block.
+  (`parity/workers-types.md`)
 - **How authoritative must `@throws` be?** Only Fetch-spec-pinned classes are annotated so far.
   Runtime-specific throws (KV/R2/D1, `DOMException` names) need a policy; a wrong annotation lands
   the value in `JsException::Other`, never a wrong variant. (`parity/errors.md`)
@@ -56,6 +62,12 @@ Creative choices made by agents, with justification. Guy reviews these.
 - **`Error` `Display` for `Js` is `Name: message`** (master): `worker::Error` renders that way and
   migrating specs assert on it (`sqlite.spec.ts`), so `respond_with_errors` can replace the
   port's hand-rolled handler. (`parity/crate.md`)
+- **ts-gen may emit non-extern inline wrappers** (master): it already emits factories, builders
+  and `PartialEq` impls, so an inline `fn` that converts `f64`↔`u64` for `@rust u64`, or bakes a
+  string literal into a literal-keyed overload (`kv.get_json(key)`), is within the same policy.
+  Rule: wrappers are only emitted where the extern ABI cannot express the declared type; the
+  extern binding stays available under a private name. Unblocks the `u64` and literal-overload
+  items in `parity/workers-types.md`; Guy to confirm.
 - **`Promise<T | null>` → `JsNullable<T>`; `_with_null` only where omission cannot express null;
   `<name>_promise()` beside every async binding** (workers-rs-2, `parity/errors.md` Session 2).
 - **`http` feature mirrors `worker`'s**: `TryFrom` conversions and `#[event(fetch)]` accepting an
