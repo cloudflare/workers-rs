@@ -44,7 +44,7 @@ impl DurableObject for Counter {
             server.serialize_attachment(&"hello".into())?;
 
             return Response::builder()
-                .status(101.0)
+                .status(101)
                 .web_socket(&pair._0())
                 .empty();
         }
@@ -136,7 +136,7 @@ pub async fn handle_websocket(req: Request, env: Env, _data: SomeSharedData) -> 
                 }
             }
             WebsocketEvent::Close(_) => {
-                let _res = do_ws.close_with_code_and_reason(1000.0, "client closed");
+                let _res = do_ws.close_with_code_and_reason(1000, "client closed");
             }
         })?;
     }
@@ -149,13 +149,10 @@ pub async fn handle_websocket(req: Request, env: Env, _data: SomeSharedData) -> 
                 }
             }
             WebsocketEvent::Close(_) => {
-                let _res = server.close_with_code_and_reason(1000.0, "durable closed");
+                let _res = server.close_with_code_and_reason(1000, "durable closed");
             }
         })?;
     }
 
-    Response::builder()
-        .status(101.0)
-        .web_socket(&client)
-        .empty()
+    Response::builder().status(101).web_socket(&client).empty()
 }

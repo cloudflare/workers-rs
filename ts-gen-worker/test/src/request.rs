@@ -181,7 +181,7 @@ pub async fn handle_status(req: Request, _env: Env, _data: SomeSharedData) -> Re
         return match code.parse::<u16>() {
             Ok(status) => Ok(Response::new_with_str_and_init(
                 "You set the status code!",
-                &ResponseInit::builder().status(f64::from(status)).build(),
+                &ResponseInit::builder().status(status).build(),
             )?),
             Err(_e) => Response::builder().error("Failed to parse your status code.", 400),
         };
@@ -203,10 +203,7 @@ pub async fn handle_redirect_307(
     _env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    Ok(Response::redirect_with_status(
-        "https://example.com",
-        307.0,
-    )?)
+    Ok(Response::redirect_with_status("https://example.com", 307)?)
 }
 
 pub async fn handle_now(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {

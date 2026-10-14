@@ -31,10 +31,7 @@ pub async fn handle_websocket(_req: Request, env: Env, _data: SomeSharedData) ->
         })?;
     }
 
-    Response::builder()
-        .status(101.0)
-        .web_socket(&client)
-        .empty()
+    Response::builder().status(101).web_socket(&client).empty()
 }
 
 /// `worker::WebSocket::connect`: an upgrade fetch whose response carries the socket.

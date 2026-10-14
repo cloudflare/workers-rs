@@ -95,8 +95,7 @@ impl TryFrom<Response> for HttpResponse {
     type Error = Error;
 
     fn try_from(res: Response) -> Result<Self> {
-        let mut builder =
-            http::Response::builder().status(StatusCode::from_u16(res.status() as u16)?);
+        let mut builder = http::Response::builder().status(StatusCode::from_u16(res.status())?);
         if let Some(headers) = builder.headers_mut() {
             *headers = HeaderMap::from(&res.headers());
         }
@@ -117,7 +116,7 @@ where
 
     fn try_from(mut res: http::Response<B>) -> Result<Self> {
         let mut init = Response::builder()
-            .status(f64::from(res.status().as_u16()))
+            .status(res.status().as_u16())
             .headers(&Headers::from(res.headers()));
         if let Some(ws) = res.extensions_mut().remove::<WebSocket>() {
             init = init.web_socket(&ws);

@@ -978,7 +978,7 @@ extern "C" {
     pub async fn delete_with_keys(
         this: &DurableObjectTransaction,
         keys: &[String],
-    ) -> Result<Number, crate::Error>;
+    ) -> Result<usize, crate::Error>;
     #[wasm_bindgen(method, catch, slice_to_array, js_name = "delete")]
     pub fn delete_with_keys_promise(
         this: &DurableObjectTransaction,
@@ -989,7 +989,7 @@ extern "C" {
         this: &DurableObjectTransaction,
         keys: &[String],
         options: &DurableObjectPutOptions,
-    ) -> Result<Number, crate::Error>;
+    ) -> Result<usize, crate::Error>;
     #[wasm_bindgen(method, catch, slice_to_array, js_name = "delete")]
     pub fn delete_with_keys_and_options_promise(
         this: &DurableObjectTransaction,
@@ -1215,7 +1215,7 @@ extern "C" {
     pub async fn delete_with_keys(
         this: &DurableObjectStorage,
         keys: &[String],
-    ) -> Result<Number, crate::Error>;
+    ) -> Result<usize, crate::Error>;
     #[wasm_bindgen(method, catch, slice_to_array, js_name = "delete")]
     pub fn delete_with_keys_promise(
         this: &DurableObjectStorage,
@@ -1226,7 +1226,7 @@ extern "C" {
         this: &DurableObjectStorage,
         keys: &[String],
         options: &DurableObjectPutOptions,
-    ) -> Result<Number, crate::Error>;
+    ) -> Result<usize, crate::Error>;
     #[wasm_bindgen(method, catch, slice_to_array, js_name = "delete")]
     pub fn delete_with_keys_and_options_promise(
         this: &DurableObjectStorage,
@@ -1418,9 +1418,9 @@ extern "C" {
     #[wasm_bindgen(method, setter)]
     pub fn set_reverse(this: &DurableObjectListOptions, val: bool);
     #[wasm_bindgen(method, getter)]
-    pub fn limit(this: &DurableObjectListOptions) -> Option<f64>;
+    pub fn limit(this: &DurableObjectListOptions) -> Option<usize>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_limit(this: &DurableObjectListOptions, val: f64);
+    pub fn set_limit(this: &DurableObjectListOptions, val: usize);
     #[wasm_bindgen(method, getter, js_name = "allowConcurrency")]
     pub fn allow_concurrency(this: &DurableObjectListOptions) -> Option<bool>;
     #[wasm_bindgen(method, setter, js_name = "allowConcurrency")]
@@ -1464,7 +1464,7 @@ impl DurableObjectListOptionsBuilder {
         self.inner.set_reverse(val);
         self
     }
-    pub fn limit(self, val: f64) -> Self {
+    pub fn limit(self, val: usize) -> Self {
         self.inner.set_limit(val);
         self
     }
@@ -2308,7 +2308,7 @@ extern "C" {
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/size)"]
     #[wasm_bindgen(method, getter)]
-    pub fn size(this: &Blob) -> f64;
+    pub fn size(this: &Blob) -> usize;
     #[doc = " The **`type`** read-only property of the Blob interface returns the MIME type of the file."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/type)"]
@@ -5339,7 +5339,7 @@ extern "C" {
     #[doc = " * `RangeError` — if `status` is not a redirect status"]
     #[doc = " * `TypeError` — if `url` is not a valid URL"]
     # [wasm_bindgen (static_method_of = Response , catch , js_name = "redirect")]
-    pub fn redirect_with_status(url: &str, status: f64) -> Result<Response, JsException>;
+    pub fn redirect_with_status(url: &str, status: u16) -> Result<Response, JsException>;
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `any` cannot be serialized or `maybeInit` is invalid"]
@@ -5374,9 +5374,9 @@ extern "C" {
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/status)"]
     #[wasm_bindgen(method, getter)]
-    pub fn status(this: &Response) -> f64;
+    pub fn status(this: &Response) -> u16;
     #[wasm_bindgen(method, setter)]
-    pub fn set_status(this: &Response, val: f64);
+    pub fn set_status(this: &Response, val: u16);
     #[doc = " The **`statusText`** read-only property of the Response interface contains the status message corresponding to the HTTP status code in Response.status."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/statusText)"]
@@ -5436,9 +5436,9 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type ResponseInit;
     #[wasm_bindgen(method, getter)]
-    pub fn status(this: &ResponseInit) -> Option<f64>;
+    pub fn status(this: &ResponseInit) -> Option<u16>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_status(this: &ResponseInit, val: f64);
+    pub fn set_status(this: &ResponseInit, val: u16);
     #[wasm_bindgen(method, getter, js_name = "statusText")]
     pub fn status_text(this: &ResponseInit) -> Option<String>;
     #[wasm_bindgen(method, setter, js_name = "statusText")]
@@ -5480,7 +5480,7 @@ pub struct ResponseInitBuilder {
     inner: ResponseInit,
 }
 impl ResponseInitBuilder {
-    pub fn status(self, val: f64) -> Self {
+    pub fn status(self, val: u16) -> Self {
         self.inner.set_status(val);
         self
     }
@@ -7003,9 +7003,9 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "contentType")]
     pub fn set_content_type(this: &QueueSendOptions, val: QueueContentType);
     #[wasm_bindgen(method, getter, js_name = "delaySeconds")]
-    pub fn delay_seconds(this: &QueueSendOptions) -> Option<f64>;
+    pub fn delay_seconds(this: &QueueSendOptions) -> Option<u32>;
     #[wasm_bindgen(method, setter, js_name = "delaySeconds")]
-    pub fn set_delay_seconds(this: &QueueSendOptions, val: f64);
+    pub fn set_delay_seconds(this: &QueueSendOptions, val: u32);
 }
 impl QueueSendOptions {
     pub fn new() -> QueueSendOptions {
@@ -7025,7 +7025,7 @@ impl QueueSendOptionsBuilder {
         self.inner.set_content_type(val);
         self
     }
-    pub fn delay_seconds(self, val: f64) -> Self {
+    pub fn delay_seconds(self, val: u32) -> Self {
         self.inner.set_delay_seconds(val);
         self
     }
@@ -7039,9 +7039,9 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type QueueSendBatchOptions;
     #[wasm_bindgen(method, getter, js_name = "delaySeconds")]
-    pub fn delay_seconds(this: &QueueSendBatchOptions) -> Option<f64>;
+    pub fn delay_seconds(this: &QueueSendBatchOptions) -> Option<u32>;
     #[wasm_bindgen(method, setter, js_name = "delaySeconds")]
-    pub fn set_delay_seconds(this: &QueueSendBatchOptions, val: f64);
+    pub fn set_delay_seconds(this: &QueueSendBatchOptions, val: u32);
 }
 impl QueueSendBatchOptions {
     pub fn new() -> QueueSendBatchOptions {
@@ -7057,7 +7057,7 @@ pub struct QueueSendBatchOptionsBuilder {
     inner: QueueSendBatchOptions,
 }
 impl QueueSendBatchOptionsBuilder {
-    pub fn delay_seconds(self, val: f64) -> Self {
+    pub fn delay_seconds(self, val: u32) -> Self {
         self.inner.set_delay_seconds(val);
         self
     }
@@ -7230,9 +7230,9 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type QueueRetryOptions;
     #[wasm_bindgen(method, getter, js_name = "delaySeconds")]
-    pub fn delay_seconds(this: &QueueRetryOptions) -> Option<f64>;
+    pub fn delay_seconds(this: &QueueRetryOptions) -> Option<u32>;
     #[wasm_bindgen(method, setter, js_name = "delaySeconds")]
-    pub fn set_delay_seconds(this: &QueueRetryOptions, val: f64);
+    pub fn set_delay_seconds(this: &QueueRetryOptions, val: u32);
 }
 impl QueueRetryOptions {
     pub fn new() -> QueueRetryOptions {
@@ -7248,7 +7248,7 @@ pub struct QueueRetryOptionsBuilder {
     inner: QueueRetryOptions,
 }
 impl QueueRetryOptionsBuilder {
-    pub fn delay_seconds(self, val: f64) -> Self {
+    pub fn delay_seconds(self, val: u32) -> Self {
         self.inner.set_delay_seconds(val);
         self
     }
@@ -7327,9 +7327,9 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type R2ListOptions;
     #[wasm_bindgen(method, getter)]
-    pub fn limit(this: &R2ListOptions) -> Option<f64>;
+    pub fn limit(this: &R2ListOptions) -> Option<u32>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_limit(this: &R2ListOptions, val: f64);
+    pub fn set_limit(this: &R2ListOptions, val: u32);
     #[wasm_bindgen(method, getter)]
     pub fn prefix(this: &R2ListOptions) -> Option<String>;
     #[wasm_bindgen(method, setter)]
@@ -7365,7 +7365,7 @@ pub struct R2ListOptionsBuilder {
     inner: R2ListOptions,
 }
 impl R2ListOptionsBuilder {
-    pub fn limit(self, val: f64) -> Self {
+    pub fn limit(self, val: u32) -> Self {
         self.inner.set_limit(val);
         self
     }
@@ -7921,130 +7921,130 @@ extern "C" {
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub async fn upload_part(
         this: &R2MultipartUpload,
-        part_number: f64,
+        part_number: u16,
         value: &ReadableStream,
     ) -> Result<R2UploadedPart, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub fn upload_part_promise(
         this: &R2MultipartUpload,
-        part_number: f64,
+        part_number: u16,
         value: &ReadableStream,
     ) -> Result<Promise<R2UploadedPart>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub async fn upload_part_with_array_buffer(
         this: &R2MultipartUpload,
-        part_number: f64,
+        part_number: u16,
         value: &ArrayBuffer,
     ) -> Result<R2UploadedPart, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub fn upload_part_with_array_buffer_promise(
         this: &R2MultipartUpload,
-        part_number: f64,
+        part_number: u16,
         value: &ArrayBuffer,
     ) -> Result<Promise<R2UploadedPart>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub async fn upload_part_with_typed_array(
         this: &R2MultipartUpload,
-        part_number: f64,
+        part_number: u16,
         value: &Object,
     ) -> Result<R2UploadedPart, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub fn upload_part_with_typed_array_promise(
         this: &R2MultipartUpload,
-        part_number: f64,
+        part_number: u16,
         value: &Object,
     ) -> Result<Promise<R2UploadedPart>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub async fn upload_part_with_str(
         this: &R2MultipartUpload,
-        part_number: f64,
+        part_number: u16,
         value: &str,
     ) -> Result<R2UploadedPart, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub fn upload_part_with_str_promise(
         this: &R2MultipartUpload,
-        part_number: f64,
+        part_number: u16,
         value: &str,
     ) -> Result<Promise<R2UploadedPart>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub async fn upload_part_with_blob(
         this: &R2MultipartUpload,
-        part_number: f64,
+        part_number: u16,
         value: &Blob,
     ) -> Result<R2UploadedPart, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub fn upload_part_with_blob_promise(
         this: &R2MultipartUpload,
-        part_number: f64,
+        part_number: u16,
         value: &Blob,
     ) -> Result<Promise<R2UploadedPart>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub async fn upload_part_with_readable_stream_and_options(
         this: &R2MultipartUpload,
-        part_number: f64,
+        part_number: u16,
         value: &ReadableStream,
         options: &R2UploadPartOptions,
     ) -> Result<R2UploadedPart, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub fn upload_part_with_readable_stream_and_options_promise(
         this: &R2MultipartUpload,
-        part_number: f64,
+        part_number: u16,
         value: &ReadableStream,
         options: &R2UploadPartOptions,
     ) -> Result<Promise<R2UploadedPart>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub async fn upload_part_with_array_buffer_and_options(
         this: &R2MultipartUpload,
-        part_number: f64,
+        part_number: u16,
         value: &ArrayBuffer,
         options: &R2UploadPartOptions,
     ) -> Result<R2UploadedPart, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub fn upload_part_with_array_buffer_and_options_promise(
         this: &R2MultipartUpload,
-        part_number: f64,
+        part_number: u16,
         value: &ArrayBuffer,
         options: &R2UploadPartOptions,
     ) -> Result<Promise<R2UploadedPart>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub async fn upload_part_with_typed_array_and_options(
         this: &R2MultipartUpload,
-        part_number: f64,
+        part_number: u16,
         value: &Object,
         options: &R2UploadPartOptions,
     ) -> Result<R2UploadedPart, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub fn upload_part_with_typed_array_and_options_promise(
         this: &R2MultipartUpload,
-        part_number: f64,
+        part_number: u16,
         value: &Object,
         options: &R2UploadPartOptions,
     ) -> Result<Promise<R2UploadedPart>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub async fn upload_part_with_str_and_options(
         this: &R2MultipartUpload,
-        part_number: f64,
+        part_number: u16,
         value: &str,
         options: &R2UploadPartOptions,
     ) -> Result<R2UploadedPart, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub fn upload_part_with_str_and_options_promise(
         this: &R2MultipartUpload,
-        part_number: f64,
+        part_number: u16,
         value: &str,
         options: &R2UploadPartOptions,
     ) -> Result<Promise<R2UploadedPart>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub async fn upload_part_with_blob_and_options(
         this: &R2MultipartUpload,
-        part_number: f64,
+        part_number: u16,
         value: &Blob,
         options: &R2UploadPartOptions,
     ) -> Result<R2UploadedPart, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub fn upload_part_with_blob_and_options_promise(
         this: &R2MultipartUpload,
-        part_number: f64,
+        part_number: u16,
         value: &Blob,
         options: &R2UploadPartOptions,
     ) -> Result<Promise<R2UploadedPart>, crate::Error>;
@@ -8069,16 +8069,16 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type R2UploadedPart;
     #[wasm_bindgen(method, getter, js_name = "partNumber")]
-    pub fn part_number(this: &R2UploadedPart) -> f64;
+    pub fn part_number(this: &R2UploadedPart) -> u16;
     #[wasm_bindgen(method, setter, js_name = "partNumber")]
-    pub fn set_part_number(this: &R2UploadedPart, val: f64);
+    pub fn set_part_number(this: &R2UploadedPart, val: u16);
     #[wasm_bindgen(method, getter)]
     pub fn etag(this: &R2UploadedPart) -> String;
     #[wasm_bindgen(method, setter)]
     pub fn set_etag(this: &R2UploadedPart, val: &str);
 }
 impl R2UploadedPart {
-    pub fn new(part_number: f64, etag: &str) -> R2UploadedPart {
+    pub fn new(part_number: u16, etag: &str) -> R2UploadedPart {
         let inner: R2UploadedPart = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_part_number(part_number);
         inner.set_etag(etag);
@@ -10470,7 +10470,7 @@ extern "C" {
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/CloseEvent/code)"]
     #[wasm_bindgen(method, getter)]
-    pub fn code(this: &CloseEvent) -> f64;
+    pub fn code(this: &CloseEvent) -> u16;
     #[doc = " The **`reason`** read-only property of the CloseEvent interface returns the WebSocket connection close reason the server gave for closing the connection; that is, a concise human-readable prose explanation for the closure."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/CloseEvent/reason)"]
@@ -10625,14 +10625,14 @@ extern "C" {
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/close)"]
     #[wasm_bindgen(method, catch, js_name = "close")]
-    pub fn close_with_code(this: &WebSocket, code: f64) -> Result<(), crate::Error>;
+    pub fn close_with_code(this: &WebSocket, code: u16) -> Result<(), crate::Error>;
     #[doc = " The **`WebSocket.close()`** method closes the WebSocket connection or connection attempt, if any. If the connection is already CLOSED, this method does nothing."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/close)"]
     #[wasm_bindgen(method, catch, js_name = "close")]
     pub fn close_with_code_and_reason(
         this: &WebSocket,
-        code: f64,
+        code: u16,
         reason: &str,
     ) -> Result<(), crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "serializeAttachment")]
@@ -10785,9 +10785,9 @@ extern "C" {
         val: &[String],
     );
     #[wasm_bindgen(method, getter, js_name = "rowsRead")]
-    pub fn rows_read<T: ::wasm_bindgen::JsGeneric>(this: &SqlStorageCursor<T>) -> f64;
+    pub fn rows_read<T: ::wasm_bindgen::JsGeneric>(this: &SqlStorageCursor<T>) -> usize;
     #[wasm_bindgen(method, getter, js_name = "rowsWritten")]
-    pub fn rows_written<T: ::wasm_bindgen::JsGeneric>(this: &SqlStorageCursor<T>) -> f64;
+    pub fn rows_written<T: ::wasm_bindgen::JsGeneric>(this: &SqlStorageCursor<T>) -> usize;
 }
 impl<T: ::wasm_bindgen::JsGeneric> PartialEq for SqlStorageCursor<T> {
     fn eq(&self, other: &Self) -> bool {
@@ -10884,12 +10884,12 @@ extern "C" {
     #[wasm_bindgen(method, setter)]
     pub fn set_hostname(this: &SocketAddress, val: &str);
     #[wasm_bindgen(method, getter)]
-    pub fn port(this: &SocketAddress) -> f64;
+    pub fn port(this: &SocketAddress) -> u16;
     #[wasm_bindgen(method, setter)]
-    pub fn set_port(this: &SocketAddress, val: f64);
+    pub fn set_port(this: &SocketAddress, val: u16);
 }
 impl SocketAddress {
-    pub fn new(hostname: &str, port: f64) -> SocketAddress {
+    pub fn new(hostname: &str, port: u16) -> SocketAddress {
         let inner: SocketAddress = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_hostname(hostname);
         inner.set_port(port);
@@ -11193,9 +11193,9 @@ extern "C" {
         error: &JsValue,
     ) -> Result<Promise<Undefined>, crate::Error>;
     #[wasm_bindgen(method, catch)]
-    pub fn signal(this: &Container, signo: f64) -> Result<(), crate::Error>;
+    pub fn signal(this: &Container, signo: i32) -> Result<(), crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getTcpPort")]
-    pub fn get_tcp_port(this: &Container, port: f64) -> Result<Fetcher, crate::Error>;
+    pub fn get_tcp_port(this: &Container, port: u16) -> Result<Fetcher, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "setInactivityTimeout")]
     pub async fn set_inactivity_timeout(
         this: &Container,
@@ -12424,9 +12424,9 @@ extern "C" {
     pub fn set_cache_tags(this: &RequestInitCfProperties, val: &[String]);
     #[doc = " Force response to be cached for a given number of seconds. (e.g. 300)"]
     #[wasm_bindgen(method, getter, js_name = "cacheTtl")]
-    pub fn cache_ttl(this: &RequestInitCfProperties) -> Option<f64>;
+    pub fn cache_ttl(this: &RequestInitCfProperties) -> Option<i32>;
     #[wasm_bindgen(method, setter, js_name = "cacheTtl")]
-    pub fn set_cache_ttl(this: &RequestInitCfProperties, val: f64);
+    pub fn set_cache_ttl(this: &RequestInitCfProperties, val: i32);
     #[doc = " Force response to be cached for a given number of seconds based on the Origin status code."]
     #[doc = " (e.g. { '200-299': 86400, '404': 1, '500-599': 0 })"]
     #[wasm_bindgen(method, getter, js_name = "cacheTtlByStatus")]
@@ -12562,7 +12562,7 @@ impl RequestInitCfPropertiesBuilder {
         self.inner.set_cache_tags(val);
         self
     }
-    pub fn cache_ttl(self, val: f64) -> Self {
+    pub fn cache_ttl(self, val: i32) -> Self {
         self.inner.set_cache_ttl(val);
         self
     }
@@ -12863,14 +12863,14 @@ extern "C" {
     pub type BasicImageTransformations;
     #[doc = " Maximum width in image pixels. The value must be an integer."]
     #[wasm_bindgen(method, getter)]
-    pub fn width(this: &BasicImageTransformations) -> Option<f64>;
+    pub fn width(this: &BasicImageTransformations) -> Option<usize>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_width(this: &BasicImageTransformations, val: f64);
+    pub fn set_width(this: &BasicImageTransformations, val: usize);
     #[doc = " Maximum height in image pixels. The value must be an integer."]
     #[wasm_bindgen(method, getter)]
-    pub fn height(this: &BasicImageTransformations) -> Option<f64>;
+    pub fn height(this: &BasicImageTransformations) -> Option<usize>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_height(this: &BasicImageTransformations, val: f64);
+    pub fn set_height(this: &BasicImageTransformations, val: usize);
     #[doc = " When cropping with fit: \"cover\", this defines the side or point that should"]
     #[doc = " be left uncropped. The value is either a string"]
     #[doc = " \"left\", \"right\", \"top\", \"bottom\", \"auto\", or \"center\" (the default),"]
@@ -12978,9 +12978,9 @@ extern "C" {
     #[doc = " Radius of a blur filter (approximate gaussian). Maximum supported radius"]
     #[doc = " is 250."]
     #[wasm_bindgen(method, getter)]
-    pub fn blur(this: &BasicImageTransformations) -> Option<f64>;
+    pub fn blur(this: &BasicImageTransformations) -> Option<u8>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_blur(this: &BasicImageTransformations, val: f64);
+    pub fn set_blur(this: &BasicImageTransformations, val: u8);
     #[doc = " Increase contrast by a factor. A value of 1.0 equals no change, a value of"]
     #[doc = " 0.5 equals low contrast, and a value of 2.0 equals high contrast. 0 is"]
     #[doc = " ignored."]
@@ -13055,11 +13055,11 @@ pub struct BasicImageTransformationsBuilder {
     inner: BasicImageTransformations,
 }
 impl BasicImageTransformationsBuilder {
-    pub fn width(self, val: f64) -> Self {
+    pub fn width(self, val: usize) -> Self {
         self.inner.set_width(val);
         self
     }
-    pub fn height(self, val: f64) -> Self {
+    pub fn height(self, val: usize) -> Self {
         self.inner.set_height(val);
         self
     }
@@ -13107,7 +13107,7 @@ impl BasicImageTransformationsBuilder {
         self.inner.set_sharpen(val);
         self
     }
-    pub fn blur(self, val: f64) -> Self {
+    pub fn blur(self, val: u8) -> Self {
         self.inner.set_blur(val);
         self
     }
@@ -13240,21 +13240,21 @@ extern "C" {
     #[doc = ""]
     #[doc = " If no position is specified, the image will be centered."]
     #[wasm_bindgen(method, getter)]
-    pub fn top(this: &RequestInitCfPropertiesImageDraw) -> Option<f64>;
+    pub fn top(this: &RequestInitCfPropertiesImageDraw) -> Option<usize>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_top(this: &RequestInitCfPropertiesImageDraw, val: f64);
+    pub fn set_top(this: &RequestInitCfPropertiesImageDraw, val: usize);
     #[wasm_bindgen(method, getter)]
-    pub fn left(this: &RequestInitCfPropertiesImageDraw) -> Option<f64>;
+    pub fn left(this: &RequestInitCfPropertiesImageDraw) -> Option<usize>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_left(this: &RequestInitCfPropertiesImageDraw, val: f64);
+    pub fn set_left(this: &RequestInitCfPropertiesImageDraw, val: usize);
     #[wasm_bindgen(method, getter)]
-    pub fn bottom(this: &RequestInitCfPropertiesImageDraw) -> Option<f64>;
+    pub fn bottom(this: &RequestInitCfPropertiesImageDraw) -> Option<usize>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_bottom(this: &RequestInitCfPropertiesImageDraw, val: f64);
+    pub fn set_bottom(this: &RequestInitCfPropertiesImageDraw, val: usize);
     #[wasm_bindgen(method, getter)]
-    pub fn right(this: &RequestInitCfPropertiesImageDraw) -> Option<f64>;
+    pub fn right(this: &RequestInitCfPropertiesImageDraw) -> Option<usize>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_right(this: &RequestInitCfPropertiesImageDraw, val: f64);
+    pub fn set_right(this: &RequestInitCfPropertiesImageDraw, val: usize);
 }
 impl RequestInitCfPropertiesImageDraw {
     #[doc = " * `url` - Absolute URL of the image file to use for the drawing. It can be any of"]
@@ -13276,11 +13276,11 @@ pub struct RequestInitCfPropertiesImageDrawBuilder {
     inner: RequestInitCfPropertiesImageDraw,
 }
 impl RequestInitCfPropertiesImageDrawBuilder {
-    pub fn width(self, val: f64) -> Self {
+    pub fn width(self, val: usize) -> Self {
         self.inner.set_width(val);
         self
     }
-    pub fn height(self, val: f64) -> Self {
+    pub fn height(self, val: usize) -> Self {
         self.inner.set_height(val);
         self
     }
@@ -13328,7 +13328,7 @@ impl RequestInitCfPropertiesImageDrawBuilder {
         self.inner.set_sharpen(val);
         self
     }
-    pub fn blur(self, val: f64) -> Self {
+    pub fn blur(self, val: u8) -> Self {
         self.inner.set_blur(val);
         self
     }
@@ -13380,19 +13380,19 @@ impl RequestInitCfPropertiesImageDrawBuilder {
         self.inner.set_composite(val);
         self
     }
-    pub fn top(self, val: f64) -> Self {
+    pub fn top(self, val: usize) -> Self {
         self.inner.set_top(val);
         self
     }
-    pub fn left(self, val: f64) -> Self {
+    pub fn left(self, val: usize) -> Self {
         self.inner.set_left(val);
         self
     }
-    pub fn bottom(self, val: f64) -> Self {
+    pub fn bottom(self, val: usize) -> Self {
         self.inner.set_bottom(val);
         self
     }
-    pub fn right(self, val: f64) -> Self {
+    pub fn right(self, val: usize) -> Self {
         self.inner.set_right(val);
         self
     }
@@ -13492,11 +13492,11 @@ pub struct RequestInitCfPropertiesImageBuilder {
     inner: RequestInitCfPropertiesImage,
 }
 impl RequestInitCfPropertiesImageBuilder {
-    pub fn width(self, val: f64) -> Self {
+    pub fn width(self, val: usize) -> Self {
         self.inner.set_width(val);
         self
     }
-    pub fn height(self, val: f64) -> Self {
+    pub fn height(self, val: usize) -> Self {
         self.inner.set_height(val);
         self
     }
@@ -13544,7 +13544,7 @@ impl RequestInitCfPropertiesImageBuilder {
         self.inner.set_sharpen(val);
         self
     }
-    pub fn blur(self, val: f64) -> Self {
+    pub fn blur(self, val: u8) -> Self {
         self.inner.set_blur(val);
         self
     }
@@ -15605,7 +15605,7 @@ pub struct IncomingRequestCfPropertiesBuilder<HostMetadata: ::wasm_bindgen::JsGe
     inner: IncomingRequestCfProperties<HostMetadata>,
 }
 impl<HostMetadata: ::wasm_bindgen::JsGeneric> IncomingRequestCfPropertiesBuilder<HostMetadata> {
-    pub fn asn(self, val: f64) -> Self {
+    pub fn asn(self, val: u32) -> Self {
         self.inner.set_asn(val);
         self
     }
@@ -15693,9 +15693,9 @@ extern "C" {
     #[doc = ""]
     #[doc = " @example 395747"]
     #[wasm_bindgen(method, getter)]
-    pub fn asn(this: &IncomingRequestCfPropertiesBase) -> Option<f64>;
+    pub fn asn(this: &IncomingRequestCfPropertiesBase) -> Option<u32>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_asn(this: &IncomingRequestCfPropertiesBase, val: f64);
+    pub fn set_asn(this: &IncomingRequestCfPropertiesBase, val: u32);
     #[doc = " The organization which owns the ASN of the incoming request."]
     #[doc = ""]
     #[doc = " @example \"Google Cloud\""]
@@ -16352,7 +16352,7 @@ pub struct IncomingRequestCfPropertiesBaseBuilder {
     inner: IncomingRequestCfPropertiesBase,
 }
 impl IncomingRequestCfPropertiesBaseBuilder {
-    pub fn asn(self, val: f64) -> Self {
+    pub fn asn(self, val: u32) -> Self {
         self.inner.set_asn(val);
         self
     }
@@ -16389,9 +16389,9 @@ extern "C" {
     #[doc = ""]
     #[doc = " @example 54"]
     #[wasm_bindgen(method, getter)]
-    pub fn score(this: &IncomingRequestCfPropertiesBotManagementBase) -> f64;
+    pub fn score(this: &IncomingRequestCfPropertiesBotManagementBase) -> u32;
     #[wasm_bindgen(method, setter)]
-    pub fn set_score(this: &IncomingRequestCfPropertiesBotManagementBase, val: f64);
+    pub fn set_score(this: &IncomingRequestCfPropertiesBotManagementBase, val: u32);
     #[doc = " A boolean value that is true if the request comes from a good bot, like Google or Bing."]
     #[doc = " Most customers choose to allow this traffic. For more details, see [Traffic from known bots](https://developers.cloudflare.com/firewall/known-issues-and-faq/#how-does-firewall-rules-handle-traffic-from-known-bots)."]
     #[wasm_bindgen(method, getter, js_name = "verifiedBot")]
@@ -16411,9 +16411,9 @@ extern "C" {
     pub fn set_static_resource(this: &IncomingRequestCfPropertiesBotManagementBase, val: bool);
     #[doc = " List of IDs that correlate to the Bot Management heuristic detections made on a request (you can have multiple heuristic detections on the same request)."]
     #[wasm_bindgen(method, getter, js_name = "detectionIds")]
-    pub fn detection_ids(this: &IncomingRequestCfPropertiesBotManagementBase) -> Vec<f64>;
-    #[wasm_bindgen(method, setter, js_name = "detectionIds")]
-    pub fn set_detection_ids(this: &IncomingRequestCfPropertiesBotManagementBase, val: &[f64]);
+    pub fn detection_ids(this: &IncomingRequestCfPropertiesBotManagementBase) -> Vec<u32>;
+    #[wasm_bindgen(method, setter, slice_to_array, js_name = "detectionIds")]
+    pub fn set_detection_ids(this: &IncomingRequestCfPropertiesBotManagementBase, val: &[u32]);
 }
 impl IncomingRequestCfPropertiesBotManagementBase {
     #[doc = " * `score` - Cloudflare’s [level of certainty](https://developers.cloudflare.com/bots/concepts/bot-score/) that a request comes from a bot,"]
@@ -16427,11 +16427,11 @@ impl IncomingRequestCfPropertiesBotManagementBase {
     #[doc = " * `static_resource` - A boolean value that's true if the request matches [file extensions](https://developers.cloudflare.com/bots/reference/static-resources/) for many types of static resources."]
     #[doc = " * `detection_ids` - List of IDs that correlate to the Bot Management heuristic detections made on a request (you can have multiple heuristic detections on the same request)."]
     pub fn new(
-        score: f64,
+        score: u32,
         verified_bot: bool,
         corporate_proxy: bool,
         static_resource: bool,
-        detection_ids: &[f64],
+        detection_ids: &[u32],
     ) -> IncomingRequestCfPropertiesBotManagementBase {
         let inner: IncomingRequestCfPropertiesBotManagementBase =
             JsCast::unchecked_into(js_sys::Object::new());
@@ -17779,13 +17779,13 @@ extern "C" {
     #[wasm_bindgen(method, setter)]
     pub fn set_size_after(this: &D1Meta, val: f64);
     #[wasm_bindgen(method, getter)]
-    pub fn rows_read(this: &D1Meta) -> f64;
+    pub fn rows_read(this: &D1Meta) -> usize;
     #[wasm_bindgen(method, setter)]
-    pub fn set_rows_read(this: &D1Meta, val: f64);
+    pub fn set_rows_read(this: &D1Meta, val: usize);
     #[wasm_bindgen(method, getter)]
-    pub fn rows_written(this: &D1Meta) -> f64;
+    pub fn rows_written(this: &D1Meta) -> usize;
     #[wasm_bindgen(method, setter)]
-    pub fn set_rows_written(this: &D1Meta, val: f64);
+    pub fn set_rows_written(this: &D1Meta, val: usize);
     #[wasm_bindgen(method, getter)]
     pub fn last_row_id(this: &D1Meta) -> f64;
     #[wasm_bindgen(method, setter)]
@@ -17795,9 +17795,9 @@ extern "C" {
     #[wasm_bindgen(method, setter)]
     pub fn set_changed_db(this: &D1Meta, val: bool);
     #[wasm_bindgen(method, getter)]
-    pub fn changes(this: &D1Meta) -> f64;
+    pub fn changes(this: &D1Meta) -> usize;
     #[wasm_bindgen(method, setter)]
-    pub fn set_changes(this: &D1Meta, val: f64);
+    pub fn set_changes(this: &D1Meta, val: usize);
     #[doc = " The region of the database instance that executed the query."]
     #[wasm_bindgen(method, getter)]
     pub fn served_by_region(this: &D1Meta) -> Option<String>;
@@ -17828,11 +17828,11 @@ impl D1Meta {
     pub fn new(
         duration: f64,
         size_after: f64,
-        rows_read: f64,
-        rows_written: f64,
+        rows_read: usize,
+        rows_written: usize,
         last_row_id: f64,
         changed_db: bool,
-        changes: f64,
+        changes: usize,
     ) -> D1Meta {
         Self::builder(
             duration,
@@ -17848,11 +17848,11 @@ impl D1Meta {
     pub fn builder(
         duration: f64,
         size_after: f64,
-        rows_read: f64,
-        rows_written: f64,
+        rows_read: usize,
+        rows_written: usize,
         last_row_id: f64,
         changed_db: bool,
-        changes: f64,
+        changes: usize,
     ) -> D1MetaBuilder {
         let inner: D1Meta = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_duration(duration);
@@ -17992,16 +17992,16 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type D1ExecResult;
     #[wasm_bindgen(method, getter)]
-    pub fn count(this: &D1ExecResult) -> f64;
+    pub fn count(this: &D1ExecResult) -> u32;
     #[wasm_bindgen(method, setter)]
-    pub fn set_count(this: &D1ExecResult, val: f64);
+    pub fn set_count(this: &D1ExecResult, val: u32);
     #[wasm_bindgen(method, getter)]
     pub fn duration(this: &D1ExecResult) -> f64;
     #[wasm_bindgen(method, setter)]
     pub fn set_duration(this: &D1ExecResult, val: f64);
 }
 impl D1ExecResult {
-    pub fn new(count: f64, duration: f64) -> D1ExecResult {
+    pub fn new(count: u32, duration: f64) -> D1ExecResult {
         let inner: D1ExecResult = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_count(count);
         inner.set_duration(duration);
@@ -18914,7 +18914,7 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn ip(this: &Hyperdrive) -> String;
     #[wasm_bindgen(method, getter)]
-    pub fn port(this: &Hyperdrive) -> f64;
+    pub fn port(this: &Hyperdrive) -> u16;
     #[wasm_bindgen(method, getter)]
     pub fn user(this: &Hyperdrive) -> String;
     #[wasm_bindgen(method, getter)]

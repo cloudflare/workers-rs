@@ -71,7 +71,7 @@ impl ResponseInitBuilder {
         }
         Ok(Response::new_with_str_and_init(
             msg.as_ref(),
-            &self.status(status as f64).build(),
+            &self.status(status).build(),
         )?)
     }
 }

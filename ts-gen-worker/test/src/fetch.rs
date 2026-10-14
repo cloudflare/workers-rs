@@ -177,7 +177,7 @@ pub async fn handle_cloned_response_attributes(
     let resp = Response::new_with_str_and_init(
         "",
         &ResponseInit::builder()
-            .status(200.0)
+            .status(200)
             .encode_body("manual")
             .cf(&cf)
             .build(),

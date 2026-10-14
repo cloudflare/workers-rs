@@ -149,7 +149,7 @@ pub async fn list(_req: Request, env: Env, _data: SomeSharedData) -> Result<Resp
     assert_eq!(objects.cursor(), None);
 
     let objects = bucket
-        .list_with_options(&R2ListOptions::builder().limit(1.0).build())
+        .list_with_options(&R2ListOptions::builder().limit(1).build())
         .await?;
     assert_eq!(objects.objects().len(), 1);
     assert!(objects.truncated());
@@ -309,7 +309,10 @@ pub async fn put_multipart(_req: Request, env: Env, _data: SomeSharedData) -> Re
         let chunk = vec![u8::try_from(chunk_index).unwrap(); chunk_size];
         uploaded_parts.push(
             upload
-                .upload_part_with_typed_array(chunk_index as f64, &Uint8Array::from(&chunk[..]))
+                .upload_part_with_typed_array(
+                    u16::try_from(chunk_index).unwrap(),
+                    &Uint8Array::from(&chunk[..]),
+                )
                 .await?,
         );
     }

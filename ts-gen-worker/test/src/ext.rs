@@ -188,7 +188,7 @@ pub async fn handle(
         ("POST", ["json-into"]) => {
             let mut body: Body = req.json_into().await?;
             body.count += 1;
-            Response::builder().status(201.0).from_json(&body)
+            Response::builder().status(201).from_json(&body)
         }
 
         ("POST", ["bytes-stream"]) => {
@@ -208,8 +208,8 @@ pub async fn handle(
             Response::builder().from_bytes(bytes)
         }
 
-        ("GET", ["html"]) => Response::builder().status(201.0).from_html("<b>hi</b>"),
-        ("GET", ["empty"]) => Response::builder().status(204.0).empty(),
+        ("GET", ["html"]) => Response::builder().status(201).from_html("<b>hi</b>"),
+        ("GET", ["empty"]) => Response::builder().status(204).empty(),
         ("GET", ["teapot"]) => Response::builder().error("short and stout", 418),
         ("GET", ["bad-error"]) => Response::builder().error("nope", 200),
         ("GET", ["ok-ct"]) => {

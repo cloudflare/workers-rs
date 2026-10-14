@@ -74,7 +74,7 @@ pub fn second_start() {
     GLOBAL_SECOND_START.store(true, Ordering::SeqCst);
 }
 
-fn text(body: &str, status: f64, content_type: &str) -> Result<Response> {
+fn text(body: &str, status: u16, content_type: &str) -> Result<Response> {
     let headers = Headers::new()?;
     headers.set("content-type", content_type)?;
     Ok(Response::new_with_str_and_init(
@@ -117,8 +117,8 @@ async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response
         .unwrap_or_default();
 
     match (method.as_str(), segments.as_slice()) {
-        ("GET", []) => text("Hello from Rust!", 200.0, "text/plain"),
-        ("GET", ["env"]) => text(&env.greeting(), 200.0, "text/plain"),
+        ("GET", []) => text("Hello from Rust!", 200, "text/plain"),
+        ("GET", ["env"]) => text(&env.greeting(), 200, "text/plain"),
         ("GET", ["headers"]) => {
             let headers = Headers::new()?;
             headers.append("x-multi", "a")?;
@@ -170,14 +170,14 @@ async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response
         }
         ("GET", ["redirect"]) => Ok(Response::redirect_with_status(
             "https://example.com/elsewhere",
-            302.0,
+            302,
         )?),
         ("GET", ["fetch-upstream"]) => {
             let upstream = fetch_with_str("https://upstream.test/data").await?;
             let status = upstream.status();
             let ok = upstream.ok();
             let body: String = upstream.text().await?.into();
-            text(&format!("{status} {ok} {body}"), 200.0, "text/plain")
+            text(&format!("{status} {ok} {body}"), 200, "text/plain")
         }
         ("POST", ["fetch-init"]) => {
             let body: String = req.text().await?.into();
@@ -215,15 +215,15 @@ async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response
                 Err(other) => format!("other: {other}"),
                 Ok(()) => "ok".to_string(),
             };
-            text(&outcome, 200.0, "text/plain")
+            text(&outcome, 200, "text/plain")
         }
         ("GET", ["bad-redirect"]) => {
-            let outcome = match Response::redirect_with_status("https://example.com/", 200.0) {
+            let outcome = match Response::redirect_with_status("https://example.com/", 200) {
                 Err(JsException::RangeError(_)) => "RangeError".to_string(),
                 Err(other) => format!("other: {other}"),
                 Ok(_) => "ok".to_string(),
             };
-            text(&outcome, 200.0, "text/plain")
+            text(&outcome, 200, "text/plain")
         }
         ("GET", ["error-display"]) => {
             let err: Error = match Headers::new()?.set("bad name", "x") {
@@ -231,7 +231,7 @@ async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response
                 Ok(()) => "unexpected".into(),
             };
             let matched = matches!(err, Error::Js(JsException::TypeError(_)));
-            text(&format!("{matched} {err}"), 200.0, "text/plain")
+            text(&format!("{matched} {err}"), 200, "text/plain")
         }
         ("GET", ["error"]) => Err(Error::Rust("boom".to_string())),
 
@@ -465,7 +465,7 @@ async fn catchall(req: Request, _env: Env, _data: SomeSharedData) -> Result<Resp
     let upstream = fetch_with_str("https://github.com/404").await?;
     let body = upstream.body();
     let init = ResponseInit::builder()
-        .status(404.0)
+        .status(404)
         .headers(&upstream.headers())
         .build();
     Ok(match body {
