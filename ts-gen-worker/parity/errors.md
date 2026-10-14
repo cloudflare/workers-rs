@@ -127,3 +127,101 @@ workers-rs, branch `gbedford/tgw-errors`:
   it (workers-types does) or pass `--external DOMException=::web_sys::DomException`.
 - ts-gen-worker: `HeadersInit` / `RequestInfo` unions still erase to `JsValue`
   in `RequestInit`/`ResponseInit` setters (pre-existing warning on regen).
+
+## Session 2: ts-gen fixes from the test-suite port
+
+ts-gen `agent/errors` reset to `gbedford/workers-parity` (`a643100`), three new
+commits, published to `../../workers-rs/ts-gen`:
+
+- `aa5d2b3` inner-position nullable lowering. `TypeRef::Nullable` now carries
+  `ir::Nullish` (`Null` when the source names `null`, `Undefined` when only
+  `undefined`/`void`). Inner positions lower `Null` to `JsNullable<T>` and
+  `Undefined` to `JsOption<T>`; outer positions unchanged. Fixture
+  `nullable-inner`.
+- `67fa212` `null` arguments. A parameter naming `null` keeps a
+  `_with_null(&Null)` variant unless it is optional and nothing follows it in
+  that variant (a variadic tail counts as following). Only `Nullish::Null`
+  qualifies; `any | null` is already `&JsValue`. Fixture `nullable-args`.
+- `4a1327a` `<name>_promise`. Every `Promise`-returning callable also emits a
+  sync sibling returning `Promise<T>`, named after the primary
+  (`fetch_with_init_promise`). Plain under the default policy;
+  `Result<Promise<T>, E>` under `--fallible`, `@throws` typed, `@throws
+  {never}` plain. Fixtures `promise-companion`, `promise-companion-fallible`.
+
+workers-rs `gbedford/tgw-errors` (rebased onto `gbedford/ts-gen-worker`
+`3fec3ab`): `0f776cf` bumps the submodule, regenerates `bindings.rs` and
+`worker/src/bindings/email.rs`, removes `util::nullable`, the extra
+`constructor(body: null, …)` overload and the R2 empty-string stand-in for
+`put(key, null)`, and routes `util::block_concurrency_while` through the
+`_promise` form so the DO constructor gate is entered synchronously. 23 spec
+files, 176 tests green; fmt / check / clippy clean.
+
+### Decisions
+
+- **IR distinction instead of "everything → `JsNullable`".** The plan allowed
+  lowering all three spellings to one nullish wrapper. That is correct on the
+  read side but PR 2 needs the write side: a `_with_null` variant for a
+  parameter declared `T | undefined` passes `null` where the API said
+  `undefined` (`new File(bits: … | undefined, name)` in workers-types would have
+  grown `new_with_null`). The parser's coalescing was the common cause, so
+  `Nullable` now records whether `null` was written. Cost: `Nullable(inner)`
+  became `Nullable(inner, _)` at ~40 match sites in `typemap.rs` /
+  `signatures.rs` / `ir.rs` / parse; workers-rs-3's `agent/workers-types` adds
+  ~10 more `Nullable` sites and will need the same one-token edit on rebase.
+  Benefit beyond correctness: `T | undefined` keeps wasm-bindgen's precise
+  `JsOption<T>` (DO storage `get`, `Cache.match`) rather than widening.
+- **Null-arm rule is "required, or followed by something", not the plan's
+  "followed by further parameters, or sole constructor parameter".** The
+  constructor case in the plan was `Response`, whose `body?` is optional:
+  `new Response(null)` is `new Response()`, so the arm is dropped there and
+  `new_with_null_and_init` is what survives. A required trailing `T | null`
+  (`clearTimeout(null)`, R2 `put(key, null)`) is only reachable through
+  `_with_null`, so it is kept. Setters follow the same rule (their one param is
+  required): workers-types gains ~140 `set_x_with_null` / builder
+  `x_with_null` methods, almost all on the AI model dictionaries whose fields
+  are `x?: T | null`. Union setters already fan out, so this is consistent;
+  if the noise is unwanted, skipping the arm for `SignatureKind::Setter` is a
+  one-line change in `expand_single_overload`'s caller.
+- **Companion, not `Promise<T>` primary.** `Promise<T>: IntoFuture` exists in
+  js-sys but its output is `Result<T, JsValue>`, which would discard
+  `--error-type` and `@throws` on every async binding and, under `--fallible`,
+  turn a sync throw plus rejection into `?.await?`. The additive sibling keeps
+  the awaited form as the ergonomic default. Emitted unconditionally (no flag),
+  like the `try_` companion: it doubles the async surface, including
+  `worker/src/bindings/email.rs`, but every form is a real JS call.
+- **`_promise` catches under `--fallible`.** The plan said "`catch`-free since
+  the rejection is the promise's". That holds for JS `async` functions, but
+  workerd's promise-returning methods are JSG wrappers whose argument type
+  checks and `JSG_REQUIRE`s throw synchronously, so under a policy whose
+  contract is "no
+  binding aborts" the sync form catches too: `Result<Promise<T>, E>`, one `?`
+  before handing the promise to `waitUntil`. Under the default policy it is
+  plain like every other sync primary.
+- Suffix placement: `_promise` goes after the `_with_X` disambiguator
+  (`fetch_with_init_promise`), following `_js_string`, not before it as the
+  `try_` prefix does.
+
+### Open problems
+
+- **`Cache.match` resolves `undefined`, not `null`.** The plan listed it with
+  KV `get` / `getAlarm`; workers-types declares `Promise<Response | undefined>`
+  and the Cache API spec agrees, so it stays `JsOption<Response>` and the port
+  already used `into_option()` there. Nothing to change, noted so the plan's
+  list is not taken as a bug.
+- **`Nullish` rebase cost for workers-rs-3** (see Decisions): every
+  `TypeRef::Nullable(inner)` pattern on `agent/workers-types` needs `, _`, and
+  constructions need a `Nullish` value (`Undefined` for `?:` widening, `Null`
+  for a written `null`). Mechanical, compiler-guided.
+- **`_promise` for a `Promise`-typed property** is not emitted (the getter is
+  already sync). A property typed `() => Promise<T>` is a `Function` and also
+  gets nothing. Both are fine; recorded as the boundary of the rule.
+
+### Gaps found
+
+- ts-gen: `type_snake_name` gives `Nullable(inner, _)` the inner's name, so a
+  union param `string | Foo | null` suffixes as `_with_str` / `_with_foo` /
+  `_with_null`; fine, but `putWith` + `_with_null` reads as
+  `put_with_with_null`. Pre-existing suffix mechanics.
+- ts-gen-worker: `util::block_concurrency_while` is the shape
+  `src/ext/durable.rs` should expose (workers-rs-4): a Rust future run inside
+  the gate, entered synchronously via the `_promise` form.
