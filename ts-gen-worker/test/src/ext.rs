@@ -316,6 +316,29 @@ pub async fn handle(
             ))
         }
 
+        ("GET", ["fetch-enum"]) => {
+            let by_url = Fetch::Url("https://upstream.test/a".into()).send().await?;
+            let req = Request::new_with_str_and_init(
+                "https://upstream.test/b",
+                &RequestInit::builder().method("POST").build(),
+            )?;
+            let by_request = Fetch::Request(req).send().await?;
+            let controller = AbortController::default();
+            controller.abort()?;
+            let aborted = Fetch::from("https://upstream.test/c")
+                .send_with_signal(&controller.signal())
+                .await
+                .unwrap_err()
+                .to_string();
+            Response::builder().ok(format!(
+                "{} {} {} {} | {aborted}",
+                by_url.status(),
+                by_url.text().await?,
+                by_request.status(),
+                by_request.text().await?,
+            ))
+        }
+
         ("GET", ["error-number"]) => Err(JsValue::from(42).into()),
         ("GET", ["error-null"]) => Err(JsValue::NULL.into()),
         ("GET", ["error-rust"]) => Err(Error::from("boom")),

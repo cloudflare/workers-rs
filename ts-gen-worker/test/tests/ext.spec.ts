@@ -270,4 +270,10 @@ describe("ts-gen-worker ext: Rust-native surface", () => {
   test("#[send], SendWrapper, IntoSendFuture", async () => {
     expect(await (await get2("/ext/send")).text()).toBe("send 1 /send hello from env | w | 1");
   });
+
+  test("Fetch::Url/Request send and send_with_signal; AbortController::default", async () => {
+    expect(await (await get2("/ext/fetch-enum")).text()).toBe(
+      "201 upstream body 201 upstream body | AbortError: The operation was aborted",
+    );
+  });
 });
