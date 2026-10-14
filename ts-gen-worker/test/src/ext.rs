@@ -397,6 +397,14 @@ pub async fn handle(
             ))
         }
 
+        ("GET", ["ok"]) => {
+            let value = ok::Ok(Response::builder().status(202).ok("ok")?)?;
+            match Ok::<u8, Error>(1) {
+                Ok(1) => ok::Ok(value),
+                _ => Err(Error::from("pattern shadowed")),
+            }
+        }
+
         ("GET", ["error-number"]) => Err(JsValue::from(42).into()),
         ("GET", ["error-null"]) => Err(JsValue::NULL.into()),
         ("GET", ["error-rust"]) => Err(Error::from("boom")),

@@ -285,4 +285,10 @@ describe("ts-gen-worker ext: Rust-native surface", () => {
         ' | [("n", (Some("42"), None)), ("t", (Some("text"), Some(Meta { tag: "m" })))] | ["t"] true 4 3',
     );
   });
+
+  test("ok::Ok", async () => {
+    const res = await get2("/ext/ok");
+    expect(res.status).toBe(202);
+    expect(await res.text()).toBe("ok");
+  });
 });

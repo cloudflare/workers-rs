@@ -25,6 +25,15 @@ pub use js_sys;
 pub use wasm_bindgen;
 pub use wasm_bindgen_futures;
 
+/// `ok::Ok(value)` is `Result::<_, Error>::Ok(value)`. A module rather than a crate-root
+/// function so that `use ts_gen_worker::*` does not shadow the `Ok` pattern.
+pub mod ok {
+    #[allow(non_snake_case)]
+    pub fn Ok<T>(value: T) -> crate::Result<T> {
+        crate::Result::Ok(value)
+    }
+}
+
 #[doc(hidden)]
 pub mod __macro {
     use wasm_bindgen::JsValue;
