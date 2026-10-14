@@ -531,3 +531,103 @@ evictions anyway), hence opt-in rather than the current throw-for-all.
 - `test/container-echo/Dockerfile` cannot build behind TLS interception
   (`cargo` inside `rust:alpine` has no corporate CA); a host-built binary
   copied into a base image works.
+
+## Session 5: inline wrappers for what the extern ABI cannot express
+
+ts-gen `agent/errors` on `gbedford/workers-parity` `bd1ec01`, three commits,
+published to `../../workers-rs/ts-gen`:
+
+- `dd7f866` `@rust u64` / `i64` on a `number`. The extern binding keeps
+  `f64` under a private `<name>_js`; a `pub fn` of the public name converts
+  with `as` through `Option`, `Vec` / `&[_]`, `Result` and async returns,
+  for getters, setters, parameters, statics, constructors and free
+  functions. New `TypeRef::WideScalar`; the emitters mark the leaf with a
+  placeholder type and `codegen::inline_wrappers` rewrites the finished
+  `syn::File`. New CONVENTIONS section "Inline wrappers" states the policy.
+  Fixtures `inline-wrappers`, `inline-wrappers-fallible`; compile-only
+  integration test.
+- `f9bee87` overloads keyed by a string literal. Expansions that differ
+  only in string-literal values are kept as arms of one expansion; arms
+  sharing a return type share one private `&str` extern; each arm is a
+  `pub fn` named `<base>_<literal>` (then the cohort's `_with_` suffix)
+  that bakes its value in. `_promise` / `try_` follow per arm. The
+  signature layer tags the extern with `#[ts_gen_literal(..)]`, consumed
+  by the same pass. Fixture `literal-overloads`; integration test.
+- `f556d38` `@throws {never}` on a constructor drops `catch` (closes the
+  Session 1 open problem).
+
+workers-rs `gbedford/tgw-errors` `34af3ed` (on `gbedford/ts-gen-worker`
+`ff20829`): submodule bump, regenerated `bindings.rs` (+375/-47),
+`annotations.d.ts` tags the 64-bit inventory, the KV builders and the port
+drop their `as f64` / `as u64`. Both chomp tasks: 25 files, 187 pass, 4
+skip.
+
+### Decisions
+
+- **A post-pass over `syn::File`, not per-emitter wrappers.** The u64 case
+  touches every position (getter, setter, param, return, async, builder
+  method, factory) across `classes.rs`, `functions.rs` and the dictionary
+  builders; emitting the wrapper at each site would mean reproducing the
+  public signature in four emitters. Marking the leaf and rewriting once
+  after codegen keeps the emitters unchanged and makes builders/factories
+  pick up the public scalar for free (they call the wrapper setter). The
+  literal case reuses the pass through an attribute the signature layer
+  attaches, so one module owns "extern under `_js` + public wrapper".
+- **One extern per distinct return type in a literal cohort**, not one
+  per cohort. The plan assumed a single extern; `get(key, "json")` and
+  `get(key, "arrayBuffer")` return different types and the extern return
+  is what wasm-bindgen converts, so a shared `JsValue` extern would move
+  the conversion into hand-written code. Where arms agree
+  (`CompressionStream`'s three formats) there is one.
+- **Every arm is named explicitly; no arm takes the base name.** The plan
+  suggested the first literal keeps it. In the KV shape the base is owned
+  by the literal-free overload (`get(key)`), so "first keeps base" would
+  only ever apply to cohorts without a plain sibling, making the rule
+  position-dependent; `get_text` beside `get` also matches `worker`'s
+  builder vocabulary (`.text()`, `.json()`).
+- **A lone literal is not a cohort** (`Headers.getAll(name: "Set-Cookie")`
+  stays `&str`), nor is a cohort that absorbed a plain `string` arm
+  (`"a" | "b" | string`): the plain form already covers every arm.
+  Setters are exempt (`set_disposition("inline")` takes the value).
+- **The `_promise` form keeps `Promise<f64>`** for a `@rust u64` return:
+  the promise object is handed to JS (`waitUntil`, `Promise.race`) and
+  there is nothing to convert. Same for a scalar inside a callback type.
+- **`as` saturating conversion**, documented as exact to 2^53. A JS number
+  above that is already inexact; `u64::MAX` saturates rather than wraps.
+- **The KV builders keep their hand decoding.** `KvGetBuilder` passes
+  `cacheTtl`, which only the options form carries
+  (`KVNamespaceGetOptions<"json">`); those overloads are keyed by a
+  *type-argument* literal, not a parameter literal, so they still collapse
+  to the first overload's return and the builder's `JsValue` path stays.
+  The new `get_text` / `get_json` / `get_array_buffer` / `get_stream`
+  (+ `_with_array`, `get_with_metadata_*`) are the direct typed reads for
+  callers without `cacheTtl`. Splitting the builder into two paths by
+  whether `cache_ttl` is set would not be simpler.
+- **`@rust i64` for `getAlarm` and `D1Meta.last_row_id`**, `u64` for the
+  rest, following `worker`'s types.
+
+### Open problems
+
+- **Overloads keyed by a generic-argument literal**
+  (`get(key, options: KVNamespaceGetOptions<"arrayBuffer">)`) still
+  collapse. A wrapper cannot bake the discriminant (it lives in the
+  caller's options object), so the honest lowering is a distinct Rust type
+  per literal argument (`KVNamespaceGetOptions<ArrayBufferTag>`) selecting
+  the return; that is a type-level feature, not an inline wrapper.
+  Workaround: the builder's `JsValue` path.
+- **`<name>_js` can collide** with a declared member spelled that way
+  (`sizeJs`). Not seen in workers-types; `dedupe_name` would need to
+  reserve the private name when a wrapper is planned.
+- **Multiple literal positions** (`f(a: "x", b: "y")`) are supported by
+  the mechanism (`arm("x", "y", name)`) but have no fixture; none in
+  workers-types.
+
+### Gaps found
+
+- ts-gen: `type_snake_name` renders `string[]` as `slice`
+  (`get_text_with_slice`) while `Array<Key>` renders `array`
+  (`get_text_with_array`); same JS shape, two suffixes, pre-existing.
+- ts-gen-worker: `Headers::new()` stays `Result` because the
+  constructor's `@throws {TypeError}` covers both the empty and the `init`
+  overload (one `Throws` per constructor group); per-overload `@throws`
+  would let `new()` be plain.
