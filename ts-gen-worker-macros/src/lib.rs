@@ -3,6 +3,7 @@
 
 mod durable_object;
 mod event;
+mod send;
 
 use proc_macro::TokenStream;
 
@@ -42,6 +43,15 @@ pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn durable_object(attr: TokenStream, item: TokenStream) -> TokenStream {
     durable_object::expand(attr.into(), item.into())
+        .unwrap_or_else(syn::Error::into_compile_error)
+        .into()
+}
+
+/// Makes the future an `async fn` returns `Send` by running its body inside
+/// `ts_gen_worker::send::SendFuture`, for frameworks whose handler bounds require it.
+#[proc_macro_attribute]
+pub fn send(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    send::expand(item.into())
         .unwrap_or_else(syn::Error::into_compile_error)
         .into()
 }

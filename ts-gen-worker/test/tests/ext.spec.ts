@@ -266,4 +266,8 @@ describe("ts-gen-worker ext: Rust-native surface", () => {
         ' | Body { id: "j", count: 7 }',
     );
   });
+
+  test("#[send], SendWrapper, IntoSendFuture", async () => {
+    expect(await (await get2("/ext/send")).text()).toBe("send 1 /send hello from env | w | 1");
+  });
 });

@@ -116,6 +116,16 @@ fn router<'a>() -> Router<'a, Env, u32> {
         })
 }
 
+fn assert_send<T: Send>(_: &T) {}
+
+#[send]
+async fn send_handler(env: Env) -> Result<String> {
+    // A JS handle held across an await would make this future !Send without the macro.
+    let stub = env.macro_counter().get_by_name("send")?;
+    let res = stub.fetch_with_str("https://do/send").await?;
+    res.text().await
+}
+
 pub async fn handle(
     req: Request,
     env: Env,
@@ -288,6 +298,21 @@ pub async fn handle(
             let json: Body = env.object_var("EXT_JSON")?;
             Response::builder().ok(format!(
                 "{var} | {secret} | {name} | {missing} | {not_string} | {json:?}"
+            ))
+        }
+
+        ("GET", ["send"]) => {
+            let fut = send_handler(env.clone());
+            assert_send(&fut);
+            let body = fut.await?;
+            let wrapped = send::SendWrapper::new(JsValue::from("w"));
+            assert_send(&wrapped);
+            let via_trait = send::IntoSendFuture::into_send(async { 1 });
+            assert_send(&via_trait);
+            Response::builder().ok(format!(
+                "{body} | {} | {}",
+                wrapped.as_string().unwrap(),
+                via_trait.await
             ))
         }
 
