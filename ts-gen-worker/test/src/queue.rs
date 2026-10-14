@@ -5,7 +5,6 @@ use super::{SomeSharedData, GLOBAL_QUEUE_STATE};
 use crate::util::{error, from_json, ok, url};
 use crate::Env;
 use ts_gen_worker::*;
-use wasm_bindgen::prelude::*;
 
 #[derive(Serialize, Debug, Clone, Deserialize)]
 pub struct QueueBody {
@@ -13,12 +12,11 @@ pub struct QueueBody {
     pub id_string: String,
 }
 
-#[wasm_bindgen(js_name = "queue", js_namespace = "default")]
+#[event(queue)]
 pub async fn queue(message_batch: MessageBatch, _env: Env, _ctx: ExecutionContext) -> Result<()> {
     let mut guard = GLOBAL_QUEUE_STATE.lock().unwrap();
     for message in message_batch.messages() {
-        let body: QueueBody =
-            serde_wasm_bindgen::from_value(message.body()).map_err(|e| e.to_string())?;
+        let body: QueueBody = message.body_into()?;
         console::log(&[format!(
             "Received queue message {:?}, with id {} and timestamp: {}",
             body,
@@ -55,12 +53,7 @@ pub async fn handle_queue_send(req: Request, env: Env, _data: SomeSharedData) ->
 }
 
 pub async fn handle_batch_send(req: Request, env: Env, _: SomeSharedData) -> Result<Response> {
-    let messages: Vec<QueueBody> = match req
-        .json()
-        .await
-        .map_err(|e| format!("{e:?}"))
-        .and_then(|v| serde_wasm_bindgen::from_value(v).map_err(|e| e.to_string()))
-    {
+    let messages: Vec<QueueBody> = match req.json_into().await {
         Ok(messages) => messages,
         Err(err) => {
             return error(format!("Failed to parse request body: {err:?}"), 400);
