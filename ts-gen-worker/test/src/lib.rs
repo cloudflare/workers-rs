@@ -63,15 +63,13 @@ static GLOBAL_QUEUE_STATE: Mutex<Vec<queue::QueueBody>> = Mutex::new(Vec::new())
 
 static DATA_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\d{4}-\d{2}-\d{2}$").unwrap());
 
-// GAP: `#[event(start)]` allows several start hooks; wasm-bindgen permits one
-// `#[wasm_bindgen(start)]`, so both are driven from it.
-#[wasm_bindgen(start)]
+#[event(start)]
 pub fn start() {
     std::panic::set_hook(Box::new(|info| console::error(&[info.to_string().into()])));
     GLOBAL_STATE.store(true, Ordering::SeqCst);
-    second_start();
 }
 
+#[event(start)]
 pub fn second_start() {
     GLOBAL_SECOND_START.store(true, Ordering::SeqCst);
 }
