@@ -141,6 +141,10 @@ extern "C" {
     pub fn email(this: &Env) -> SendEmail;
     #[wasm_bindgen(method, setter, js_name = "EMAIL")]
     pub fn set_email(this: &Env, val: &SendEmail);
+    #[wasm_bindgen(method, getter, js_name = "MACRO_COUNTER")]
+    pub fn macro_counter(this: &Env) -> DurableObjectNamespace;
+    #[wasm_bindgen(method, setter, js_name = "MACRO_COUNTER")]
+    pub fn set_macro_counter(this: &Env, val: &DurableObjectNamespace);
 }
 impl Env {
     pub fn new(
@@ -172,6 +176,7 @@ impl Env {
         http_analytics: &AnalyticsEngineDataset,
         test_rate_limiter: &RateLimit,
         email: &SendEmail,
+        macro_counter: &DurableObjectNamespace,
     ) -> Env {
         let inner: Env = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_greeting(greeting);
@@ -202,6 +207,7 @@ impl Env {
         inner.set_http_analytics(http_analytics);
         inner.set_test_rate_limiter(test_rate_limiter);
         inner.set_email(email);
+        inner.set_macro_counter(macro_counter);
         inner
     }
 }

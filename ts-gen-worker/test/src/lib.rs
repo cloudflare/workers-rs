@@ -20,6 +20,7 @@ mod cache;
 mod counter;
 mod d1;
 mod durable;
+mod ext;
 mod fetch;
 mod form;
 mod js_snippets;
@@ -413,6 +414,7 @@ async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response
             rate_limit::handle_rate_limit_reset(req, env, data).await
         }
         ("GET", ["send-email"]) => send_email::handle_send_email(req, env, data).await,
+        (_, ["ext", rest @ ..]) => ext::handle(req, env, ctx, rest).await,
         _ => catchall(req, env, data).await,
     }
 }

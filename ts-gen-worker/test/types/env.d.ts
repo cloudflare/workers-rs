@@ -27,4 +27,5 @@ interface Env {
   HTTP_ANALYTICS: AnalyticsEngineDataset;
   TEST_RATE_LIMITER: RateLimit;
   EMAIL: SendEmail;
+  MACRO_COUNTER: DurableObjectNamespace;
 }
