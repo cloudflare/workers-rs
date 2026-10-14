@@ -19,7 +19,8 @@ use proc_macro::TokenStream;
 /// and `JsValue` both qualify.
 ///
 /// A failed `fetch` logs the error and responds `500 INTERNAL SERVER ERROR`;
-/// `#[event(fetch, respond_with_errors)]` puts the error message in the body instead.
+/// `#[event(fetch, respond_with_errors)]` puts the error's `Display` text in the body
+/// instead, which additionally requires `Display` on the error type.
 /// Failed `queue` and `email` handlers reject, so the runtime retries the batch or
 /// bounces the message.
 #[proc_macro_attribute]

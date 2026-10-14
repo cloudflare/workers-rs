@@ -29,17 +29,13 @@ pub mod __macro {
 
     pub use ts_gen_worker_macros::consume;
 
-    use crate::{Error, Response};
+    use crate::Response;
 
     /// Logs the handler error and builds the 500 response; `respond_with_errors`
-    /// puts the error message in the body.
-    pub fn error_response(err: JsValue, respond_with_errors: bool) -> Response {
+    /// passes the error's `Display` text for the body.
+    pub fn error_response(err: JsValue, message: Option<String>) -> Response {
         crate::console::error(std::slice::from_ref(&err));
-        let body = if respond_with_errors {
-            Error::from(err).to_string()
-        } else {
-            "INTERNAL SERVER ERROR".to_owned()
-        };
+        let body = message.unwrap_or_else(|| "INTERNAL SERVER ERROR".to_owned());
         // Constructing a text response with status 500 cannot throw.
         Response::builder().error(body, 500).unwrap()
     }

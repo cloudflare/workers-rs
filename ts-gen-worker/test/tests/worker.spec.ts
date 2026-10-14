@@ -123,7 +123,7 @@ describe("ts-gen-worker", () => {
 
   test("Error::Js(JsException::TypeError) via From, Display is the message", async () => {
     const body = await (await get("/error-display")).text();
-    expect(body).toBe("true Invalid header name.");
+    expect(body).toBe("true TypeError: Invalid header name.");
   });
 
   test("Err(Error::Rust) becomes a 500", async () => {

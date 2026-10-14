@@ -120,16 +120,24 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> Result<TokenStream> {
     let js_name = kind.js_name();
     let wrapper = format_ident!("__ts_gen_worker_{js_name}");
 
+    let message = if respond_with_errors {
+        quote! { ::core::option::Option::Some(::std::string::ToString::to_string(&err)) }
+    } else {
+        quote! { ::core::option::Option::None }
+    };
     let (output, body) = match kind {
         Kind::Fetch => (
             quote! { ::ts_gen_worker::Response },
             quote! {
                 match #name(#(#args),*).await {
                     Ok(response) => response,
-                    Err(err) => ::ts_gen_worker::__macro::error_response(
-                        ::core::convert::Into::<::ts_gen_worker::wasm_bindgen::JsValue>::into(err),
-                        #respond_with_errors,
-                    ),
+                    Err(err) => {
+                        let message = #message;
+                        ::ts_gen_worker::__macro::error_response(
+                            ::core::convert::Into::<::ts_gen_worker::wasm_bindgen::JsValue>::into(err),
+                            message,
+                        )
+                    }
                 }
             },
         ),

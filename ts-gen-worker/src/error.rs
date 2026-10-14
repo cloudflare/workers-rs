@@ -1,4 +1,4 @@
-use wasm_bindgen::JsValue;
+use wasm_bindgen::{JsCast, JsValue};
 
 use crate::JsException;
 
@@ -83,7 +83,18 @@ impl From<Error> for JsValue {
 impl core::fmt::Display for Error {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            Error::Js(error) => error.fmt(f),
+            Error::Js(error) => {
+                let value: &JsValue = error.as_ref();
+                match value.dyn_ref::<js_sys::Error>() {
+                    Some(e) => write!(
+                        f,
+                        "{}: {}",
+                        String::from(e.name()),
+                        String::from(e.message())
+                    ),
+                    None => error.fmt(f),
+                }
+            }
             Error::Rust(message) => f.write_str(message),
             #[cfg(feature = "serde")]
             Error::Serde(error) => error.fmt(f),

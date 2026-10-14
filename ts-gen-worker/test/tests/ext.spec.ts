@@ -173,10 +173,10 @@ describe("ts-gen-worker ext", () => {
     expect(await rust.text()).toBe("boom");
     const number = await get("/ext/error-number");
     expect(number.status).toBe(500);
-    expect(await number.text()).toContain("42");
+    expect(await number.text()).toBe("42");
     const nul = await get("/ext/error-null");
     expect(nul.status).toBe(500);
-    expect(await nul.text()).toContain("null");
+    expect(await nul.text()).toBe("null");
   });
 
   test("#[event(fetch)] error policy: default hides the message", async () => {

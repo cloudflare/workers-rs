@@ -6149,6 +6149,11 @@ impl AsRef<JsValue> for JsException {
         }
     }
 }
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (js_name = String , catch)]
+    fn __ts_gen_js_string(value: &JsValue) -> Result<String, JsValue>;
+}
 impl core::fmt::Display for JsException {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let value: &JsValue = self.as_ref();
@@ -6158,9 +6163,9 @@ impl core::fmt::Display for JsException {
         if let Some(string) = value.as_string() {
             return f.write_str(&string);
         }
-        match value.dyn_ref::<::js_sys::Object>() {
-            Some(object) => f.write_str(&String::from(object.to_string())),
-            None => write!(f, "{value:?}"),
+        match __ts_gen_js_string(value) {
+            Ok(string) => f.write_str(&string),
+            Err(_) => write!(f, "{value:?}"),
         }
     }
 }

@@ -221,14 +221,20 @@ pub async fn handle(
         }
 
         // The fetch export is the suite's own, so the macro's error policy is called directly.
-        ("GET", ["error-number"]) => Ok(__macro::error_response(JsValue::from(42), true)),
-        ("GET", ["error-null"]) => Ok(__macro::error_response(JsValue::NULL, true)),
-        ("GET", ["error-rust"]) => Ok(__macro::error_response(Error::from("boom").into(), true)),
+        ("GET", ["error-number"]) => Ok(shown_error(JsValue::from(42).into())),
+        ("GET", ["error-null"]) => Ok(shown_error(JsValue::NULL.into())),
+        ("GET", ["error-rust"]) => Ok(shown_error(Error::from("boom"))),
         ("GET", ["error-default"]) => Ok(__macro::error_response(
             js_sys::Error::new("hidden").into(),
-            false,
+            None,
         )),
 
         _ => Response::builder().error("Not Found", 404),
     }
+}
+
+/// What `#[event(fetch, respond_with_errors)]` does with a handler's `Err`.
+fn shown_error(err: Error) -> Response {
+    let message = err.to_string();
+    __macro::error_response(err.into(), Some(message))
 }
