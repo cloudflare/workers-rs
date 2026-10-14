@@ -631,3 +631,77 @@ skip.
   constructor's `@throws {TypeError}` covers both the empty and the `init`
   overload (one `Throws` per constructor group); per-overload `@throws`
   would let `new()` be plain.
+
+## Session 6: reconstruction moves to wasm-bindgen; `@throws {never}` audit
+
+Branch `gbedford/tgw-errors` on `gbedford/ts-gen-worker` `18b3f2d`; no
+ts-gen change.
+
+### Durable Object reconstruction after a trap
+
+Decision (Guy): the recovery lands as an upstream wasm-bindgen attribute,
+`#[wasm_bindgen(reinit = "reconstruct")]` on exported classes (spec
+`session/wasm-bindgen-2.md`, implemented by another agent), not in
+`ts-gen-worker`. The test harness keeps its stand-in wrapper
+(`test/tests/manifest.ts`, comment updated) until the workspace pin
+includes the attribute. The macro change that then replaces it is one
+line in `ts-gen-worker-macros/src/durable_object.rs`: the
+`#[wasm_bindgen(wasm_bindgen = ::ts_gen_worker::wasm_bindgen)]` on the
+consumed struct gains `reinit = "reconstruct"`, after which `reinitShim`
+and the `__ts_gen_worker_instance` counter in `src/init.rs` go away
+(`set_on_abort(schedule_reinit)` stays).
+
+One finding from reading the fork's glue for this, handed to the
+wasm-bindgen agent: a method body runs the stale-instance check
+*before* `__wbg_call_guard()`, and the guard is where a scheduled reinit
+is applied. When a method is the first call after the abort hook, the
+instance ids still match, the guard then reinstantiates, and the old
+pointer goes into the fresh instance's memory. The harness never hit it
+because the worker's `fetch` export always precedes a DO method; a DO
+alarm or hibernated-websocket message would not. The fix is to run the
+guard before the check (the second call inside the body is a no-op).
+
+### `@throws {never}` audit (`afc00f7`)
+
+Candidates were checked against workerd rather than the master's list
+alone; each group in `annotations.d.ts` carries its justification.
+Added: `D1Database.prepare` / `withSession`, `D1DatabaseSession.prepare` /
+`getBookmark` (`d1-api.ts` constructs an object or reads a field),
+`ExecutionContext.waitUntil` / `passThroughOnException`, `FormData`
+(constructor and every accessor/mutator: no name validation),
+`AbortController` constructor, `DurableObjectId.toString` / `equals`,
+`SqlStorageCursor.raw` (the query runs on `next`). Result: 25 `?` /
+`unwrap` sites dropped across `ext/` (`ExecutionContext::spawn` is now
+infallible, `AbortController::default` loses its `unwrap`) and the test
+worker; `bindings.rs` −26 `catch`. Both chomp tasks 187 / 4.
+
+Rejected, with the evidence:
+
+- `Headers.get` / `has`: the Fetch spec and workerd
+  (`requireValidHeaderName`) throw `TypeError` on an invalid name; they
+  keep `@throws {TypeError}`.
+- `AbortController.abort()`: workerd's `dispatchEventImpl` defaults to
+  `DispatchExceptionPolicy::PROPAGATE`, so a throwing `abort` listener
+  escapes `abort()`.
+- `ReadableStreamDefaultReader.releaseLock()`: workerd's internal
+  controller throws `TypeError` with outstanding reads.
+- `DurableObjectNamespace.newUniqueId()`: the zero-arg form cannot throw
+  but the `jurisdiction` overload validates, and one `@throws` covers the
+  group.
+- `TransformStream` / `IdentityTransformStream` constructors: same
+  overload sharing (the strategy forms validate).
+- `Headers.forEach`, `EventTarget.addEventListener`: a throwing callback
+  or an invalid `options.signal` escapes.
+
+### Open problems
+
+- **Runtime-specific `@throws`** (KV/R2/D1 errors as `@throws {Error}`,
+  `DOMException` names) is the policy half and stays with Guy.
+- **`WebSocketPair` cannot be annotated**: upstream declares it as
+  `declare const WebSocketPair: { new (): … }` (a constructor variable),
+  which `--annotate` rejects; `WebSocketPair::new()` keeps `Result`
+  (4 `?` in the port) though workerd's constructor cannot throw.
+  Allowing a `declare const X: { new … }` target in the side file is the
+  ts-gen change.
+- **Per-overload `@throws`**: `Headers::new()` and `TransformStream::new()`
+  stay `Result` because the annotation is per member, not per overload.
