@@ -2,10 +2,7 @@ import { describe, test, expect } from "vitest";
 import { mf, mfUrl } from "./mf";
 import { MessageEvent } from "miniflare";
 
-// GAP: container.rs is not ported (`State::container`, `Container::running/
-// start/get_tcp_port`); the spec's own TEST_CONTAINER_NAME gate would
-// otherwise run it against the catchall.
-describe.skip("container", () => {
+describe("container", () => {
   let testContainer = true;
   if (!process.env.TEST_CONTAINER_NAME) {
     console.log('No container specified, skipping container test');

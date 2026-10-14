@@ -17,6 +17,7 @@ mod analytics_engine;
 mod assets;
 mod auto_response;
 mod cache;
+mod container;
 mod counter;
 mod d1;
 mod durable;
@@ -336,6 +337,9 @@ async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response
             cache::handle_cache_api_delete(req, env, data).await
         }
         ("GET", ["cache-stream"]) => cache::handle_cache_stream(req, env, data).await,
+        ("POST", ["container", "echo"]) | ("GET", ["container", "ws"]) => {
+            container::handle_container(req, env, data).await
+        }
         ("GET", ["remote-by-request"]) => service::handle_remote_by_request(req, env, data).await,
         ("GET", ["remote-by-path"]) => service::handle_remote_by_path(req, env, data).await,
         ("POST", ["queue", "send", _]) => queue::handle_queue_send(req, env, data).await,
