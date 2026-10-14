@@ -9,6 +9,7 @@ members = [
     "test/container-echo",
     "benchmark",
     "ts-gen-worker",
+    "ts-gen-worker-macros",
     "ts-gen-worker/test",
 ]
 exclude = [

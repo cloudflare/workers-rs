@@ -3069,10 +3069,30 @@ dependencies = [
 name = "ts-gen-worker"
 version = "0.1.0"
 dependencies = [
+ "futures-util",
+ "http",
  "js-sys",
+ "matchit 0.7.3",
+ "pin-project",
+ "serde",
+ "serde-wasm-bindgen",
  "serde_json",
+ "serde_urlencoded",
+ "ts-gen-worker-macros",
+ "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
+ "wasm-streams",
+ "web-sys",
+]
+
+[[package]]
+name = "ts-gen-worker-macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.6",
 ]
 
 [[package]]

@@ -50,6 +50,27 @@ impl From<serde_json::Error> for Error {
     }
 }
 
+#[cfg(feature = "serde")]
+impl From<serde_wasm_bindgen::Error> for Error {
+    fn from(error: serde_wasm_bindgen::Error) -> Self {
+        Error::from(JsValue::from(error))
+    }
+}
+
+#[cfg(feature = "serde")]
+impl From<serde_urlencoded::de::Error> for Error {
+    fn from(error: serde_urlencoded::de::Error) -> Self {
+        Error::Rust(error.to_string())
+    }
+}
+
+#[cfg(feature = "url")]
+impl From<url::ParseError> for Error {
+    fn from(error: url::ParseError) -> Self {
+        Error::Rust(error.to_string())
+    }
+}
+
 impl From<Error> for JsValue {
     fn from(error: Error) -> Self {
         match error {
