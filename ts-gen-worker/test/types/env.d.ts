@@ -28,4 +28,5 @@ interface Env {
   TEST_RATE_LIMITER: RateLimit;
   EMAIL: SendEmail;
   MACRO_COUNTER: DurableObjectNamespace;
+  EXT_KV: KVNamespace;
 }

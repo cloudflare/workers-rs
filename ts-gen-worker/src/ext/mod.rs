@@ -13,6 +13,7 @@ mod headers;
 mod http;
 #[cfg(feature = "http")]
 mod interop;
+mod kv;
 mod response;
 #[cfg(feature = "serde")]
 mod serde;
@@ -28,4 +29,5 @@ pub use headers::HeadersIter;
 pub use http::Method;
 #[cfg(feature = "http")]
 pub use interop::{HttpRequest, HttpResponse};
+pub use kv::{KvGetBuilder, KvGetBulkBuilder, KvListBuilder, KvPutBuilder, ToRawKvValue};
 pub use streams::{readable_stream_from, ByteStream};

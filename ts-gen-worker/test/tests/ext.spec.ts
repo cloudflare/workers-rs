@@ -207,6 +207,7 @@ const mf2 = new Miniflare({
             worker: "ts-gen-worker-ext2",
             exportName: "MacroCounter",
           },
+          EXT_KV: { type: "kv" },
         },
         exports: {
           MacroCounter: { type: "durable-object", storage: "legacy-kv" },
@@ -274,6 +275,14 @@ describe("ts-gen-worker ext: Rust-native surface", () => {
   test("Fetch::Url/Request send and send_with_signal; AbortController::default", async () => {
     expect(await (await get2("/ext/fetch-enum")).text()).toBe(
       "201 upstream body 201 upstream body | AbortError: The operation was aborted",
+    );
+  });
+
+  test("KVNamespace fluent builders: put/get/get_bulk/list", async () => {
+    expect(await (await get2("/ext/kv")).text()).toBe(
+      'Some("text") Some("text") Some(Meta { tag: "m" }) None Some(42) Some(Body { id: "k", count: 3 }) Some([1, 2, 3]) None true false' +
+        ' | [("missing", None), ("n", Some("42")), ("t", Some("text"))]' +
+        ' | [("n", (Some("42"), None)), ("t", (Some("text"), Some(Meta { tag: "m" })))] | ["t"] true 4 3',
     );
   });
 });

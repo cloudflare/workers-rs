@@ -339,6 +339,64 @@ pub async fn handle(
             ))
         }
 
+        ("GET", ["kv"]) => {
+            #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord)]
+            struct Meta {
+                tag: String,
+            }
+            let kv = env.ext_kv();
+            let body = Body {
+                id: "k".into(),
+                count: 3,
+            };
+            kv.put_builder("t", "text")?
+                .expiration_ttl(60)
+                .metadata(Meta { tag: "m".into() })?
+                .execute()
+                .await?;
+            kv.put_builder("n", 42)?.execute().await?;
+            kv.put_builder("j", &body)?.execute().await?;
+            kv.put_bytes("b", &[1, 2, 3]).execute().await?;
+
+            let text = kv.get_builder("t").text().await?;
+            let (text2, meta): (Option<String>, Option<Meta>) =
+                kv.get_builder("t").text_with_metadata().await?;
+            let (_, no_meta): (Option<String>, Option<Meta>) =
+                kv.get_builder("n").text_with_metadata().await?;
+            let n: Option<u32> = kv.get_builder("n").cache_ttl(60).json().await?;
+            let j: Option<Body> = kv.get_builder("j").json().await?;
+            let bytes = kv.get_builder("b").bytes().await?;
+            let missing = kv.get_builder("missing").text().await?;
+            let stream = kv.get_builder("t").stream().await?.is_some();
+            let no_stream = kv.get_builder("missing").stream().await?.is_some();
+
+            let mut bulk: Vec<_> = kv
+                .get_bulk(&["t", "n", "missing"])
+                .text()
+                .await?
+                .into_iter()
+                .collect();
+            bulk.sort();
+            let mut bulk_meta: Vec<_> = kv
+                .get_bulk(&["t", "n"])
+                .text_with_metadata::<Meta>()
+                .await?
+                .into_iter()
+                .collect();
+            bulk_meta.sort();
+
+            let list = kv.list_builder().prefix("t").limit(10).execute().await?;
+            let names: Vec<String> = list.keys().iter().map(|k| k.name()).collect();
+            let all = kv.list_builder().execute().await?.keys().length();
+            kv.delete("n").await?;
+            let after = kv.list_builder().execute().await?.keys().length();
+
+            Response::builder().ok(format!(
+                "{text:?} {text2:?} {meta:?} {no_meta:?} {n:?} {j:?} {bytes:?} {missing:?} {stream} {no_stream} | {bulk:?} | {bulk_meta:?} | {names:?} {} {all} {after}",
+                list.list_complete(),
+            ))
+        }
+
         ("GET", ["error-number"]) => Err(JsValue::from(42).into()),
         ("GET", ["error-null"]) => Err(JsValue::NULL.into()),
         ("GET", ["error-rust"]) => Err(Error::from("boom")),

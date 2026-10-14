@@ -145,6 +145,10 @@ extern "C" {
     pub fn macro_counter(this: &Env) -> DurableObjectNamespace;
     #[wasm_bindgen(method, setter, js_name = "MACRO_COUNTER")]
     pub fn set_macro_counter(this: &Env, val: &DurableObjectNamespace);
+    #[wasm_bindgen(method, getter, js_name = "EXT_KV")]
+    pub fn ext_kv(this: &Env) -> KVNamespace;
+    #[wasm_bindgen(method, setter, js_name = "EXT_KV")]
+    pub fn set_ext_kv(this: &Env, val: &KVNamespace);
 }
 impl Env {
     pub fn new(
@@ -177,6 +181,7 @@ impl Env {
         test_rate_limiter: &RateLimit,
         email: &SendEmail,
         macro_counter: &DurableObjectNamespace,
+        ext_kv: &KVNamespace,
     ) -> Env {
         let inner: Env = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_greeting(greeting);
@@ -208,6 +213,7 @@ impl Env {
         inner.set_test_rate_limiter(test_rate_limiter);
         inner.set_email(email);
         inner.set_macro_counter(macro_counter);
+        inner.set_ext_kv(ext_kv);
         inner
     }
 }
