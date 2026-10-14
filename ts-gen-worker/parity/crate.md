@@ -1,7 +1,7 @@
 # crate: `#[event]` macros and the `impl` layer
 
 Owner: workers-rs-4. Branch `gbedford/tgw-crate` (on `gbedford/ts-gen-worker` with the error
-model and the test-suite port); ts-gen branch `agent/crate` (one commit, on
+model and the test-suite port); ts-gen branch `agent/crate` (two commits, on
 `gbedford/workers-parity`).
 
 Everything below is an `impl` on a generated type, a Rust-native helper type, or a
@@ -26,12 +26,17 @@ gone.
   `From<HeaderMap>`/`Into<HeaderMap>` (feature `http`). `entries/keys/values/get_all` are generated.
 - `src/ext/serde.rs` (feature `serde`, default as in `worker`): `Request::json_into<T>()`,
   `Response::json_into<T>()`, `ResponseInitBuilder::from_json(&T)`, `Message::body_into<T>()`.
-- `src/ext/streams.rs`: `ByteStream`, `Request::bytes_stream()`, `Response::bytes_stream()`,
+- `src/ext/streams.rs`: `ByteStream` (+ `empty()`, `into_inner()`, `http_body::Body` under
+  `http`), `Request::bytes_stream()`, `Response::bytes_stream()`,
   `ResponseInitBuilder::from_stream(S)`, `readable_stream_from(S)`.
+- `src/ext/handler.rs`: `FromRequest`/`IntoResponse`, the `#[event(fetch)]` conversion
+  traits. `src/ext/interop.rs` (feature `http`): `HttpRequest`/`HttpResponse`, the four
+  `TryFrom` impls, `From<http::Error>`.
 - `src/ext/response.rs`: `Response::builder()` → the generated `ResponseInitBuilder`, carrying
   `ok`, `error`, `empty`, `from_html`, `from_bytes` (+ `from_json`, `from_stream` above).
 - `src/router.rs`: `Router<'a, E, D = ()>` / `RouteContext<E, D>` over the generated types.
-- `src/durable.rs`: `DurableObject` trait with `type Env`, `fetch`, `alarm`.
+- `src/durable.rs`: `DurableObject` trait with `type Env`, `fetch`, `alarm`,
+  `websocket_message/close/error`, and the `has_durable_object_attribute` guard.
 - ts-gen `a643100` (agent/crate): type-parameter defaults land on the `pub type`
   declaration (`MessageBatch<Body: JsGeneric = JsValue>`), so a defaulted generic is a
   complete bare name, as is the constructor return of a class whose parameters all default.
@@ -41,60 +46,83 @@ gone.
 - Tests, append-only in the ported tree: `test/src/ext.rs` (routes under `/ext/*`, a
   `MacroCounter` `#[durable_object]`, `scheduled`/`email` handlers, a second `start`), one
   arm in `lib.rs`'s dispatch, one `env.d.ts` line, and `test/tests/ext.spec.ts` with its own
-  Miniflare instance (`unsafeTriggerHandlers`): 15 cases, one per feature, including both
-  fetch error modes via `__macro::error_response`. Suite: 176 passed, 6 skipped (161 before).
+  Miniflare instance (`unsafeTriggerHandlers`): 15 cases, one per feature. Suite: 176
+  passed, 6 skipped (161 before).
 
-## Port adoption
+Session 2 (port adoption, the migration dry run), one commit per item, 176 green after each:
 
-The ported test worker hand-rolls what this layer now provides. Each is a follow-up, not
-done in the integration step; the port's test-local `util.rs` is the concrete list.
+- `Error` `Display` (`cab5b36`): `Js` renders `Name: message` for an `Error` instance;
+  a thrown primitive renders as `String(v)` through ts-gen `e79bdee` (agent/crate), which
+  calls the global `String()` from the generated `JsException` `Display` with a `catch`
+  import so an object without `toString` still falls back to `Debug`. `respond_with_errors`
+  takes the body from the handler error's own `Display` (bound `Display + Into<JsValue>`
+  in that mode, as the plan said; the default mode keeps `Into<JsValue>` alone).
+- `#[event(fetch, respond_with_errors)]` replaces the port's `fetch_handler`; `util::err_message`
+  deleted (21 call sites → `e.to_string()`).
+- Two `#[event(start)]` replace the chained `#[wasm_bindgen(start)]`.
+- `#[event(queue)]` + `message.body_into()?` + `req.json_into()` replace the `queue` export.
+- `DurableObject` grows `websocket_message/close/error` and the export guard; `#[durable_object]`
+  exports them by default, `(websocket)` selects them. Then every DO class in the port
+  (`Counter`, `PutRawTestObject`, `AutoResponseObject`, `MyClass`, `AnotherClass`, `SqlCounter`,
+  `SqlIterator`, `AlarmObject`) is `#[durable_object]` + `impl DurableObject`.
+- `util::ok/error/from_json/from_bytes/from_websocket/url/path` deleted (≈220 call sites →
+  `Response::builder().*`, `req.url_parsed()`, `req.path()`; the test crate enables feature
+  `url`). `util.rs` is 212 → 147 lines; what remains is the gap list below.
+- `http` feature (`1d05f1e`): `Request`/`Response` ↔ `http::Request`/`http::Response<B>`
+  as `TryFrom` with `ByteStream` as the body, `HttpRequest`/`HttpResponse` aliases,
+  `FromRequest`/`IntoResponse` so `#[event(fetch)]` accepts either signature,
+  `chomp test:ts-gen-worker-http` (+ CI step) runs the whole suite with every request and
+  response round-tripped through the `http` types: 176 green in both modes.
 
-- `fetch_handler` (`#[wasm_bindgen(js_name = "fetch")]` + `error(err_message(&e), 500)`) →
-  `#[event(fetch, respond_with_errors)]`. Difference to settle first: the port renders a caught
-  JS error as `Name: message` (`util::err_message`, `worker::Error`'s format, asserted by
-  `sqlite.spec.ts`'s `"Error: Cannot store value"`); `respond_with_errors` renders
-  `Display` of `Error`, which is the message alone. Either `Error`'s `Display` adopts the
-  `Name: message` form for `Js` (then `worker.spec.ts`'s `error-display` case changes) or
-  the macro does.
-- `start` + `second_start` (one `#[wasm_bindgen(start)]` calling both, with a GAP comment)
-  → two `#[event(start)]`. wasm-bindgen does accept several `start` functions;
-  `ext.spec.ts` runs three.
-- `queue` export (`#[wasm_bindgen(js_name = "queue")]`, `serde_wasm_bindgen::from_value(message.body())`)
-  → `#[event(queue)]` and `message.body_into::<QueueBody>()?`.
-- DO classes (`Counter`, `PutRawTestObject`, `AutoResponseObject`, `MyClass`, `SqlCounter`,
-  `SqlIterator`, `EchoContainer`: `#[wasm_bindgen]` struct + constructor + `fetch`) →
-  `#[durable_object]` + `impl DurableObject`. Blocked for the websocket ones until the trait
-  grows `websocket_message/close/error` (the port's `webSocket*` methods show the shapes;
-  `WebSocket`/`MessageEvent`/`CloseEvent` are declared now).
-- `route()`'s `(method, segments)` slice match → `Router<Env, SomeSharedData>` with
-  `or_else_any_method_async` for the catchall. Worth doing only if the per-route handler
-  signatures (`(req, env, data)`) move to `(req, RouteContext)`; otherwise the slice match is
-  the cheaper dispatch.
-- `util::ok/error/from_json/from_bytes` → `Response::builder().ok/error/from_json/from_bytes`;
-  `util::from_websocket` → `Response::builder().status(101.0).web_socket(&ws).empty()`;
-  `util::url/path` → `req.url_parsed()?` (feature `url`) / `req.path()`.
-- `util::sleep` (`setTimeout` + `Promise`) → a crate `Delay` future (gap below); until then
-  the port keeps it.
-- `util::storage_get/storage_put` (serde over `DurableObjectStorage`), `util::block_concurrency_while`
-  (Rust future inside the input gate), `util::websocket_events`/`on_websocket_events`
-  (`WebSocket::events()` stream), `util::nullable` (`JsOption` `null`) are crate-layer
-  candidates, listed under gaps.
-- `connect` export → `#[event(connect)]`, not ported.
+Not adopted: `Router` for `route()` (decision below); `connect` export → `#[event(connect)]`
+(not in the layer).
 
 ## Decisions
 
 - **Handler wrapper placement.** `#[event]` leaves the user function untouched and emits the
   wasm-bindgen export inside `const _: () = { ... }` next to it, with the parameter types
-  copied verbatim. Block scope sees the module's items and imports, so the app's generated
+  copied verbatim (except `fetch`'s request, see `FromRequest` below). Block scope sees the module's items and imports, so the app's generated
   `Env` resolves without the macro knowing its path, and nothing new enters the module
   namespace. Unlike `worker-macros` there is no renaming of the user fn.
-- **Error bound is `Into<JsValue>` only**, in both modes. The plan said
-  `Display + Into<JsValue>` for `respond_with_errors`; instead the macro converts the error to
-  `JsValue` and takes the body text from `Error::from(v).to_string()`, i.e. `JsException`'s
-  `Display`. One bound, and handlers returning `Result<_, JsValue>` or `Result<_, JsException>`
-  straight from the bindings work in both modes. The error is logged via `console.error` as
-  the JS value, so JS errors keep their stacks in logs. `respond_with_errors` on any other
-  kind is a compile error (`worker` ignored it).
+- **Error bound is `Into<JsValue>`; `respond_with_errors` adds `Display`.** The first
+  version took the body text from `Error::from(js).to_string()` with one bound, but once
+  `Error::Js` displays `Name: message` a `Rust("boom")` error round-tripped through
+  `JsValue` would read `Error: boom`. The macro now formats the handler's own error before
+  converting it, so handlers returning `Result<_, JsValue>` work in the default mode only.
+  The error is logged via `console.error` as the JS value, so JS errors keep their stacks in
+  logs. `respond_with_errors` on any other kind is a compile error (`worker` ignored it).
+- **`Error::Js` displays `Name: message`** for an `Error` instance (master decision): the
+  `worker` format the migrating specs assert on (`"Error: Cannot store value"`,
+  `"AbortError"`). The generated `JsException` `Display` stays message-only; the crate's
+  `Error` adds the name, so a user matching `JsException` directly sees the message.
+- **`websocket_message` takes the generated `DataKind`** (`string | ArrayBuffer`), the type
+  `MessageEvent::data()` already returns, rather than a second `WebSocketIncomingMessage`
+  enum: one type for a websocket message whether it arrives through the hibernation
+  callback or an event listener. `close`/`error` keep `worker`'s shapes (`usize`, `String`,
+  `bool`; `Error`). The name is ts-gen's synthesized anchor and may move with the real
+  input; the trait is the only place that spells it.
+- **Export guard** is `worker`'s trick verbatim: `DurableObject: has_durable_object_attribute`,
+  a hidden marker only `#[durable_object]` implements, so the missing attribute is named in
+  the compile error. Re-exported through `__macro`.
+- **`route()` stays a slice match, not `Router`.** The port's handlers take
+  `(req, env, data)`; `worker`'s original went through `Router` only via a `handler!` macro
+  adapting that signature to `(req, RouteContext)`. Moving to `Router` would re-add the
+  adapter layer for no coverage gain (`ext.spec.ts` covers `Router` directly: sync, async,
+  params, 404, 405) and the `http` round trip is simpler with one `route(Request)` entry.
+- **`ByteStream` is the `http` body**, not a separate `Body`. It gained an empty variant
+  (`ByteStream::empty()`, `into_inner() -> Option<ReadableStream>`) and implements
+  `http_body::Body<Data = Bytes>` under the feature, so `http::Request<ByteStream>` is
+  `worker`'s `http::Request<Body>` with the stream type the layer already had.
+- **`#[event(fetch)]` always exports a `Request`-taking wrapper** and converts through
+  `FromRequest`/`IntoResponse` (identity for the generated types; `TryFrom` for the `http`
+  ones), as `worker` does. The handler's `env`/`ctx` types stay verbatim. Conversion errors
+  go through the same error policy as handler errors.
+- **Extensions carry the generated types directly**: `AbortSignal` and
+  `IncomingRequestCfProperties` on `http::Request`, `WebSocket` on `http::Response`. No
+  `Cf`/`RequestRedirect` wrappers: this wasm-bindgen's `JsValue` is `Send + Sync` off
+  `atomics`, so the generated handles satisfy `http::Extensions` as they are. `redirect`
+  and response `cf` are not carried (`Request.redirect` is not declared in the port's
+  `.d.ts`; `Response.cf` is an untyped `JsValue`).
 - **`queue`/`email` failures reject** rather than panic as `worker` does. A rejected promise
   is what makes the runtime retry the batch / bounce the message; a trap does the same by
   accident and loses the message text.
@@ -135,7 +163,7 @@ done in the integration step; the port's test-local `util.rs` is the concrete li
   export plus the generated `DurableObjectState`. The user-generated `Env` is reached as the
   associated type `<T as DurableObject>::Env`, which wasm-bindgen accepts in the exported
   constructor signature. `alarm` returns `Result<()>` (the JS handler is `void`), not
-  `worker`'s `Result<Response>`. WebSocket handlers are not in the trait yet (Port adoption).
+  `worker`'s `Result<Response>`.
 - **`FromIterator for Headers` rethrows** an invalid header as the JS `TypeError`
   (`wasm_bindgen::throw_val`): `collect()` has no error channel, `worker` unwrapped, and
   rethrowing is exactly what the pre-`--fallible` binding did.
@@ -148,23 +176,12 @@ done in the integration step; the port's test-local `util.rs` is the concrete li
 
 ## Open problems
 
-- **Feature `http` means something else than in `worker`.** There it switches the `fetch`
-  handler to `http::Request`/`http::Response` (`test/src/lib.rs` builds both ways through
-  `HandlerRequest`); here it only adds `HeaderMap` conversions, so a `worker` user enabling
-  it gets no error and no `http` handler. Proposal: port the `Request`/`Response` ↔
-  `http::Request`/`http::Response` conversions under the same feature and have `#[event(fetch)]`
-  convert through a trait when the signature names `http` types. Blocked: the `http` half of
-  the test suite.
-- **No guard that a `DurableObject` impl is exported.** `worker` makes `DurableObject` require
-  a `has_durable_object_attribute` marker that only `#[durable_object]` implements; here an
-  impl without the attribute compiles and exports nothing. Proposal: the same hidden marker
-  supertrait, emitted by the macro.
-- **`Error` `Display` format** decides whether `respond_with_errors` can replace the port's
-  `fetch_handler` (Port adoption, first item). Proposal: `Js` displays `Name: message` for an
-  `Error` instance, as `worker::Error` did, since migrating specs assert on it.
-- **`JsException` `Display` for a thrown primitive** falls through to `Debug`
-  (`JsValue(42)`, `JsValue(null)`); `String(v)` would give `42`/`null`. Minor; surfaces in
-  `respond_with_errors` bodies. For the errors owner.
+- **`http` round trip double-wraps streaming bodies.** `TryFrom<http::Request<B>>` is
+  generic over `B`, so a `ByteStream` body goes Rust stream → JS `ReadableStream` → Rust
+  again rather than handing back the original `ReadableStream` (`into_inner()`). Same as
+  `worker`; a non-generic fast path would need specialization or a separate `From`.
+- **`Headers` ↔ `HeaderMap` drops invalid entries silently** (pre-existing in
+  `ext/headers.rs`); `worker` errored. Affects the `http` conversions only.
 
 ## Gaps found
 
@@ -184,11 +201,15 @@ done in the integration step; the port's test-local `util.rs` is the concrete li
 - Env generation: an app `env.d.ts` referencing crate types needs
   `--external "X=::ts_gen_worker::X"` per type (eleven in the chompfile now). A fallback
   mapping for unresolved globals to a crate path would remove that.
-- Crate-layer idioms the port had to write locally (`test/src/util.rs`): `console_log!`
-  and friends, `Delay`, serde `get`/`put` over `DurableObjectStorage`,
-  `block_concurrency_while` over a Rust future, a `WebSocket::events()` stream, DO
-  websocket handlers in the `DurableObject` trait, `#[event(connect)]`, `Response::from_body`/
-  `into_parts`, the `http` feature's handler types.
+- Crate-layer idioms still local to the port (`test/src/util.rs`, 147 lines): `sleep`
+  (`Delay`), `nullable` (`JsOption` `null`, ts-gen `JsNullable` lowering), `text`/`response_text`
+  (`Promise<string>` → `JsString`), `storage_get`/`storage_put` (serde over
+  `DurableObjectStorage`), `block_concurrency_while` over a Rust future,
+  `websocket_events`/`on_websocket_events`/`WebsocketEvent`/`message_text`
+  (`WebSocket::events()` stream). Elsewhere: `console_log!` and friends, `#[event(connect)]`,
+  `Response::from_body`/`into_parts`, `test/src/sql.rs`.
+- `Request.redirect` is not declared in the port's `worker.d.ts` (workers-types has
+  `readonly redirect: string`), so the `http` conversion cannot carry it.
 
 ## Migration table
 
@@ -203,7 +224,9 @@ so `worker`'s `?` stays where it was and appears on a few calls that had none.
 | --- | --- |
 | `#[event(fetch)] async fn f(req: Request, env: Env, ctx: Context)` | same, with `ctx: ExecutionContext` and `env` the app's type generated from its `env.d.ts` |
 | `#[event(fetch, respond_with_errors)]` | same |
-| `#[event(fetch)]` over `http::Request` (feature `http`) | not ported |
+| `#[event(fetch)] async fn f(req: HttpRequest, ..) -> Result<http::Response<B>>` (feature `http`) | same; `HttpRequest = http::Request<ByteStream>`, `HttpResponse = http::Response<ByteStream>` |
+| `worker::Body` / `Body::empty()` / `body.into_inner()` | `ByteStream` / `ByteStream::empty()` / `into_inner()` |
+| `http::Request<Body>: TryFrom<Request>` and back; same for `Response` | same (`try_into()`); extensions `AbortSignal`, `IncomingRequestCfProperties`, `WebSocket` instead of `Cf`/`RequestRedirect`/`WebSocket` |
 | `#[event(start)]` (several allowed) | same |
 | `#[event(queue)] async fn q(batch: MessageBatch<T>, ..) -> Result<()>` | `batch: MessageBatch`; `message.body_into::<T>()?` |
 | `#[event(scheduled)] async fn s(event: ScheduledEvent, env, ctx: ScheduleContext)` | `(controller: ScheduledController, env, ctx: ExecutionContext)` |
@@ -211,6 +234,10 @@ so `worker`'s `?` stays where it was and appears on a few calls that had none.
 | `#[event(connect)]` | not ported |
 | `#[durable_object] struct S; impl DurableObject for S { fn new(state: State, env: Env) }` | same, plus `type Env = Env;`, `state: DurableObjectState` |
 | `async fn alarm(&self) -> Result<Response>` | `-> Result<()>` |
+| `async fn websocket_message(&self, ws, msg: WebSocketIncomingMessage)` | `msg: DataKind` (`String(s)` / `ArrayBuffer(buf)`) |
+| `async fn websocket_close(&self, ws, code: usize, reason: String, was_clean: bool)` / `websocket_error(&self, ws, err: Error)` | same |
+| `#[durable_object(fetch | alarm | websocket)]` | same (`connect` not ported) |
+| `impl DurableObject` without `#[durable_object]` | compile error naming `has_durable_object_attribute`, as `worker` |
 | `Response::ok(body)` | `Response::builder().ok(body)` |
 | `Response::error(msg, status)` | `Response::builder().error(msg, status)` |
 | `Response::from_json(&v)` | `Response::builder().from_json(&v)` |
@@ -269,6 +296,7 @@ so `worker`'s `?` stays where it was and appears on a few calls that had none.
 | `state.storage().get::<T>(k).await?` | `storage.get(k).await?` → `JsValue` (`undefined` when absent; serde form is a gap) |
 | `state.storage().put(k, v).await?` | `storage.put(k, &js_value).await?` |
 | `Error::from(..)` / `Error::RustError(s)` / `Error::D1(e)` | `Error::from(s)` / `Error::Rust(s)` / `Error::Js(JsException::..)` |
+| `err.to_string()` → `Name: message` for JS errors | same (`42` / `null` for a thrown primitive) |
 | `console_log!(..)` | `console::log(&[format!(..).into()])` (no macro yet) |
 | `Date::now().as_millis()` | `js_sys::Date::now() as u64` |
 | `Date::new(DateInit::Millis(n))` / `DateInit::String(s)` | `js_sys::Date::new(&(n as f64).into())` / `js_sys::Date::new(&s.into())` |
