@@ -33,6 +33,7 @@ mod request;
 mod secret_store;
 mod send_email;
 mod service;
+mod signal;
 mod socket;
 mod sql;
 mod sql_counter;
@@ -424,6 +425,7 @@ async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response
             rate_limit::handle_rate_limit_reset(req, env, data).await
         }
         ("GET", ["send-email"]) => send_email::handle_send_email(req, env, data).await,
+        ("GET", ["signal", "poll"]) => signal::handle_signal_poll(req, env, data),
         (_, ["ext", rest @ ..]) => ext::handle(req, env, ctx, rest).await,
         _ => catchall(req, env, data).await,
     }

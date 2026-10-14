@@ -13,6 +13,7 @@ mod error;
 mod ext;
 mod router;
 pub mod send;
+pub mod signal;
 
 pub use bindings::*;
 pub use durable::DurableObject;
