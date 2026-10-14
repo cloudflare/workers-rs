@@ -105,7 +105,7 @@ type Entry = KVNamespaceGetWithMetadataResult<JsValue, JsValue>;
 fn get_options(value_type: &str, cache_ttl: Option<u64>) -> KVNamespaceGetOptions<JsString> {
     let builder = KVNamespaceGetOptions::builder(&JsString::from(value_type));
     match cache_ttl {
-        Some(ttl) => builder.cache_ttl(ttl as f64),
+        Some(ttl) => builder.cache_ttl(ttl),
         None => builder,
     }
     .build()
@@ -351,13 +351,13 @@ pub struct KvPutBuilder {
 impl KvPutBuilder {
     /// Unix timestamp (seconds) at which the key expires.
     pub fn expiration(self, expiration: u64) -> Self {
-        self.options.set_expiration(expiration as f64);
+        self.options.set_expiration(expiration);
         self
     }
 
     /// Seconds until the key expires.
     pub fn expiration_ttl(self, expiration_ttl: u64) -> Self {
-        self.options.set_expiration_ttl(expiration_ttl as f64);
+        self.options.set_expiration_ttl(expiration_ttl);
         self
     }
 
@@ -401,7 +401,7 @@ pub struct KvListBuilder {
 impl KvListBuilder {
     /// Maximum keys returned; 1000 is the default and the maximum.
     pub fn limit(self, limit: u64) -> Self {
-        self.options.set_limit(limit as f64);
+        self.options.set_limit(limit);
         self
     }
 

@@ -102,7 +102,7 @@ pub async fn put_expiration(_req: Request, env: Env, _data: SomeSharedData) -> R
             "put_c",
             "test",
             &KVNamespacePutOptions::builder()
-                .expiration(EXPIRATION as f64)
+                .expiration(EXPIRATION)
                 .build(),
         )
         .await?;
@@ -118,7 +118,7 @@ pub async fn put_expiration(_req: Request, env: Env, _data: SomeSharedData) -> R
         .into_iter()
         .find(|key| key.name() == "put_c")
         .unwrap();
-    kv_assert_eq!(key.expiration().map(|e| e as u64), Some(EXPIRATION))?;
+    kv_assert_eq!(key.expiration(), Some(EXPIRATION))?;
 
     Response::builder().ok("passed")
 }

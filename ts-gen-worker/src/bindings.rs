@@ -993,13 +993,13 @@ extern "C" {
     #[wasm_bindgen(method, catch)]
     pub fn rollback(this: &DurableObjectTransaction) -> Result<(), crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getAlarm")]
-    pub async fn get_alarm(this: &DurableObjectTransaction) -> Result<Option<f64>, crate::Error>;
+    async fn get_alarm_js(this: &DurableObjectTransaction) -> Result<Option<f64>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getAlarm")]
     pub fn get_alarm_promise(
         this: &DurableObjectTransaction,
-    ) -> Result<Promise<JsNullable<Number>>, crate::Error>;
+    ) -> Result<Promise<JsNullable<f64>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getAlarm")]
-    pub async fn get_alarm_with_options(
+    async fn get_alarm_with_options_js(
         this: &DurableObjectTransaction,
         options: &DurableObjectGetAlarmOptions,
     ) -> Result<Option<f64>, crate::Error>;
@@ -1007,7 +1007,7 @@ extern "C" {
     pub fn get_alarm_with_options_promise(
         this: &DurableObjectTransaction,
         options: &DurableObjectGetAlarmOptions,
-    ) -> Result<Promise<JsNullable<Number>>, crate::Error>;
+    ) -> Result<Promise<JsNullable<f64>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "setAlarm")]
     pub async fn set_alarm(
         this: &DurableObjectTransaction,
@@ -1068,6 +1068,19 @@ extern "C" {
         this: &DurableObjectTransaction,
         options: &DurableObjectSetAlarmOptions,
     ) -> Result<Promise<Undefined>, crate::Error>;
+}
+impl DurableObjectTransaction {
+    pub async fn get_alarm(&self) -> Result<Option<i64>, crate::Error> {
+        self.get_alarm_js().await.map(|v| v.map(|v| v as i64))
+    }
+    pub async fn get_alarm_with_options(
+        &self,
+        options: &DurableObjectGetAlarmOptions,
+    ) -> Result<Option<i64>, crate::Error> {
+        self.get_alarm_with_options_js(options)
+            .await
+            .map(|v| v.map(|v| v as i64))
+    }
 }
 #[wasm_bindgen]
 extern "C" {
@@ -1250,13 +1263,13 @@ extern "C" {
         closure: &Function<fn(DurableObjectTransaction) -> Promise>,
     ) -> Result<Promise<T>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getAlarm")]
-    pub async fn get_alarm(this: &DurableObjectStorage) -> Result<Option<f64>, crate::Error>;
+    async fn get_alarm_js(this: &DurableObjectStorage) -> Result<Option<f64>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getAlarm")]
     pub fn get_alarm_promise(
         this: &DurableObjectStorage,
-    ) -> Result<Promise<JsNullable<Number>>, crate::Error>;
+    ) -> Result<Promise<JsNullable<f64>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getAlarm")]
-    pub async fn get_alarm_with_options(
+    async fn get_alarm_with_options_js(
         this: &DurableObjectStorage,
         options: &DurableObjectGetAlarmOptions,
     ) -> Result<Option<f64>, crate::Error>;
@@ -1264,7 +1277,7 @@ extern "C" {
     pub fn get_alarm_with_options_promise(
         this: &DurableObjectStorage,
         options: &DurableObjectGetAlarmOptions,
-    ) -> Result<Promise<JsNullable<Number>>, crate::Error>;
+    ) -> Result<Promise<JsNullable<f64>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "setAlarm")]
     pub async fn set_alarm(
         this: &DurableObjectStorage,
@@ -1378,6 +1391,19 @@ extern "C" {
         this: &DurableObjectStorage,
         bookmark: &str,
     ) -> Result<Promise<JsString>, crate::Error>;
+}
+impl DurableObjectStorage {
+    pub async fn get_alarm(&self) -> Result<Option<i64>, crate::Error> {
+        self.get_alarm_js().await.map(|v| v.map(|v| v as i64))
+    }
+    pub async fn get_alarm_with_options(
+        &self,
+        options: &DurableObjectGetAlarmOptions,
+    ) -> Result<Option<i64>, crate::Error> {
+        self.get_alarm_with_options_js(options)
+            .await
+            .map(|v| v.map(|v| v as i64))
+    }
 }
 #[wasm_bindgen]
 extern "C" {
@@ -2416,11 +2442,16 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/File/name)"]
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &File) -> String;
+    #[wasm_bindgen(method, getter, js_name = "lastModified")]
+    fn last_modified_js(this: &File) -> f64;
+}
+impl File {
     #[doc = " The **`lastModified`** read-only property of the File interface provides the last modified date of the file as the number of milliseconds since the Unix epoch (January 1, 1970 at midnight). Files without a known last modified date return the current date."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/File/lastModified)"]
-    #[wasm_bindgen(method, getter, js_name = "lastModified")]
-    pub fn last_modified(this: &File) -> f64;
+    pub fn last_modified(&self) -> u64 {
+        self.last_modified_js() as u64
+    }
 }
 #[wasm_bindgen]
 extern "C" {
@@ -6029,12 +6060,12 @@ extern "C" {
         this: &KVNamespaceListKey<Metadata>,
         val: &str,
     );
-    #[wasm_bindgen(method, getter)]
-    pub fn expiration<Metadata: ::wasm_bindgen::JsGeneric>(
+    #[wasm_bindgen(method, getter, js_name = "expiration")]
+    fn expiration_js<Metadata: ::wasm_bindgen::JsGeneric>(
         this: &KVNamespaceListKey<Metadata>,
     ) -> Option<f64>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_expiration<Metadata: ::wasm_bindgen::JsGeneric>(
+    #[wasm_bindgen(method, setter, js_name = "expiration")]
+    fn set_expiration_js<Metadata: ::wasm_bindgen::JsGeneric>(
         this: &KVNamespaceListKey<Metadata>,
         val: f64,
     );
@@ -6047,6 +6078,14 @@ extern "C" {
         this: &KVNamespaceListKey<Metadata>,
         val: &Metadata,
     );
+}
+impl<Metadata: ::wasm_bindgen::JsGeneric> KVNamespaceListKey<Metadata> {
+    pub fn expiration(&self) -> Option<u64> {
+        self.expiration_js().map(|v| v as u64)
+    }
+    pub fn set_expiration(&self, val: u64) {
+        self.set_expiration_js(val as f64)
+    }
 }
 impl<Metadata: ::wasm_bindgen::JsGeneric> PartialEq for KVNamespaceListKey<Metadata> {
     fn eq(&self, other: &Self) -> bool {
@@ -6068,7 +6107,7 @@ pub struct KVNamespaceListKeyBuilder<Metadata: ::wasm_bindgen::JsGeneric> {
     inner: KVNamespaceListKey<Metadata>,
 }
 impl<Metadata: ::wasm_bindgen::JsGeneric> KVNamespaceListKeyBuilder<Metadata> {
-    pub fn expiration(self, val: f64) -> Self {
+    pub fn expiration(self, val: u64) -> Self {
         self.inner.set_expiration(val);
         self
     }
@@ -6209,17 +6248,53 @@ extern "C" {
         options: &KVNamespaceGetOptions<Undefined>,
     ) -> Result<Promise<JsNullable<JsString>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
-    pub async fn get_with_str_and_type(
+    async fn get_text_js(
         this: &KVNamespace,
         key: &str,
         r#type: &str,
     ) -> Result<Option<String>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
-    pub fn get_with_str_and_type_promise(
+    fn get_text_promise_js(
         this: &KVNamespace,
         key: &str,
         r#type: &str,
     ) -> Result<Promise<JsNullable<JsString>>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "get")]
+    async fn get_json_js<ExpectedValue: ::wasm_bindgen::JsGeneric>(
+        this: &KVNamespace,
+        key: &str,
+        r#type: &str,
+    ) -> Result<JsNullable<ExpectedValue>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "get")]
+    fn get_json_promise_js<ExpectedValue: ::wasm_bindgen::JsGeneric>(
+        this: &KVNamespace,
+        key: &str,
+        r#type: &str,
+    ) -> Result<Promise<JsNullable<ExpectedValue>>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "get")]
+    async fn get_array_buffer_js(
+        this: &KVNamespace,
+        key: &str,
+        r#type: &str,
+    ) -> Result<Option<ArrayBuffer>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "get")]
+    fn get_array_buffer_promise_js(
+        this: &KVNamespace,
+        key: &str,
+        r#type: &str,
+    ) -> Result<Promise<JsNullable<ArrayBuffer>>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "get")]
+    async fn get_stream_js(
+        this: &KVNamespace,
+        key: &str,
+        r#type: &str,
+    ) -> Result<Option<ReadableStream>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "get")]
+    fn get_stream_promise_js(
+        this: &KVNamespace,
+        key: &str,
+        r#type: &str,
+    ) -> Result<Promise<JsNullable<ReadableStream>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
     pub async fn get_with_key_str_and_options_kv_namespace_get_options(
         this: &KVNamespace,
@@ -6233,17 +6308,29 @@ extern "C" {
         options: &KVNamespaceGetOptions<JsString>,
     ) -> Result<Promise<JsNullable<JsString>>, crate::Error>;
     #[wasm_bindgen(method, catch, slice_to_array, js_name = "get")]
-    pub async fn get_with_array_and_type(
+    async fn get_text_with_array_js(
         this: &KVNamespace,
         key: &Array<JsString>,
         r#type: &str,
     ) -> Result<Map<JsString, JsNullable<JsString>>, crate::Error>;
     #[wasm_bindgen(method, catch, slice_to_array, js_name = "get")]
-    pub fn get_with_array_and_type_promise(
+    fn get_text_with_array_promise_js(
         this: &KVNamespace,
         key: &Array<JsString>,
         r#type: &str,
     ) -> Result<Promise<Map<JsString, JsNullable<JsString>>>, crate::Error>;
+    #[wasm_bindgen(method, catch, slice_to_array, js_name = "get")]
+    async fn get_json_with_array_js(
+        this: &KVNamespace,
+        key: &Array<JsString>,
+        r#type: &str,
+    ) -> Result<Map<JsString, JsValue>, crate::Error>;
+    #[wasm_bindgen(method, catch, slice_to_array, js_name = "get")]
+    fn get_json_with_array_promise_js(
+        this: &KVNamespace,
+        key: &Array<JsString>,
+        r#type: &str,
+    ) -> Result<Promise<Map<JsString, JsValue>>, crate::Error>;
     #[wasm_bindgen(method, catch, slice_to_array, js_name = "get")]
     pub async fn get_with_array(
         this: &KVNamespace,
@@ -6417,17 +6504,53 @@ extern "C" {
         options: &KVNamespaceGetOptions<Undefined>,
     ) -> Result<Promise<KVNamespaceGetWithMetadataResult<JsString, JsValue>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
-    pub async fn get_with_metadata_with_str_and_type(
+    async fn get_with_metadata_text_js(
         this: &KVNamespace,
         key: &str,
         r#type: &str,
     ) -> Result<KVNamespaceGetWithMetadataResult<JsString, JsValue>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
-    pub fn get_with_metadata_with_str_and_type_promise(
+    fn get_with_metadata_text_promise_js(
         this: &KVNamespace,
         key: &str,
         r#type: &str,
     ) -> Result<Promise<KVNamespaceGetWithMetadataResult<JsString, JsValue>>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
+    async fn get_with_metadata_json_js(
+        this: &KVNamespace,
+        key: &str,
+        r#type: &str,
+    ) -> Result<KVNamespaceGetWithMetadataResult<JsValue, JsValue>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
+    fn get_with_metadata_json_promise_js(
+        this: &KVNamespace,
+        key: &str,
+        r#type: &str,
+    ) -> Result<Promise<KVNamespaceGetWithMetadataResult<JsValue, JsValue>>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
+    async fn get_with_metadata_array_buffer_js(
+        this: &KVNamespace,
+        key: &str,
+        r#type: &str,
+    ) -> Result<KVNamespaceGetWithMetadataResult<ArrayBuffer, JsValue>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
+    fn get_with_metadata_array_buffer_promise_js(
+        this: &KVNamespace,
+        key: &str,
+        r#type: &str,
+    ) -> Result<Promise<KVNamespaceGetWithMetadataResult<ArrayBuffer, JsValue>>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
+    async fn get_with_metadata_stream_js(
+        this: &KVNamespace,
+        key: &str,
+        r#type: &str,
+    ) -> Result<KVNamespaceGetWithMetadataResult<ReadableStream, JsValue>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
+    fn get_with_metadata_stream_promise_js(
+        this: &KVNamespace,
+        key: &str,
+        r#type: &str,
+    ) -> Result<Promise<KVNamespaceGetWithMetadataResult<ReadableStream, JsValue>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
     pub async fn get_with_metadata_with_key_str_and_options_kv_namespace_get_options(
         this: &KVNamespace,
@@ -6441,18 +6564,33 @@ extern "C" {
         options: &KVNamespaceGetOptions<JsString>,
     ) -> Result<Promise<KVNamespaceGetWithMetadataResult<JsString, JsValue>>, crate::Error>;
     #[wasm_bindgen(method, catch, slice_to_array, js_name = "getWithMetadata")]
-    pub async fn get_with_metadata_with_array_and_type(
+    async fn get_with_metadata_text_with_array_js(
         this: &KVNamespace,
         key: &Array<JsString>,
         r#type: &str,
     ) -> Result<Map<JsString, KVNamespaceGetWithMetadataResult<JsString, JsValue>>, crate::Error>;
     #[wasm_bindgen(method, catch, slice_to_array, js_name = "getWithMetadata")]
-    pub fn get_with_metadata_with_array_and_type_promise(
+    fn get_with_metadata_text_with_array_promise_js(
         this: &KVNamespace,
         key: &Array<JsString>,
         r#type: &str,
     ) -> Result<
         Promise<Map<JsString, KVNamespaceGetWithMetadataResult<JsString, JsValue>>>,
+        crate::Error,
+    >;
+    #[wasm_bindgen(method, catch, slice_to_array, js_name = "getWithMetadata")]
+    async fn get_with_metadata_json_with_array_js(
+        this: &KVNamespace,
+        key: &Array<JsString>,
+        r#type: &str,
+    ) -> Result<Map<JsString, KVNamespaceGetWithMetadataResult<JsValue, JsValue>>, crate::Error>;
+    #[wasm_bindgen(method, catch, slice_to_array, js_name = "getWithMetadata")]
+    fn get_with_metadata_json_with_array_promise_js(
+        this: &KVNamespace,
+        key: &Array<JsString>,
+        r#type: &str,
+    ) -> Result<
+        Promise<Map<JsString, KVNamespaceGetWithMetadataResult<JsValue, JsValue>>>,
         crate::Error,
     >;
     #[wasm_bindgen(method, catch, slice_to_array, js_name = "getWithMetadata")]
@@ -6506,15 +6644,162 @@ extern "C" {
         key: &str,
     ) -> Result<Promise<Undefined>, crate::Error>;
 }
+impl KVNamespace {
+    pub async fn get_text(&self, key: &str) -> Result<Option<String>, crate::Error> {
+        self.get_text_js(key, "text").await
+    }
+    pub fn get_text_promise(
+        &self,
+        key: &str,
+    ) -> Result<Promise<JsNullable<JsString>>, crate::Error> {
+        self.get_text_promise_js(key, "text")
+    }
+    pub async fn get_json<ExpectedValue: ::wasm_bindgen::JsGeneric>(
+        &self,
+        key: &str,
+    ) -> Result<JsNullable<ExpectedValue>, crate::Error> {
+        self.get_json_js(key, "json").await
+    }
+    pub fn get_json_promise<ExpectedValue: ::wasm_bindgen::JsGeneric>(
+        &self,
+        key: &str,
+    ) -> Result<Promise<JsNullable<ExpectedValue>>, crate::Error> {
+        self.get_json_promise_js(key, "json")
+    }
+    pub async fn get_array_buffer(&self, key: &str) -> Result<Option<ArrayBuffer>, crate::Error> {
+        self.get_array_buffer_js(key, "arrayBuffer").await
+    }
+    pub fn get_array_buffer_promise(
+        &self,
+        key: &str,
+    ) -> Result<Promise<JsNullable<ArrayBuffer>>, crate::Error> {
+        self.get_array_buffer_promise_js(key, "arrayBuffer")
+    }
+    pub async fn get_stream(&self, key: &str) -> Result<Option<ReadableStream>, crate::Error> {
+        self.get_stream_js(key, "stream").await
+    }
+    pub fn get_stream_promise(
+        &self,
+        key: &str,
+    ) -> Result<Promise<JsNullable<ReadableStream>>, crate::Error> {
+        self.get_stream_promise_js(key, "stream")
+    }
+    pub async fn get_text_with_array(
+        &self,
+        key: &Array<JsString>,
+    ) -> Result<Map<JsString, JsNullable<JsString>>, crate::Error> {
+        self.get_text_with_array_js(key, "text").await
+    }
+    pub fn get_text_with_array_promise(
+        &self,
+        key: &Array<JsString>,
+    ) -> Result<Promise<Map<JsString, JsNullable<JsString>>>, crate::Error> {
+        self.get_text_with_array_promise_js(key, "text")
+    }
+    pub async fn get_json_with_array(
+        &self,
+        key: &Array<JsString>,
+    ) -> Result<Map<JsString, JsValue>, crate::Error> {
+        self.get_json_with_array_js(key, "json").await
+    }
+    pub fn get_json_with_array_promise(
+        &self,
+        key: &Array<JsString>,
+    ) -> Result<Promise<Map<JsString, JsValue>>, crate::Error> {
+        self.get_json_with_array_promise_js(key, "json")
+    }
+    pub async fn get_with_metadata_text(
+        &self,
+        key: &str,
+    ) -> Result<KVNamespaceGetWithMetadataResult<JsString, JsValue>, crate::Error> {
+        self.get_with_metadata_text_js(key, "text").await
+    }
+    pub fn get_with_metadata_text_promise(
+        &self,
+        key: &str,
+    ) -> Result<Promise<KVNamespaceGetWithMetadataResult<JsString, JsValue>>, crate::Error> {
+        self.get_with_metadata_text_promise_js(key, "text")
+    }
+    pub async fn get_with_metadata_json(
+        &self,
+        key: &str,
+    ) -> Result<KVNamespaceGetWithMetadataResult<JsValue, JsValue>, crate::Error> {
+        self.get_with_metadata_json_js(key, "json").await
+    }
+    pub fn get_with_metadata_json_promise(
+        &self,
+        key: &str,
+    ) -> Result<Promise<KVNamespaceGetWithMetadataResult<JsValue, JsValue>>, crate::Error> {
+        self.get_with_metadata_json_promise_js(key, "json")
+    }
+    pub async fn get_with_metadata_array_buffer(
+        &self,
+        key: &str,
+    ) -> Result<KVNamespaceGetWithMetadataResult<ArrayBuffer, JsValue>, crate::Error> {
+        self.get_with_metadata_array_buffer_js(key, "arrayBuffer")
+            .await
+    }
+    pub fn get_with_metadata_array_buffer_promise(
+        &self,
+        key: &str,
+    ) -> Result<Promise<KVNamespaceGetWithMetadataResult<ArrayBuffer, JsValue>>, crate::Error> {
+        self.get_with_metadata_array_buffer_promise_js(key, "arrayBuffer")
+    }
+    pub async fn get_with_metadata_stream(
+        &self,
+        key: &str,
+    ) -> Result<KVNamespaceGetWithMetadataResult<ReadableStream, JsValue>, crate::Error> {
+        self.get_with_metadata_stream_js(key, "stream").await
+    }
+    pub fn get_with_metadata_stream_promise(
+        &self,
+        key: &str,
+    ) -> Result<Promise<KVNamespaceGetWithMetadataResult<ReadableStream, JsValue>>, crate::Error>
+    {
+        self.get_with_metadata_stream_promise_js(key, "stream")
+    }
+    pub async fn get_with_metadata_text_with_array(
+        &self,
+        key: &Array<JsString>,
+    ) -> Result<Map<JsString, KVNamespaceGetWithMetadataResult<JsString, JsValue>>, crate::Error>
+    {
+        self.get_with_metadata_text_with_array_js(key, "text").await
+    }
+    pub fn get_with_metadata_text_with_array_promise(
+        &self,
+        key: &Array<JsString>,
+    ) -> Result<
+        Promise<Map<JsString, KVNamespaceGetWithMetadataResult<JsString, JsValue>>>,
+        crate::Error,
+    > {
+        self.get_with_metadata_text_with_array_promise_js(key, "text")
+    }
+    pub async fn get_with_metadata_json_with_array(
+        &self,
+        key: &Array<JsString>,
+    ) -> Result<Map<JsString, KVNamespaceGetWithMetadataResult<JsValue, JsValue>>, crate::Error>
+    {
+        self.get_with_metadata_json_with_array_js(key, "json").await
+    }
+    pub fn get_with_metadata_json_with_array_promise(
+        &self,
+        key: &Array<JsString>,
+    ) -> Result<
+        Promise<Map<JsString, KVNamespaceGetWithMetadataResult<JsValue, JsValue>>>,
+        crate::Error,
+    > {
+        self.get_with_metadata_json_with_array_promise_js(key, "json")
+    }
+}
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type KVNamespaceListOptions;
-    #[wasm_bindgen(method, getter)]
-    pub fn limit(this: &KVNamespaceListOptions) -> Option<f64>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_limit(this: &KVNamespaceListOptions, val: f64);
+    #[wasm_bindgen(method, getter, js_name = "limit")]
+    fn limit_js(this: &KVNamespaceListOptions) -> Option<f64>;
+    #[wasm_bindgen(method, setter, js_name = "limit")]
+    fn set_limit_js(this: &KVNamespaceListOptions, val: f64);
     #[wasm_bindgen(method, getter)]
     pub fn prefix(this: &KVNamespaceListOptions) -> Option<String>;
     #[wasm_bindgen(method, setter)]
@@ -6527,6 +6812,14 @@ extern "C" {
     pub fn set_cursor(this: &KVNamespaceListOptions, val: &str);
     #[wasm_bindgen(method, setter, js_name = "cursor")]
     pub fn set_cursor_with_null(this: &KVNamespaceListOptions, val: &Null);
+}
+impl KVNamespaceListOptions {
+    pub fn limit(&self) -> Option<u64> {
+        self.limit_js().map(|v| v as u64)
+    }
+    pub fn set_limit(&self, val: u64) {
+        self.set_limit_js(val as f64)
+    }
 }
 impl KVNamespaceListOptions {
     pub fn new() -> KVNamespaceListOptions {
@@ -6542,7 +6835,7 @@ pub struct KVNamespaceListOptionsBuilder {
     inner: KVNamespaceListOptions,
 }
 impl KVNamespaceListOptionsBuilder {
-    pub fn limit(self, val: f64) -> Self {
+    pub fn limit(self, val: u64) -> Self {
         self.inner.set_limit(val);
         self
     }
@@ -6579,14 +6872,22 @@ extern "C" {
         val: &Type,
     );
     #[wasm_bindgen(method, getter, js_name = "cacheTtl")]
-    pub fn cache_ttl<Type: ::wasm_bindgen::JsGeneric>(
+    fn cache_ttl_js<Type: ::wasm_bindgen::JsGeneric>(
         this: &KVNamespaceGetOptions<Type>,
     ) -> Option<f64>;
     #[wasm_bindgen(method, setter, js_name = "cacheTtl")]
-    pub fn set_cache_ttl<Type: ::wasm_bindgen::JsGeneric>(
+    fn set_cache_ttl_js<Type: ::wasm_bindgen::JsGeneric>(
         this: &KVNamespaceGetOptions<Type>,
         val: f64,
     );
+}
+impl<Type: ::wasm_bindgen::JsGeneric> KVNamespaceGetOptions<Type> {
+    pub fn cache_ttl(&self) -> Option<u64> {
+        self.cache_ttl_js().map(|v| v as u64)
+    }
+    pub fn set_cache_ttl(&self, val: u64) {
+        self.set_cache_ttl_js(val as f64)
+    }
 }
 impl<Type: ::wasm_bindgen::JsGeneric> PartialEq for KVNamespaceGetOptions<Type> {
     fn eq(&self, other: &Self) -> bool {
@@ -6608,7 +6909,7 @@ pub struct KVNamespaceGetOptionsBuilder<Type: ::wasm_bindgen::JsGeneric> {
     inner: KVNamespaceGetOptions<Type>,
 }
 impl<Type: ::wasm_bindgen::JsGeneric> KVNamespaceGetOptionsBuilder<Type> {
-    pub fn cache_ttl(self, val: f64) -> Self {
+    pub fn cache_ttl(self, val: u64) -> Self {
         self.inner.set_cache_ttl(val);
         self
     }
@@ -6621,18 +6922,32 @@ extern "C" {
     # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type KVNamespacePutOptions;
-    #[wasm_bindgen(method, getter)]
-    pub fn expiration(this: &KVNamespacePutOptions) -> Option<f64>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_expiration(this: &KVNamespacePutOptions, val: f64);
+    #[wasm_bindgen(method, getter, js_name = "expiration")]
+    fn expiration_js(this: &KVNamespacePutOptions) -> Option<f64>;
+    #[wasm_bindgen(method, setter, js_name = "expiration")]
+    fn set_expiration_js(this: &KVNamespacePutOptions, val: f64);
     #[wasm_bindgen(method, getter, js_name = "expirationTtl")]
-    pub fn expiration_ttl(this: &KVNamespacePutOptions) -> Option<f64>;
+    fn expiration_ttl_js(this: &KVNamespacePutOptions) -> Option<f64>;
     #[wasm_bindgen(method, setter, js_name = "expirationTtl")]
-    pub fn set_expiration_ttl(this: &KVNamespacePutOptions, val: f64);
+    fn set_expiration_ttl_js(this: &KVNamespacePutOptions, val: f64);
     #[wasm_bindgen(method, getter)]
     pub fn metadata(this: &KVNamespacePutOptions) -> JsValue;
     #[wasm_bindgen(method, setter)]
     pub fn set_metadata(this: &KVNamespacePutOptions, val: &JsValue);
+}
+impl KVNamespacePutOptions {
+    pub fn expiration(&self) -> Option<u64> {
+        self.expiration_js().map(|v| v as u64)
+    }
+    pub fn set_expiration(&self, val: u64) {
+        self.set_expiration_js(val as f64)
+    }
+    pub fn expiration_ttl(&self) -> Option<u64> {
+        self.expiration_ttl_js().map(|v| v as u64)
+    }
+    pub fn set_expiration_ttl(&self, val: u64) {
+        self.set_expiration_ttl_js(val as f64)
+    }
 }
 impl KVNamespacePutOptions {
     pub fn new() -> KVNamespacePutOptions {
@@ -6648,11 +6963,11 @@ pub struct KVNamespacePutOptionsBuilder {
     inner: KVNamespacePutOptions,
 }
 impl KVNamespacePutOptionsBuilder {
-    pub fn expiration(self, val: f64) -> Self {
+    pub fn expiration(self, val: u64) -> Self {
         self.inner.set_expiration(val);
         self
     }
-    pub fn expiration_ttl(self, val: f64) -> Self {
+    pub fn expiration_ttl(self, val: u64) -> Self {
         self.inner.set_expiration_ttl(val);
         self
     }
@@ -8071,8 +8386,8 @@ extern "C" {
     pub fn key(this: &R2Object) -> String;
     #[wasm_bindgen(method, getter)]
     pub fn version(this: &R2Object) -> String;
-    #[wasm_bindgen(method, getter)]
-    pub fn size(this: &R2Object) -> f64;
+    #[wasm_bindgen(method, getter, js_name = "size")]
+    fn size_js(this: &R2Object) -> f64;
     #[wasm_bindgen(method, getter)]
     pub fn etag(this: &R2Object) -> String;
     #[wasm_bindgen(method, getter, js_name = "httpEtag")]
@@ -8093,6 +8408,11 @@ extern "C" {
     pub fn ssec_key_md5(this: &R2Object) -> Option<String>;
     #[wasm_bindgen(method, catch, js_name = "writeHttpMetadata")]
     pub fn write_http_metadata(this: &R2Object, headers: &Headers) -> Result<(), crate::Error>;
+}
+impl R2Object {
+    pub fn size(&self) -> u64 {
+        self.size_js() as u64
+    }
 }
 #[wasm_bindgen]
 extern "C" {
@@ -17805,10 +18125,10 @@ extern "C" {
     pub fn rows_written(this: &D1Meta) -> usize;
     #[wasm_bindgen(method, setter)]
     pub fn set_rows_written(this: &D1Meta, val: usize);
-    #[wasm_bindgen(method, getter)]
-    pub fn last_row_id(this: &D1Meta) -> f64;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_last_row_id(this: &D1Meta, val: f64);
+    #[wasm_bindgen(method, getter, js_name = "last_row_id")]
+    fn last_row_id_js(this: &D1Meta) -> f64;
+    #[wasm_bindgen(method, setter, js_name = "last_row_id")]
+    fn set_last_row_id_js(this: &D1Meta, val: f64);
     #[wasm_bindgen(method, getter)]
     pub fn changed_db(this: &D1Meta) -> bool;
     #[wasm_bindgen(method, setter)]
@@ -17844,12 +18164,20 @@ extern "C" {
     pub fn set_total_attempts(this: &D1Meta, val: f64);
 }
 impl D1Meta {
+    pub fn last_row_id(&self) -> i64 {
+        self.last_row_id_js() as i64
+    }
+    pub fn set_last_row_id(&self, val: i64) {
+        self.set_last_row_id_js(val as f64)
+    }
+}
+impl D1Meta {
     pub fn new(
         duration: f64,
         size_after: f64,
         rows_read: usize,
         rows_written: usize,
-        last_row_id: f64,
+        last_row_id: i64,
         changed_db: bool,
         changes: usize,
     ) -> D1Meta {
@@ -17869,7 +18197,7 @@ impl D1Meta {
         size_after: f64,
         rows_read: usize,
         rows_written: usize,
-        last_row_id: f64,
+        last_row_id: i64,
         changed_db: bool,
         changes: usize,
     ) -> D1MetaBuilder {

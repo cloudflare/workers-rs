@@ -4,11 +4,11 @@
 //
 // `@throws` is limited to classes the Fetch and Streams specs pin.
 //
-// `@rust` gives a `number` the integer type `worker` exposes. Where
-// `worker` uses u64/i64 (R2 sizes, KV expirations, alarm times) the
-// member stays f64: wasm-bindgen crosses 64-bit integers as BigInt.
-// Database sizes (`D1Meta.size_after`, `SqlStorage.databaseSize`) also
-// stay f64; they exceed the 32-bit `usize` `worker` truncates them to.
+// `@rust` gives a `number` the integer type `worker` exposes. u64/i64
+// on a `number` (R2 sizes, KV expirations, alarm times) lower to an
+// inline wrapper over an f64 extern, exact to 2^53. Database sizes
+// (`D1Meta.size_after`, `SqlStorage.databaseSize`) stay f64; they
+// exceed the 32-bit `usize` `worker` truncates them to.
 
 interface Console {
   /** @throws {never} */
@@ -102,11 +102,15 @@ declare class Blob {
 interface DurableObjectStorage {
   /** @rust usize */
   delete(keys: string[], options?: DurableObjectPutOptions): Promise<number>;
+  /** @rust i64 */
+  getAlarm(options?: DurableObjectGetAlarmOptions): Promise<number | null>;
 }
 
 interface DurableObjectTransaction {
   /** @rust usize */
   delete(keys: string[], options?: DurableObjectPutOptions): Promise<number>;
+  /** @rust i64 */
+  getAlarm(options?: DurableObjectGetAlarmOptions): Promise<number | null>;
 }
 
 interface DurableObjectListOptions {
@@ -140,6 +144,8 @@ interface D1Meta {
   rows_written: number;
   /** @rust usize */
   changes: number;
+  /** @rust i64 */
+  last_row_id: number;
 }
 
 interface R2MultipartUpload {
@@ -217,4 +223,36 @@ interface RequestInitCfPropertiesImageDraw {
   bottom?: number;
   /** @rust usize */
   right?: number;
+}
+
+declare abstract class R2Object {
+  /** @rust u64 */
+  readonly size: number;
+}
+
+interface KVNamespaceListKey<Metadata, Key extends string = string> {
+  /** @rust u64 */
+  expiration?: number;
+}
+
+interface KVNamespaceListOptions {
+  /** @rust u64 */
+  limit?: number;
+}
+
+interface KVNamespaceGetOptions<Type> {
+  /** @rust u64 */
+  cacheTtl?: number;
+}
+
+interface KVNamespacePutOptions {
+  /** @rust u64 */
+  expiration?: number;
+  /** @rust u64 */
+  expirationTtl?: number;
+}
+
+declare class File extends Blob {
+  /** @rust u64 */
+  get lastModified(): number;
 }
