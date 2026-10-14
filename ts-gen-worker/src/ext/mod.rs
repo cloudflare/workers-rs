@@ -3,6 +3,7 @@
 
 mod console;
 mod context;
+mod delay;
 mod handler;
 mod headers;
 mod http;
@@ -13,6 +14,7 @@ mod response;
 mod serde;
 mod streams;
 
+pub use delay::Delay;
 pub use handler::{FromRequest, IntoResponse};
 pub use headers::HeadersIter;
 pub use http::Method;

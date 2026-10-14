@@ -4,6 +4,7 @@
 
 use std::cell::RefCell;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
 
 use futures_util::StreamExt;
 use serde::{Deserialize, Serialize};
@@ -231,6 +232,19 @@ pub async fn handle(
             console_warn!("ext warn {}", 3);
             console_error!("ext error {}", 4);
             Response::builder().ok("logged")
+        }
+
+        ("GET", ["delay"]) => {
+            let start = js_sys::Date::now();
+            // The losing 30 s delay is dropped while pending, which clears its timer.
+            let first = futures_util::future::select(
+                Delay::from(Duration::from_secs(30)),
+                Delay::from(Duration::from_millis(100)),
+            )
+            .await;
+            let elapsed = js_sys::Date::now() - start;
+            let short_won = matches!(first, futures_util::future::Either::Right(_));
+            Response::builder().ok(format!("{short_won} {}", elapsed >= 100.0))
         }
 
         ("GET", ["error-number"]) => Err(JsValue::from(42).into()),

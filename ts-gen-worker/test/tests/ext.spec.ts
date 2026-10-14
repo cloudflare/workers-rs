@@ -237,4 +237,8 @@ describe("ts-gen-worker ext: Rust-native surface", () => {
       { level: "error", message: "ext error 4" },
     ]);
   });
+
+  test("Delay resolves after its duration; a dropped Delay is cancelled", async () => {
+    expect(await (await get2("/ext/delay")).text()).toBe("true true");
+  });
 });
