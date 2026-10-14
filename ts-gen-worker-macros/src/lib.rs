@@ -15,6 +15,8 @@ use proc_macro::TokenStream;
 /// * `scheduled`: `async fn(ScheduledController, Env, ExecutionContext)`
 /// * `queue`: `async fn(MessageBatch<_>, Env, ExecutionContext) -> Result<(), E>`
 /// * `email`: `async fn(ForwardableEmailMessage, Env, ExecutionContext) -> Result<(), E>`
+/// * `connect`: `async fn(Socket, Env, ExecutionContext) -> Result<(), E>`; one export
+///   serves TCP and UDP, so a handler for both dispatches on the socket's protocol
 /// * `start`: `fn()`, run once at module initialization
 ///
 /// Parameter types are taken verbatim from the signature, so the app's generated `Env`
@@ -25,7 +27,7 @@ use proc_macro::TokenStream;
 /// `#[event(fetch, respond_with_errors)]` puts the error's `Display` text in the body
 /// instead, which additionally requires `Display` on the error type.
 /// Failed `queue` and `email` handlers reject, so the runtime retries the batch or
-/// bounces the message.
+/// bounces the message; a failed `connect` handler rejects, closing only that socket.
 #[proc_macro_attribute]
 pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
     event::expand(attr.into(), item.into())

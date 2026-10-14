@@ -10,6 +10,7 @@ enum Kind {
     Scheduled,
     Queue,
     Email,
+    Connect,
     Start,
 }
 
@@ -20,6 +21,7 @@ impl Kind {
             "scheduled" => Kind::Scheduled,
             "queue" => Kind::Queue,
             "email" => Kind::Email,
+            "connect" => Kind::Connect,
             "start" => Kind::Start,
             _ => return None,
         })
@@ -31,6 +33,7 @@ impl Kind {
             Kind::Scheduled => "scheduled",
             Kind::Queue => "queue",
             Kind::Email => "email",
+            Kind::Connect => "connect",
             Kind::Start => "start",
         }
     }
@@ -43,6 +46,13 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> Result<TokenStream> {
     for meta in &metas {
         let ident = match meta {
             Meta::Path(path) => path.get_ident(),
+            Meta::List(list) if list.path.is_ident("connect") => {
+                return Err(Error::new(
+                    meta.span(),
+                    "`connect` has no protocol option: one export serves TCP and UDP, \
+                     dispatch on the socket's protocol in the handler",
+                ))
+            }
             _ => None,
         };
         match ident {
@@ -53,8 +63,8 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> Result<TokenStream> {
             _ => {
                 return Err(Error::new(
                     meta.span(),
-                    "expected one of `fetch`, `scheduled`, `queue`, `email`, `start`, \
-                     optionally with `respond_with_errors`",
+                    "expected one of `fetch`, `scheduled`, `queue`, `email`, `connect`, \
+                     `start`, optionally with `respond_with_errors`",
                 ))
             }
         }
@@ -155,7 +165,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> Result<TokenStream> {
             },
         ),
         Kind::Scheduled => (quote! { () }, quote! { #name(#(#args),*).await }),
-        Kind::Queue | Kind::Email => (
+        Kind::Queue | Kind::Email | Kind::Connect => (
             quote! { ::core::result::Result<(), ::ts_gen_worker::wasm_bindgen::JsValue> },
             quote! {
                 #name(#(#args),*).await.map_err(

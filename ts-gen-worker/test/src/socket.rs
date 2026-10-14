@@ -3,7 +3,6 @@ use crate::SomeSharedData;
 use js_sys::Uint8Array;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use ts_gen_worker::*;
-use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 
 /// Connections handled by this Wasm instance; resets if the instance is reinitialized.
@@ -65,8 +64,8 @@ async fn handle_udp(socket: Socket) -> Result<()> {
 
 /// TCP and UDP inbound connections share the `connect` export, dispatched on
 /// the socket's protocol as worker-build's shim does.
-#[wasm_bindgen(js_name = "connect", js_namespace = "default")]
-pub async fn handle_connect(socket: Socket, _env: Env, _ctx: ExecutionContext) -> Result<()> {
+#[event(connect)]
+async fn handle_connect(socket: Socket, _env: Env, _ctx: ExecutionContext) -> Result<()> {
     let protocol = js_sys::Reflect::get(&socket, &"protocol".into())?;
     if protocol.as_string().as_deref() == Some("udp") {
         handle_udp(socket).await
