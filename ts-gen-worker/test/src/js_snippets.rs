@@ -2,7 +2,6 @@ use crate::Env;
 use ts_gen_worker::*;
 use wasm_bindgen::prelude::*;
 
-use crate::util::ok;
 use crate::SomeSharedData;
 
 #[wasm_bindgen(inline_js = "export function js_performance_now() { return performance.now(); }")]
@@ -25,15 +24,15 @@ extern "C" {
 }
 
 pub async fn performance_now(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
-    ok(format!("now: {}", js_performance_now()))
+    Response::builder().ok(format!("now: {}", js_performance_now()))
 }
 
 pub async fn console_log(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     js_console_log("test".to_owned());
-    ok("OK")
+    Response::builder().ok("OK")
 }
 
 pub fn throw_js_error(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     js_throw_error();
-    ok("This should never be reached")
+    Response::builder().ok("This should never be reached")
 }

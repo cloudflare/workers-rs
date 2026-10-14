@@ -1,5 +1,5 @@
 use super::ApiData;
-use crate::util::{error, from_bytes, from_json, ok, path, sleep, text, url};
+use crate::util::{sleep, text};
 use crate::Env;
 use crate::SomeSharedData;
 use js_sys::Uint8Array;
@@ -25,9 +25,9 @@ fn cf_summary(req: &Request) -> (String, String) {
 
 pub fn handle_a_request(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     let (located, within) = cf_summary(&req);
-    ok(format!(
+    Response::builder().ok(format!(
         "req at: {}, located at: {located}, within: {within}",
-        path(&req)?
+        req.path()
     ))
 }
 
@@ -37,29 +37,29 @@ pub async fn handle_async_request(
     _data: SomeSharedData,
 ) -> Result<Response> {
     let (located, within) = cf_summary(&req);
-    ok(format!(
+    Response::builder().ok(format!(
         "[async] req at: {}, located at: {located}, within: {within}",
-        path(&req)?
+        req.path()
     ))
 }
 
 pub async fn handle_test_data(_req: Request, _env: Env, data: SomeSharedData) -> Result<Response> {
     if data.regex.is_match("2014-01-01") {
-        ok("data ok")
+        Response::builder().ok("data ok")
     } else {
-        error("bad match", 500)
+        Response::builder().error("bad match", 500)
     }
 }
 
 pub async fn handle_xor(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
-    let url = url(&req)?;
+    let url = req.url_parsed()?;
     let num: u8 = match url.path_segments().unwrap().nth(1).unwrap().parse() {
         Ok(num) => num,
-        Err(_) => return error("invalid byte", 400),
+        Err(_) => return Response::builder().error("invalid byte", 400),
     };
 
     let Some(body) = req.body() else {
-        return error("missing body", 400);
+        return Response::builder().error("missing body", 400);
     };
     let transform = TransformStream::new()?;
     let writer = transform.writable().get_writer()?;
@@ -105,7 +105,7 @@ pub async fn handle_post_file_size(
     _data: SomeSharedData,
 ) -> Result<Response> {
     let bytes = req.bytes().await?;
-    ok(format!("size = {}", bytes.length()))
+    Response::builder().ok(format!("size = {}", bytes.length()))
 }
 
 pub async fn handle_async_text_echo(
@@ -113,15 +113,15 @@ pub async fn handle_async_text_echo(
     _env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    ok(text(&req).await?)
+    Response::builder().ok(text(&req).await?)
 }
 
 pub async fn handle_secret(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
-    ok(env.some_secret())
+    Response::builder().ok(env.some_secret())
 }
 
 pub async fn handle_var(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
-    ok(env.some_variable())
+    Response::builder().ok(env.some_variable())
 }
 
 pub async fn handle_object_var(_req: Request, env: Env, _: SomeSharedData) -> Result<Response> {
@@ -132,11 +132,11 @@ pub async fn handle_object_var(_req: Request, env: Env, _: SomeSharedData) -> Re
     }
     let obj: Obj = serde_wasm_bindgen::from_value(env.some_object_variable().into())
         .map_err(|e| e.to_string())?;
-    from_json(&obj)
+    Response::builder().from_json(&obj)
 }
 
 pub async fn handle_bytes(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
-    from_bytes(&[1, 2, 3, 4, 5, 6, 7])
+    Response::builder().from_bytes([1, 2, 3, 4, 5, 6, 7])
 }
 
 pub async fn handle_api_data(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
@@ -144,7 +144,7 @@ pub async fn handle_api_data(req: Request, _env: Env, _data: SomeSharedData) -> 
     let mut todo: ApiData = match serde_json::from_slice(&data) {
         Ok(todo) => todo,
         Err(e) => {
-            return ok(e.to_string());
+            return Response::builder().ok(e.to_string());
         }
     };
 
@@ -152,7 +152,7 @@ pub async fn handle_api_data(req: Request, _env: Env, _data: SomeSharedData) -> 
 
     console::log(&[format!("todo = (title {}) (id {})", todo.title, todo.user_id).into()]);
 
-    from_bytes(&serde_json::to_vec(&todo).map_err(|e| e.to_string())?)
+    Response::builder().from_bytes(&serde_json::to_vec(&todo).map_err(|e| e.to_string())?)
 }
 
 pub async fn handle_nonsense_repeat(
@@ -161,14 +161,14 @@ pub async fn handle_nonsense_repeat(
     data: SomeSharedData,
 ) -> Result<Response> {
     if data.regex.is_match("2014-01-01") {
-        ok("data ok")
+        Response::builder().ok("data ok")
     } else {
-        error("bad match", 500)
+        Response::builder().error("bad match", 500)
     }
 }
 
 pub async fn handle_status(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
-    let uri = url(&req)?;
+    let uri = req.url_parsed()?;
     let mut segments = uri.path_segments().unwrap();
     let code = segments.nth(1);
     if let Some(code) = code {
@@ -177,11 +177,11 @@ pub async fn handle_status(req: Request, _env: Env, _data: SomeSharedData) -> Re
                 "You set the status code!",
                 &ResponseInit::builder().status(f64::from(status)).build(),
             )?),
-            Err(_e) => error("Failed to parse your status code.", 400),
+            Err(_e) => Response::builder().error("Failed to parse your status code.", 400),
         };
     }
 
-    error("Bad Request", 400)
+    Response::builder().error("Bad Request", 400)
 }
 
 pub async fn handle_redirect_default(
@@ -205,7 +205,7 @@ pub async fn handle_redirect_307(
 
 pub async fn handle_now(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     let js_date = js_sys::Date::new_0();
-    ok(String::from(js_date.to_string()))
+    Response::builder().ok(String::from(js_date.to_string()))
 }
 
 pub async fn handle_cloned(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
@@ -215,7 +215,7 @@ pub async fn handle_cloned(_req: Request, _env: Env, _data: SomeSharedData) -> R
     let left = resp.text().await?;
     let right = resp1.text().await?;
 
-    ok((left == right).to_string())
+    Response::builder().ok((left == right).to_string())
 }
 
 pub async fn handle_cloned_stream(
@@ -242,7 +242,7 @@ pub async fn handle_cloned_stream(
     let left = resp.text().await?;
     let right = resp1.text().await?;
 
-    ok((left == right).to_string())
+    Response::builder().ok((left == right).to_string())
 }
 
 pub async fn handle_custom_response_body(
@@ -250,19 +250,19 @@ pub async fn handle_custom_response_body(
     _env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    from_bytes(b"hello")
+    Response::builder().from_bytes(b"hello")
 }
 
 pub async fn handle_wait_delay(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
-    let uri = url(&req)?;
+    let uri = req.url_parsed()?;
     let mut segments = uri.path_segments().unwrap();
     let delay = segments.nth(1);
     let delay: f64 = match delay.unwrap().parse::<u64>() {
         Ok(delay) => delay as f64,
-        Err(_) => return error("invalid delay", 400),
+        Err(_) => return Response::builder().error("invalid delay", 400),
     };
 
     sleep(delay).await;
 
-    ok("Waited!\n")
+    Response::builder().ok("Waited!\n")
 }

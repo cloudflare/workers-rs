@@ -1,5 +1,4 @@
 use super::SomeSharedData;
-use crate::util::{from_json, url};
 use crate::Env;
 use std::collections::HashMap;
 use ts_gen_worker::*;
@@ -20,7 +19,7 @@ pub async fn handle_rate_limit_check(
 
     let success = limit(&rate_limiter, "test-key").await?;
 
-    from_json(&serde_json::json!({
+    Response::builder().from_json(&serde_json::json!({
         "success": success,
     }))
 }
@@ -30,14 +29,14 @@ pub async fn handle_rate_limit_with_key(
     env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    let uri = url(&req)?;
+    let uri = req.url_parsed()?;
     let segments = uri.path_segments().unwrap().collect::<Vec<_>>();
     let key = segments.get(2).unwrap_or(&"default-key");
 
     let rate_limiter = env.test_rate_limiter();
     let success = limit(&rate_limiter, key).await?;
 
-    from_json(&serde_json::json!({
+    Response::builder().from_json(&serde_json::json!({
         "success": success,
         "key": key,
     }))
@@ -61,7 +60,7 @@ pub async fn handle_rate_limit_bulk_test(
         }));
     }
 
-    from_json(&serde_json::json!({
+    Response::builder().from_json(&serde_json::json!({
         "results": results,
     }))
 }
@@ -81,5 +80,5 @@ pub async fn handle_rate_limit_reset(
         outcomes.insert(format!("request_{}", i + 1), success);
     }
 
-    from_json(&outcomes)
+    Response::builder().from_json(&outcomes)
 }

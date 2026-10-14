@@ -2,7 +2,6 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::{SomeSharedData, GLOBAL_QUEUE_STATE};
-use crate::util::{error, from_json, ok, url};
 use crate::Env;
 use ts_gen_worker::*;
 
@@ -30,14 +29,14 @@ pub async fn queue(message_batch: MessageBatch, _env: Env, _ctx: ExecutionContex
 }
 
 pub async fn handle_queue_send(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
-    let uri = url(&req)?;
+    let uri = req.url_parsed()?;
     let mut segments = uri.path_segments().unwrap();
     let Some(id) = segments
         .nth(2)
         .map(|id| Uuid::try_parse(id).ok())
         .and_then(|u| u)
     else {
-        return error("Failed to parse id, expected a UUID", 400);
+        return Response::builder().error("Failed to parse id, expected a UUID", 400);
     };
 
     let my_queue = env.my_queue();
@@ -47,8 +46,10 @@ pub async fn handle_queue_send(req: Request, env: Env, _data: SomeSharedData) ->
     })
     .map_err(|e| e.to_string())?;
     match my_queue.send(&body).await {
-        Ok(_) => ok("Message sent"),
-        Err(err) => error(format!("Failed to send message to queue: {err:?}"), 500),
+        Ok(_) => Response::builder().ok("Message sent"),
+        Err(err) => {
+            Response::builder().error(format!("Failed to send message to queue: {err:?}"), 500)
+        }
     }
 }
 
@@ -56,7 +57,8 @@ pub async fn handle_batch_send(req: Request, env: Env, _: SomeSharedData) -> Res
     let messages: Vec<QueueBody> = match req.json_into().await {
         Ok(messages) => messages,
         Err(err) => {
-            return error(format!("Failed to parse request body: {err:?}"), 400);
+            return Response::builder()
+                .error(format!("Failed to parse request body: {err:?}"), 400);
         }
     };
 
@@ -69,8 +71,8 @@ pub async fn handle_batch_send(req: Request, env: Env, _: SomeSharedData) -> Res
     }
 
     match my_queue.send_batch(&batch).await {
-        Ok(_) => ok("Message sent"),
-        Err(err) => error(
+        Ok(_) => Response::builder().ok("Message sent"),
+        Err(err) => Response::builder().error(
             format!("Failed to batch send message to queue: {err:?}"),
             500,
         ),
@@ -80,5 +82,5 @@ pub async fn handle_batch_send(req: Request, env: Env, _: SomeSharedData) -> Res
 pub async fn handle_queue(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     let guard = GLOBAL_QUEUE_STATE.lock().unwrap();
     let messages: Vec<QueueBody> = guard.clone();
-    from_json(&messages)
+    Response::builder().from_json(&messages)
 }

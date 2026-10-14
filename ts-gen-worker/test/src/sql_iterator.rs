@@ -3,7 +3,6 @@ use serde::Deserialize;
 use ts_gen_worker::*;
 
 use crate::sql::{self, SqlStorageValue};
-use crate::util::{ok, url};
 
 /// A Durable Object that demonstrates SQL cursor iterator methods.
 #[durable_object]
@@ -132,7 +131,7 @@ impl DurableObject for SqlIterator {
     }
 
     async fn fetch(&self, req: Request) -> Result<Response> {
-        let url = url(&req)?;
+        let url = req.url_parsed()?;
         let path = url.path();
 
         match path {
@@ -142,7 +141,7 @@ impl DurableObject for SqlIterator {
             "/blob-next" => self.handle_blob_next(),
             "/blob-raw" => self.handle_blob_raw(),
             "/blob-roundtrip" => self.handle_blob_roundtrip(),
-            _ => ok("SQL Iterator Test - try /next, /raw, /next-invalid, /blob-next, /blob-raw, or /blob-roundtrip endpoints"),
+            _ => Response::builder().ok("SQL Iterator Test - try /next, /raw, /next-invalid, /blob-next, /blob-raw, or /blob-roundtrip endpoints"),
         }
     }
 }
@@ -172,7 +171,7 @@ impl SqlIterator {
 
         let response_body = format!("next() iterator results:\n{}", results.join("\n"));
 
-        ok(response_body)
+        Response::builder().ok(response_body)
     }
 
     fn handle_raw(&self) -> Result<Response> {
@@ -195,7 +194,7 @@ impl SqlIterator {
 
         let response_body = format!("raw() iterator results:\n{}", results.join("\n"));
 
-        ok(response_body)
+        Response::builder().ok(response_body)
     }
 
     fn handle_next_invalid(&self) -> Result<Response> {
@@ -222,7 +221,7 @@ impl SqlIterator {
 
         let response_body = format!("next-invalid() iterator results:\n{}", results.join("\n"));
 
-        ok(response_body)
+        Response::builder().ok(response_body)
     }
 
     fn handle_blob_next(&self) -> Result<Response> {
@@ -260,7 +259,7 @@ impl SqlIterator {
 
         let response_body = format!("blob-next() iterator results:\n{}", results.join("\n"));
 
-        ok(response_body)
+        Response::builder().ok(response_body)
     }
 
     fn handle_blob_raw(&self) -> Result<Response> {
@@ -304,7 +303,7 @@ impl SqlIterator {
 
         let response_body = format!("blob-raw() iterator results:\n{}", results.join("\n"));
 
-        ok(response_body)
+        Response::builder().ok(response_body)
     }
 
     fn handle_blob_roundtrip(&self) -> Result<Response> {
@@ -377,7 +376,7 @@ impl SqlIterator {
 
         let response_body = format!("blob-roundtrip test results:\n{}", results.join("\n"));
 
-        ok(response_body)
+        Response::builder().ok(response_body)
     }
 }
 
@@ -387,7 +386,7 @@ pub async fn handle_sql_iterator(
     env: Env,
     _data: super::SomeSharedData,
 ) -> Result<Response> {
-    let uri = url(&req)?;
+    let uri = req.url_parsed()?;
     let mut segments = uri.path_segments().unwrap();
     let _ = segments.next();
 

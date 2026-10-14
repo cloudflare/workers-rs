@@ -1,4 +1,3 @@
-use crate::util::{error, from_json, url};
 use crate::{Env, SomeSharedData};
 use js_sys::Uint8Array;
 use ts_gen_worker::*;
@@ -104,7 +103,7 @@ fn build_structured(name: &str) -> Option<SendEmailBuilder> {
 }
 
 pub async fn handle_send_email(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
-    let url = url(&req)?;
+    let url = req.url_parsed()?;
     let name = url
         .query_pairs()
         .find_map(|(k, v)| (k == "scenario").then(|| v.into_owned()))
@@ -124,7 +123,7 @@ pub async fn handle_send_email(req: Request, env: Env, _data: SomeSharedData) ->
         return respond(dispatch_structured(&sender, builder).await);
     }
 
-    error(format!("unknown scenario: {name}"), 400)
+    Response::builder().error(format!("unknown scenario: {name}"), 400)
 }
 
 async fn dispatch_mime(sender: &SendEmail, scenario: &MimeScenario) -> Result<String> {
@@ -164,7 +163,7 @@ async fn dispatch_structured(sender: &SendEmail, builder: SendEmailBuilder) -> R
 }
 
 fn respond(result: Result<String>) -> Result<Response> {
-    from_json(&serde_json::json!({
+    Response::builder().from_json(&serde_json::json!({
         "ok": result.is_ok(),
         "messageId": result.as_ref().ok(),
         "error": result.err().map(|e| e.to_string()),

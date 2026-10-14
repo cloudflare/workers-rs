@@ -1,4 +1,4 @@
-use crate::util::{from_bytes, ok, text};
+use crate::util::text;
 use crate::{Env, SomeSharedData};
 use js_sys::{Object, Reflect, Uint8Array};
 use serde::de::DeserializeOwned;
@@ -140,7 +140,7 @@ pub async fn prepared_statement(
     assert_eq!(person.name, "Dorian Fischer");
     assert_eq!(person.age, 19);
 
-    ok("ok")
+    Response::builder().ok("ok")
 }
 
 pub async fn batch(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
@@ -164,7 +164,7 @@ pub async fn batch(_req: Request, env: Env, _data: SomeSharedData) -> Result<Res
     assert_eq!(second_results[0].id, 5);
     assert_eq!(second_results[1].id, 6);
 
-    ok("ok")
+    Response::builder().ok("ok")
 }
 
 pub async fn session_prepare_and_batch(
@@ -205,7 +205,7 @@ pub async fn session_prepare_and_batch(
     assert_eq!(second_results.len(), 1);
     assert_eq!(second_results[0].id, 6);
 
-    ok("ok")
+    Response::builder().ok("ok")
 }
 
 pub async fn session_bookmark_roundtrip(
@@ -247,20 +247,20 @@ pub async fn session_bookmark_roundtrip(
         assert_eq!(person.name, "John Smith");
     }
 
-    ok("ok")
+    Response::builder().ok("ok")
 }
 
 pub async fn exec(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let db = env.db();
     let result = db.exec(&text(&req).await?).await.expect("doesn't exist");
 
-    ok((result.count() as u64).to_string())
+    Response::builder().ok((result.count() as u64).to_string())
 }
 
 pub async fn dump(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let db = env.db();
     let bytes = Uint8Array::new(&db.dump().await?.into()).to_vec();
-    from_bytes(&bytes)
+    Response::builder().from_bytes(&bytes)
 }
 
 pub async fn error(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
@@ -275,7 +275,7 @@ pub async fn error(_req: Request, env: Env, _data: SomeSharedData) -> Result<Res
         "Error in line 1: THIS IS NOT VALID SQL: near \"THIS\": syntax error at offset 0: SQLITE_ERROR"
     );
 
-    ok("")
+    Response::builder().ok("")
 }
 
 #[derive(Debug, Deserialize)]
@@ -292,7 +292,7 @@ pub async fn jsvalue_null_is_null(
 ) -> Result<Response> {
     assert!(JsValue::NULL.is_null());
 
-    ok("ok")
+    Response::builder().ok("ok")
 }
 
 pub async fn serialize_optional_none(
@@ -306,7 +306,7 @@ pub async fn serialize_optional_none(
     let js_none = ::serde::ser::Serialize::serialize(&none, &serializer).unwrap();
     assert!(js_none.is_null());
 
-    ok("ok")
+    Response::builder().ok("ok")
 }
 
 pub async fn serialize_optional_some(
@@ -320,7 +320,7 @@ pub async fn serialize_optional_some(
     let js_some = ::serde::ser::Serialize::serialize(&some, &serializer).unwrap();
     assert!(js_some.is_string());
 
-    ok("ok")
+    Response::builder().ok("ok")
 }
 
 pub async fn deserialize_optional_none(
@@ -341,7 +341,7 @@ pub async fn deserialize_optional_none(
     assert_eq!(value.name, None);
     assert_eq!(value.age, None);
 
-    ok("ok")
+    Response::builder().ok("ok")
 }
 
 pub async fn insert_and_retrieve_optional_none(
@@ -368,7 +368,7 @@ pub async fn insert_and_retrieve_optional_none(
     assert_eq!(person.name, None);
     assert_eq!(person.age, None);
 
-    ok("ok")
+    Response::builder().ok("ok")
 }
 
 pub async fn insert_and_retrieve_optional_some(
@@ -394,7 +394,7 @@ pub async fn insert_and_retrieve_optional_some(
     assert_eq!(person.name, Some("Dude".to_string()));
     assert_eq!(person.age, Some(12));
 
-    ok("ok")
+    Response::builder().ok("ok")
 }
 
 pub async fn retrieve_optional_none(
@@ -410,7 +410,7 @@ pub async fn retrieve_optional_none(
     assert_eq!(person.name, None);
     assert_eq!(person.age, None);
 
-    ok("ok")
+    Response::builder().ok("ok")
 }
 
 pub async fn retrieve_optional_some(
@@ -426,7 +426,7 @@ pub async fn retrieve_optional_some(
     assert_eq!(person.name, Some("Wynne Ogley".to_string()));
     assert_eq!(person.age, Some(67));
 
-    ok("ok")
+    Response::builder().ok("ok")
 }
 
 pub async fn retrive_first_none(
@@ -439,7 +439,7 @@ pub async fn retrive_first_none(
     let stmt = query::<()>(&db, "SELECT * FROM nullable_people WHERE id = 9999", &[])?;
     assert!(first::<NullablePerson>(&stmt, None).await?.is_none());
 
-    ok("ok")
+    Response::builder().ok("ok")
 }
 
 pub async fn deserialize_with_type_mismatch(
@@ -461,5 +461,5 @@ pub async fn deserialize_with_type_mismatch(
         panic!("Expected .results() to propagate its error");
     }
 
-    ok("ok")
+    Response::builder().ok("ok")
 }

@@ -1,5 +1,4 @@
 use super::SomeSharedData;
-use crate::util::ok;
 use crate::Env;
 use js_sys::Uint8Array;
 use ts_gen_worker::*;
@@ -33,5 +32,5 @@ pub async fn handle_analytics_event(
             .build(),
     )?;
 
-    ok("Events sent")
+    Response::builder().ok("Events sent")
 }

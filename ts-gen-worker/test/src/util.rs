@@ -2,50 +2,11 @@
 //! not provide. Each helper mirrors a `worker` API and is a parity gap; see
 //! `parity/test-port.md`.
 
-use js_sys::{Function, Null, Promise, Uint8Array};
+use js_sys::{Function, Promise};
 use serde::Serialize;
 use ts_gen_worker::*;
-use url::Url;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
-
-/// `worker::Request::url()`.
-pub fn url(req: &Request) -> Result<Url> {
-    Ok(Url::parse(&req.url()).map_err(|e| e.to_string())?)
-}
-
-/// `worker::Request::path()`.
-pub fn path(req: &Request) -> Result<String> {
-    Ok(url(req)?.path().to_string())
-}
-
-/// `worker::Response::ok`.
-pub fn ok(body: impl AsRef<str>) -> Result<Response> {
-    Ok(Response::new_with_str(body.as_ref())?)
-}
-
-/// `worker::Response::error`.
-pub fn error(msg: impl AsRef<str>, status: u16) -> Result<Response> {
-    Ok(Response::new_with_str_and_init(
-        msg.as_ref(),
-        &ResponseInit::builder().status(f64::from(status)).build(),
-    )?)
-}
-
-/// `worker::Response::from_json`.
-pub fn from_json<T: Serialize + ?Sized>(value: &T) -> Result<Response> {
-    let headers = Headers::new()?;
-    headers.set("content-type", "application/json")?;
-    Ok(Response::new_with_str_and_init(
-        &serde_json::to_string(value).map_err(|e| e.to_string())?,
-        &ResponseInit::builder().headers(&headers).build(),
-    )?)
-}
-
-/// `worker::Response::from_bytes`.
-pub fn from_bytes(bytes: &[u8]) -> Result<Response> {
-    Ok(Response::new_with_typed_array(&Uint8Array::from(bytes))?)
-}
 
 /// `worker::Delay`.
 pub async fn sleep(ms: f64) {
@@ -63,17 +24,6 @@ pub async fn text(req: &Request) -> Result<String> {
 /// `worker::Response::text()` as an owned `String`.
 pub async fn response_text(res: &Response) -> Result<String> {
     Ok(res.text().await?.into())
-}
-
-/// `worker::Response::from_websocket`.
-pub fn from_websocket(websocket: &WebSocket) -> Result<Response> {
-    Ok(Response::new_with_null_and_init(
-        &Null::NULL,
-        &ResponseInit::builder()
-            .status(101.0)
-            .web_socket(websocket)
-            .build(),
-    )?)
 }
 
 /// `worker::WebsocketEvent`: `WebSocket::events()` is a stream over these.

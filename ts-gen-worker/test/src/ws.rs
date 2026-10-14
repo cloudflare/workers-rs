@@ -1,7 +1,5 @@
 use super::SomeSharedData;
-use crate::util::{
-    error, from_websocket, message_text, ok, on_websocket_events, websocket_events, WebsocketEvent,
-};
+use crate::util::{message_text, on_websocket_events, websocket_events, WebsocketEvent};
 use crate::Env;
 use futures_util::StreamExt;
 use ts_gen_worker::*;
@@ -33,7 +31,10 @@ pub async fn handle_websocket(_req: Request, env: Env, _data: SomeSharedData) ->
         })?;
     }
 
-    from_websocket(&client)
+    Response::builder()
+        .status(101.0)
+        .web_socket(&client)
+        .empty()
 }
 
 /// `worker::WebSocket::connect`: an upgrade fetch whose response carries the socket.
@@ -68,10 +69,10 @@ pub async fn handle_websocket_client(
     while let Some(event) = event_stream.next().await {
         if let WebsocketEvent::Message(msg) = event {
             if let Some(text) = message_text(&msg) {
-                return ok(text);
+                return Response::builder().ok(text);
             }
         }
     }
 
-    error("never got a message echoed back :(", 500)
+    Response::builder().error("never got a message echoed back :(", 500)
 }

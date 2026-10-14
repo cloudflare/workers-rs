@@ -1,4 +1,3 @@
-use crate::util::url;
 use crate::Env;
 use ts_gen_worker::*;
 
@@ -7,7 +6,7 @@ pub async fn handle_asset(
     env: Env,
     _data: crate::SomeSharedData,
 ) -> Result<Response> {
-    let url = url(&req)?;
+    let url = req.url_parsed()?;
     let name: String = url.path_segments().unwrap().nth(1).unwrap().to_string();
     let url: String = ["https://dummyurl.com/", &name].concat();
 

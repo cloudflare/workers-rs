@@ -1,5 +1,4 @@
 use super::SomeSharedData;
-use crate::util::{error, ok, url};
 use crate::Env;
 use serde::{Deserialize, Serialize};
 use ts_gen_worker::*;
@@ -22,7 +21,7 @@ pub async fn handle_post_key_value(
     env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    let uri = url(&req)?;
+    let uri = req.url_parsed()?;
     let mut segments = uri.path_segments().unwrap();
     let key = segments.nth(1);
     let value = segments.next();
@@ -44,8 +43,8 @@ pub async fn get(_req: Request, env: Env, _data: SomeSharedData) -> Result<Respo
     let store = test_store(&env).await;
     let value = store.get("simple").await?.into_option();
     match value {
-        Some(e) => ok(String::from(e)),
-        None => error("not found", 404),
+        Some(e) => Response::builder().ok(String::from(e)),
+        None => Response::builder().error("not found", 404),
     }
 }
 
@@ -53,8 +52,8 @@ pub async fn get_not_found(_req: Request, env: Env, _data: SomeSharedData) -> Re
     let store = test_store(&env).await;
     let value = store.get("not_found").await?.into_option();
     match value {
-        Some(_) => error("unexpected value present", 500),
-        None => ok("passed"),
+        Some(_) => Response::builder().error("unexpected value present", 500),
+        None => Response::builder().ok("passed"),
     }
 }
 
@@ -64,7 +63,7 @@ pub async fn list_keys(_req: Request, env: Env, _data: SomeSharedData) -> Result
 
     kv_assert_eq!(list_res.keys().len(), 1)?;
 
-    ok("passed")
+    Response::builder().ok("passed")
 }
 
 pub async fn put_simple(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
@@ -74,7 +73,7 @@ pub async fn put_simple(_req: Request, env: Env, _data: SomeSharedData) -> Resul
     let val = String::from(store.get("put_a").await?.unwrap());
     kv_assert_eq!(val, "test")?;
 
-    ok("passed")
+    Response::builder().ok("passed")
 }
 
 pub async fn put_metadata(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
@@ -93,7 +92,7 @@ pub async fn put_metadata(_req: Request, env: Env, _data: SomeSharedData) -> Res
     kv_assert_eq!(result.value().unwrap(), "test")?;
     kv_assert_eq!(result.metadata().as_f64().unwrap() as usize, 100)?;
 
-    ok("passed")
+    Response::builder().ok("passed")
 }
 
 pub async fn put_expiration(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
@@ -122,7 +121,7 @@ pub async fn put_expiration(_req: Request, env: Env, _data: SomeSharedData) -> R
         .unwrap();
     kv_assert_eq!(key.expiration().map(|e| e as u64), Some(EXPIRATION))?;
 
-    ok("passed")
+    Response::builder().ok("passed")
 }
 
 pub async fn put_metadata_struct(
@@ -156,7 +155,7 @@ pub async fn put_metadata_struct(
     kv_assert_eq!(result.value().unwrap(), "test")?;
     kv_assert_eq!(meta, put_meta)?;
 
-    ok("passed")
+    Response::builder().ok("passed")
 }
 
 async fn get_bulk_text(store: &KVNamespace, keys: &[&str]) -> Result<js_sys::Map> {
@@ -180,7 +179,7 @@ pub async fn get_bulk(_req: Request, env: Env, _data: SomeSharedData) -> Result<
     )?;
     kv_assert_eq!(values.get(&"bulk_missing".into()).as_string(), None)?;
 
-    ok("passed")
+    Response::builder().ok("passed")
 }
 
 pub async fn get_bulk_empty(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
@@ -188,7 +187,7 @@ pub async fn get_bulk_empty(_req: Request, env: Env, _data: SomeSharedData) -> R
     let values = get_bulk_text(&store, &[]).await?;
     kv_assert_eq!(values.size(), 0)?;
 
-    ok("passed")
+    Response::builder().ok("passed")
 }
 
 pub async fn get_bulk_limit(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
@@ -197,7 +196,7 @@ pub async fn get_bulk_limit(_req: Request, env: Env, _data: SomeSharedData) -> R
     let key_refs: Vec<&str> = keys.iter().map(|s| s.as_str()).collect();
 
     match get_bulk_text(&store, &key_refs).await {
-        Err(_) => ok("passed"),
-        Ok(_) => error("expected error for >100 keys", 500),
+        Err(_) => Response::builder().ok("passed"),
+        Ok(_) => Response::builder().error("expected error for >100 keys", 500),
     }
 }

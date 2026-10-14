@@ -3,7 +3,7 @@ use js_sys::Uint8Array;
 use ts_gen_worker::*;
 use wasm_bindgen::prelude::*;
 
-use crate::util::{ok, storage_get};
+use crate::util::storage_get;
 use crate::SomeSharedData;
 
 #[durable_object]
@@ -60,7 +60,7 @@ impl DurableObject for PutRawTestObject {
         self.put_raw().await?;
         self.put_multiple_raw().await?;
 
-        ok("ok")
+        Response::builder().ok("ok")
     }
 }
 

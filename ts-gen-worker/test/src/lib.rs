@@ -41,8 +41,6 @@ mod user;
 mod util;
 mod ws;
 
-use util::{ok, path, url};
-
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ApiData {
@@ -90,7 +88,7 @@ fn text(body: &str, status: f64, content_type: &str) -> Result<Response> {
 async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response> {
     let data = SomeSharedData { regex: &DATA_REGEX };
     let method = req.method();
-    let url = url(&req)?;
+    let url = req.url_parsed()?;
     let segments: Vec<&str> = url
         .path_segments()
         .map(|s| s.filter(|s| !s.is_empty()).collect())
@@ -435,11 +433,11 @@ async fn handle_close_event(_req: Request, env: Env, _data: SomeSharedData) -> R
         .into_option()
         .map_or_else(|| "false".into(), String::from);
 
-    ok(got_close_event)
+    Response::builder().ok(got_close_event)
 }
 
 async fn catchall(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
-    let path = path(&req)?;
+    let path = req.path();
     console::log(&[format!("[or_else_any_method_async] caught: {}", path).into()]);
 
     let upstream = fetch_with_str("https://github.com/404").await?;
@@ -459,13 +457,13 @@ async fn handle_options_catchall(
     _env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    ok(path(&req)?)
+    Response::builder().ok(req.path())
 }
 
 async fn handle_init_called(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     let init_called = GLOBAL_STATE.load(Ordering::SeqCst);
     let second_init_called = GLOBAL_SECOND_START.load(Ordering::SeqCst);
-    ok((init_called && second_init_called).to_string())
+    Response::builder().ok((init_called && second_init_called).to_string())
 }
 
 fn handle_test_panic(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {

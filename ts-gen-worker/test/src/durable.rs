@@ -1,6 +1,4 @@
-use crate::util::{
-    block_concurrency_while, error, ok, path, response_text, sleep, storage_get, storage_put,
-};
+use crate::util::{block_concurrency_while, response_text, sleep, storage_get, storage_put};
 use crate::Env;
 use js_sys::Uint8Array;
 use serde::Serialize;
@@ -50,21 +48,21 @@ impl DurableObject for MyClass {
 
     async fn fetch(&self, req: Request) -> Result<Response> {
         let handler = async move {
-            match path(&req)?.as_str() {
+            match req.path().as_str() {
                 "/hello" => {
                     let name = self
                         .state
                         .id()
                         .name()
                         .unwrap_or_else(|| "unknown".to_string());
-                    ok(format!("Hello from {name}!"))
+                    Response::builder().ok(format!("Hello from {name}!"))
                 }
                 "/ctor-name" => {
                     let name = self
                         .ctor_name
                         .clone()
                         .unwrap_or_else(|| "unknown".to_string());
-                    ok(format!("Hello from {name}!"))
+                    Response::builder().ok(format!("Hello from {name}!"))
                 }
                 "/storage" => {
                     let storage = self.state.storage();
@@ -193,10 +191,12 @@ impl DurableObject for MyClass {
 
                     let count = self.number.get();
                     storage_put(&storage, "count", count).await?;
-                    ok(self.number.get().to_string())
+                    Response::builder().ok(self.number.get().to_string())
                 }
-                "/transaction" => error("transactional storage API is still unstable", 501),
-                "/limit" => ok(format!(
+                "/transaction" => {
+                    Response::builder().error("transactional storage API is still unstable", 501)
+                }
+                "/limit" => Response::builder().ok(format!(
                     "limit:{}:{}",
                     self.limit.get(),
                     self.init_runs.get()
@@ -210,7 +210,7 @@ impl DurableObject for MyClass {
                         Ok(next)
                     })
                     .await?;
-                    ok(count.to_string())
+                    Response::builder().ok(count.to_string())
                 }
                 "/block-concurrency-errors-as-values" => {
                     self.number.set(self.number.get() + 1);
@@ -226,25 +226,27 @@ impl DurableObject for MyClass {
                         .await?;
 
                     match outcome {
-                        Ok(value) => ok(format!("ok:{value}:{calls}")),
-                        Err(err) => ok(format!("err:{err}:{calls}")),
+                        Ok(value) => Response::builder().ok(format!("ok:{value}:{calls}")),
+                        Err(err) => Response::builder().ok(format!("err:{err}:{calls}")),
                     }
                 }
                 "/block-concurrency-reset-count" => {
                     self.number.set(self.number.get() + 1);
-                    ok(self.number.get().to_string())
+                    Response::builder().ok(self.number.get().to_string())
                 }
                 "/block-concurrency-reset-trigger" => {
                     block_concurrency_while(&self.state, async move {
                         Err::<(), _>("intentional reset".into())
                     })
                     .await?;
-                    ok("unreachable")
+                    Response::builder().ok("unreachable")
                 }
-                _ => error("Not Found", 404),
+                _ => Response::builder().error("Not Found", 404),
             }
         };
-        handler.await.or_else(|e: Error| error(e.to_string(), 500))
+        handler
+            .await
+            .or_else(|e: Error| Response::builder().error(e.to_string(), 500))
     }
 }
 
@@ -267,7 +269,7 @@ impl DurableObject for AnotherClass {
 
     async fn fetch(&self, _req: Request) -> Result<Response> {
         self.counter.set(self.counter.get() + 1);
-        ok(format!("Counter: {}", self.counter.get()))
+        Response::builder().ok(format!("Counter: {}", self.counter.get()))
     }
 }
 
@@ -370,7 +372,7 @@ pub async fn handle_basic_test(
         "Durable object responded wrong to 'transaction'"
     );
 
-    ok("ok")
+    Response::builder().ok("ok")
 }
 
 pub async fn handle_block_concurrency(

@@ -1,5 +1,5 @@
 use super::SomeSharedData;
-use crate::util::{error, ok, sleep, url};
+use crate::util::sleep;
 use crate::Env;
 use js_sys::Uint8Array;
 use ts_gen_worker::*;
@@ -7,7 +7,7 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
 fn key(req: &Request) -> Result<Option<String>> {
-    let uri = url(req)?;
+    let uri = req.url_parsed()?;
     let mut segments = uri.path_segments().unwrap();
     Ok(segments.nth(2).map(ToOwned::to_owned))
 }
@@ -65,9 +65,9 @@ pub async fn handle_cache_api_get(
         {
             return Ok(resp);
         }
-        return ok("cache miss");
+        return Response::builder().ok("cache miss");
     }
-    error("key missing", 400)
+    Response::builder().error("key missing", 400)
 }
 
 pub async fn handle_cache_api_put(
@@ -83,7 +83,7 @@ pub async fn handle_cache_api_put(
             .await?;
         return Ok(resp);
     }
-    error("key missing", 400)
+    Response::builder().error("key missing", 400)
 }
 
 pub async fn handle_cache_api_delete(
@@ -104,9 +104,9 @@ pub async fn handle_cache_api_delete(
         } else {
             "ResponseNotFound"
         };
-        return ok(serde_json::to_string(outcome).unwrap());
+        return Response::builder().ok(serde_json::to_string(outcome).unwrap());
     }
-    error("key missing", 400)
+    Response::builder().error("key missing", 400)
 }
 
 pub async fn handle_cache_stream(

@@ -1,4 +1,3 @@
-use crate::util::ok;
 use crate::Env;
 use crate::SomeSharedData;
 use js_sys::Uint8Array;
@@ -83,7 +82,7 @@ pub async fn handle_socket_failed(
 
     match JsFuture::from(socket.opened()).await {
         Ok(_) => Err("Socket should have failed to open.".into()),
-        Err(e) => ok(format!("{e:?}")),
+        Err(e) => Response::builder().ok(format!("{e:?}")),
     }
 }
 
@@ -111,5 +110,5 @@ pub async fn handle_socket_read(
 
     JsFuture::from(socket.closed()).await?;
 
-    ok("success")
+    Response::builder().ok("success")
 }

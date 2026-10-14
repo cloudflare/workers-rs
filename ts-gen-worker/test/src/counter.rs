@@ -2,10 +2,7 @@ use crate::Env;
 use std::cell::Cell;
 use ts_gen_worker::*;
 
-use crate::util::{
-    from_websocket, message_text, ok, on_websocket_events, path, storage_get, storage_put,
-    WebsocketEvent,
-};
+use crate::util::{message_text, on_websocket_events, storage_get, storage_put, WebsocketEvent};
 use crate::SomeSharedData;
 
 #[durable_object]
@@ -40,13 +37,16 @@ impl DurableObject for Counter {
             );
         }
 
-        if path(&req)?.eq("/ws") {
+        if req.path().eq("/ws") {
             let pair = WebSocketPair::new()?;
             let server = pair._1();
             self.state.accept_web_socket(&server)?;
             server.serialize_attachment(&"hello".into())?;
 
-            return from_websocket(&pair._0());
+            return Response::builder()
+                .status(101.0)
+                .web_socket(&pair._0())
+                .empty();
         }
 
         self.unstored_count.set(self.unstored_count.get() + 1);
@@ -54,7 +54,7 @@ impl DurableObject for Counter {
         let count = self.count.get();
         storage_put(&self.state.storage(), "count", count).await?;
 
-        ok(format!(
+        Response::builder().ok(format!(
             "[durable_object]: self.count: {}, self.unstored_count: {}, secret value: {}",
             self.count.get(),
             self.unstored_count.get(),
@@ -93,7 +93,7 @@ impl DurableObject for Counter {
 }
 
 fn counter_namespace(req: &Request, env: &Env) -> Result<DurableObjectNamespace> {
-    if path(req)?.contains("shared") {
+    if req.path().contains("shared") {
         Err("SHARED_COUNTER is not bound".into())
     } else {
         Ok(env.counter())
@@ -154,5 +154,8 @@ pub async fn handle_websocket(req: Request, env: Env, _data: SomeSharedData) -> 
         })?;
     }
 
-    from_websocket(&client)
+    Response::builder()
+        .status(101.0)
+        .web_socket(&client)
+        .empty()
 }

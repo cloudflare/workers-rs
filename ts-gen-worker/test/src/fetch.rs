@@ -1,5 +1,5 @@
 use super::{ApiData, SomeSharedData};
-use crate::util::{ok, sleep, url};
+use crate::util::sleep;
 use crate::Env;
 use futures_util::future::Either;
 use serde::{Deserialize, Serialize};
@@ -13,7 +13,7 @@ pub async fn handle_fetch(_req: Request, _env: Env, _data: SomeSharedData) -> Re
     )?;
     let resp = fetch(&req).await?;
     let resp2 = fetch_with_str("https://example.com").await?;
-    ok(format!(
+    Response::builder().ok(format!(
         "received responses with codes {} and {}",
         resp.status(),
         resp2.status()
@@ -32,7 +32,7 @@ pub async fn handle_fetch_json(
             .await?,
     )
     .map_err(|e| e.to_string())?;
-    ok(format!(
+    Response::builder().ok(format!(
         "API Returned user: {} with title: {} and completed: {}",
         data.user_id, data.title, data.completed
     ))
@@ -43,7 +43,7 @@ pub async fn handle_proxy_request(
     _env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    let uri = url(&req)?;
+    let uri = req.url_parsed()?;
     let url = uri
         .path_segments()
         .unwrap()
@@ -101,7 +101,7 @@ pub async fn handle_cancelled_fetch(
     controller.abort()?;
 
     let res = rx.await.unwrap();
-    let res = res.unwrap_or_else(|e| ok(e.to_string()).unwrap());
+    let res = res.unwrap_or_else(|e| Response::builder().ok(e.to_string()).unwrap());
 
     Ok(res)
 }
@@ -123,7 +123,7 @@ pub async fn handle_fetch_timeout(
     let delay_fut = async {
         sleep(100.0).await;
         controller.abort()?;
-        ok("Cancelled")
+        Response::builder().ok("Cancelled")
     };
 
     futures_util::pin_mut!(fetch_fut);
@@ -157,7 +157,7 @@ pub async fn handle_cloned_fetch(
     let left = resp.text().await?;
     let right = resp1.text().await?;
 
-    ok((left == right).to_string())
+    Response::builder().ok((left == right).to_string())
 }
 
 pub async fn handle_cloned_response_attributes(
@@ -189,5 +189,5 @@ pub async fn handle_cloned_response_attributes(
 
     assert_eq!(cf, cf1);
 
-    ok("true")
+    Response::builder().ok("true")
 }

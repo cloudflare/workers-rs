@@ -1,4 +1,3 @@
-use crate::util::ok;
 use crate::{Env, SomeSharedData};
 use js_sys::{JsString, Null, Object, Reflect, Uint8Array};
 use std::{
@@ -137,7 +136,7 @@ pub async fn list_empty(_req: Request, env: Env, _data: SomeSharedData) -> Resul
     assert!(!objects.truncated());
     assert_eq!(objects.cursor(), None);
 
-    ok("ok")
+    Response::builder().ok("ok")
 }
 
 pub async fn list(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
@@ -195,7 +194,7 @@ pub async fn list(_req: Request, env: Env, _data: SomeSharedData) -> Result<Resp
         .count();
     assert_eq!(count, 1);
 
-    ok("ok")
+    Response::builder().ok("ok")
 }
 
 pub async fn get_empty(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
@@ -221,7 +220,7 @@ pub async fn get_empty(_req: Request, env: Env, _data: SomeSharedData) -> Result
         .await?;
     assert!(object.is_null());
 
-    ok("ok")
+    Response::builder().ok("ok")
 }
 
 pub async fn get(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
@@ -240,7 +239,7 @@ pub async fn get(_req: Request, env: Env, _data: SomeSharedData) -> Result<Respo
     let uploaded_http_metadata = http_metadata(&item);
     assert_eq!(uploaded_http_metadata, expected_http_metadata);
 
-    ok("ok")
+    Response::builder().ok("ok")
 }
 
 pub async fn put(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
@@ -275,7 +274,7 @@ pub async fn put(_req: Request, env: Env, _data: SomeSharedData) -> Result<Respo
     let empty_obj = bucket.get("empty").await?.unwrap();
     assert_eq!(empty_obj.bytes().await?.length(), 0);
 
-    ok("ok")
+    Response::builder().ok("ok")
 }
 
 pub async fn put_properties(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
@@ -288,7 +287,7 @@ pub async fn put_properties(_req: Request, env: Env, _data: SomeSharedData) -> R
     let uploaded_http_metadata = http_metadata(&object_with_props);
     assert_eq!(uploaded_http_metadata, expected_http_metadata);
 
-    ok("ok")
+    Response::builder().ok("ok")
 }
 
 #[allow(clippy::large_stack_arrays)]
@@ -338,7 +337,7 @@ pub async fn put_multipart(_req: Request, env: Env, _data: SomeSharedData) -> Re
         [2; 500]
     );
 
-    ok("ok")
+    Response::builder().ok("ok")
 }
 
 pub async fn delete(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
@@ -362,7 +361,7 @@ pub async fn delete(_req: Request, env: Env, _data: SomeSharedData) -> Result<Re
     let objects = bucket.list().await?;
     assert_eq!(objects.objects().len(), 0);
 
-    ok("ok")
+    Response::builder().ok("ok")
 }
 
 async fn put_full_properties(

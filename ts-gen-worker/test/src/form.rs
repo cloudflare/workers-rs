@@ -1,5 +1,4 @@
 use super::SomeSharedData;
-use crate::util::{error, from_json, ok, url};
 use crate::Env;
 use blake2::Blake2b512;
 use blake2::Digest;
@@ -31,7 +30,7 @@ pub async fn handle_formdata_name(
 ) -> Result<Response> {
     let form = req.form_data().await?;
     const NAME: &str = "name";
-    let bad_request = error("Bad Request", 400);
+    let bad_request = Response::builder().error("Bad Request", 400);
 
     if !form.has(NAME)? {
         return bad_request;
@@ -47,12 +46,12 @@ pub async fn handle_formdata_name(
         })
         .collect();
     if names.len() > 1 {
-        return from_json(&serde_json::json!({ "names": names }));
+        return Response::builder().from_json(&serde_json::json!({ "names": names }));
     }
 
     if let Some(value) = FormEntry::from_js(form.get(NAME)?) {
         match value {
-            FormEntry::Field(v) => from_json(&serde_json::json!({ NAME: v })),
+            FormEntry::Field(v) => Response::builder().from_json(&serde_json::json!({ NAME: v })),
             FormEntry::File(_) => bad_request,
         }
     } else {
@@ -99,13 +98,13 @@ pub async fn handle_formdata_file_size(
                     .into_iter()
                     .map(|key| serde_json::json!({ "name": key.name(), "expiration": key.expiration() }))
                     .collect();
-                from_json(&keys)
+                Response::builder().from_json(&keys)
             }
-            FormEntry::Field(_) => error("Bad Request", 400),
+            FormEntry::Field(_) => Response::builder().error("Bad Request", 400),
         };
     }
 
-    error("Bad Request", 400)
+    Response::builder().error("Bad Request", 400)
 }
 
 pub async fn handle_formdata_file_size_hash(
@@ -113,7 +112,7 @@ pub async fn handle_formdata_file_size_hash(
     env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    let uri = url(&req)?;
+    let uri = req.url_parsed()?;
     let mut segments = uri.path_segments().unwrap();
     let hash = segments.nth(1);
     if let Some(hash) = hash {
@@ -121,13 +120,13 @@ pub async fn handle_formdata_file_size_hash(
         return match kv.get(hash).await?.into_option().map(String::from) {
             Some(val) => {
                 let val: FileSize = serde_json::from_str(&val).map_err(|e| e.to_string())?;
-                from_json(&val)
+                Response::builder().from_json(&val)
             }
-            None => error("Not Found", 404),
+            None => Response::builder().error("Not Found", 404),
         };
     }
 
-    error("Bad Request", 400)
+    Response::builder().error("Bad Request", 400)
 }
 
 pub async fn handle_is_secret(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
@@ -138,11 +137,11 @@ pub async fn handle_is_secret(req: Request, env: Env, _data: SomeSharedData) -> 
                 // `env.secret(&name)` looks a binding up by runtime name; the generated
                 // Env only has per-binding getters.
                 let val = js_sys::Reflect::get(&env, &name.into())?;
-                return ok(val.as_string().unwrap_or_default());
+                return Response::builder().ok(val.as_string().unwrap_or_default());
             }
-            FormEntry::File(_) => return error("Bad Request", 400),
+            FormEntry::File(_) => return Response::builder().error("Bad Request", 400),
         };
     }
 
-    error("Bad Request", 400)
+    Response::builder().error("Bad Request", 400)
 }

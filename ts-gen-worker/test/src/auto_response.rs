@@ -1,8 +1,6 @@
 use crate::Env;
 use ts_gen_worker::*;
 
-use crate::util::{error, ok, path};
-
 #[durable_object]
 pub struct AutoResponseObject {
     state: DurableObjectState,
@@ -16,23 +14,23 @@ impl DurableObject for AutoResponseObject {
     }
 
     async fn fetch(&self, req: Request) -> Result<Response> {
-        match path(&req)?.as_str() {
+        match req.path().as_str() {
             "/set" => {
                 let pair = WebSocketRequestResponsePair::new("ping", "pong")?;
                 self.state
                     .set_web_socket_auto_response_with_maybe_req_resp(&pair)?;
-                ok("ok")
+                Response::builder().ok("ok")
             }
             "/get" => {
                 if let Some(pair) = self.state.get_web_socket_auto_response()? {
                     let request_str = pair.request();
                     let response_str = pair.response();
-                    ok(format!("{request_str}:{response_str}"))
+                    Response::builder().ok(format!("{request_str}:{response_str}"))
                 } else {
-                    ok("none")
+                    Response::builder().ok("none")
                 }
             }
-            _ => error("Not Found", 404),
+            _ => Response::builder().error("Not Found", 404),
         }
     }
 }

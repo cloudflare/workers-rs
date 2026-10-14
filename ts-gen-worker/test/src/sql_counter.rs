@@ -2,7 +2,6 @@ use crate::Env;
 use ts_gen_worker::*;
 
 use crate::sql::{self, SqlStorageValue};
-use crate::util::{ok, url};
 
 /// A simple SQLite-backed counter stored in Durable Object storage.
 #[durable_object]
@@ -25,7 +24,7 @@ impl DurableObject for SqlCounter {
     }
 
     async fn fetch(&self, req: Request) -> Result<Response> {
-        let url = url(&req)?;
+        let url = req.url_parsed()?;
         let path = url.path();
 
         if path.contains("/set-large/") {
@@ -58,7 +57,7 @@ impl SqlCounter {
             vec![next.into()],
         )?;
 
-        ok(format!("SQL counter is now {next}"))
+        Response::builder().ok(format!("SQL counter is now {next}"))
     }
 
     fn handle_set_large_value(&self, url: &url::Url) -> Result<Response> {
@@ -72,7 +71,7 @@ impl SqlCounter {
         let safe_value = match SqlStorageValue::try_from_i64(large_value) {
             Ok(value) => value,
             Err(e) => {
-                return ok(format!(
+                return Response::builder().ok(format!(
                     "Error: Cannot store value {large_value} - {e}. JavaScript safe range is ±9007199254740991"
                 ));
             }
@@ -85,7 +84,7 @@ impl SqlCounter {
             vec![safe_value],
         )?;
 
-        ok(format!("Successfully stored large value: {large_value}"))
+        Response::builder().ok(format!("Successfully stored large value: {large_value}"))
     }
 }
 
@@ -96,7 +95,7 @@ pub async fn handle_sql_counter(
     env: Env,
     _data: super::SomeSharedData,
 ) -> Result<Response> {
-    let uri = url(&req)?;
+    let uri = req.url_parsed()?;
     let mut segments = uri.path_segments().unwrap();
     let _ = segments.next();
     let name = segments.next().unwrap_or("default");

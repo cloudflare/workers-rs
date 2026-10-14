@@ -21,7 +21,7 @@ regex = "1.8.4"
 serde.workspace = true
 serde_json.workspace = true
 serde-wasm-bindgen.workspace = true
-ts-gen-worker = { path = ".." }
+ts-gen-worker = { path = "..", features = ["url"] }
 url = "2"
 uuid = { version = "1.17", features = ["v4", "serde", "js"] }
 wasm-bindgen.workspace = true
