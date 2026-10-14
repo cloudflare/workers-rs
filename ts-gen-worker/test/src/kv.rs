@@ -33,7 +33,7 @@ pub async fn handle_post_key_value(
         }
     }
 
-    Ok(Response::json(&kv.list::<JsValue>().await?.into())?)
+    Ok(Response::json(&kv.list().await?.into())?)
 }
 
 async fn test_store(env: &Env) -> KVNamespace {
@@ -58,7 +58,7 @@ pub async fn get_not_found(_req: Request, env: Env, _data: SomeSharedData) -> Re
 
 pub async fn list_keys(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let store = test_store(&env).await;
-    let list_res = store.list::<JsValue>().await?;
+    let list_res = store.list().await?;
 
     kv_assert_eq!(list_res.keys().length(), 1)?;
 
@@ -87,7 +87,7 @@ pub async fn put_metadata(_req: Request, env: Env, _data: SomeSharedData) -> Res
         )
         .await?;
 
-    let result = store.get_with_metadata::<JsValue>("put_b").await?;
+    let result = store.get_with_metadata("put_b").await?;
     kv_assert_eq!(result.value().unwrap(), "test")?;
     kv_assert_eq!(result.metadata().unwrap().as_f64().unwrap() as usize, 100)?;
 
@@ -111,7 +111,7 @@ pub async fn put_expiration(_req: Request, env: Env, _data: SomeSharedData) -> R
     kv_assert_eq!(val, "test")?;
 
     let list = store
-        .list_with_options::<JsValue>(&KVNamespaceListOptions::builder().prefix("put_c").build())
+        .list_with_options(&KVNamespaceListOptions::builder().prefix("put_c").build())
         .await?;
     let key = list
         .keys()
@@ -147,7 +147,7 @@ pub async fn put_metadata_struct(
         )
         .await?;
 
-    let result = store.get_with_metadata::<JsValue>("put_d").await?;
+    let result = store.get_with_metadata("put_d").await?;
     let meta: TestStruct = serde_wasm_bindgen::from_value(result.metadata().unwrap_or_default())
         .map_err(|e| e.to_string())?;
 

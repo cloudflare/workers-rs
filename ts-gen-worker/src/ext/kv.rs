@@ -177,7 +177,7 @@ impl KvGetBuilder {
         let options = get_options(value_type, self.cache_ttl);
         let entry = self
             .kv
-            .get_with_metadata_with_key_str_and_options_kv_namespace_get_options::<JsValue>(
+            .get_with_metadata_with_key_str_and_options_kv_namespace_get_options(
                 &self.key, &options,
             )
             .await?;
@@ -267,7 +267,7 @@ impl KvGetBulkBuilder {
         let options = get_options(value_type, self.cache_ttl);
         let map = self
             .kv
-            .get_with_metadata_with_key_array_and_options_kv_namespace_get_options::<JsValue>(
+            .get_with_metadata_with_key_array_and_options_kv_namespace_get_options(
                 &self.keys, &options,
             )
             .await?;

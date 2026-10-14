@@ -11,7 +11,7 @@ use wasm_bindgen_futures::JsFuture;
 /// `worker::Delay`.
 pub async fn sleep(ms: f64) {
     let promise = Promise::new(&mut |resolve: Function, _| {
-        let _ = set_timeout_with_ms_delay::<JsValue>(&resolve, ms, &[]);
+        let _ = set_timeout_with_ms_delay(&resolve, ms, &[]);
     });
     let _ = JsFuture::from(promise).await;
 }

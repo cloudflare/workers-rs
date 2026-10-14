@@ -51,7 +51,7 @@ impl Future for Delay {
                 waker.wake_by_ref();
             });
             // `setTimeout` with a function and a finite delay cannot throw.
-            *this.timeout_id = set_timeout_with_ms_delay::<JsValue>(
+            *this.timeout_id = set_timeout_with_ms_delay(
                 Function::closure_ref(&closure),
                 this.duration.as_millis() as f64,
                 &[],

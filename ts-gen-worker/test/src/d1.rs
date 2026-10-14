@@ -64,10 +64,10 @@ async fn first<T: DeserializeOwned>(
 
 /// `worker::D1PreparedStatement::raw::<T>()`.
 async fn raw<T: DeserializeOwned>(stmt: &D1PreparedStatement) -> Result<Vec<Vec<T>>> {
-    stmt.raw::<JsValue>()
+    stmt.raw()
         .await?
-        .iter()
-        .map(|row| Ok(serde_wasm_bindgen::from_value(row).map_err(|e| e.to_string())?))
+        .into_iter()
+        .map(|row| Ok(serde_wasm_bindgen::from_value(row.into()).map_err(|e| e.to_string())?))
         .collect()
 }
 
@@ -360,7 +360,7 @@ pub async fn insert_and_retrieve_optional_none(
             &serde_json::Value::Null,
         ],
     )?;
-    query_stmt.run::<JsValue>().await?;
+    query_stmt.run().await?;
 
     let stmt = query::<()>(&db, "SELECT * FROM nullable_people WHERE id = 3", &[])?;
     let person = first::<NullablePerson>(&stmt, None).await?.unwrap();
@@ -386,7 +386,7 @@ pub async fn insert_and_retrieve_optional_some(
             &serde_json::json!(12),
         ],
     )?;
-    query_stmt.run::<JsValue>().await?;
+    query_stmt.run().await?;
 
     let stmt = query::<()>(&db, "SELECT * FROM nullable_people WHERE id = 4", &[])?;
     let person = first::<NullablePerson>(&stmt, None).await?.unwrap();

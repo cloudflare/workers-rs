@@ -74,7 +74,7 @@ impl DurableObject for MyClass {
                     storage_put(&storage, "array", [("one", 1), ("two", 2)]).await?;
                     storage_put(&storage, "anything", Some(45)).await?;
 
-                    let list = storage.list::<JsValue>().await?;
+                    let list = storage.list().await?;
                     let mut keys = vec![];
 
                     for key in list.keys() {
@@ -90,7 +90,7 @@ impl DurableObject for MyClass {
                         "Didn't list all of the keys: {keys:?}"
                     );
                     let vals: js_sys::Map = storage
-                        .get_with_keys::<JsValue>(&keys)
+                        .get_with_keys(&keys)
                         .await
                         .map_err(|e| Error::from(format!("{e:?} -- get_multiple")))?
                         .unchecked_into();

@@ -92,7 +92,7 @@ pub async fn handle_formdata_file_size(
                 kv.put(&key, &val).await?;
 
                 let keys: Vec<serde_json::Value> = kv
-                    .list::<JsValue>()
+                    .list()
                     .await?
                     .keys()
                     .into_iter()
