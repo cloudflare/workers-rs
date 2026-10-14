@@ -225,6 +225,14 @@ pub async fn handle(
             Response::builder().ok(res.text().await?)
         }
 
+        ("GET", ["console"]) => {
+            console_log!("ext log {} {}", 1, "a");
+            console_debug!("ext debug {}", 2);
+            console_warn!("ext warn {}", 3);
+            console_error!("ext error {}", 4);
+            Response::builder().ok("logged")
+        }
+
         ("GET", ["error-number"]) => Err(JsValue::from(42).into()),
         ("GET", ["error-null"]) => Err(JsValue::NULL.into()),
         ("GET", ["error-rust"]) => Err(Error::from("boom")),

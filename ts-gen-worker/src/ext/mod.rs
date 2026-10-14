@@ -1,6 +1,7 @@
 //! Rust-side ergonomics over the generated bindings: inherent `impl`s on the
 //! generated types plus the few Rust-native helper types (`Method`, `ByteStream`).
 
+mod console;
 mod context;
 mod handler;
 mod headers;

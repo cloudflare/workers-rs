@@ -185,3 +185,56 @@ describe("ts-gen-worker ext", () => {
     expect(await res.text()).toBe("INTERNAL SERVER ERROR");
   });
 });
+
+// The Rust-native surface from `worker` ported in session 2 (`parity/test-port.md`).
+// Its own instance captures workerd's structured logs for the console macros.
+const logs: { level: string; message: string }[] = [];
+const mf2 = new Miniflare({
+  handleStructuredLogs: (log) => {
+    logs.push({ level: log.level, message: log.message });
+  },
+  workers: [
+    {
+      config: {
+        name: "ts-gen-worker-ext2",
+        compatibilityDate: "2026-03-17",
+        manifest,
+        env: {
+          GREETING: { type: "text", value: "hello from env" },
+          MACRO_COUNTER: {
+            type: "durable-object",
+            worker: "ts-gen-worker-ext2",
+            exportName: "MacroCounter",
+          },
+        },
+        exports: {
+          MacroCounter: { type: "durable-object", storage: "legacy-kv" },
+        },
+      },
+      dev: {
+        outboundService: { type: "fetcher", handler: async (req: Request) => outbound(req) },
+      },
+    },
+  ],
+});
+
+const get2 = (path: string, init?: RequestInit) =>
+  mf2.dispatchFetch(`http://worker.test${path}`, init);
+
+afterAll(() => mf2.dispose());
+
+describe("ts-gen-worker ext: Rust-native surface", () => {
+  test("console_log!/debug!/warn!/error!", async () => {
+    expect(await (await get2("/ext/console")).text()).toBe("logged");
+    for (let i = 0; i < 50 && logs.length < 4; i++) {
+      await new Promise((r) => setTimeout(r, 20));
+    }
+    const ext = logs.filter((l) => l.message.startsWith("ext "));
+    expect(ext).toEqual([
+      { level: "log", message: "ext log 1 a" },
+      { level: "debug", message: "ext debug 2" },
+      { level: "warn", message: "ext warn 3" },
+      { level: "error", message: "ext error 4" },
+    ]);
+  });
+});
