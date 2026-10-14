@@ -1,6 +1,6 @@
 //! Cloudflare Workers bindings generated from `types/worker.d.ts` by ts-gen, plus the
-//! Rust-side ergonomics (`#[event]`, `Result`, serde, futures) layered on them as
-//! `impl` blocks.
+//! Rust-side ergonomics (`#[event]`, `Result`, serde, futures, `Router`) layered on them
+//! as `impl` blocks.
 //!
 //! `src/bindings.rs` is generated; regenerate it with `chomp build:ts-gen-worker:types`
 //! after editing the declarations.
@@ -9,10 +9,12 @@
 mod bindings;
 mod error;
 mod ext;
+mod router;
 
 pub use bindings::*;
 pub use error::{Error, Result};
 pub use ext::*;
+pub use router::{RouteContext, RouteParams, Router};
 pub use ts_gen_worker_macros::event;
 
 pub use js_sys;
