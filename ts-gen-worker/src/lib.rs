@@ -6,4 +6,7 @@
 #![allow(clippy::all)]
 
 mod bindings;
+mod error;
+
 pub use bindings::*;
+pub use error::{Error, Result};

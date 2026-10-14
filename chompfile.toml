@@ -28,8 +28,15 @@ run = 'cargo +stable install --path ts-gen'
 [[task]]
 name = 'build:ts-gen-worker:types'
 deps = ['install:ts-gen']
-run = '''ts-gen --input ts-gen-worker/types/worker.d.ts --output ts-gen-worker/src/bindings.rs
-ts-gen --input ts-gen-worker/test/types/env.d.ts --output ts-gen-worker/test/src/env.rs'''
+# Every sync binding is a single `Result` under its own name (`--fallible`);
+# untyped failures land in the crate's `Error`, `@throws`-typed ones in the
+# generated `JsException` enum. App `Env` bindings use the same policy against
+# `ts_gen_worker::Error` but share the crate's `JsException` rather than
+# generating a second enum.
+run = '''ts-gen --input ts-gen-worker/types/worker.d.ts --output ts-gen-worker/src/bindings.rs \
+  --fallible --error-type crate::Error --error-enum JsException
+ts-gen --input ts-gen-worker/test/types/env.d.ts --output ts-gen-worker/test/src/env.rs \
+  --fallible --error-type ts_gen_worker::Error'''
 
 [[task]]
 name = 'build:ts-gen-worker'

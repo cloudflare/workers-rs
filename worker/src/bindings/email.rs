@@ -46,13 +46,13 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type EmailMessage;
     #[wasm_bindgen(constructor, catch)]
-    pub fn new(from: &str, to: &str, raw: &str) -> Result<EmailMessage, Error>;
+    pub fn new(from: &str, to: &str, raw: &str) -> Result<EmailMessage, ::js_sys::Error>;
     #[wasm_bindgen(constructor, catch, js_name = "EmailMessage")]
     pub fn new_with_readable_stream(
         from: &str,
         to: &str,
         raw: &ReadableStream,
-    ) -> Result<EmailMessage, Error>;
+    ) -> Result<EmailMessage, ::js_sys::Error>;
     #[doc = " Envelope From attribute of the email message."]
     #[wasm_bindgen(method, getter)]
     pub fn from(this: &EmailMessage) -> String;
@@ -91,7 +91,7 @@ extern "C" {
     pub async fn forward(
         this: &ForwardableEmailMessage,
         rcpt_to: &str,
-    ) -> Result<EmailSendResult, Error>;
+    ) -> Result<EmailSendResult, ::js_sys::Error>;
     #[doc = " Forward this email message to a verified destination address of the account."]
     #[doc = ""]
     #[doc = " * `rcptTo` - Verified destination address."]
@@ -103,7 +103,7 @@ extern "C" {
         this: &ForwardableEmailMessage,
         rcpt_to: &str,
         headers: &Headers,
-    ) -> Result<EmailSendResult, Error>;
+    ) -> Result<EmailSendResult, ::js_sys::Error>;
     #[doc = " Reply to the sender of this email message with a new EmailMessage object."]
     #[doc = ""]
     #[doc = " * `message` - The reply message."]
@@ -113,7 +113,7 @@ extern "C" {
     pub async fn reply(
         this: &ForwardableEmailMessage,
         message: &EmailMessage,
-    ) -> Result<EmailSendResult, Error>;
+    ) -> Result<EmailSendResult, ::js_sys::Error>;
 }
 #[wasm_bindgen]
 extern "C" {
@@ -309,12 +309,15 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type SendEmail;
     #[wasm_bindgen(method, catch)]
-    pub async fn send(this: &SendEmail, message: &EmailMessage) -> Result<EmailSendResult, Error>;
+    pub async fn send(
+        this: &SendEmail,
+        message: &EmailMessage,
+    ) -> Result<EmailSendResult, ::js_sys::Error>;
     #[wasm_bindgen(method, catch, js_name = "send")]
     pub async fn send_with_builder(
         this: &SendEmail,
         builder: &SendEmailBuilder,
-    ) -> Result<EmailSendResult, Error>;
+    ) -> Result<EmailSendResult, ::js_sys::Error>;
 }
 #[wasm_bindgen]
 extern "C" {

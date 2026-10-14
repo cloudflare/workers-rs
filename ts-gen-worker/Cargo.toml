@@ -9,5 +9,9 @@ repository = "https://github.com/cloudflare/workers-rs"
 
 [dependencies]
 js-sys.workspace = true
+serde_json = { workspace = true, optional = true }
 wasm-bindgen.workspace = true
 wasm-bindgen-futures.workspace = true
+
+[features]
+serde = ["dep:serde_json"]

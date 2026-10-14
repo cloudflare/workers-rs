@@ -24,30 +24,40 @@ declare namespace console {
    * The **`console.log()`** static method outputs a message to the console.
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/log_static)
+   *
+   * @throws {never}
    */
   function log(...args: any[]): void;
   /**
    * The **`console.error()`** static method outputs a message to the console at the 'error' log level.
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/error_static)
+   *
+   * @throws {never}
    */
   function error(...args: any[]): void;
   /**
    * The **`console.warn()`** static method outputs a warning message to the console at the 'warning' log level.
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/warn_static)
+   *
+   * @throws {never}
    */
   function warn(...args: any[]): void;
   /**
    * The **`console.info()`** static method outputs a message to the console at the 'info' log level.
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/info_static)
+   *
+   * @throws {never}
    */
   function info(...args: any[]): void;
   /**
    * The **`console.debug()`** static method outputs a message to the console at the 'debug' log level.
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/debug_static)
+   *
+   * @throws {never}
    */
   function debug(...args: any[]): void;
 }
@@ -74,6 +84,8 @@ declare class ReadableStream {
    * The **`getReader()`** method of the ReadableStream interface creates a reader and locks the stream to it.
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStream/getReader)
+   *
+   * @throws {TypeError} if the stream is already locked to a reader
    */
   getReader(): any;
 }
@@ -88,36 +100,48 @@ declare class Headers {
    * The **`Headers()`** constructor creates a new Headers object.
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/Headers)
+   *
+   * @throws {TypeError} if `init` contains an invalid header name or value
    */
   constructor(init?: HeadersInit);
   /**
    * The **`append()`** method of the Headers interface appends a new value onto an existing header inside a `Headers` object, or adds the header if it does not already exist.
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/append)
+   *
+   * @throws {TypeError} if `name` is not a valid header name or `value` is not a valid header value
    */
   append(name: string, value: string): void;
   /**
    * The **`delete()`** method of the Headers interface deletes a header from the current `Headers` object.
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/delete)
+   *
+   * @throws {TypeError} if `name` is not a valid header name
    */
   delete(name: string): void;
   /**
    * The **`get()`** method of the Headers interface returns a byte string of all the values of a header within a `Headers` object with a given name.
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/get)
+   *
+   * @throws {TypeError} if `name` is not a valid header name
    */
   get(name: string): string | null;
   /**
    * The **`has()`** method of the Headers interface returns a boolean stating whether a `Headers` object contains a certain header.
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/has)
+   *
+   * @throws {TypeError} if `name` is not a valid header name
    */
   has(name: string): boolean;
   /**
    * The **`set()`** method of the Headers interface sets a new value for an existing header inside a `Headers` object, or adds the header if it does not already exist.
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/set)
+   *
+   * @throws {TypeError} if `name` is not a valid header name or `value` is not a valid header value
    */
   set(name: string, value: string): void;
 }
@@ -134,6 +158,8 @@ declare class Request {
    * The **`Request()`** constructor creates a new Request object.
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/Request)
+   *
+   * @throws {TypeError} if `input` is not a valid URL or `init` is inconsistent with it
    */
   constructor(input: RequestInfo, init?: RequestInit);
   /**
@@ -164,6 +190,8 @@ declare class Request {
    * The **`clone()`** method of the Request interface creates a copy of the current `Request` object.
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/clone)
+   *
+   * @throws {TypeError} if the body has already been used
    */
   clone(): Request;
   /**
@@ -203,18 +231,25 @@ declare class Response {
    * The **`Response()`** constructor creates a new Response object.
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/Response)
+   *
+   * @throws {TypeError} if `init.status` is out of range or a body is given for a null-body status
    */
   constructor(body?: string | ArrayBuffer | ReadableStream | null, init?: ResponseInit);
   /**
    * The **`Response.redirect()`** static method returns a `Response` resulting in a redirect to the specified URL.
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/redirect_static)
+   *
+   * @throws {RangeError} if `status` is not a redirect status
+   * @throws {TypeError} if `url` is not a valid URL
    */
   static redirect(url: string, status?: number): Response;
   /**
    * The **`Response.json()`** static method returns a `Response` that contains the provided JSON data as body, and a `Content-Type` header which is set to `application/json`.
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/json_static)
+   *
+   * @throws {TypeError} if `data` cannot be serialized or `init` is invalid
    */
   static json(data: any, init?: ResponseInit): Response;
   /**
@@ -251,6 +286,8 @@ declare class Response {
    * The **`clone()`** method of the Response interface creates a clone of a response object, identical in every way, but stored in a different variable.
    *
    * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/clone)
+   *
+   * @throws {TypeError} if the body has already been used
    */
   clone(): Response;
   /**

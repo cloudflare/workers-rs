@@ -16,39 +16,11 @@ pub mod console {
     }
     #[wasm_bindgen]
     extern "C" {
-        #[doc = " The **`console.log()`** static method outputs a message to the console."]
-        #[doc = ""]
-        #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/log_static)"]
-        #[wasm_bindgen(
-            variadic,
-            catch,
-            slice_to_array,
-            js_name = "log",
-            js_namespace = "console"
-        )]
-        pub fn try_log(args: &[JsValue]) -> Result<(), JsValue>;
-    }
-    #[wasm_bindgen]
-    extern "C" {
         #[doc = " The **`console.error()`** static method outputs a message to the console at the 'error' log level."]
         #[doc = ""]
         #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/error_static)"]
         #[wasm_bindgen(variadic, slice_to_array, js_namespace = "console")]
         pub fn error(args: &[JsValue]);
-    }
-    #[wasm_bindgen]
-    extern "C" {
-        #[doc = " The **`console.error()`** static method outputs a message to the console at the 'error' log level."]
-        #[doc = ""]
-        #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/error_static)"]
-        #[wasm_bindgen(
-            variadic,
-            catch,
-            slice_to_array,
-            js_name = "error",
-            js_namespace = "console"
-        )]
-        pub fn try_error(args: &[JsValue]) -> Result<(), JsValue>;
     }
     #[wasm_bindgen]
     extern "C" {
@@ -60,20 +32,6 @@ pub mod console {
     }
     #[wasm_bindgen]
     extern "C" {
-        #[doc = " The **`console.warn()`** static method outputs a warning message to the console at the 'warning' log level."]
-        #[doc = ""]
-        #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/warn_static)"]
-        #[wasm_bindgen(
-            variadic,
-            catch,
-            slice_to_array,
-            js_name = "warn",
-            js_namespace = "console"
-        )]
-        pub fn try_warn(args: &[JsValue]) -> Result<(), JsValue>;
-    }
-    #[wasm_bindgen]
-    extern "C" {
         #[doc = " The **`console.info()`** static method outputs a message to the console at the 'info' log level."]
         #[doc = ""]
         #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/info_static)"]
@@ -82,39 +40,11 @@ pub mod console {
     }
     #[wasm_bindgen]
     extern "C" {
-        #[doc = " The **`console.info()`** static method outputs a message to the console at the 'info' log level."]
-        #[doc = ""]
-        #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/info_static)"]
-        #[wasm_bindgen(
-            variadic,
-            catch,
-            slice_to_array,
-            js_name = "info",
-            js_namespace = "console"
-        )]
-        pub fn try_info(args: &[JsValue]) -> Result<(), JsValue>;
-    }
-    #[wasm_bindgen]
-    extern "C" {
         #[doc = " The **`console.debug()`** static method outputs a message to the console at the 'debug' log level."]
         #[doc = ""]
         #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/debug_static)"]
         #[wasm_bindgen(variadic, slice_to_array, js_namespace = "console")]
         pub fn debug(args: &[JsValue]);
-    }
-    #[wasm_bindgen]
-    extern "C" {
-        #[doc = " The **`console.debug()`** static method outputs a message to the console at the 'debug' log level."]
-        #[doc = ""]
-        #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/debug_static)"]
-        #[wasm_bindgen(
-            variadic,
-            catch,
-            slice_to_array,
-            js_name = "debug",
-            js_namespace = "console"
-        )]
-        pub fn try_debug(args: &[JsValue]) -> Result<(), JsValue>;
     }
 }
 #[wasm_bindgen]
@@ -131,17 +61,16 @@ extern "C" {
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStream/cancel)"]
     #[wasm_bindgen(method, catch)]
-    pub async fn cancel(this: &ReadableStream) -> Result<Undefined, JsValue>;
+    pub async fn cancel(this: &ReadableStream) -> Result<Undefined, crate::Error>;
     #[doc = " The **`getReader()`** method of the ReadableStream interface creates a reader and locks the stream to it."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStream/getReader)"]
-    #[wasm_bindgen(method, js_name = "getReader")]
-    pub fn get_reader(this: &ReadableStream) -> JsValue;
-    #[doc = " The **`getReader()`** method of the ReadableStream interface creates a reader and locks the stream to it."]
     #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStream/getReader)"]
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if the stream is already locked to a reader"]
     #[wasm_bindgen(method, catch, js_name = "getReader")]
-    pub fn try_get_reader(this: &ReadableStream) -> Result<JsValue, JsValue>;
+    pub fn get_reader(this: &ReadableStream) -> Result<JsValue, JsException>;
 }
 #[wasm_bindgen]
 extern "C" {
@@ -151,73 +80,86 @@ extern "C" {
     #[doc = " The **`Headers()`** constructor creates a new Headers object."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/Headers)"]
+    #[doc = ""]
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `init` contains an invalid header name or value"]
     #[wasm_bindgen(constructor, catch)]
-    pub fn new() -> Result<Headers, JsValue>;
+    pub fn new() -> Result<Headers, JsException>;
     #[doc = " The **`Headers()`** constructor creates a new Headers object."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/Headers)"]
+    #[doc = ""]
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `init` contains an invalid header name or value"]
     #[wasm_bindgen(constructor, catch, js_name = "Headers")]
-    pub fn new_with_headers(init: &Headers) -> Result<Headers, JsValue>;
+    pub fn new_with_headers(init: &Headers) -> Result<Headers, JsException>;
     #[doc = " The **`Headers()`** constructor creates a new Headers object."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/Headers)"]
+    #[doc = ""]
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `init` contains an invalid header name or value"]
     #[wasm_bindgen(constructor, catch, js_name = "Headers")]
-    pub fn new_with_record(init: &Object<JsString>) -> Result<Headers, JsValue>;
+    pub fn new_with_record(init: &Object<JsString>) -> Result<Headers, JsException>;
     #[doc = " The **`Headers()`** constructor creates a new Headers object."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/Headers)"]
+    #[doc = ""]
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `init` contains an invalid header name or value"]
     #[wasm_bindgen(constructor, catch, slice_to_array, js_name = "Headers")]
-    pub fn new_with_slice(init: &[ArrayTuple<(JsString, JsString)>]) -> Result<Headers, JsValue>;
+    pub fn new_with_slice(
+        init: &[ArrayTuple<(JsString, JsString)>],
+    ) -> Result<Headers, JsException>;
     #[doc = " The **`append()`** method of the Headers interface appends a new value onto an existing header inside a `Headers` object, or adds the header if it does not already exist."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/append)"]
-    #[wasm_bindgen(method)]
-    pub fn append(this: &Headers, name: &str, value: &str);
-    #[doc = " The **`append()`** method of the Headers interface appends a new value onto an existing header inside a `Headers` object, or adds the header if it does not already exist."]
     #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/append)"]
-    #[wasm_bindgen(method, catch, js_name = "append")]
-    pub fn try_append(this: &Headers, name: &str, value: &str) -> Result<(), JsValue>;
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `name` is not a valid header name or `value` is not a valid header value"]
+    #[wasm_bindgen(method, catch)]
+    pub fn append(this: &Headers, name: &str, value: &str) -> Result<(), JsException>;
     #[doc = " The **`delete()`** method of the Headers interface deletes a header from the current `Headers` object."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/delete)"]
-    #[wasm_bindgen(method)]
-    pub fn delete(this: &Headers, name: &str);
-    #[doc = " The **`delete()`** method of the Headers interface deletes a header from the current `Headers` object."]
     #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/delete)"]
-    #[wasm_bindgen(method, catch, js_name = "delete")]
-    pub fn try_delete(this: &Headers, name: &str) -> Result<(), JsValue>;
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `name` is not a valid header name"]
+    #[wasm_bindgen(method, catch)]
+    pub fn delete(this: &Headers, name: &str) -> Result<(), JsException>;
     #[doc = " The **`get()`** method of the Headers interface returns a byte string of all the values of a header within a `Headers` object with a given name."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/get)"]
-    #[wasm_bindgen(method)]
-    pub fn get(this: &Headers, name: &str) -> Option<String>;
-    #[doc = " The **`get()`** method of the Headers interface returns a byte string of all the values of a header within a `Headers` object with a given name."]
     #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/get)"]
-    #[wasm_bindgen(method, catch, js_name = "get")]
-    pub fn try_get(this: &Headers, name: &str) -> Result<Option<String>, JsValue>;
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `name` is not a valid header name"]
+    #[wasm_bindgen(method, catch)]
+    pub fn get(this: &Headers, name: &str) -> Result<Option<String>, JsException>;
     #[doc = " The **`has()`** method of the Headers interface returns a boolean stating whether a `Headers` object contains a certain header."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/has)"]
-    #[wasm_bindgen(method)]
-    pub fn has(this: &Headers, name: &str) -> bool;
-    #[doc = " The **`has()`** method of the Headers interface returns a boolean stating whether a `Headers` object contains a certain header."]
     #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/has)"]
-    #[wasm_bindgen(method, catch, js_name = "has")]
-    pub fn try_has(this: &Headers, name: &str) -> Result<bool, JsValue>;
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `name` is not a valid header name"]
+    #[wasm_bindgen(method, catch)]
+    pub fn has(this: &Headers, name: &str) -> Result<bool, JsException>;
     #[doc = " The **`set()`** method of the Headers interface sets a new value for an existing header inside a `Headers` object, or adds the header if it does not already exist."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/set)"]
-    #[wasm_bindgen(method)]
-    pub fn set(this: &Headers, name: &str, value: &str);
-    #[doc = " The **`set()`** method of the Headers interface sets a new value for an existing header inside a `Headers` object, or adds the header if it does not already exist."]
     #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/set)"]
-    #[wasm_bindgen(method, catch, js_name = "set")]
-    pub fn try_set(this: &Headers, name: &str, value: &str) -> Result<(), JsValue>;
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `name` is not a valid header name or `value` is not a valid header value"]
+    #[wasm_bindgen(method, catch)]
+    pub fn set(this: &Headers, name: &str, value: &str) -> Result<(), JsException>;
 }
 #[allow(dead_code)]
 pub type HeadersInit = JsValue;
@@ -229,26 +171,42 @@ extern "C" {
     #[doc = " The **`Request()`** constructor creates a new Request object."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/Request)"]
+    #[doc = ""]
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `input` is not a valid URL or `init` is inconsistent with it"]
     #[wasm_bindgen(constructor, catch)]
-    pub fn new(input: &Request) -> Result<Request, JsValue>;
+    pub fn new(input: &Request) -> Result<Request, JsException>;
     #[doc = " The **`Request()`** constructor creates a new Request object."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/Request)"]
+    #[doc = ""]
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `input` is not a valid URL or `init` is inconsistent with it"]
     #[wasm_bindgen(constructor, catch, js_name = "Request")]
-    pub fn new_with_str(input: &str) -> Result<Request, JsValue>;
+    pub fn new_with_str(input: &str) -> Result<Request, JsException>;
     #[doc = " The **`Request()`** constructor creates a new Request object."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/Request)"]
+    #[doc = ""]
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `input` is not a valid URL or `init` is inconsistent with it"]
     #[wasm_bindgen(constructor, catch, js_name = "Request")]
     pub fn new_with_request_and_init(
         input: &Request,
         init: &RequestInit,
-    ) -> Result<Request, JsValue>;
+    ) -> Result<Request, JsException>;
     #[doc = " The **`Request()`** constructor creates a new Request object."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/Request)"]
+    #[doc = ""]
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `input` is not a valid URL or `init` is inconsistent with it"]
     #[wasm_bindgen(constructor, catch, js_name = "Request")]
-    pub fn new_with_str_and_init(input: &str, init: &RequestInit) -> Result<Request, JsValue>;
+    pub fn new_with_str_and_init(input: &str, init: &RequestInit) -> Result<Request, JsException>;
     #[doc = " The **`method`** read-only property of the Request interface contains the request's method (`GET`, `POST`, etc.)"]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/method)"]
@@ -272,23 +230,22 @@ extern "C" {
     #[doc = " The **`clone()`** method of the Request interface creates a copy of the current `Request` object."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/clone)"]
-    #[wasm_bindgen(method)]
-    pub fn clone(this: &Request) -> Request;
-    #[doc = " The **`clone()`** method of the Request interface creates a copy of the current `Request` object."]
     #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/clone)"]
-    #[wasm_bindgen(method, catch, js_name = "clone")]
-    pub fn try_clone(this: &Request) -> Result<Request, JsValue>;
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if the body has already been used"]
+    #[wasm_bindgen(method, catch)]
+    pub fn clone(this: &Request) -> Result<Request, JsException>;
     #[doc = " The **`arrayBuffer()`** method of the Request interface reads the request body and returns it as a promise that resolves with an ArrayBuffer."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/arrayBuffer)"]
     #[wasm_bindgen(method, catch, js_name = "arrayBuffer")]
-    pub async fn array_buffer(this: &Request) -> Result<ArrayBuffer, JsValue>;
+    pub async fn array_buffer(this: &Request) -> Result<ArrayBuffer, crate::Error>;
     #[doc = " The **`text()`** method of the Request interface reads the request body and returns it as a promise that resolves with a string."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/text)"]
     #[wasm_bindgen(method, catch)]
-    pub async fn text(this: &Request) -> Result<JsString, JsValue>;
+    pub async fn text(this: &Request) -> Result<JsString, crate::Error>;
 }
 #[allow(dead_code)]
 pub type RequestInfo = JsValue;
@@ -378,84 +335,110 @@ extern "C" {
     #[doc = " The **`Response()`** constructor creates a new Response object."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/Response)"]
+    #[doc = ""]
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch)]
-    pub fn new() -> Result<Response, JsValue>;
+    pub fn new() -> Result<Response, JsException>;
     #[doc = " The **`Response()`** constructor creates a new Response object."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/Response)"]
+    #[doc = ""]
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
-    pub fn new_with_str(body: &str) -> Result<Response, JsValue>;
+    pub fn new_with_str(body: &str) -> Result<Response, JsException>;
     #[doc = " The **`Response()`** constructor creates a new Response object."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/Response)"]
+    #[doc = ""]
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
-    pub fn new_with_array_buffer(body: &ArrayBuffer) -> Result<Response, JsValue>;
+    pub fn new_with_array_buffer(body: &ArrayBuffer) -> Result<Response, JsException>;
     #[doc = " The **`Response()`** constructor creates a new Response object."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/Response)"]
+    #[doc = ""]
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
-    pub fn new_with_readable_stream(body: &ReadableStream) -> Result<Response, JsValue>;
+    pub fn new_with_readable_stream(body: &ReadableStream) -> Result<Response, JsException>;
     #[doc = " The **`Response()`** constructor creates a new Response object."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/Response)"]
+    #[doc = ""]
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
-    pub fn new_with_str_and_init(body: &str, init: &ResponseInit) -> Result<Response, JsValue>;
+    pub fn new_with_str_and_init(body: &str, init: &ResponseInit) -> Result<Response, JsException>;
     #[doc = " The **`Response()`** constructor creates a new Response object."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/Response)"]
+    #[doc = ""]
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
     pub fn new_with_array_buffer_and_init(
         body: &ArrayBuffer,
         init: &ResponseInit,
-    ) -> Result<Response, JsValue>;
+    ) -> Result<Response, JsException>;
     #[doc = " The **`Response()`** constructor creates a new Response object."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/Response)"]
+    #[doc = ""]
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
     pub fn new_with_readable_stream_and_init(
         body: &ReadableStream,
         init: &ResponseInit,
-    ) -> Result<Response, JsValue>;
+    ) -> Result<Response, JsException>;
     #[doc = " The **`Response.redirect()`** static method returns a `Response` resulting in a redirect to the specified URL."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/redirect_static)"]
-    # [wasm_bindgen (static_method_of = Response)]
-    pub fn redirect(url: &str) -> Response;
+    #[doc = ""]
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `RangeError` — if `status` is not a redirect status"]
+    #[doc = " * `TypeError` — if `url` is not a valid URL"]
+    # [wasm_bindgen (static_method_of = Response , catch)]
+    pub fn redirect(url: &str) -> Result<Response, JsException>;
     #[doc = " The **`Response.redirect()`** static method returns a `Response` resulting in a redirect to the specified URL."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/redirect_static)"]
+    #[doc = ""]
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `RangeError` — if `status` is not a redirect status"]
+    #[doc = " * `TypeError` — if `url` is not a valid URL"]
     # [wasm_bindgen (static_method_of = Response , catch , js_name = "redirect")]
-    pub fn try_redirect(url: &str) -> Result<Response, JsValue>;
-    #[doc = " The **`Response.redirect()`** static method returns a `Response` resulting in a redirect to the specified URL."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/redirect_static)"]
-    # [wasm_bindgen (static_method_of = Response , js_name = "redirect")]
-    pub fn redirect_with_status(url: &str, status: f64) -> Response;
-    #[doc = " The **`Response.redirect()`** static method returns a `Response` resulting in a redirect to the specified URL."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/redirect_static)"]
-    # [wasm_bindgen (static_method_of = Response , catch , js_name = "redirect")]
-    pub fn try_redirect_with_status(url: &str, status: f64) -> Result<Response, JsValue>;
+    pub fn redirect_with_status(url: &str, status: f64) -> Result<Response, JsException>;
     #[doc = " The **`Response.json()`** static method returns a `Response` that contains the provided JSON data as body, and a `Content-Type` header which is set to `application/json`."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/json_static)"]
-    # [wasm_bindgen (static_method_of = Response)]
-    pub fn json(data: &JsValue) -> Response;
+    #[doc = ""]
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `data` cannot be serialized or `init` is invalid"]
+    # [wasm_bindgen (static_method_of = Response , catch)]
+    pub fn json(data: &JsValue) -> Result<Response, JsException>;
     #[doc = " The **`Response.json()`** static method returns a `Response` that contains the provided JSON data as body, and a `Content-Type` header which is set to `application/json`."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/json_static)"]
+    #[doc = ""]
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `data` cannot be serialized or `init` is invalid"]
     # [wasm_bindgen (static_method_of = Response , catch , js_name = "json")]
-    pub fn try_json(data: &JsValue) -> Result<Response, JsValue>;
-    #[doc = " The **`Response.json()`** static method returns a `Response` that contains the provided JSON data as body, and a `Content-Type` header which is set to `application/json`."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/json_static)"]
-    # [wasm_bindgen (static_method_of = Response , js_name = "json")]
-    pub fn json_with_init(data: &JsValue, init: &ResponseInit) -> Response;
-    #[doc = " The **`Response.json()`** static method returns a `Response` that contains the provided JSON data as body, and a `Content-Type` header which is set to `application/json`."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/json_static)"]
-    # [wasm_bindgen (static_method_of = Response , catch , js_name = "json")]
-    pub fn try_json_with_init(data: &JsValue, init: &ResponseInit) -> Result<Response, JsValue>;
+    pub fn json_with_init(data: &JsValue, init: &ResponseInit) -> Result<Response, JsException>;
     #[doc = " The **`status`** read-only property of the Response interface contains the HTTP status codes of the response."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/status)"]
@@ -484,23 +467,22 @@ extern "C" {
     #[doc = " The **`clone()`** method of the Response interface creates a clone of a response object, identical in every way, but stored in a different variable."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/clone)"]
-    #[wasm_bindgen(method)]
-    pub fn clone(this: &Response) -> Response;
-    #[doc = " The **`clone()`** method of the Response interface creates a clone of a response object, identical in every way, but stored in a different variable."]
     #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/clone)"]
-    #[wasm_bindgen(method, catch, js_name = "clone")]
-    pub fn try_clone(this: &Response) -> Result<Response, JsValue>;
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if the body has already been used"]
+    #[wasm_bindgen(method, catch)]
+    pub fn clone(this: &Response) -> Result<Response, JsException>;
     #[doc = " The **`arrayBuffer()`** method of the Response interface reads the response body and returns it as a promise that resolves with an ArrayBuffer."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/arrayBuffer)"]
     #[wasm_bindgen(method, catch, js_name = "arrayBuffer")]
-    pub async fn array_buffer(this: &Response) -> Result<ArrayBuffer, JsValue>;
+    pub async fn array_buffer(this: &Response) -> Result<ArrayBuffer, crate::Error>;
     #[doc = " The **`text()`** method of the Response interface reads the response body and returns it as a promise that resolves with a string."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/text)"]
     #[wasm_bindgen(method, catch)]
-    pub async fn text(this: &Response) -> Result<JsString, JsValue>;
+    pub async fn text(this: &Response) -> Result<JsString, crate::Error>;
 }
 #[wasm_bindgen]
 extern "C" {
@@ -573,23 +555,13 @@ extern "C" {
     #[doc = " The **`waitUntil()`** method extends the lifetime of the event. It accepts a Promise-based task which the Workers runtime will execute before the handler terminates but without blocking the response."]
     #[doc = ""]
     #[doc = " [Cloudflare Docs Reference](https://developers.cloudflare.com/workers/runtime-apis/context/#waituntil)"]
-    #[wasm_bindgen(method, js_name = "waitUntil")]
-    pub fn wait_until(this: &ExecutionContext, promise: &Promise);
-    #[doc = " The **`waitUntil()`** method extends the lifetime of the event. It accepts a Promise-based task which the Workers runtime will execute before the handler terminates but without blocking the response."]
-    #[doc = ""]
-    #[doc = " [Cloudflare Docs Reference](https://developers.cloudflare.com/workers/runtime-apis/context/#waituntil)"]
     #[wasm_bindgen(method, catch, js_name = "waitUntil")]
-    pub fn try_wait_until(this: &ExecutionContext, promise: &Promise) -> Result<(), JsValue>;
-    #[doc = " The **`passThroughOnException()`** method prevents a runtime error response when the Worker script throws an unhandled exception. Instead, the request will be forwarded to the origin server as if the Worker did not exist."]
-    #[doc = ""]
-    #[doc = " [Cloudflare Docs Reference](https://developers.cloudflare.com/workers/runtime-apis/context/#passthroughonexception)"]
-    #[wasm_bindgen(method, js_name = "passThroughOnException")]
-    pub fn pass_through_on_exception(this: &ExecutionContext);
+    pub fn wait_until(this: &ExecutionContext, promise: &Promise) -> Result<(), crate::Error>;
     #[doc = " The **`passThroughOnException()`** method prevents a runtime error response when the Worker script throws an unhandled exception. Instead, the request will be forwarded to the origin server as if the Worker did not exist."]
     #[doc = ""]
     #[doc = " [Cloudflare Docs Reference](https://developers.cloudflare.com/workers/runtime-apis/context/#passthroughonexception)"]
     #[wasm_bindgen(method, catch, js_name = "passThroughOnException")]
-    pub fn try_pass_through_on_exception(this: &ExecutionContext) -> Result<(), JsValue>;
+    pub fn pass_through_on_exception(this: &ExecutionContext) -> Result<(), crate::Error>;
 }
 #[wasm_bindgen]
 extern "C" {
@@ -597,7 +569,7 @@ extern "C" {
     #[doc = ""]
     #[doc = " [Cloudflare Docs Reference](https://developers.cloudflare.com/workers/runtime-apis/handlers/)"]
     #[wasm_bindgen(catch)]
-    pub async fn fetch(input: &Request) -> Result<Response, JsValue>;
+    pub async fn fetch(input: &Request) -> Result<Response, crate::Error>;
 }
 #[wasm_bindgen]
 extern "C" {
@@ -605,7 +577,7 @@ extern "C" {
     #[doc = ""]
     #[doc = " [Cloudflare Docs Reference](https://developers.cloudflare.com/workers/runtime-apis/handlers/)"]
     #[wasm_bindgen(catch, js_name = "fetch")]
-    pub async fn fetch_with_str(input: &str) -> Result<Response, JsValue>;
+    pub async fn fetch_with_str(input: &str) -> Result<Response, crate::Error>;
 }
 #[wasm_bindgen]
 extern "C" {
@@ -616,7 +588,7 @@ extern "C" {
     pub async fn fetch_with_request_and_init(
         input: &Request,
         init: &RequestInit,
-    ) -> Result<Response, JsValue>;
+    ) -> Result<Response, crate::Error>;
 }
 #[wasm_bindgen]
 extern "C" {
@@ -627,10 +599,64 @@ extern "C" {
     pub async fn fetch_with_str_and_init(
         input: &str,
         init: &RequestInit,
-    ) -> Result<Response, JsValue>;
+    ) -> Result<Response, crate::Error>;
 }
 #[wasm_bindgen]
 pub enum BodyKind {
     String(String),
     ArrayBuffer(ArrayBuffer),
 }
+#[doc = " Every JS error class named by a `@throws` in these bindings; `Other` is any other thrown value. `Display` is the error's `message`."]
+#[derive(Debug, Clone)]
+pub enum JsException {
+    TypeError(TypeError),
+    RangeError(RangeError),
+    Other(JsValue),
+}
+impl From<JsValue> for JsException {
+    fn from(value: JsValue) -> Self {
+        let value = match value.dyn_into::<TypeError>() {
+            Ok(error) => return Self::TypeError(error),
+            Err(value) => value,
+        };
+        let value = match value.dyn_into::<RangeError>() {
+            Ok(error) => return Self::RangeError(error),
+            Err(value) => value,
+        };
+        Self::Other(value)
+    }
+}
+impl From<JsException> for JsValue {
+    fn from(error: JsException) -> Self {
+        match error {
+            JsException::TypeError(error) => error.into(),
+            JsException::RangeError(error) => error.into(),
+            JsException::Other(value) => value,
+        }
+    }
+}
+impl AsRef<JsValue> for JsException {
+    fn as_ref(&self) -> &JsValue {
+        match self {
+            Self::TypeError(error) => error.as_ref(),
+            Self::RangeError(error) => error.as_ref(),
+            Self::Other(value) => value,
+        }
+    }
+}
+impl core::fmt::Display for JsException {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let value: &JsValue = self.as_ref();
+        if let Some(error) = value.dyn_ref::<::js_sys::Error>() {
+            return f.write_str(&String::from(error.message()));
+        }
+        if let Some(string) = value.as_string() {
+            return f.write_str(&string);
+        }
+        match value.dyn_ref::<::js_sys::Object>() {
+            Some(object) => f.write_str(&String::from(object.to_string())),
+            None => write!(f, "{value:?}"),
+        }
+    }
+}
+impl std::error::Error for JsException {}

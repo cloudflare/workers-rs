@@ -19,7 +19,6 @@ const mf = new Miniflare({
   workers: [
     {
       config: {
-        type: "worker",
         name: "ts-gen-worker-test",
         compatibilityDate: "2026-03-17",
         manifest: {
@@ -127,7 +126,21 @@ describe("ts-gen-worker", () => {
     expect(await (await get("/stream")).text()).toBe("body=false");
   });
 
-  test("Err(JsValue) becomes a 500", async () => {
+  test("@throws {TypeError} is matched as JsException::TypeError", async () => {
+    const res = await get("/bad-header");
+    expect(await res.text()).toBe("TypeError: Invalid header name.");
+  });
+
+  test("@throws {RangeError} is matched as JsException::RangeError", async () => {
+    expect(await (await get("/bad-redirect")).text()).toBe("RangeError");
+  });
+
+  test("Error::Js(JsException::TypeError) via From, Display is the message", async () => {
+    const body = await (await get("/error-display")).text();
+    expect(body).toBe("true Invalid header name.");
+  });
+
+  test("Err(Error::Rust) becomes a 500", async () => {
     const res = await get("/error");
     expect(res.status).toBe(500);
   });
