@@ -84,7 +84,27 @@ fn text(body: &str, status: f64, content_type: &str) -> Result<Response> {
     )?)
 }
 
+#[cfg(feature = "http")]
+type HandlerRequest = HttpRequest;
+#[cfg(not(feature = "http"))]
+type HandlerRequest = Request;
+#[cfg(feature = "http")]
+type HandlerResponse = HttpResponse;
+#[cfg(not(feature = "http"))]
+type HandlerResponse = Response;
+
+/// Under `http` every request and response round-trips through the `http` crate types.
 #[event(fetch, respond_with_errors)]
+async fn main(req: HandlerRequest, env: Env, ctx: ExecutionContext) -> Result<HandlerResponse> {
+    #[cfg(feature = "http")]
+    {
+        let res = route(req.try_into()?, env, ctx).await?;
+        res.try_into()
+    }
+    #[cfg(not(feature = "http"))]
+    route(req, env, ctx).await
+}
+
 async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response> {
     let data = SomeSharedData { regex: &DATA_REGEX };
     let method = req.method();

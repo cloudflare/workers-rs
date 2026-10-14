@@ -3069,8 +3069,10 @@ dependencies = [
 name = "ts-gen-worker"
 version = "0.1.0"
 dependencies = [
+ "bytes",
  "futures-util",
  "http",
+ "http-body",
  "js-sys",
  "matchit 0.7.3",
  "pin-project",

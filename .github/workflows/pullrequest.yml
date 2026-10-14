@@ -263,6 +263,9 @@ jobs:
       - name: Run tests
         run: chomp test:ts-gen-worker
 
+      - name: Run tests with the http feature
+        run: chomp test:ts-gen-worker-http
+
   rustfmt:
     name: Formatter
     runs-on: ubuntu-latest

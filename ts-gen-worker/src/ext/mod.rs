@@ -2,13 +2,19 @@
 //! generated types plus the few Rust-native helper types (`Method`, `ByteStream`).
 
 mod context;
+mod handler;
 mod headers;
 mod http;
+#[cfg(feature = "http")]
+mod interop;
 mod response;
 #[cfg(feature = "serde")]
 mod serde;
 mod streams;
 
+pub use handler::{FromRequest, IntoResponse};
 pub use headers::HeadersIter;
 pub use http::Method;
+#[cfg(feature = "http")]
+pub use interop::{HttpRequest, HttpResponse};
 pub use streams::{readable_stream_from, ByteStream};

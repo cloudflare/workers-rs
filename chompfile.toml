@@ -65,6 +65,21 @@ cwd = 'ts-gen-worker/test'
 env.NODE_OPTIONS = '--experimental-vm-modules'
 run = 'npx vitest run --root .'
 
+# The same suite with the fetch handler over `http::Request`/`http::Response`.
+[[task]]
+name = 'build:ts-gen-worker-http'
+deps = ['build:wasm-bindgen']
+run = '''cargo build -p ts-gen-worker-test --features http --target wasm32-unknown-unknown
+wasm-bindgen/target/debug/wasm-bindgen --target module --out-name index \
+  --out-dir ts-gen-worker/test/build target/wasm32-unknown-unknown/debug/ts_gen_worker_test.wasm'''
+
+[[task]]
+name = 'test:ts-gen-worker-http'
+deps = ['build:ts-gen-worker-http']
+cwd = 'ts-gen-worker/test'
+env.NODE_OPTIONS = '--experimental-vm-modules'
+run = 'npx vitest run --root .'
+
 [[task]]
 name = 'build:wasm-bindgen'
 cwd = 'wasm-bindgen'

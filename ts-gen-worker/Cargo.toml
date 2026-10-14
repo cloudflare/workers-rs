@@ -8,8 +8,10 @@ description = "Cloudflare Workers bindings generated from TypeScript declaration
 repository = "https://github.com/cloudflare/workers-rs"
 
 [dependencies]
+bytes = { version = "1.5", optional = true }
 futures-util.workspace = true
 http = { workspace = true, optional = true }
+http-body = { version = "1", optional = true }
 js-sys.workspace = true
 matchit = "0.7"
 pin-project = "1.1.0"
@@ -28,4 +30,4 @@ web-sys = { version = "0.3.106", features = ["ReadableStream"] }
 default = ["serde"]
 serde = ["dep:serde", "dep:serde_json", "dep:serde_urlencoded", "dep:serde-wasm-bindgen"]
 url = ["dep:url"]
-http = ["dep:http"]
+http = ["dep:http", "dep:http-body", "dep:bytes"]

@@ -26,3 +26,6 @@ url = "2"
 uuid = { version = "1.17", features = ["v4", "serde", "js"] }
 wasm-bindgen.workspace = true
 wasm-bindgen-futures.workspace = true
+
+[features]
+http = ["ts-gen-worker/http"]

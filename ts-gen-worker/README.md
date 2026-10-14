@@ -65,9 +65,27 @@ mapping is: `Response::ok(..)` → `Response::builder().ok(..)` (and `error`,
 `ctx.wait_until(fut)` → `ctx.spawn(fut)`, `req.method()` → `req.method().parse::<Method>()`.
 See `PARITY.md` for the full table.
 
+## `http` feature
+
+With `http` enabled a `fetch` handler can take and return the `http` crate's
+types, with `ByteStream` as the body:
+
+```rust
+#[event(fetch)]
+async fn main(req: HttpRequest, env: env::Env, ctx: ExecutionContext) -> Result<HttpResponse> {
+    ..
+}
+```
+
+`Request`/`Response` and `http::Request`/`http::Response<B>` convert with
+`try_into()` in both directions; `AbortSignal`, `IncomingRequestCfProperties`
+and `WebSocket` travel in the `http` extensions. The feature also adds
+`HeaderMap` conversions on `Headers`.
+
 ## Development
 
 - `chomp build:ts-gen-worker:types` regenerates `src/bindings.rs` and
   `test/src/env.rs` after editing the `.d.ts` files.
 - `chomp test:ts-gen-worker` builds the test worker and runs its vitest suite
-  under miniflare.
+  under miniflare; `chomp test:ts-gen-worker-http` runs it with the handler
+  over the `http` types.

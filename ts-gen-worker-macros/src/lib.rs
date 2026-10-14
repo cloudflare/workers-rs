@@ -8,7 +8,9 @@ use proc_macro::TokenStream;
 
 /// Exports the function as a Worker handler.
 ///
-/// * `fetch`: `async fn(Request, Env, ExecutionContext) -> Result<Response, E>`
+/// * `fetch`: `async fn(Request, Env, ExecutionContext) -> Result<Response, E>`; the request
+///   and response types may be anything `FromRequest`/`IntoResponse` cover, such as the
+///   `http` crate's under that feature
 /// * `scheduled`: `async fn(ScheduledController, Env, ExecutionContext)`
 /// * `queue`: `async fn(MessageBatch<_>, Env, ExecutionContext) -> Result<(), E>`
 /// * `email`: `async fn(ForwardableEmailMessage, Env, ExecutionContext) -> Result<(), E>`

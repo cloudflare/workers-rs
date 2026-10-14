@@ -117,6 +117,10 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> Result<TokenStream> {
         ));
     }
     let args: Vec<Ident> = (0..3).map(|i| format_ident!("arg{i}")).collect();
+    let mut types = types;
+    if kind == Kind::Fetch {
+        types[0] = syn::parse_quote!(::ts_gen_worker::Request);
+    }
     let js_name = kind.js_name();
     let wrapper = format_ident!("__ts_gen_worker_{js_name}");
 
@@ -125,19 +129,28 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> Result<TokenStream> {
     } else {
         quote! { ::core::option::Option::None }
     };
+    let failed = quote! {
+        Err(err) => {
+            let message = #message;
+            ::ts_gen_worker::__macro::error_response(
+                ::core::convert::Into::<::ts_gen_worker::wasm_bindgen::JsValue>::into(err),
+                message,
+            )
+        }
+    };
     let (output, body) = match kind {
         Kind::Fetch => (
             quote! { ::ts_gen_worker::Response },
             quote! {
-                match #name(#(#args),*).await {
-                    Ok(response) => response,
-                    Err(err) => {
-                        let message = #message;
-                        ::ts_gen_worker::__macro::error_response(
-                            ::core::convert::Into::<::ts_gen_worker::wasm_bindgen::JsValue>::into(err),
-                            message,
-                        )
-                    }
+                match ::ts_gen_worker::FromRequest::from_request(arg0) {
+                    Ok(req) => match #name(req, arg1, arg2).await {
+                        Ok(res) => match ::ts_gen_worker::IntoResponse::into_response(res) {
+                            Ok(res) => res,
+                            #failed
+                        },
+                        #failed
+                    },
+                    #failed
                 }
             },
         ),
