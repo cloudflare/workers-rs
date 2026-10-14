@@ -302,6 +302,10 @@ describe("ts-gen-worker ext: Rust-native surface", () => {
     expect(await (await get2("/ext/builder-header")).text()).toBe("2 text/csv https://a.test");
   });
 
+  test("Request::new_with_method", async () => {
+    expect(await (await get2("/ext/request-method")).text()).toBe("PUT https://upstream.test/x");
+  });
+
   test("builder.from_websocket", async () => {
     expect(await (await get2("/ext/from-websocket")).text()).toBe("101 true");
   });

@@ -8,10 +8,7 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
 pub async fn handle_fetch(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
-    let req = Request::new_with_str_and_init(
-        "https://example.com",
-        &RequestInit::builder().method("POST").build(),
-    )?;
+    let req = Request::new_with_method("https://example.com", Method::Post)?;
     let resp = fetch(&req).await?;
     let resp2 = fetch_with_str("https://example.com").await?;
     Response::builder().ok(format!(

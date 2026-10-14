@@ -446,6 +446,11 @@ pub async fn handle(
             ))
         }
 
+        ("GET", ["request-method"]) => {
+            let req = Request::new_with_method("https://upstream.test/x", Method::Put)?;
+            Response::builder().ok(format!("{} {}", req.method(), req.url()))
+        }
+
         ("GET", ["from-websocket"]) => {
             let pair = WebSocketPair::new()?;
             pair._1().accept()?;

@@ -1,7 +1,7 @@
 use std::fmt;
 use std::str::FromStr;
 
-use crate::{Error, Request, URL};
+use crate::{Error, Request, RequestInit, URL};
 
 /// HTTP method of a `Request`, parsed from the generated `method() -> String`.
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -86,6 +86,12 @@ impl fmt::Display for Method {
 }
 
 impl Request {
+    /// `new Request(url, { method })`.
+    pub fn new_with_method(url: &str, method: Method) -> crate::Result<Request> {
+        let init = RequestInit::builder().method(method.as_ref()).build();
+        Ok(Request::new_with_str_and_init(url, &init)?)
+    }
+
     fn parsed_url(&self) -> crate::Result<URL> {
         URL::new(&self.url())
     }
