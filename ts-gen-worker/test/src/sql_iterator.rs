@@ -1,13 +1,12 @@
 use crate::Env;
 use serde::Deserialize;
 use ts_gen_worker::*;
-use wasm_bindgen::prelude::*;
 
 use crate::sql::{self, SqlStorageValue};
 use crate::util::{ok, url};
 
 /// A Durable Object that demonstrates SQL cursor iterator methods.
-#[wasm_bindgen]
+#[durable_object]
 pub struct SqlIterator {
     sql: SqlStorage,
 }
@@ -70,10 +69,10 @@ fn count(sql: &SqlStorage, query: &str) -> i64 {
         .unwrap_or(0)
 }
 
-#[wasm_bindgen]
-impl SqlIterator {
-    #[wasm_bindgen(constructor)]
-    pub fn new(state: DurableObjectState, _env: Env) -> SqlIterator {
+impl DurableObject for SqlIterator {
+    type Env = Env;
+
+    fn new(state: DurableObjectState, _env: Env) -> SqlIterator {
         let sql = state.storage().sql();
 
         sql::exec(
@@ -132,7 +131,7 @@ impl SqlIterator {
         Self { sql }
     }
 
-    pub async fn fetch(&self, req: Request) -> Result<Response> {
+    async fn fetch(&self, req: Request) -> Result<Response> {
         let url = url(&req)?;
         let path = url.path();
 

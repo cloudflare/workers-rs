@@ -5,23 +5,23 @@ use wasm_bindgen::prelude::*;
 use super::SomeSharedData;
 use crate::util::{ok, storage_get, storage_put};
 
-#[wasm_bindgen]
+#[durable_object]
 pub struct AlarmObject {
     state: DurableObjectState,
     _buffer: Vec<u8>,
 }
 
-#[wasm_bindgen]
-impl AlarmObject {
-    #[wasm_bindgen(constructor)]
-    pub fn new(state: DurableObjectState, _env: Env) -> AlarmObject {
+impl DurableObject for AlarmObject {
+    type Env = Env;
+
+    fn new(state: DurableObjectState, _env: Env) -> AlarmObject {
         Self {
             state,
             _buffer: Vec::with_capacity(111_000_000),
         }
     }
 
-    pub async fn fetch(&self, _req: Request) -> Result<Response> {
+    async fn fetch(&self, _req: Request) -> Result<Response> {
         self.state
             .storage()
             .set_alarm(js_sys::Date::now() + 100.0)
@@ -32,10 +32,10 @@ impl AlarmObject {
         ok(alarmed.to_string())
     }
 
-    pub async fn alarm(&self) -> Result<Response> {
+    async fn alarm(&self) -> Result<()> {
         storage_put(&self.state.storage(), "alarmed", true).await?;
         console::log(&["Alarm has been triggered!".into()]);
-        ok("ALARMED")
+        Ok(())
     }
 }
 

@@ -1,7 +1,6 @@
 use crate::Env;
 use std::cell::Cell;
 use ts_gen_worker::*;
-use wasm_bindgen::prelude::*;
 
 use crate::util::{
     from_websocket, message_text, ok, on_websocket_events, path, storage_get, storage_put,
@@ -9,7 +8,7 @@ use crate::util::{
 };
 use crate::SomeSharedData;
 
-#[wasm_bindgen]
+#[durable_object]
 pub struct Counter {
     count: Cell<usize>,
     unstored_count: Cell<usize>,
@@ -18,10 +17,10 @@ pub struct Counter {
     env: Env,
 }
 
-#[wasm_bindgen]
-impl Counter {
-    #[wasm_bindgen(constructor)]
-    pub fn new(state: DurableObjectState, env: Env) -> Counter {
+impl DurableObject for Counter {
+    type Env = Env;
+
+    fn new(state: DurableObjectState, env: Env) -> Counter {
         Self {
             count: Cell::new(0),
             unstored_count: Cell::new(0),
@@ -31,7 +30,7 @@ impl Counter {
         }
     }
 
-    pub async fn fetch(&self, req: Request) -> Result<Response> {
+    async fn fetch(&self, req: Request) -> Result<Response> {
         if !self.initialized.get() {
             self.initialized.set(true);
             self.count.set(
@@ -63,8 +62,7 @@ impl Counter {
         ))
     }
 
-    #[wasm_bindgen(js_name = "webSocketMessage")]
-    pub async fn web_socket_message(&self, ws: WebSocket, _message: JsValue) -> Result<()> {
+    async fn websocket_message(&self, ws: WebSocket, _message: DataKind) -> Result<()> {
         let _attach: String = ws
             .deserialize_attachment()?
             .as_string()
@@ -79,19 +77,17 @@ impl Counter {
         Ok(())
     }
 
-    #[wasm_bindgen(js_name = "webSocketClose")]
-    pub async fn web_socket_close(
+    async fn websocket_close(
         &self,
         _ws: WebSocket,
-        _code: f64,
+        _code: usize,
         _reason: String,
         _was_clean: bool,
     ) -> Result<()> {
         Ok(())
     }
 
-    #[wasm_bindgen(js_name = "webSocketError")]
-    pub async fn web_socket_error(&self, _ws: WebSocket, _error: JsValue) -> Result<()> {
+    async fn websocket_error(&self, _ws: WebSocket, _error: Error) -> Result<()> {
         Ok(())
     }
 }

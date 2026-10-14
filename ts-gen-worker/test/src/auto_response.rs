@@ -1,22 +1,21 @@
 use crate::Env;
 use ts_gen_worker::*;
-use wasm_bindgen::prelude::*;
 
 use crate::util::{error, ok, path};
 
-#[wasm_bindgen]
+#[durable_object]
 pub struct AutoResponseObject {
     state: DurableObjectState,
 }
 
-#[wasm_bindgen]
-impl AutoResponseObject {
-    #[wasm_bindgen(constructor)]
-    pub fn new(state: DurableObjectState, _env: Env) -> AutoResponseObject {
+impl DurableObject for AutoResponseObject {
+    type Env = Env;
+
+    fn new(state: DurableObjectState, _env: Env) -> AutoResponseObject {
         Self { state }
     }
 
-    pub async fn fetch(&self, req: Request) -> Result<Response> {
+    async fn fetch(&self, req: Request) -> Result<Response> {
         match path(&req)?.as_str() {
             "/set" => {
                 let pair = WebSocketRequestResponsePair::new("ping", "pong")?;

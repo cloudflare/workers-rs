@@ -1,20 +1,19 @@
 use crate::Env;
 use ts_gen_worker::*;
-use wasm_bindgen::prelude::*;
 
 use crate::sql::{self, SqlStorageValue};
 use crate::util::{ok, url};
 
 /// A simple SQLite-backed counter stored in Durable Object storage.
-#[wasm_bindgen]
+#[durable_object]
 pub struct SqlCounter {
     sql: SqlStorage,
 }
 
-#[wasm_bindgen]
-impl SqlCounter {
-    #[wasm_bindgen(constructor)]
-    pub fn new(state: DurableObjectState, _env: Env) -> SqlCounter {
+impl DurableObject for SqlCounter {
+    type Env = Env;
+
+    fn new(state: DurableObjectState, _env: Env) -> SqlCounter {
         let sql = state.storage().sql();
         sql::exec(
             &sql,
@@ -25,7 +24,7 @@ impl SqlCounter {
         Self { sql }
     }
 
-    pub async fn fetch(&self, req: Request) -> Result<Response> {
+    async fn fetch(&self, req: Request) -> Result<Response> {
         let url = url(&req)?;
         let path = url.path();
 

@@ -6,7 +6,7 @@ use wasm_bindgen::prelude::*;
 use crate::util::{ok, storage_get};
 use crate::SomeSharedData;
 
-#[wasm_bindgen]
+#[durable_object]
 pub struct PutRawTestObject {
     state: DurableObjectState,
 }
@@ -49,14 +49,14 @@ impl PutRawTestObject {
     }
 }
 
-#[wasm_bindgen]
-impl PutRawTestObject {
-    #[wasm_bindgen(constructor)]
-    pub fn new(state: DurableObjectState, _env: Env) -> PutRawTestObject {
+impl DurableObject for PutRawTestObject {
+    type Env = Env;
+
+    fn new(state: DurableObjectState, _env: Env) -> PutRawTestObject {
         Self { state }
     }
 
-    pub async fn fetch(&self, _req: Request) -> Result<Response> {
+    async fn fetch(&self, _req: Request) -> Result<Response> {
         self.put_raw().await?;
         self.put_multiple_raw().await?;
 

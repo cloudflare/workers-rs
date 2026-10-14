@@ -11,7 +11,7 @@ use ts_gen_worker::*;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
-#[wasm_bindgen]
+#[durable_object]
 pub struct MyClass {
     state: DurableObjectState,
     number: Cell<usize>,
@@ -20,10 +20,10 @@ pub struct MyClass {
     limit: Rc<Cell<u64>>,
 }
 
-#[wasm_bindgen]
-impl MyClass {
-    #[wasm_bindgen(constructor)]
-    pub fn new(state: DurableObjectState, _env: Env) -> MyClass {
+impl DurableObject for MyClass {
+    type Env = Env;
+
+    fn new(state: DurableObjectState, _env: Env) -> MyClass {
         let ctor_name = state.id().name();
         let init_runs = Rc::new(Cell::new(0));
         let limit = Rc::new(Cell::new(0));
@@ -48,7 +48,7 @@ impl MyClass {
         }
     }
 
-    pub async fn fetch(&self, req: Request) -> Result<Response> {
+    async fn fetch(&self, req: Request) -> Result<Response> {
         let handler = async move {
             match path(&req)?.as_str() {
                 "/hello" => {
@@ -248,24 +248,24 @@ impl MyClass {
     }
 }
 
-#[wasm_bindgen]
+#[durable_object]
 pub struct AnotherClass {
     #[allow(unused)]
     state: DurableObjectState,
     counter: Cell<i32>,
 }
 
-#[wasm_bindgen]
-impl AnotherClass {
-    #[wasm_bindgen(constructor)]
-    pub fn new(state: DurableObjectState, _env: Env) -> AnotherClass {
+impl DurableObject for AnotherClass {
+    type Env = Env;
+
+    fn new(state: DurableObjectState, _env: Env) -> AnotherClass {
         Self {
             state,
             counter: Cell::new(0),
         }
     }
 
-    pub async fn fetch(&self, _req: Request) -> Result<Response> {
+    async fn fetch(&self, _req: Request) -> Result<Response> {
         self.counter.set(self.counter.get() + 1);
         ok(format!("Counter: {}", self.counter.get()))
     }
