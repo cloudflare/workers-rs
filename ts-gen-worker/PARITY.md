@@ -68,6 +68,10 @@ Creative choices made by agents, with justification. Guy reviews these.
   Rule: wrappers are only emitted where the extern ABI cannot express the declared type; the
   extern binding stays available under a private name. Unblocks the `u64` and literal-overload
   items in `parity/workers-types.md`; Guy to confirm.
+- **Awaited values lower like sync returns** (`text().await? -> String`, `Promise<number>` →
+  `f64`); `declare const` statics are `SCREAMING_SNAKE_CASE`; instance members own the base name
+  over statics (`_static` suffix); variadic callbacks lower to the untyped `Function`.
+  (`parity/errors.md` Session 3)
 - **`Promise<T | null>` → `JsNullable<T>`; `_with_null` only where omission cannot express null;
   `<name>_promise()` beside every async binding** (workers-rs-2, `parity/errors.md` Session 2).
 - **`http` feature mirrors `worker`'s**: `TryFrom` conversions and `#[event(fetch)]` accepting an
