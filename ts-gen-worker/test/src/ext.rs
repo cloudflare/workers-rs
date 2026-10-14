@@ -103,7 +103,7 @@ fn router<'a>() -> Router<'a, Env, u32> {
             Response::builder().ok(format!("sync {} {}", ctx.param("id").unwrap(), ctx.data))
         })
         .post_async("/ext/router/async/:id", |req, ctx| async move {
-            let body = String::from(req.text().await?);
+            let body = req.text().await?;
             Response::builder().ok(format!(
                 "async {} {body} {}",
                 ctx.param("id").unwrap(),
@@ -222,7 +222,7 @@ pub async fn handle(
         ("GET", ["counter"]) => {
             let stub = env.macro_counter().get_by_name("main")?;
             let res = stub.fetch_with_str("https://do/hit").await?;
-            Response::builder().ok(String::from(res.text().await?))
+            Response::builder().ok(res.text().await?)
         }
 
         ("GET", ["error-number"]) => Err(JsValue::from(42).into()),

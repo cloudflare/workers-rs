@@ -1,4 +1,3 @@
-use crate::util::text;
 use crate::{Env, SomeSharedData};
 use js_sys::{Object, Reflect, Uint8Array};
 use serde::de::DeserializeOwned;
@@ -106,7 +105,7 @@ pub async fn prepared_statement(
     let people = results::<Person>(&all)?;
 
     assert!(all.success());
-    assert!(all.error().is_undefined());
+    assert!(all.error().is_none());
     assert_eq!(people.len(), 1);
     assert_eq!(people[0].name, "Ryan Upton");
     assert_eq!(people[0].age, 21);
@@ -253,7 +252,7 @@ pub async fn session_bookmark_roundtrip(
 
 pub async fn exec(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let db = env.db();
-    let result = db.exec(&text(&req).await?).await.expect("doesn't exist");
+    let result = db.exec(&req.text().await?).await.expect("doesn't exist");
 
     Response::builder().ok((result.count() as u64).to_string())
 }

@@ -42,17 +42,15 @@ async fn test_store(env: &Env) -> KVNamespace {
 
 pub async fn get(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let store = test_store(&env).await;
-    let value = store.get("simple").await?.into_option();
-    match value {
-        Some(e) => Response::builder().ok(String::from(e)),
+    match store.get("simple").await? {
+        Some(e) => Response::builder().ok(e),
         None => Response::builder().error("not found", 404),
     }
 }
 
 pub async fn get_not_found(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let store = test_store(&env).await;
-    let value = store.get("not_found").await?.into_option();
-    match value {
+    match store.get("not_found").await? {
         Some(_) => Response::builder().error("unexpected value present", 500),
         None => Response::builder().ok("passed"),
     }
@@ -71,7 +69,7 @@ pub async fn put_simple(_req: Request, env: Env, _data: SomeSharedData) -> Resul
     let store = test_store(&env).await;
     store.put("put_a", "test").await?;
 
-    let val = String::from(store.get("put_a").await?.unwrap());
+    let val = store.get("put_a").await?.unwrap();
     kv_assert_eq!(val, "test")?;
 
     Response::builder().ok("passed")
@@ -109,7 +107,7 @@ pub async fn put_expiration(_req: Request, env: Env, _data: SomeSharedData) -> R
         )
         .await?;
 
-    let val = String::from(store.get("put_c").await?.unwrap());
+    let val = store.get("put_c").await?.unwrap();
     kv_assert_eq!(val, "test")?;
 
     let list = store

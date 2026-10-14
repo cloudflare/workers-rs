@@ -13,7 +13,7 @@ fn key(req: &Request) -> Result<Option<String>> {
 }
 
 fn default_cache() -> Cache {
-    caches.with(CacheStorage::default)
+    CACHES.with(CacheStorage::default)
 }
 
 fn timestamp_response() -> Result<Response> {
@@ -31,19 +31,15 @@ pub async fn handle_cache_example(
     _env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    console.with(|c| c.log(&[format!("url: {}", req.url()).into()]));
+    CONSOLE.with(|c| c.log(&[format!("url: {}", req.url()).into()]));
     let cache = default_cache();
     let key = req.url();
     let options = CacheQueryOptions::builder().ignore_method(true).build();
-    if let Some(resp) = cache
-        .match_with_str_and_options(&key, &options)
-        .await?
-        .into_option()
-    {
-        console.with(|c| c.log(&["Cache HIT!".into()]));
+    if let Some(resp) = cache.match_with_str_and_options(&key, &options).await? {
+        CONSOLE.with(|c| c.log(&["Cache HIT!".into()]));
         Ok(resp)
     } else {
-        console.with(|c| c.log(&["Cache MISS!".into()]));
+        CONSOLE.with(|c| c.log(&["Cache MISS!".into()]));
         let resp = timestamp_response()?;
         cache.put_with_str(&key, &resp.clone()?).await?;
         Ok(resp)
@@ -61,7 +57,6 @@ pub async fn handle_cache_api_get(
         if let Some(resp) = cache
             .match_with_str_and_options(&format!("https://{key}"), &options)
             .await?
-            .into_option()
         {
             return Ok(resp);
         }
@@ -96,8 +91,7 @@ pub async fn handle_cache_api_delete(
         let options = CacheQueryOptions::builder().ignore_method(true).build();
         let deleted = cache
             .delete_with_str_and_options(&format!("https://{key}"), &options)
-            .await?
-            .value_of();
+            .await?;
         // `worker::CacheDeletionOutcome` serializes as these two strings.
         let outcome = if deleted {
             "Success"
@@ -114,19 +108,15 @@ pub async fn handle_cache_stream(
     _env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    console.with(|c| c.log(&[format!("url: {}", req.url()).into()]));
+    CONSOLE.with(|c| c.log(&[format!("url: {}", req.url()).into()]));
     let cache = default_cache();
     let key = req.url();
     let options = CacheQueryOptions::builder().ignore_method(true).build();
-    if let Some(resp) = cache
-        .match_with_str_and_options(&key, &options)
-        .await?
-        .into_option()
-    {
-        console.with(|c| c.log(&["Cache HIT!".into()]));
+    if let Some(resp) = cache.match_with_str_and_options(&key, &options).await? {
+        CONSOLE.with(|c| c.log(&["Cache HIT!".into()]));
         Ok(resp)
     } else {
-        console.with(|c| c.log(&["Cache MISS!".into()]));
+        CONSOLE.with(|c| c.log(&["Cache MISS!".into()]));
         let count = (js_sys::Math::random() * 10.0) as usize;
         let transform = TransformStream::new()?;
         let writer = transform.writable().get_writer()?;
@@ -147,7 +137,7 @@ pub async fn handle_cache_stream(
             transform.readable().unchecked_ref(),
             &ResponseInit::builder().headers(&headers).build(),
         )?;
-        console.with(|c| c.log(&[format!("resp = {:?}", JsValue::from(&resp)).into()]));
+        CONSOLE.with(|c| c.log(&[format!("resp = {:?}", JsValue::from(&resp)).into()]));
         cache.put_with_str(&key, &resp.clone()?).await?;
         Ok(resp)
     }

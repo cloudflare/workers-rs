@@ -1,5 +1,5 @@
 use super::ApiData;
-use crate::util::{sleep, text};
+use crate::util::sleep;
 use crate::Env;
 use crate::SomeSharedData;
 use js_sys::Uint8Array;
@@ -118,7 +118,7 @@ pub async fn handle_async_text_echo(
     _env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    Response::builder().ok(text(&req).await?)
+    Response::builder().ok(req.text().await?)
 }
 
 pub async fn handle_secret(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
@@ -155,7 +155,7 @@ pub async fn handle_api_data(req: Request, _env: Env, _data: SomeSharedData) -> 
 
     unsafe { todo.title.as_mut_vec().reverse() };
 
-    console
+    CONSOLE
         .with(|c| c.log(&[format!("todo = (title {}) (id {})", todo.title, todo.user_id).into()]));
 
     Response::builder().from_bytes(&serde_json::to_vec(&todo).map_err(|e| e.to_string())?)

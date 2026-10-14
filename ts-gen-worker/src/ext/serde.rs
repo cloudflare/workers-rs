@@ -12,16 +12,14 @@ fn to_js<T: Serialize + ?Sized>(value: &T) -> Result<wasm_bindgen::JsValue> {
 impl Request {
     /// Reads the body as JSON into `T`.
     pub async fn json_into<T: DeserializeOwned>(&self) -> Result<T> {
-        let text = String::from(self.text().await?);
-        Ok(serde_json::from_str(&text)?)
+        Ok(serde_json::from_str(&self.text().await?)?)
     }
 }
 
 impl Response {
     /// Reads the body as JSON into `T`.
     pub async fn json_into<T: DeserializeOwned>(&self) -> Result<T> {
-        let text = String::from(self.text().await?);
-        Ok(serde_json::from_str(&text)?)
+        Ok(serde_json::from_str(&self.text().await?)?)
     }
 }
 

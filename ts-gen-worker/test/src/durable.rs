@@ -1,4 +1,4 @@
-use crate::util::{block_concurrency_while, response_text, sleep, storage_get, storage_put};
+use crate::util::{block_concurrency_while, sleep, storage_get, storage_put};
 use crate::Env;
 use js_sys::Uint8Array;
 use serde::Serialize;
@@ -334,34 +334,49 @@ pub async fn handle_basic_test(
     assert!(bad.is_undefined(), "Invalid binding did not raise error");
 
     let stub = namespace.get(&id)?;
-    let res = response_text(&stub.fetch_with_str("https://fake-host/hello").await?).await?;
-    let res2 = response_text(
-        &stub
-            .fetch(&Request::new_with_str_and_init(
-                "https://fake-host/hello",
-                &RequestInit::builder()
-                    .body_with_str("lol")
-                    .method("POST")
-                    .build(),
-            )?)
-            .await?,
-    )
-    .await?;
+    let res = stub
+        .fetch_with_str("https://fake-host/hello")
+        .await?
+        .text()
+        .await?;
+    let res2 = stub
+        .fetch(&Request::new_with_str_and_init(
+            "https://fake-host/hello",
+            &RequestInit::builder()
+                .body_with_str("lol")
+                .method("POST")
+                .build(),
+        )?)
+        .await?
+        .text()
+        .await?;
 
     assert_eq!(res, res2, "Durable object responded wrong to 'hello'");
 
-    let res = response_text(&stub.fetch_with_str("https://fake-host/storage").await?).await?;
+    let res = stub
+        .fetch_with_str("https://fake-host/storage")
+        .await?
+        .text()
+        .await?;
     let num = res.parse::<usize>().map_err(|_| {
         Error::from("Durable Object responded wrong to 'storage': ".to_string() + &res)
     })?;
-    let res = response_text(&stub.fetch_with_str("https://fake-host/storage").await?).await?;
+    let res = stub
+        .fetch_with_str("https://fake-host/storage")
+        .await?
+        .text()
+        .await?;
     let num2 = res
         .parse::<usize>()
         .map_err(|_| Error::from("Durable Object responded wrong to 'storage'"))?;
 
     assert_eq!(num2, num + 1, "Durable object responded wrong to 'storage'");
 
-    let res = response_text(&stub.fetch_with_str("https://fake-host/transaction").await?).await?;
+    let res = stub
+        .fetch_with_str("https://fake-host/transaction")
+        .await?
+        .text()
+        .await?;
     let num = res.parse::<usize>().map_err(|_| {
         Error::from("Durable Object responded wrong to 'transaction': ".to_string() + &res)
     })?;

@@ -1,7 +1,7 @@
 //! `worker::SqlStorageValue` and cursor iteration over the generated
 //! `SqlStorage` / `SqlStorageCursor`, whose row values are erased to `JsValue`.
 
-use js_sys::{Reflect, Uint8Array};
+use js_sys::Uint8Array;
 use serde::de::DeserializeOwned;
 use ts_gen_worker::*;
 use wasm_bindgen::prelude::*;
@@ -112,14 +112,10 @@ pub fn rows<T: DeserializeOwned>(
 ) -> impl Iterator<Item = Result<T>> + '_ {
     std::iter::from_fn(move || {
         let result = match cursor.next() {
-            Ok(NextReturnKind::Object(result) | NextReturnKind::Object2(result)) => result,
+            Ok(result) => result,
             Err(e) => return Some(Err(e)),
         };
-        let done = Reflect::get(&result, &"done".into()).ok()?.is_truthy();
-        if done {
-            return None;
-        }
-        let value = Reflect::get(&result, &"value".into()).ok()?;
+        let value = result.value()?;
         Some(serde_wasm_bindgen::from_value(value).map_err(|e| Error::from(e.to_string())))
     })
 }

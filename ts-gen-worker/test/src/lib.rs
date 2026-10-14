@@ -64,7 +64,7 @@ static DATA_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\d{4}-\d{2}-
 #[event(start)]
 pub fn start() {
     std::panic::set_hook(Box::new(|info| {
-        console.with(|c| c.error(&[info.to_string().into()]))
+        CONSOLE.with(|c| c.error(&[info.to_string().into()]))
     }));
     GLOBAL_STATE.store(true, Ordering::SeqCst);
 }
@@ -140,7 +140,7 @@ async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response
             )?)
         }
         ("POST", ["echo"]) => {
-            let body: String = req.text().await?.into();
+            let body = req.text().await?;
             let name = req.headers().get("x-name")?.unwrap_or_default();
             Ok(Response::new_with_str(&format!("{name}: {body}"))?)
         }
@@ -158,8 +158,8 @@ async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response
         }
         ("POST", ["clone"]) => {
             let copy = req.clone()?;
-            let a: String = req.text().await?.into();
-            let b: String = copy.text().await?.into();
+            let a = req.text().await?;
+            let b = copy.text().await?;
             Ok(Response::new_with_str(&format!("{a}|{b}"))?)
         }
         ("GET", ["json"]) => {
@@ -176,11 +176,11 @@ async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response
             let upstream = fetch_with_str("https://upstream.test/data").await?;
             let status = upstream.status();
             let ok = upstream.ok();
-            let body: String = upstream.text().await?.into();
+            let body = upstream.text().await?;
             text(&format!("{status} {ok} {body}"), 200, "text/plain")
         }
         ("POST", ["fetch-init"]) => {
-            let body: String = req.text().await?.into();
+            let body = req.text().await?;
             let headers = Headers::new()?;
             headers.set("x-forwarded", "yes")?;
             let init = RequestInit::builder()
@@ -189,7 +189,7 @@ async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response
                 .body_with_str(&body)
                 .build();
             let upstream = fetch_with_str_and_init("https://upstream.test/echo", &init).await?;
-            let echoed: String = upstream.text().await?.into();
+            let echoed = upstream.text().await?;
             Ok(Response::new_with_str(&echoed)?)
         }
         ("GET", ["wait-until"]) => {
@@ -198,8 +198,8 @@ async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response
             Ok(Response::new_with_str("ok")?)
         }
         ("GET", ["log"]) => {
-            console.with(|c| c.log(&[JsValue::from("hello"), 1.0.into()]));
-            console.with(|c| c.warn(&Array::of1(&"warned".into()).to_vec()));
+            CONSOLE.with(|c| c.log(&[JsValue::from("hello"), 1.0.into()]));
+            CONSOLE.with(|c| c.warn(&Array::of1(&"warned".into()).to_vec()));
             Ok(Response::new_with_str("logged")?)
         }
         ("GET", ["stream"]) => {
@@ -452,15 +452,14 @@ async fn handle_close_event(_req: Request, env: Env, _data: SomeSharedData) -> R
     let got_close_event = some_namespace_kv
         .get("got-close-event")
         .await?
-        .into_option()
-        .map_or_else(|| "false".into(), String::from);
+        .unwrap_or_else(|| "false".into());
 
     Response::builder().ok(got_close_event)
 }
 
 async fn catchall(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     let path = req.path();
-    console.with(|c| c.log(&[format!("[or_else_any_method_async] caught: {}", path).into()]));
+    CONSOLE.with(|c| c.log(&[format!("[or_else_any_method_async] caught: {}", path).into()]));
 
     let upstream = fetch_with_str("https://github.com/404").await?;
     let body = upstream.body();

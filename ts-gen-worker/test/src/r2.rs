@@ -201,7 +201,7 @@ pub async fn get_empty(_req: Request, env: Env, _data: SomeSharedData) -> Result
     let bucket = env.empty_bucket();
 
     let object = bucket.get("doesnt-exist").await?;
-    assert!(object.is_null());
+    assert!(object.is_none());
 
     let object = bucket
         .get_with_r2_get_options(
@@ -218,7 +218,7 @@ pub async fn get_empty(_req: Request, env: Env, _data: SomeSharedData) -> Result
                 .build(),
         )
         .await?;
-    assert!(object.is_null());
+    assert!(object.is_none());
 
     Response::builder().ok("ok")
 }
@@ -229,11 +229,11 @@ pub async fn get(_req: Request, env: Env, _data: SomeSharedData) -> Result<Respo
 
     let item = bucket.get("no-props").await?.unwrap();
 
-    assert_eq!(String::from(item.text().await?), "text");
+    assert_eq!(item.text().await?, "text");
 
     let (expected_http_metadata, expected_custom_metadata) = dummy_properties();
     let item = bucket.get("with-props").await?.unwrap();
-    assert_eq!(String::from(item.text().await?), "example");
+    assert_eq!(item.text().await?, "example");
     let uploaded_custom_metadata = custom_metadata(&item);
     assert_eq!(uploaded_custom_metadata, expected_custom_metadata);
     let uploaded_http_metadata = http_metadata(&item);
@@ -269,7 +269,7 @@ pub async fn put(_req: Request, env: Env, _data: SomeSharedData) -> Result<Respo
     bucket.put("stream", &fixed_stream.readable()).await?;
 
     let text_obj = bucket.get("text").await?.unwrap();
-    assert_eq!(String::from(text_obj.text().await?), "text");
+    assert_eq!(text_obj.text().await?, "text");
 
     let empty_obj = bucket.get("empty").await?.unwrap();
     assert_eq!(empty_obj.bytes().await?.length(), 0);

@@ -16,7 +16,7 @@ pub async fn queue(message_batch: MessageBatch, _env: Env, _ctx: ExecutionContex
     let mut guard = GLOBAL_QUEUE_STATE.lock().unwrap();
     for message in message_batch.messages() {
         let body: QueueBody = message.body_into()?;
-        console.with(|c| {
+        CONSOLE.with(|c| {
             c.log(&[format!(
                 "Received queue message {:?}, with id {} and timestamp: {}",
                 body,

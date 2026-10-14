@@ -11,19 +11,9 @@ use wasm_bindgen_futures::JsFuture;
 /// `worker::Delay`.
 pub async fn sleep(ms: f64) {
     let promise = Promise::new(&mut |resolve: Function, _| {
-        let _ = set_timeout_with_ms_delay::<JsValue>(resolve.unchecked_ref(), ms, &[]);
+        let _ = set_timeout_with_ms_delay::<JsValue>(&resolve, ms, &[]);
     });
     let _ = JsFuture::from(promise).await;
-}
-
-/// `worker::Request::text()` as an owned `String`.
-pub async fn text(req: &Request) -> Result<String> {
-    Ok(req.text().await?.into())
-}
-
-/// `worker::Response::text()` as an owned `String`.
-pub async fn response_text(res: &Response) -> Result<String> {
-    Ok(res.text().await?.into())
 }
 
 /// `worker::WebsocketEvent`: `WebSocket::events()` is a stream over these.

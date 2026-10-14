@@ -51,7 +51,7 @@ pub async fn handle_proxy_request(
         .skip(1)
         .collect::<Vec<_>>()
         .join("/");
-    console.with(|c| c.log(&[url.clone().into()]));
+    CONSOLE.with(|c| c.log(&[url.clone().into()]));
     fetch_with_str(&url).await
 }
 
@@ -118,7 +118,7 @@ pub async fn handle_fetch_timeout(
     let fetch_fut = async {
         let init = RequestInit::builder().signal(&signal).build();
         let res = fetch_with_str_and_init("https://miniflare.mocks/delay", &init).await?;
-        let text: String = res.text().await?.into();
+        let text = res.text().await?;
         Ok::<String, Error>(text)
     };
     let delay_fut = async {

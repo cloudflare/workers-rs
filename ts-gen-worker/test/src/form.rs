@@ -117,7 +117,7 @@ pub async fn handle_formdata_file_size_hash(
     let hash = segments.nth(1);
     if let Some(hash) = hash {
         let kv = env.file_sizes();
-        return match kv.get(hash).await?.into_option().map(String::from) {
+        return match kv.get(hash).await? {
             Some(val) => {
                 let val: FileSize = serde_json::from_str(&val).map_err(|e| e.to_string())?;
                 Response::builder().from_json(&val)

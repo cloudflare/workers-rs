@@ -9,7 +9,7 @@ pub async fn get_from_secret_store(
 ) -> Result<Response> {
     let secrets = env.secrets();
     let secret_value = secrets.get().await?;
-    Response::builder().ok(String::from(secret_value))
+    Response::builder().ok(secret_value)
 }
 
 pub async fn get_from_secret_store_missing(
@@ -19,5 +19,5 @@ pub async fn get_from_secret_store_missing(
 ) -> Result<Response> {
     let secrets = env.missing_secret();
     let secret_value = secrets.get().await?;
-    Response::builder().ok(String::from(secret_value))
+    Response::builder().ok(secret_value)
 }
