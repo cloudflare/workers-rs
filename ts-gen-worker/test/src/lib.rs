@@ -1,10 +1,75 @@
-use js_sys::{Array, JsString, Object, Promise, Reflect, Uint8Array};
+use js_sys::{Array, JsString, Null, Object, Promise, Reflect, Uint8Array};
+use regex::Regex;
+use serde::{Deserialize, Serialize};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    LazyLock, Mutex,
+};
 use ts_gen_worker::*;
 use wasm_bindgen::prelude::*;
 
 #[allow(clippy::all)]
 mod env;
 use env::Env;
+
+mod alarm;
+mod analytics_engine;
+mod assets;
+mod auto_response;
+mod cache;
+mod counter;
+mod durable;
+mod fetch;
+mod form;
+mod js_snippets;
+mod kv;
+mod put_raw;
+mod queue;
+mod rate_limit;
+mod request;
+mod secret_store;
+mod service;
+mod socket;
+mod sql;
+mod sql_counter;
+mod sql_iterator;
+mod user;
+mod util;
+mod ws;
+
+use util::{err_message, error, nullable, ok, path, url};
+
+#[derive(Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ApiData {
+    user_id: i32,
+    title: String,
+    completed: bool,
+}
+
+#[derive(Clone)]
+pub struct SomeSharedData {
+    regex: &'static Regex,
+}
+
+static GLOBAL_STATE: AtomicBool = AtomicBool::new(false);
+static GLOBAL_SECOND_START: AtomicBool = AtomicBool::new(false);
+
+static GLOBAL_QUEUE_STATE: Mutex<Vec<queue::QueueBody>> = Mutex::new(Vec::new());
+
+static DATA_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\d{4}-\d{2}-\d{2}$").unwrap());
+
+// GAP: `#[event(start)]` allows several start hooks; wasm-bindgen permits one
+// `#[wasm_bindgen(start)]`, so both are driven from it.
+#[wasm_bindgen(start)]
+pub fn start() {
+    GLOBAL_STATE.store(true, Ordering::SeqCst);
+    second_start();
+}
+
+pub fn second_start() {
+    GLOBAL_SECOND_START.store(true, Ordering::SeqCst);
+}
 
 fn text(body: &str, status: f64, content_type: &str) -> Result<Response> {
     let headers = Headers::new()?;
@@ -18,18 +83,28 @@ fn text(body: &str, status: f64, content_type: &str) -> Result<Response> {
     )?)
 }
 
+/// `#[event(fetch, respond_with_errors)]`: handler errors become 500 responses.
 #[wasm_bindgen(js_name = "fetch", js_namespace = "default")]
 pub async fn fetch_handler(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response> {
-    let url = req.url();
-    let path = url.splitn(4, '/').nth(3).unwrap_or("");
-    let path = path.split('?').next().unwrap_or("");
+    match route(req, env, ctx).await {
+        Ok(res) => Ok(res),
+        Err(e) => error(err_message(&e), 500),
+    }
+}
 
-    match (req.method().as_str(), path) {
-        ("GET", "") => text("Hello from Rust!", 200.0, "text/plain"),
+async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response> {
+    let data = SomeSharedData { regex: &DATA_REGEX };
+    let method = req.method();
+    let url = url(&req)?;
+    let segments: Vec<&str> = url
+        .path_segments()
+        .map(|s| s.filter(|s| !s.is_empty()).collect())
+        .unwrap_or_default();
 
-        ("GET", "env") => text(&env.greeting(), 200.0, "text/plain"),
-
-        ("GET", "headers") => {
+    match (method.as_str(), segments.as_slice()) {
+        ("GET", []) => text("Hello from Rust!", 200.0, "text/plain"),
+        ("GET", ["env"]) => text(&env.greeting(), 200.0, "text/plain"),
+        ("GET", ["headers"]) => {
             let headers = Headers::new()?;
             headers.append("x-multi", "a")?;
             headers.append("x-multi", "b")?;
@@ -49,14 +124,12 @@ pub async fn fetch_handler(req: Request, env: Env, ctx: ExecutionContext) -> Res
                 &ResponseInit::builder().headers(&headers).build(),
             )?)
         }
-
-        ("POST", "echo") => {
+        ("POST", ["echo"]) => {
             let body: String = req.text().await?.into();
             let name = req.headers().get("x-name")?.unwrap_or_default();
             Ok(Response::new_with_str(&format!("{name}: {body}"))?)
         }
-
-        ("POST", "bytes") => {
+        ("POST", ["bytes"]) => {
             let buf = req.array_buffer().await?;
             let bytes = Uint8Array::new(&buf).to_vec();
             let sum: u32 = bytes.iter().map(|b| *b as u32).sum();
@@ -68,35 +141,30 @@ pub async fn fetch_handler(req: Request, env: Env, ctx: ExecutionContext) -> Res
                 &ResponseInit::builder().headers(&headers).build(),
             )?)
         }
-
-        ("POST", "clone") => {
+        ("POST", ["clone"]) => {
             let copy = req.clone()?;
             let a: String = req.text().await?.into();
             let b: String = copy.text().await?.into();
             Ok(Response::new_with_str(&format!("{a}|{b}"))?)
         }
-
-        ("GET", "json") => {
+        ("GET", ["json"]) => {
             let data = Object::new();
             Reflect::set(&data, &"method".into(), &JsString::from(req.method()))?;
             Reflect::set(&data, &"n".into(), &42.0.into())?;
             Ok(Response::json(&data)?)
         }
-
-        ("GET", "redirect") => Ok(Response::redirect_with_status(
+        ("GET", ["redirect"]) => Ok(Response::redirect_with_status(
             "https://example.com/elsewhere",
             302.0,
         )?),
-
-        ("GET", "fetch") => {
+        ("GET", ["fetch-upstream"]) => {
             let upstream = fetch_with_str("https://upstream.test/data").await?;
             let status = upstream.status();
             let ok = upstream.ok();
             let body: String = upstream.text().await?.into();
             text(&format!("{status} {ok} {body}"), 200.0, "text/plain")
         }
-
-        ("POST", "fetch-init") => {
+        ("POST", ["fetch-init"]) => {
             let body: String = req.text().await?.into();
             let headers = Headers::new()?;
             headers.set("x-forwarded", "yes")?;
@@ -109,25 +177,21 @@ pub async fn fetch_handler(req: Request, env: Env, ctx: ExecutionContext) -> Res
             let echoed: String = upstream.text().await?.into();
             Ok(Response::new_with_str(&echoed)?)
         }
-
-        ("GET", "wait-until") => {
+        ("GET", ["wait-until"]) => {
             ctx.wait_until(&Promise::resolve(&JsValue::NULL))?;
             ctx.pass_through_on_exception()?;
             Ok(Response::new_with_str("ok")?)
         }
-
-        ("GET", "log") => {
+        ("GET", ["log"]) => {
             console::log(&[JsValue::from("hello"), 1.0.into()]);
             console::warn(&Array::of1(&"warned".into()).to_vec());
             Ok(Response::new_with_str("logged")?)
         }
-
-        ("GET", "stream") => {
+        ("GET", ["stream"]) => {
             let body = req.body().is_some();
             Ok(Response::new_with_str(&format!("body={body}"))?)
         }
-
-        ("GET", "bad-header") => {
+        ("GET", ["bad-header"]) => {
             let headers = Headers::new()?;
             let outcome = match headers.set("bad name", "x") {
                 Err(JsException::TypeError(e)) => {
@@ -138,8 +202,7 @@ pub async fn fetch_handler(req: Request, env: Env, ctx: ExecutionContext) -> Res
             };
             text(&outcome, 200.0, "text/plain")
         }
-
-        ("GET", "bad-redirect") => {
+        ("GET", ["bad-redirect"]) => {
             let outcome = match Response::redirect_with_status("https://example.com/", 200.0) {
                 Err(JsException::RangeError(_)) => "RangeError".to_string(),
                 Err(other) => format!("other: {other}"),
@@ -147,8 +210,7 @@ pub async fn fetch_handler(req: Request, env: Env, ctx: ExecutionContext) -> Res
             };
             text(&outcome, 200.0, "text/plain")
         }
-
-        ("GET", "error-display") => {
+        ("GET", ["error-display"]) => {
             let err: Error = match Headers::new()?.set("bad name", "x") {
                 Err(e) => e.into(),
                 Ok(()) => "unexpected".into(),
@@ -156,9 +218,226 @@ pub async fn fetch_handler(req: Request, env: Env, ctx: ExecutionContext) -> Res
             let matched = matches!(err, Error::Js(JsException::TypeError(_)));
             text(&format!("{matched} {err}"), 200.0, "text/plain")
         }
+        ("GET", ["error"]) => Err(Error::Rust("boom".to_string())),
 
-        ("GET", "error") => Err(Error::Rust("boom".to_string())),
+        ("GET", ["request"]) => request::handle_a_request(req, env, data),
+        ("GET", ["analytics-engine"]) => {
+            analytics_engine::handle_analytics_event(req, env, data).await
+        }
+        ("GET", ["async-request"]) => request::handle_async_request(req, env, data).await,
+        ("GET", ["asset", _]) => assets::handle_asset(req, env, data).await,
+        ("GET", ["websocket"]) => ws::handle_websocket(req, env, data).await,
+        ("GET", ["got-close-event"]) => handle_close_event(req, env, data).await,
+        ("GET", ["ws-client"]) => ws::handle_websocket_client(req, env, data).await,
+        ("GET", ["test-data"]) => request::handle_test_data(req, env, data).await,
+        ("POST", ["xor", _]) => request::handle_xor(req, env, data).await,
+        ("POST", ["headers"]) => request::handle_headers(req, env, data).await,
+        ("POST", ["formdata-name"]) => form::handle_formdata_name(req, env, data).await,
+        ("POST", ["is-secret"]) => form::handle_is_secret(req, env, data).await,
+        ("POST", ["formdata-file-size"]) => form::handle_formdata_file_size(req, env, data).await,
+        ("GET", ["formdata-file-size", _]) => {
+            form::handle_formdata_file_size_hash(req, env, data).await
+        }
+        ("POST", ["post-file-size"]) => request::handle_post_file_size(req, env, data).await,
+        ("GET", ["user", _, "test"]) => user::handle_user_id_test(req, env, data).await,
+        ("GET", ["user", _]) => user::handle_user_id(req, env, data).await,
+        ("POST", ["account", _, "zones"]) => {
+            user::handle_post_account_id_zones(req, env, data).await
+        }
+        ("GET", ["account", _, "zones"]) => user::handle_get_account_id_zones(req, env, data).await,
+        ("POST", ["async-text-echo"]) => request::handle_async_text_echo(req, env, data).await,
+        ("GET", ["fetch"]) => fetch::handle_fetch(req, env, data).await,
+        ("GET", ["fetch_json"]) => fetch::handle_fetch_json(req, env, data).await,
+        ("GET", ["proxy_request", ..]) => fetch::handle_proxy_request(req, env, data).await,
+        ("GET", ["durable", "alarm"]) => alarm::handle_alarm(req, env, data).await,
+        ("GET", ["durable", "put-raw"]) => put_raw::handle_put_raw(req, env, data).await,
+        ("GET", ["durable", "websocket"]) => counter::handle_websocket(req, env, data).await,
+        ("GET", ["durable", "auto-response"]) => {
+            auto_response::handle_auto_response(req, env, data).await
+        }
+        ("GET", ["durable", "hello"]) => durable::handle_hello(req, env, data).await,
+        ("GET", ["durable", "ctor-name"]) => durable::handle_ctor_name(req, env, data).await,
+        ("GET", ["durable", "hello-unique"]) => durable::handle_hello_unique(req, env, data).await,
+        ("GET", ["durable", "storage"]) => durable::handle_storage(req, env, data).await,
+        ("GET", ["durable", "block-concurrency"]) => {
+            durable::handle_block_concurrency(req, env, data).await
+        }
+        ("GET", ["durable", "block-concurrency-errors-as-values"]) => {
+            durable::handle_block_concurrency_errors_as_values(req, env, data).await
+        }
+        ("GET", ["durable", "block-concurrency-reset-count"]) => {
+            durable::handle_block_concurrency_reset_count(req, env, data).await
+        }
+        ("GET", ["durable", "block-concurrency-reset-trigger"]) => {
+            durable::handle_block_concurrency_reset_trigger(req, env, data).await
+        }
+        ("GET", ["durable", "constructor-init"]) => {
+            durable::handle_constructor_init(req, env, data).await
+        }
+        ("GET", ["durable", "handle-basic-test"]) => {
+            durable::handle_basic_test(req, env, data).await
+        }
+        ("GET", ["durable", "get-by-name"]) => durable::handle_get_by_name(req, env, data).await,
+        ("GET", ["durable", "get-by-name-with-location-hint"]) => {
+            durable::handle_get_by_name_with_location_hint(req, env, data).await
+        }
+        ("GET", ["durable", _]) => counter::handle_id(req, env, data).await,
+        ("GET", ["secret"]) => request::handle_secret(req, env, data).await,
+        ("GET", ["var"]) => request::handle_var(req, env, data).await,
+        ("GET", ["object-var"]) => request::handle_object_var(req, env, data).await,
+        ("POST", ["kv", _, _]) => kv::handle_post_key_value(req, env, data).await,
+        ("GET", ["bytes"]) => request::handle_bytes(req, env, data).await,
+        ("POST", ["api-data"]) => request::handle_api_data(req, env, data).await,
+        ("POST", ["nonsense-repeat"]) => request::handle_nonsense_repeat(req, env, data).await,
+        ("GET", ["status", _]) => request::handle_status(req, env, data).await,
+        ("PUT" | "PATCH" | "DELETE" | "HEAD", []) => respond(req, env, data),
+        ("PUT" | "PATCH" | "DELETE" | "HEAD", ["async"]) => respond_async(req, env, data).await,
+        ("OPTIONS", [..]) => handle_options_catchall(req, env, data).await,
+        ("GET", ["request-init-fetch"]) => fetch::handle_request_init_fetch(req, env, data).await,
+        ("GET", ["request-init-fetch-post"]) => {
+            fetch::handle_request_init_fetch_post(req, env, data).await
+        }
+        ("GET", ["cancelled-fetch"]) => fetch::handle_cancelled_fetch(req, env, data).await,
+        ("GET", ["fetch-timeout"]) => fetch::handle_fetch_timeout(req, env, data).await,
+        ("GET", ["redirect-default"]) => request::handle_redirect_default(req, env, data).await,
+        ("GET", ["redirect-307"]) => request::handle_redirect_307(req, env, data).await,
+        ("GET", ["now"]) => request::handle_now(req, env, data).await,
+        ("GET", ["cloned"]) => request::handle_cloned(req, env, data).await,
+        ("GET", ["cloned-stream"]) => request::handle_cloned_stream(req, env, data).await,
+        ("GET", ["cloned-fetch"]) => fetch::handle_cloned_fetch(req, env, data).await,
+        ("GET", ["cloned-response"]) => {
+            fetch::handle_cloned_response_attributes(req, env, data).await
+        }
+        ("GET", ["wait", _]) => request::handle_wait_delay(req, env, data).await,
+        ("GET", ["custom-response-body"]) => {
+            request::handle_custom_response_body(req, env, data).await
+        }
+        ("GET", ["init-called"]) => handle_init_called(req, env, data).await,
+        ("GET", ["cache-example"]) => cache::handle_cache_example(req, env, data).await,
+        ("GET", ["cache-api", "get", _]) => cache::handle_cache_api_get(req, env, data).await,
+        ("PUT", ["cache-api", "put", _]) => cache::handle_cache_api_put(req, env, data).await,
+        ("POST", ["cache-api", "delete", _]) => {
+            cache::handle_cache_api_delete(req, env, data).await
+        }
+        ("GET", ["cache-stream"]) => cache::handle_cache_stream(req, env, data).await,
+        ("GET", ["remote-by-request"]) => service::handle_remote_by_request(req, env, data).await,
+        ("GET", ["remote-by-path"]) => service::handle_remote_by_path(req, env, data).await,
+        ("POST", ["queue", "send", _]) => queue::handle_queue_send(req, env, data).await,
+        ("POST", ["queue", "send_batch"]) => queue::handle_batch_send(req, env, data).await,
+        ("GET", ["queue"]) => queue::handle_queue(req, env, data).await,
+        ("GET", ["kv", "get"]) => kv::get(req, env, data).await,
+        ("GET", ["kv", "get-not-found"]) => kv::get_not_found(req, env, data).await,
+        ("GET", ["kv", "list-keys"]) => kv::list_keys(req, env, data).await,
+        ("GET", ["kv", "put-simple"]) => kv::put_simple(req, env, data).await,
+        ("GET", ["kv", "put-metadata"]) => kv::put_metadata(req, env, data).await,
+        ("GET", ["kv", "put-metadata-struct"]) => kv::put_metadata_struct(req, env, data).await,
+        ("GET", ["kv", "put-expiration"]) => kv::put_expiration(req, env, data).await,
+        ("GET", ["kv", "get-bulk"]) => kv::get_bulk(req, env, data).await,
+        ("GET", ["kv", "get-bulk-empty"]) => kv::get_bulk_empty(req, env, data).await,
+        ("GET", ["kv", "get-bulk-limit"]) => kv::get_bulk_limit(req, env, data).await,
+        ("GET", ["socket", "failed"]) => socket::handle_socket_failed(req, env, data).await,
+        ("GET", ["socket", "read"]) => socket::handle_socket_read(req, env, data).await,
+        ("GET", ["js_snippets", "now"]) => js_snippets::performance_now(req, env, data).await,
+        ("GET", ["js_snippets", "log"]) => js_snippets::console_log(req, env, data).await,
+        ("GET", ["sql-counter", ..]) => sql_counter::handle_sql_counter(req, env, data).await,
+        ("GET", ["sql-iterator", ..]) => sql_iterator::handle_sql_iterator(req, env, data).await,
+        ("GET", ["get-from-secret-store"]) => {
+            secret_store::get_from_secret_store(req, env, data).await
+        }
+        ("GET", ["get-from-secret-store-missing"]) => {
+            secret_store::get_from_secret_store_missing(req, env, data).await
+        }
+        ("GET", ["test-panic"]) => handle_test_panic(req, env, data),
+        ("GET", ["test-abort"]) => handle_test_abort(req, env, data),
+        ("GET", ["test-oom"]) => handle_test_oom(req, env, data),
+        ("GET", ["test-js-error"]) => js_snippets::throw_js_error(req, env, data),
+        ("GET", ["rate-limit", "check"]) => {
+            rate_limit::handle_rate_limit_check(req, env, data).await
+        }
+        ("GET", ["rate-limit", "key", _]) => {
+            rate_limit::handle_rate_limit_with_key(req, env, data).await
+        }
+        ("GET", ["rate-limit", "bulk-test"]) => {
+            rate_limit::handle_rate_limit_bulk_test(req, env, data).await
+        }
+        ("GET", ["rate-limit", "reset"]) => {
+            rate_limit::handle_rate_limit_reset(req, env, data).await
+        }
+        _ => catchall(req, env, data).await,
+    }
+}
 
-        _ => text("Not Found", 404.0, "text/plain"),
+fn respond(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
+    let headers = Headers::new()?;
+    headers.set("x-testing", "123")?;
+    Ok(Response::new_with_str_and_init(
+        &format!("Ok: {}", req.method()),
+        &ResponseInit::builder().headers(&headers).build(),
+    )?)
+}
+
+async fn respond_async(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
+    let headers = Headers::new()?;
+    headers.set("x-testing", "123")?;
+    Ok(Response::new_with_str_and_init(
+        &format!("Ok (async): {}", req.method()),
+        &ResponseInit::builder().headers(&headers).build(),
+    )?)
+}
+
+async fn handle_close_event(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let some_namespace_kv = env.some_namespace();
+    let got_close_event = nullable(some_namespace_kv.get("got-close-event").await?)
+        .map_or_else(|| "false".into(), String::from);
+
+    ok(got_close_event)
+}
+
+async fn catchall(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
+    let path = path(&req)?;
+    console::log(&[format!("[or_else_any_method_async] caught: {}", path).into()]);
+
+    let upstream = fetch_with_str("https://github.com/404").await?;
+    let body = upstream.body();
+    let init = ResponseInit::builder()
+        .status(404.0)
+        .headers(&upstream.headers())
+        .build();
+    Ok(match body {
+        Some(body) => Response::new_with_readable_stream_and_init(&body, &init)?,
+        None => Response::new_with_null_and_init(&Null::NULL, &init)?,
+    })
+}
+
+async fn handle_options_catchall(
+    req: Request,
+    _env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
+    ok(path(&req)?)
+}
+
+async fn handle_init_called(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
+    let init_called = GLOBAL_STATE.load(Ordering::SeqCst);
+    let second_init_called = GLOBAL_SECOND_START.load(Ordering::SeqCst);
+    ok((init_called && second_init_called).to_string())
+}
+
+fn handle_test_panic(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
+    panic!("Intentional panic for testing context abort functionality");
+}
+
+fn handle_test_abort(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
+    #[cfg(target_arch = "wasm32")]
+    core::arch::wasm32::unreachable();
+
+    #[cfg(not(target_arch = "wasm32"))]
+    std::process::abort();
+}
+
+fn handle_test_oom(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
+    let mut vecs = Vec::new();
+    loop {
+        vecs.push(vec![0u8; 1024 * 1024 * 1024]);
     }
 }

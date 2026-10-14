@@ -3079,8 +3079,18 @@ dependencies = [
 name = "ts-gen-worker-test"
 version = "0.0.0"
 dependencies = [
+ "blake2",
+ "futures-channel",
+ "futures-util",
+ "hex",
  "js-sys",
+ "regex",
+ "serde",
+ "serde-wasm-bindgen",
+ "serde_json",
  "ts-gen-worker",
+ "url",
+ "uuid",
  "wasm-bindgen",
  "wasm-bindgen-futures",
 ]

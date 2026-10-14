@@ -11,7 +11,17 @@ release = false
 crate-type = ["cdylib"]
 
 [dependencies]
+blake2 = "0.10"
+futures-channel.workspace = true
+futures-util.workspace = true
+hex = "0.4"
 js-sys.workspace = true
+regex = "1.8.4"
+serde.workspace = true
+serde_json.workspace = true
+serde-wasm-bindgen.workspace = true
 ts-gen-worker = { path = ".." }
+url = "2"
+uuid = { version = "1.17", features = ["v4", "serde", "js"] }
 wasm-bindgen.workspace = true
 wasm-bindgen-futures.workspace = true

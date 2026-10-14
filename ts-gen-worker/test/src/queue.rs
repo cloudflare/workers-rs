@@ -1,0 +1,91 @@
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+
+use super::{SomeSharedData, GLOBAL_QUEUE_STATE};
+use crate::util::{error, from_json, ok, url};
+use crate::Env;
+use ts_gen_worker::*;
+use wasm_bindgen::prelude::*;
+
+#[derive(Serialize, Debug, Clone, Deserialize)]
+pub struct QueueBody {
+    pub id: Uuid,
+    pub id_string: String,
+}
+
+#[wasm_bindgen(js_name = "queue", js_namespace = "default")]
+pub async fn queue(message_batch: MessageBatch, _env: Env, _ctx: ExecutionContext) -> Result<()> {
+    let mut guard = GLOBAL_QUEUE_STATE.lock().unwrap();
+    for message in message_batch.messages() {
+        let body: QueueBody =
+            serde_wasm_bindgen::from_value(message.body()).map_err(|e| e.to_string())?;
+        console::log(&[format!(
+            "Received queue message {:?}, with id {} and timestamp: {}",
+            body,
+            message.id(),
+            String::from(message.timestamp().to_string())
+        )
+        .into()]);
+        guard.push(body);
+    }
+    Ok(())
+}
+
+pub async fn handle_queue_send(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let uri = url(&req)?;
+    let mut segments = uri.path_segments().unwrap();
+    let Some(id) = segments
+        .nth(2)
+        .map(|id| Uuid::try_parse(id).ok())
+        .and_then(|u| u)
+    else {
+        return error("Failed to parse id, expected a UUID", 400);
+    };
+
+    let my_queue = env.my_queue();
+    let body = serde_wasm_bindgen::to_value(&QueueBody {
+        id,
+        id_string: id.to_string(),
+    })
+    .map_err(|e| e.to_string())?;
+    match my_queue.send(&body).await {
+        Ok(_) => ok("Message sent"),
+        Err(err) => error(format!("Failed to send message to queue: {err:?}"), 500),
+    }
+}
+
+pub async fn handle_batch_send(req: Request, env: Env, _: SomeSharedData) -> Result<Response> {
+    let messages: Vec<QueueBody> = match req
+        .json()
+        .await
+        .map_err(|e| format!("{e:?}"))
+        .and_then(|v| serde_wasm_bindgen::from_value(v).map_err(|e| e.to_string()))
+    {
+        Ok(messages) => messages,
+        Err(err) => {
+            return error(format!("Failed to parse request body: {err:?}"), 400);
+        }
+    };
+
+    let my_queue = env.my_queue();
+
+    let batch = js_sys::Array::new();
+    for message in &messages {
+        let body = serde_wasm_bindgen::to_value(message).map_err(|e| e.to_string())?;
+        batch.push(&MessageSendRequest::new(&body));
+    }
+
+    match my_queue.send_batch(&batch).await {
+        Ok(_) => ok("Message sent"),
+        Err(err) => error(
+            format!("Failed to batch send message to queue: {err:?}"),
+            500,
+        ),
+    }
+}
+
+pub async fn handle_queue(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
+    let guard = GLOBAL_QUEUE_STATE.lock().unwrap();
+    let messages: Vec<QueueBody> = guard.clone();
+    from_json(&messages)
+}

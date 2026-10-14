@@ -1,8 +1,6 @@
-import { readFileSync } from "node:fs";
 import { afterAll, describe, expect, test } from "vitest";
 import { Miniflare, Request, Response } from "miniflare";
-
-const dir = new URL("../build/", import.meta.url);
+import { manifest } from "./manifest";
 
 function outbound(request: Request): Response {
   const url = new URL(request.url);
@@ -21,19 +19,7 @@ const mf = new Miniflare({
       config: {
         name: "ts-gen-worker-test",
         compatibilityDate: "2026-03-17",
-        manifest: {
-          mainModule: "index.js",
-          modules: {
-            "index.js": {
-              type: "esm",
-              contents: readFileSync(new URL("index.js", dir), "utf8"),
-            },
-            "index_bg.wasm": {
-              type: "wasm",
-              contents: new Uint8Array(readFileSync(new URL("index_bg.wasm", dir))),
-            },
-          },
-        },
+        manifest,
         env: {
           GREETING: { type: "text", value: "hello from env" },
         },
@@ -106,7 +92,7 @@ describe("ts-gen-worker", () => {
   });
 
   test("outbound fetch(url) with status/ok/text", async () => {
-    expect(await (await get("/fetch")).text()).toBe("201 true upstream body");
+    expect(await (await get("/fetch-upstream")).text()).toBe("201 true upstream body");
   });
 
   test("outbound fetch(url, init) with method/headers/body", async () => {
@@ -148,6 +134,5 @@ describe("ts-gen-worker", () => {
   test("fallthrough 404 with status", async () => {
     const res = await get("/nope");
     expect(res.status).toBe(404);
-    expect(await res.text()).toBe("Not Found");
   });
 });

@@ -1,0 +1,37 @@
+use super::SomeSharedData;
+use crate::util::ok;
+use crate::Env;
+use js_sys::Uint8Array;
+use ts_gen_worker::*;
+use uuid::Uuid;
+
+pub async fn handle_analytics_event(
+    req: Request,
+    env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
+    let dataset = env.http_analytics();
+
+    let request_id = Uuid::new_v4();
+    let point = AnalyticsEngineDataPoint::builder()
+        .indexes(&["index1".into()])
+        .blobs(&[
+            req.method().into(),
+            Uint8Array::from(request_id.as_bytes().as_ref())
+                .buffer()
+                .into(),
+        ])
+        .doubles(&[200.0])
+        .build();
+    dataset.write_data_point_with_event(&point)?;
+
+    dataset.write_data_point_with_event(
+        &AnalyticsEngineDataPoint::builder()
+            .indexes(&["index1".into()])
+            .blobs(&[req.method().into(), req.method().into()])
+            .doubles(&[200.0])
+            .build(),
+    )?;
+
+    ok("Events sent")
+}
