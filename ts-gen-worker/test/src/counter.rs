@@ -43,10 +43,7 @@ impl DurableObject for Counter {
             self.state.accept_web_socket(&server)?;
             server.serialize_attachment(&"hello".into())?;
 
-            return Response::builder()
-                .status(101)
-                .web_socket(&pair._0())
-                .empty();
+            return Response::builder().from_websocket(pair._0());
         }
 
         self.unstored_count.set(self.unstored_count.get() + 1);
@@ -154,5 +151,5 @@ pub async fn handle_websocket(req: Request, env: Env, _data: SomeSharedData) -> 
         })?;
     }
 
-    Response::builder().status(101).web_socket(&client).empty()
+    Response::builder().from_websocket(client)
 }

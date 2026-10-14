@@ -405,6 +405,54 @@ pub async fn handle(
             }
         }
 
+        ("GET", ["into-parts"]) => {
+            let upstream = Response::builder()
+                .status(200)
+                .header("x-upstream", "yes")?
+                .cf(&js_sys::JSON::parse(r#"{"foo":"bar"}"#)?)
+                .ok("upstream body")?;
+            let (builder, body) = upstream.into_parts();
+            let res = builder.status(404).header("x-rewritten", "1")?.body(body)?;
+            let (builder, body) = Response::builder().status(204).empty()?.into_parts();
+            let empty = builder.body(body)?;
+            let cf: String = js_sys::JSON::stringify(&res.cf())?.into();
+            Response::builder().ok(format!(
+                "{} {} {} {} {cf} | {} {}",
+                res.status(),
+                res.headers().get("x-upstream")?.unwrap_or_default(),
+                res.headers().get("x-rewritten")?.unwrap_or_default(),
+                res.text().await?,
+                empty.status(),
+                empty.body().is_none(),
+            ))
+        }
+
+        ("GET", ["builder-header"]) => {
+            let cors = Cors::new().with_origins(["https://a.test"]);
+            let res = Response::builder()
+                .header("x-a", "1")?
+                .header("x-a", "2")?
+                .header("content-type", "text/csv")?
+                .cors(&cors)?
+                .encode_body("manual")
+                .ok("a,b")?;
+            Response::builder().ok(format!(
+                "{} {} {}",
+                res.headers().get("x-a")?.unwrap_or_default(),
+                res.headers().get("content-type")?.unwrap_or_default(),
+                res.headers()
+                    .get("access-control-allow-origin")?
+                    .unwrap_or_default(),
+            ))
+        }
+
+        ("GET", ["from-websocket"]) => {
+            let pair = WebSocketPair::new()?;
+            pair._1().accept()?;
+            let res = Response::builder().from_websocket(pair._0())?;
+            Response::builder().ok(format!("{} {}", res.status(), res.web_socket().is_some()))
+        }
+
         ("GET", ["error-number"]) => Err(JsValue::from(42).into()),
         ("GET", ["error-null"]) => Err(JsValue::NULL.into()),
         ("GET", ["error-rust"]) => Err(Error::from("boom")),

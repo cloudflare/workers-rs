@@ -291,4 +291,18 @@ describe("ts-gen-worker ext: Rust-native surface", () => {
     expect(res.status).toBe(202);
     expect(await res.text()).toBe("ok");
   });
+
+  test("Response::into_parts and builder.body re-construct with changes", async () => {
+    expect(await (await get2("/ext/into-parts")).text()).toBe(
+      '404 yes 1 upstream body {"foo":"bar"} | 204 true',
+    );
+  });
+
+  test("builder header/cors/encode_body chain", async () => {
+    expect(await (await get2("/ext/builder-header")).text()).toBe("2 text/csv https://a.test");
+  });
+
+  test("builder.from_websocket", async () => {
+    expect(await (await get2("/ext/from-websocket")).text()).toBe("101 true");
+  });
 });

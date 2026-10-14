@@ -1,4 +1,4 @@
-use js_sys::{Array, JsString, Null, Object, Promise, Reflect, Uint8Array};
+use js_sys::{Array, JsString, Object, Promise, Reflect, Uint8Array};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::sync::{
@@ -77,15 +77,10 @@ pub fn second_start() {
 }
 
 fn text(body: &str, status: u16, content_type: &str) -> Result<Response> {
-    let headers = Headers::new()?;
-    headers.set("content-type", content_type)?;
-    Ok(Response::new_with_str_and_init(
-        body,
-        &ResponseInit::builder()
-            .status(status)
-            .headers(&headers)
-            .build(),
-    )?)
+    Response::builder()
+        .status(status)
+        .header("content-type", content_type)?
+        .ok(body)
 }
 
 #[cfg(feature = "http")]
@@ -436,21 +431,15 @@ async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response
 }
 
 fn respond(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
-    let headers = Headers::new()?;
-    headers.set("x-testing", "123")?;
-    Ok(Response::new_with_str_and_init(
-        &format!("Ok: {}", req.method()),
-        &ResponseInit::builder().headers(&headers).build(),
-    )?)
+    Response::builder()
+        .header("x-testing", "123")?
+        .ok(format!("Ok: {}", req.method()))
 }
 
 async fn respond_async(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
-    let headers = Headers::new()?;
-    headers.set("x-testing", "123")?;
-    Ok(Response::new_with_str_and_init(
-        &format!("Ok (async): {}", req.method()),
-        &ResponseInit::builder().headers(&headers).build(),
-    )?)
+    Response::builder()
+        .header("x-testing", "123")?
+        .ok(format!("Ok (async): {}", req.method()))
 }
 
 async fn handle_close_event(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
@@ -467,16 +456,8 @@ async fn catchall(req: Request, _env: Env, _data: SomeSharedData) -> Result<Resp
     let path = req.path();
     CONSOLE.with(|c| c.log(&[format!("[or_else_any_method_async] caught: {}", path).into()]));
 
-    let upstream = fetch_with_str("https://github.com/404").await?;
-    let body = upstream.body();
-    let init = ResponseInit::builder()
-        .status(404)
-        .headers(&upstream.headers())
-        .build();
-    Ok(match body {
-        Some(body) => Response::new_with_readable_stream_and_init(body.unchecked_ref(), &init)?,
-        None => Response::new_with_null_and_init(&Null::NULL, &init)?,
-    })
+    let (builder, body) = fetch_with_str("https://github.com/404").await?.into_parts();
+    builder.status(404).body(body)
 }
 
 async fn handle_options_catchall(

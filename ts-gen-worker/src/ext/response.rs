@@ -1,13 +1,34 @@
 use js_sys::Uint8Array;
 use wasm_bindgen::JsCast;
 
-use crate::{Error, Headers, Response, ResponseInit, ResponseInitBuilder, Result};
+use crate::{
+    Cors, Error, Headers, ReadableStream, Response, ResponseInit, ResponseInitBuilder, Result,
+    WebSocket,
+};
 
 impl Response {
     /// The generated `ResponseInit` builder, which also carries the `worker`-style
     /// terminal constructors (`ok`, `error`, `empty`, `from_json`, ...).
     pub fn builder() -> ResponseInitBuilder {
         ResponseInit::builder()
+    }
+
+    /// Splits the response into a builder holding its status, headers, `webSocket` and
+    /// `cf`, plus the body stream, so a new response can be constructed with changes; a
+    /// JS `Response` is immutable. `statusText` is not carried: the platform derives the
+    /// default from the final status. `builder.body(body)` reassembles.
+    pub fn into_parts(self) -> (ResponseInitBuilder, Option<ReadableStream>) {
+        let mut builder = Response::builder()
+            .status(self.status())
+            .headers(&self.headers());
+        if let Some(ws) = self.web_socket() {
+            builder = builder.web_socket(&ws);
+        }
+        let cf = self.cf();
+        if !cf.is_undefined() {
+            builder = builder.cf(&cf);
+        }
+        (builder, self.body())
     }
 }
 
@@ -22,15 +43,36 @@ fn headers_of(init: &ResponseInit) -> Result<Headers> {
 }
 
 impl ResponseInitBuilder {
-    /// Sets `content-type` unless one was already provided.
-    fn with_content_type(self, content_type: &str) -> Result<ResponseInit> {
+    /// Reads the headers set so far, normalized to a `Headers`, hands them to `edit`,
+    /// and resumes the chain with the result stored back.
+    fn edit_headers(self, edit: impl FnOnce(&Headers) -> Result<()>) -> Result<Self> {
         let init = self.build();
         let headers = headers_of(&init)?;
-        if !headers.has("content-type")? {
-            headers.set("content-type", content_type)?;
-        }
+        edit(&headers)?;
         init.set_headers(&headers);
-        Ok(init)
+        Ok(init.into())
+    }
+
+    /// Sets `content-type` unless one was already provided.
+    fn with_content_type(self, content_type: &str) -> Result<ResponseInit> {
+        Ok(self
+            .edit_headers(|headers| {
+                if !headers.has("content-type")? {
+                    headers.set("content-type", content_type)?;
+                }
+                Ok(())
+            })?
+            .build())
+    }
+
+    /// Sets one header, keeping those set before.
+    pub fn header(self, name: &str, value: &str) -> Result<Self> {
+        self.edit_headers(|headers| Ok(headers.set(name, value)?))
+    }
+
+    /// Applies `cors` to the headers set so far.
+    pub fn cors(self, cors: &Cors) -> Result<Self> {
+        self.edit_headers(|headers| cors.apply_headers(headers))
     }
 
     /// A text body with `content-type: text/plain; charset=utf-8`.
@@ -60,6 +102,23 @@ impl ResponseInitBuilder {
             &js_sys::Null::NULL,
             &self.build(),
         )?)
+    }
+
+    /// A body taken from a JS stream, as returned by `Response::body()` or
+    /// `into_parts()`; `None` is an empty body.
+    pub fn body(self, body: Option<ReadableStream>) -> Result<Response> {
+        match body {
+            Some(stream) => Ok(Response::new_with_readable_stream_and_init(
+                stream.unchecked_ref(),
+                &self.build(),
+            )?),
+            None => self.empty(),
+        }
+    }
+
+    /// The `101 Switching Protocols` response that hands `ws` to the client.
+    pub fn from_websocket(self, ws: WebSocket) -> Result<Response> {
+        self.status(101).web_socket(&ws).empty()
     }
 
     /// A text body with an error status. `status` must be in `400..=599`.
