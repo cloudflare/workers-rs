@@ -1,5 +1,5 @@
 use super::SomeSharedData;
-use crate::util::{error, from_json, nullable, ok, url};
+use crate::util::{error, from_json, ok, url};
 use crate::Env;
 use blake2::Blake2b512;
 use blake2::Digest;
@@ -118,7 +118,7 @@ pub async fn handle_formdata_file_size_hash(
     let hash = segments.nth(1);
     if let Some(hash) = hash {
         let kv = env.file_sizes();
-        return match nullable(kv.get(hash).await?).map(String::from) {
+        return match kv.get(hash).await?.into_option().map(String::from) {
             Some(val) => {
                 let val: FileSize = serde_json::from_str(&val).map_err(|e| e.to_string())?;
                 from_json(&val)

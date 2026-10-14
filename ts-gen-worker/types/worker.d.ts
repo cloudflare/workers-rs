@@ -286,10 +286,6 @@ declare class Response {
    * @throws {TypeError} if `init.status` is out of range or a body is given for a null-body status
    */
   constructor(body?: BodyInit | null, init?: ResponseInit);
-  // Not in workers-types: ts-gen drops the `null` arm of `body?: BodyInit | null`,
-  // which loses `new Response(null, init)` (101 / 204 responses need a null body
-  // alongside an init). Overload kept until ts-gen covers this.
-  constructor(body: null, init?: ResponseInit);
   /**
    * The **`Response.redirect()`** static method returns a `Response` resulting in a redirect to the specified URL.
    *

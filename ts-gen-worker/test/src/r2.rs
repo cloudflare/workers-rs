@@ -1,6 +1,6 @@
 use crate::util::ok;
 use crate::{Env, SomeSharedData};
-use js_sys::{JsString, Object, Reflect, Uint8Array};
+use js_sys::{JsString, Null, Object, Reflect, Uint8Array};
 use std::{
     collections::HashMap,
     sync::atomic::{AtomicBool, Ordering},
@@ -120,9 +120,9 @@ pub async fn seed_bucket(bucket: &R2Bucket) -> Result<()> {
     SEEDED.store(true, Ordering::Release);
 
     bucket.put_with_str("no-props", "text").await?;
-    // GAP: `put(key, null)` (`Data::Empty`) has no binding since ts-gen drops
-    // the `null` arm; an empty string body is the closest equivalent.
-    bucket.put_with_str("no-props-no-body", "").await?;
+    bucket
+        .put_with_null("no-props-no-body", &Null::NULL)
+        .await?;
 
     put_full_properties("with-props", bucket).await?;
 

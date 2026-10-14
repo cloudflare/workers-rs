@@ -1,5 +1,5 @@
 use super::SomeSharedData;
-use crate::util::{error, nullable, ok, url};
+use crate::util::{error, ok, url};
 use crate::Env;
 use serde::{Deserialize, Serialize};
 use ts_gen_worker::*;
@@ -42,7 +42,7 @@ async fn test_store(env: &Env) -> KVNamespace {
 
 pub async fn get(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let store = test_store(&env).await;
-    let value = nullable(store.get("simple").await?);
+    let value = store.get("simple").await?.into_option();
     match value {
         Some(e) => ok(String::from(e)),
         None => error("not found", 404),
@@ -51,7 +51,7 @@ pub async fn get(_req: Request, env: Env, _data: SomeSharedData) -> Result<Respo
 
 pub async fn get_not_found(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let store = test_store(&env).await;
-    let value = nullable(store.get("not_found").await?);
+    let value = store.get("not_found").await?.into_option();
     match value {
         Some(_) => error("unexpected value present", 500),
         None => ok("passed"),
@@ -71,7 +71,7 @@ pub async fn put_simple(_req: Request, env: Env, _data: SomeSharedData) -> Resul
     let store = test_store(&env).await;
     store.put("put_a", "test").await?;
 
-    let val = String::from(nullable(store.get("put_a").await?).unwrap());
+    let val = String::from(store.get("put_a").await?.unwrap());
     kv_assert_eq!(val, "test")?;
 
     ok("passed")
@@ -109,7 +109,7 @@ pub async fn put_expiration(_req: Request, env: Env, _data: SomeSharedData) -> R
         )
         .await?;
 
-    let val = String::from(nullable(store.get("put_c").await?).unwrap());
+    let val = String::from(store.get("put_c").await?.unwrap());
     kv_assert_eq!(val, "test")?;
 
     let list = store

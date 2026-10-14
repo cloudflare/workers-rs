@@ -41,7 +41,7 @@ mod user;
 mod util;
 mod ws;
 
-use util::{err_message, error, nullable, ok, path, url};
+use util::{err_message, error, ok, path, url};
 
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -439,7 +439,10 @@ async fn respond_async(req: Request, _env: Env, _data: SomeSharedData) -> Result
 
 async fn handle_close_event(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let some_namespace_kv = env.some_namespace();
-    let got_close_event = nullable(some_namespace_kv.get("got-close-event").await?)
+    let got_close_event = some_namespace_kv
+        .get("got-close-event")
+        .await?
+        .into_option()
         .map_or_else(|| "false".into(), String::from);
 
     ok(got_close_event)

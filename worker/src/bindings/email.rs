@@ -98,12 +98,35 @@ extern "C" {
     #[doc = " * `headers` - A [Headers object](https://developer.mozilla.org/en-US/docs/Web/API/Headers)."]
     #[doc = ""]
     #[doc = " Returns: A promise that resolves when the email message is forwarded."]
+    #[wasm_bindgen(method, js_name = "forward")]
+    pub fn forward_promise(
+        this: &ForwardableEmailMessage,
+        rcpt_to: &str,
+    ) -> Promise<EmailSendResult>;
+    #[doc = " Forward this email message to a verified destination address of the account."]
+    #[doc = ""]
+    #[doc = " * `rcptTo` - Verified destination address."]
+    #[doc = " * `headers` - A [Headers object](https://developer.mozilla.org/en-US/docs/Web/API/Headers)."]
+    #[doc = ""]
+    #[doc = " Returns: A promise that resolves when the email message is forwarded."]
     #[wasm_bindgen(method, catch, js_name = "forward")]
     pub async fn forward_with_headers(
         this: &ForwardableEmailMessage,
         rcpt_to: &str,
         headers: &Headers,
     ) -> Result<EmailSendResult, ::js_sys::Error>;
+    #[doc = " Forward this email message to a verified destination address of the account."]
+    #[doc = ""]
+    #[doc = " * `rcptTo` - Verified destination address."]
+    #[doc = " * `headers` - A [Headers object](https://developer.mozilla.org/en-US/docs/Web/API/Headers)."]
+    #[doc = ""]
+    #[doc = " Returns: A promise that resolves when the email message is forwarded."]
+    #[wasm_bindgen(method, js_name = "forward")]
+    pub fn forward_with_headers_promise(
+        this: &ForwardableEmailMessage,
+        rcpt_to: &str,
+        headers: &Headers,
+    ) -> Promise<EmailSendResult>;
     #[doc = " Reply to the sender of this email message with a new EmailMessage object."]
     #[doc = ""]
     #[doc = " * `message` - The reply message."]
@@ -114,6 +137,16 @@ extern "C" {
         this: &ForwardableEmailMessage,
         message: &EmailMessage,
     ) -> Result<EmailSendResult, ::js_sys::Error>;
+    #[doc = " Reply to the sender of this email message with a new EmailMessage object."]
+    #[doc = ""]
+    #[doc = " * `message` - The reply message."]
+    #[doc = ""]
+    #[doc = " Returns: A promise that resolves when the email message is replied."]
+    #[wasm_bindgen(method, js_name = "reply")]
+    pub fn reply_promise(
+        this: &ForwardableEmailMessage,
+        message: &EmailMessage,
+    ) -> Promise<EmailSendResult>;
 }
 #[wasm_bindgen]
 extern "C" {
@@ -313,11 +346,18 @@ extern "C" {
         this: &SendEmail,
         message: &EmailMessage,
     ) -> Result<EmailSendResult, ::js_sys::Error>;
+    #[wasm_bindgen(method, js_name = "send")]
+    pub fn send_promise(this: &SendEmail, message: &EmailMessage) -> Promise<EmailSendResult>;
     #[wasm_bindgen(method, catch, js_name = "send")]
     pub async fn send_with_builder(
         this: &SendEmail,
         builder: &SendEmailBuilder,
     ) -> Result<EmailSendResult, ::js_sys::Error>;
+    #[wasm_bindgen(method, js_name = "send")]
+    pub fn send_with_builder_promise(
+        this: &SendEmail,
+        builder: &SendEmailBuilder,
+    ) -> Promise<EmailSendResult>;
 }
 #[wasm_bindgen]
 extern "C" {

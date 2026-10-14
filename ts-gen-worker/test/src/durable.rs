@@ -28,8 +28,6 @@ impl MyClass {
         let init_runs = Rc::new(Cell::new(0));
         let limit = Rc::new(Cell::new(0));
         let (runs, l, storage) = (init_runs.clone(), limit.clone(), state.storage());
-        // GAP: the generated async binding only calls blockConcurrencyWhile once polled,
-        // so the constructor-gating idiom needs a sync Promise-returning form.
         let init = block_concurrency_while(&state, async move {
             runs.set(runs.get() + 1);
             sleep(200.0).await;
