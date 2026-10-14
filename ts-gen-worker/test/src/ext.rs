@@ -21,7 +21,7 @@ thread_local! {
     static SPAWNED: RefCell<Vec<String>> = const { RefCell::new(Vec::new()) };
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 struct Body {
     id: String,
@@ -276,6 +276,19 @@ pub async fn handle(
             Response::builder()
                 .ok(format!("untouched={untouched}"))?
                 .with_cors(&cors)
+        }
+
+        ("GET", ["env-ext"]) => {
+            let var = env.var("GREETING")?;
+            let secret = env.secret("GREETING")?;
+            let ns: DurableObjectNamespace = env.get("MACRO_COUNTER")?;
+            let name = ns.id_from_name("x")?.name().unwrap_or_default();
+            let missing = env.get::<KVNamespace>("NOPE").unwrap_err().to_string();
+            let not_string = env.var("MACRO_COUNTER").unwrap_err().to_string();
+            let json: Body = env.object_var("EXT_JSON")?;
+            Response::builder().ok(format!(
+                "{var} | {secret} | {name} | {missing} | {not_string} | {json:?}"
+            ))
         }
 
         ("GET", ["error-number"]) => Err(JsValue::from(42).into()),

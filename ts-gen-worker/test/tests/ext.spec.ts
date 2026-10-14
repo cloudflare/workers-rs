@@ -201,6 +201,7 @@ const mf2 = new Miniflare({
         manifest,
         env: {
           GREETING: { type: "text", value: "hello from env" },
+          EXT_JSON: { type: "json", value: { id: "j", count: 7 } },
           MACRO_COUNTER: {
             type: "durable-object",
             worker: "ts-gen-worker-ext2",
@@ -257,5 +258,12 @@ describe("ts-gen-worker ext: Rust-native surface", () => {
     expect(res.headers.get("access-control-allow-methods")).toBe("GET,POST");
     expect(res.headers.get("access-control-allow-headers")).toBe("x-a,x-b");
     expect(res.headers.get("access-control-expose-headers")).toBe("x-c");
+  });
+
+  test("EnvExt dynamic lookup: var/secret/get, missing and mistyped", async () => {
+    expect(await (await get2("/ext/env-ext")).text()).toBe(
+      "hello from env | hello from env | x | Binding `NOPE` is undefined. | Binding `MACRO_COUNTER` is not a string." +
+        ' | Body { id: "j", count: 7 }',
+    );
   });
 });
