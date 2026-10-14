@@ -3,6 +3,7 @@
 
 mod console;
 mod context;
+mod date;
 mod delay;
 mod handler;
 mod headers;
@@ -14,6 +15,7 @@ mod response;
 mod serde;
 mod streams;
 
+pub use date::{DateExt, DateInit};
 pub use delay::Delay;
 pub use handler::{FromRequest, IntoResponse};
 pub use headers::HeadersIter;

@@ -247,6 +247,21 @@ pub async fn handle(
             Response::builder().ok(format!("{short_won} {}", elapsed >= 100.0))
         }
 
+        ("GET", ["date"]) => {
+            let from_millis: js_sys::Date = DateInit::Millis(1_630_611_511_000).into();
+            let from_str = js_sys::Date::from_init(DateInit::String(
+                "Thu, 02 Sep 2021 19:38:31 GMT".to_owned(),
+            ));
+            let now = js_sys::Date::current();
+            Response::builder().ok(format!(
+                "{} {} {} {}",
+                from_millis.as_millis(),
+                from_str.as_millis(),
+                String::from(from_millis.to_iso_string()),
+                now.as_millis() > from_millis.as_millis()
+            ))
+        }
+
         ("GET", ["error-number"]) => Err(JsValue::from(42).into()),
         ("GET", ["error-null"]) => Err(JsValue::NULL.into()),
         ("GET", ["error-rust"]) => Err(Error::from("boom")),

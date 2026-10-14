@@ -241,4 +241,10 @@ describe("ts-gen-worker ext: Rust-native surface", () => {
   test("Delay resolves after its duration; a dropped Delay is cancelled", async () => {
     expect(await (await get2("/ext/delay")).text()).toBe("true true");
   });
+
+  test("DateInit and DateExt on js_sys::Date", async () => {
+    expect(await (await get2("/ext/date")).text()).toBe(
+      "1630611511000 1630611511000 2021-09-02T19:38:31.000Z true",
+    );
+  });
 });
