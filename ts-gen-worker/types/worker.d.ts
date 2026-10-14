@@ -145,6 +145,20 @@ declare class Headers {
    * @throws {TypeError} if `name` is not a valid header name or `value` is not a valid header value
    */
   set(name: string, value: string): void;
+  /**
+   * The **`getAll()`** method of the Headers interface returns an array containing the values of all Set-Cookie headers associated with a response.
+   *
+   * [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/getAll)
+   *
+   * @throws {TypeError} if `name` is not `Set-Cookie`
+   */
+  getAll(name: string): string[];
+  /** @throws {never} */
+  entries(): IterableIterator<[key: string, value: string]>;
+  /** @throws {never} */
+  keys(): IterableIterator<string>;
+  /** @throws {never} */
+  values(): IterableIterator<string>;
 }
 
 type HeadersInit = Headers | Record<string, string> | [string, string][];
@@ -383,6 +397,33 @@ interface ResponseInit {
   encodeBody?: "automatic" | "manual";
 }
 
+declare class URL {
+  constructor(url: string | URL, base?: string | URL);
+  get origin(): string;
+  get href(): string;
+  set href(value: string);
+  get protocol(): string;
+  set protocol(value: string);
+  get username(): string;
+  set username(value: string);
+  get password(): string;
+  set password(value: string);
+  get host(): string;
+  set host(value: string);
+  get hostname(): string;
+  set hostname(value: string);
+  get port(): string;
+  set port(value: string);
+  get pathname(): string;
+  set pathname(value: string);
+  get search(): string;
+  set search(value: string);
+  get hash(): string;
+  set hash(value: string);
+  toString(): string;
+  toJSON(): string;
+}
+
 /**
  * The ExecutionContext interface provides methods to manage the lifecycle of a Worker invocation.
  *
@@ -401,6 +442,17 @@ declare class ExecutionContext {
    * [Cloudflare Docs Reference](https://developers.cloudflare.com/workers/runtime-apis/context/#passthroughonexception)
    */
   passThroughOnException(): void;
+}
+
+/**
+ * The ScheduledController interface is the argument of a Worker's scheduled handler.
+ *
+ * [Cloudflare Docs Reference](https://developers.cloudflare.com/workers/runtime-apis/handlers/scheduled/)
+ */
+interface ScheduledController {
+  readonly scheduledTime: number;
+  readonly cron: string;
+  noRetry(): void;
 }
 
 /**
@@ -1199,6 +1251,39 @@ import { EmailMessage } from "cloudflare:email";
 /**
  * An email message that is sent to a consumer Worker and can be rejected/forwarded.
  */
+interface ForwardableEmailMessage extends EmailMessage {
+  /**
+   * Stream of the email message content.
+   */
+  readonly raw: ReadableStream;
+  /**
+   * An [Headers object](https://developer.mozilla.org/en-US/docs/Web/API/Headers).
+   */
+  readonly headers: Headers;
+  /**
+   * Size of the email message content.
+   */
+  readonly rawSize: number;
+  /**
+   * Reject this email message by returning a permanent SMTP error back to the connecting client including the given reason.
+   * @param reason The reject reason.
+   * @returns void
+   */
+  setReject(reason: string): void;
+  /**
+   * Forward this email message to a verified destination address of the account.
+   * @param rcptTo The verified destination address.
+   * @param headers A [Headers object](https://developer.mozilla.org/en-US/docs/Web/API/Headers).
+   * @returns A promise that resolves when the email message is forwarded.
+   */
+  forward(rcptTo: string, headers?: Headers): Promise<EmailSendResult>;
+  /**
+   * Reply to the sender of this email message with a new EmailMessage object.
+   * @param message The reply message.
+   * @returns A promise that resolves when the email message is replied.
+   */
+  reply(message: EmailMessage): Promise<EmailSendResult>;
+}
 type EmailAttachment =
   | {
       disposition: "inline";

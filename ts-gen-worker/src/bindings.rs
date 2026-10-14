@@ -165,6 +165,21 @@ extern "C" {
     #[doc = " * `TypeError` — if `name` is not a valid header name or `value` is not a valid header value"]
     #[wasm_bindgen(method, catch)]
     pub fn set(this: &Headers, name: &str, value: &str) -> Result<(), JsException>;
+    #[doc = " The **`getAll()`** method of the Headers interface returns an array containing the values of all Set-Cookie headers associated with a response."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/getAll)"]
+    #[doc = ""]
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `name` is not `Set-Cookie`"]
+    #[wasm_bindgen(method, catch, js_name = "getAll")]
+    pub fn get_all(this: &Headers, name: &str) -> Result<Vec<String>, JsException>;
+    #[wasm_bindgen(method)]
+    pub fn entries(this: &Headers) -> Iterator<ArrayTuple<(JsString, JsString)>>;
+    #[wasm_bindgen(method)]
+    pub fn keys(this: &Headers) -> Iterator<JsString>;
+    #[wasm_bindgen(method)]
+    pub fn values(this: &Headers) -> Iterator<JsString>;
 }
 #[allow(dead_code)]
 pub type HeadersInit = JsValue;
@@ -758,6 +773,70 @@ impl ResponseInitBuilder {
 extern "C" {
     # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type URL;
+    #[wasm_bindgen(constructor, catch)]
+    pub fn new(url: &str) -> Result<URL, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "URL")]
+    pub fn new_with_url(url: &URL) -> Result<URL, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "URL")]
+    pub fn new_with_str_and_str(url: &str, base: &str) -> Result<URL, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "URL")]
+    pub fn new_with_url_and_str(url: &URL, base: &str) -> Result<URL, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "URL")]
+    pub fn new_with_str_and_url(url: &str, base: &URL) -> Result<URL, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "URL")]
+    pub fn new_with_url_and_url(url: &URL, base: &URL) -> Result<URL, crate::Error>;
+    #[wasm_bindgen(method, getter)]
+    pub fn origin(this: &URL) -> String;
+    #[wasm_bindgen(method, getter)]
+    pub fn href(this: &URL) -> String;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_href(this: &URL, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn protocol(this: &URL) -> String;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_protocol(this: &URL, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn username(this: &URL) -> String;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_username(this: &URL, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn password(this: &URL) -> String;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_password(this: &URL, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn host(this: &URL) -> String;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_host(this: &URL, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn hostname(this: &URL) -> String;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_hostname(this: &URL, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn port(this: &URL) -> String;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_port(this: &URL, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn pathname(this: &URL) -> String;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_pathname(this: &URL, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn search(this: &URL) -> String;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_search(this: &URL, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn hash(this: &URL) -> String;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_hash(this: &URL, val: &str);
+    #[wasm_bindgen(method, catch, js_name = "toString")]
+    pub fn to_string(this: &URL) -> Result<String, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "toJSON")]
+    pub fn to_json(this: &URL) -> Result<String, crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
     pub type ExecutionContext;
     #[doc = " The **`waitUntil()`** method extends the lifetime of the event. It accepts a Promise-based task which the Workers runtime will execute before the handler terminates but without blocking the response."]
     #[doc = ""]
@@ -769,6 +848,18 @@ extern "C" {
     #[doc = " [Cloudflare Docs Reference](https://developers.cloudflare.com/workers/runtime-apis/context/#passthroughonexception)"]
     #[wasm_bindgen(method, catch, js_name = "passThroughOnException")]
     pub fn pass_through_on_exception(this: &ExecutionContext) -> Result<(), crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type ScheduledController;
+    #[wasm_bindgen(method, getter, js_name = "scheduledTime")]
+    pub fn scheduled_time(this: &ScheduledController) -> f64;
+    #[wasm_bindgen(method, getter)]
+    pub fn cron(this: &ScheduledController) -> String;
+    #[wasm_bindgen(method, catch, js_name = "noRetry")]
+    pub fn no_retry(this: &ScheduledController) -> Result<(), crate::Error>;
 }
 #[wasm_bindgen]
 extern "C" {
@@ -3365,6 +3456,61 @@ extern "C" {
     #[doc = " Envelope To attribute of the email message."]
     #[wasm_bindgen(method, getter)]
     pub fn to(this: &EmailMessage) -> String;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = EmailMessage , extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type ForwardableEmailMessage;
+    #[doc = " Stream of the email message content."]
+    #[wasm_bindgen(method, getter)]
+    pub fn raw(this: &ForwardableEmailMessage) -> ReadableStream;
+    #[doc = " An [Headers object](https://developer.mozilla.org/en-US/docs/Web/API/Headers)."]
+    #[wasm_bindgen(method, getter)]
+    pub fn headers(this: &ForwardableEmailMessage) -> Headers;
+    #[doc = " Size of the email message content."]
+    #[wasm_bindgen(method, getter, js_name = "rawSize")]
+    pub fn raw_size(this: &ForwardableEmailMessage) -> f64;
+    #[doc = " Reject this email message by returning a permanent SMTP error back to the connecting client including the given reason."]
+    #[doc = ""]
+    #[doc = " * `reason` - The reject reason."]
+    #[doc = ""]
+    #[doc = " Returns: void"]
+    #[wasm_bindgen(method, catch, js_name = "setReject")]
+    pub fn set_reject(this: &ForwardableEmailMessage, reason: &str) -> Result<(), crate::Error>;
+    #[doc = " Forward this email message to a verified destination address of the account."]
+    #[doc = ""]
+    #[doc = " * `rcptTo` - The verified destination address."]
+    #[doc = " * `headers` - A [Headers object](https://developer.mozilla.org/en-US/docs/Web/API/Headers)."]
+    #[doc = ""]
+    #[doc = " Returns: A promise that resolves when the email message is forwarded."]
+    #[wasm_bindgen(method, catch)]
+    pub async fn forward(
+        this: &ForwardableEmailMessage,
+        rcpt_to: &str,
+    ) -> Result<EmailSendResult, crate::Error>;
+    #[doc = " Forward this email message to a verified destination address of the account."]
+    #[doc = ""]
+    #[doc = " * `rcptTo` - The verified destination address."]
+    #[doc = " * `headers` - A [Headers object](https://developer.mozilla.org/en-US/docs/Web/API/Headers)."]
+    #[doc = ""]
+    #[doc = " Returns: A promise that resolves when the email message is forwarded."]
+    #[wasm_bindgen(method, catch, js_name = "forward")]
+    pub async fn forward_with_headers(
+        this: &ForwardableEmailMessage,
+        rcpt_to: &str,
+        headers: &Headers,
+    ) -> Result<EmailSendResult, crate::Error>;
+    #[doc = " Reply to the sender of this email message with a new EmailMessage object."]
+    #[doc = ""]
+    #[doc = " * `message` - The reply message."]
+    #[doc = ""]
+    #[doc = " Returns: A promise that resolves when the email message is replied."]
+    #[wasm_bindgen(method, catch)]
+    pub async fn reply(
+        this: &ForwardableEmailMessage,
+        message: &EmailMessage,
+    ) -> Result<EmailSendResult, crate::Error>;
 }
 #[wasm_bindgen]
 extern "C" {
