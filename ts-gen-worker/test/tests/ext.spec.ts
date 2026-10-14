@@ -247,4 +247,15 @@ describe("ts-gen-worker ext: Rust-native surface", () => {
       "1630611511000 1630611511000 2021-09-02T19:38:31.000Z true",
     );
   });
+
+  test("Cors applies to a Response", async () => {
+    const res = await get2("/ext/cors");
+    expect(await res.text()).toBe("untouched=0");
+    expect(res.headers.get("access-control-allow-credentials")).toBe("true");
+    expect(res.headers.get("access-control-max-age")).toBe("600");
+    expect(res.headers.get("access-control-allow-origin")).toBe("https://a.test,https://b.test");
+    expect(res.headers.get("access-control-allow-methods")).toBe("GET,POST");
+    expect(res.headers.get("access-control-allow-headers")).toBe("x-a,x-b");
+    expect(res.headers.get("access-control-expose-headers")).toBe("x-c");
+  });
 });

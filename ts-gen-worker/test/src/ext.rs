@@ -262,6 +262,22 @@ pub async fn handle(
             ))
         }
 
+        ("GET", ["cors"]) => {
+            let cors = Cors::new()
+                .with_credentials(true)
+                .with_max_age(600)
+                .with_origins(["https://a.test", "https://b.test"])
+                .with_methods([Method::Get, Method::Post])
+                .with_allowed_headers(["x-a", "x-b"])
+                .with_exposed_headers(["x-c"]);
+            let headers = Headers::default();
+            Cors::new().apply_headers(&headers)?;
+            let untouched = headers.entries().into_iter().count();
+            Response::builder()
+                .ok(format!("untouched={untouched}"))?
+                .with_cors(&cors)
+        }
+
         ("GET", ["error-number"]) => Err(JsValue::from(42).into()),
         ("GET", ["error-null"]) => Err(JsValue::NULL.into()),
         ("GET", ["error-rust"]) => Err(Error::from("boom")),

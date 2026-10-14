@@ -3,6 +3,7 @@
 
 mod console;
 mod context;
+mod cors;
 mod date;
 mod delay;
 mod handler;
@@ -15,6 +16,7 @@ mod response;
 mod serde;
 mod streams;
 
+pub use cors::Cors;
 pub use date::{DateExt, DateInit};
 pub use delay::Delay;
 pub use handler::{FromRequest, IntoResponse};
