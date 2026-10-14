@@ -20,9 +20,9 @@ is the merged index.
 
 | Area | State | Notes |
 | --- | --- | --- |
-| Error model (`--error-type`, `--fallible`, `@throws` enum) | integrated | `parity/errors.md` |
+| Error model (`--error-type`, `--fallible`, `@throws` enum) | integrated; plus `JsNullable` results, `_with_null` forms, `_promise` companions | `parity/errors.md` |
 | Input from `@cloudflare/workers-types` | in progress | `parity/workers-types.md` |
-| `Error`, `#[event]` macros, ergonomic impls | integrated (`ext/`, `ts-gen-worker-macros`, `Router`, `#[durable_object]`); port adoption pending | `parity/crate.md` |
+| `Error`, `#[event]` macros, ergonomic impls | integrated; test worker migrated onto the layer (`#[event]`, `#[durable_object]`, shortcuts); `http` feature with `http::Request/Response` handlers, 176 tests green on both | `parity/crate.md` |
 | Test suite port | integrated: 22/25 spec files, 161 tests green; `panic`, `signal`, `container` skipped | `parity/test-port.md` |
 
 ## Open problems for Guy
@@ -33,27 +33,12 @@ file.
 - **How authoritative must `@throws` be?** Only Fetch-spec-pinned classes are annotated so far.
   Runtime-specific throws (KV/R2/D1, `DOMException` names) need a policy; a wrong annotation lands
   the value in `JsException::Other`, never a wrong variant. (`parity/errors.md`)
-- **`Promise<T | null>` lowers to `JsOption<T>`, which is empty only for `undefined`.** KV `get`,
-  `Cache.match`, `getAlarm` resolve `null`, so `into_option()` gives `Some(null)`. Proposal: a
-  nullish-aware wrapper in ts-gen (or `JsOption::is_empty` = null-or-undefined in wasm-bindgen).
-  Port uses a local `util::nullable` meanwhile. (`parity/test-port.md` #1)
-- **Async bindings have no sync `Promise`-returning form.** `async fn` imports call JS only when
-  polled, so `blockConcurrencyWhile` in a DO constructor and `ctx.waitUntil(promise)` composition
-  cannot start the call synchronously. Proposal: a `<name>_promise()` companion, or primary returns
-  `Promise<T>` and relies on `IntoFuture`. (`parity/test-port.md` #3)
 - **Overloads differing only in return type collapse to the first.** KV `get` variants, DO
   `storage.get(keys[])`. workers-rs-3 has a candidate fix (`ac26895`), pending integration.
   (`parity/test-port.md` #2)
-- **`null` dropped in argument position** loses `new Response(null, init)`. Proposal: keep a
-  `_with_null` form when more params follow. (`parity/test-port.md` #4)
 - **`signal`/`panic` specs depend on worker-build shim state** (`is_registered`,
   `is_near_cpu_limit`, panic recovery). No binding corresponds; the shim story for ts-gen-worker
   is undecided. (`parity/test-port.md`)
-- **Feature `http` differs from `worker`'s**: there it switches the fetch handler to
-  `http::Request`/`Response`; here it only adds `HeaderMap` conversions. The `http` half of the
-  test suite is blocked on porting those conversions. (`parity/crate.md`)
-- **No guard that a `DurableObject` impl is exported** without `#[durable_object]`. Proposal: the
-  hidden marker supertrait `worker` uses. (`parity/crate.md`)
 - **`@throws {never}` on constructors is ignored** (constructors always catch). Proposal: honor it,
   since wasm-bindgen accepts a non-`catch` constructor. Low priority. (`parity/errors.md`)
 
@@ -71,5 +56,10 @@ Creative choices made by agents, with justification. Guy reviews these.
 - **`Error` `Display` for `Js` is `Name: message`** (master): `worker::Error` renders that way and
   migrating specs assert on it (`sqlite.spec.ts`), so `respond_with_errors` can replace the
   port's hand-rolled handler. (`parity/crate.md`)
+- **`Promise<T | null>` → `JsNullable<T>`; `_with_null` only where omission cannot express null;
+  `<name>_promise()` beside every async binding** (workers-rs-2, `parity/errors.md` Session 2).
+- **`http` feature mirrors `worker`'s**: `TryFrom` conversions and `#[event(fetch)]` accepting an
+  `http::Request<Body>` handler; `test:ts-gen-worker-http` runs the suite in that mode.
+  (`parity/crate.md`)
 - **`--errors-as-error` emits `::js_sys::Error` fully qualified**, so an input declaring its own
   `Error` class cannot rebind it. (`parity/errors.md`)
