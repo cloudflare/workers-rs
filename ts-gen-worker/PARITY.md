@@ -30,12 +30,6 @@ is the merged index.
 Items agents could not resolve without a decision. Each has a proposal. Details in the linked
 file.
 
-- **Uninferrable method type parameters** (`run::<JsValue>()`, `list::<JsValue>()` at every call).
-  Options in `parity/workers-types.md`; a rule keyed on "T is the whole return vs nested" is
-  proposed. Needs a call.
-- **Multi-`extends` member reachability**: members of parents after the first are only reachable
-  through `AsRef`. Proposal: flatten later parents' members into the child's extern block.
-  (`parity/workers-types.md`)
 - **How authoritative must `@throws` be?** Only Fetch-spec-pinned classes are annotated so far.
   Runtime-specific throws (KV/R2/D1, `DOMException` names) need a policy; a wrong annotation lands
   the value in `JsException::Other`, never a wrong variant. (`parity/errors.md`)
@@ -68,6 +62,14 @@ Creative choices made by agents, with justification. Guy reviews these.
   Rule: wrappers are only emitted where the extern ABI cannot express the declared type; the
   extern binding stays available under a private name. Unblocks the `u64` and literal-overload
   items in `parity/workers-types.md`; Guy to confirm.
+- **Members of parents beyond the first are flattened onto the child; earliest sibling parent
+  wins a shared member** (`parity/workers-types.md`). **Types colliding with the Rust prelude are
+  renamed** (`Result_` etc., no re-export).
+- **Uninferrable method type parameters** (master, from workers-rs-3's design): a type parameter
+  is kept when an argument mentions it or the return is exactly `T` / `T | undefined` /
+  `T | null` (the turbofish is the cast); otherwise it is erased to the owning type's default
+  (the type's default wins over the method's), else `JsValue`, and the parameter is dropped.
+  `_promise` companions follow the same rule. Removes 11 of the port's 20 turbofishes.
 - **Awaited values lower like sync returns** (`text().await? -> String`, `Promise<number>` →
   `f64`); `declare const` statics are `SCREAMING_SNAKE_CASE`; instance members own the base name
   over statics (`_static` suffix); variadic callbacks lower to the untyped `Function`.
