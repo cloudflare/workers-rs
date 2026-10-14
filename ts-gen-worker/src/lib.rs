@@ -29,6 +29,7 @@ pub mod __macro {
 
     pub use ts_gen_worker_macros::consume;
 
+    pub use crate::durable::has_durable_object_attribute;
     use crate::Response;
 
     /// Logs the handler error and builds the 500 response; `respond_with_errors`

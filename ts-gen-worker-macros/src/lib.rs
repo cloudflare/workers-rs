@@ -34,8 +34,9 @@ pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// `ts_gen_worker::DurableObject`; its `Env` associated type is the constructor's `env`
 /// parameter type.
 ///
-/// By default `fetch` and `alarm` are exported; `#[durable_object(fetch)]` exports only
-/// `fetch`.
+/// By default `fetch`, `alarm` and the `webSocket*` hibernation callbacks are exported;
+/// `#[durable_object(fetch)]`, `(alarm)` or `(websocket)` export only `fetch` plus the
+/// named group.
 #[proc_macro_attribute]
 pub fn durable_object(attr: TokenStream, item: TokenStream) -> TokenStream {
     durable_object::expand(attr.into(), item.into())
