@@ -195,8 +195,8 @@ async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response
             Ok(Response::new_with_str(&echoed)?)
         }
         ("GET", ["wait-until"]) => {
-            ctx.wait_until(&Promise::resolve(&JsValue::NULL))?;
-            ctx.pass_through_on_exception()?;
+            ctx.wait_until(&Promise::resolve(&JsValue::NULL));
+            ctx.pass_through_on_exception();
             Ok(Response::new_with_str("ok")?)
         }
         ("GET", ["log"]) => {

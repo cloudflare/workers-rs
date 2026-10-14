@@ -86,7 +86,7 @@ pub async fn handle_cancelled_fetch(
     _env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    let controller = AbortController::new()?;
+    let controller = AbortController::new();
     let signal = controller.signal();
 
     let (tx, rx) = futures_channel::oneshot::channel();
@@ -112,7 +112,7 @@ pub async fn handle_fetch_timeout(
     _env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    let controller = AbortController::new()?;
+    let controller = AbortController::new();
     let signal = controller.signal();
 
     let fetch_fut = async {

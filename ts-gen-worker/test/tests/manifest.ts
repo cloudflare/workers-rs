@@ -33,7 +33,9 @@ function collect(prefix: string, modules: Record<string, Module>) {
 // wrapped so that error re-runs the constructor with the saved arguments and
 // retries the call. The runtime reads handler methods once at construction, so
 // the cached functions resolve the instance per call rather than binding it.
-// The glue should do this itself for classes that opt in; see parity/errors.md.
+// Replaced by wasm-bindgen's `#[wasm_bindgen(reinit = "reconstruct")]` once the
+// workspace pin includes it: `#[durable_object]` emits the attribute and this
+// wrapper goes away; see parity/errors.md "Session 6".
 function reinitShim(index: string): string {
   const classes = [...index.matchAll(/^export class (\w+)/gm)].map((m) => m[1]);
   return `import * as exports from "./index.js";

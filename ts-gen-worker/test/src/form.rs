@@ -32,12 +32,12 @@ pub async fn handle_formdata_name(
     const NAME: &str = "name";
     let bad_request = Response::builder().error("Bad Request", 400);
 
-    if !form.has(NAME)? {
+    if !form.has(NAME) {
         return bad_request;
     }
 
     let names: Vec<String> = form
-        .get_all(NAME)?
+        .get_all(NAME)
         .into_iter()
         .filter_map(FormEntry::from_js)
         .map(|entry| match entry {
@@ -49,7 +49,7 @@ pub async fn handle_formdata_name(
         return Response::builder().from_json(&serde_json::json!({ "names": names }));
     }
 
-    if let Some(value) = FormEntry::from_js(form.get(NAME)?) {
+    if let Some(value) = FormEntry::from_js(form.get(NAME)) {
         match value {
             FormEntry::Field(v) => Response::builder().from_json(&serde_json::json!({ NAME: v })),
             FormEntry::File(_) => bad_request,
@@ -72,7 +72,7 @@ pub async fn handle_formdata_file_size(
 ) -> Result<Response> {
     let form = req.form_data().await?;
 
-    if let Some(entry) = FormEntry::from_js(form.get("file")?) {
+    if let Some(entry) = FormEntry::from_js(form.get("file")) {
         return match entry {
             FormEntry::File(file) => {
                 let kv: KVNamespace = env.file_sizes();
@@ -131,7 +131,7 @@ pub async fn handle_formdata_file_size_hash(
 
 pub async fn handle_is_secret(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let form = req.form_data().await?;
-    if let Some(secret) = FormEntry::from_js(form.get("secret")?) {
+    if let Some(secret) = FormEntry::from_js(form.get("secret")) {
         match secret {
             FormEntry::Field(name) => {
                 // `env.secret(&name)` looks a binding up by runtime name; the generated

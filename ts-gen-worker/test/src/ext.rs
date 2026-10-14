@@ -141,7 +141,7 @@ pub async fn handle(
             ctx.spawn(async {
                 let _ = fetch_with_str("https://upstream.test/data").await;
                 SPAWNED.with_borrow_mut(|v| v.push("done".into()));
-            })?;
+            });
             Response::builder().ok("spawned")
         }
         ("GET", ["spawned"]) => Response::builder().ok(SPAWNED.with_borrow(|v| v.join(","))),

@@ -8,7 +8,7 @@ use wasm_bindgen::prelude::*;
 /// `worker::query!`: prepare + bind serde-serialised arguments, with missing
 /// values sent as `null` since D1 rejects `undefined`.
 fn query<T: Serialize>(db: &D1Database, sql: &str, args: &[&T]) -> Result<D1PreparedStatement> {
-    let prepared = db.prepare(sql)?;
+    let prepared = db.prepare(sql);
     if args.is_empty() {
         return Ok(prepared);
     }
@@ -174,11 +174,11 @@ pub async fn session_prepare_and_batch(
 ) -> Result<Response> {
     let db = env.db();
 
-    let session = db.with_session()?;
-    assert_eq!(session.get_bookmark()?, None);
+    let session = db.with_session();
+    assert_eq!(session.get_bookmark(), None);
 
     let stmt = bind_refs(
-        &session.prepare("SELECT * FROM people WHERE id = ?")?,
+        &session.prepare("SELECT * FROM people WHERE id = ?"),
         &[&D1Type::Integer(6)],
     )?;
     let person = first::<Person>(&stmt, None).await?.unwrap();
@@ -187,11 +187,11 @@ pub async fn session_prepare_and_batch(
     assert_eq!(person.age, 21);
 
     let constrained_session =
-        db.with_session_with_d1_session_constraint(D1SessionConstraint::FirstPrimary)?;
+        db.with_session_with_d1_session_constraint(D1SessionConstraint::FirstPrimary);
     let mut results_iter = constrained_session
         .batch(&[
-            constrained_session.prepare("SELECT * FROM people WHERE id < 3")?,
-            constrained_session.prepare("SELECT * FROM people WHERE id > 5")?,
+            constrained_session.prepare("SELECT * FROM people WHERE id < 3"),
+            constrained_session.prepare("SELECT * FROM people WHERE id > 5"),
         ])
         .await?
         .into_iter();
@@ -215,22 +215,22 @@ pub async fn session_bookmark_roundtrip(
 ) -> Result<Response> {
     let db = env.db();
     let session =
-        db.with_session_with_d1_session_constraint(D1SessionConstraint::FirstUnconstrained)?;
+        db.with_session_with_d1_session_constraint(D1SessionConstraint::FirstUnconstrained);
 
     let stmt = bind_refs(
-        &session.prepare("SELECT * FROM people WHERE id = ?")?,
+        &session.prepare("SELECT * FROM people WHERE id = ?"),
         &[&D1Type::Integer(1)],
     )?;
     let person = first::<Person>(&stmt, None).await?.unwrap();
     assert_eq!(person.id, 1);
 
-    let bookmark = session.get_bookmark()?;
+    let bookmark = session.get_bookmark();
     if let Some(bookmark) = bookmark {
         assert!(!bookmark.is_empty());
 
-        let resumed_session = db.with_session_with_str(&bookmark)?;
+        let resumed_session = db.with_session_with_str(&bookmark);
         let stmt = bind_refs(
-            &resumed_session.prepare("SELECT * FROM people WHERE id = ?")?,
+            &resumed_session.prepare("SELECT * FROM people WHERE id = ?"),
             &[&D1Type::Integer(4)],
         )?;
         let person = first::<Person>(&stmt, None).await?.unwrap();
@@ -238,9 +238,9 @@ pub async fn session_bookmark_roundtrip(
     } else {
         // Some local runtimes may not materialize bookmarks for simple reads.
         let fallback_session =
-            db.with_session_with_d1_session_constraint(D1SessionConstraint::FirstPrimary)?;
+            db.with_session_with_d1_session_constraint(D1SessionConstraint::FirstPrimary);
         let stmt = bind_refs(
-            &fallback_session.prepare("SELECT * FROM people WHERE id = ?")?,
+            &fallback_session.prepare("SELECT * FROM people WHERE id = ?"),
             &[&D1Type::Integer(4)],
         )?;
         let person = first::<Person>(&stmt, None).await?.unwrap();

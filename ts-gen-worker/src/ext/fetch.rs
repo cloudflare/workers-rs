@@ -54,8 +54,7 @@ impl From<url::Url> for Fetch {
 }
 
 impl Default for AbortController {
-    /// `new AbortController()` cannot throw.
     fn default() -> Self {
-        Self::new().unwrap()
+        Self::new()
     }
 }

@@ -3,6 +3,9 @@
 // upstream exactly or generation fails.
 //
 // `@throws` is limited to classes the Fetch and Streams specs pin.
+// `@throws {never}` is given to members that cannot throw: workerd's
+// implementation was checked for each group below (a typed binding
+// already rules out the argument-type errors JSG would raise).
 //
 // `@rust` gives a `number` the integer type `worker` exposes. u64/i64
 // on a `number` (R2 sizes, KV expirations, alarm times) lower to an
@@ -123,6 +126,12 @@ declare abstract class SqlStorageCursor {
   get rowsRead(): number;
   /** @rust usize */
   get rowsWritten(): number;
+  /**
+   * Allocates the row iterator; the query runs when it is advanced
+   * (`next` / `toArray` keep their failure mode).
+   * @throws {never}
+   */
+  raw<U extends SqlStorageValue[]>(): IterableIterator<U>;
 }
 
 interface Container {
@@ -255,4 +264,68 @@ interface KVNamespacePutOptions {
 declare class File extends Blob {
   /** @rust u64 */
   get lastModified(): number;
+}
+
+// Pure constructors: workerd's `d1-api.ts` `prepare` / `withSession` build a
+// statement or session object without talking to the database;
+// `getBookmark` reads a field.
+declare abstract class D1Database {
+  /** @throws {never} */
+  prepare(query: string): D1PreparedStatement;
+  /** @throws {never} */
+  withSession(constraintOrBookmark?: D1SessionBookmarkOrConstraint): D1DatabaseSession;
+}
+declare abstract class D1DatabaseSession {
+  /** @throws {never} */
+  prepare(query: string): D1PreparedStatement;
+  /** @throws {never} */
+  getBookmark(): D1SessionBookmark | null;
+}
+
+// `waitUntil` records the promise and `passThroughOnException` sets a flag.
+interface ExecutionContext<Props = unknown> {
+  /** @throws {never} */
+  waitUntil(promise: Promise<any>): void;
+  /** @throws {never} */
+  passThroughOnException(): void;
+}
+
+// A multipart body has no name validation (unlike `Headers`), so the
+// accessors and mutators cannot throw.
+declare class FormData {
+  /** @throws {never} */
+  constructor();
+  /** @throws {never} */
+  append(name: string, value: string | Blob): void;
+  /** @throws {never} */
+  delete(name: string): void;
+  /** @throws {never} */
+  get(name: string): (File | string) | null;
+  /** @throws {never} */
+  getAll(name: string): (File | string)[];
+  /** @throws {never} */
+  has(name: string): boolean;
+  /** @throws {never} */
+  set(name: string, value: string | Blob): void;
+  /** @throws {never} */
+  entries(): IterableIterator<[key: string, value: File | string]>;
+  /** @throws {never} */
+  keys(): IterableIterator<string>;
+  /** @throws {never} */
+  values(): IterableIterator<File | string>;
+}
+
+// `new AbortController()` allocates a signal; `abort()` is not listed since
+// workerd propagates a throwing abort listener out of `dispatchEvent`.
+declare class AbortController {
+  /** @throws {never} */
+  constructor();
+}
+
+// Identity accessors over an already-validated id.
+interface DurableObjectId {
+  /** @throws {never} */
+  toString(): string;
+  /** @throws {never} */
+  equals(other: DurableObjectId): boolean;
 }

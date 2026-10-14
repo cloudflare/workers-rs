@@ -316,15 +316,15 @@ extern "C" {
     # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone)]
     pub type ExecutionContext<Props: ::wasm_bindgen::JsGeneric = JsValue>;
-    #[wasm_bindgen(method, catch, js_name = "waitUntil")]
+    #[wasm_bindgen(method, js_name = "waitUntil")]
     pub fn wait_until<Props: ::wasm_bindgen::JsGeneric>(
         this: &ExecutionContext<Props>,
         promise: &Promise,
-    ) -> Result<(), crate::Error>;
-    #[wasm_bindgen(method, catch, js_name = "passThroughOnException")]
+    );
+    #[wasm_bindgen(method, js_name = "passThroughOnException")]
     pub fn pass_through_on_exception<Props: ::wasm_bindgen::JsGeneric>(
         this: &ExecutionContext<Props>,
-    ) -> Result<(), crate::Error>;
+    );
     #[wasm_bindgen(method, getter)]
     pub fn exports<Props: ::wasm_bindgen::JsGeneric>(this: &ExecutionContext<Props>) -> JsValue;
     #[wasm_bindgen(method, getter)]
@@ -510,10 +510,10 @@ extern "C" {
     # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type DurableObjectId;
-    #[wasm_bindgen(method, catch, js_name = "toString")]
-    pub fn to_string(this: &DurableObjectId) -> Result<String, crate::Error>;
-    #[wasm_bindgen(method, catch)]
-    pub fn equals(this: &DurableObjectId, other: &DurableObjectId) -> Result<bool, crate::Error>;
+    #[wasm_bindgen(method, js_name = "toString")]
+    pub fn to_string(this: &DurableObjectId) -> String;
+    #[wasm_bindgen(method)]
+    pub fn equals(this: &DurableObjectId, other: &DurableObjectId) -> bool;
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &DurableObjectId) -> Option<String>;
     #[wasm_bindgen(method, getter)]
@@ -2229,8 +2229,8 @@ extern "C" {
     # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type AbortController;
-    #[wasm_bindgen(constructor, catch)]
-    pub fn new() -> Result<AbortController, crate::Error>;
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> AbortController;
     #[doc = " The **`signal`** read-only property of the AbortController interface returns an AbortSignal object instance, which can be used to communicate with/abort an asynchronous operation as desired."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/AbortController/signal)"]
@@ -5001,76 +5001,64 @@ extern "C" {
     # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type FormData;
-    #[wasm_bindgen(constructor, catch)]
-    pub fn new() -> Result<FormData, crate::Error>;
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> FormData;
     #[doc = " The **`append()`** method of the FormData interface appends a new value onto an existing key inside a FormData object, or adds the key if it does not already exist."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/append)"]
-    #[wasm_bindgen(method, catch)]
-    pub fn append(this: &FormData, name: &str, value: &str) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method)]
+    pub fn append(this: &FormData, name: &str, value: &str);
     #[doc = " The **`append()`** method of the FormData interface appends a new value onto an existing key inside a FormData object, or adds the key if it does not already exist."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/append)"]
-    #[wasm_bindgen(method, catch, js_name = "append")]
-    pub fn append_with_blob(this: &FormData, name: &str, value: &Blob) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, js_name = "append")]
+    pub fn append_with_blob(this: &FormData, name: &str, value: &Blob);
     #[doc = " The **`append()`** method of the FormData interface appends a new value onto an existing key inside a FormData object, or adds the key if it does not already exist."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/append)"]
-    #[wasm_bindgen(method, catch, js_name = "append")]
-    pub fn append_with_blob_and_filename(
-        this: &FormData,
-        name: &str,
-        value: &Blob,
-        filename: &str,
-    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, js_name = "append")]
+    pub fn append_with_blob_and_filename(this: &FormData, name: &str, value: &Blob, filename: &str);
     #[doc = " The **`delete()`** method of the FormData interface deletes a key and its value(s) from a FormData object."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/delete)"]
-    #[wasm_bindgen(method, catch)]
-    pub fn delete(this: &FormData, name: &str) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method)]
+    pub fn delete(this: &FormData, name: &str);
     #[doc = " The **`get()`** method of the FormData interface returns the first value associated with a given key from within a FormData object. If you expect multiple values and want all of them, use the getAll() method instead."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/get)"]
-    #[wasm_bindgen(method, catch)]
-    pub fn get(this: &FormData, name: &str) -> Result<JsValue, crate::Error>;
+    #[wasm_bindgen(method)]
+    pub fn get(this: &FormData, name: &str) -> JsValue;
     #[doc = " The **`getAll()`** method of the FormData interface returns all the values associated with a given key from within a FormData object."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/getAll)"]
-    #[wasm_bindgen(method, catch, js_name = "getAll")]
-    pub fn get_all(this: &FormData, name: &str) -> Result<Vec<JsValue>, crate::Error>;
+    #[wasm_bindgen(method, js_name = "getAll")]
+    pub fn get_all(this: &FormData, name: &str) -> Vec<JsValue>;
     #[doc = " The **`has()`** method of the FormData interface returns whether a FormData object contains a certain key."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/has)"]
-    #[wasm_bindgen(method, catch)]
-    pub fn has(this: &FormData, name: &str) -> Result<bool, crate::Error>;
+    #[wasm_bindgen(method)]
+    pub fn has(this: &FormData, name: &str) -> bool;
     #[doc = " The **`set()`** method of the FormData interface sets a new value for an existing key inside a FormData object, or adds the key/value if it does not already exist."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/set)"]
-    #[wasm_bindgen(method, catch)]
-    pub fn set(this: &FormData, name: &str, value: &str) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method)]
+    pub fn set(this: &FormData, name: &str, value: &str);
     #[doc = " The **`set()`** method of the FormData interface sets a new value for an existing key inside a FormData object, or adds the key/value if it does not already exist."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/set)"]
-    #[wasm_bindgen(method, catch, js_name = "set")]
-    pub fn set_with_blob(this: &FormData, name: &str, value: &Blob) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, js_name = "set")]
+    pub fn set_with_blob(this: &FormData, name: &str, value: &Blob);
     #[doc = " The **`set()`** method of the FormData interface sets a new value for an existing key inside a FormData object, or adds the key/value if it does not already exist."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/set)"]
-    #[wasm_bindgen(method, catch, js_name = "set")]
-    pub fn set_with_blob_and_filename(
-        this: &FormData,
-        name: &str,
-        value: &Blob,
-        filename: &str,
-    ) -> Result<(), crate::Error>;
-    #[wasm_bindgen(method, catch)]
-    pub fn entries(
-        this: &FormData,
-    ) -> Result<Iterator<ArrayTuple<(JsString, JsValue)>>, crate::Error>;
-    #[wasm_bindgen(method, catch)]
-    pub fn keys(this: &FormData) -> Result<Iterator<JsString>, crate::Error>;
-    #[wasm_bindgen(method, catch)]
-    pub fn values(this: &FormData) -> Result<Iterator, crate::Error>;
+    #[wasm_bindgen(method, js_name = "set")]
+    pub fn set_with_blob_and_filename(this: &FormData, name: &str, value: &Blob, filename: &str);
+    #[wasm_bindgen(method)]
+    pub fn entries(this: &FormData) -> Iterator<ArrayTuple<(JsString, JsValue)>>;
+    #[wasm_bindgen(method)]
+    pub fn keys(this: &FormData) -> Iterator<JsString>;
+    #[wasm_bindgen(method)]
+    pub fn values(this: &FormData) -> Iterator;
     #[wasm_bindgen(method, catch, js_name = "forEach")]
     pub fn for_each(
         this: &FormData,
@@ -11070,10 +11058,10 @@ extern "C" {
     #[wasm_bindgen(method, catch)]
     pub fn one<T: ::wasm_bindgen::JsGeneric>(this: &SqlStorageCursor<T>)
         -> Result<T, crate::Error>;
-    #[wasm_bindgen(method, catch)]
-    pub fn raw<T: ::wasm_bindgen::JsGeneric>(
-        this: &SqlStorageCursor<T>,
-    ) -> Result<Iterator, crate::Error>;
+    #[doc = " Allocates the row iterator; the query runs when it is advanced"]
+    #[doc = " (`next` / `toArray` keep their failure mode)."]
+    #[wasm_bindgen(method)]
+    pub fn raw<T: ::wasm_bindgen::JsGeneric>(this: &SqlStorageCursor<T>) -> Iterator;
     #[wasm_bindgen(method, getter, js_name = "columnNames")]
     pub fn column_names<T: ::wasm_bindgen::JsGeneric>(this: &SqlStorageCursor<T>) -> Vec<String>;
     #[wasm_bindgen(method, setter, slice_to_array, js_name = "columnNames")]
@@ -18368,8 +18356,8 @@ extern "C" {
     # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type D1Database;
-    #[wasm_bindgen(method, catch)]
-    pub fn prepare(this: &D1Database, query: &str) -> Result<D1PreparedStatement, crate::Error>;
+    #[wasm_bindgen(method)]
+    pub fn prepare(this: &D1Database, query: &str) -> D1PreparedStatement;
     #[wasm_bindgen(method, catch, slice_to_array)]
     pub async fn batch(
         this: &D1Database,
@@ -18392,28 +18380,28 @@ extern "C" {
     #[doc = " meaning that all writes done through the session will be visible in subsequent reads."]
     #[doc = ""]
     #[doc = " * `constraintOrBookmark` - Either the session constraint or the explicit bookmark to anchor the created session."]
-    #[wasm_bindgen(method, catch, js_name = "withSession")]
-    pub fn with_session(this: &D1Database) -> Result<D1DatabaseSession, crate::Error>;
+    #[wasm_bindgen(method, js_name = "withSession")]
+    pub fn with_session(this: &D1Database) -> D1DatabaseSession;
     #[doc = " Creates a new D1 Session anchored at the given constraint or the bookmark."]
     #[doc = " All queries executed using the created session will have sequential consistency,"]
     #[doc = " meaning that all writes done through the session will be visible in subsequent reads."]
     #[doc = ""]
     #[doc = " * `constraintOrBookmark` - Either the session constraint or the explicit bookmark to anchor the created session."]
-    #[wasm_bindgen(method, catch, js_name = "withSession")]
+    #[wasm_bindgen(method, js_name = "withSession")]
     pub fn with_session_with_str(
         this: &D1Database,
         constraint_or_bookmark: &str,
-    ) -> Result<D1DatabaseSession, crate::Error>;
+    ) -> D1DatabaseSession;
     #[doc = " Creates a new D1 Session anchored at the given constraint or the bookmark."]
     #[doc = " All queries executed using the created session will have sequential consistency,"]
     #[doc = " meaning that all writes done through the session will be visible in subsequent reads."]
     #[doc = ""]
     #[doc = " * `constraintOrBookmark` - Either the session constraint or the explicit bookmark to anchor the created session."]
-    #[wasm_bindgen(method, catch, js_name = "withSession")]
+    #[wasm_bindgen(method, js_name = "withSession")]
     pub fn with_session_with_d1_session_constraint(
         this: &D1Database,
         constraint_or_bookmark: D1SessionConstraint,
-    ) -> Result<D1DatabaseSession, crate::Error>;
+    ) -> D1DatabaseSession;
     #[doc = " @deprecated dump() will be removed soon, only applies to deprecated alpha v1 databases."]
     #[wasm_bindgen(method, catch)]
     pub async fn dump(this: &D1Database) -> Result<ArrayBuffer, crate::Error>;
@@ -18426,11 +18414,8 @@ extern "C" {
     # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type D1DatabaseSession;
-    #[wasm_bindgen(method, catch)]
-    pub fn prepare(
-        this: &D1DatabaseSession,
-        query: &str,
-    ) -> Result<D1PreparedStatement, crate::Error>;
+    #[wasm_bindgen(method)]
+    pub fn prepare(this: &D1DatabaseSession, query: &str) -> D1PreparedStatement;
     #[wasm_bindgen(method, catch, slice_to_array)]
     pub async fn batch(
         this: &D1DatabaseSession,
@@ -18444,8 +18429,8 @@ extern "C" {
     #[doc = "          If no query has been executed yet, `null` is returned."]
     #[doc = ""]
     #[doc = " Returns: The latest session bookmark across all executed queries on the session."]
-    #[wasm_bindgen(method, catch, js_name = "getBookmark")]
-    pub fn get_bookmark(this: &D1DatabaseSession) -> Result<Option<String>, crate::Error>;
+    #[wasm_bindgen(method, js_name = "getBookmark")]
+    pub fn get_bookmark(this: &D1DatabaseSession) -> Option<String>;
 }
 #[wasm_bindgen]
 extern "C" {
