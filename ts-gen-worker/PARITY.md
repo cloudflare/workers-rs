@@ -23,7 +23,7 @@ is the merged index.
 | Error model (`--error-type`, `--fallible`, `@throws` enum) | integrated | `parity/errors.md` |
 | Input from `@cloudflare/workers-types` | in progress | `parity/workers-types.md` |
 | `Error`, `#[event]` macros, ergonomic impls | in progress | `parity/crate.md` |
-| Test suite port | in progress | `parity/test-port.md` |
+| Test suite port | integrated: 22/25 spec files, 161 tests green; `panic`, `signal`, `container` skipped | `parity/test-port.md` |
 
 ## Open problems for Guy
 
@@ -33,6 +33,22 @@ file.
 - **How authoritative must `@throws` be?** Only Fetch-spec-pinned classes are annotated so far.
   Runtime-specific throws (KV/R2/D1, `DOMException` names) need a policy; a wrong annotation lands
   the value in `JsException::Other`, never a wrong variant. (`parity/errors.md`)
+- **`Promise<T | null>` lowers to `JsOption<T>`, which is empty only for `undefined`.** KV `get`,
+  `Cache.match`, `getAlarm` resolve `null`, so `into_option()` gives `Some(null)`. Proposal: a
+  nullish-aware wrapper in ts-gen (or `JsOption::is_empty` = null-or-undefined in wasm-bindgen).
+  Port uses a local `util::nullable` meanwhile. (`parity/test-port.md` #1)
+- **Async bindings have no sync `Promise`-returning form.** `async fn` imports call JS only when
+  polled, so `blockConcurrencyWhile` in a DO constructor and `ctx.waitUntil(promise)` composition
+  cannot start the call synchronously. Proposal: a `<name>_promise()` companion, or primary returns
+  `Promise<T>` and relies on `IntoFuture`. (`parity/test-port.md` #3)
+- **Overloads differing only in return type collapse to the first.** KV `get` variants, DO
+  `storage.get(keys[])`. workers-rs-3 has a candidate fix (`ac26895`), pending integration.
+  (`parity/test-port.md` #2)
+- **`null` dropped in argument position** loses `new Response(null, init)`. Proposal: keep a
+  `_with_null` form when more params follow. (`parity/test-port.md` #4)
+- **`signal`/`panic` specs depend on worker-build shim state** (`is_registered`,
+  `is_near_cpu_limit`, panic recovery). No binding corresponds; the shim story for ts-gen-worker
+  is undecided. (`parity/test-port.md`)
 - **`@throws {never}` on constructors is ignored** (constructors always catch). Proposal: honor it,
   since wasm-bindgen accepts a non-`catch` constructor. Low priority. (`parity/errors.md`)
 
