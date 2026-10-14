@@ -309,4 +309,13 @@ describe("ts-gen-worker ext: Rust-native surface", () => {
   test("builder.from_websocket", async () => {
     expect(await (await get2("/ext/from-websocket")).text()).toBe("101 true");
   });
+
+  test("DurableObjectStorage::get_into / put_serialized", async () => {
+    expect(await (await get2("/ext/storage-serde")).text()).toBe(
+      'Some(Body { id: "s", count: 1 }) Some(7) None',
+    );
+    expect(await (await get2("/ext/storage-serde")).text()).toBe(
+      'Some(Body { id: "s", count: 2 }) Some(7) None',
+    );
+  });
 });

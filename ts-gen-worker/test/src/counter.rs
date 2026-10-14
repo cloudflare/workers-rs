@@ -2,7 +2,7 @@ use crate::Env;
 use std::cell::Cell;
 use ts_gen_worker::*;
 
-use crate::util::{message_text, on_websocket_events, storage_get, storage_put, WebsocketEvent};
+use crate::util::{message_text, on_websocket_events, WebsocketEvent};
 use crate::SomeSharedData;
 
 #[durable_object]
@@ -30,11 +30,8 @@ impl DurableObject for Counter {
     async fn fetch(&self, req: Request) -> Result<Response> {
         if !self.initialized.get() {
             self.initialized.set(true);
-            self.count.set(
-                storage_get(&self.state.storage(), "count")
-                    .await?
-                    .unwrap_or(0),
-            );
+            self.count
+                .set(self.state.storage().get_into("count").await?.unwrap_or(0));
         }
 
         if req.path().eq("/ws") {
@@ -49,7 +46,7 @@ impl DurableObject for Counter {
         self.unstored_count.set(self.unstored_count.get() + 1);
         self.count.set(self.count.get() + 10);
         let count = self.count.get();
-        storage_put(&self.state.storage(), "count", count).await?;
+        self.state.storage().put_serialized("count", &count).await?;
 
         Response::builder().ok(format!(
             "[durable_object]: self.count: {}, self.unstored_count: {}, secret value: {}",
@@ -64,11 +61,9 @@ impl DurableObject for Counter {
             .deserialize_attachment()?
             .as_string()
             .expect("websockets should have an attachment");
-        let mut count: usize = storage_get(&self.state.storage(), "count")
-            .await?
-            .unwrap_or(0);
+        let mut count: usize = self.state.storage().get_into("count").await?.unwrap_or(0);
         count += 10;
-        storage_put(&self.state.storage(), "count", count).await?;
+        self.state.storage().put_serialized("count", &count).await?;
         ws.send_with_str(&format!("{count}"))
             .expect("failed to send value to client");
         Ok(())

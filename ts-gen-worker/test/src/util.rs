@@ -3,7 +3,6 @@
 //! `parity/test-port.md`.
 
 use js_sys::{Function, Promise};
-use serde::Serialize;
 use ts_gen_worker::*;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
@@ -61,34 +60,6 @@ pub fn websocket_events(
 /// Upstream types `data` as `any`.
 pub fn message_text(event: &MessageEvent) -> Option<String> {
     event.data().as_string()
-}
-
-/// `worker::Storage::get`: `undefined` is `None`, anything else deserializes.
-pub async fn storage_get<T: serde::de::DeserializeOwned>(
-    storage: &DurableObjectStorage,
-    key: &str,
-) -> Result<Option<T>> {
-    match storage.get::<JsValue>(key).await?.into_option() {
-        None => Ok(None),
-        Some(value) => Ok(Some(
-            serde_wasm_bindgen::from_value(value).map_err(|e| e.to_string())?,
-        )),
-    }
-}
-
-/// `worker::Storage::put`.
-pub async fn storage_put<T: Serialize>(
-    storage: &DurableObjectStorage,
-    key: &str,
-    value: T,
-) -> Result<()> {
-    storage
-        .put(
-            key,
-            &serde_wasm_bindgen::to_value(&value).map_err(|e| e.to_string())?,
-        )
-        .await?;
-    Ok(())
 }
 
 /// `worker::State::block_concurrency_while`: runs a Rust future inside the

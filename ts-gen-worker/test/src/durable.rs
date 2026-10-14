@@ -1,4 +1,4 @@
-use crate::util::{block_concurrency_while, sleep, storage_get, storage_put};
+use crate::util::{block_concurrency_while, sleep};
 use crate::Env;
 use js_sys::Uint8Array;
 use serde::Serialize;
@@ -29,8 +29,8 @@ impl DurableObject for MyClass {
         let init = block_concurrency_while(&state, async move {
             runs.set(runs.get() + 1);
             sleep(200.0).await;
-            let stored: u64 = storage_get(&storage, "limit").await?.unwrap_or(100);
-            storage_put(&storage, "init_probe", stored).await?;
+            let stored: u64 = storage.get_into("limit").await?.unwrap_or(100);
+            storage.put_serialized("init_probe", &stored).await?;
             l.set(stored);
             Ok(())
         });
@@ -70,9 +70,11 @@ impl DurableObject for MyClass {
                         .iter()
                         .cloned()
                         .collect::<HashMap<_, _>>();
-                    storage_put(&storage, "map", map.clone()).await?;
-                    storage_put(&storage, "array", [("one", 1), ("two", 2)]).await?;
-                    storage_put(&storage, "anything", Some(45)).await?;
+                    storage.put_serialized("map", &map).await?;
+                    storage
+                        .put_serialized("array", &[("one", 1), ("two", 2)])
+                        .await?;
+                    storage.put_serialized("anything", &Some(45)).await?;
 
                     let list = storage.list().await?;
                     let mut keys = vec![];
@@ -121,7 +123,8 @@ impl DurableObject for MyClass {
                         let bytes = Uint8Array::new_with_length(3);
                         bytes.copy_from(b"123");
                         storage.put("bytes", &bytes).await?;
-                        let bytes: Vec<u8> = storage_get(&storage, "bytes")
+                        let bytes: Vec<u8> = storage
+                            .get_into("bytes")
                             .await?
                             .expect("get after put yielded nothing");
                         storage.delete("bytes").await?;
@@ -148,14 +151,16 @@ impl DurableObject for MyClass {
                         .await?;
 
                     assert_eq!(
-                        storage_get::<String>(&storage, "thing")
+                        storage
+                            .get_into::<String>("thing")
                             .await?
                             .expect("get('thing') yielded nothing"),
                         "Hello there",
                         "Didn't put the right thing with put_multiple"
                     );
                     assert_eq!(
-                        storage_get::<i32>(&storage, "other")
+                        storage
+                            .get_into::<i32>("other")
                             .await?
                             .expect("get('other') yielded nothing"),
                         56,
@@ -176,7 +181,8 @@ impl DurableObject for MyClass {
                             .put_with_entries::<JsValue>(&obj.unchecked_into())
                             .await?;
                         assert_eq!(
-                            storage_get::<Vec<u8>>(&storage, "foo")
+                            storage
+                                .get_into::<Vec<u8>>("foo")
                                 .await?
                                 .expect("get('foo') yielded nothing"),
                             BAR,
@@ -185,12 +191,12 @@ impl DurableObject for MyClass {
                     }
 
                     self.number
-                        .set(storage_get(&storage, "count").await?.unwrap_or(0) + 1);
+                        .set(storage.get_into("count").await?.unwrap_or(0) + 1);
 
                     storage.delete_all().await?;
 
                     let count = self.number.get();
-                    storage_put(&storage, "count", count).await?;
+                    storage.put_serialized("count", &count).await?;
                     Response::builder().ok(self.number.get().to_string())
                 }
                 "/transaction" => {
@@ -204,9 +210,9 @@ impl DurableObject for MyClass {
                 "/block-concurrency" => {
                     let storage = self.state.storage();
                     let count: usize = block_concurrency_while(&self.state, async move {
-                        let current: usize = storage_get(&storage, "bcw_count").await?.unwrap_or(0);
+                        let current: usize = storage.get_into("bcw_count").await?.unwrap_or(0);
                         let next = current + 1;
-                        storage_put(&storage, "bcw_count", next).await?;
+                        storage.put_serialized("bcw_count", &next).await?;
                         Ok(next)
                     })
                     .await?;
@@ -220,7 +226,7 @@ impl DurableObject for MyClass {
                     let outcome: std::result::Result<String, String> =
                         block_concurrency_while(&self.state, async move {
                             let _seen: Option<usize> =
-                                storage_get(&storage, "bcw_count").await.ok().flatten();
+                                storage.get_into("bcw_count").await.ok().flatten();
                             Ok(Err("simulated transient failure".to_string()))
                         })
                         .await?;

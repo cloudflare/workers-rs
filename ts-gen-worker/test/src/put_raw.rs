@@ -3,7 +3,6 @@ use js_sys::Uint8Array;
 use ts_gen_worker::*;
 use wasm_bindgen::prelude::*;
 
-use crate::util::storage_get;
 use crate::SomeSharedData;
 
 #[durable_object]
@@ -17,7 +16,8 @@ impl PutRawTestObject {
         let bytes = Uint8Array::new_with_length(3);
         bytes.copy_from(b"123");
         storage.put("bytes", &bytes).await?;
-        let bytes: Vec<u8> = storage_get(&storage, "bytes")
+        let bytes: Vec<u8> = storage
+            .get_into("bytes")
             .await?
             .expect("get after put yielded nothing");
         storage.delete("bytes").await?;
@@ -40,7 +40,8 @@ impl PutRawTestObject {
             .await?;
 
         assert_eq!(
-            storage_get::<Vec<u8>>(&storage, "foo")
+            storage
+                .get_into::<Vec<u8>>("foo")
                 .await?
                 .expect("get('foo') yielded nothing"),
             BAR,

@@ -82,6 +82,19 @@ impl DurableObject for MacroCounter {
 
     async fn fetch(&self, req: Request) -> Result<Response> {
         let storage = self.state.storage();
+        if req.path() == "/serde" {
+            let before: Option<Body> = storage.get_into("body").await?;
+            let body = Body {
+                id: "s".into(),
+                count: before.map_or(0, |b| b.count) + 1,
+            };
+            storage.put_serialized("body", &body).await?;
+            storage.put_serialized("n", &7u32).await?;
+            let n: Option<u32> = storage.get_into("n").await?;
+            let missing: Option<String> = storage.get_into("missing").await?;
+            let after: Option<Body> = storage.get_into("body").await?;
+            return Response::builder().ok(format!("{after:?} {n:?} {missing:?}"));
+        }
         let count = storage
             .get::<JsValue>("count")
             .await?
@@ -456,6 +469,15 @@ pub async fn handle(
             pair._1().accept()?;
             let res = Response::builder().from_websocket(pair._0())?;
             Response::builder().ok(format!("{} {}", res.status(), res.web_socket().is_some()))
+        }
+
+        ("GET", ["storage-serde"]) => {
+            let stub = env.macro_counter().get_by_name("serde")?;
+            Response::builder().ok(stub
+                .fetch_with_str("https://do/serde")
+                .await?
+                .text()
+                .await?)
         }
 
         ("GET", ["error-number"]) => Err(JsValue::from(42).into()),

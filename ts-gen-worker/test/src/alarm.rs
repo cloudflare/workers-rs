@@ -3,7 +3,6 @@ use ts_gen_worker::*;
 use wasm_bindgen::prelude::*;
 
 use super::SomeSharedData;
-use crate::util::{storage_get, storage_put};
 
 #[durable_object]
 pub struct AlarmObject {
@@ -26,14 +25,20 @@ impl DurableObject for AlarmObject {
             .storage()
             .set_alarm(js_sys::Date::now() + 100.0)
             .await?;
-        let alarmed: bool = storage_get(&self.state.storage(), "alarmed")
+        let alarmed: bool = self
+            .state
+            .storage()
+            .get_into("alarmed")
             .await?
             .unwrap_or(false);
         Response::builder().ok(alarmed.to_string())
     }
 
     async fn alarm(&self) -> Result<()> {
-        storage_put(&self.state.storage(), "alarmed", true).await?;
+        self.state
+            .storage()
+            .put_serialized("alarmed", &true)
+            .await?;
         CONSOLE.with(|c| c.log(&["Alarm has been triggered!".into()]));
         Ok(())
     }
