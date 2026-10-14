@@ -204,7 +204,7 @@ pub async fn get_empty(_req: Request, env: Env, _data: SomeSharedData) -> Result
     assert!(object.is_null());
 
     let object = bucket
-        .get_with_options(
+        .get_with_r2_get_options(
             "doesnt-exist-with-properties",
             &R2GetOptions::builder()
                 .only_if(
@@ -371,7 +371,7 @@ async fn put_full_properties(
     let (http_metadata, custom_metadata) = dummy_properties();
     let md5_hash: [u8; 16] = md5::compute("example").into();
     let object_with_props = bucket
-        .put_with_str_and_options(
+        .put_with_str_and_r2_put_options(
             name,
             "example",
             &R2PutOptions::builder()
@@ -380,9 +380,7 @@ async fn put_full_properties(
                 .md5_with_typed_array(&Uint8Array::from(&md5_hash[..]))
                 .build(),
         )
-        .await?
-        .into_option()
-        .expect("no conditional used for object PUT");
+        .await?;
     Ok((http_metadata, custom_metadata, object_with_props))
 }
 

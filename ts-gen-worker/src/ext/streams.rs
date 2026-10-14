@@ -86,8 +86,9 @@ impl http_body::Body for ByteStream {
     }
 }
 
-/// Turns a Rust byte stream into a JS `ReadableStream`; errors reject the read.
-pub fn readable_stream_from<S>(stream: S) -> ReadableStream
+/// Turns a Rust byte stream into a JS `ReadableStream` of `Uint8Array` chunks,
+/// the form `BodyInit` names; errors reject the read.
+pub fn readable_stream_from<S>(stream: S) -> ReadableStream<Uint8Array>
 where
     S: TryStream + 'static,
     S::Ok: Into<Vec<u8>>,

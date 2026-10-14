@@ -72,28 +72,33 @@ impl MimeScenario {
     }
 }
 
-fn build_structured(name: &str) -> Option<SendEmailBuilder> {
+/// Upstream's `EmailMessageBuilder` requires `from` and `subject`; one of
+/// `to` / `cc` / `bcc` is required at runtime but each is optional in the type.
+fn build_structured(name: &str) -> Option<EmailMessageBuilder> {
     let subject = "structured integration test";
     let builder = match name {
-        "structured-ok" => SendEmailBuilder::builder(SENDER, RECIPIENT, subject)
+        "structured-ok" => EmailMessageBuilder::builder(SENDER, subject)
+            .to(RECIPIENT)
             .text("hello from the structured path"),
         "structured-with-name" => {
             let address = EmailAddress::new("Integration", SENDER);
-            SendEmailBuilder::builder_with_email_address_and_str(&address, RECIPIENT, subject)
+            EmailMessageBuilder::builder_with_email_address(&address, subject)
+                .to(RECIPIENT)
                 .html("<p>hello from the structured path</p>")
         }
-        "structured-disallowed-sender" => {
-            SendEmailBuilder::builder(BAD_SENDER, RECIPIENT, subject).text("hello")
-        }
-        "structured-disallowed-recipient" => {
-            SendEmailBuilder::builder(SENDER, BAD_RECIPIENT, subject).text("hello")
-        }
+        "structured-disallowed-sender" => EmailMessageBuilder::builder(BAD_SENDER, subject)
+            .to(RECIPIENT)
+            .text("hello"),
+        "structured-disallowed-recipient" => EmailMessageBuilder::builder(SENDER, subject)
+            .to(BAD_RECIPIENT)
+            .text("hello"),
         "structured-with-attachment" => {
             let payload = b"hello attachment";
             let bytes = Uint8Array::from(&payload[..]);
             let attachment =
                 EmailAttachment::new_attachment_with_typed_array("hello.txt", "text/plain", &bytes);
-            SendEmailBuilder::builder(SENDER, RECIPIENT, subject)
+            EmailMessageBuilder::builder(SENDER, subject)
+                .to(RECIPIENT)
                 .text("structured email with an attachment")
                 .attachments(&[attachment])
         }
@@ -127,7 +132,7 @@ pub async fn handle_send_email(req: Request, env: Env, _data: SomeSharedData) ->
 }
 
 async fn dispatch_mime(sender: &SendEmail, scenario: &MimeScenario) -> Result<String> {
-    let message = EmailMessage::new(
+    let message = EmailMessage::new_with_str(
         scenario.envelope_from,
         scenario.envelope_to,
         &scenario.raw(),
@@ -148,16 +153,12 @@ async fn dispatch_mime_stream(sender: &SendEmail) -> Result<String> {
         let _ = writer.close().await;
     });
     let stream = fixed.readable();
-    let message = EmailMessage::new_with_readable_stream(
-        scenario.envelope_from,
-        scenario.envelope_to,
-        &stream,
-    )?;
+    let message = EmailMessage::new(scenario.envelope_from, scenario.envelope_to, &stream)?;
     let result = sender.send(&message).await?;
     Ok(result.message_id())
 }
 
-async fn dispatch_structured(sender: &SendEmail, builder: SendEmailBuilder) -> Result<String> {
+async fn dispatch_structured(sender: &SendEmail, builder: EmailMessageBuilder) -> Result<String> {
     let result = sender.send_with_builder(&builder).await?;
     Ok(result.message_id())
 }

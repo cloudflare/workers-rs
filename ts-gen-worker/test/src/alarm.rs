@@ -34,7 +34,7 @@ impl DurableObject for AlarmObject {
 
     async fn alarm(&self) -> Result<()> {
         storage_put(&self.state.storage(), "alarmed", true).await?;
-        console::log(&["Alarm has been triggered!".into()]);
+        console.with(|c| c.log(&["Alarm has been triggered!".into()]));
         Ok(())
     }
 }

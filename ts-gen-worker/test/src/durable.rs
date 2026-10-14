@@ -74,7 +74,7 @@ impl DurableObject for MyClass {
                     storage_put(&storage, "array", [("one", 1), ("two", 2)]).await?;
                     storage_put(&storage, "anything", Some(45)).await?;
 
-                    let list = storage.list().await?;
+                    let list = storage.list::<JsValue>().await?;
                     let mut keys = vec![];
 
                     for key in list.keys() {
@@ -89,10 +89,8 @@ impl DurableObject for MyClass {
                         vec!["anything", "array", "map"],
                         "Didn't list all of the keys: {keys:?}"
                     );
-                    // GAP: the `keys: string[]` overload's `Map` return collapsed into the
-                    // first overload's `any`.
                     let vals: js_sys::Map = storage
-                        .get_with_keys(&keys)
+                        .get_with_keys::<JsValue>(&keys)
                         .await
                         .map_err(|e| Error::from(format!("{e:?} -- get_multiple")))?
                         .unchecked_into();
@@ -139,7 +137,7 @@ impl DurableObject for MyClass {
                         other: i32,
                     }
                     storage
-                        .put_with_entries(
+                        .put_with_entries::<JsValue>(
                             &serde_wasm_bindgen::to_value(&Stuff {
                                 thing: "Hello there".to_string(),
                                 other: 56,
@@ -174,7 +172,9 @@ impl DurableObject for MyClass {
                         let value = Uint8Array::new_with_length(u32::try_from(BAR.len()).unwrap());
                         value.copy_from(BAR);
                         js_sys::Reflect::set(&obj, &JsValue::from_str("foo"), &value.into())?;
-                        storage.put_with_entries(&obj.unchecked_into()).await?;
+                        storage
+                            .put_with_entries::<JsValue>(&obj.unchecked_into())
+                            .await?;
                         assert_eq!(
                             storage_get::<Vec<u8>>(&storage, "foo")
                                 .await?

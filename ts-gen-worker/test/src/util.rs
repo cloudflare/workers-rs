@@ -11,7 +11,7 @@ use wasm_bindgen_futures::JsFuture;
 /// `worker::Delay`.
 pub async fn sleep(ms: f64) {
     let promise = Promise::new(&mut |resolve: Function, _| {
-        let _ = set_timeout_with_ms_delay(resolve.unchecked_ref(), ms);
+        let _ = set_timeout_with_ms_delay::<JsValue>(resolve.unchecked_ref(), ms, &[]);
     });
     let _ = JsFuture::from(promise).await;
 }
@@ -44,11 +44,11 @@ pub fn on_websocket_events(
     }));
     let on_message = {
         let handler = handler.clone();
-        Closure::<dyn FnMut(Event)>::new(move |event: Event| {
+        Closure::<dyn FnMut(JsValue)>::new(move |event: JsValue| {
             (handler.borrow_mut())(WebsocketEvent::Message(event.unchecked_into()));
         })
     };
-    let on_close = Closure::<dyn FnMut(Event)>::new(move |event: Event| {
+    let on_close = Closure::<dyn FnMut(JsValue)>::new(move |event: JsValue| {
         (handler.borrow_mut())(WebsocketEvent::Close(event.unchecked_into()));
     });
     ws.add_event_listener("message", &Function::from_closure(on_message))?;
@@ -68,11 +68,9 @@ pub fn websocket_events(
 }
 
 /// `MessageEvent::data` as text, mirroring `worker::MessageEvent::text()`.
+/// Upstream types `data` as `any`.
 pub fn message_text(event: &MessageEvent) -> Option<String> {
-    match event.data() {
-        DataKind::String(s) => Some(s),
-        DataKind::ArrayBuffer(_) => None,
-    }
+    event.data().as_string()
 }
 
 /// `worker::Storage::get`: `undefined` is `None`, anything else deserializes.
@@ -80,13 +78,11 @@ pub async fn storage_get<T: serde::de::DeserializeOwned>(
     storage: &DurableObjectStorage,
     key: &str,
 ) -> Result<Option<T>> {
-    let value = storage.get(key).await?;
-    if value.is_undefined() {
-        Ok(None)
-    } else {
-        Ok(Some(
+    match storage.get::<JsValue>(key).await?.into_option() {
+        None => Ok(None),
+        Some(value) => Ok(Some(
             serde_wasm_bindgen::from_value(value).map_err(|e| e.to_string())?,
-        ))
+        )),
     }
 }
 
@@ -128,7 +124,7 @@ where
             Ok(JsValue::NULL)
         })
     });
-    let gated = state.block_concurrency_while_promise(&Function::from_closure(callback));
+    let gated = state.block_concurrency_while_promise::<JsValue>(&Function::from_closure(callback));
     async move {
         JsFuture::from(gated?).await?;
         let value = output.borrow_mut().take();

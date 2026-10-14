@@ -1,5 +1,6 @@
 use super::SomeSharedData;
 use crate::Env;
+use js_sys::{Array, JsString};
 use serde::{Deserialize, Serialize};
 use ts_gen_worker::*;
 use wasm_bindgen::prelude::*;
@@ -32,7 +33,7 @@ pub async fn handle_post_key_value(
         }
     }
 
-    Ok(Response::json(&kv.list().await?.into())?)
+    Ok(Response::json(&kv.list::<JsValue>().await?.into())?)
 }
 
 async fn test_store(env: &Env) -> KVNamespace {
@@ -59,9 +60,9 @@ pub async fn get_not_found(_req: Request, env: Env, _data: SomeSharedData) -> Re
 
 pub async fn list_keys(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let store = test_store(&env).await;
-    let list_res = store.list().await?;
+    let list_res = store.list::<JsValue>().await?;
 
-    kv_assert_eq!(list_res.keys().len(), 1)?;
+    kv_assert_eq!(list_res.keys().length(), 1)?;
 
     Response::builder().ok("passed")
 }
@@ -88,9 +89,9 @@ pub async fn put_metadata(_req: Request, env: Env, _data: SomeSharedData) -> Res
         )
         .await?;
 
-    let result = store.get_with_metadata("put_b").await?;
+    let result = store.get_with_metadata::<JsValue>("put_b").await?;
     kv_assert_eq!(result.value().unwrap(), "test")?;
-    kv_assert_eq!(result.metadata().as_f64().unwrap() as usize, 100)?;
+    kv_assert_eq!(result.metadata().unwrap().as_f64().unwrap() as usize, 100)?;
 
     Response::builder().ok("passed")
 }
@@ -112,7 +113,7 @@ pub async fn put_expiration(_req: Request, env: Env, _data: SomeSharedData) -> R
     kv_assert_eq!(val, "test")?;
 
     let list = store
-        .list_with_options(&KVNamespaceListOptions::builder().prefix("put_c").build())
+        .list_with_options::<JsValue>(&KVNamespaceListOptions::builder().prefix("put_c").build())
         .await?;
     let key = list
         .keys()
@@ -148,9 +149,9 @@ pub async fn put_metadata_struct(
         )
         .await?;
 
-    let result = store.get_with_metadata("put_d").await?;
-    let meta: TestStruct =
-        serde_wasm_bindgen::from_value(result.metadata()).map_err(|e| e.to_string())?;
+    let result = store.get_with_metadata::<JsValue>("put_d").await?;
+    let meta: TestStruct = serde_wasm_bindgen::from_value(result.metadata().unwrap_or_default())
+        .map_err(|e| e.to_string())?;
 
     kv_assert_eq!(result.value().unwrap(), "test")?;
     kv_assert_eq!(meta, put_meta)?;
@@ -159,8 +160,12 @@ pub async fn put_metadata_struct(
 }
 
 async fn get_bulk_text(store: &KVNamespace, keys: &[&str]) -> Result<js_sys::Map> {
-    let keys: Vec<String> = keys.iter().map(|k| (*k).to_owned()).collect();
-    Ok(store.get_with_slice(&keys).await?.unchecked_into())
+    let keys: Array<JsString> = keys
+        .iter()
+        .map(|k| JsString::from(*k))
+        .collect::<Array>()
+        .unchecked_into();
+    Ok(store.get_with_array(&keys).await?.unchecked_into())
 }
 
 pub async fn get_bulk(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {

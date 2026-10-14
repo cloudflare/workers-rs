@@ -127,7 +127,7 @@ pub fn rows<T: DeserializeOwned>(
 pub fn raw(
     cursor: &SqlStorageCursor,
 ) -> Result<impl Iterator<Item = Result<Vec<SqlStorageValue>>>> {
-    Ok(cursor.raw()?.into_iter().map(|row| {
+    Ok(cursor.raw::<js_sys::Array>()?.into_iter().map(|row| {
         row?.iter()
             .map(SqlStorageValue::try_from)
             .collect::<Result<Vec<_>>>()

@@ -55,16 +55,17 @@ async fn first<T: DeserializeOwned>(
     stmt: &D1PreparedStatement,
     col_name: Option<&str>,
 ) -> Result<Option<T>> {
-    let value = match col_name {
-        Some(col) => stmt.first(col).await?,
-        None => stmt.first_2().await?,
-    };
+    let value: JsValue = match col_name {
+        Some(col) => stmt.first_with_col_name::<JsValue>(col).await?,
+        None => stmt.first::<JsValue>().await?,
+    }
+    .into();
     Ok(serde_wasm_bindgen::from_value(value).map_err(|e| e.to_string())?)
 }
 
 /// `worker::D1PreparedStatement::raw::<T>()`.
 async fn raw<T: DeserializeOwned>(stmt: &D1PreparedStatement) -> Result<Vec<Vec<T>>> {
-    stmt.raw()
+    stmt.raw::<JsValue>()
         .await?
         .iter()
         .map(|row| Ok(serde_wasm_bindgen::from_value(row).map_err(|e| e.to_string())?))
@@ -105,7 +106,7 @@ pub async fn prepared_statement(
     let people = results::<Person>(&all)?;
 
     assert!(all.success());
-    assert_eq!(all.error(), None);
+    assert!(all.error().is_undefined());
     assert_eq!(people.len(), 1);
     assert_eq!(people[0].name, "Ryan Upton");
     assert_eq!(people[0].age, 21);
@@ -360,7 +361,7 @@ pub async fn insert_and_retrieve_optional_none(
             &serde_json::Value::Null,
         ],
     )?;
-    query_stmt.run().await?;
+    query_stmt.run::<JsValue>().await?;
 
     let stmt = query::<()>(&db, "SELECT * FROM nullable_people WHERE id = 3", &[])?;
     let person = first::<NullablePerson>(&stmt, None).await?.unwrap();
@@ -386,7 +387,7 @@ pub async fn insert_and_retrieve_optional_some(
             &serde_json::json!(12),
         ],
     )?;
-    query_stmt.run().await?;
+    query_stmt.run::<JsValue>().await?;
 
     let stmt = query::<()>(&db, "SELECT * FROM nullable_people WHERE id = 4", &[])?;
     let person = first::<NullablePerson>(&stmt, None).await?.unwrap();

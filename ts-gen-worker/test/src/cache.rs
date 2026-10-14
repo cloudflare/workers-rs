@@ -31,7 +31,7 @@ pub async fn handle_cache_example(
     _env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    console::log(&[format!("url: {}", req.url()).into()]);
+    console.with(|c| c.log(&[format!("url: {}", req.url()).into()]));
     let cache = default_cache();
     let key = req.url();
     let options = CacheQueryOptions::builder().ignore_method(true).build();
@@ -40,10 +40,10 @@ pub async fn handle_cache_example(
         .await?
         .into_option()
     {
-        console::log(&["Cache HIT!".into()]);
+        console.with(|c| c.log(&["Cache HIT!".into()]));
         Ok(resp)
     } else {
-        console::log(&["Cache MISS!".into()]);
+        console.with(|c| c.log(&["Cache MISS!".into()]));
         let resp = timestamp_response()?;
         cache.put_with_str(&key, &resp.clone()?).await?;
         Ok(resp)
@@ -114,7 +114,7 @@ pub async fn handle_cache_stream(
     _env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    console::log(&[format!("url: {}", req.url()).into()]);
+    console.with(|c| c.log(&[format!("url: {}", req.url()).into()]));
     let cache = default_cache();
     let key = req.url();
     let options = CacheQueryOptions::builder().ignore_method(true).build();
@@ -123,10 +123,10 @@ pub async fn handle_cache_stream(
         .await?
         .into_option()
     {
-        console::log(&["Cache HIT!".into()]);
+        console.with(|c| c.log(&["Cache HIT!".into()]));
         Ok(resp)
     } else {
-        console::log(&["Cache MISS!".into()]);
+        console.with(|c| c.log(&["Cache MISS!".into()]));
         let count = (js_sys::Math::random() * 10.0) as usize;
         let transform = TransformStream::new()?;
         let writer = transform.writable().get_writer()?;
@@ -144,10 +144,10 @@ pub async fn handle_cache_stream(
         let headers = Headers::new()?;
         headers.set("cache-control", "s-maxage=10")?;
         let resp = Response::new_with_readable_stream_and_init(
-            &transform.readable(),
+            transform.readable().unchecked_ref(),
             &ResponseInit::builder().headers(&headers).build(),
         )?;
-        console::log(&[format!("resp = {:?}", JsValue::from(&resp)).into()]);
+        console.with(|c| c.log(&[format!("resp = {:?}", JsValue::from(&resp)).into()]));
         cache.put_with_str(&key, &resp.clone()?).await?;
         Ok(resp)
     }

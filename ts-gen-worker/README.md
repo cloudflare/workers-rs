@@ -3,9 +3,15 @@
 Cloudflare Workers bindings for Rust generated from TypeScript declarations by
 [ts-gen](https://github.com/wasm-bindgen/ts-gen).
 
-Unlike the `worker` crate, the bindings are not hand-written: `types/worker.d.ts`
-declares the Workers surface in TypeScript and `src/bindings.rs` is its
-generated `wasm-bindgen` projection. Apps generate their own `Env` the same
+Unlike the `worker` crate, the bindings are not hand-written: `src/bindings.rs`
+is the generated `wasm-bindgen` projection of `@cloudflare/workers-types`
+(`node_modules/@cloudflare/workers-types/index.d.ts`), restricted to the
+declarations `worker` uses through `--export <Name>` roots listed in
+`chompfile.toml` (ts-gen emits each root plus everything it references).
+Upstream declarations carry no Rust-specific tags, so `types/annotations.d.ts`
+re-declares only the members that need one (`@throws`, and `@rust` integer
+types where `worker` exposes a JS number as `u16`/`u32`/`usize`) and ts-gen
+layers them on by name (`--annotate`). Apps generate their own `Env` the same
 way from their bindings (see `test/types/env.d.ts`). What a `.d.ts` cannot
 express, the Rust idioms, lives in `src/ext/` as `impl` blocks on the generated
 types: `#[event]` handler exports, serde, futures over promises, `Method`,
@@ -31,13 +37,16 @@ async fn main(req: Request, env: env::Env, ctx: ExecutionContext) -> Result<Resp
 }
 ```
 
+Generic upstream types (`Request<CfHostMetadata, Cf>`, `ReadableStream<R>`)
+keep their parameters with defaults, so the bare names work everywhere.
+
 Build with `cargo build --target wasm32-unknown-unknown` and
 `wasm-bindgen --target module`; the output's default export is the worker.
 
 ## Errors
 
 Every binding that can throw returns a `Result`; there is no panicking
-variant. Methods documented with `@throws` in `types/worker.d.ts` return the
+variant. Methods tagged `@throws` in `types/annotations.d.ts` return the
 generated `JsException` enum, which has one variant per JS error class named
 anywhere in the declarations plus `Other(JsValue)`, so the class can be
 matched directly:
@@ -84,8 +93,11 @@ and `WebSocket` travel in the `http` extensions. The feature also adds
 
 ## Development
 
-- `chomp build:ts-gen-worker:types` regenerates `src/bindings.rs` and
-  `test/src/env.rs` after editing the `.d.ts` files.
+- `chomp build:ts-gen-worker:types` regenerates `src/bindings.rs` from
+  workers-types (edit the `--export` roots in `chompfile.toml` to widen the
+  surface, `types/annotations.d.ts` to tag members) and `test/src/env.rs`
+  from `test/types/env.d.ts`.
 - `chomp test:ts-gen-worker` builds the test worker and runs its vitest suite
   under miniflare; `chomp test:ts-gen-worker-http` runs it with the handler
-  over the `http` types.
+  over the `http` types. `test/` is the `worker` crate's suite ported to the
+  generated API (see `parity/test-port.md`).

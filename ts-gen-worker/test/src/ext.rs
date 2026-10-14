@@ -81,7 +81,12 @@ impl DurableObject for MacroCounter {
 
     async fn fetch(&self, req: Request) -> Result<Response> {
         let storage = self.state.storage();
-        let count = storage.get("count").await?.as_f64().unwrap_or(0.0) + 1.0;
+        let count = storage
+            .get::<JsValue>("count")
+            .await?
+            .as_f64()
+            .unwrap_or(0.0)
+            + 1.0;
         storage.put("count", &JsValue::from(count)).await?;
         let name = self.state.id().name().unwrap_or_default();
         Response::builder().ok(format!(

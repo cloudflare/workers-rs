@@ -5,10 +5,13 @@ use crate::SomeSharedData;
 use js_sys::Uint8Array;
 use serde::{Deserialize, Serialize};
 use ts_gen_worker::*;
+use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
+/// Incoming requests carry `IncomingRequestCfProperties`; upstream types
+/// `Request.cf` as the union with the outgoing `RequestInitCfProperties`.
 fn cf_summary(req: &Request) -> (String, String) {
-    let cf = req.cf();
+    let cf: Option<IncomingRequestCfProperties> = req.cf().map(JsCast::unchecked_into);
     (
         format!(
             "{:?}",
@@ -72,7 +75,7 @@ pub async fn handle_xor(req: Request, _env: Env, _data: SomeSharedData) -> Resul
             if chunk.done() {
                 break;
             }
-            let bytes = Uint8Array::new(&chunk.value());
+            let bytes = Uint8Array::new(&chunk.value().unwrap_or_default());
             let mut buf = bytes.to_vec();
             buf.iter_mut().for_each(|x| *x ^= num);
             if writer
@@ -86,7 +89,9 @@ pub async fn handle_xor(req: Request, _env: Env, _data: SomeSharedData) -> Resul
         let _ = writer.close().await;
     });
 
-    Ok(Response::new_with_readable_stream(&transform.readable())?)
+    Ok(Response::new_with_readable_stream(
+        &transform.readable().unchecked_into(),
+    )?)
 }
 
 pub async fn handle_headers(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
@@ -150,7 +155,8 @@ pub async fn handle_api_data(req: Request, _env: Env, _data: SomeSharedData) -> 
 
     unsafe { todo.title.as_mut_vec().reverse() };
 
-    console::log(&[format!("todo = (title {}) (id {})", todo.title, todo.user_id).into()]);
+    console
+        .with(|c| c.log(&[format!("todo = (title {}) (id {})", todo.title, todo.user_id).into()]));
 
     Response::builder().from_bytes(&serde_json::to_vec(&todo).map_err(|e| e.to_string())?)
 }
@@ -236,7 +242,7 @@ pub async fn handle_cloned_stream(
         let _ = writer.close().await;
     });
 
-    let resp = Response::new_with_readable_stream(&transform.readable())?;
+    let resp = Response::new_with_readable_stream(&transform.readable().unchecked_into())?;
     let resp1 = resp.clone()?;
 
     let left = resp.text().await?;

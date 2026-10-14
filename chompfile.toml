@@ -28,16 +28,43 @@ run = 'cargo +stable install --path ts-gen'
 [[task]]
 name = 'build:ts-gen-worker:types'
 deps = ['install:ts-gen']
+# The universe is the upstream workers-types file; `--export <Name>` roots
+# select the surface `worker` needs and everything it references, and
+# `--annotate` layers the `@throws` tags upstream lacks.
+#
 # Every sync binding is a single `Result` under its own name (`--fallible`);
 # untyped failures land in the crate's `Error`, `@throws`-typed ones in the
 # generated `JsException` enum. App `Env` bindings use the same policy against
 # `ts_gen_worker::Error` but share the crate's `JsException` rather than
-# generating a second enum. The Env file references binding types declared in
-# worker.d.ts; ts-gen has no file-level `--external`, so each one is mapped to
-# the crate by name.
-run = '''ts-gen --input ts-gen-worker/types/worker.d.ts --output ts-gen-worker/src/bindings.rs \
+# generating a second enum. The Env file references binding types from the
+# crate; ts-gen has no file-level `--external`, so each one is mapped by name.
+run = '''ts-gen --input node_modules/@cloudflare/workers-types/index.d.ts \
+  --output ts-gen-worker/src/bindings.rs \
   --fallible --error-type crate::Error --error-enum JsException \
-  --export ts-gen-worker/types/worker.d.ts --export cloudflare:sockets --export cloudflare:email
+  --annotate ts-gen-worker/types/annotations.d.ts \
+  --export Request RequestInit Response ResponseInit Headers fetch \
+  --export ReadableStream ReadableStreamDefaultReader ReadableStreamBYOBReader \
+  --export WritableStream WritableStreamDefaultWriter TransformStream \
+  --export FixedLengthStream IdentityTransformStream \
+  --export FormData File Blob URLSearchParams URL \
+  --export AbortController AbortSignal \
+  --export caches Cache CacheStorage \
+  --export WebSocket WebSocketPair WebSocketRequestResponsePair \
+  --export MessageEvent CloseEvent ErrorEvent Event EventTarget \
+  --export ScheduledController ExecutionContext MessageBatch Message ExtendableEvent \
+  --export EmailMessage ForwardableEmailMessage EmailEvent SendEmail \
+  --export DurableObjectNamespace DurableObjectId DurableObjectStub DurableObjectState \
+  --export DurableObjectStorage DurableObjectTransaction SqlStorage SqlStorageCursor Container \
+  --export KVNamespace \
+  --export D1Database D1DatabaseSession D1PreparedStatement D1Result D1ExecResult \
+  --export R2Bucket R2Object R2ObjectBody R2Objects R2HTTPMetadata R2MultipartUpload \
+  --export R2UploadedPart R2Range R2Checksums \
+  --export Queue Fetcher Service DispatchNamespace \
+  --export Socket SocketOptions Hyperdrive AnalyticsEngineDataset RateLimit \
+  --export SecretsStoreSecret WorkerVersionMetadata \
+  --export IncomingRequestCfProperties RequestInitCfProperties \
+  --export crypto DigestStream console performance setTimeout clearTimeout \
+  --export cloudflare:sockets
 ts-gen --input ts-gen-worker/test/types/env.d.ts --output ts-gen-worker/test/src/env.rs \
   --fallible --error-type ts_gen_worker::Error \
   --external "KVNamespace=::ts_gen_worker::KVNamespace" \

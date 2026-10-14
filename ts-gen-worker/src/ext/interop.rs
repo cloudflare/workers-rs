@@ -80,7 +80,7 @@ where
             init = init.signal(&signal);
         }
         if let Some(cf) = req.extensions_mut().remove::<IncomingRequestCfProperties>() {
-            init = init.cf(&cf.into());
+            init = init.cf(&cf);
         }
         let uri = req.uri().to_string();
         let body = req.into_body();

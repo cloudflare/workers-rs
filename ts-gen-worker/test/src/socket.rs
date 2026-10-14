@@ -18,7 +18,7 @@ async fn read_exact(reader: &ReadableStreamDefaultReader, buf: &mut [u8]) -> Res
         if chunk.done() {
             return Err("socket closed before the request was read".into());
         }
-        let bytes = Uint8Array::new(&chunk.value()).to_vec();
+        let bytes = Uint8Array::new(&chunk.value().unwrap_or_default()).to_vec();
         let n = bytes.len().min(buf.len() - filled);
         buf[filled..filled + n].copy_from_slice(&bytes[..n]);
         filled += n;
@@ -56,7 +56,9 @@ async fn handle_udp(socket: Socket) -> Result<()> {
         if chunk.done() {
             break;
         }
-        writer.write_with_chunk(&chunk.value()).await?;
+        writer
+            .write_with_chunk(&chunk.value().unwrap_or_default())
+            .await?;
     }
     Ok(())
 }
