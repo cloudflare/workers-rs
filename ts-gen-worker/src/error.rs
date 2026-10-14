@@ -17,7 +17,7 @@ pub enum Error {
     Serde(serde_json::Error),
 }
 
-pub type Result<T> = core::result::Result<T, Error>;
+pub type Result<T, E = Error> = core::result::Result<T, E>;
 
 impl From<JsValue> for Error {
     fn from(value: JsValue) -> Self {

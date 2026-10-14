@@ -22,6 +22,8 @@ pub use router::{RouteContext, RouteParams, Router};
 pub use ts_gen_worker_macros::{durable_object, event, send};
 
 pub use js_sys;
+#[cfg(feature = "url")]
+pub use url;
 pub use wasm_bindgen;
 pub use wasm_bindgen_futures;
 

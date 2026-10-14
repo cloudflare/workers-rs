@@ -273,3 +273,194 @@ skipped.
 - harness: `queue › batch send` is timing-sensitive under full-suite load (as
   upstream); `request › proxy request` fetches `developer.mozilla.org` live
   (as upstream) and flakes without network.
+
+## Session 2: the Rust-native surface
+
+Branch `gbedford/tgw-test-port`, rebased onto `gbedford/ts-gen-worker` at `8267f2e` (the
+real `@cloudflare/workers-types` input, native awaited values, upper-case statics). What a migrating `worker` user still missed was the
+part of `worker/src/lib.rs` no `.d.ts` can produce. Each item below is its own commit with a
+route in `test/src/ext.rs` and a case in `tests/ext.spec.ts` (a second Miniflare instance
+there, `mf2`, so the console macros can be asserted through `handleStructuredLogs` and a KV
+binding `EXT_KV` plus a JSON var `EXT_JSON` can be added; `env.d.ts` grew the `EXT_KV` line).
+Suite: 185 passed, 6 skipped, in both `test:ts-gen-worker` and `test:ts-gen-worker-http`
+(176 before). `bindings.rs` unchanged.
+
+### Done
+
+- `console_log!`/`console_debug!`/`console_warn!`/`console_error!`: `format!` over the
+  generated `CONSOLE` static, one `JsValue` per call; the expansion is fully `$crate`-qualified
+  so the caller imports nothing.
+- `Delay`: `worker/src/delay.rs` over the generated `set_timeout_with_ms_delay` /
+  `clear_timeout`; armed on first poll, cleared on drop while pending.
+- `DateInit` + `DateExt`: `From<DateInit> for js_sys::Date`, `from_init`, `current`,
+  `as_millis`.
+- `Cors`: `apply_headers(&Headers)` and `Response::with_cors(&Cors)`.
+- `EnvExt`: `get::<T: JsCast>(name)`, `secret`, `var`, `object_var` (serde) on
+  `js_sys::Object`, reached through the generated `Env`'s deref.
+- `send`: `send::{SendFuture, IntoSendFuture, SendWrapper}` and `#[send]` in
+  `ts-gen-worker-macros`.
+- `Fetch`: `Fetch::Url(String)` / `Fetch::Request(Request)`, `send`, `send_with_signal`;
+  `From<&str | String | Request | url::Url>`. `Default for AbortController`.
+- KV fluent API: `KVNamespace::get_builder/get_bulk/put_builder/put_bytes/put_stream/
+  list_builder` returning `KvGetBuilder`, `KvGetBulkBuilder` (incl. `text_with_metadata` /
+  `json_with_metadata`), `KvPutBuilder`, `KvListBuilder`; `ToRawKvValue`.
+- `ok::Ok`; `Result<T, E = Error>` and `pub use url` under the `url` feature.
+
+### Decisions
+
+- **`Delay` over the generated globals.** `set_timeout_with_ms_delay::<Args>` takes
+  `&Function<fn(Args) -> Undefined>`; with `Args = JsValue` a `Closure<dyn FnMut(JsValue)>`
+  goes through the typed `Function::closure_ref`, no `unchecked_ref`. Its `Result` is
+  `.ok()`'d: a function plus a finite delay cannot throw.
+- **`js_sys::Date` stays the type; `worker::Date`'s constructors change name.** Inherent
+  impls on a foreign type are impossible, and `js_sys::Date::new(&JsValue)` / `Date::now() ->
+  f64` already own those names (an extension-trait method with the same name is unreachable
+  behind an inherent one), so the trait is `from_init(DateInit)` / `current()` / `as_millis()`,
+  plus `From<DateInit>`. `worker`'s `chrono` conversions are not ported (no chrono dependency;
+  `DateInit::Millis(dt.timestamp_millis() as u64)` is the one-liner).
+- **`Cors` has no builder form.** `worker::ResponseBuilder::with_cors` read the builder's
+  headers; the generated `ResponseInitBuilder` has no accessor before `build()` and `build()`
+  consumes it, so `cors` cannot be a builder method without rebuilding the init field by field.
+  `Response::with_cors` covers the migration (JS `Headers` on a constructed response are
+  mutable); `Cors::apply_headers(&Headers)` composes with `.headers(&h)` otherwise. ts-gen gap
+  recorded: a way to continue building from an existing dictionary (`Builder::from(T)` or a
+  `pub(crate)`/accessor on `inner`). `Access-Control-Expose-Headers` is spelled canonically
+  (`worker` had `Expose-headers`; header names are case-insensitive, so no behaviour change).
+- **`EnvExt` is implemented for `js_sys::Object`**, not as a blanket over `JsCast`, so
+  arbitrary JS handles do not grow a `.secret()`. Every generated `Env` is `extends = Object`
+  and derefs to it, so `env.secret("X")` resolves on the app's `Env` unchanged; a bare
+  `JsValue` env is `value.unchecked_ref::<Object>()`. The cast in `get::<T>` is unchecked:
+  `dyn_into` would return `Err` for every binding class because `instanceof KVNamespace` etc.
+  throw (caught to `false`) in the runtime; `worker::EnvBinding` compared `constructor.name`
+  against a per-type constant that the generated types do not carry. `secret`/`var` return
+  `String` (not a `Secret`/`Var` newtype): `Display` was the only thing those added.
+- **`Fetch::Url` holds a `String`**, not `url::Url`, so the enum exists without the `url`
+  feature; `From<url::Url>` is provided under it, and `Fetch::Url(url.into())` is the
+  migration where a `url::Url` was passed.
+- **`#[send]` emits `async { .. }` (not `move`)** like `worker-macros`; it now errors on a
+  non-async fn instead of producing an `.await` in a sync body.
+- **KV builder entry points carry a `_builder` suffix.** The generated `get`, `put`, `list`,
+  `delete` keep their JS names and raw shapes (design rule), so the fluent layer cannot own
+  those names; `Response::builder()` is already the layer's convention for "the `worker`
+  builder lives behind `builder`". Plain cases need no builder: `kv.put(k, v).await?` and
+  `kv.get(k).await?.into_option()` are shorter than `worker`'s. `get_bulk`, `put_bytes`,
+  `put_stream` have no generated namesake and keep `worker`'s names. Alternatives weighed
+  in review: verb synonyms (`read`/`write`/`keys`) introduce a second vocabulary a reader
+  must map back to `get`/`put`/`list`; a single `kv.builder().get(k)` entry point is one
+  more call per use for no gain in clarity. `get_builder` states the relation to the
+  generated method it wraps, so it stays.
+- **KV typed reads go through the typed options overload, decoded by hand.** The real
+  input's `get(key, type: "text" | "json" | "arrayBuffer" | "stream")` overloads differ only
+  in the literal, so ts-gen conflates them into one `get_with_str_and_type` returning the
+  first's `JsNullable<JsString>` (open problem 2); the builders instead call the
+  `KVNamespaceGetOptions<JsString>` overload with the `type` string and `cacheTtl`, through
+  its `_promise` form awaited as `Promise<JsValue>`: the awaited form lowers to
+  `Option<String>`, which would coerce an `ArrayBuffer` or stream result through the string
+  path. The raw `JsValue` is then decoded (`as_string` / `ArrayBuffer` / stream). `getWithMetadata` goes through the
+  generated `KVNamespaceGetWithMetadataResult`, cast to `<JsValue, JsValue>` because the value
+  slot's type follows the request. `Option<JsValue>` getters keep `null` as `Some(null)`
+  (`wasm-bindgen` maps only `undefined` to `None`) and KV reports a missing key as `null`, so
+  a `present()` filter sits in front of every decoder. `json` is `text` + `serde_json` (same
+  reasoning as `json_into`: exact integer semantics). Errors are the crate `Error`; `KvError`
+  is gone. `list` returns the generated `KVNamespaceListResult` (`keys() -> Array<..>`,
+  `list_complete()`, `cursor()`; `KVNamespaceListKey::name()/expiration() -> Option<f64>/
+  metadata() -> Option<JsValue>`) rather than `worker::ListResponse`.
+- **`ToRawKvValue`** keeps `worker`'s rule (strings as is, numbers/booleans as their text,
+  everything else as JSON text), via `serde_json::Value` under `serde`; without the feature
+  only `&str`/`String` implement it.
+- **`Result<T, E = Error>`**: `worker` users write `Result<T, MyError>` with the crate alias;
+  the default parameter costs nothing.
+- Test instance: `mf2` in `ext.spec.ts` rather than extending `mf`, because
+  `handleStructuredLogs` is a top-level Miniflare option and the first instance's log stream
+  is shared with the whole file. Workerd emits `console.debug` at level `debug`, so all four
+  macros are asserted by level.
+
+### `worker/src/lib.rs` re-exports: inventory
+
+| `worker` | disposition |
+| --- | --- |
+| `console_*!` | ported (this session) |
+| `Delay`, `Date`/`DateInit`, `Cors`, `Fetch`, `send::*`, `#[send]`, `kv::KvStore` fluent API, `ok::Ok` | ported (this session) |
+| `Env::{secret, var, object_var, get_binding, kv, d1, ...}`, `EnvBinding`, `Secret`, `Var` | generated typed getters + `EnvExt` (this session); `EnvBinding`/`Secret`/`Var` dropped (`String`) |
+| `AbortController`, `AbortSignal` | generated, incl. `AbortSignal::abort()`/`abort_with_reason`/`timeout`/`any`; `Default` added |
+| `crypto::{DigestStream, DigestStreamAlgorithm}` | `DigestStream` generated (`new(&str)`, `digest() -> Promise<ArrayBuffer>`); `DigestStreamAlgorithm` + `digest() -> Vec<u8>` is a ten-line `impl`, not done here |
+| `Context` | `ExecutionContext` + `spawn` (crate.md) |
+| `Method`, `Router`, `RouteContext`, `RouteParams`, `FromRequest`, `IntoResponse`, `HttpRequest`/`HttpResponse`/`Body` | crate.md |
+| `Error`, `Result` | errors.md; `Result<T, E = Error>` now |
+| `Request`, `Response`, `ResponseBuilder`, `Headers`, `RequestInit` | generated + crate.md; `EncodeBody` → `builder().encode_body("manual")`; `ResponseBody` dropped (JS-side) |
+| `Cf`, `CfResponseProperties`, `TlsClientAuth`, `BotManagement`, `JsDetection` | generated `IncomingRequestCfProperties`. `Response.cf` is `JsValue` (`any` upstream) |
+| `RequestRedirect`, `CfProperties`, `PolishConfig`, `MinifyConfig`, `ResolveOverride` | generated `RequestInitCfProperties` and its parts (`RequestInit<RequestInitCfProperties>` on the `fetch` overloads); `redirect` is a string on the generated `Request` |
+| `Fetcher` | generated |
+| `Cache`, `CacheKey`, `CacheDeletionOutcome` | generated `caches`/`Cache`; `CacheKey` is the `str`/`Request` overload pair; deletion outcome is the `bool` |
+| `durable::*` (`State`, `Storage`, `ObjectNamespace`, `Stub`, `ObjectId`, `WebSocketIncomingMessage`, `ListOptions`, `GetOptions`, `PutOptions`, `SetAlarmOptions`) | generated `DurableObject{State,Storage,Namespace,Stub,Id}` + dictionaries; `DurableObject` trait and `#[durable_object]` (crate.md); `DataKind` for the message enum. Serde `get`/`put` and `block_concurrency_while` over a future: gap (util.rs) |
+| `kv::{KvError, ListResponse, Key, GetValueType}` | `Error`; `KVNamespaceListResult`/`KVNamespaceListKey`; value type is internal |
+| `queue::*` (`MessageBatch`, `Message`, `Queue`, `MessageExt`, `RawMessage`, `MessageBuilder`, `BatchMessageBuilder`, `SendMessage`, `QueueContentType`) | generated + `Message::body_into` (crate.md); builders are the generated `MessageSendRequest`/`QueueSendOptions` dictionaries |
+| `r2::*`, `d1::*`, `sql::*`, `socket::*`, `websocket::*`, `streams::FixedLengthStream`, `formdata::FormEntry`, `analytics_engine::*`, `rate_limit::*`, `secret_store::*`, `email::*` | generated; the Rust-side ergonomics still local to the port (`HttpMetadata`, `query!`, `SqlStorageValue`, `AsyncRead`/`AsyncWrite`, `events()`, `FixedLengthStream::wrap`, `FormEntry`) are in the module table above |
+| `schedule::{ScheduledEvent, ScheduleContext}` | `ScheduledController`, `ExecutionContext` |
+| `Hyperdrive`, `DynamicDispatcher`, `Container`, `Version`/`WorkerVersionMetadata` | generated (`Hyperdrive`, `DispatchNamespace`, `Container`, `WorkerVersionMetadata`); no Rust-side logic beyond the generated classes except `Hyperdrive`'s connection-string accessors, which are plain getters |
+| `Ai` | not in the generated output (not an export root in `chompfile.toml`); needs the root added (workers-types.md) |
+| `signal::{is_registered, is_near_cpu_limit}` | shim state (open problem 5) |
+| `url`, `Url` | `pub use url` under feature `url` (now); `Request::url_parsed()` |
+| `web_sys`, `worker_sys`, `async_trait` | dropped: the generated types replace `web_sys`; the DO trait uses native `async fn` |
+| `wasm_bindgen`, `wasm_bindgen_futures`, `js_sys` | re-exported |
+
+### Migration table (session 2 additions)
+
+| `worker` | `ts-gen-worker` |
+| --- | --- |
+| `console_log!("{}", x)` (and `debug`/`warn`/`error`) | same |
+| `Delay::from(duration).await` | same |
+| `Date::now()` / `Date::now().as_millis()` | `js_sys::Date::current()` (`DateExt`) / `js_sys::Date::now() as u64` |
+| `Date::new(DateInit::Millis(n))` / `DateInit::Millis(n).into()` | `js_sys::Date::from_init(DateInit::Millis(n))` / same `.into()` |
+| `date.as_millis()` | same (`DateExt`) |
+| `Cors::new().with_origins(..)` | same |
+| `res.with_cors(&cors)?` | same |
+| `ResponseBuilder::new().with_cors(&cors)?` | `cors.apply_headers(&headers)?` then `Response::builder().headers(&headers)` |
+| `env.secret("X")?.to_string()` / `env.var("X")?.to_string()` | `env.secret("X")?` / `env.var("X")?` (`String`; `EnvExt`) |
+| `env.object_var::<T>("X")?` | same (`EnvExt`) |
+| `env.kv("X")?` / `env.get_binding::<T>("X")?` | `env.get::<KVNamespace>("X")?` / `env.get::<T>("X")?` (typed `env.x()` preferred) |
+| `#[send]`, `send::SendFuture`, `send::SendWrapper`, `IntoSendFuture` | same |
+| `Fetch::Url(url).send().await?` | `Fetch::Url(url.into()).send().await?` (or `fetch_with_str`) |
+| `Fetch::Request(req).send_with_signal(&signal).await?` | same |
+| `AbortController::default()` | same |
+| `kv.get("k").text().await?` | `kv.get_builder("k").text().await?` (or `kv.get("k").await?.into_option()`) |
+| `kv.get("k").json::<T>().await?` / `.bytes()` / `.stream()` / `.cache_ttl(n)` | `kv.get_builder("k").json::<T>()` / same |
+| `kv.get("k").text_with_metadata::<M>().await?` (+ `json`/`bytes`/`stream` forms) | `kv.get_builder("k").text_with_metadata::<M>()` |
+| `kv.get_bulk(&keys).text().await?` / `.json::<T>()` / `.text_with_metadata::<M>()` / `.json_with_metadata::<T, M>()` | same |
+| `kv.put("k", "v")?.execute().await?` | `kv.put("k", "v").await?` |
+| `kv.put("k", &t)?.expiration_ttl(60).metadata(m)?.execute().await?` | `kv.put_builder("k", &t)?.expiration_ttl(60).metadata(m)?.execute().await?` |
+| `kv.put_bytes("k", &b)?.execute()` / `kv.put_stream("k", s)?.execute()` | `kv.put_bytes("k", &b).execute()` / `kv.put_stream("k", s).execute()` (infallible builders) |
+| `kv.list().prefix(p).limit(n).cursor(c).execute().await?` | `kv.list_builder().prefix(p).limit(n).cursor(c).execute().await?` |
+| `list.keys[i].name` / `.expiration: Option<u64>` / `list.list_complete` / `list.cursor` | `list.keys().get(i).name()` (`Array`) / `.expiration() -> Option<f64>` / `list.list_complete()` / `list.cursor()` |
+| `kv.delete("k").await?` | same |
+| `KvError` | `Error` |
+| `ok::Ok(v)` | same |
+| `Result<T, E>` | same |
+
+### Open problems
+
+1. **KV `get` overloads conflate on their literal `type` parameter.** The real input
+   declares `get(key, type: "text")`, `get<T>(key, type: "json")`, `get(key, type:
+   "arrayBuffer")`, `get(key, type: "stream")` with distinct results; every literal lowers to
+   `&str`, so ts-gen emits one `get_with_str_and_type -> JsNullable<JsString>` (and the same
+   for `KVNamespaceGetOptions<"text" | ..>`). The builders decode the raw `JsValue` by hand
+   until ts-gen can either split string-literal overloads into per-literal methods
+   (`get_text`, `get_array_buffer`, ...) or emit an enum for the literal union. Proposal:
+   per-literal methods when the literals discriminate the return type; this would also
+   remove the `<JsValue, JsValue>` cast on `KVNamespaceGetWithMetadataResult`.
+2. **`Cors` on the builder** blocked on a ts-gen builder-from-dictionary form (gap below).
+
+### Gaps found
+
+- ts-gen: no way to continue a generated builder from an existing dictionary, or to read the
+  builder's current value without `build()` consuming it (`ResponseInitBuilder` for `Cors`;
+  any "apply a preset to a builder" helper).
+- ts-gen: string-literal overload conflation (open problem 1 above).
+- wasm-bindgen: `Option<JsValue>` getters treat only `undefined` as `None`; dictionary fields
+  declared `T | null` (`KVNamespaceGetWithMetadataResult.value`/`metadata`) come back as
+  `Some(null)`. A `JsNullable<T>` lowering for `| null` getters would remove the hand
+  `present()` filter.
+- declarations: `Ai` is still not generated (export root).
+- test port (follow-on, not done here per the file-edit rule): `util::sleep` → `Delay`,
+  `util::text`/`response_text` stay (a `String` `Promise<string>` lowering is the real fix),
+  `kv.rs` could adopt the builders; `fetch.rs`'s `Fetch` shape now matches `worker` again.

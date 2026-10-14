@@ -15,7 +15,8 @@ layers them on by name (`--annotate`). Apps generate their own `Env` the same
 way from their bindings (see `test/types/env.d.ts`). What a `.d.ts` cannot
 express, the Rust idioms, lives in `src/ext/` as `impl` blocks on the generated
 types: `#[event]` handler exports, serde, futures over promises, `Method`,
-header iteration, `ByteStream`, `Router`, `#[durable_object]`.
+header iteration, `ByteStream`, `Router`, `#[durable_object]`, `console_log!`,
+`Delay`, `Cors`, `Fetch`, `EnvExt`, the KV builders and `send`.
 
 ## Usage
 
