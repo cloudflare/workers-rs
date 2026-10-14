@@ -32,11 +32,21 @@ deps = ['install:ts-gen']
 # untyped failures land in the crate's `Error`, `@throws`-typed ones in the
 # generated `JsException` enum. App `Env` bindings use the same policy against
 # `ts_gen_worker::Error` but share the crate's `JsException` rather than
-# generating a second enum.
+# generating a second enum. The Env file references binding types declared in
+# worker.d.ts; ts-gen has no file-level `--external`, so each one is mapped to
+# the crate by name.
 run = '''ts-gen --input ts-gen-worker/types/worker.d.ts --output ts-gen-worker/src/bindings.rs \
-  --fallible --error-type crate::Error --error-enum JsException
+  --fallible --error-type crate::Error --error-enum JsException \
+  --export ts-gen-worker/types/worker.d.ts --export cloudflare:sockets
 ts-gen --input ts-gen-worker/test/types/env.d.ts --output ts-gen-worker/test/src/env.rs \
-  --fallible --error-type ts_gen_worker::Error'''
+  --fallible --error-type ts_gen_worker::Error \
+  --external "KVNamespace=::ts_gen_worker::KVNamespace" \
+  --external "Queue=::ts_gen_worker::Queue" \
+  --external "Fetcher=::ts_gen_worker::Fetcher" \
+  --external "DurableObjectNamespace=::ts_gen_worker::DurableObjectNamespace" \
+  --external "SecretsStoreSecret=::ts_gen_worker::SecretsStoreSecret" \
+  --external "AnalyticsEngineDataset=::ts_gen_worker::AnalyticsEngineDataset" \
+  --external "RateLimit=::ts_gen_worker::RateLimit"'''
 
 [[task]]
 name = 'build:ts-gen-worker'

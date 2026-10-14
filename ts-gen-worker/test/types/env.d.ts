@@ -1,3 +1,30 @@
 interface Env {
   GREETING: string;
+  EXAMPLE_SECRET: string;
+  SOME_SECRET: string;
+  SOME_VARIABLE: string;
+  SOME_OBJECT_VARIABLE: { foo: number; bar: string };
+  DB: any;
+  SOME_NAMESPACE: KVNamespace;
+  FILE_SIZES: KVNamespace;
+  TEST: KVNamespace;
+  EMPTY_BUCKET: any;
+  PUT_BUCKET: any;
+  SEEDED_BUCKET: any;
+  DELETE_BUCKET: any;
+  my_queue: Queue;
+  remote: Fetcher;
+  COUNTER: DurableObjectNamespace;
+  PUT_RAW_TEST_OBJECT: DurableObjectNamespace;
+  AUTO: DurableObjectNamespace;
+  MY_CLASS: DurableObjectNamespace;
+  ECHO_CONTAINER: DurableObjectNamespace;
+  SQL_COUNTER: DurableObjectNamespace;
+  SQL_ITERATOR: DurableObjectNamespace;
+  ASSETS: Fetcher;
+  SECRETS: SecretsStoreSecret;
+  MISSING_SECRET: SecretsStoreSecret;
+  HTTP_ANALYTICS: AnalyticsEngineDataset;
+  TEST_RATE_LIMITER: RateLimit;
+  EMAIL: any;
 }

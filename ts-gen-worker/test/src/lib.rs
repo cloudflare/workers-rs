@@ -2,6 +2,7 @@ use js_sys::{Array, JsString, Object, Promise, Reflect, Uint8Array};
 use ts_gen_worker::*;
 use wasm_bindgen::prelude::*;
 
+#[allow(clippy::all)]
 mod env;
 use env::Env;
 
@@ -102,7 +103,7 @@ pub async fn fetch_handler(req: Request, env: Env, ctx: ExecutionContext) -> Res
             let init = RequestInit::builder()
                 .method("PUT")
                 .headers(&headers)
-                .body(&body)
+                .body_with_str(&body)
                 .build();
             let upstream = fetch_with_str_and_init("https://upstream.test/echo", &init).await?;
             let echoed: String = upstream.text().await?.into();

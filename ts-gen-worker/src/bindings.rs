@@ -70,7 +70,12 @@ extern "C" {
     #[doc = ""]
     #[doc = " * `TypeError` — if the stream is already locked to a reader"]
     #[wasm_bindgen(method, catch, js_name = "getReader")]
-    pub fn get_reader(this: &ReadableStream) -> Result<JsValue, JsException>;
+    pub fn get_reader(this: &ReadableStream) -> Result<ReadableStreamDefaultReader, JsException>;
+    #[wasm_bindgen(method, catch, js_name = "pipeTo")]
+    pub async fn pipe_to(
+        this: &ReadableStream,
+        destination: &WritableStream,
+    ) -> Result<Undefined, crate::Error>;
 }
 #[wasm_bindgen]
 extern "C" {
@@ -246,6 +251,33 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/text)"]
     #[wasm_bindgen(method, catch)]
     pub async fn text(this: &Request) -> Result<JsString, crate::Error>;
+    #[doc = " The **`bodyUsed`** read-only property of the Body interface is a boolean value that indicates whether the body has been read yet."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/bodyUsed)"]
+    #[wasm_bindgen(method, getter, js_name = "bodyUsed")]
+    pub fn body_used(this: &Request) -> bool;
+    #[doc = " The **`bytes()`** method of the Body interface takes a Response stream and reads it to completion. It returns a promise that resolves with a Uint8Array."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/bytes)"]
+    #[wasm_bindgen(method, catch)]
+    pub async fn bytes(this: &Request) -> Result<Uint8Array, crate::Error>;
+    #[doc = " The **`json()`** method of the Body interface takes a Response stream and reads it to completion. It returns a promise which resolves with the result of parsing the body text as JSON."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/json)"]
+    #[wasm_bindgen(method, catch)]
+    pub async fn json(this: &Request) -> Result<JsValue, crate::Error>;
+    #[doc = " The **`formData()`** method of the Body interface takes a Response stream and reads it to completion. It returns a promise that resolves with a FormData object."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/formData)"]
+    #[wasm_bindgen(method, catch, js_name = "formData")]
+    pub async fn form_data(this: &Request) -> Result<FormData, crate::Error>;
+    #[doc = " The **`signal`** read-only property of the Request interface returns the AbortSignal associated with the request."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/signal)"]
+    #[wasm_bindgen(method, getter)]
+    pub fn signal(this: &Request) -> AbortSignal;
+    #[wasm_bindgen(method, getter)]
+    pub fn cf(this: &Request) -> Option<IncomingRequestCfProperties>;
 }
 #[allow(dead_code)]
 pub type RequestInfo = JsValue;
@@ -270,16 +302,33 @@ extern "C" {
     pub fn set_headers_with_slice(this: &RequestInit, val: &[ArrayTuple<(JsString, JsString)>]);
     #[doc = " A BodyInit object or null to set request's body."]
     #[wasm_bindgen(method, getter)]
-    pub fn body(this: &RequestInit) -> Option<BodyKind>;
+    pub fn body(this: &RequestInit) -> JsValue;
     #[wasm_bindgen(method, setter)]
-    pub fn set_body(this: &RequestInit, val: &str);
+    pub fn set_body(this: &RequestInit, val: &ReadableStream);
+    #[wasm_bindgen(method, setter, js_name = "body")]
+    pub fn set_body_with_str(this: &RequestInit, val: &str);
     #[wasm_bindgen(method, setter, js_name = "body")]
     pub fn set_body_with_array_buffer(this: &RequestInit, val: &ArrayBuffer);
+    #[wasm_bindgen(method, setter, js_name = "body")]
+    pub fn set_body_with_typed_array<T: ::js_sys::TypedArray>(this: &RequestInit, val: &T);
+    #[wasm_bindgen(method, setter, js_name = "body")]
+    pub fn set_body_with_blob(this: &RequestInit, val: &Blob);
+    #[wasm_bindgen(method, setter, js_name = "body")]
+    pub fn set_body_with_form_data(this: &RequestInit, val: &FormData);
     #[doc = " A string indicating how the request will interact with the browser's cache to set request's redirect."]
     #[wasm_bindgen(method, getter)]
     pub fn redirect(this: &RequestInit) -> Option<String>;
     #[wasm_bindgen(method, setter)]
     pub fn set_redirect(this: &RequestInit, val: &str);
+    #[doc = " An AbortSignal to set request's signal."]
+    #[wasm_bindgen(method, getter)]
+    pub fn signal(this: &RequestInit) -> Option<AbortSignal>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_signal(this: &RequestInit, val: &AbortSignal);
+    #[wasm_bindgen(method, getter)]
+    pub fn cf(this: &RequestInit) -> JsValue;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_cf(this: &RequestInit, val: &JsValue);
 }
 impl RequestInit {
     pub fn new() -> RequestInit {
@@ -311,22 +360,48 @@ impl RequestInitBuilder {
         self.inner.set_headers_with_slice(val);
         self
     }
-    pub fn body(self, val: &str) -> Self {
+    pub fn body(self, val: &ReadableStream) -> Self {
         self.inner.set_body(val);
+        self
+    }
+    pub fn body_with_str(self, val: &str) -> Self {
+        self.inner.set_body_with_str(val);
         self
     }
     pub fn body_with_array_buffer(self, val: &ArrayBuffer) -> Self {
         self.inner.set_body_with_array_buffer(val);
         self
     }
+    pub fn body_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self {
+        self.inner.set_body_with_typed_array(val);
+        self
+    }
+    pub fn body_with_blob(self, val: &Blob) -> Self {
+        self.inner.set_body_with_blob(val);
+        self
+    }
+    pub fn body_with_form_data(self, val: &FormData) -> Self {
+        self.inner.set_body_with_form_data(val);
+        self
+    }
     pub fn redirect(self, val: &str) -> Self {
         self.inner.set_redirect(val);
+        self
+    }
+    pub fn signal(self, val: &AbortSignal) -> Self {
+        self.inner.set_signal(val);
+        self
+    }
+    pub fn cf(self, val: &JsValue) -> Self {
+        self.inner.set_cf(val);
         self
     }
     pub fn build(self) -> RequestInit {
         self.inner
     }
 }
+#[allow(dead_code)]
+pub type BodyInit = JsValue;
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -341,6 +416,15 @@ extern "C" {
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch)]
     pub fn new() -> Result<Response, JsException>;
+    #[doc = " The **`Response()`** constructor creates a new Response object."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/Response)"]
+    #[doc = ""]
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
+    #[wasm_bindgen(constructor, catch, js_name = "Response")]
+    pub fn new_with_readable_stream(body: &ReadableStream) -> Result<Response, JsException>;
     #[doc = " The **`Response()`** constructor creates a new Response object."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/Response)"]
@@ -367,7 +451,37 @@ extern "C" {
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
-    pub fn new_with_readable_stream(body: &ReadableStream) -> Result<Response, JsException>;
+    pub fn new_with_typed_array(body: &Object) -> Result<Response, JsException>;
+    #[doc = " The **`Response()`** constructor creates a new Response object."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/Response)"]
+    #[doc = ""]
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
+    #[wasm_bindgen(constructor, catch, js_name = "Response")]
+    pub fn new_with_blob(body: &Blob) -> Result<Response, JsException>;
+    #[doc = " The **`Response()`** constructor creates a new Response object."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/Response)"]
+    #[doc = ""]
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
+    #[wasm_bindgen(constructor, catch, js_name = "Response")]
+    pub fn new_with_form_data(body: &FormData) -> Result<Response, JsException>;
+    #[doc = " The **`Response()`** constructor creates a new Response object."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/Response)"]
+    #[doc = ""]
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
+    #[wasm_bindgen(constructor, catch, js_name = "Response")]
+    pub fn new_with_readable_stream_and_init(
+        body: &ReadableStream,
+        init: &ResponseInit,
+    ) -> Result<Response, JsException>;
     #[doc = " The **`Response()`** constructor creates a new Response object."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/Response)"]
@@ -397,8 +511,53 @@ extern "C" {
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
-    pub fn new_with_readable_stream_and_init(
-        body: &ReadableStream,
+    pub fn new_with_typed_array_and_init(
+        body: &Object,
+        init: &ResponseInit,
+    ) -> Result<Response, JsException>;
+    #[doc = " The **`Response()`** constructor creates a new Response object."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/Response)"]
+    #[doc = ""]
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
+    #[wasm_bindgen(constructor, catch, js_name = "Response")]
+    pub fn new_with_blob_and_init(
+        body: &Blob,
+        init: &ResponseInit,
+    ) -> Result<Response, JsException>;
+    #[doc = " The **`Response()`** constructor creates a new Response object."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/Response)"]
+    #[doc = ""]
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
+    #[wasm_bindgen(constructor, catch, js_name = "Response")]
+    pub fn new_with_form_data_and_init(
+        body: &FormData,
+        init: &ResponseInit,
+    ) -> Result<Response, JsException>;
+    #[doc = " The **`Response()`** constructor creates a new Response object."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/Response)"]
+    #[doc = ""]
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
+    #[wasm_bindgen(constructor, catch, js_name = "Response")]
+    pub fn new_with_null(body: &Null) -> Result<Response, JsException>;
+    #[doc = " The **`Response()`** constructor creates a new Response object."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/Response)"]
+    #[doc = ""]
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
+    #[wasm_bindgen(constructor, catch, js_name = "Response")]
+    pub fn new_with_null_and_init(
+        body: &Null,
         init: &ResponseInit,
     ) -> Result<Response, JsException>;
     #[doc = " The **`Response.redirect()`** static method returns a `Response` resulting in a redirect to the specified URL."]
@@ -483,6 +642,30 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/text)"]
     #[wasm_bindgen(method, catch)]
     pub async fn text(this: &Response) -> Result<JsString, crate::Error>;
+    #[doc = " The **`bodyUsed`** read-only property of the Body interface is a boolean value that indicates whether the body has been read yet."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/bodyUsed)"]
+    #[wasm_bindgen(method, getter, js_name = "bodyUsed")]
+    pub fn body_used(this: &Response) -> bool;
+    #[doc = " The **`bytes()`** method of the Body interface takes a Response stream and reads it to completion. It returns a promise that resolves with a Uint8Array."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/bytes)"]
+    #[wasm_bindgen(method, catch)]
+    pub async fn bytes(this: &Response) -> Result<Uint8Array, crate::Error>;
+    #[doc = " The **`json()`** method of the Body interface takes a Response stream and reads it to completion. It returns a promise which resolves with the result of parsing the body text as JSON."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/json)"]
+    #[wasm_bindgen(method, catch, js_name = "json")]
+    pub async fn json_2(this: &Response) -> Result<JsValue, crate::Error>;
+    #[doc = " The **`formData()`** method of the Body interface takes a Response stream and reads it to completion. It returns a promise that resolves with a FormData object."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/formData)"]
+    #[wasm_bindgen(method, catch, js_name = "formData")]
+    pub async fn form_data(this: &Response) -> Result<FormData, crate::Error>;
+    #[wasm_bindgen(method, getter, js_name = "webSocket")]
+    pub fn web_socket(this: &Response) -> Option<WebSocket>;
+    #[wasm_bindgen(method, getter)]
+    pub fn cf(this: &Response) -> JsValue;
 }
 #[wasm_bindgen]
 extern "C" {
@@ -508,6 +691,18 @@ extern "C" {
     pub fn set_headers_with_record(this: &ResponseInit, val: &Object<JsString>);
     #[wasm_bindgen(method, setter, slice_to_array, js_name = "headers")]
     pub fn set_headers_with_slice(this: &ResponseInit, val: &[ArrayTuple<(JsString, JsString)>]);
+    #[wasm_bindgen(method, getter)]
+    pub fn cf(this: &ResponseInit) -> JsValue;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_cf(this: &ResponseInit, val: &JsValue);
+    #[wasm_bindgen(method, getter, js_name = "webSocket")]
+    pub fn web_socket(this: &ResponseInit) -> Option<WebSocket>;
+    #[wasm_bindgen(method, setter, js_name = "webSocket")]
+    pub fn set_web_socket(this: &ResponseInit, val: &WebSocket);
+    #[wasm_bindgen(method, getter, js_name = "encodeBody")]
+    pub fn encode_body(this: &ResponseInit) -> Option<EncodeBodyKind>;
+    #[wasm_bindgen(method, setter, js_name = "encodeBody")]
+    pub fn set_encode_body(this: &ResponseInit, val: &str);
 }
 impl ResponseInit {
     pub fn new() -> ResponseInit {
@@ -541,6 +736,18 @@ impl ResponseInitBuilder {
     }
     pub fn headers_with_slice(self, val: &[ArrayTuple<(JsString, JsString)>]) -> Self {
         self.inner.set_headers_with_slice(val);
+        self
+    }
+    pub fn cf(self, val: &JsValue) -> Self {
+        self.inner.set_cf(val);
+        self
+    }
+    pub fn web_socket(self, val: &WebSocket) -> Self {
+        self.inner.set_web_socket(val);
+        self
+    }
+    pub fn encode_body(self, val: &str) -> Self {
+        self.inner.set_encode_body(val);
         self
     }
     pub fn build(self) -> ResponseInit {
@@ -602,9 +809,2549 @@ extern "C" {
     ) -> Result<Response, crate::Error>;
 }
 #[wasm_bindgen]
-pub enum BodyKind {
-    String(String),
+extern "C" {
+    #[wasm_bindgen(catch, js_name = "setTimeout")]
+    pub fn set_timeout(callback: &Function<fn(Array) -> Undefined>) -> Result<f64, crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(catch, js_name = "setTimeout")]
+    pub fn set_timeout_with_ms_delay(
+        callback: &Function<fn(Array) -> Undefined>,
+        ms_delay: f64,
+    ) -> Result<f64, crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(catch, js_name = "clearTimeout")]
+    pub fn clear_timeout(timeout_id: f64) -> Result<(), crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    #[doc = " The Cache API allows fine grained control of reading and writing from the Cloudflare global network cache."]
+    #[doc = ""]
+    #[doc = " [Cloudflare Docs Reference](https://developers.cloudflare.com/workers/runtime-apis/cache/)"]
+    #[wasm_bindgen(thread_local_v2)]
+    pub static caches: CacheStorage;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type CacheStorage;
+    #[doc = " The **`open()`** method of the CacheStorage interface returns a Promise that resolves to the Cache object matching the cacheName."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/CacheStorage/open)"]
+    #[wasm_bindgen(method, catch)]
+    pub async fn open(this: &CacheStorage, cache_name: &str) -> Result<Cache, crate::Error>;
+    #[wasm_bindgen(method, getter)]
+    pub fn default(this: &CacheStorage) -> Cache;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type Cache;
+    #[wasm_bindgen(method, catch)]
+    pub async fn delete(this: &Cache, request: &Request) -> Result<Boolean, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "delete")]
+    pub async fn delete_with_str(this: &Cache, request: &str) -> Result<Boolean, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "delete")]
+    pub async fn delete_with_request_and_options(
+        this: &Cache,
+        request: &Request,
+        options: &CacheQueryOptions,
+    ) -> Result<Boolean, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "delete")]
+    pub async fn delete_with_str_and_options(
+        this: &Cache,
+        request: &str,
+        options: &CacheQueryOptions,
+    ) -> Result<Boolean, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "match")]
+    pub async fn match_(
+        this: &Cache,
+        request: &Request,
+    ) -> Result<JsOption<Response>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "match")]
+    pub async fn match_with_str(
+        this: &Cache,
+        request: &str,
+    ) -> Result<JsOption<Response>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "match")]
+    pub async fn match_with_request_and_options(
+        this: &Cache,
+        request: &Request,
+        options: &CacheQueryOptions,
+    ) -> Result<JsOption<Response>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "match")]
+    pub async fn match_with_str_and_options(
+        this: &Cache,
+        request: &str,
+        options: &CacheQueryOptions,
+    ) -> Result<JsOption<Response>, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub async fn put(
+        this: &Cache,
+        request: &Request,
+        response: &Response,
+    ) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    pub async fn put_with_str(
+        this: &Cache,
+        request: &str,
+        response: &Response,
+    ) -> Result<Undefined, crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type CacheQueryOptions;
+    #[wasm_bindgen(method, getter, js_name = "ignoreMethod")]
+    pub fn ignore_method(this: &CacheQueryOptions) -> Option<bool>;
+    #[wasm_bindgen(method, setter, js_name = "ignoreMethod")]
+    pub fn set_ignore_method(this: &CacheQueryOptions, val: bool);
+}
+impl CacheQueryOptions {
+    pub fn new() -> CacheQueryOptions {
+        Self::builder().build()
+    }
+    pub fn builder() -> CacheQueryOptionsBuilder {
+        CacheQueryOptionsBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct CacheQueryOptionsBuilder {
+    inner: CacheQueryOptions,
+}
+impl CacheQueryOptionsBuilder {
+    pub fn ignore_method(self, val: bool) -> Self {
+        self.inner.set_ignore_method(val);
+        self
+    }
+    pub fn build(self) -> CacheQueryOptions {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type AbortController;
+    #[wasm_bindgen(constructor, catch)]
+    pub fn new() -> Result<AbortController, crate::Error>;
+    #[doc = " The **`signal`** read-only property of the AbortController interface returns an AbortSignal object instance, which can be used to communicate with/abort an asynchronous operation as desired."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/AbortController/signal)"]
+    #[wasm_bindgen(method, getter)]
+    pub fn signal(this: &AbortController) -> AbortSignal;
+    #[doc = " The **`abort()`** method of the AbortController interface aborts an asynchronous operation before it has completed."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/AbortController/abort)"]
+    #[wasm_bindgen(method, catch)]
+    pub fn abort(this: &AbortController) -> Result<(), crate::Error>;
+    #[doc = " The **`abort()`** method of the AbortController interface aborts an asynchronous operation before it has completed."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/AbortController/abort)"]
+    #[wasm_bindgen(method, catch, js_name = "abort")]
+    pub fn abort_with_reason(this: &AbortController, reason: &JsValue) -> Result<(), crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type AbortSignal;
+    #[doc = " The **`aborted`** read-only property returns a value that indicates whether the asynchronous operations the signal is communicating with are aborted (`true`) or not (`false`)."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/AbortSignal/aborted)"]
+    #[wasm_bindgen(method, getter)]
+    pub fn aborted(this: &AbortSignal) -> bool;
+    #[doc = " The **`reason`** read-only property returns a JavaScript value that indicates the abort reason."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/AbortSignal/reason)"]
+    #[wasm_bindgen(method, getter)]
+    pub fn reason(this: &AbortSignal) -> JsValue;
+    #[doc = " The **`throwIfAborted()`** method throws the signal's abort reason if the signal has been aborted; otherwise it does nothing."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/AbortSignal/throwIfAborted)"]
+    #[wasm_bindgen(method, catch, js_name = "throwIfAborted")]
+    pub fn throw_if_aborted(this: &AbortSignal) -> Result<(), crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type Blob;
+    #[doc = " The **`size`** read-only property of the Blob interface returns the size of the Blob or File in bytes."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/size)"]
+    #[wasm_bindgen(method, getter)]
+    pub fn size(this: &Blob) -> f64;
+    #[doc = " The **`type`** read-only property of the Blob interface returns the MIME type of the file."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/type)"]
+    #[wasm_bindgen(method, getter, js_name = "type")]
+    pub fn type_(this: &Blob) -> String;
+    #[doc = " The **`arrayBuffer()`** method of the Blob interface returns a Promise that resolves with the contents of the blob as binary data contained in an ArrayBuffer."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/arrayBuffer)"]
+    #[wasm_bindgen(method, catch, js_name = "arrayBuffer")]
+    pub async fn array_buffer(this: &Blob) -> Result<ArrayBuffer, crate::Error>;
+    #[doc = " The **`bytes()`** method of the Blob interface returns a Promise that resolves with a Uint8Array containing the contents of the blob as an array of bytes."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/bytes)"]
+    #[wasm_bindgen(method, catch)]
+    pub async fn bytes(this: &Blob) -> Result<Uint8Array, crate::Error>;
+    #[doc = " The **`text()`** method of the Blob interface returns a Promise that resolves with a string containing the contents of the blob, interpreted as UTF-8."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/text)"]
+    #[wasm_bindgen(method, catch)]
+    pub async fn text(this: &Blob) -> Result<JsString, crate::Error>;
+    #[doc = " The **`stream()`** method of the Blob interface returns a ReadableStream which upon reading returns the data contained within the Blob."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/stream)"]
+    #[wasm_bindgen(method, catch)]
+    pub fn stream(this: &Blob) -> Result<ReadableStream, crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Blob , extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type File;
+    #[doc = " The **`name`** read-only property of the File interface returns the name of the file represented by a File object."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/File/name)"]
+    #[wasm_bindgen(method, getter)]
+    pub fn name(this: &File) -> String;
+    #[doc = " The **`lastModified`** read-only property of the File interface provides the last modified date of the file as the number of milliseconds since the Unix epoch (January 1, 1970 at midnight)."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/File/lastModified)"]
+    #[wasm_bindgen(method, getter, js_name = "lastModified")]
+    pub fn last_modified(this: &File) -> f64;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type FormData;
+    #[wasm_bindgen(constructor, catch)]
+    pub fn new() -> Result<FormData, crate::Error>;
+    #[doc = " The **`append()`** method of the FormData interface appends a new value onto an existing key inside a FormData object, or adds the key if it does not already exist."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/append)"]
+    #[wasm_bindgen(method, catch)]
+    pub fn append(this: &FormData, name: &str, value: &str) -> Result<(), crate::Error>;
+    #[doc = " The **`append()`** method of the FormData interface appends a new value onto an existing key inside a FormData object, or adds the key if it does not already exist."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/append)"]
+    #[wasm_bindgen(method, catch, js_name = "append")]
+    pub fn append_with_blob(this: &FormData, name: &str, value: &Blob) -> Result<(), crate::Error>;
+    #[doc = " The **`append()`** method of the FormData interface appends a new value onto an existing key inside a FormData object, or adds the key if it does not already exist."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/append)"]
+    #[wasm_bindgen(method, catch, js_name = "append")]
+    pub fn append_with_blob_and_filename(
+        this: &FormData,
+        name: &str,
+        value: &Blob,
+        filename: &str,
+    ) -> Result<(), crate::Error>;
+    #[doc = " The **`delete()`** method of the FormData interface deletes a key and its value(s) from a FormData object."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/delete)"]
+    #[wasm_bindgen(method, catch)]
+    pub fn delete(this: &FormData, name: &str) -> Result<(), crate::Error>;
+    #[doc = " The **`get()`** method of the FormData interface returns the first value associated with a given key from within a FormData object."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/get)"]
+    #[wasm_bindgen(method, catch)]
+    pub fn get(this: &FormData, name: &str) -> Result<JsValue, crate::Error>;
+    #[doc = " The **`getAll()`** method of the FormData interface returns all the values associated with a given key from within a FormData object."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/getAll)"]
+    #[wasm_bindgen(method, catch, js_name = "getAll")]
+    pub fn get_all(this: &FormData, name: &str) -> Result<Vec<JsValue>, crate::Error>;
+    #[doc = " The **`has()`** method of the FormData interface returns whether a FormData object contains a certain key."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/has)"]
+    #[wasm_bindgen(method, catch)]
+    pub fn has(this: &FormData, name: &str) -> Result<bool, crate::Error>;
+    #[doc = " The **`set()`** method of the FormData interface sets a new value for an existing key inside a FormData object, or adds the key/value if it does not already exist."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/set)"]
+    #[wasm_bindgen(method, catch)]
+    pub fn set(this: &FormData, name: &str, value: &str) -> Result<(), crate::Error>;
+    #[doc = " The **`set()`** method of the FormData interface sets a new value for an existing key inside a FormData object, or adds the key/value if it does not already exist."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/set)"]
+    #[wasm_bindgen(method, catch, js_name = "set")]
+    pub fn set_with_blob(this: &FormData, name: &str, value: &Blob) -> Result<(), crate::Error>;
+    #[doc = " The **`set()`** method of the FormData interface sets a new value for an existing key inside a FormData object, or adds the key/value if it does not already exist."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/set)"]
+    #[wasm_bindgen(method, catch, js_name = "set")]
+    pub fn set_with_blob_and_filename(
+        this: &FormData,
+        name: &str,
+        value: &Blob,
+        filename: &str,
+    ) -> Result<(), crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type ReadableStreamDefaultReader;
+    #[wasm_bindgen(constructor, catch)]
+    pub fn new(stream: &ReadableStream) -> Result<ReadableStreamDefaultReader, crate::Error>;
+    #[wasm_bindgen(method, getter)]
+    pub fn closed(this: &ReadableStreamDefaultReader) -> Promise<Undefined>;
+    #[wasm_bindgen(method, catch)]
+    pub async fn cancel(this: &ReadableStreamDefaultReader) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "cancel")]
+    pub async fn cancel_with_reason(
+        this: &ReadableStreamDefaultReader,
+        reason: &JsValue,
+    ) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub async fn read(
+        this: &ReadableStreamDefaultReader,
+    ) -> Result<ReadableStreamReadResult, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "releaseLock")]
+    pub fn release_lock(this: &ReadableStreamDefaultReader) -> Result<(), crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type ReadableStreamReadResult;
+    #[wasm_bindgen(method, getter)]
+    pub fn done(this: &ReadableStreamReadResult) -> bool;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_done(this: &ReadableStreamReadResult, val: bool);
+    #[wasm_bindgen(method, getter)]
+    pub fn value(this: &ReadableStreamReadResult) -> JsValue;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_value(this: &ReadableStreamReadResult, val: &JsValue);
+}
+impl ReadableStreamReadResult {
+    pub fn new(done: bool) -> ReadableStreamReadResult {
+        Self::builder(done).build()
+    }
+    pub fn builder(done: bool) -> ReadableStreamReadResultBuilder {
+        let inner: ReadableStreamReadResult = JsCast::unchecked_into(js_sys::Object::new());
+        inner.set_done(done);
+        ReadableStreamReadResultBuilder { inner }
+    }
+}
+pub struct ReadableStreamReadResultBuilder {
+    inner: ReadableStreamReadResult,
+}
+impl ReadableStreamReadResultBuilder {
+    pub fn value(self, val: &JsValue) -> Self {
+        self.inner.set_value(val);
+        self
+    }
+    pub fn build(self) -> ReadableStreamReadResult {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type WritableStream;
+    #[wasm_bindgen(method, getter)]
+    pub fn locked(this: &WritableStream) -> bool;
+    #[wasm_bindgen(method, catch)]
+    pub async fn abort(this: &WritableStream) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "abort")]
+    pub async fn abort_with_reason(
+        this: &WritableStream,
+        reason: &JsValue,
+    ) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub async fn close(this: &WritableStream) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "getWriter")]
+    pub fn get_writer(this: &WritableStream) -> Result<WritableStreamDefaultWriter, crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type WritableStreamDefaultWriter;
+    #[wasm_bindgen(constructor, catch)]
+    pub fn new(stream: &WritableStream) -> Result<WritableStreamDefaultWriter, crate::Error>;
+    #[wasm_bindgen(method, getter)]
+    pub fn closed(this: &WritableStreamDefaultWriter) -> Promise<Undefined>;
+    #[wasm_bindgen(method, getter)]
+    pub fn ready(this: &WritableStreamDefaultWriter) -> Promise<Undefined>;
+    #[wasm_bindgen(method, getter, js_name = "desiredSize")]
+    pub fn desired_size(this: &WritableStreamDefaultWriter) -> Option<f64>;
+    #[wasm_bindgen(method, catch)]
+    pub async fn abort(this: &WritableStreamDefaultWriter) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "abort")]
+    pub async fn abort_with_reason(
+        this: &WritableStreamDefaultWriter,
+        reason: &JsValue,
+    ) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub async fn close(this: &WritableStreamDefaultWriter) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub async fn write(this: &WritableStreamDefaultWriter) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "write")]
+    pub async fn write_with_chunk(
+        this: &WritableStreamDefaultWriter,
+        chunk: &JsValue,
+    ) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "releaseLock")]
+    pub fn release_lock(this: &WritableStreamDefaultWriter) -> Result<(), crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type TransformStream;
+    #[wasm_bindgen(constructor, catch)]
+    pub fn new() -> Result<TransformStream, crate::Error>;
+    #[wasm_bindgen(method, getter)]
+    pub fn readable(this: &TransformStream) -> ReadableStream;
+    #[wasm_bindgen(method, getter)]
+    pub fn writable(this: &TransformStream) -> WritableStream;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = IdentityTransformStream , extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type FixedLengthStream;
+    #[wasm_bindgen(constructor, catch)]
+    pub fn new(expected_length: f64) -> Result<FixedLengthStream, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "FixedLengthStream")]
+    pub fn new_with_big_int(expected_length: &BigInt) -> Result<FixedLengthStream, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "FixedLengthStream")]
+    pub fn new_with_f64_and_queuing_strategy(
+        expected_length: f64,
+        queuing_strategy: &IdentityTransformStreamQueuingStrategy,
+    ) -> Result<FixedLengthStream, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "FixedLengthStream")]
+    pub fn new_with_big_int_and_queuing_strategy(
+        expected_length: &BigInt,
+        queuing_strategy: &IdentityTransformStreamQueuingStrategy,
+    ) -> Result<FixedLengthStream, crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = TransformStream , extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type IdentityTransformStream;
+    #[wasm_bindgen(constructor, catch)]
+    pub fn new() -> Result<IdentityTransformStream, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "IdentityTransformStream")]
+    pub fn new_with_queuing_strategy(
+        queuing_strategy: &IdentityTransformStreamQueuingStrategy,
+    ) -> Result<IdentityTransformStream, crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type IdentityTransformStreamQueuingStrategy;
+    #[wasm_bindgen(method, getter, js_name = "highWaterMark")]
+    pub fn high_water_mark(
+        this: &IdentityTransformStreamQueuingStrategy,
+    ) -> Option<HighWaterMarkKind>;
+    #[wasm_bindgen(method, setter, js_name = "highWaterMark")]
+    pub fn set_high_water_mark(this: &IdentityTransformStreamQueuingStrategy, val: f64);
+    #[wasm_bindgen(method, setter, js_name = "highWaterMark")]
+    pub fn set_high_water_mark_with_big_int(
+        this: &IdentityTransformStreamQueuingStrategy,
+        val: &BigInt,
+    );
+}
+impl IdentityTransformStreamQueuingStrategy {
+    pub fn new() -> IdentityTransformStreamQueuingStrategy {
+        Self::builder().build()
+    }
+    pub fn builder() -> IdentityTransformStreamQueuingStrategyBuilder {
+        IdentityTransformStreamQueuingStrategyBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct IdentityTransformStreamQueuingStrategyBuilder {
+    inner: IdentityTransformStreamQueuingStrategy,
+}
+impl IdentityTransformStreamQueuingStrategyBuilder {
+    pub fn high_water_mark(self, val: f64) -> Self {
+        self.inner.set_high_water_mark(val);
+        self
+    }
+    pub fn high_water_mark_with_big_int(self, val: &BigInt) -> Self {
+        self.inner.set_high_water_mark_with_big_int(val);
+        self
+    }
+    pub fn build(self) -> IdentityTransformStreamQueuingStrategy {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type IncomingRequestCfProperties;
+    #[wasm_bindgen(method, getter)]
+    pub fn colo(this: &IncomingRequestCfProperties) -> String;
+    #[wasm_bindgen(method, getter)]
+    pub fn country(this: &IncomingRequestCfProperties) -> Option<String>;
+    #[wasm_bindgen(method, getter)]
+    pub fn region(this: &IncomingRequestCfProperties) -> Option<String>;
+    #[wasm_bindgen(method, getter)]
+    pub fn city(this: &IncomingRequestCfProperties) -> Option<String>;
+    #[wasm_bindgen(method, getter)]
+    pub fn latitude(this: &IncomingRequestCfProperties) -> Option<String>;
+    #[wasm_bindgen(method, getter)]
+    pub fn longitude(this: &IncomingRequestCfProperties) -> Option<String>;
+    #[wasm_bindgen(method, getter, js_name = "httpProtocol")]
+    pub fn http_protocol(this: &IncomingRequestCfProperties) -> String;
+}
+impl IncomingRequestCfProperties {
+    #[allow(clippy::new_without_default)]
+    pub fn new() -> IncomingRequestCfProperties {
+        #[allow(unused_unsafe)]
+        unsafe {
+            JsValue::from(js_sys::Object::new()).unchecked_into()
+        }
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type Fetcher;
+    #[wasm_bindgen(method, catch)]
+    pub async fn fetch(this: &Fetcher, input: &Request) -> Result<Response, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "fetch")]
+    pub async fn fetch_with_str(this: &Fetcher, input: &str) -> Result<Response, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "fetch")]
+    pub async fn fetch_with_request_and_init(
+        this: &Fetcher,
+        input: &Request,
+        init: &RequestInit,
+    ) -> Result<Response, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "fetch")]
+    pub async fn fetch_with_str_and_init(
+        this: &Fetcher,
+        input: &str,
+        init: &RequestInit,
+    ) -> Result<Response, crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type KVNamespace;
+    #[wasm_bindgen(method, catch)]
+    pub async fn get(this: &KVNamespace, key: &str) -> Result<JsOption<JsString>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "get")]
+    pub async fn get_with_str_and_options(
+        this: &KVNamespace,
+        key: &str,
+        options: &KVNamespaceGetOptions<Undefined>,
+    ) -> Result<JsOption<JsString>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "get")]
+    pub async fn get_with_str_and_type(
+        this: &KVNamespace,
+        key: &str,
+        r#type: &str,
+    ) -> Result<JsOption<JsString>, crate::Error>;
+    #[wasm_bindgen(method, catch, slice_to_array, js_name = "get")]
+    pub async fn get_with_slice(
+        this: &KVNamespace,
+        key: &[String],
+    ) -> Result<JsOption<JsString>, crate::Error>;
+    #[wasm_bindgen(method, catch, slice_to_array, js_name = "get")]
+    pub async fn get_with_slice_and_options(
+        this: &KVNamespace,
+        key: &[String],
+        options: &KVNamespaceGetOptions<Undefined>,
+    ) -> Result<JsOption<JsString>, crate::Error>;
+    #[wasm_bindgen(method, catch, slice_to_array, js_name = "get")]
+    pub async fn get_with_slice_and_type(
+        this: &KVNamespace,
+        key: &[String],
+        r#type: &str,
+    ) -> Result<JsOption<JsString>, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub async fn list(this: &KVNamespace) -> Result<KVNamespaceListResult, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "list")]
+    pub async fn list_with_options(
+        this: &KVNamespace,
+        options: &KVNamespaceListOptions,
+    ) -> Result<KVNamespaceListResult, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub async fn put(this: &KVNamespace, key: &str, value: &str)
+        -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    pub async fn put_with_array_buffer(
+        this: &KVNamespace,
+        key: &str,
+        value: &ArrayBuffer,
+    ) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    pub async fn put_with_typed_array(
+        this: &KVNamespace,
+        key: &str,
+        value: &Object,
+    ) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    pub async fn put_with_readable_stream(
+        this: &KVNamespace,
+        key: &str,
+        value: &ReadableStream,
+    ) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    pub async fn put_with_str_and_options(
+        this: &KVNamespace,
+        key: &str,
+        value: &str,
+        options: &KVNamespacePutOptions,
+    ) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    pub async fn put_with_array_buffer_and_options(
+        this: &KVNamespace,
+        key: &str,
+        value: &ArrayBuffer,
+        options: &KVNamespacePutOptions,
+    ) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    pub async fn put_with_typed_array_and_options(
+        this: &KVNamespace,
+        key: &str,
+        value: &Object,
+        options: &KVNamespacePutOptions,
+    ) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    pub async fn put_with_readable_stream_and_options(
+        this: &KVNamespace,
+        key: &str,
+        value: &ReadableStream,
+        options: &KVNamespacePutOptions,
+    ) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
+    pub async fn get_with_metadata(
+        this: &KVNamespace,
+        key: &str,
+    ) -> Result<KVNamespaceGetWithMetadataResult, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
+    pub async fn get_with_metadata_with_options(
+        this: &KVNamespace,
+        key: &str,
+        options: &KVNamespaceGetOptions<Undefined>,
+    ) -> Result<KVNamespaceGetWithMetadataResult, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
+    pub async fn get_with_metadata_with_type(
+        this: &KVNamespace,
+        key: &str,
+        r#type: &str,
+    ) -> Result<KVNamespaceGetWithMetadataResult, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub async fn delete(this: &KVNamespace, key: &str) -> Result<Undefined, crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type KVNamespaceListKey;
+    #[wasm_bindgen(method, getter)]
+    pub fn name(this: &KVNamespaceListKey) -> String;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_name(this: &KVNamespaceListKey, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn expiration(this: &KVNamespaceListKey) -> Option<f64>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_expiration(this: &KVNamespaceListKey, val: f64);
+    #[wasm_bindgen(method, getter)]
+    pub fn metadata(this: &KVNamespaceListKey) -> JsValue;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_metadata(this: &KVNamespaceListKey, val: &JsValue);
+}
+impl KVNamespaceListKey {
+    pub fn new(name: &str) -> KVNamespaceListKey {
+        Self::builder(name).build()
+    }
+    pub fn builder(name: &str) -> KVNamespaceListKeyBuilder {
+        let inner: KVNamespaceListKey = JsCast::unchecked_into(js_sys::Object::new());
+        inner.set_name(name);
+        KVNamespaceListKeyBuilder { inner }
+    }
+}
+pub struct KVNamespaceListKeyBuilder {
+    inner: KVNamespaceListKey,
+}
+impl KVNamespaceListKeyBuilder {
+    pub fn expiration(self, val: f64) -> Self {
+        self.inner.set_expiration(val);
+        self
+    }
+    pub fn metadata(self, val: &JsValue) -> Self {
+        self.inner.set_metadata(val);
+        self
+    }
+    pub fn build(self) -> KVNamespaceListKey {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type KVNamespaceListResult;
+    #[wasm_bindgen(method, getter)]
+    pub fn list_complete(this: &KVNamespaceListResult) -> bool;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_list_complete(this: &KVNamespaceListResult, val: bool);
+    #[wasm_bindgen(method, getter)]
+    pub fn keys(this: &KVNamespaceListResult) -> Vec<KVNamespaceListKey>;
+    #[wasm_bindgen(method, setter, slice_to_array)]
+    pub fn set_keys(this: &KVNamespaceListResult, val: &[KVNamespaceListKey]);
+    #[wasm_bindgen(method, getter)]
+    pub fn cursor(this: &KVNamespaceListResult) -> Option<String>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_cursor(this: &KVNamespaceListResult, val: &str);
+    #[wasm_bindgen(method, getter, js_name = "cacheStatus")]
+    pub fn cache_status(this: &KVNamespaceListResult) -> Option<String>;
+    #[wasm_bindgen(method, setter, js_name = "cacheStatus")]
+    pub fn set_cache_status(this: &KVNamespaceListResult, val: &str);
+}
+impl KVNamespaceListResult {
+    pub fn new(
+        list_complete: bool,
+        keys: &[KVNamespaceListKey],
+        cache_status: &str,
+    ) -> KVNamespaceListResult {
+        Self::builder(list_complete, keys, cache_status).build()
+    }
+    pub fn builder(
+        list_complete: bool,
+        keys: &[KVNamespaceListKey],
+        cache_status: &str,
+    ) -> KVNamespaceListResultBuilder {
+        let inner: KVNamespaceListResult = JsCast::unchecked_into(js_sys::Object::new());
+        inner.set_list_complete(list_complete);
+        inner.set_keys(keys);
+        inner.set_cache_status(cache_status);
+        KVNamespaceListResultBuilder { inner }
+    }
+}
+pub struct KVNamespaceListResultBuilder {
+    inner: KVNamespaceListResult,
+}
+impl KVNamespaceListResultBuilder {
+    pub fn cursor(self, val: &str) -> Self {
+        self.inner.set_cursor(val);
+        self
+    }
+    pub fn build(self) -> KVNamespaceListResult {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type KVNamespaceListOptions;
+    #[wasm_bindgen(method, getter)]
+    pub fn limit(this: &KVNamespaceListOptions) -> Option<f64>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_limit(this: &KVNamespaceListOptions, val: f64);
+    #[wasm_bindgen(method, getter)]
+    pub fn prefix(this: &KVNamespaceListOptions) -> Option<String>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_prefix(this: &KVNamespaceListOptions, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn cursor(this: &KVNamespaceListOptions) -> Option<String>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_cursor(this: &KVNamespaceListOptions, val: &str);
+}
+impl KVNamespaceListOptions {
+    pub fn new() -> KVNamespaceListOptions {
+        Self::builder().build()
+    }
+    pub fn builder() -> KVNamespaceListOptionsBuilder {
+        KVNamespaceListOptionsBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct KVNamespaceListOptionsBuilder {
+    inner: KVNamespaceListOptions,
+}
+impl KVNamespaceListOptionsBuilder {
+    pub fn limit(self, val: f64) -> Self {
+        self.inner.set_limit(val);
+        self
+    }
+    pub fn prefix(self, val: &str) -> Self {
+        self.inner.set_prefix(val);
+        self
+    }
+    pub fn cursor(self, val: &str) -> Self {
+        self.inner.set_cursor(val);
+        self
+    }
+    pub fn build(self) -> KVNamespaceListOptions {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type KVNamespaceGetOptions<Type: ::wasm_bindgen::JsGeneric>;
+    #[wasm_bindgen(method, getter, js_name = "type")]
+    pub fn type_<Type: ::wasm_bindgen::JsGeneric>(this: &KVNamespaceGetOptions<Type>) -> Type;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_type<Type: ::wasm_bindgen::JsGeneric>(
+        this: &KVNamespaceGetOptions<Type>,
+        val: &Type,
+    );
+    #[wasm_bindgen(method, getter, js_name = "cacheTtl")]
+    pub fn cache_ttl<Type: ::wasm_bindgen::JsGeneric>(
+        this: &KVNamespaceGetOptions<Type>,
+    ) -> Option<f64>;
+    #[wasm_bindgen(method, setter, js_name = "cacheTtl")]
+    pub fn set_cache_ttl<Type: ::wasm_bindgen::JsGeneric>(
+        this: &KVNamespaceGetOptions<Type>,
+        val: f64,
+    );
+}
+impl<Type: ::wasm_bindgen::JsGeneric> KVNamespaceGetOptions<Type> {
+    pub fn new(r#type: &Type) -> KVNamespaceGetOptions<Type> {
+        Self::builder(r#type).build()
+    }
+    pub fn builder(r#type: &Type) -> KVNamespaceGetOptionsBuilder<Type> {
+        let inner: KVNamespaceGetOptions<Type> = JsCast::unchecked_into(js_sys::Object::new());
+        inner.set_type(r#type);
+        KVNamespaceGetOptionsBuilder { inner }
+    }
+}
+pub struct KVNamespaceGetOptionsBuilder<Type: ::wasm_bindgen::JsGeneric> {
+    inner: KVNamespaceGetOptions<Type>,
+}
+impl<Type: ::wasm_bindgen::JsGeneric> KVNamespaceGetOptionsBuilder<Type> {
+    pub fn cache_ttl(self, val: f64) -> Self {
+        self.inner.set_cache_ttl(val);
+        self
+    }
+    pub fn build(self) -> KVNamespaceGetOptions<Type> {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type KVNamespacePutOptions;
+    #[wasm_bindgen(method, getter)]
+    pub fn expiration(this: &KVNamespacePutOptions) -> Option<f64>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_expiration(this: &KVNamespacePutOptions, val: f64);
+    #[wasm_bindgen(method, getter, js_name = "expirationTtl")]
+    pub fn expiration_ttl(this: &KVNamespacePutOptions) -> Option<f64>;
+    #[wasm_bindgen(method, setter, js_name = "expirationTtl")]
+    pub fn set_expiration_ttl(this: &KVNamespacePutOptions, val: f64);
+    #[wasm_bindgen(method, getter)]
+    pub fn metadata(this: &KVNamespacePutOptions) -> JsValue;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_metadata(this: &KVNamespacePutOptions, val: &JsValue);
+}
+impl KVNamespacePutOptions {
+    pub fn new() -> KVNamespacePutOptions {
+        Self::builder().build()
+    }
+    pub fn builder() -> KVNamespacePutOptionsBuilder {
+        KVNamespacePutOptionsBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct KVNamespacePutOptionsBuilder {
+    inner: KVNamespacePutOptions,
+}
+impl KVNamespacePutOptionsBuilder {
+    pub fn expiration(self, val: f64) -> Self {
+        self.inner.set_expiration(val);
+        self
+    }
+    pub fn expiration_ttl(self, val: f64) -> Self {
+        self.inner.set_expiration_ttl(val);
+        self
+    }
+    pub fn metadata(self, val: &JsValue) -> Self {
+        self.inner.set_metadata(val);
+        self
+    }
+    pub fn build(self) -> KVNamespacePutOptions {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type KVNamespaceGetWithMetadataResult;
+    #[wasm_bindgen(method, getter)]
+    pub fn value(this: &KVNamespaceGetWithMetadataResult) -> Option<String>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_value(this: &KVNamespaceGetWithMetadataResult, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn metadata(this: &KVNamespaceGetWithMetadataResult) -> JsValue;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_metadata(this: &KVNamespaceGetWithMetadataResult, val: &JsValue);
+    #[wasm_bindgen(method, getter, js_name = "cacheStatus")]
+    pub fn cache_status(this: &KVNamespaceGetWithMetadataResult) -> Option<String>;
+    #[wasm_bindgen(method, setter, js_name = "cacheStatus")]
+    pub fn set_cache_status(this: &KVNamespaceGetWithMetadataResult, val: &str);
+}
+impl KVNamespaceGetWithMetadataResult {
+    pub fn new(
+        value: &str,
+        metadata: &JsValue,
+        cache_status: &str,
+    ) -> KVNamespaceGetWithMetadataResult {
+        let inner: KVNamespaceGetWithMetadataResult = JsCast::unchecked_into(js_sys::Object::new());
+        inner.set_value(value);
+        inner.set_metadata(metadata);
+        inner.set_cache_status(cache_status);
+        inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type SecretsStoreSecret;
+    #[doc = " Get a secret from the Secrets Store, returning a string of the secret value"]
+    #[doc = " if it exists, or throws an error if it does not exist"]
+    #[wasm_bindgen(method, catch)]
+    pub async fn get(this: &SecretsStoreSecret) -> Result<JsString, crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type RateLimitOptions;
+    #[wasm_bindgen(method, getter)]
+    pub fn key(this: &RateLimitOptions) -> String;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_key(this: &RateLimitOptions, val: &str);
+}
+impl RateLimitOptions {
+    pub fn new(key: &str) -> RateLimitOptions {
+        let inner: RateLimitOptions = JsCast::unchecked_into(js_sys::Object::new());
+        inner.set_key(key);
+        inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type RateLimitOutcome;
+    #[wasm_bindgen(method, getter)]
+    pub fn success(this: &RateLimitOutcome) -> bool;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_success(this: &RateLimitOutcome, val: bool);
+}
+impl RateLimitOutcome {
+    pub fn new(success: bool) -> RateLimitOutcome {
+        let inner: RateLimitOutcome = JsCast::unchecked_into(js_sys::Object::new());
+        inner.set_success(success);
+        inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type RateLimit;
+    #[doc = " Rate limit a request based on the provided options."]
+    #[doc = " @see https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/"]
+    #[doc = ""]
+    #[doc = " Returns: A promise that resolves with the outcome of the rate limit."]
+    #[wasm_bindgen(method, catch)]
+    pub async fn limit(
+        this: &RateLimit,
+        options: &RateLimitOptions,
+    ) -> Result<RateLimitOutcome, crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type AnalyticsEngineDataset;
+    #[wasm_bindgen(method, catch, js_name = "writeDataPoint")]
+    pub fn write_data_point(this: &AnalyticsEngineDataset) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "writeDataPoint")]
+    pub fn write_data_point_with_event(
+        this: &AnalyticsEngineDataset,
+        event: &AnalyticsEngineDataPoint,
+    ) -> Result<(), crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type AnalyticsEngineDataPoint;
+    #[wasm_bindgen(method, getter)]
+    pub fn indexes(this: &AnalyticsEngineDataPoint) -> Option<Vec<JsValue>>;
+    #[wasm_bindgen(method, setter, slice_to_array)]
+    pub fn set_indexes(this: &AnalyticsEngineDataPoint, val: &[JsValue]);
+    #[wasm_bindgen(method, getter)]
+    pub fn doubles(this: &AnalyticsEngineDataPoint) -> Option<Vec<f64>>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_doubles(this: &AnalyticsEngineDataPoint, val: &[f64]);
+    #[wasm_bindgen(method, getter)]
+    pub fn blobs(this: &AnalyticsEngineDataPoint) -> Option<Vec<JsValue>>;
+    #[wasm_bindgen(method, setter, slice_to_array)]
+    pub fn set_blobs(this: &AnalyticsEngineDataPoint, val: &[JsValue]);
+}
+impl AnalyticsEngineDataPoint {
+    pub fn new() -> AnalyticsEngineDataPoint {
+        Self::builder().build()
+    }
+    pub fn builder() -> AnalyticsEngineDataPointBuilder {
+        AnalyticsEngineDataPointBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct AnalyticsEngineDataPointBuilder {
+    inner: AnalyticsEngineDataPoint,
+}
+impl AnalyticsEngineDataPointBuilder {
+    pub fn indexes(self, val: &[JsValue]) -> Self {
+        self.inner.set_indexes(val);
+        self
+    }
+    pub fn doubles(self, val: &[f64]) -> Self {
+        self.inner.set_doubles(val);
+        self
+    }
+    pub fn blobs(self, val: &[JsValue]) -> Self {
+        self.inner.set_blobs(val);
+        self
+    }
+    pub fn build(self) -> AnalyticsEngineDataPoint {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type Queue;
+    #[wasm_bindgen(method, catch)]
+    pub async fn send(this: &Queue, message: &JsValue) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "send")]
+    pub async fn send_with_options(
+        this: &Queue,
+        message: &JsValue,
+        options: &QueueSendOptions,
+    ) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "sendBatch")]
+    pub async fn send_batch(this: &Queue, messages: &JsValue) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "sendBatch")]
+    pub async fn send_batch_with_options(
+        this: &Queue,
+        messages: &JsValue,
+        options: &QueueSendBatchOptions,
+    ) -> Result<Undefined, crate::Error>;
+}
+#[wasm_bindgen]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum QueueContentType {
+    Text = "text",
+    Bytes = "bytes",
+    Json = "json",
+    V8 = "v8",
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type QueueSendOptions;
+    #[wasm_bindgen(method, getter, js_name = "contentType")]
+    pub fn content_type(this: &QueueSendOptions) -> Option<QueueContentType>;
+    #[wasm_bindgen(method, setter, js_name = "contentType")]
+    pub fn set_content_type(this: &QueueSendOptions, val: QueueContentType);
+    #[wasm_bindgen(method, getter, js_name = "delaySeconds")]
+    pub fn delay_seconds(this: &QueueSendOptions) -> Option<f64>;
+    #[wasm_bindgen(method, setter, js_name = "delaySeconds")]
+    pub fn set_delay_seconds(this: &QueueSendOptions, val: f64);
+}
+impl QueueSendOptions {
+    pub fn new() -> QueueSendOptions {
+        Self::builder().build()
+    }
+    pub fn builder() -> QueueSendOptionsBuilder {
+        QueueSendOptionsBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct QueueSendOptionsBuilder {
+    inner: QueueSendOptions,
+}
+impl QueueSendOptionsBuilder {
+    pub fn content_type(self, val: QueueContentType) -> Self {
+        self.inner.set_content_type(val);
+        self
+    }
+    pub fn delay_seconds(self, val: f64) -> Self {
+        self.inner.set_delay_seconds(val);
+        self
+    }
+    pub fn build(self) -> QueueSendOptions {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type QueueSendBatchOptions;
+    #[wasm_bindgen(method, getter, js_name = "delaySeconds")]
+    pub fn delay_seconds(this: &QueueSendBatchOptions) -> Option<f64>;
+    #[wasm_bindgen(method, setter, js_name = "delaySeconds")]
+    pub fn set_delay_seconds(this: &QueueSendBatchOptions, val: f64);
+}
+impl QueueSendBatchOptions {
+    pub fn new() -> QueueSendBatchOptions {
+        Self::builder().build()
+    }
+    pub fn builder() -> QueueSendBatchOptionsBuilder {
+        QueueSendBatchOptionsBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct QueueSendBatchOptionsBuilder {
+    inner: QueueSendBatchOptions,
+}
+impl QueueSendBatchOptionsBuilder {
+    pub fn delay_seconds(self, val: f64) -> Self {
+        self.inner.set_delay_seconds(val);
+        self
+    }
+    pub fn build(self) -> QueueSendBatchOptions {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type MessageSendRequest;
+    #[wasm_bindgen(method, getter)]
+    pub fn body(this: &MessageSendRequest) -> JsValue;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_body(this: &MessageSendRequest, val: &JsValue);
+    #[wasm_bindgen(method, getter, js_name = "contentType")]
+    pub fn content_type(this: &MessageSendRequest) -> Option<QueueContentType>;
+    #[wasm_bindgen(method, setter, js_name = "contentType")]
+    pub fn set_content_type(this: &MessageSendRequest, val: QueueContentType);
+    #[wasm_bindgen(method, getter, js_name = "delaySeconds")]
+    pub fn delay_seconds(this: &MessageSendRequest) -> Option<f64>;
+    #[wasm_bindgen(method, setter, js_name = "delaySeconds")]
+    pub fn set_delay_seconds(this: &MessageSendRequest, val: f64);
+}
+impl MessageSendRequest {
+    pub fn new(body: &JsValue) -> MessageSendRequest {
+        Self::builder(body).build()
+    }
+    pub fn builder(body: &JsValue) -> MessageSendRequestBuilder {
+        let inner: MessageSendRequest = JsCast::unchecked_into(js_sys::Object::new());
+        inner.set_body(body);
+        MessageSendRequestBuilder { inner }
+    }
+}
+pub struct MessageSendRequestBuilder {
+    inner: MessageSendRequest,
+}
+impl MessageSendRequestBuilder {
+    pub fn content_type(self, val: QueueContentType) -> Self {
+        self.inner.set_content_type(val);
+        self
+    }
+    pub fn delay_seconds(self, val: f64) -> Self {
+        self.inner.set_delay_seconds(val);
+        self
+    }
+    pub fn build(self) -> MessageSendRequest {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type QueueRetryOptions;
+    #[wasm_bindgen(method, getter, js_name = "delaySeconds")]
+    pub fn delay_seconds(this: &QueueRetryOptions) -> Option<f64>;
+    #[wasm_bindgen(method, setter, js_name = "delaySeconds")]
+    pub fn set_delay_seconds(this: &QueueRetryOptions, val: f64);
+}
+impl QueueRetryOptions {
+    pub fn new() -> QueueRetryOptions {
+        Self::builder().build()
+    }
+    pub fn builder() -> QueueRetryOptionsBuilder {
+        QueueRetryOptionsBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct QueueRetryOptionsBuilder {
+    inner: QueueRetryOptions,
+}
+impl QueueRetryOptionsBuilder {
+    pub fn delay_seconds(self, val: f64) -> Self {
+        self.inner.set_delay_seconds(val);
+        self
+    }
+    pub fn build(self) -> QueueRetryOptions {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type Message;
+    #[wasm_bindgen(method, getter)]
+    pub fn id(this: &Message) -> String;
+    #[wasm_bindgen(method, getter)]
+    pub fn timestamp(this: &Message) -> Date;
+    #[wasm_bindgen(method, getter)]
+    pub fn body(this: &Message) -> JsValue;
+    #[wasm_bindgen(method, getter)]
+    pub fn attempts(this: &Message) -> f64;
+    #[wasm_bindgen(method, catch)]
+    pub fn retry(this: &Message) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "retry")]
+    pub fn retry_with_options(
+        this: &Message,
+        options: &QueueRetryOptions,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub fn ack(this: &Message) -> Result<(), crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type MessageBatch;
+    #[wasm_bindgen(method, getter)]
+    pub fn queue(this: &MessageBatch) -> String;
+    #[wasm_bindgen(method, getter)]
+    pub fn messages(this: &MessageBatch) -> Vec<Message>;
+    #[wasm_bindgen(method, catch, js_name = "retryAll")]
+    pub fn retry_all(this: &MessageBatch) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "retryAll")]
+    pub fn retry_all_with_options(
+        this: &MessageBatch,
+        options: &QueueRetryOptions,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "ackAll")]
+    pub fn ack_all(this: &MessageBatch) -> Result<(), crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type DurableObjectId;
+    #[wasm_bindgen(method, catch, js_name = "toString")]
+    pub fn to_string(this: &DurableObjectId) -> Result<String, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub fn equals(this: &DurableObjectId, other: &DurableObjectId) -> Result<bool, crate::Error>;
+    #[wasm_bindgen(method, getter)]
+    pub fn name(this: &DurableObjectId) -> Option<String>;
+    #[wasm_bindgen(method, getter)]
+    pub fn jurisdiction(this: &DurableObjectId) -> Option<String>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type DurableObjectNamespace;
+    #[wasm_bindgen(method, catch, js_name = "newUniqueId")]
+    pub fn new_unique_id(this: &DurableObjectNamespace) -> Result<DurableObjectId, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "newUniqueId")]
+    pub fn new_unique_id_with_options(
+        this: &DurableObjectNamespace,
+        options: &DurableObjectNamespaceNewUniqueIdOptions,
+    ) -> Result<DurableObjectId, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "idFromName")]
+    pub fn id_from_name(
+        this: &DurableObjectNamespace,
+        name: &str,
+    ) -> Result<DurableObjectId, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "idFromString")]
+    pub fn id_from_string(
+        this: &DurableObjectNamespace,
+        id: &str,
+    ) -> Result<DurableObjectId, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub fn get(
+        this: &DurableObjectNamespace,
+        id: &DurableObjectId,
+    ) -> Result<DurableObjectStub, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "get")]
+    pub fn get_with_options(
+        this: &DurableObjectNamespace,
+        id: &DurableObjectId,
+        options: &DurableObjectNamespaceGetDurableObjectOptions,
+    ) -> Result<DurableObjectStub, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "getByName")]
+    pub fn get_by_name(
+        this: &DurableObjectNamespace,
+        name: &str,
+    ) -> Result<DurableObjectStub, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "getByName")]
+    pub fn get_by_name_with_options(
+        this: &DurableObjectNamespace,
+        name: &str,
+        options: &DurableObjectNamespaceGetDurableObjectOptions,
+    ) -> Result<DurableObjectStub, crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Fetcher , extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type DurableObjectStub;
+    #[wasm_bindgen(method, getter)]
+    pub fn id(this: &DurableObjectStub) -> DurableObjectId;
+    #[wasm_bindgen(method, getter)]
+    pub fn name(this: &DurableObjectStub) -> Option<String>;
+}
+#[wasm_bindgen]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DurableObjectJurisdiction {
+    Eu = "eu",
+    Fedramp = "fedramp",
+    FedrampHigh = "fedramp-high",
+    Us = "us",
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type DurableObjectNamespaceNewUniqueIdOptions;
+    #[wasm_bindgen(method, getter)]
+    pub fn jurisdiction(
+        this: &DurableObjectNamespaceNewUniqueIdOptions,
+    ) -> Option<DurableObjectJurisdiction>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_jurisdiction(
+        this: &DurableObjectNamespaceNewUniqueIdOptions,
+        val: DurableObjectJurisdiction,
+    );
+}
+impl DurableObjectNamespaceNewUniqueIdOptions {
+    pub fn new() -> DurableObjectNamespaceNewUniqueIdOptions {
+        Self::builder().build()
+    }
+    pub fn builder() -> DurableObjectNamespaceNewUniqueIdOptionsBuilder {
+        DurableObjectNamespaceNewUniqueIdOptionsBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct DurableObjectNamespaceNewUniqueIdOptionsBuilder {
+    inner: DurableObjectNamespaceNewUniqueIdOptions,
+}
+impl DurableObjectNamespaceNewUniqueIdOptionsBuilder {
+    pub fn jurisdiction(self, val: DurableObjectJurisdiction) -> Self {
+        self.inner.set_jurisdiction(val);
+        self
+    }
+    pub fn build(self) -> DurableObjectNamespaceNewUniqueIdOptions {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DurableObjectLocationHint {
+    Wnam = "wnam",
+    Enam = "enam",
+    Sam = "sam",
+    Weur = "weur",
+    Eeur = "eeur",
+    Apac = "apac",
+    ApacNe = "apac-ne",
+    ApacSe = "apac-se",
+    Oc = "oc",
+    Afr = "afr",
+    Me = "me",
+}
+#[wasm_bindgen]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DurableObjectRoutingMode {
+    PrimaryOnly = "primary-only",
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type DurableObjectNamespaceGetDurableObjectOptions;
+    #[wasm_bindgen(method, getter, js_name = "locationHint")]
+    pub fn location_hint(
+        this: &DurableObjectNamespaceGetDurableObjectOptions,
+    ) -> Option<DurableObjectLocationHint>;
+    #[wasm_bindgen(method, setter, js_name = "locationHint")]
+    pub fn set_location_hint(
+        this: &DurableObjectNamespaceGetDurableObjectOptions,
+        val: DurableObjectLocationHint,
+    );
+    #[wasm_bindgen(method, getter, js_name = "routingMode")]
+    pub fn routing_mode(
+        this: &DurableObjectNamespaceGetDurableObjectOptions,
+    ) -> Option<DurableObjectRoutingMode>;
+    #[wasm_bindgen(method, setter, js_name = "routingMode")]
+    pub fn set_routing_mode(
+        this: &DurableObjectNamespaceGetDurableObjectOptions,
+        val: DurableObjectRoutingMode,
+    );
+}
+impl DurableObjectNamespaceGetDurableObjectOptions {
+    pub fn new() -> DurableObjectNamespaceGetDurableObjectOptions {
+        Self::builder().build()
+    }
+    pub fn builder() -> DurableObjectNamespaceGetDurableObjectOptionsBuilder {
+        DurableObjectNamespaceGetDurableObjectOptionsBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct DurableObjectNamespaceGetDurableObjectOptionsBuilder {
+    inner: DurableObjectNamespaceGetDurableObjectOptions,
+}
+impl DurableObjectNamespaceGetDurableObjectOptionsBuilder {
+    pub fn location_hint(self, val: DurableObjectLocationHint) -> Self {
+        self.inner.set_location_hint(val);
+        self
+    }
+    pub fn routing_mode(self, val: DurableObjectRoutingMode) -> Self {
+        self.inner.set_routing_mode(val);
+        self
+    }
+    pub fn build(self) -> DurableObjectNamespaceGetDurableObjectOptions {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type DurableObjectState;
+    #[wasm_bindgen(method, catch, js_name = "waitUntil")]
+    pub fn wait_until(this: &DurableObjectState, promise: &Promise) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, getter)]
+    pub fn id(this: &DurableObjectState) -> DurableObjectId;
+    #[wasm_bindgen(method, getter)]
+    pub fn storage(this: &DurableObjectState) -> DurableObjectStorage;
+    #[wasm_bindgen(method, catch, js_name = "blockConcurrencyWhile")]
+    pub async fn block_concurrency_while(
+        this: &DurableObjectState,
+        callback: &Function<fn() -> Promise>,
+    ) -> Result<JsValue, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "acceptWebSocket")]
+    pub fn accept_web_socket(this: &DurableObjectState, ws: &WebSocket)
+        -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, slice_to_array, js_name = "acceptWebSocket")]
+    pub fn accept_web_socket_with_tags(
+        this: &DurableObjectState,
+        ws: &WebSocket,
+        tags: &[String],
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "getWebSockets")]
+    pub fn get_web_sockets(this: &DurableObjectState) -> Result<Vec<WebSocket>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "getWebSockets")]
+    pub fn get_web_sockets_with_tag(
+        this: &DurableObjectState,
+        tag: &str,
+    ) -> Result<Vec<WebSocket>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "setWebSocketAutoResponse")]
+    pub fn set_web_socket_auto_response(this: &DurableObjectState) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "setWebSocketAutoResponse")]
+    pub fn set_web_socket_auto_response_with_maybe_req_resp(
+        this: &DurableObjectState,
+        maybe_req_resp: &WebSocketRequestResponsePair,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "getWebSocketAutoResponse")]
+    pub fn get_web_socket_auto_response(
+        this: &DurableObjectState,
+    ) -> Result<Option<WebSocketRequestResponsePair>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "getWebSocketAutoResponseTimestamp")]
+    pub fn get_web_socket_auto_response_timestamp(
+        this: &DurableObjectState,
+        ws: &WebSocket,
+    ) -> Result<Option<Date>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "setHibernatableWebSocketEventTimeout")]
+    pub fn set_hibernatable_web_socket_event_timeout(
+        this: &DurableObjectState,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "setHibernatableWebSocketEventTimeout")]
+    pub fn set_hibernatable_web_socket_event_timeout_with_timeout_ms(
+        this: &DurableObjectState,
+        timeout_ms: f64,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "getHibernatableWebSocketEventTimeout")]
+    pub fn get_hibernatable_web_socket_event_timeout(
+        this: &DurableObjectState,
+    ) -> Result<Option<f64>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "getTags")]
+    pub fn get_tags(this: &DurableObjectState, ws: &WebSocket)
+        -> Result<Vec<String>, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub fn abort(this: &DurableObjectState) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "abort")]
+    pub fn abort_with_reason(this: &DurableObjectState, reason: &str) -> Result<(), crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type DurableObjectStorage;
+    #[wasm_bindgen(method, catch)]
+    pub async fn get(this: &DurableObjectStorage, key: &str) -> Result<JsValue, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "get")]
+    pub async fn get_with_key_and_options(
+        this: &DurableObjectStorage,
+        key: &str,
+        options: &DurableObjectGetOptions,
+    ) -> Result<JsValue, crate::Error>;
+    #[wasm_bindgen(method, catch, slice_to_array, js_name = "get")]
+    pub async fn get_with_keys(
+        this: &DurableObjectStorage,
+        keys: &[String],
+    ) -> Result<JsValue, crate::Error>;
+    #[wasm_bindgen(method, catch, slice_to_array, js_name = "get")]
+    pub async fn get_with_keys_and_options(
+        this: &DurableObjectStorage,
+        keys: &[String],
+        options: &DurableObjectGetOptions,
+    ) -> Result<JsValue, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub async fn list(this: &DurableObjectStorage) -> Result<Map<JsString, JsValue>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "list")]
+    pub async fn list_with_options(
+        this: &DurableObjectStorage,
+        options: &DurableObjectListOptions,
+    ) -> Result<Map<JsString, JsValue>, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub async fn put(
+        this: &DurableObjectStorage,
+        key: &str,
+        value: &JsValue,
+    ) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    pub async fn put_with_key_and_value_and_options(
+        this: &DurableObjectStorage,
+        key: &str,
+        value: &JsValue,
+        options: &DurableObjectPutOptions,
+    ) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    pub async fn put_with_entries(
+        this: &DurableObjectStorage,
+        entries: &Object,
+    ) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    pub async fn put_with_entries_and_options(
+        this: &DurableObjectStorage,
+        entries: &Object,
+        options: &DurableObjectPutOptions,
+    ) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub async fn delete(this: &DurableObjectStorage, key: &str) -> Result<Boolean, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "delete")]
+    pub async fn delete_with_key_and_options(
+        this: &DurableObjectStorage,
+        key: &str,
+        options: &DurableObjectPutOptions,
+    ) -> Result<Boolean, crate::Error>;
+    #[wasm_bindgen(method, catch, slice_to_array, js_name = "delete")]
+    pub async fn delete_with_keys(
+        this: &DurableObjectStorage,
+        keys: &[String],
+    ) -> Result<Boolean, crate::Error>;
+    #[wasm_bindgen(method, catch, slice_to_array, js_name = "delete")]
+    pub async fn delete_with_keys_and_options(
+        this: &DurableObjectStorage,
+        keys: &[String],
+        options: &DurableObjectPutOptions,
+    ) -> Result<Boolean, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "deleteAll")]
+    pub async fn delete_all(this: &DurableObjectStorage) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "deleteAll")]
+    pub async fn delete_all_with_options(
+        this: &DurableObjectStorage,
+        options: &DurableObjectPutOptions,
+    ) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "getAlarm")]
+    pub async fn get_alarm(this: &DurableObjectStorage) -> Result<JsOption<Number>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "getAlarm")]
+    pub async fn get_alarm_with_options(
+        this: &DurableObjectStorage,
+        options: &DurableObjectGetAlarmOptions,
+    ) -> Result<JsOption<Number>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "setAlarm")]
+    pub async fn set_alarm(
+        this: &DurableObjectStorage,
+        scheduled_time: f64,
+    ) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "setAlarm")]
+    pub async fn set_alarm_with_date(
+        this: &DurableObjectStorage,
+        scheduled_time: &Date,
+    ) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "setAlarm")]
+    pub async fn set_alarm_with_f64_and_options(
+        this: &DurableObjectStorage,
+        scheduled_time: f64,
+        options: &DurableObjectSetAlarmOptions,
+    ) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "setAlarm")]
+    pub async fn set_alarm_with_date_and_options(
+        this: &DurableObjectStorage,
+        scheduled_time: &Date,
+        options: &DurableObjectSetAlarmOptions,
+    ) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "deleteAlarm")]
+    pub async fn delete_alarm(this: &DurableObjectStorage) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "deleteAlarm")]
+    pub async fn delete_alarm_with_options(
+        this: &DurableObjectStorage,
+        options: &DurableObjectSetAlarmOptions,
+    ) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub async fn sync(this: &DurableObjectStorage) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, getter)]
+    pub fn sql(this: &DurableObjectStorage) -> SqlStorage;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_sql(this: &DurableObjectStorage, val: &SqlStorage);
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type DurableObjectListOptions;
+    #[wasm_bindgen(method, getter)]
+    pub fn start(this: &DurableObjectListOptions) -> Option<String>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_start(this: &DurableObjectListOptions, val: &str);
+    #[wasm_bindgen(method, getter, js_name = "startAfter")]
+    pub fn start_after(this: &DurableObjectListOptions) -> Option<String>;
+    #[wasm_bindgen(method, setter, js_name = "startAfter")]
+    pub fn set_start_after(this: &DurableObjectListOptions, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn end(this: &DurableObjectListOptions) -> Option<String>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_end(this: &DurableObjectListOptions, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn prefix(this: &DurableObjectListOptions) -> Option<String>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_prefix(this: &DurableObjectListOptions, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn reverse(this: &DurableObjectListOptions) -> Option<bool>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_reverse(this: &DurableObjectListOptions, val: bool);
+    #[wasm_bindgen(method, getter)]
+    pub fn limit(this: &DurableObjectListOptions) -> Option<f64>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_limit(this: &DurableObjectListOptions, val: f64);
+    #[wasm_bindgen(method, getter, js_name = "allowConcurrency")]
+    pub fn allow_concurrency(this: &DurableObjectListOptions) -> Option<bool>;
+    #[wasm_bindgen(method, setter, js_name = "allowConcurrency")]
+    pub fn set_allow_concurrency(this: &DurableObjectListOptions, val: bool);
+    #[wasm_bindgen(method, getter, js_name = "noCache")]
+    pub fn no_cache(this: &DurableObjectListOptions) -> Option<bool>;
+    #[wasm_bindgen(method, setter, js_name = "noCache")]
+    pub fn set_no_cache(this: &DurableObjectListOptions, val: bool);
+}
+impl DurableObjectListOptions {
+    pub fn new() -> DurableObjectListOptions {
+        Self::builder().build()
+    }
+    pub fn builder() -> DurableObjectListOptionsBuilder {
+        DurableObjectListOptionsBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct DurableObjectListOptionsBuilder {
+    inner: DurableObjectListOptions,
+}
+impl DurableObjectListOptionsBuilder {
+    pub fn start(self, val: &str) -> Self {
+        self.inner.set_start(val);
+        self
+    }
+    pub fn start_after(self, val: &str) -> Self {
+        self.inner.set_start_after(val);
+        self
+    }
+    pub fn end(self, val: &str) -> Self {
+        self.inner.set_end(val);
+        self
+    }
+    pub fn prefix(self, val: &str) -> Self {
+        self.inner.set_prefix(val);
+        self
+    }
+    pub fn reverse(self, val: bool) -> Self {
+        self.inner.set_reverse(val);
+        self
+    }
+    pub fn limit(self, val: f64) -> Self {
+        self.inner.set_limit(val);
+        self
+    }
+    pub fn allow_concurrency(self, val: bool) -> Self {
+        self.inner.set_allow_concurrency(val);
+        self
+    }
+    pub fn no_cache(self, val: bool) -> Self {
+        self.inner.set_no_cache(val);
+        self
+    }
+    pub fn build(self) -> DurableObjectListOptions {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type DurableObjectGetOptions;
+    #[wasm_bindgen(method, getter, js_name = "allowConcurrency")]
+    pub fn allow_concurrency(this: &DurableObjectGetOptions) -> Option<bool>;
+    #[wasm_bindgen(method, setter, js_name = "allowConcurrency")]
+    pub fn set_allow_concurrency(this: &DurableObjectGetOptions, val: bool);
+    #[wasm_bindgen(method, getter, js_name = "noCache")]
+    pub fn no_cache(this: &DurableObjectGetOptions) -> Option<bool>;
+    #[wasm_bindgen(method, setter, js_name = "noCache")]
+    pub fn set_no_cache(this: &DurableObjectGetOptions, val: bool);
+}
+impl DurableObjectGetOptions {
+    pub fn new() -> DurableObjectGetOptions {
+        Self::builder().build()
+    }
+    pub fn builder() -> DurableObjectGetOptionsBuilder {
+        DurableObjectGetOptionsBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct DurableObjectGetOptionsBuilder {
+    inner: DurableObjectGetOptions,
+}
+impl DurableObjectGetOptionsBuilder {
+    pub fn allow_concurrency(self, val: bool) -> Self {
+        self.inner.set_allow_concurrency(val);
+        self
+    }
+    pub fn no_cache(self, val: bool) -> Self {
+        self.inner.set_no_cache(val);
+        self
+    }
+    pub fn build(self) -> DurableObjectGetOptions {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type DurableObjectGetAlarmOptions;
+    #[wasm_bindgen(method, getter, js_name = "allowConcurrency")]
+    pub fn allow_concurrency(this: &DurableObjectGetAlarmOptions) -> Option<bool>;
+    #[wasm_bindgen(method, setter, js_name = "allowConcurrency")]
+    pub fn set_allow_concurrency(this: &DurableObjectGetAlarmOptions, val: bool);
+}
+impl DurableObjectGetAlarmOptions {
+    pub fn new() -> DurableObjectGetAlarmOptions {
+        Self::builder().build()
+    }
+    pub fn builder() -> DurableObjectGetAlarmOptionsBuilder {
+        DurableObjectGetAlarmOptionsBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct DurableObjectGetAlarmOptionsBuilder {
+    inner: DurableObjectGetAlarmOptions,
+}
+impl DurableObjectGetAlarmOptionsBuilder {
+    pub fn allow_concurrency(self, val: bool) -> Self {
+        self.inner.set_allow_concurrency(val);
+        self
+    }
+    pub fn build(self) -> DurableObjectGetAlarmOptions {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type DurableObjectPutOptions;
+    #[wasm_bindgen(method, getter, js_name = "allowConcurrency")]
+    pub fn allow_concurrency(this: &DurableObjectPutOptions) -> Option<bool>;
+    #[wasm_bindgen(method, setter, js_name = "allowConcurrency")]
+    pub fn set_allow_concurrency(this: &DurableObjectPutOptions, val: bool);
+    #[wasm_bindgen(method, getter, js_name = "allowUnconfirmed")]
+    pub fn allow_unconfirmed(this: &DurableObjectPutOptions) -> Option<bool>;
+    #[wasm_bindgen(method, setter, js_name = "allowUnconfirmed")]
+    pub fn set_allow_unconfirmed(this: &DurableObjectPutOptions, val: bool);
+    #[wasm_bindgen(method, getter, js_name = "noCache")]
+    pub fn no_cache(this: &DurableObjectPutOptions) -> Option<bool>;
+    #[wasm_bindgen(method, setter, js_name = "noCache")]
+    pub fn set_no_cache(this: &DurableObjectPutOptions, val: bool);
+}
+impl DurableObjectPutOptions {
+    pub fn new() -> DurableObjectPutOptions {
+        Self::builder().build()
+    }
+    pub fn builder() -> DurableObjectPutOptionsBuilder {
+        DurableObjectPutOptionsBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct DurableObjectPutOptionsBuilder {
+    inner: DurableObjectPutOptions,
+}
+impl DurableObjectPutOptionsBuilder {
+    pub fn allow_concurrency(self, val: bool) -> Self {
+        self.inner.set_allow_concurrency(val);
+        self
+    }
+    pub fn allow_unconfirmed(self, val: bool) -> Self {
+        self.inner.set_allow_unconfirmed(val);
+        self
+    }
+    pub fn no_cache(self, val: bool) -> Self {
+        self.inner.set_no_cache(val);
+        self
+    }
+    pub fn build(self) -> DurableObjectPutOptions {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type DurableObjectSetAlarmOptions;
+    #[wasm_bindgen(method, getter, js_name = "allowConcurrency")]
+    pub fn allow_concurrency(this: &DurableObjectSetAlarmOptions) -> Option<bool>;
+    #[wasm_bindgen(method, setter, js_name = "allowConcurrency")]
+    pub fn set_allow_concurrency(this: &DurableObjectSetAlarmOptions, val: bool);
+    #[wasm_bindgen(method, getter, js_name = "allowUnconfirmed")]
+    pub fn allow_unconfirmed(this: &DurableObjectSetAlarmOptions) -> Option<bool>;
+    #[wasm_bindgen(method, setter, js_name = "allowUnconfirmed")]
+    pub fn set_allow_unconfirmed(this: &DurableObjectSetAlarmOptions, val: bool);
+}
+impl DurableObjectSetAlarmOptions {
+    pub fn new() -> DurableObjectSetAlarmOptions {
+        Self::builder().build()
+    }
+    pub fn builder() -> DurableObjectSetAlarmOptionsBuilder {
+        DurableObjectSetAlarmOptionsBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct DurableObjectSetAlarmOptionsBuilder {
+    inner: DurableObjectSetAlarmOptions,
+}
+impl DurableObjectSetAlarmOptionsBuilder {
+    pub fn allow_concurrency(self, val: bool) -> Self {
+        self.inner.set_allow_concurrency(val);
+        self
+    }
+    pub fn allow_unconfirmed(self, val: bool) -> Self {
+        self.inner.set_allow_unconfirmed(val);
+        self
+    }
+    pub fn build(self) -> DurableObjectSetAlarmOptions {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type WebSocketRequestResponsePair;
+    #[wasm_bindgen(constructor, catch)]
+    pub fn new(request: &str, response: &str)
+        -> Result<WebSocketRequestResponsePair, crate::Error>;
+    #[wasm_bindgen(method, getter)]
+    pub fn request(this: &WebSocketRequestResponsePair) -> String;
+    #[wasm_bindgen(method, getter)]
+    pub fn response(this: &WebSocketRequestResponsePair) -> String;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type SqlStorage;
+    #[wasm_bindgen(method, variadic, catch, slice_to_array)]
+    pub fn exec(
+        this: &SqlStorage,
+        query: &str,
+        bindings: &[JsValue],
+    ) -> Result<SqlStorageCursor, crate::Error>;
+    #[wasm_bindgen(method, getter, js_name = "databaseSize")]
+    pub fn database_size(this: &SqlStorage) -> f64;
+}
+#[allow(dead_code)]
+pub type SqlStorageValue = JsValue;
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type SqlStorageCursor;
+    #[wasm_bindgen(method, catch)]
+    pub fn next(this: &SqlStorageCursor) -> Result<NextReturnKind, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "toArray")]
+    pub fn to_array(this: &SqlStorageCursor) -> Result<Vec<JsValue>, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub fn one(this: &SqlStorageCursor) -> Result<JsValue, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub fn raw(this: &SqlStorageCursor) -> Result<Iterator<Array>, crate::Error>;
+    #[wasm_bindgen(method, getter, js_name = "columnNames")]
+    pub fn column_names(this: &SqlStorageCursor) -> Vec<String>;
+    #[wasm_bindgen(method, setter, slice_to_array, js_name = "columnNames")]
+    pub fn set_column_names(this: &SqlStorageCursor, val: &[String]);
+    #[wasm_bindgen(method, getter, js_name = "rowsRead")]
+    pub fn rows_read(this: &SqlStorageCursor) -> f64;
+    #[wasm_bindgen(method, getter, js_name = "rowsWritten")]
+    pub fn rows_written(this: &SqlStorageCursor) -> f64;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type Event;
+    #[wasm_bindgen(constructor, catch)]
+    pub fn new(r#type: &str) -> Result<Event, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "Event")]
+    pub fn new_with_init(r#type: &str, init: &EventInit) -> Result<Event, crate::Error>;
+    #[doc = " The **`type`** read-only property of the Event interface returns a string containing the event's type."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/type)"]
+    #[wasm_bindgen(method, getter, js_name = "type")]
+    pub fn type_(this: &Event) -> String;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type EventInit;
+    #[wasm_bindgen(method, getter)]
+    pub fn bubbles(this: &EventInit) -> Option<bool>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_bubbles(this: &EventInit, val: bool);
+    #[wasm_bindgen(method, getter)]
+    pub fn cancelable(this: &EventInit) -> Option<bool>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_cancelable(this: &EventInit, val: bool);
+    #[wasm_bindgen(method, getter)]
+    pub fn composed(this: &EventInit) -> Option<bool>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_composed(this: &EventInit, val: bool);
+}
+impl EventInit {
+    pub fn new() -> EventInit {
+        Self::builder().build()
+    }
+    pub fn builder() -> EventInitBuilder {
+        EventInitBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct EventInitBuilder {
+    inner: EventInit,
+}
+impl EventInitBuilder {
+    pub fn bubbles(self, val: bool) -> Self {
+        self.inner.set_bubbles(val);
+        self
+    }
+    pub fn cancelable(self, val: bool) -> Self {
+        self.inner.set_cancelable(val);
+        self
+    }
+    pub fn composed(self, val: bool) -> Self {
+        self.inner.set_composed(val);
+        self
+    }
+    pub fn build(self) -> EventInit {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type EventTarget;
+    #[wasm_bindgen(constructor, catch)]
+    pub fn new() -> Result<EventTarget, crate::Error>;
+    #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
+    #[wasm_bindgen(method, catch, js_name = "addEventListener")]
+    pub fn add_event_listener(
+        this: &EventTarget,
+        r#type: &str,
+        handler: &Function<fn(Event) -> Undefined>,
+    ) -> Result<(), crate::Error>;
+    #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
+    #[wasm_bindgen(method, catch, js_name = "addEventListener")]
+    pub fn add_event_listener_with_event_target_add_event_listener_options(
+        this: &EventTarget,
+        r#type: &str,
+        handler: &Function<fn(Event) -> Undefined>,
+        options: &EventTargetAddEventListenerOptions,
+    ) -> Result<(), crate::Error>;
+    #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
+    #[wasm_bindgen(method, catch, js_name = "addEventListener")]
+    pub fn add_event_listener_with_bool(
+        this: &EventTarget,
+        r#type: &str,
+        handler: &Function<fn(Event) -> Undefined>,
+        options: bool,
+    ) -> Result<(), crate::Error>;
+    #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
+    #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
+    pub fn remove_event_listener(
+        this: &EventTarget,
+        r#type: &str,
+        handler: &Function<fn(Event) -> Undefined>,
+    ) -> Result<(), crate::Error>;
+    #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
+    #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
+    pub fn remove_event_listener_with_event_target_event_listener_options(
+        this: &EventTarget,
+        r#type: &str,
+        handler: &Function<fn(Event) -> Undefined>,
+        options: &EventTargetEventListenerOptions,
+    ) -> Result<(), crate::Error>;
+    #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
+    #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
+    pub fn remove_event_listener_with_bool(
+        this: &EventTarget,
+        r#type: &str,
+        handler: &Function<fn(Event) -> Undefined>,
+        options: bool,
+    ) -> Result<(), crate::Error>;
+    #[doc = " The **`dispatchEvent()`** method of the EventTarget sends an Event to the object, (synchronously) invoking the affected event listeners in the appropriate order."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/dispatchEvent)"]
+    #[wasm_bindgen(method, catch, js_name = "dispatchEvent")]
+    pub fn dispatch_event(this: &EventTarget, event: &Event) -> Result<bool, crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type EventTargetEventListenerOptions;
+    #[wasm_bindgen(method, getter)]
+    pub fn capture(this: &EventTargetEventListenerOptions) -> Option<bool>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_capture(this: &EventTargetEventListenerOptions, val: bool);
+}
+impl EventTargetEventListenerOptions {
+    pub fn new() -> EventTargetEventListenerOptions {
+        Self::builder().build()
+    }
+    pub fn builder() -> EventTargetEventListenerOptionsBuilder {
+        EventTargetEventListenerOptionsBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct EventTargetEventListenerOptionsBuilder {
+    inner: EventTargetEventListenerOptions,
+}
+impl EventTargetEventListenerOptionsBuilder {
+    pub fn capture(self, val: bool) -> Self {
+        self.inner.set_capture(val);
+        self
+    }
+    pub fn build(self) -> EventTargetEventListenerOptions {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type EventTargetAddEventListenerOptions;
+    #[wasm_bindgen(method, getter)]
+    pub fn capture(this: &EventTargetAddEventListenerOptions) -> Option<bool>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_capture(this: &EventTargetAddEventListenerOptions, val: bool);
+    #[wasm_bindgen(method, getter)]
+    pub fn passive(this: &EventTargetAddEventListenerOptions) -> Option<bool>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_passive(this: &EventTargetAddEventListenerOptions, val: bool);
+    #[wasm_bindgen(method, getter)]
+    pub fn once(this: &EventTargetAddEventListenerOptions) -> Option<bool>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_once(this: &EventTargetAddEventListenerOptions, val: bool);
+    #[wasm_bindgen(method, getter)]
+    pub fn signal(this: &EventTargetAddEventListenerOptions) -> Option<AbortSignal>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_signal(this: &EventTargetAddEventListenerOptions, val: &AbortSignal);
+}
+impl EventTargetAddEventListenerOptions {
+    pub fn new() -> EventTargetAddEventListenerOptions {
+        Self::builder().build()
+    }
+    pub fn builder() -> EventTargetAddEventListenerOptionsBuilder {
+        EventTargetAddEventListenerOptionsBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct EventTargetAddEventListenerOptionsBuilder {
+    inner: EventTargetAddEventListenerOptions,
+}
+impl EventTargetAddEventListenerOptionsBuilder {
+    pub fn capture(self, val: bool) -> Self {
+        self.inner.set_capture(val);
+        self
+    }
+    pub fn passive(self, val: bool) -> Self {
+        self.inner.set_passive(val);
+        self
+    }
+    pub fn once(self, val: bool) -> Self {
+        self.inner.set_once(val);
+        self
+    }
+    pub fn signal(self, val: &AbortSignal) -> Self {
+        self.inner.set_signal(val);
+        self
+    }
+    pub fn build(self) -> EventTargetAddEventListenerOptions {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Event , extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type MessageEvent;
+    #[doc = " The **`data`** read-only property of the MessageEvent interface represents the data sent by the message emitter."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/MessageEvent/data)"]
+    #[wasm_bindgen(method, getter)]
+    pub fn data(this: &MessageEvent) -> DataKind;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Event , extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type CloseEvent;
+    #[doc = " The **`code`** read-only property of the CloseEvent interface returns a WebSocket connection close code indicating the reason the connection was closed."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/CloseEvent/code)"]
+    #[wasm_bindgen(method, getter)]
+    pub fn code(this: &CloseEvent) -> f64;
+    #[doc = " The **`reason`** read-only property of the CloseEvent interface returns the WebSocket connection close reason the server gave for closing the connection; that is, a concise human-readable prose explanation for the closure."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/CloseEvent/reason)"]
+    #[wasm_bindgen(method, getter)]
+    pub fn reason(this: &CloseEvent) -> String;
+    #[doc = " The **`wasClean`** read-only property of the CloseEvent interface returns true if the connection closed cleanly."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/CloseEvent/wasClean)"]
+    #[wasm_bindgen(method, getter, js_name = "wasClean")]
+    pub fn was_clean(this: &CloseEvent) -> bool;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = EventTarget , extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type WebSocket;
+    #[wasm_bindgen(constructor, catch)]
+    pub fn new(url: &str) -> Result<WebSocket, crate::Error>;
+    #[wasm_bindgen(constructor, catch, slice_to_array, js_name = "WebSocket")]
+    pub fn new_with_slice(url: &str, protocols: &[String]) -> Result<WebSocket, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "WebSocket")]
+    pub fn new_with_str(url: &str, protocols: &str) -> Result<WebSocket, crate::Error>;
+    #[wasm_bindgen(method, catch)]
+    pub fn accept(this: &WebSocket) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "accept")]
+    pub fn accept_with_options(
+        this: &WebSocket,
+        options: &WebSocketAcceptOptions,
+    ) -> Result<(), crate::Error>;
+    #[doc = " The **`WebSocket.send()`** method enqueues the specified data to be transmitted to the server over the WebSocket connection, increasing the value of bufferedAmount by the number of bytes needed to contain the data. If the data can't be sent (for example, because it needs to be buffered but the buffer is full), the socket is closed automatically. The browser will throw an exception if you call send() when the connection is in the CONNECTING state. If you call send() when the connection is in the CLOSING or CLOSED states, the browser will silently discard the data."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/send)"]
+    #[wasm_bindgen(method, catch)]
+    pub fn send(this: &WebSocket, message: &ArrayBuffer) -> Result<(), crate::Error>;
+    #[doc = " The **`WebSocket.send()`** method enqueues the specified data to be transmitted to the server over the WebSocket connection, increasing the value of bufferedAmount by the number of bytes needed to contain the data. If the data can't be sent (for example, because it needs to be buffered but the buffer is full), the socket is closed automatically. The browser will throw an exception if you call send() when the connection is in the CONNECTING state. If you call send() when the connection is in the CLOSING or CLOSED states, the browser will silently discard the data."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/send)"]
+    #[wasm_bindgen(method, catch, js_name = "send")]
+    pub fn send_with_typed_array(this: &WebSocket, message: &Object) -> Result<(), crate::Error>;
+    #[doc = " The **`WebSocket.send()`** method enqueues the specified data to be transmitted to the server over the WebSocket connection, increasing the value of bufferedAmount by the number of bytes needed to contain the data. If the data can't be sent (for example, because it needs to be buffered but the buffer is full), the socket is closed automatically. The browser will throw an exception if you call send() when the connection is in the CONNECTING state. If you call send() when the connection is in the CLOSING or CLOSED states, the browser will silently discard the data."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/send)"]
+    #[wasm_bindgen(method, catch, js_name = "send")]
+    pub fn send_with_str(this: &WebSocket, message: &str) -> Result<(), crate::Error>;
+    #[doc = " The **`WebSocket.close()`** method closes the WebSocket connection or connection attempt, if any. If the connection is already CLOSED, this method does nothing."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/close)"]
+    #[wasm_bindgen(method, catch)]
+    pub fn close(this: &WebSocket) -> Result<(), crate::Error>;
+    #[doc = " The **`WebSocket.close()`** method closes the WebSocket connection or connection attempt, if any. If the connection is already CLOSED, this method does nothing."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/close)"]
+    #[wasm_bindgen(method, catch, js_name = "close")]
+    pub fn close_with_code(this: &WebSocket, code: f64) -> Result<(), crate::Error>;
+    #[doc = " The **`WebSocket.close()`** method closes the WebSocket connection or connection attempt, if any. If the connection is already CLOSED, this method does nothing."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/close)"]
+    #[wasm_bindgen(method, catch, js_name = "close")]
+    pub fn close_with_code_and_reason(
+        this: &WebSocket,
+        code: f64,
+        reason: &str,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "serializeAttachment")]
+    pub fn serialize_attachment(this: &WebSocket, attachment: &JsValue)
+        -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "deserializeAttachment")]
+    pub fn deserialize_attachment(this: &WebSocket) -> Result<JsValue, crate::Error>;
+    #[doc = " The **`WebSocket.readyState`** read-only property returns the current state of the WebSocket connection."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/readyState)"]
+    #[wasm_bindgen(method, getter, js_name = "readyState")]
+    pub fn ready_state(this: &WebSocket) -> f64;
+    #[wasm_bindgen(method, setter, js_name = "readyState")]
+    pub fn set_ready_state(this: &WebSocket, val: f64);
+    #[doc = " The **`WebSocket.url`** read-only property returns the absolute URL of the WebSocket as resolved by the constructor."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/url)"]
+    #[wasm_bindgen(method, getter)]
+    pub fn url(this: &WebSocket) -> Option<String>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_url(this: &WebSocket, val: &str);
+    #[doc = " The **`WebSocket.protocol`** read-only property returns the name of the sub-protocol the server selected; this will be one of the strings specified in the protocols parameter when creating the WebSocket object, or the empty string if no connection is established."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/protocol)"]
+    #[wasm_bindgen(method, getter)]
+    pub fn protocol(this: &WebSocket) -> Option<String>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_protocol(this: &WebSocket, val: &str);
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type WebSocketAcceptOptions;
+    #[doc = " When set to `true`, receiving a server-initiated WebSocket Close frame will not"]
+    #[doc = " automatically send a reciprocal Close frame, leaving the connection in a half-open"]
+    #[doc = " state. This is useful for proxying scenarios where you need to coordinate closing"]
+    #[doc = " both sides independently. Defaults to `false` when the"]
+    #[doc = " `no_web_socket_half_open_by_default` compatibility flag is enabled."]
+    #[wasm_bindgen(method, getter, js_name = "allowHalfOpen")]
+    pub fn allow_half_open(this: &WebSocketAcceptOptions) -> Option<bool>;
+    #[wasm_bindgen(method, setter, js_name = "allowHalfOpen")]
+    pub fn set_allow_half_open(this: &WebSocketAcceptOptions, val: bool);
+}
+impl WebSocketAcceptOptions {
+    pub fn new() -> WebSocketAcceptOptions {
+        Self::builder().build()
+    }
+    pub fn builder() -> WebSocketAcceptOptionsBuilder {
+        WebSocketAcceptOptionsBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct WebSocketAcceptOptionsBuilder {
+    inner: WebSocketAcceptOptions,
+}
+impl WebSocketAcceptOptionsBuilder {
+    pub fn allow_half_open(self, val: bool) -> Self {
+        self.inner.set_allow_half_open(val);
+        self
+    }
+    pub fn build(self) -> WebSocketAcceptOptions {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type WebSocketPair;
+    #[wasm_bindgen(constructor, catch)]
+    pub fn new() -> Result<WebSocketPair, crate::Error>;
+    #[wasm_bindgen(method, getter, js_name = "0")]
+    pub fn _0(this: &WebSocketPair) -> WebSocket;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_0(this: &WebSocketPair, val: &WebSocket);
+    #[wasm_bindgen(method, getter, js_name = "1")]
+    pub fn _1(this: &WebSocketPair) -> WebSocket;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_1(this: &WebSocketPair, val: &WebSocket);
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type Socket;
+    #[wasm_bindgen(method, getter)]
+    pub fn readable(this: &Socket) -> ReadableStream;
+    #[wasm_bindgen(method, getter)]
+    pub fn writable(this: &Socket) -> WritableStream;
+    #[wasm_bindgen(method, getter)]
+    pub fn closed(this: &Socket) -> Promise<Undefined>;
+    #[wasm_bindgen(method, getter)]
+    pub fn opened(this: &Socket) -> Promise<SocketInfo>;
+    #[wasm_bindgen(method, getter)]
+    pub fn upgraded(this: &Socket) -> bool;
+    #[wasm_bindgen(method, getter, js_name = "secureTransport")]
+    pub fn secure_transport(this: &Socket) -> SecureTransportKind;
+    #[wasm_bindgen(method, catch)]
+    pub async fn close(this: &Socket) -> Result<Undefined, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "startTls")]
+    pub fn start_tls(this: &Socket) -> Result<Socket, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "startTls")]
+    pub fn start_tls_with_options(
+        this: &Socket,
+        options: &TlsOptions,
+    ) -> Result<Socket, crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type SocketOptions;
+    #[wasm_bindgen(method, getter, js_name = "secureTransport")]
+    pub fn secure_transport(this: &SocketOptions) -> Option<String>;
+    #[wasm_bindgen(method, setter, js_name = "secureTransport")]
+    pub fn set_secure_transport(this: &SocketOptions, val: &str);
+    #[wasm_bindgen(method, getter, js_name = "allowHalfOpen")]
+    pub fn allow_half_open(this: &SocketOptions) -> bool;
+    #[wasm_bindgen(method, setter, js_name = "allowHalfOpen")]
+    pub fn set_allow_half_open(this: &SocketOptions, val: bool);
+    #[wasm_bindgen(method, getter, js_name = "highWaterMark")]
+    pub fn high_water_mark(this: &SocketOptions) -> Option<HighWaterMarkKind>;
+    #[wasm_bindgen(method, setter, js_name = "highWaterMark")]
+    pub fn set_high_water_mark(this: &SocketOptions, val: f64);
+    #[wasm_bindgen(method, setter, js_name = "highWaterMark")]
+    pub fn set_high_water_mark_with_big_int(this: &SocketOptions, val: &BigInt);
+}
+impl SocketOptions {
+    pub fn new(allow_half_open: bool) -> SocketOptions {
+        Self::builder(allow_half_open).build()
+    }
+    pub fn builder(allow_half_open: bool) -> SocketOptionsBuilder {
+        let inner: SocketOptions = JsCast::unchecked_into(js_sys::Object::new());
+        inner.set_allow_half_open(allow_half_open);
+        SocketOptionsBuilder { inner }
+    }
+}
+pub struct SocketOptionsBuilder {
+    inner: SocketOptions,
+}
+impl SocketOptionsBuilder {
+    pub fn secure_transport(self, val: &str) -> Self {
+        self.inner.set_secure_transport(val);
+        self
+    }
+    pub fn high_water_mark(self, val: f64) -> Self {
+        self.inner.set_high_water_mark(val);
+        self
+    }
+    pub fn high_water_mark_with_big_int(self, val: &BigInt) -> Self {
+        self.inner.set_high_water_mark_with_big_int(val);
+        self
+    }
+    pub fn build(self) -> SocketOptions {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type SocketAddress;
+    #[wasm_bindgen(method, getter)]
+    pub fn hostname(this: &SocketAddress) -> String;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_hostname(this: &SocketAddress, val: &str);
+    #[wasm_bindgen(method, getter)]
+    pub fn port(this: &SocketAddress) -> f64;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_port(this: &SocketAddress, val: f64);
+}
+impl SocketAddress {
+    pub fn new(hostname: &str, port: f64) -> SocketAddress {
+        let inner: SocketAddress = JsCast::unchecked_into(js_sys::Object::new());
+        inner.set_hostname(hostname);
+        inner.set_port(port);
+        inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type TlsOptions;
+    #[wasm_bindgen(method, getter, js_name = "expectedServerHostname")]
+    pub fn expected_server_hostname(this: &TlsOptions) -> Option<String>;
+    #[wasm_bindgen(method, setter, js_name = "expectedServerHostname")]
+    pub fn set_expected_server_hostname(this: &TlsOptions, val: &str);
+}
+impl TlsOptions {
+    pub fn new() -> TlsOptions {
+        Self::builder().build()
+    }
+    pub fn builder() -> TlsOptionsBuilder {
+        TlsOptionsBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct TlsOptionsBuilder {
+    inner: TlsOptions,
+}
+impl TlsOptionsBuilder {
+    pub fn expected_server_hostname(self, val: &str) -> Self {
+        self.inner.set_expected_server_hostname(val);
+        self
+    }
+    pub fn build(self) -> TlsOptions {
+        self.inner
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type SocketInfo;
+    #[wasm_bindgen(method, getter, js_name = "remoteAddress")]
+    pub fn remote_address(this: &SocketInfo) -> Option<String>;
+    #[wasm_bindgen(method, setter, js_name = "remoteAddress")]
+    pub fn set_remote_address(this: &SocketInfo, val: &str);
+    #[wasm_bindgen(method, getter, js_name = "localAddress")]
+    pub fn local_address(this: &SocketInfo) -> Option<String>;
+    #[wasm_bindgen(method, setter, js_name = "localAddress")]
+    pub fn set_local_address(this: &SocketInfo, val: &str);
+}
+impl SocketInfo {
+    pub fn new() -> SocketInfo {
+        Self::builder().build()
+    }
+    pub fn builder() -> SocketInfoBuilder {
+        SocketInfoBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct SocketInfoBuilder {
+    inner: SocketInfo,
+}
+impl SocketInfoBuilder {
+    pub fn remote_address(self, val: &str) -> Self {
+        self.inner.set_remote_address(val);
+        self
+    }
+    pub fn local_address(self, val: &str) -> Self {
+        self.inner.set_local_address(val);
+        self
+    }
+    pub fn build(self) -> SocketInfo {
+        self.inner
+    }
+}
+#[wasm_bindgen(module = "cloudflare:sockets")]
+extern "C" {
+    #[wasm_bindgen(catch)]
+    pub fn connect(address: &str) -> Result<Socket, crate::Error>;
+}
+#[wasm_bindgen(module = "cloudflare:sockets")]
+extern "C" {
+    #[wasm_bindgen(catch, js_name = "connect")]
+    pub fn connect_with_socket_address(address: &SocketAddress) -> Result<Socket, crate::Error>;
+}
+#[wasm_bindgen(module = "cloudflare:sockets")]
+extern "C" {
+    #[wasm_bindgen(catch, js_name = "connect")]
+    pub fn connect_with_str_and_options(
+        address: &str,
+        options: &SocketOptions,
+    ) -> Result<Socket, crate::Error>;
+}
+#[wasm_bindgen(module = "cloudflare:sockets")]
+extern "C" {
+    #[wasm_bindgen(catch, js_name = "connect")]
+    pub fn connect_with_socket_address_and_options(
+        address: &SocketAddress,
+        options: &SocketOptions,
+    ) -> Result<Socket, crate::Error>;
+}
+#[wasm_bindgen]
+pub enum EncodeBodyKind {
+    Automatic = "automatic",
+    Manual = "manual",
+}
+#[wasm_bindgen]
+pub enum HighWaterMarkKind {
+    F64(f64),
+    BigInt(BigInt),
+}
+#[wasm_bindgen]
+pub enum NextReturnKind {
+    Object(Object),
+    Object2(Object),
+}
+#[wasm_bindgen]
+pub enum DataKind {
     ArrayBuffer(ArrayBuffer),
+    String(String),
+}
+#[wasm_bindgen]
+pub enum SecureTransportKind {
+    On = "on",
+    Off = "off",
+    Starttls = "starttls",
 }
 #[doc = " Every JS error class named by a `@throws` in these bindings; `Other` is any other thrown value. `Display` is the error's `message`."]
 #[derive(Debug, Clone)]

@@ -3,7 +3,7 @@
 //! `src/bindings.rs` is generated; regenerate it with `chomp build:ts-gen-worker:types`
 //! after editing the declarations.
 
-#![allow(clippy::all)]
+#![allow(clippy::all, non_upper_case_globals)]
 
 mod bindings;
 mod error;
