@@ -351,3 +351,183 @@ in these bindings. Both chomp test tasks green; fmt / check / clippy clean.
   check for `91e0bf4` was done against the fork's CLI in a scratch crate.
   Worth a `tests/*.rs` case under `integration-tests/` once that harness
   runs with the fork's `wasm-bindgen-test-runner`.
+
+## Session 4: the three skipped specs
+
+workers-rs `gbedford/tgw-errors` on `gbedford/ts-gen-worker` `cb8cd7d`; no
+ts-gen change. No spec file is `describe.skip` any more: `signal` and
+`container` are ported, `panic` passes on the module target with a
+class wrapper in the test harness. 26 spec files, 191 tests, 187 pass and 4
+skip (upstream's own `subrequest` / `socket` skips plus the two `container`
+tests when `TEST_CONTAINER_NAME` is unset); same under `test:ts-gen-worker-http`.
+
+- `d83763e` `signal`: `worker/src/signal.rs` ported verbatim as
+  `ts_gen_worker::signal`, `/signal/poll` route, spec unskipped.
+- `706c175` `container`: `EchoContainer` on the generated
+  `DurableObjectState::container()` / `Container::{running,start,get_tcp_port}`
+  / `Fetcher::fetch`, websocket relay over the test-local event channel.
+- `2211cb8` panic recovery: `src/init.rs` registers `set_on_abort(schedule_reinit)`,
+  the chomp build passes `--force-enable-abort-handler`, `manifest.ts`
+  generates the Durable Object reinit wrapper, `panic.spec.ts` unskipped
+  (verbatim upstream).
+
+### `signal`: the runtime, not the shim
+
+`is_registered()` was `true` on the first run with no harness change.
+workerd patches `WebAssembly.instantiate` and `new WebAssembly.Instance`
+(`checkAndRegisterShutdown` in `src/workerd/io/wasm-instantiate-shim.js`,
+contract in `io/tracked-wasm-instance.h`) to look for exported
+globals named `__instance_signal` and `__instance_terminated` and register
+their addresses with the C++ side. A `#[no_mangle] static` becomes an
+exported `global` holding its address; wasm-bindgen keeps it, and the module
+target instantiates with `new WebAssembly.Instance(wasmModule, imports)`.
+So worker-build is not involved; `wasm-tools print --skeleton` on the module
+build shows both exports, and the spec asserts `true:false`.
+
+### `container`: works, with two environment facts
+
+The spec passes against Docker locally (`TEST_CONTAINER_NAME=1`), both
+`post-echo` and the websocket relay. Two things were needed that the
+original suite also needs and that are not in the repo:
+
+- the `worker-dev/echocontainer:latest` image (built from
+  `test/container-echo`; the Dockerfile's in-container `cargo build` fails
+  behind the corporate TLS interception, so the binary was built on the host
+  and copied into a `debian:bookworm-slim` image), and
+- workerd's sidecar image `cloudflare/proxy-everything:3cb1195@sha256:0ef67…`.
+  workerd does not pull it; wrangler normally does. Without it
+  `Container.start()` fails silently (the start RPC is `sendIgnoringResult`),
+  `monitor()` rejects with "Container failed to start", and every
+  `getTcpPort().fetch()` throws "Container ingress proxy is not running".
+  Found by proxying the Docker socket; the original suite times out
+  identically on this machine until the image is pulled.
+
+The port's readiness probe retries on any error, not on the one message the
+original matched ("container port not found"): this workerd says "Container
+is not listening to port 8080" while the container boots, so the original
+would `throw_str` on the first probe and hang `fetch` forever. Bounded loop,
+same attempt count. `Container::start()` is the generated zero-arg form
+(`start_with_options` exists for the dictionary); the DO returns the container
+port's `Response` directly, no `http` conversion since the port's handler type
+is fixed.
+
+### `panic`: design and what was done
+
+What the spec needs, in order: (1) a trap in a handler surfaces as a 500 with
+"Workers runtime canceled" (that text is workerd's hang detector: the trap
+escapes the microtask that polls the handler future, so the fetch promise
+never settles); (2) the next call into the module runs on a fresh instance;
+(3) Durable Object instances the runtime still holds work again, with reset
+in-memory state (`unstored_count: 1`).
+
+The wasm-bindgen fork already carries (2) with no shim. `--force-enable-abort-handler`
+wraps every export and closure call in `__wbg_call_guard` / `__wbg_handle_catch`;
+a trap sets `__instance_terminated` and runs the Rust `set_on_abort` hook,
+which calls `schedule_reinit()`; the next guarded call runs `__wbg_reset_state()`
+(new `WebAssembly.Instance`, reset heap/memory views, `__wbindgen_start`). This
+was verified first in isolation: with only `src/init.rs` and the flag, panic,
+`unreachable`, a JS exception crossing Wasm frames and OOM each gave the
+canceled 500 and the next plain request succeeded, while a pre-existing
+Counter DO failed with the glue's own "Invalid stale object from previous
+Wasm instance". That error is (3), and it is the only thing left for a shim
+to do. The flag-free default build would instead keep calling into a
+poisoned instance (shadow stack pointer not unwound, `RefCell` borrows held),
+so the flag belongs in every ts-gen-worker build, not only the test.
+
+**(a) worker-build target.** `shim.js` assumes `export function fetch(req,
+env, ctx)`-style free exports and synthesizes `Entrypoint.prototype.fetch =
+function (arg) { return exports.fetch.call(this, arg, this.env, this.ctx) }`
+on a `WorkerEntrypoint` subclass; it calls `exports.__worker_init_state()`
+unconditionally; it runs esbuild over the result. ts-gen-worker's `#[event]`
+already emits the module-worker shape (`export { _default as default }` with
+`default.fetch`), so `generate_handlers` would mis-wrap `default` and the
+`start` functions and would need a pass-through mode, `__worker_init_state`
+would need to become optional, and the chomp task would inherit worker-build's
+wasm-pack option parsing, lockfile and esbuild download. Its
+`checkReinitialize` / `handleMaybeCritical` / `error` listener duplicate what
+the fork's call guard now does. Not small; not implemented.
+
+**(b) minimal wrapper of our own.** Implemented in the harness only
+(`test/tests/manifest.ts`, `reinitShim`), nothing in `src/`: re-export
+`default`, wrap each `export class` in a `Proxy` whose instances catch the
+glue's "Invalid stale object" error on a method call, re-run the constructor
+with the saved arguments and retry the call once. The glue's own stale check
+is the signal, so no instance counter is needed (an earlier version bumped a
+`globalThis` counter from the crate's start function; dropped, since it put
+harness support in the crate and, see the open problem below, would still
+miss the case the counter was meant to catch). workerd reads `fetch` /
+`alarm` / `webSocket*` off the DO instance once at construction and calls the
+cached functions, so binding methods at `get` time is not enough; the
+returned function is itself a `Proxy` whose `apply` resolves the current
+instance. With that, `panic.spec.ts` passes verbatim. Generated from the
+class names in `index.js`, same job as worker-build's `add_export_wrappers`.
+
+**Recommendation.** (b) for now, in this shape, but it is a stand-in for a
+third option that removes the shim entirely: **(c) an opt-in class attribute
+in the wasm-bindgen fork** (`#[wasm_bindgen(reinit = "reconstruct")]`, set
+by `#[durable_object]`) so the generated class saves its constructor
+arguments and, where the method prelude currently throws "Invalid stale
+object", re-runs the constructor and refreshes `__wbg_ptr` / `__wbg_inst` in
+place. The glue already tracks `__wbg_instance_id` and per-object `__wbg_inst`,
+so the check exists; the recovery action is new, and the check has to move
+after `__wbg_call_guard()` (see the open problem below) for it to fire in
+every case. That gives plain
+`wasm-bindgen --target module` output panic recovery for Durable Objects with
+no wrapper module, no instance counter on `globalThis`, and no build tool; the
+runtime's cached methods keep working because they are the class's own
+prototype methods over a refreshed `__wbg_ptr`. Reconstruction is only valid
+for classes whose contract allows it (Durable Objects are re-created across
+evictions anyway), hence opt-in rather than the current throw-for-all.
+
+### Decisions
+
+- `src/init.rs` is crate code, not test code: the abort hook is needed under
+  every option and `worker` registers the same one (`worker/src/init.rs`).
+  It carries nothing else; the Durable Object wrapper is harness-only and
+  marked as a stand-in.
+- No `criticalError` flag from the panic hook. `worker` sets it so the shim
+  reinits before the trap is observed; with the fork's guard the trap itself
+  is the signal, and the test worker's own hook still logs the message.
+- The container readiness probe tolerates any error (see above); the
+  alternative, matching this workerd's wording, would break again on the
+  next change.
+
+### Open problems
+
+- **(c) is a wasm-bindgen fork change**, not ts-gen or workers-rs; needs
+  Guy's call on attribute spelling and whether `#[durable_object]` sets it
+  implicitly. Until then the test harness carries the wrapper and a user of
+  the module target has to write the same wrapper (or use worker-build once
+  it understands the `default` export shape).
+- **Fork glue: the stale check runs before the call guard.** In
+  `crates/cli-support/src/js/binding.rs` the method prelude emits
+  `if (this.__wbg_inst !== __wbg_instance_id) throw ...` and only then
+  `__wbg_call_guard()` (from `maybe_wrap_export_call`). When a Durable Object
+  method is the *first* call into the glue after a trap (a direct stub call
+  from another worker, an alarm, a websocket event; anything that does not
+  pass through `default.fetch` first), the ids still match, the guard then
+  reinstantiates, and the method runs on the fresh instance with the old
+  `__wbg_ptr`. Reproduced: `mf.getDurableObjectNamespace("COUNTER")` stub
+  `fetch`, then `/test-panic`, then the same stub `fetch` hangs until the
+  test timeout, with or without the harness wrapper. `panic.spec.ts` never
+  hits it because every post-trap request enters via `default.fetch`.
+  Patching the generated `index.js` to call `__wbg_call_guard()` before the
+  stale check makes the reproducer pass (the wrapper then sees the stale
+  error and reconstructs). Proposed fork fix: emit `__wbg_call_guard();` in
+  the method prelude ahead of the stale check (the guard is idempotent, so
+  the existing one around the call can stay). Applies to every user of
+  `--force-enable-abort-handler` with exported classes, not only this crate;
+  (c) depends on it.
+- **Container images are not provisioned by the suite.** CI never runs the
+  container spec (no `TEST_CONTAINER_NAME`), and a local run needs both
+  images present. The sidecar digest is baked into the workerd binary, so a
+  `docker pull` step in the chompfile would have to track it.
+
+### Gaps found
+
+- workers-rs `test/src/container.rs` has the same stale readiness message
+  and hangs on this workerd; the port's any-error retry is the fix if it is
+  wanted upstream.
+- `test/container-echo/Dockerfile` cannot build behind TLS interception
+  (`cargo` inside `rust:alpine` has no corporate CA); a host-built binary
+  copied into a base image works.
