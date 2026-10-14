@@ -42,7 +42,14 @@ Generic upstream types (`Request<CfHostMetadata, Cf>`, `ReadableStream<R>`)
 keep their parameters with defaults, so the bare names work everywhere.
 
 Build with `cargo build --target wasm32-unknown-unknown` and
-`wasm-bindgen --target module`; the output's default export is the worker.
+`wasm-bindgen --target module --force-enable-abort-handler`; the output's
+default export is the worker. The flag lets the glue notice a trap (a panic
+under `panic=abort`, `unreachable`, out of memory) and reinstantiate the
+module before the next call, so one failed request does not poison the
+isolate. Durable Object instances constructed before the trap are stale
+afterwards and the glue rejects calls on them; the test harness
+(`test/tests/manifest.ts`) re-creates them with a wrapper module as a
+stand-in until the glue can do so itself.
 
 ## Errors
 

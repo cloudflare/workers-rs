@@ -1,9 +1,7 @@
 import { describe, test, expect } from "vitest";
 import { mf, mfUrl } from "./mf";
 
-// GAP: panic/abort/OOM recovery ("Workers runtime canceled" + Wasm reinit) is
-// worker-build shim behaviour; the module-target worker has no shim yet.
-describe.skip("Panic Hook with WASM Reinitialization", () => {
+describe("Panic Hook with WASM Reinitialization", () => {
   // These tests are explicitly run sequentially with a longer timeout
   // to ensure they fully run the reinitialization lifecycle.
   test("panic recovery tests", async () => {

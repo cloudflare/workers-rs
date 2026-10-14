@@ -11,6 +11,7 @@ mod bindings;
 mod durable;
 mod error;
 mod ext;
+mod init;
 mod router;
 pub mod send;
 pub mod signal;
