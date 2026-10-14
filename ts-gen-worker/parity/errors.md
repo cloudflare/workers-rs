@@ -225,3 +225,129 @@ files, 176 tests green; fmt / check / clippy clean.
 - ts-gen-worker: `util::block_concurrency_while` is the shape
   `src/ext/durable.rs` should expose (workers-rs-4): a Rust future run inside
   the gate, entered synchronously via the `_promise` form.
+
+## Session 3: small ts-gen fixes from the "Gaps found" lists
+
+ts-gen `agent/errors`: six commits, rebased onto `gbedford/workers-parity`
+`1063861` (workers-rs-3's 23 commits) and published to `../../workers-rs/ts-gen`.
+Two listed items were already on that branch and were skipped: overload
+base-name ownership (`f3f093a`) and the namespace `pub mod` preamble
+(`8492113`).
+
+- `ea68276` `URIError` / `DOMException`. `URIError` resolves through a new
+  `external_map::JS_SYS_RENAMES` table (`::js_sys::UriError`, kept under
+  `--no-web-sys`); `DOMException` joins `WEB_SYS_DEFAULTS`
+  (`::web_sys::DomException`). The builtin scope now iterates those tables
+  instead of a duplicate name list. Fixture `builtin-errors`.
+- `0a80171` `declare const` statics render `SCREAMING_SNAKE_CASE`
+  (`pub static CACHES`, `js_name = "caches"`). Fixture coverage in `basic`,
+  `coverage`, `es-module-lexer`.
+- `f70faa4` instance members own their base name: a static whose base an
+  instance member owns takes `_static` (`Response::json_static`,
+  `json_static_with_init`, `ok_static`); a synthesized `try_` that would spell
+  a declared method yields to it. Fixture `static-collision`.
+- `9d90158` awaited values lower like sync returns: `String` / `f64` / `bool`
+  / `()` / `Option<T>` / `Vec<T>` / synthesized return enums; the `_promise`
+  form keeps the JS-typed `Promise<JsString>` etc. An `Option` / `Vec` over an
+  in-scope type parameter keeps `JsOption<T>` / `Array<T>` (see Decisions).
+  Removes the per-mono `mono_native_return` special case. Fixtures updated
+  across the board.
+- `ec92ad2` inline method return literals hoist like parameters
+  (`SqlStorageCursorNextReturn<T>` with `done()` / `value()`); `never` →
+  `Undefined`; union construction keeps one member per distinct lowering, so
+  `{…} | {…}` properties are `Option<Object>`. Fixture `inline-return`.
+- `104a370` a callback type with a rest parameter lowers to the untyped
+  `Function`. Fixture `callback-types`. New CONVENTIONS section "Function
+  types" (there was none).
+
+workers-rs `gbedford/tgw-errors` (on `gbedford/ts-gen-worker` `c44c7b4`, the
+real workers-types input): the submodule bump regenerates `bindings.rs` (email
+bindings unchanged) and drops the port's workarounds: `util::text` /
+`util::response_text`, every `String::from(x.text().await?)`, `.value_of()`,
+`.into_option()` on async results, the `Reflect::get` reading of
+`SqlStorageCursor::next()`, `resolve.unchecked_ref()` for `setTimeout`, plus
+`caches` / `console` → `CACHES` / `CONSOLE` and the crate's
+`non_upper_case_globals` allow. With the real input `Response.json` no longer
+collides (the instance `json()` is on `Body`), so `_static` is not triggered
+in these bindings. Both chomp test tasks green; fmt / check / clippy clean.
+
+### Decisions
+
+- **Statics are upper-case rather than carrying an `#[allow]`.** The item
+  cannot: wasm-bindgen's `ImportStatic` keeps no attributes, so anything on
+  the foreign static is dropped at expansion (verified in
+  `crates/macro-support/src/codegen.rs`), and an inner `#![allow]` would not
+  survive `include!`. Upper-casing is the same rule that snake-cases members.
+  Consumers rename `caches` → `CACHES`; the crate-level
+  `non_upper_case_globals` allow in `ts-gen-worker/src/lib.rs` is dropped.
+- **`_static` on the static, not a suffix on the instance.** `r.json()` is
+  the overwhelmingly common call and MDN already disambiguates the same clash
+  as `Response/json_static`. Instance names are *reserved* before emission
+  rather than emitted first, so output stays in declaration order. Side
+  effect: a declared `try_count()` now beats `count()`'s synthesized
+  `try_count` companion (`phase1` snapshot), which is the better owner.
+- **Async returns use the sync lowering outright, not a primitive-only
+  carve-out.** The premise behind the wrappers (`Promise<T>` needs
+  `T: JsGeneric`) does not apply to the awaited value: `JsFuture<T>` resolves
+  through a `Closure::once(|val: T|)` needing only `FromWasmAbi`. Verified at
+  runtime against the fork's CLI with `String`, `f64`, `bool`, `()`,
+  `Option<String>` (`null` and `undefined` both `None`), `Option<f64>`,
+  `Option<bool>`, `Option<Object>`, `Vec<String>`, `Vec<f64>`, `Vec<Object>`,
+  and rejection → `Err`. A mismatched JS value (number for `Promise<string>`)
+  aborts in the shim, exactly as a sync `-> String` import does, so the
+  robustness trade is unchanged. One carve-out surfaced on the real input:
+  `DurableObjectStorage.get<T>(): Promise<T | undefined>` cannot be
+  `Option<T>` — the macro requires `<Option<T> as FromWasmAbi>` for the
+  awaited value and `T: JsGeneric` does not imply `OptionFromWasmAbi`
+  (a sync import erases `T` to its concrete representation first, which is
+  why `SyncKvStorage::get<T>() -> Option<T>` is fine). So an `Option` / `Vec`
+  whose element mentions an in-scope type parameter keeps the inner lowering
+  (`JsOption<T>` / `JsNullable<T>` / `Array<T>`); `util::storage_get` keeps its
+  `into_option()`. This supersedes Session 2's
+  `Promise<T | null>` → `JsNullable<T>` on the awaited side: `Option<T>` is
+  nullish-insensitive, so the `JsNullable` / `JsOption` distinction only
+  matters for the `_promise` form and other inner positions now.
+- **The `_promise` form keeps JS-typed parameters.** `Promise<String>`
+  compiles and awaits, but the promise object is handed to JS APIs
+  (`waitUntil`, `Promise.race`) that need `T: JsGeneric` to upcast to
+  `Promise<JsValue>`. So `get()` → `Option<String>` beside `get_promise()` →
+  `Promise<JsNullable<JsString>>`.
+- **Return-literal hoisting is limited to methods with a parent name**, the
+  same boundary as parameter hoisting; free functions keep `Object`. Property
+  literals are not hoisted either (191 in workers-types; the documented
+  "hoisting scope" rule), which is why the duplicate-member collapse was also
+  needed: it fixes `{…} | {…}` wherever hoisting does not reach, by
+  construction in `simplify_union` so every consumer (LUB, dynamic-union
+  synthesis) sees distinct members.
+- **`never` → `Undefined`, not a new `TypeRef` variant.** A `never`-typed slot
+  can only read back `undefined`; mapping it there lets the existing
+  `undefined` coalescing turn `value: T` / `value?: never` into `Option<T>`
+  without touching ~40 `TypeRef` match sites. Snapshot impact beyond the
+  merge: `declare var onmessage: never` is `Undefined` instead of `JsValue`.
+- **Variadic callbacks → untyped `Function`**, not `Function<fn(JsValue…)>`:
+  a `fn` pointer has no variadic spelling, and `(...args: any[]) => void` is
+  "any function" in intent. The typed form is still emitted for fixed-arity
+  callbacks.
+
+### Open problems
+
+- **Shared dynamic-union names.** Identity is the ordered member list, so
+  `AIGatewayHeaders.cf-aig-custom-cost: {…} | {…} | string` now renders as
+  `AudioKind` (the first `Object | String` anchor in workers-types). Pre-existing
+  rule, now more visible because duplicate members collapse; a per-anchor
+  name (or `ObjectOrStringKind`-style structural name) would read better.
+- **`never` properties.** `D1Response.error?: never` is now
+  `Option<Undefined>` with a `set_error(&Undefined)` setter and builder
+  method; harmless but noise. Skipping setters for `never`-typed properties
+  would be a one-line rule in the property converter.
+
+### Gaps found
+
+- ts-gen: `() => void` callbacks render `Function<fn() -> Undefined>`; a
+  `Closure<dyn FnMut()>` still needs `unchecked_ref` into that exact type. A
+  `Function<fn()>`-shaped lowering for void returns, or accepting `&Function`
+  for any typed callback parameter, would remove the last `unchecked_ref`s.
+- ts-gen: integration tests have no async-primitive coverage; the runtime
+  check for `91e0bf4` was done against the fork's CLI in a scratch crate.
+  Worth a `tests/*.rs` case under `integration-tests/` once that harness
+  runs with the fork's `wasm-bindgen-test-runner`.
