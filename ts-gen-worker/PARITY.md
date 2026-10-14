@@ -56,6 +56,10 @@ Creative choices made by agents, with justification. Guy reviews these.
 - **`Error` `Display` for `Js` is `Name: message`** (master): `worker::Error` renders that way and
   migrating specs assert on it (`sqlite.spec.ts`), so `respond_with_errors` can replace the
   port's hand-rolled handler. (`parity/crate.md`)
+- **ts-gen-worker builds with plain `wasm-bindgen --target module`, no worker-build shim** (Guy).
+  Trap recovery comes from the wasm-bindgen fork's reinit; Durable Object instances surviving a
+  reinit is to be handled in the fork's macro/glue (opt-in class attribute set by
+  `#[durable_object]`), not by a wrapper.
 - **ts-gen may emit non-extern inline wrappers** (master): it already emits factories, builders
   and `PartialEq` impls, so an inline `fn` that converts `f64`↔`u64` for `@rust u64`, or bakes a
   string literal into a literal-keyed overload (`kv.get_json(key)`), is within the same policy.
