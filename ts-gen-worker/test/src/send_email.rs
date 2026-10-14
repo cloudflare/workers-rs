@@ -1,4 +1,4 @@
-use crate::util::{err_message, error, from_json, url};
+use crate::util::{error, from_json, url};
 use crate::{Env, SomeSharedData};
 use js_sys::Uint8Array;
 use ts_gen_worker::*;
@@ -167,6 +167,6 @@ fn respond(result: Result<String>) -> Result<Response> {
     from_json(&serde_json::json!({
         "ok": result.is_ok(),
         "messageId": result.as_ref().ok(),
-        "error": result.err().map(|e| err_message(&e)),
+        "error": result.err().map(|e| e.to_string()),
     }))
 }

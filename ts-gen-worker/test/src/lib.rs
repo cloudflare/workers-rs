@@ -41,7 +41,7 @@ mod user;
 mod util;
 mod ws;
 
-use util::{err_message, error, ok, path, url};
+use util::{ok, path, url};
 
 #[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -88,15 +88,7 @@ fn text(body: &str, status: f64, content_type: &str) -> Result<Response> {
     )?)
 }
 
-/// `#[event(fetch, respond_with_errors)]`: handler errors become 500 responses.
-#[wasm_bindgen(js_name = "fetch", js_namespace = "default")]
-pub async fn fetch_handler(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response> {
-    match route(req, env, ctx).await {
-        Ok(res) => Ok(res),
-        Err(e) => error(err_message(&e), 500),
-    }
-}
-
+#[event(fetch, respond_with_errors)]
 async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response> {
     let data = SomeSharedData { regex: &DATA_REGEX };
     let method = req.method();

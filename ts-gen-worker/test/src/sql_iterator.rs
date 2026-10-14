@@ -4,7 +4,7 @@ use ts_gen_worker::*;
 use wasm_bindgen::prelude::*;
 
 use crate::sql::{self, SqlStorageValue};
-use crate::util::{err_message, ok, url};
+use crate::util::{ok, url};
 
 /// A Durable Object that demonstrates SQL cursor iterator methods.
 #[wasm_bindgen]
@@ -166,7 +166,7 @@ impl SqlIterator {
                     ));
                 }
                 Err(e) => {
-                    results.push(format!("Error deserializing row: {}", err_message(&e)));
+                    results.push(format!("Error deserializing row: {e}"));
                 }
             }
         }
@@ -189,7 +189,7 @@ impl SqlIterator {
                     results.push(format!("Row: [{}]", sql::raw_row(&row).join(", ")));
                 }
                 Err(e) => {
-                    results.push(format!("Error reading row: {}", err_message(&e)));
+                    results.push(format!("Error reading row: {e}"));
                 }
             }
         }
@@ -216,7 +216,7 @@ impl SqlIterator {
                     ));
                 }
                 Err(e) => {
-                    results.push(format!("Error deserializing row: {}", err_message(&e)));
+                    results.push(format!("Error deserializing row: {e}"));
                 }
             }
         }
@@ -254,7 +254,7 @@ impl SqlIterator {
                     }
                 }
                 Err(e) => {
-                    results.push(format!("Error reading blob row: {}", err_message(&e)));
+                    results.push(format!("Error reading blob row: {e}"));
                 }
             }
         }
@@ -298,7 +298,7 @@ impl SqlIterator {
                     results.push(format!("Row: [{}]", row_str.join(", ")));
                 }
                 Err(e) => {
-                    results.push(format!("Error reading blob row: {}", err_message(&e)));
+                    results.push(format!("Error reading blob row: {e}"));
                 }
             }
         }
@@ -347,7 +347,7 @@ impl SqlIterator {
                     }
                 }
                 Err(e) => {
-                    results.push(format!("next() error: {}", err_message(&e)));
+                    results.push(format!("next() error: {e}"));
                 }
             }
         }
@@ -365,7 +365,7 @@ impl SqlIterator {
                     }
                 }
                 Err(e) => {
-                    results.push(format!("raw() error: {}", err_message(&e)));
+                    results.push(format!("raw() error: {e}"));
                 }
             }
         }

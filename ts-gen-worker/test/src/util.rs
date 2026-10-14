@@ -9,21 +9,6 @@ use url::Url;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 
-/// `worker::Error`'s Node-style `Name: message` rendering of a caught JS
-/// error; `ts_gen_worker::Error` displays only the message.
-pub fn err_message(e: &Error) -> String {
-    match e {
-        Error::Js(e) => {
-            let value: &JsValue = e.as_ref();
-            match value.dyn_ref::<js_sys::Error>() {
-                Some(e) => format!("{}: {}", String::from(e.name()), String::from(e.message())),
-                None => e.to_string(),
-            }
-        }
-        other => other.to_string(),
-    }
-}
-
 /// `worker::Request::url()`.
 pub fn url(req: &Request) -> Result<Url> {
     Ok(Url::parse(&req.url()).map_err(|e| e.to_string())?)

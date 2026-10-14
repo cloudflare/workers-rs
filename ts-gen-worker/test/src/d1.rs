@@ -1,4 +1,4 @@
-use crate::util::{err_message, from_bytes, ok, text};
+use crate::util::{from_bytes, ok, text};
 use crate::{Env, SomeSharedData};
 use js_sys::{Object, Reflect, Uint8Array};
 use serde::de::DeserializeOwned;
@@ -454,7 +454,7 @@ pub async fn deserialize_with_type_mismatch(
 
     if let Err(error) = error {
         assert_eq!(
-            err_message(&error),
+            error.to_string(),
             "Error: invalid type: string \"hello\", expected u32"
         );
     } else {

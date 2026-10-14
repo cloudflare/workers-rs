@@ -74,8 +74,7 @@ impl SqlCounter {
             Ok(value) => value,
             Err(e) => {
                 return ok(format!(
-                    "Error: Cannot store value {large_value} - {}. JavaScript safe range is ±9007199254740991",
-                    crate::util::err_message(&e)
+                    "Error: Cannot store value {large_value} - {e}. JavaScript safe range is ±9007199254740991"
                 ));
             }
         };

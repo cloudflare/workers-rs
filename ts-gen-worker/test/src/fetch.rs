@@ -1,5 +1,5 @@
 use super::{ApiData, SomeSharedData};
-use crate::util::{err_message, ok, sleep, url};
+use crate::util::{ok, sleep, url};
 use crate::Env;
 use futures_util::future::Either;
 use serde::{Deserialize, Serialize};
@@ -101,7 +101,7 @@ pub async fn handle_cancelled_fetch(
     controller.abort()?;
 
     let res = rx.await.unwrap();
-    let res = res.unwrap_or_else(|e| ok(err_message(&e)).unwrap());
+    let res = res.unwrap_or_else(|e| ok(e.to_string()).unwrap());
 
     Ok(res)
 }
@@ -132,10 +132,10 @@ pub async fn handle_fetch_timeout(
     match futures_util::future::select(delay_fut, fetch_fut).await {
         Either::Left((res, cancelled_fut)) => {
             match cancelled_fut.await {
-                Err(e) if err_message(&e).contains("AbortError") => {}
+                Err(e) if e.to_string().contains("AbortError") => {}
                 Err(e) => panic!(
                     "Fetch errored with a different error than expected: {:#?}",
-                    err_message(&e)
+                    e.to_string()
                 ),
                 Ok(text) => panic!("Fetch unexpectedly succeeded: {text}"),
             }

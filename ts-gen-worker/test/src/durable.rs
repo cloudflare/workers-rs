@@ -244,9 +244,7 @@ impl MyClass {
                 _ => error("Not Found", 404),
             }
         };
-        handler
-            .await
-            .or_else(|e: Error| error(crate::util::err_message(&e), 500))
+        handler.await.or_else(|e: Error| error(e.to_string(), 500))
     }
 }
 
