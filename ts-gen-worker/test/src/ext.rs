@@ -1,6 +1,6 @@
 //! Routes under `/ext/*` exercising the `#[event]` macros and the `impl` layer
-//! (`parity/crate.md`). The `fetch` and `queue` exports are the suite's own; the
-//! macro forms of those are only exercised through `__macro::error_response`.
+//! (`parity/crate.md`). The suite's own `fetch` export is `respond_with_errors`, so the
+//! default error policy is only exercised through `__macro::error_response`.
 
 use std::cell::RefCell;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -220,10 +220,9 @@ pub async fn handle(
             Response::builder().ok(String::from(res.text().await?))
         }
 
-        // The fetch export is the suite's own, so the macro's error policy is called directly.
-        ("GET", ["error-number"]) => Ok(shown_error(JsValue::from(42).into())),
-        ("GET", ["error-null"]) => Ok(shown_error(JsValue::NULL.into())),
-        ("GET", ["error-rust"]) => Ok(shown_error(Error::from("boom"))),
+        ("GET", ["error-number"]) => Err(JsValue::from(42).into()),
+        ("GET", ["error-null"]) => Err(JsValue::NULL.into()),
+        ("GET", ["error-rust"]) => Err(Error::from("boom")),
         ("GET", ["error-default"]) => Ok(__macro::error_response(
             js_sys::Error::new("hidden").into(),
             None,
@@ -231,10 +230,4 @@ pub async fn handle(
 
         _ => Response::builder().error("Not Found", 404),
     }
-}
-
-/// What `#[event(fetch, respond_with_errors)]` does with a handler's `Err`.
-fn shown_error(err: Error) -> Response {
-    let message = err.to_string();
-    __macro::error_response(err.into(), Some(message))
 }
