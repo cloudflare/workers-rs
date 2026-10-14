@@ -101,6 +101,34 @@ clippy and tests alone):
 - `1063861` `--annotate`: a side declaration's (or alias's) type-parameter defaults replace the
   input's, so the bare `Request` reads `cf()` as `IncomingRequestCfProperties`.
 
+Session 4, on `gbedford/workers-parity` at `104a370`:
+
+- `ad5ee90` Inherited members: between sibling parents declaring the same member the earliest in
+  `extends` order provides it (was: the last); the child's own redeclaration still wins over all.
+  The rest of the multi-`extends` decision (flatten parents beyond the first, transitively, for
+  interfaces and promoted intersections; first parent keeps `extends =`/`Deref`) had already
+  landed as `98976e4`, and the `AsRef` detours were removed from `ext/` and the port in `5dca395`.
+- `b21ce29` Types named like the Rust prelude (`Result`, `Option`, `String`, `Vec`, `Box`,
+  `Default`, `From`, …) take the `js_sys` collision rename (`Foo_` + `js_name`) with no `pub use`
+  back to the original name; compile-only integration test; `generic-defaults`' local `Box<T>`
+  becomes `Box_<T>`.
+
+Session 5, on `gbedford/workers-parity` at `b21ce29`:
+
+- `5b9ba39` Overload expansions use their own overload's return type and scope: the `_promise`
+  form of a non-primary expansion promised the first overload's return (`get_with_keys_promise`
+  → `Promise<JsOption<T>>` instead of `Promise<Map<JsString, T>>`), and the cross-overload dedup
+  rendered every expansion's parameters in the first overload's scope, which left a stray
+  `use JsValue as Args;` in the workers-types output. Found while writing the inference fixture.
+- `96cf3bf` The type-parameter inference rule (decided; see Decisions): `codegen/type_params.rs`,
+  applied where class members and free functions enter codegen; fixture
+  `uninferrable-type-params.d.ts` with the four cases; CONVENTIONS "Uninferrable method type
+  parameters" under "In-scope generic type parameters". The `iterables`, `generic-slice` and
+  `overload-returns` fixtures gain an argument where their point was the generic itself.
+- `bd1ec01` Nested arrays: the inner array of `T[][]` is the `Array<U>` handle
+  (`Vec<Array<JsString>>`, `&[Array<Number>]`); wasm-bindgen has no `Vec<Vec<_>>` ABI. Surfaced by
+  `D1PreparedStatement.raw<T = unknown[]>(): Promise<T[]>` once `T` erases to its default.
+
 Dropped on the rebase onto `b2d9e5c`: the `&Null` variant commit (`88596cd`), superseded by
 `67fa212` (same `_with_null` shape, plus setters and the `Nullish::Null`-only rule); the duplicate
 string-enum commit, superseded by `2d63fac`. `2d2b547` (type-level generic defaults) absorbed
@@ -117,6 +145,14 @@ test-suite port on the `ext/` layer and macros, with the http feature):
 - `5a9681e` Integer hints: `@rust` tags in `annotations.d.ts` for every `number` `worker` exposes as
   a ≤32-bit integer (list in the file); `ext/` and the test worker pass integer statuses, close
   codes, limits and part numbers.
+- `f170c39` Submodule pointer for the two session-4 commits; the generated bindings are unchanged
+  (the inventory has no prelude-named type and no sibling parents sharing a member).
+- `0e93ad0` Regenerated for the inference rule (bindings 133+/154−): 12 turbofishes go in the
+  test worker (`run`, `list`, `list_with_options`, `get_with_keys`, `get_with_metadata`, `raw`,
+  `set_timeout_with_ms_delay`, `SqlStorageCursor.raw`); `sql.rs` casts each raw row with
+  `unchecked_into::<Array>()` and `d1.rs` deserializes `Vec<Array>` rows. On the rebase onto
+  `cb8cd7d` the new `ext/` surface lost three more (`KvStore`'s `get_with_metadata_…` calls,
+  `Delay`'s `set_timeout_with_ms_delay`).
 
 ## Decisions
 
@@ -185,24 +221,44 @@ test-suite port on the `ext/` layer and macros, with the http feature):
 - **Intersection promotion requires every named part to be a declared object type** (review #1):
   a branded primitive or a type-parameter refinement keeps alias semantics and erases, which is
   safe where promotion produced wrong or non-compiling output.
-- **Method-level type parameters that appear only in the return stay generic** (`run<T>()`,
-  `list<T>()`, `get_with_metadata<Metadata>()`), requiring a turbofish in the port
-  (`run::<JsValue>()`). Erasing them to their default would lose the typed-cast form that a bare
-  `T` return gives (`storage.get::<JsString>(key)`). Recorded as an open problem for the
-  nested-container cases.
+- **Method type parameters no argument infers: keep for a bare-`T` return, erase otherwise**
+  (decided by Guy from the session-4 design). Kept when an argument mentions it as lowered (a
+  variadic callback is the untyped `Function`, a `Promise<T>` callback return erases) or when the
+  awaited return is exactly `T` / `T | undefined` / `T | null`, since there the turbofish is the
+  cast (`get::<JsString>(key)`, `json::<Row>()`). Otherwise the parameter erases to the default of
+  the type it instantiates in the return (`D1Result<T = unknown>` → `JsValue`, `Fetcher<T =
+  undefined>` → `Undefined`; the type's default wins over the method's so `run()` and `batch()`
+  agree on `D1Result<JsValue>`), else the method's own default, else `any`, and leaves the
+  signature; `setTimeout<Args>` drops `Args` outright. `_promise` / `try_` companions share the
+  signature. Applied at codegen entry on the cloned member list (`ClassConfig::from_*`,
+  `emit_function`) rather than as a parse post-pass, because it reads the lowering of callbacks and
+  the defaults of types that may be declared later or in other files.
+- **A constrained, defaultless parameter erases to `any`, not its constraint.** `SqlStorageCursor
+  .raw<U extends SqlStorageValue[]>(): IterableIterator<U>` is now `Iterator` (of `JsValue`),
+  where TypeScript itself would infer the constraint. Using the constraint would be more precise
+  but self-referential bounds (`waitForEvent<T extends Rpc.Serializable<T>>`) do not lower, so the
+  decision's "else `JsValue`" stands; recorded as a possible refinement under Gaps.
 - **`Request`'s `Cf` default is overridden from the side file** (`Cf =
   IncomingRequestCfProperties<CfHostMetadata>`, and the same on `RequestInfo` so
   `Fetcher.fetch(&Request)` accepts the bare type). Upstream's `CfProperties<…>` union erases, and
   a handler's `req.cf()` is the incoming shape; `worker` has one `cf()` too. The price: an outgoing
   `Request::new(..)` is typed with the incoming `Cf` as well, which is what `worker` does.
+- **Prelude collisions rename without a re-export.** The `js_sys` scheme re-exports `Foo_` as
+  `Foo` so the public path is unchanged; for a prelude name that alias would itself shadow
+  `Result`/`String`/… for every binding in the module (explicit items beat the prelude exactly as
+  they beat a glob), so the suffixed name is the public one. The reserved list is everything the
+  Rust 2021 prelude puts in the type namespace (types, traits, `Some`/`None`/`Ok`/`Err`); the
+  variants are harmless as types but cost nothing to include and keep the rule mechanical.
+  `Error`/`Iterator` were already in the `js_sys` list; `Self` is a keyword `make_ident` already
+  suffixes.
+- **Sibling parents: first in `extends` order wins.** TypeScript rejects incompatible
+  redeclarations across siblings, so this only fixes the output order and the pick among identical
+  ones; the child's own redeclaration remains the override.
 - **`console` stays a `thread_local_v2` static** (`console.with(|c| c.log(..))`), the honest
   lowering of `declare const console: Console`; a `console_log!` ergonomic belongs in `ext/`.
 
 ## Open problems
 
-- **Rust prelude name collisions.** A TS type named `Result`/`Option`/`Box`/`String` would shadow
-  the prelude in the generated file (none in the inventory). Proposal: extend the `js_sys`
-  collision rename (`Foo_` + `pub use`) to the Rust prelude. The reviewer recommends doing it now.
 - **64-bit integers carried as JS numbers.** `worker` exposes `R2Object.size`, KV
   `expiration`/`expirationTtl`/`cacheTtl`/list `limit`, `getAlarm`, `File.lastModified` as
   `u64`/`i64`; here they are `f64`. Proposal: `@rust u64` on a `number` emits the `f64` extern
@@ -212,11 +268,6 @@ test-suite port on the `ext/` layer and macros, with the http feature):
 - **`--annotate` targets by bare name.** A name declared both globally and in a module is now an
   error rather than first-wins; honoring `declare module "x" { … }` / `declare namespace` in the
   side file as scopes is the fix when a case appears.
-- **Uninferrable method type parameters.** `run<T = Record<…>>(): Promise<D1Result<T>>` and
-  `list<T>(): Promise<Map<string, T>>` force `run::<JsValue>()` at every call. Options: keep the
-  generic (current), or erase a parameter the method's arguments never mention to its default and
-  let callers `unchecked_into`. The bare-`T` return (`get<T>(key): T | undefined`) is the case
-  worth keeping generic; a rule keyed on "T is the whole return" vs "T is nested" is possible.
 - **Overloads distinguished only by a string literal** collapse: `KVNamespace.get(key, type:
   "text" | "json" | "arrayBuffer" | "stream")` are four overloads with identical Rust parameters
   (`type: &str`), so only the first survives with `JsNullable<JsString>`; the port
@@ -243,6 +294,18 @@ test-suite port on the `ext/` layer and macros, with the http feature):
   `raw({columnNames?: false})`) synthesize `D1PreparedStatementOptions` and `…Options2`.
 - ts-gen: a required nullable dictionary field (`tag: string | null`) has no way to be set to
   `null` through the factory.
+- ts-gen: enums and discriminated unions do not consult `renamed_locals`, so a string enum named
+  `Global` or `Option` would still collide (class-like types only, same as the `js_sys` rename).
+- ts-gen: `wasm_bindgen::prelude` names (`JsValue`, `JsCast`, `Closure`, `JsError`) are not in
+  either reserved list; a declaration named so would shadow them like a `js_sys` name.
+- ts-gen: a declared `class String` resolves to the lib builtin, so a return of that class emits
+  the bare prelude `String` (kept out of the `prelude-collision` fixture; no such declaration in
+  the inventory).
+- ts-gen: an erased type parameter with a constraint but no default could erase to the constraint
+  (TypeScript's own inference) instead of `any`, when the constraint does not mention the
+  parameter; would give `SqlStorageCursor.raw()` → `Iterator<Array>`.
+- ts-gen: `(string | null)[]` still lowers to `Vec<Option<String>>`, which has no wasm-bindgen ABI
+  either (same family as the nested-array fix; not in the inventory).
 
 ## Findings on the raw input
 
