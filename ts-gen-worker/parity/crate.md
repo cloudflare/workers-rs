@@ -1,8 +1,7 @@
 # crate: `#[event]` macros and the `impl` layer
 
-Owner: workers-rs-4. Branch `gbedford/tgw-crate` (on `gbedford/ts-gen-worker` with the error
-model and the test-suite port); ts-gen branch `agent/crate` (two commits, on
-`gbedford/workers-parity`).
+Owner: workers-rs-4. Branch `gbedford/tgw-crate` (on `gbedford/ts-gen-worker` `77390bf`);
+ts-gen branch `agent/crate` (one unlanded commit, `462937b` on `349056c`).
 
 Everything below is an `impl` on a generated type, a Rust-native helper type, or a
 proc-macro; no wrapper structs. The layer is written against the `--fallible` bindings and
@@ -74,8 +73,8 @@ Session 2 (port adoption, the migration dry run), one commit per item, 176 green
   `chomp test:ts-gen-worker-http` (+ CI step) runs the whole suite with every request and
   response round-tripped through the `http` types: 176 green in both modes.
 
-Not adopted: `Router` for `route()` (decision below); `connect` export → `#[event(connect)]`
-(not in the layer).
+Not adopted: `Router` for `route()` (decision below). `connect` export → `#[event(connect)]`
+done in Session 3.
 
 ## Decisions
 
@@ -195,33 +194,114 @@ Not adopted: `Router` for `route()` (decision below); `connect` export → `#[ev
 - ts-gen: the generic `blockConcurrencyWhile<T>(callback: () => Promise<T>): Promise<T>`
   generates code that does not compile (`Function<fn() -> Promise<T>>` with `T: JsGeneric`
   fails `ErasableGeneric`/`FromWasmAbi` bounds); the port declares it with `Promise<any>`.
-- ts-gen: `number` lowers to `f64` everywhere, so `status(201.0)`, `status() -> f64`,
-  `raw_size() -> f64`. `worker` used `u16`/`u64`. Needs an integer heuristic or annotation.
-- ts-gen: `Promise<string>` returns `JsString`; every `text().await?` needs `String::from`.
 - Env generation: an app `env.d.ts` referencing crate types needs
   `--external "X=::ts_gen_worker::X"` per type (eleven in the chompfile now). A fallback
   mapping for unresolved globals to a crate path would remove that.
-- Crate-layer idioms still local to the port (`test/src/util.rs`, 147 lines): `sleep`
-  (`Delay`), `nullable` (`JsOption` `null`, ts-gen `JsNullable` lowering), `text`/`response_text`
-  (`Promise<string>` → `JsString`), `storage_get`/`storage_put` (serde over
-  `DurableObjectStorage`), `block_concurrency_while` over a Rust future,
-  `websocket_events`/`on_websocket_events`/`WebsocketEvent`/`message_text`
-  (`WebSocket::events()` stream). Elsewhere: `console_log!` and friends, `#[event(connect)]`,
-  `Response::from_body`/`into_parts`, `test/src/sql.rs`.
+- Crate-layer idioms still local to the port: see Session 3 "Gaps found" for the current
+  `util.rs` list (the `@rust` integer hints, native awaited strings, `console_log!`,
+  `Delay`, `#[event(connect)]`, `into_parts` and the storage serde pair since landed).
 - `Request.redirect` is not declared in the port's `worker.d.ts` (workers-types has
   `readonly redirect: string`), so the `http` conversion cannot carry it.
+
+
+## Session 3: migration friction pass
+
+Every row of the table below was re-verified by compiling a scratch route in
+`test/src/ext.rs` holding each right-hand side (removed again; the feature routes stay).
+`parity/test-port.md`'s Session 2 rows are merged in, so this is the one table. Suite:
+192 passed, 4 skipped in both `test:ts-gen-worker` and `test:ts-gen-worker-http` after
+the rebase onto `77390bf` (185 before the session).
+
+### Done
+
+- ts-gen `462937b` (agent/crate): every dictionary builder implements `From<Dict>`, so a
+  helper can `build()`, read/modify through the generated getters and setters, and
+  `.into()` back to resume the chain. Fixtures re-blessed, CONVENTIONS section. Closes
+  workers-rs-5's "continue a builder from a dictionary" gap.
+- `#[event(connect)]`: `async fn(Socket, Env, ExecutionContext) -> Result<(), E>`;
+  rejects on error, closing only that socket. `socket.rs` adopts it (`socket.spec.ts`
+  covers TCP and UDP inbound).
+- `Response::into_parts() -> (ResponseInitBuilder, Option<ReadableStream>)` and
+  `ResponseInitBuilder::body(Option<ReadableStream>)`; the port's `catchall` adopts them.
+- `ResponseInitBuilder::header(k, v)?`, `cors(&Cors)?`, `from_websocket(ws)`;
+  `Request::new_with_method(url, Method)`; `DurableObjectStorage::get_into::<T>()` /
+  `put_serialized(k, &v)` (feature `serde`). The port adopts each where the semantics are
+  identical (`text` helper, `respond*`, the three websocket upgrades, `fetch.rs`, every
+  DO class); `util.rs` loses `storage_get`/`storage_put` (123 → 93 lines).
+- `with_cf` / `with_encode_body` / `with_websocket`: the generated builder already has
+  `cf(&JsValue)`, `encode_body("manual")`, `web_socket(&ws)`; documented, exercised in
+  `ext.spec.ts` (`builder-header`, `into-parts`).
+- `MIGRATING.md`: the user-facing guide distilled from the table.
+
+### Decisions
+
+- **`connect` has no protocol option.** `worker`'s `connect(udp)` produced a second
+  `connect_udp` export that worker-build's shim merged into one `connect`; without the
+  shim there is one export, so one handler serves both protocols and dispatches on the
+  socket's protocol. `#[event(connect(udp))]` is a compile error saying so.
+- **`into_parts` re-constructs.** A JS `Response` is immutable, so the builder comes back
+  loaded with `status`, `headers`, `webSocket` and `cf` (when set) and the body is the
+  stream; `statusText` is not carried because the platform derives the default from the
+  final status, and carrying the upstream phrase across a status change would be wrong.
+  `body(None)` is `empty()`. The `clone()`-based alternative was rejected: it cannot
+  change the status either.
+- **`header`/`cors` live on the builder with field-setter names** (`status`, `headers`,
+  `cf` are the builder's vocabulary), not `with_*`; `header` uses `set` as `worker` did.
+  They read the headers set so far by normalizing `init.headers()` through `new
+  Headers(init)`, so a preceding `headers_with_record` works too.
+- **`from_websocket(ws)` takes the socket by value**, as `worker::Response::from_websocket`
+  did, for a verbatim move to `Response::builder().from_websocket(ws)`.
+- **`Request::new_with_method`** takes the overload-style name because the generated
+  `Request::new(&Request)` owns the JS constructor name; it takes `Method`, not `&str`,
+  to keep `worker`'s typed form. The general fix (a builder accepted where the dictionary
+  is expected, so `new_with_str_and_init(url, &RequestInit::builder().method("POST"))`
+  needs no `build()`) is a ts-gen question recorded below.
+- **Storage serde names.** `get_into::<T>` follows `json_into`/`body_into` (deserialize
+  into `T`); the write side is `put_serialized(k, &v)` rather than `put_into` (reads as the
+  wrong direction) or `put_from`. Serialization is plain `serde_wasm_bindgen::to_value`,
+  not `json_compatible()`, since storage is structured clone and `worker` stored maps as
+  `Map`s.
+- **Friction rows chosen.** By ratio of column lengths: `Request::new(url, Method)` (2.7×),
+  `.with_header` (2.2×), `Response::from_websocket` (2×), `ResponseBuilder::with_cors`
+  (2×), and `into_parts`/`body` (not ported). `Fetch::Url(..).send()`, `send_with_signal`,
+  `console_log!`, `text()`, `status_code()` had already become "same" through
+  workers-rs-5 and the native awaited values; the storage serde pair was the one
+  remaining `worker` idiom still local to the port's `util.rs` that is an `impl`.
+
+### Open problems
+
+- `Response.cf` deserialization is `serde_wasm_bindgen::from_value(res.cf())?`; a
+  `cf_into::<T>()` would mirror `worker::Response::cf::<T>()` but `cf` is `any` upstream, so
+  it was left as the one-liner. Say if it should be added.
+
+### Gaps found
+
+- ts-gen: a `&FooBuilder` is not accepted where `&Foo` is expected, so every inline
+  dictionary needs `.build()` (`RequestInit::builder().method("POST").build()`). `impl
+  AsRef<Foo> for FooBuilder` or `Deref` would remove it; the cheapest is `Deref<Target =
+  Foo>` with the setter/getter name clash noted (the builder's `headers(self, v)` shadows
+  the dictionary's getter).
+- `Headers::keys()`/`values()` return `Iterator<JsString>` whose items are
+  `Result<JsString>`; a `String` item lowering would make `for k in headers.keys()`
+  direct.
+- Remaining `util.rs` (93 lines): `sleep` (→ `Delay`, trivial), `websocket_events` /
+  `on_websocket_events` / `WebsocketEvent` / `message_text` (`WebSocket::events()`),
+  `block_concurrency_while` over a Rust future (blocked on the generic
+  `blockConcurrencyWhile<T>` ts-gen gap).
 
 ## Migration table
 
 The non-binding `worker` surface used in `test/src/*.rs` (plus the handler kinds and context
-calls it does not use), and its `ts-gen-worker` form. Binding APIs (KV, R2, D1, Cache, queue
-producers, DO storage beyond `get`/`put`, SQL storage, sockets, rate limiting, analytics,
-secrets store, containers, assets, `send_email`) are not listed: `parity/test-port.md` has
-them module by module. Under `--fallible` every sync binding that can throw returns `Result`,
-so `worker`'s `?` stays where it was and appears on a few calls that had none.
+calls it does not use), and its `ts-gen-worker` form, as the code is after Session 3. Rows from
+`parity/test-port.md` Session 2 are merged in. Binding APIs beyond KV and DO storage (R2, D1,
+Cache, queue producers, SQL storage, sockets, rate limiting, analytics, secrets store,
+containers, assets, `send_email`) are not listed: `parity/test-port.md` has them module by
+module. Under `--fallible` every sync binding that can throw returns `Result`, so `worker`'s
+`?` stays where it was and appears on a few calls that had none.
 
 | `worker` | `ts-gen-worker` |
 | --- | --- |
+| **Handlers** | |
 | `#[event(fetch)] async fn f(req: Request, env: Env, ctx: Context)` | same, with `ctx: ExecutionContext` and `env` the app's type generated from its `env.d.ts` |
 | `#[event(fetch, respond_with_errors)]` | same |
 | `#[event(fetch)] async fn f(req: HttpRequest, ..) -> Result<http::Response<B>>` (feature `http`) | same; `HttpRequest = http::Request<ByteStream>`, `HttpResponse = http::Response<ByteStream>` |
@@ -231,13 +311,26 @@ so `worker`'s `?` stays where it was and appears on a few calls that had none.
 | `#[event(queue)] async fn q(batch: MessageBatch<T>, ..) -> Result<()>` | `batch: MessageBatch`; `message.body_into::<T>()?` |
 | `#[event(scheduled)] async fn s(event: ScheduledEvent, env, ctx: ScheduleContext)` | `(controller: ScheduledController, env, ctx: ExecutionContext)` |
 | `#[event(email)]` | same |
-| `#[event(connect)]` | not ported |
+| `#[event(connect)] async fn c(socket: Socket, env, ctx)` | same |
+| `#[event(connect(udp))] async fn c(socket: UdpSocket, ..)` | one `connect` handler for both protocols, dispatching on the socket's protocol |
+| `#[send]`, `send::SendFuture`, `send::SendWrapper`, `IntoSendFuture` | same |
+| `ctx.wait_until(fut)` | `ctx.spawn(fut)?` |
+| `ctx.pass_through_on_exception()` | `ctx.pass_through_on_exception()?` |
+| **Durable Objects** | |
 | `#[durable_object] struct S; impl DurableObject for S { fn new(state: State, env: Env) }` | same, plus `type Env = Env;`, `state: DurableObjectState` |
 | `async fn alarm(&self) -> Result<Response>` | `-> Result<()>` |
 | `async fn websocket_message(&self, ws, msg: WebSocketIncomingMessage)` | `msg: DataKind` (`String(s)` / `ArrayBuffer(buf)`) |
 | `async fn websocket_close(&self, ws, code: usize, reason: String, was_clean: bool)` / `websocket_error(&self, ws, err: Error)` | same |
 | `#[durable_object(fetch | alarm | websocket)]` | same (`connect` not ported) |
 | `impl DurableObject` without `#[durable_object]` | compile error naming `has_durable_object_attribute`, as `worker` |
+| `env.durable_object("X")?.id_from_name(n)?.get_stub()?` | `env.x().get_by_name(n)?` (or `env.x().get(&env.x().id_from_name(n)?)?`) |
+| `stub.fetch_with_str(url).await?` | same |
+| `stub.fetch_with_request(req).await?` | `stub.fetch(&req).await?` |
+| `state.storage().get::<T>(k).await?` → `Option<T>` | `storage.get_into::<T>(k).await?` (`storage.get::<JsValue>(k)` for the raw handle) |
+| `state.storage().put(k, v).await?` | `storage.put_serialized(k, &v).await?` (`storage.put(k, &js_value)` for a handle) |
+| `state.storage().delete(k)` / `list()` / `get_multiple` | `delete(k)` / `list()` → `Map` / `get_with_keys(&[..])` → `Map` |
+| `state.block_concurrency_while(fut)` | not ported (`util::block_concurrency_while`; generic `blockConcurrencyWhile<T>` is a ts-gen gap) |
+| **Response** | |
 | `Response::ok(body)` | `Response::builder().ok(body)` |
 | `Response::error(msg, status)` | `Response::builder().error(msg, status)` |
 | `Response::from_json(&v)` | `Response::builder().from_json(&v)` |
@@ -245,32 +338,40 @@ so `worker`'s `?` stays where it was and appears on a few calls that had none.
 | `Response::from_html(s)` | `Response::builder().from_html(s)` |
 | `Response::from_stream(s)` | `Response::builder().from_stream(s)` |
 | `Response::empty()` | `Response::builder().empty()` |
+| `Response::from_websocket(ws)` | `Response::builder().from_websocket(ws)` |
+| `Response::redirect(url)` / `redirect_with_status(url, 302)` | `Response::redirect(url.as_str())?` / `Response::redirect_with_status(url.as_str(), 302)?` |
 | `Response::builder()` / `ResponseBuilder::new()` | `Response::builder()` (the generated `ResponseInitBuilder`) |
-| `.with_status(201)` | `.status(201.0)` on the builder, before the terminal call |
-| `.with_headers(h)` | `.headers(&h)` on the builder |
-| `.with_header(k, v)?` | `.headers(&[(k, v)].into_iter().collect())` on the builder |
-| `builder.body(body)` after `res.into_parts()` | not ported |
-| `.with_websocket(ws)` / `.with_cf(..)` / `.with_encode_body(..)` / `.with_cors(..)` | not yet: `webSocket`/`cf`/`encodeBody` arrive with the real `ResponseInit`; no `Cors` |
-| `Response::redirect(url)` / `redirect_with_status(url, 302)` | `Response::redirect(url.as_str())?` / `Response::redirect_with_status(url.as_str(), 302.0)?` |
-| `Response::from_websocket(ws)` / `res.websocket()` | `Response::builder().status(101.0).web_socket(&ws).empty()` / `res.web_socket()` |
-| `res.status_code()` | `res.status() as u16` |
-| `res.text().await?` | `String::from(res.text().await?)` |
+| `.with_status(201)` | `.status(201)` on the builder, before the terminal call |
+| `.with_headers(h)` | `.headers(&h)` |
+| `.with_header(k, v)?` | `.header(k, v)?` |
+| `.with_cors(&cors)?` on the builder | `.cors(&cors)?` |
+| `.with_websocket(ws)` | `.web_socket(&ws)` |
+| `.with_encode_body(EncodeBody::Manual)` | `.encode_body("manual")` |
+| `.with_cf(v)?` | `.cf(&serde_wasm_bindgen::to_value(&v)?)` |
+| `res.into_parts()` → `(builder, body)`; `builder.with_status(404).body(body)` | `res.into_parts()`; `builder.status(404).body(body)?` |
+| `res.status_code()` | `res.status()` |
+| `res.websocket()` | `res.web_socket()` |
+| `res.cf::<T>()?` | `serde_wasm_bindgen::from_value(res.cf())?` |
+| `res.encode_body()` | not readable from a JS `Response` |
+| `res.text().await?` | same |
 | `res.json::<T>().await?` | `res.json_into::<T>().await?` |
 | `res.bytes().await?` | `res.bytes().await?.to_vec()` |
 | `res.stream()?` | `res.bytes_stream()` (`Option`) |
 | `res.cloned()?` | `res.clone()?` |
-| `res.headers()` / `res.headers_mut()` | `res.headers()` (JS `Headers` is mutable) |
-| `Request::new(url, Method::Post)` | `Request::new_with_str_and_init(url, &RequestInit::builder().method("POST").build())` |
+| `res.headers()` / `res.headers_mut()` | `res.headers()` (JS `Headers` is mutable; immutable-guard errors on a fetched response) |
+| `res.with_cors(&cors)?` | same |
+| **Request** | |
+| `Request::new(url, Method::Post)` | `Request::new_with_method(url, Method::Post)` |
 | `Request::new_with_init(url, &init)` | `Request::new_with_str_and_init(url, &init)` |
-| `RequestInit::new().with_method(..)` / `.with_body(Some(v))` | `RequestInit::builder().method(..)` / `.body(..)`, then `.build()` |
-| `Fetch::Url(url).send().await?` | `fetch_with_str(url.as_str()).await?` |
-| `Fetch::Request(req).send().await?` | `fetch(&req).await?` |
-| `fetch.send_with_signal(&signal)` / `AbortController::default()` | `fetch_with_str_and_init(url, &RequestInit::builder().signal(&c.signal()).build())` / `AbortController::new()?` |
+| `RequestInit::new().with_method(..)` / `.with_body(Some(v))` / `.with_headers(h)` | `RequestInit::builder().method(..)` / `.body_with_str(..)` / `.headers(&h)`, then `.build()` |
+| `Fetch::Url(url).send().await?` | `Fetch::Url(url.into()).send().await?` (or `fetch_with_str(url).await?`) |
+| `Fetch::Request(req).send().await?` | same (or `fetch(&req).await?`) |
+| `fetch.send_with_signal(&signal)` / `AbortController::default()` | same |
 | `req.method()` → `Method` | `req.method()` → `String`; `req.method().parse::<Method>()?` |
 | `req.path()` | same |
 | `req.url()?` → `url::Url` | `req.url()` → `String`; `req.url_parsed()?` (feature `url`) |
 | `req.query::<Q>()?` | same |
-| `req.text().await?` | `String::from(req.text().await?)` |
+| `req.text().await?` | same |
 | `req.json::<T>().await?` | `req.json_into::<T>().await?` |
 | `req.bytes().await?` | `req.bytes().await?.to_vec()` |
 | `req.stream()?` | `req.bytes_stream()` |
@@ -278,26 +379,43 @@ so `worker`'s `?` stays where it was and appears on a few calls that had none.
 | `req.headers()` / `req.headers_mut()?` | `req.headers()` |
 | `req.cf()` | `req.cf()` (`Option<IncomingRequestCfProperties>`) |
 | `req.clone()?` | same |
+| **Headers** | |
 | `Headers::new()` | `Headers::new()?` or `Headers::default()` |
 | `headers.get(k)?` / `has(k)?` / `set(k, v)?` / `append(k, v)?` / `delete(k)?` | same (`JsException::TypeError` on a bad name) |
 | `headers.get_all(k)?` | same (`Set-Cookie` only under workerd) |
 | `headers.entries()` / `for (k, v) in &headers` | same |
-| `headers.keys()` / `values()` | generated `js_sys::Iterator<JsString>` |
-| `ctx.wait_until(fut)` | `ctx.spawn(fut)?` |
-| `ctx.pass_through_on_exception()` | `ctx.pass_through_on_exception()?` |
+| `headers.keys()` / `values()` | generated `js_sys::Iterator<JsString>` (items are `Result<JsString>`) |
+| `[(k, v)].into_iter().collect::<Headers>()` | same |
+| `HeaderMap` ↔ `Headers` (feature `http`) | `From` both ways |
+| **Router** | |
 | `Router::new()` / `Router::with_data(d)` | `Router::<Env>::new()` / `Router::<Env, D>::with_data(d)` |
 | `.get/post/.._async(pattern, handler)` / `.run(req, env)` | same |
 | `ctx.param("id")` / `ctx.data` / `ctx.env` | same |
 | `ctx.kv("X")?` / `ctx.secret("X")?` / `ctx.durable_object("X")?` | `ctx.env.x()` (generated getters) |
-| `env.kv(..)` / `bucket` / `d1` / `queue` / `service` / `secret` / `var` / `durable_object` | `env.<binding>()` generated from the app's `env.d.ts` |
-| `env.durable_object("X")?.id_from_name(n)?.get_stub()?` | `env.x().get(&env.x().id_from_name(n)?)?` or `env.x().get_by_name(n)?` |
-| `stub.fetch_with_str(url).await?` | same |
-| `stub.fetch_with_request(req).await?` | `stub.fetch(&req).await?` |
-| `state.storage().get::<T>(k).await?` | `storage.get(k).await?` → `JsValue` (`undefined` when absent; serde form is a gap) |
-| `state.storage().put(k, v).await?` | `storage.put(k, &js_value).await?` |
+| **Env** | |
+| `env.kv(..)` / `bucket` / `d1` / `queue` / `service` / `durable_object` | `env.<binding>()` generated from the app's `env.d.ts` |
+| `env.secret("X")?.to_string()` / `env.var("X")?.to_string()` | `env.secret("X")?` / `env.var("X")?` (`String`; `EnvExt`) |
+| `env.object_var::<T>("X")?` | same (`EnvExt`) |
+| `env.kv("X")?` / `env.get_binding::<T>("X")?` | `env.get::<KVNamespace>("X")?` / `env.get::<T>("X")?` (typed `env.x()` preferred) |
+| **KV** | |
+| `kv.get("k").text().await?` | `kv.get_builder("k").text().await?` (or `kv.get("k").await?.into_option()`) |
+| `kv.get("k").json::<T>().await?` / `.bytes()` / `.stream()` / `.cache_ttl(n)` | `kv.get_builder("k").json::<T>()` / same |
+| `kv.get("k").text_with_metadata::<M>().await?` (+ `json`/`bytes`/`stream` forms) | `kv.get_builder("k").text_with_metadata::<M>()` |
+| `kv.get_bulk(&keys).text().await?` / `.json::<T>()` / `.text_with_metadata::<M>()` / `.json_with_metadata::<T, M>()` | same |
+| `kv.put("k", "v")?.execute().await?` | `kv.put("k", "v").await?` |
+| `kv.put("k", &t)?.expiration_ttl(60).metadata(m)?.execute().await?` | `kv.put_builder("k", &t)?.expiration_ttl(60).metadata(m)?.execute().await?` |
+| `kv.put_bytes("k", &b)?.execute()` / `kv.put_stream("k", s)?.execute()` | `kv.put_bytes("k", &b).execute()` / `kv.put_stream("k", s).execute()` (infallible builders) |
+| `kv.list().prefix(p).limit(n).cursor(c).execute().await?` | `kv.list_builder().prefix(p).limit(n).cursor(c).execute().await?` |
+| `list.keys[i].name` / `.expiration: Option<u64>` / `list.list_complete` / `list.cursor` | `list.keys().get(i).name()` (`Array`) / `.expiration() -> Option<f64>` / `list.list_complete()` / `list.cursor()` |
+| `kv.delete("k").await?` | same |
+| `KvError` | `Error` |
+| **Errors and misc** | |
 | `Error::from(..)` / `Error::RustError(s)` / `Error::D1(e)` | `Error::from(s)` / `Error::Rust(s)` / `Error::Js(JsException::..)` |
 | `err.to_string()` → `Name: message` for JS errors | same (`42` / `null` for a thrown primitive) |
-| `console_log!(..)` | `console::log(&[format!(..).into()])` (no macro yet) |
-| `Date::now().as_millis()` | `js_sys::Date::now() as u64` |
-| `Date::new(DateInit::Millis(n))` / `DateInit::String(s)` | `js_sys::Date::new(&(n as f64).into())` / `js_sys::Date::new(&s.into())` |
-| `Delay::from(duration).await` | not ported (`setTimeout` is declared; the port's `util::sleep`) |
+| `Result<T, E>` / `ok::Ok(v)` | same |
+| `console_log!("{}", x)` (and `debug`/`warn`/`error`) | same |
+| `Delay::from(duration).await` | same |
+| `Date::now()` / `Date::now().as_millis()` | `js_sys::Date::current()` (`DateExt`) / `js_sys::Date::now() as u64` |
+| `Date::new(DateInit::Millis(n))` / `DateInit::Millis(n).into()` | `js_sys::Date::from_init(DateInit::Millis(n))` / same `.into()` |
+| `date.as_millis()` | same (`DateExt`) |
+| `Cors::new().with_origins(..)` | same |

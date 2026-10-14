@@ -31,7 +31,7 @@ async fn main(req: Request, env: env::Env, ctx: ExecutionContext) -> Result<Resp
         .get("/", |_req, _ctx| Response::builder().ok("Hello from Rust!"))
         .post_async("/user/:id", |req, ctx| async move {
             let user: User = req.json_into().await?;
-            Response::builder().status(201.0).from_json(&user)
+            Response::builder().status(201).from_json(&user)
         })
         .run(req, env)
         .await
@@ -80,7 +80,7 @@ mapping is: `Response::ok(..)` → `Response::builder().ok(..)` (and `error`,
 `empty`, `from_json`, `from_html`, `from_bytes`, `from_stream` likewise, after any
 `status(..)` / `headers(..)` on the builder), `req.json()` → `req.json_into()`,
 `ctx.wait_until(fut)` → `ctx.spawn(fut)`, `req.method()` → `req.method().parse::<Method>()`.
-See `PARITY.md` for the full table.
+See `MIGRATING.md` for the guide and `PARITY.md` for the full table.
 
 ## `http` feature
 
