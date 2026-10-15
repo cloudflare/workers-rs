@@ -46,10 +46,14 @@ Build with `cargo build --target wasm32-unknown-unknown` and
 default export is the worker. The flag lets the glue notice a trap (a panic
 under `panic=abort`, `unreachable`, out of memory) and reinstantiate the
 module before the next call, so one failed request does not poison the
-isolate. Durable Object instances constructed before the trap are stale
-afterwards and the glue rejects calls on them; the test harness
-(`test/tests/manifest.ts`) re-creates them with a wrapper module as a
-stand-in until the glue can do so itself.
+isolate. `#[durable_object]` classes carry
+`#[wasm_bindgen(reinit = "reconstruct")]`, so an instance the runtime
+constructed before the trap is rebuilt from its `(state, env)` on its next
+call instead of being rejected as stale. The attribute is wasm-bindgen PR
+[#5375](https://github.com/wasm-bindgen/wasm-bindgen/pull/5375), unreleased:
+the workspace builds from the `wasm-bindgen/` submodule at that PR through
+`[patch.crates-io]`, and `ts-gen-worker` cannot publish before wasm-bindgen
+0.2.130 ships.
 
 ## Errors
 

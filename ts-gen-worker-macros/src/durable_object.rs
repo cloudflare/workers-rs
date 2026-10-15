@@ -91,7 +91,10 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> Result<TokenStream> {
         const _: () = {
             use ::ts_gen_worker::wasm_bindgen::prelude::*;
 
-            #[wasm_bindgen(wasm_bindgen = ::ts_gen_worker::wasm_bindgen)]
+            // After a trap the glue reinstantiates the module; the runtime keeps
+            // calling the Durable Object instances it already constructed, so
+            // they are rebuilt from their `(state, env)` on next use.
+            #[wasm_bindgen(wasm_bindgen = ::ts_gen_worker::wasm_bindgen, reinit = "reconstruct")]
             #[::ts_gen_worker::__macro::consume]
             #target
 
