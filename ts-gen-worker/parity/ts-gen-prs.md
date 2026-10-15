@@ -473,8 +473,9 @@ submodule to `1ea319f65` = reinit branch `870389dd3` + wasm-bindgen#5376 `5c070c
 cherry-pick; needs pushing to the fork before this branch is shared). `chomp test:ts-gen-worker`
 and `-http`: 194 passed / 4 skipped each. Migration deltas are in `parity/workers-types.md`.
 
-### PR bodies as posted
+### Posted
 
-Titles are the branch's theme; bodies list the commits with the per-commit reasoning. See the
-"Wave branches (3–10)" bodies above for the prose; the posted versions add the base note and
-the drops listed here.
+`gh stack` #70 on `gbedford/wasm-embed`: #61 error-model → #62 nullable-async → #63 generics →
+#64 declaration-shapes → #65 inheritance-namespaces-unions → #66 annotations → #67
+inference-naming → #68 inline-wrappers → #69 builder-from-dict. Titles/bodies set via the REST
+PATCH (the per-wave prose above plus the base note and the drops), all undrafted.
