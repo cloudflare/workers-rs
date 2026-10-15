@@ -1,3 +1,5 @@
+use js_sys::JsNullable;
+
 use crate::{
     fetch, fetch_with_request_and_init, fetch_with_str, fetch_with_str_and_init, AbortController,
     AbortSignal, Request, RequestInit, Response, Result,
@@ -20,7 +22,9 @@ impl Fetch {
     }
 
     pub async fn send_with_signal(&self, signal: &AbortSignal) -> Result<Response> {
-        let init = RequestInit::builder().signal(signal).build();
+        let init = RequestInit::builder()
+            .signal(&JsNullable::wrap(signal.clone()))
+            .build();
         match self {
             Fetch::Url(url) => fetch_with_str_and_init(url, &init).await,
             Fetch::Request(req) => fetch_with_request_and_init(req, &init).await,

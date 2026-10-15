@@ -3,7 +3,7 @@ use std::pin::Pin;
 use std::task::{Context, Poll};
 
 use futures_util::{Stream, TryStream, TryStreamExt};
-use js_sys::Uint8Array;
+use js_sys::{JsNullable, Uint8Array};
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 
@@ -184,7 +184,7 @@ impl ResponseInitBuilder {
         S::Error: Into<Error>,
     {
         Ok(Response::new_with_readable_stream_and_init(
-            &readable_stream_from(stream),
+            &JsNullable::wrap(readable_stream_from(stream)),
             &self.build(),
         )?)
     }

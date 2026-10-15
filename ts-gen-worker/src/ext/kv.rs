@@ -5,7 +5,7 @@
 
 use std::collections::HashMap;
 
-use js_sys::{Array, ArrayBuffer, JsString, Map, Promise, Uint8Array};
+use js_sys::{Array, ArrayBuffer, JsNullable, JsString, Map, Promise, Uint8Array};
 use wasm_bindgen::{JsCast, JsValue};
 
 use crate::{
@@ -407,12 +407,14 @@ impl KvListBuilder {
 
     /// Continues a previous listing from its `cursor`.
     pub fn cursor(self, cursor: impl AsRef<str>) -> Self {
-        self.options.set_cursor(cursor.as_ref());
+        self.options
+            .set_cursor(&JsNullable::wrap(cursor.as_ref().into()));
         self
     }
 
     pub fn prefix(self, prefix: impl AsRef<str>) -> Self {
-        self.options.set_prefix(prefix.as_ref());
+        self.options
+            .set_prefix(&JsNullable::wrap(prefix.as_ref().into()));
         self
     }
 

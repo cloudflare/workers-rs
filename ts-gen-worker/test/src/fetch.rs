@@ -2,6 +2,7 @@ use super::{ApiData, SomeSharedData};
 use crate::util::sleep;
 use crate::Env;
 use futures_util::future::Either;
+use js_sys::JsNullable;
 use serde::{Deserialize, Serialize};
 use ts_gen_worker::*;
 use wasm_bindgen::prelude::*;
@@ -90,7 +91,9 @@ pub async fn handle_cancelled_fetch(
 
     spawn_local({
         async move {
-            let init = RequestInit::builder().signal(&signal).build();
+            let init = RequestInit::builder()
+                .signal(&JsNullable::wrap(signal.clone()))
+                .build();
             let res = fetch_with_str_and_init("https://cloudflare.com", &init).await;
             tx.send(res).unwrap();
         }
@@ -113,7 +116,9 @@ pub async fn handle_fetch_timeout(
     let signal = controller.signal();
 
     let fetch_fut = async {
-        let init = RequestInit::builder().signal(&signal).build();
+        let init = RequestInit::builder()
+            .signal(&JsNullable::wrap(signal.clone()))
+            .build();
         let res = fetch_with_str_and_init("https://miniflare.mocks/delay", &init).await?;
         let text = res.text().await?;
         Ok::<String, Error>(text)
@@ -172,7 +177,7 @@ pub async fn handle_cloned_response_attributes(
     })
     .map_err(|e| e.to_string())?;
     let resp = Response::new_with_str_and_init(
-        "",
+        &JsNullable::wrap(("").into()),
         &ResponseInit::builder()
             .status(200)
             .encode_body("manual")

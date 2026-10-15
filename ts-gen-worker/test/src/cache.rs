@@ -1,7 +1,7 @@
 use super::SomeSharedData;
 use crate::util::sleep;
 use crate::Env;
-use js_sys::Uint8Array;
+use js_sys::{JsNullable, Uint8Array};
 use ts_gen_worker::*;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
@@ -21,7 +21,11 @@ fn timestamp_response() -> Result<Response> {
     headers.set("cache-control", "s-maxage=10")?;
     headers.set("content-type", "application/json")?;
     Ok(Response::new_with_str_and_init(
-        &serde_json::json!({ "timestamp": js_sys::Date::now() as u64 }).to_string(),
+        &JsNullable::wrap(
+            serde_json::json!({ "timestamp": js_sys::Date::now() as u64 })
+                .to_string()
+                .into(),
+        ),
         &ResponseInit::builder().headers(&headers).build(),
     )?)
 }

@@ -160,7 +160,7 @@ extern "C" {
     #[wasm_bindgen(method, getter, js_name = "contentId")]
     pub fn content_id(this: &EmailAttachment) -> Option<String>;
     #[wasm_bindgen(method, setter, js_name = "contentId")]
-    pub fn set_content_id(this: &EmailAttachment, val: &str);
+    pub fn set_content_id(this: &EmailAttachment, val: Option<&str>);
     #[wasm_bindgen(method, getter)]
     pub fn filename(this: &EmailAttachment) -> String;
     #[wasm_bindgen(method, setter)]
@@ -183,7 +183,7 @@ impl EmailAttachment {
     #[doc = ""]
     #[doc = " * `disposition: \"inline\"`"]
     pub fn new_inline(
-        content_id: &str,
+        content_id: Option<&str>,
         filename: &str,
         r#type: &str,
         content: &str,
@@ -200,7 +200,7 @@ impl EmailAttachment {
     #[doc = ""]
     #[doc = " * `disposition: \"inline\"`"]
     pub fn new_inline_with_array_buffer(
-        content_id: &str,
+        content_id: Option<&str>,
         filename: &str,
         r#type: &str,
         content: &ArrayBuffer,
@@ -217,7 +217,7 @@ impl EmailAttachment {
     #[doc = ""]
     #[doc = " * `disposition: \"inline\"`"]
     pub fn new_inline_with_typed_array<T: ::js_sys::TypedArray>(
-        content_id: &str,
+        content_id: Option<&str>,
         filename: &str,
         r#type: &str,
         content: &T,
@@ -306,7 +306,7 @@ pub struct EmailAttachmentBuilder {
     inner: EmailAttachment,
 }
 impl EmailAttachmentBuilder {
-    pub fn content_id(self, val: &str) -> Self {
+    pub fn content_id(self, val: Option<&str>) -> Self {
         self.inner.set_content_id(val);
         self
     }

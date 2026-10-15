@@ -2,6 +2,7 @@ use super::ApiData;
 use crate::util::sleep;
 use crate::Env;
 use crate::SomeSharedData;
+use js_sys::JsNullable;
 use js_sys::Uint8Array;
 use serde::{Deserialize, Serialize};
 use ts_gen_worker::*;
@@ -99,7 +100,7 @@ pub async fn handle_headers(req: Request, _env: Env, _data: SomeSharedData) -> R
     headers.append("Hello", "World!")?;
 
     Ok(Response::new_with_str_and_init(
-        "returned your headers to you.",
+        &JsNullable::wrap(("returned your headers to you.").into()),
         &ResponseInit::builder().headers(&headers).build(),
     )?)
 }
@@ -180,7 +181,7 @@ pub async fn handle_status(req: Request, _env: Env, _data: SomeSharedData) -> Re
     if let Some(code) = code {
         return match code.parse::<u16>() {
             Ok(status) => Ok(Response::new_with_str_and_init(
-                "You set the status code!",
+                &JsNullable::wrap(("You set the status code!").into()),
                 &ResponseInit::builder().status(status).build(),
             )?),
             Err(_e) => Response::builder().error("Failed to parse your status code.", 400),
@@ -212,7 +213,7 @@ pub async fn handle_now(_req: Request, _env: Env, _data: SomeSharedData) -> Resu
 }
 
 pub async fn handle_cloned(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
-    let resp = Response::new_with_str("Hello")?;
+    let resp = Response::new_with_str(&JsNullable::wrap(("Hello").into()))?;
     let resp1 = resp.clone()?;
 
     let left = resp.text().await?;

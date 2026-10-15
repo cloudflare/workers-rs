@@ -1,4 +1,4 @@
-use js_sys::{Array, JsString, Object, Promise, Reflect, Uint8Array};
+use js_sys::{Array, JsNullable, JsString, Object, Promise, Reflect, Uint8Array};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::sync::{
@@ -132,14 +132,16 @@ async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response
                 req.headers().get("x-incoming")?.unwrap_or_default(),
             );
             Ok(Response::new_with_str_and_init(
-                &body,
+                &JsNullable::wrap((body).into()),
                 &ResponseInit::builder().headers(&headers).build(),
             )?)
         }
         ("POST", ["echo"]) => {
             let body = req.text().await?;
             let name = req.headers().get("x-name")?.unwrap_or_default();
-            Ok(Response::new_with_str(&format!("{name}: {body}"))?)
+            Ok(Response::new_with_str(&JsNullable::wrap(
+                (format!("{name}: {body}")).into(),
+            ))?)
         }
         ("POST", ["bytes"]) => {
             let buf = req.array_buffer().await?;
@@ -149,7 +151,7 @@ async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response
             let headers = Headers::new()?;
             headers.set("x-sum", &sum.to_string())?;
             Ok(Response::new_with_array_buffer_and_init(
-                &out.buffer(),
+                &JsNullable::wrap(out.buffer()),
                 &ResponseInit::builder().headers(&headers).build(),
             )?)
         }
@@ -157,7 +159,9 @@ async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response
             let copy = req.clone()?;
             let a = req.text().await?;
             let b = copy.text().await?;
-            Ok(Response::new_with_str(&format!("{a}|{b}"))?)
+            Ok(Response::new_with_str(&JsNullable::wrap(
+                (format!("{a}|{b}")).into(),
+            ))?)
         }
         ("GET", ["json"]) => {
             let data = Object::new();
@@ -183,25 +187,29 @@ async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response
             let init = RequestInit::builder()
                 .method("PUT")
                 .headers(&headers)
-                .body_with_str(&body)
+                .body_with_str(&JsNullable::wrap((body).into()))
                 .build();
             let upstream = fetch_with_str_and_init("https://upstream.test/echo", &init).await?;
             let echoed = upstream.text().await?;
-            Ok(Response::new_with_str(&echoed)?)
+            Ok(Response::new_with_str(&JsNullable::wrap((echoed).into()))?)
         }
         ("GET", ["wait-until"]) => {
             ctx.wait_until(&Promise::resolve(&JsValue::NULL));
             ctx.pass_through_on_exception();
-            Ok(Response::new_with_str("ok")?)
+            Ok(Response::new_with_str(&JsNullable::wrap(("ok").into()))?)
         }
         ("GET", ["log"]) => {
             CONSOLE.with(|c| c.log(&[JsValue::from("hello"), 1.0.into()]));
             CONSOLE.with(|c| c.warn(&Array::of1(&"warned".into()).to_vec()));
-            Ok(Response::new_with_str("logged")?)
+            Ok(Response::new_with_str(&JsNullable::wrap(
+                ("logged").into(),
+            ))?)
         }
         ("GET", ["stream"]) => {
             let body = req.body().is_some();
-            Ok(Response::new_with_str(&format!("body={body}"))?)
+            Ok(Response::new_with_str(&JsNullable::wrap(
+                (format!("body={body}")).into(),
+            ))?)
         }
         ("GET", ["bad-header"]) => {
             let headers = Headers::new()?;
