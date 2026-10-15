@@ -264,7 +264,7 @@ workers-types snapshot change.
 Bodies are the commit messages (#1–3 in the table above). Post as one PR with three commits or
 three stacked PRs; the audit notes under 1–3 apply.
 
-## Wave branches (3–9)
+## Wave branches (3–10)
 
 **The stack is linear.** The grouping as specified could not be kept as independent bases:
 `generics` #17/#29 collide with `nullable-async`'s `Nullish` tag in `typemap.rs`, and wave 6's
@@ -303,6 +303,7 @@ Every commit: `just test`, `just clippy`, fmt check, wasm32 integration check gr
 | 7 | `gbedford/annotations` | `gbedford/inheritance-namespaces-unions` | `69a69af` #26, `66d9ac8` #27, `fa7c40d` #34 |
 | 8 | `gbedford/inference-naming` | `gbedford/annotations` | `fe43227` #41, `7e35df4` #42 |
 | 9 | `gbedford/inline-wrappers` | `gbedford/inference-naming` | `5974e45` (u64/i64 wrappers), `32ad680` (= wave-1 #28), `7ae9eb4` (literal-keyed overloads), `6c3d9d0` (`@throws {never}` on constructors) |
+| 10 | `gbedford/builder-from-dict` | `gbedford/inline-wrappers` | `8659a3e` (builders implement `From<Dict>`; workers-rs-4's `462937b`) |
 
 ### PR bodies
 
@@ -388,3 +389,13 @@ overloads that differ only in a string-literal argument (`get(key, type: "json")
 baking the literal in; arms sharing a return type share one `&str` extern). Also `@throws
 {never}` on a constructor now lowers to a non-`catch` constructor returning the bare type
 (`Headers::new()`), under both policies. Applied clean on wave 8 apart from the #28 dependency.
+
+**Wave 10 — `gbedford/builder-from-dict`: dictionary builders implement `From<Dict>`.**
+`build()` consumes the builder and the builder has no getters, so a helper that needs to read
+what was set so far (append a header, apply a preset) had to rebuild the object field by field.
+Every generated builder now implements `From<Dict>`: the dictionary's getters and setters are
+the read/modify step and `.into()` resumes the chain. Six lines of codegen plus a CONVENTIONS
+section; the only snapshot change is the added `impl From<…> for …Builder` on every dictionary.
+Unrelated to the wrappers, hence its own wave; it cherry-picks onto wave 9 clean, and its code
+hunk applies on main alone (only branch-only snapshots conflict), so it could be cut as an
+independent PR after a re-bless if wanted earlier.
