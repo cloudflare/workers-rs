@@ -518,6 +518,27 @@ pub async fn handle(
             ))
         }
 
+        ("GET", ["header-map"]) => {
+            let mut map = http::HeaderMap::new();
+            map.append("x-a", http::HeaderValue::from_static("1"));
+            map.append("x-a", http::HeaderValue::from_static("2"));
+            let headers = Headers::try_from(&map)?;
+            let back = http::HeaderMap::try_from(&headers)?;
+            map.append(
+                "x-bin",
+                http::HeaderValue::from_bytes("h\u{e9}llo".as_bytes()).unwrap(),
+            );
+            let to_js = Headers::try_from(&map).unwrap_err().to_string();
+            let del = Headers::default();
+            del.set("x-del", "a\u{7f}b")?;
+            let to_rust = http::HeaderMap::try_from(&del).unwrap_err().to_string();
+            Response::builder().ok(format!(
+                "{} {} | {to_js} | {to_rust}",
+                headers.get("x-a")?.unwrap_or_default(),
+                back.get_all("x-a").iter().count(),
+            ))
+        }
+
         ("GET", ["error-number"]) => Err(JsValue::from(42).into()),
         ("GET", ["error-null"]) => Err(JsValue::NULL.into()),
         ("GET", ["error-rust"]) => Err(Error::from("boom")),

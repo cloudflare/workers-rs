@@ -323,4 +323,11 @@ describe("ts-gen-worker ext: Rust-native surface", () => {
     const res = await get2("/ext/http-roundtrip", { method: "POST", body: "payload" });
     expect(await res.text()).toBe("true payload | true stream | one true two");
   });
+
+  test("Headers <-> HeaderMap is fallible on a non-ASCII value", async () => {
+    expect(await (await get2("/ext/header-map")).text()).toBe(
+      "1, 2 1 | header `x-bin` has a non-ASCII value: failed to convert header to a str" +
+        " | header `x-del` has an invalid value: failed to parse header value",
+    );
+  });
 });
