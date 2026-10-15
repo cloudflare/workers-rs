@@ -22,7 +22,7 @@ is the merged index.
 | --- | --- | --- |
 | Error model (`--error-type`, `--fallible`, `@throws` enum) | integrated; plus `JsNullable` results, `_with_null` forms, `_promise` companions | `parity/errors.md` |
 | Input from `@cloudflare/workers-types` | integrated: bindings generated from `node_modules/@cloudflare/workers-types/index.d.ts` + `types/annotations.d.ts` (`--annotate`: `@throws`, `@rust` integer hints, type-parameter defaults); `types/worker.d.ts` deleted; 19.8k generated lines | `parity/workers-types.md` |
-| `Error`, `#[event]` macros, ergonomic impls | integrated; test worker migrated onto the layer (`#[event]`, `#[durable_object]`, shortcuts); `http` feature with `http::Request/Response` handlers, 176 tests green on both | `parity/crate.md` |
+| `Error`, `#[event]` macros, ergonomic impls | integrated; `#[event(connect)]`, `Response::into_parts`, builder `header/cors/body/from_websocket`, `Request::new_with_method`, serde storage helpers; `MIGRATING.md` written; 192 tests green on both modes | `parity/crate.md`, `MIGRATING.md` |
 | ts-gen PRs | wave 1 posted: ts-gen #39–#47 (stack #48), CI green; waves 2–9 cut as a linear branch stack for Guy's review (`parity/ts-gen-prs.md`) | `parity/ts-gen-prs.md` |
 | Test suite port | integrated: all 26 spec files run (187 tests; 4 skipped are upstream's own gates); `signal`, `container`, `panic` ported, trap recovery via the wasm-bindgen fork's reinit | `parity/test-port.md`, `parity/errors.md` Session 4 |
 
