@@ -19,6 +19,18 @@ globs = ["**/*.wasm"]
 type  = "CompiledWasm"
 ```
 
+## Smaller release builds with `--no-preserve-wasm-names`
+
+Release builds keep Wasm function names, which CPU profiles and stack traces show, even when the
+Cargo profile sets `strip = true`. To drop them for a size-sensitive Worker, build with:
+
+```bash
+worker-build --release --no-preserve-wasm-names
+```
+
+Keeping names increases the size of the Wasm when the profile sets `strip = true`. Cargo's
+default release profile keeps them either way.
+
 ## Environment Variables
 
 You can override the default binary lookup/download behavior by setting these environment variables:

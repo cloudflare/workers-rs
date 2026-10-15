@@ -18,6 +18,8 @@ pub(crate) static MIN_WASM_BINDGEN_LIB_VERSION: LazyLock<semver::Version> = vers
 pub(crate) static MIN_EMSCRIPTEN_DEBUG_WASM_BINDGEN_VERSION: LazyLock<semver::Version> =
     version!("0.2.129");
 pub(crate) static MIN_RUSTC_VERSION: LazyLock<semver::Version> = version!("1.77.0"); // workers-rs MSRV
+                                                                                     // First release whose rust-lld (LLVM 18) accepts `--keep-section`
+pub(crate) static MIN_KEEP_SECTION_RUSTC_VERSION: LazyLock<semver::Version> = version!("1.78.0");
 
 pub(crate) static MIN_WORKER_LIB_VERSION: LazyLock<semver::Version> = version!(&format!(
     "{}.0",

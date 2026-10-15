@@ -49,6 +49,7 @@ pub struct Build {
     pub extra_options: Vec<String>,
     pub wasm_bindgen_version: Option<String>,
     pub panic_unwind: bool,
+    pub preserve_wasm_names: bool,
     pub emscripten: bool,
     pub bin: Option<String>,
     pub emscripten_toolchain: Option<emscripten::Toolchain>,
@@ -163,6 +164,10 @@ pub struct BuildOptions {
     /// List of extra options to pass to `cargo build`
     pub extra_options: Vec<String>,
 
+    #[clap(long = "no-preserve-wasm-names")]
+    /// Don't keep Wasm names in release builds that set strip=true, to reduce size
+    pub no_preserve_wasm_names: bool,
+
     #[clap(long, hide = true)]
     /// Pass-through for --no-panic-recovery
     pub no_panic_recovery: bool,
@@ -189,6 +194,12 @@ type BuildStep = fn(&mut Build) -> Result<()>;
 impl Build {
     /// Construct a build command from the given options.
     pub fn try_from_opts(mut build_opts: BuildOptions) -> Result<Self> {
+        if build_opts.profile.profiling && build_opts.no_preserve_wasm_names {
+            bail!(
+                "--no-preserve-wasm-names cannot be used with --profiling, which exists to keep \
+                 Wasm names. Use --release --no-preserve-wasm-names for a smaller release build."
+            );
+        }
         if let Some(path) = &build_opts.path {
             if path.to_string_lossy().starts_with("--") {
                 let path = build_opts.path.take().unwrap();
@@ -240,6 +251,7 @@ impl Build {
             extra_options: build_opts.extra_options,
             wasm_bindgen_version: None,
             panic_unwind: build_opts.panic_unwind,
+            preserve_wasm_names: !build_opts.no_preserve_wasm_names,
             emscripten: build_opts.emscripten,
             bin: build_opts.bin,
             emscripten_toolchain: None,
@@ -250,6 +262,12 @@ impl Build {
     pub fn init(&mut self) -> Result<()> {
         if self.emscripten && self.panic_unwind {
             bail!("--panic-unwind is not supported with --emscripten");
+        }
+        if self.emscripten && matches!(self.profile, BuildProfile::Profiling) {
+            PBAR.warn(
+                "--profiling does not guarantee Wasm names with --emscripten; emcc's post-link \
+                 decides which names survive.",
+            );
         }
         let process_steps = Build::get_preprocess_steps(self.emscripten);
         for (_, process_step) in process_steps {
@@ -411,6 +429,7 @@ impl Build {
             self.profile.clone(),
             &self.extra_options,
             self.panic_unwind,
+            self.preserve_wasm_names,
             emscripten,
         )?;
 

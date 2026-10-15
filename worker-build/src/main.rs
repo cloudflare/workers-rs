@@ -531,7 +531,38 @@ pub fn output_path(out_dir: &Path, name: impl AsRef<str>) -> PathBuf {
 
 #[cfg(test)]
 mod test {
-    use super::parse_wasm_pack_opts;
+    use super::{parse_wasm_pack_opts, Build};
+
+    #[test]
+    fn test_no_preserve_wasm_names_flag() {
+        let opts = parse_wasm_pack_opts([
+            "--release".to_owned(),
+            "--no-preserve-wasm-names".to_owned(),
+        ])
+        .unwrap();
+        assert!(opts.no_preserve_wasm_names);
+        assert!(opts.extra_options.is_empty());
+        assert!(
+            !parse_wasm_pack_opts(Vec::new())
+                .unwrap()
+                .no_preserve_wasm_names
+        );
+    }
+
+    #[test]
+    fn test_no_preserve_wasm_names_rejected_with_profiling() {
+        let opts = parse_wasm_pack_opts([
+            "--profiling".to_owned(),
+            "--no-preserve-wasm-names".to_owned(),
+        ])
+        .unwrap();
+        // Rejected before the crate path is resolved.
+        let err = Build::try_from_opts(opts).err().unwrap();
+        assert!(err
+            .to_string()
+            .starts_with("--no-preserve-wasm-names cannot be used with --profiling"));
+    }
+
     #[test]
     fn test_wasm_pack_args_build_arg() {
         let args = vec!["--release".to_owned()];
