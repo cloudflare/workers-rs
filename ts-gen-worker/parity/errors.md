@@ -705,3 +705,59 @@ Rejected, with the evidence:
   ts-gen change.
 - **Per-overload `@throws`**: `Headers::new()` and `TransformStream::new()`
   stay `Result` because the annotation is per member, not per overload.
+
+## Session 7: Durable Object classes on `reinit = "reconstruct"`
+
+Branch `gbedford/tgw-errors` on `gbedford/ts-gen-worker` `583b73d`;
+`b461d85`. No ts-gen change.
+
+- `#[durable_object]` emits `#[wasm_bindgen(reinit = "reconstruct")]` on
+  the generated class (one attribute argument in
+  `ts-gen-worker-macros/src/durable_object.rs`). The glue now rebuilds a
+  stale instance from its saved `(state, env)` on next use
+  (`__wbg_reconstruct`), and runs `__wbg_call_guard()` before the stale
+  check (the ordering finding from Session 6 is fixed in the PR).
+- The test harness's stand-in wrapper module (`manifest.ts` `reinitShim`)
+  is gone; `mainModule` is `index.js` again. `panic.spec.ts` passes verbatim
+  on the attribute alone, including the pre-existing-DO case
+  (`unstored_count: 1` after each of panic / abort / JS error / OOM).
+- Both chomp tasks: 25 files, 192 pass, 4 skip.
+
+### The unmerged dependency
+
+The attribute is wasm-bindgen PR #5375 (`gbedford/reinit-reconstruct`, tip
+`870389dd35`, schema `0.2.130`), not in any release. The branch takes it the
+way the workspace used to take local wasm-bindgen builds: the `wasm-bindgen/`
+submodule points at the PR tip and `[patch.crates-io]` in the root
+`Cargo.toml` maps `wasm-bindgen`, `js-sys`, `web-sys`, `wasm-bindgen-futures`,
+`wasm-bindgen-macro-support`, `wasm-bindgen-shared`, `wasm-bindgen-test`
+and `wasm-bindgen-cli-support` to the submodule paths (the entries that
+were removed when the workspace aligned on 0.2.129). `chomp
+build:wasm-bindgen` already builds the CLI from the submodule, so the macro
+and the glue share one schema. `Cargo.lock` drops the registry entries for
+those crates (−24 lines). Consequences, for `PARITY.md`:
+
+- **Everything in the workspace** (`worker`, `worker-build`, the sandbox)
+  now compiles against the patched crates, not only `ts-gen-worker`; the
+  patch is workspace-wide by construction. Versions are unchanged
+  (`0.2.129` / `0.3.106` / `0.4.79` / `0.3.79`), so no manifest version bump
+  anywhere; the schema string alone is `0.2.130`.
+- **Reverting the dependency** is: submodule back to `165586f85` (Release
+  0.2.129), delete the `[patch.crates-io]` block, `cargo update -p
+  wasm-bindgen` (and siblings) to restore the registry lock entries, drop
+  `reinit = "reconstruct"` from `durable_object.rs`, and restore the
+  `reinitShim` wrapper in `manifest.ts` (commit `857efbb`'s version) so
+  `panic.spec.ts` keeps passing. Nothing else references the attribute.
+- **Release ordering**: wasm-bindgen 0.2.130 must ship (with #5375 merged)
+  before `ts-gen-worker` can publish; at that point the patch block goes
+  and the workspace pins `wasm-bindgen = "0.2.130"`. If #5375 lands
+  changed (attribute spelling, policy name), the one-line macro edit
+  follows it. Until then a downstream user of this branch needs the same
+  patch block, since the macro output references an attribute the released
+  macro rejects.
+
+### Open problems
+
+- `panic.spec.ts`'s pre-existing-DO assertions exercise reconstruction only
+  through `fetch`; `alarm` and the `webSocket*` handlers get the same
+  prelude but have no trap-then-call coverage in the suite.
