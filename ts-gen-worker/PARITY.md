@@ -23,6 +23,7 @@ is the merged index.
 | Error model (`--error-type`, `--fallible`, `@throws` enum) | integrated; plus `JsNullable` results, `_with_null` forms, `_promise` companions | `parity/errors.md` |
 | Input from `@cloudflare/workers-types` | integrated: bindings generated from `node_modules/@cloudflare/workers-types/index.d.ts` + `types/annotations.d.ts` (`--annotate`: `@throws`, `@rust` integer hints, type-parameter defaults); `types/worker.d.ts` deleted; 19.8k generated lines | `parity/workers-types.md` |
 | `Error`, `#[event]` macros, ergonomic impls | integrated; test worker migrated onto the layer (`#[event]`, `#[durable_object]`, shortcuts); `http` feature with `http::Request/Response` handlers, 176 tests green on both | `parity/crate.md` |
+| ts-gen PRs | wave 1 posted: ts-gen #39–#47 (stack #48), CI green; waves 2–9 cut as a linear branch stack for Guy's review (`parity/ts-gen-prs.md`) | `parity/ts-gen-prs.md` |
 | Test suite port | integrated: all 26 spec files run (187 tests; 4 skipped are upstream's own gates); `signal`, `container`, `panic` ported, trap recovery via the wasm-bindgen fork's reinit | `parity/test-port.md`, `parity/errors.md` Session 4 |
 
 ## Open problems for Guy
@@ -40,10 +41,12 @@ file.
 - **Overloads differing only in return type collapse to the first.** KV `get` variants, DO
   `storage.get(keys[])`. workers-rs-3 has a candidate fix (`ac26895`), pending integration.
   (`parity/test-port.md` #2)
-- **DO instances after a trap reinit** error with the glue's stale-object message; decided: an
-  opt-in class attribute in the wasm-bindgen fork (set by `#[durable_object]`) that re-runs the
-  constructor. Not yet implemented; the test harness has a stand-in wrapper. (`parity/errors.md`
-  Session 4)
+- **DO instances after a trap reinit**: upstream wasm-bindgen PR
+  [#5375](https://github.com/wasm-bindgen/wasm-bindgen/pull/5375) adds
+  `#[wasm_bindgen(reinit = "reconstruct")]`; `#[durable_object]` emits it once the workspace
+  pin includes it. Until then the test harness keeps a stand-in wrapper. The PR also fixes an
+  ordering bug in the existing reinit glue (`__wbg_call_guard` ran after argument conversion),
+  which Guy should look at as a behavior change on its own. (`parity/errors.md` Session 4/6)
 - **`@throws {never}` on constructors is ignored** (constructors always catch). Proposal: honor it,
   since wasm-bindgen accepts a non-`catch` constructor. Low priority. (`parity/errors.md`)
 
@@ -62,9 +65,8 @@ Creative choices made by agents, with justification. Guy reviews these.
   migrating specs assert on it (`sqlite.spec.ts`), so `respond_with_errors` can replace the
   port's hand-rolled handler. (`parity/crate.md`)
 - **ts-gen-worker builds with plain `wasm-bindgen --target module`, no worker-build shim** (Guy).
-  Trap recovery comes from the wasm-bindgen fork's reinit; Durable Object instances surviving a
-  reinit is to be handled in the fork's macro/glue (opt-in class attribute set by
-  `#[durable_object]`), not by a wrapper.
+  Trap recovery comes from wasm-bindgen's reinit; Durable Object instances surviving a reinit
+  use the upstream `reinit = "reconstruct"` attribute (PR #5375), set by `#[durable_object]`.
 - **ts-gen may emit non-extern inline wrappers** (master): it already emits factories, builders
   and `PartialEq` impls, so an inline `fn` that converts `f64`↔`u64` for `@rust u64`, or bakes a
   string literal into a literal-keyed overload (`kv.get_json(key)`), is within the same policy.
