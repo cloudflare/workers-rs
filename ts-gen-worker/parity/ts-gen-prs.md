@@ -400,77 +400,81 @@ Unrelated to the wrappers, hence its own wave; it cherry-picks onto wave 9 clean
 hunk applies on main alone (only branch-only snapshots conflict), so it could be cut as an
 independent PR after a re-bless if wanted earlier.
 
-## Session 9 (parked on HOLD): rebase onto the upstream tips — state
+## Session 9: final stack on the upstream bases, posted
 
-Nothing pushed, nothing posted. Work stopped mid-way at the master's hold; the ts-gen worktree is
-consistent (clean, on `agent/pr-audit`), the workers-rs tree has the committed bindings (the
-regeneration from the new stack tip was reverted since it did not yet compile).
+**Base** (`base/final`, local, 29 commits on `origin/main` = `f050db9`): #39
+`gbedford/string-enum-shape` rebased onto main (9 commits), then #47 (2), #42 (1), #43 (2),
+#44 (2), #45 (4), #46 (4), then #51 `13b6319`, #52 `0b555cf`, #53 `f543c95`, #54 `9743bf8`, then
+one integration commit. The PRs are posted on `gbedford/wasm-embed`, so each PR's diff shows the
+wave-1 and #39 commits until those land; the first PR body says so.
 
-**Upstream tips rebased against** (as fetched at the start of the session; several have moved
-since, see below):
+Conflicts between upstream branches, and how they were resolved (all in `base/final`, nothing
+pushed to those branches):
 
-| Ref | SHA used | Notes |
-|---|---|---|
-| `origin/main` | `e139daa` | |
-| #39 `gbedford/string-enum-shape` | `b3fe557` (6 commits) | now `9f7deb6` |
-| #40 `gbedford/renamed-function-exports` | `09500b3` (3 commits) | now `b4994f7`, rebased on #41 |
-| #51 `gbedford/nullability` | `6d876e3` (1 commit) | design under discussion |
+- **#39 vs main (#40/#41 merged)**: `emit_type_name` — #39 resolves qualified names from the use
+  site, #40 from the ambient module's scopes; chained use-site → module scopes → file scopes.
+  `parse/mod.rs` — #39 inserts namespace members into their namespace scope and the file, #40
+  keeps ambient-module bodies private; a `home_scope` walk (nearest file or module-body scope)
+  does both. #40's `type_arena` kind check (removed by #39) reads the registry instead.
+- **#39 vs #42** (`cd933a3`): `synthesise_dynamic_union` gained `scope, from_module` in #39 and
+  `dynamic_union_members` in #42; both applied. Test blocks appended at the same spot: kept both.
+- **#45 vs main (#41)** / **#45 vs #46**: CONVENTIONS "Naming conversion" bullets merged;
+  `sanitised_keys` integration test reads `VERSION` (upper-case static).
+- **#46 vs #39**: the native-element array rule keeps #39's enum-repr substitution.
+- **#51 vs #39**: `resolve_alias` moved to `GlobalContext` (#51) while #39 added `enum_kind` /
+  `enum_repr` beside it; kept both. `enum_positions` and `nested_arrays` integration tests follow
+  #51 (`Promise<Mode | null>` is `JsNullable`; `string[][] | null` argument is `&JsNullable<…>`).
+  `array_elements_are_native_only_for_strings_and_numbers` (#46) expects `JsNullable` for
+  `Id | null` under #51.
+- **#45 vs #53** (integration commit `8ee1ca2`): the wat emitter spelled the non-ASCII static
+  `déjà` into a `$id`, which WAT rejects — non-ASCII chars become `_u<hex>_`; and #45's fixture
+  declared `value` in two modules, which #53's ABI (names carry no specifier) refuses — the
+  fixture uses distinct names. The design clash itself (same JS name in two modules) is left to
+  #53.
+- Cargo: #51 adds a `web-sys` patch; the wave-1 branches moved the wasm-bindgen pin to
+  `5c070ca` (wasm-bindgen#5376) — all five patches now point there.
 
-Local `base/combined` = main + #39 + #40 + #51 cherry-picked in that order (`df5e97e..c7c0e48`).
-**#39 and #40 conflict with each other on main** (`typemap.rs` `emit_type_name` resolution order,
-`parse/mod.rs` scope insertion; #40's `type_arena` lookup was removed by #39): resolved by
-chaining use-site → ambient-module scopes → file scopes, and by a `home_scope` walk (file or
-ambient-module body) that keeps namespace members flattened into their home and module bodies
-private; `export`-rename kind check moved to the registry. #51 on top conflicted in
-`resolve_alias` (took #51's `gctx.resolve_alias`, kept #39's enum helpers) and needed one
-integration-test fix (`enum_positions`: `Promise<Mode | null>` is `JsNullable` under #51,
-and `Mode` / `Option<Mode>` once awaited values lower like sync returns). All green at
-`c7c0e48`. Not pushed anywhere.
+**Waves** (34 commits, every commit `just test` / `just clippy` / fmt / wasm32 integration
+check green on its own; `workers-types.rs` re-blessed per commit):
 
-**Stack rebuilt on `base/combined`** (local branches, every tip green on `just test`; per-commit
-checks were interrupted by the hold and not completed for this round):
+| Wave | Branch | Tip | Commits |
+|---|---|---|---|
+| 2 | `gbedford/error-model` | `d85f2b3` | `565ba66` `--error-type`, `f298bd8` `--fallible`, `d85f2b3` `--error-enum` |
+| 3 | `gbedford/nullable-async` | `c48a7dc` | `a69fd3d` `_promise` siblings, `c48a7dc` awaited values like sync returns |
+| 4 | `gbedford/generics` | `809a44e` | `9038e6e` #8, `841ab2a` #13, `90e93d7` #14, `142810c` #15, `809a44e` #17 |
+| 5 | `gbedford/declaration-shapes` | `c43a789` | `9bf524a` #16, `e95ad9b` #21, `1761f62` #22, `2422f10` #23, `c43a789` #24 |
+| 6 | `gbedford/inheritance-namespaces-unions` | `29fe72e` | `af6ce2a` #12, `d6d15bd` #20, `260383d` #25 (reduced), `f9edc64` #29, `54cd2ec` #30, `4c69ee8` #31, `632769d` #32, `2e23735` #37, `a6b136f` #39, `29fe72e` #40 |
+| 7 | `gbedford/annotations` | `9530900` | `f3f1f6b` #26, `081ec47` #27, `9530900` #34 |
+| 8 | `gbedford/inference-naming` | `85be297` | `f28a591` #41, `85be297` #42 |
+| 9 | `gbedford/inline-wrappers` | `b9cde35` | `4ffe291` u64/i64 wrappers, `9c3a072` literal-keyed overloads, `b9cde35` `@throws {never}` on constructors |
+| 10 | `gbedford/builder-from-dict` | `0ff7462` | `0ff7462` builders implement `From<Dict>` |
 
-| Wave | Branch | Tip | Commits | Changes vs session 8 |
-|---|---|---|---|---|
-| 2 | `gbedford/error-model` | `d631f91` | 3 | #39/#40 adjacency in `typemap.rs` tests, `classes.rs` static getter attrs |
-| 3 | `gbedford/nullable-async` | `869ff42` | 3 | **#9 and #10 dropped** (replaced by #51); first commit is a #51 follow-up (below); #38's CONVENTIONS merged into #51's rewritten section |
-| 4 | `gbedford/generics` | `194ec01` | 5 | adjacency only |
-| 5 | `gbedford/declaration-shapes` | `f1ae908` | 5 | #21/#23 re-expressed over #40's `export_names` (the `export_renames` map is gone) |
-| 6 | `gbedford/inheritance-namespaces-unions` | `8f24052` | 11 | **#33 dropped** (covered by #39 `8ef8329`); **#18 reduced** to the literal-payload half (#39 handles `Mode(Mode)` payloads, splicing removed); **#25 reduced** to global namespaces (`ns_mod::Type` only when the namespace is emitted as a `pub mod`; #39's flattened module namespaces keep the bare name), nested-position enums defer to #39's carrier rule, and #39's unit test now expects `codes::Region`; wave-1 #4 no longer carried (in base) |
-| 7 | `gbedford/annotations` | `563c7bd` | 3 | adjacency only |
-| 8 | `gbedford/inference-naming` | `4986935` | 2 | clean |
-| 9 | `gbedford/inline-wrappers` | `4993f67` | 4 | still carries wave-1 #28 (`overload-primary-name`) before the literal-keyed commit |
-| 10 | `gbedford/builder-from-dict` | `5876b23` | 1 | clean |
+Dropped against session 8: **#9, #10** (replaced by #51's design; nothing re-expressed — the
+`Nullish` reads were all `Nullable(inner, _)` patterns, and the two #51 follow-ups found in the
+parked round are covered by #51's final version); **#18** (literal payload variants: #42's
+`cd933a3` now produces the same `Bool(bool)` / `F64(f64)` shapes); **#33** (enum carriers in
+generics/callbacks/arrays: #39's `8ef8329`); the carried wave-1 **#4** and **#28** (in the
+base). **#25** is reduced to global namespaces (a `pub mod` path only when the namespace is
+emitted as one; #39's flattened module namespaces keep the bare name, nested enums defer to
+#39's carrier rule; #39's unit test now expects `codes::Region` for a global namespace).
 
-**#51 follow-ups found by regenerating the workers-types bindings** (branch
-`gbedford/nullability-followups`, 2 commits on `gbedford/error-model`; the first is already the
-bottom of `nullable-async`, the second was about to be inserted next to it when the hold came):
+Fixes folded into their commits during the rebase: #20 rotates `indices` with the primary
+expansion (the main-form #43 rotated only `deduped`, so `R2Bucket.get(key)` reported overload
+0's return type); #23 moves the absorbed interface's scope onto the class so references from the
+global scope still resolve under #40's private module scopes; #12 resolves roots through
+ambient-module scopes (`--export EmailMessage` for a class declared in `cloudflare:email`); #29
+teaches #53's ABI resolver about `Binding::Erased`; #23 updates #53's
+`real_constructor_wins_over_dictionary_new_across_roots` (the collapsed class is one root); #38
+updates the `builtin_errors` / `nested_arrays` integration tests to awaited `String` / `Vec`.
 
-- `3f5b1f1` Discriminated-union factories wrap a pinned value for an `Option` setter: with
-  `Option<&T>` arguments, `EmailAttachment::new_inline(content_id: &str)` called
-  `set_content_id(Option<&str>)` and did not compile (`worker`'s own `email.rs` regeneration
-  breaks on #51 alone). New fixture `discriminated-undefined`, CONVENTIONS line.
-- `66e2f7e` Nullable arguments over a type parameter stay `&T`: `Option<&Value>` on
-  `KVNamespaceGetWithMetadataResult` setters is a compile error ("`&` without an explicit
-  lifetime name"); present in #51's own workers-types snapshot. Fixture line in
-  `generic-dictionary`, CONVENTIONS line.
+**workers-rs** (`gbedford/tgw-workers-types` on `a2faa1b`): `a369845` regenerates from the stack
+tip, adapts `ext/` and the port to `&JsNullable` arguments, and moves the `wasm-bindgen`
+submodule to `1ea319f65` = reinit branch `870389dd3` + wasm-bindgen#5376 `5c070ca` (local
+cherry-pick; needs pushing to the fork before this branch is shared). `chomp test:ts-gen-worker`
+and `-http`: 194 passed / 4 skipped each. Migration deltas are in `parity/workers-types.md`.
 
-Both are bugs in #51 as posted, worth raising on that PR whatever the null-handling outcome.
+### PR bodies as posted
 
-**Does #51 cover what #9/#10 did?** The `Nullish` tag our later commits read maps onto
-`Nullability` (all patterns were `Nullable(inner, _)`; nothing else needed). `new Response(null,
-init)` becomes `Response::new_with_body_and_init(None, &init)` with `None` crossing as
-`undefined`, which `Response` accepts; the required-`null` case (`put(key, null)`) has no
-spelling under #51 — the port never needed one.
-
-**Wave-1 dependencies of the regenerated bindings** (found at the stack tip, before the hold):
-the ported worker needs #43 `nested-arrays` (`Vec<Vec<JsValue>>`), #45 `const-static-names`
-(`CONSOLE`), #47 `abv-builder-bound` (`set_salt_with_typed_array` bound), #42
-`float-discriminants`, and #41 `accessor-js-name` at runtime. The next step was to extend the
-base to main + all of #39–#47 + #51 (`base/full`), restack, then adapt the port to `Option<&T>`
-arguments and drop the carried #28. Not started.
-
-**#52–#54 overlap**: `src/codegen/mod.rs`, `src/parse/types.rs`, `main.rs`, `lib.rs`, README,
-CONVENTIONS, AGENTS — adjacency only, as expected; no shared logic.
-
-Pre-session branch state is preserved as `old/<wave>` for every wave branch.
+Titles are the branch's theme; bodies list the commits with the per-commit reasoning. See the
+"Wave branches (3–10)" bodies above for the prose; the posted versions add the base note and
+the drops listed here.

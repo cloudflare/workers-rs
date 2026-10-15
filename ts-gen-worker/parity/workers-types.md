@@ -396,6 +396,44 @@ noted):
 `test/src/util.rs` and the GAP comments are otherwise unchanged; the `IncomingRequestCfProperties`
 accessors (`latitude`, `longitude`, `region`) resolve directly on the type now.
 
+## Migration-table deltas from the rebased stack (for workers-rs-4 / MIGRATING.md)
+
+The ts-gen stack now sits on upstream #51 (`gbedford/nullability`), whose argument rule replaces
+the one the port was written against. Every binding argument whose TS type admits an empty now
+spells which empty:
+
+| TS argument | Rust | pass a value / the empty |
+| --- | --- | --- |
+| `x?: T` / `T \| undefined` | `Option<&T>` | `Some(&v)` / `None` |
+| `T \| null` | `&JsNullable<I>` | `&JsNullable::wrap(v)` / `&JsNullable::new()` |
+| `T \| null \| undefined` | `Option<&JsNullable<I>>` | `Some(&JsNullable::wrap(v))` / `None` |
+
+`I` is the JS spelling of `T` (`JsString` for `string`, `Number`, a bound class). Returns are
+unchanged (`Option<T>`). Where this lands in the inventory, and how the port and `ext/` moved
+(`a369845`):
+
+- `Response::new_with_str_and_init(body, init)` and the other `BodyInit | null` constructors:
+  `&JsNullable::wrap("text".into())`; an empty body is `&JsNullable::new()` (the former
+  `new_with_null_and_init(&Null::NULL, ..)` is gone). `ext/`'s `Response::builder().ok(..)` /
+  `.empty()` / `.body(..)` / `.error(..)` hide this for `worker`-style code.
+- `RequestInit::builder().signal(&JsNullable::wrap(signal))`, `.body_with_str(&JsNullable::wrap(
+  s.into()))`; `ResponseInit::builder().web_socket(&JsNullable::wrap(ws))`.
+- `R2Bucket::put_with_str(key, &JsNullable::wrap("v".into()))`, `put_with_typed_array(key,
+  &JsNullable::wrap(bytes.into()))`, `put(key, &JsNullable::wrap(stream))`; a null body is
+  `put_with_str(key, &JsNullable::new())`.
+- `KVNamespaceListOptions::builder().prefix(&JsNullable::wrap("p".into()))` / `.cursor(..)`
+  (upstream declares them `string | null`); `ext/`'s `KvStore` list builder takes `impl AsRef<str>`
+  and wraps.
+- `clear_timeout(&JsNullable::wrap(Number::from(id)))` (`timeoutId: number | null`).
+- Optional (`?:`) dictionary fields keep plain setters (`&T`); only fields written `T | undefined`
+  take `Option<&T>` — `worker`'s `EmailAttachment::new_inline` now takes `content_id:
+  Option<&str>` because the other branch leaves it `?: undefined`.
+
+Also from the rebase: string enums in unions are enum payload variants (`Iso3166Alpha2Code(
+Iso3166Alpha2Code)`), which needs wasm-bindgen#5376 — the `wasm-bindgen` submodule carries that
+commit (`1ea319f65`) on top of the `reinit = "reconstruct"` branch; it is local until that branch
+is pushed. The regenerated `bindings.rs` is 561 lines shorter than before the rebase.
+
 ## Review follow-up
 
 Independent review of the first 17 commits (`~/Projects/master/session/review-workers-types.md`):
