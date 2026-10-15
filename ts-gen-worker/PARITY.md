@@ -41,12 +41,12 @@ file.
 - **Overloads differing only in return type collapse to the first.** KV `get` variants, DO
   `storage.get(keys[])`. workers-rs-3 has a candidate fix (`ac26895`), pending integration.
   (`parity/test-port.md` #2)
-- **DO instances after a trap reinit**: upstream wasm-bindgen PR
-  [#5375](https://github.com/wasm-bindgen/wasm-bindgen/pull/5375) adds
-  `#[wasm_bindgen(reinit = "reconstruct")]`; `#[durable_object]` emits it once the workspace
-  pin includes it. Until then the test harness keeps a stand-in wrapper. The PR also fixes an
-  ordering bug in the existing reinit glue (`__wbg_call_guard` ran after argument conversion),
-  which Guy should look at as a behavior change on its own. (`parity/errors.md` Session 4/6)
+- **The branch depends on unmerged wasm-bindgen PR
+  [#5375](https://github.com/wasm-bindgen/wasm-bindgen/pull/5375)** (`reinit = "reconstruct"`),
+  pinned via the `wasm-bindgen` submodule and `[patch.crates-io]`; `#[durable_object]` emits the
+  attribute and the harness stand-in is gone. wasm-bindgen 0.2.130 must ship before
+  `ts-gen-worker` can publish. The PR also fixes a call-guard ordering bug in the existing reinit
+  glue; Guy to look at that as a behavior change on its own. (`parity/errors.md` Session 7)
 - **`@throws {never}` on constructors is ignored** (constructors always catch). Proposal: honor it,
   since wasm-bindgen accepts a non-`catch` constructor. Low priority. (`parity/errors.md`)
 
@@ -89,6 +89,9 @@ Creative choices made by agents, with justification. Guy reviews these.
   `f64`); `declare const` statics are `SCREAMING_SNAKE_CASE`; instance members own the base name
   over statics (`_static` suffix); variadic callbacks lower to the untyped `Function`.
   (`parity/errors.md` Session 3)
+- **`http` streaming round trip hands the original `ReadableStream` back**; `Headers ↔ HeaderMap`
+  is fallible as in `worker`. Size and cold start vs `worker`: 6.89 MB vs 7.11 MB after
+  `wasm-opt -Oz`, 168–194 ms vs 190–207 ms to first response. (`parity/crate.md` Session 4)
 - **`Promise<T | null>` → `JsNullable<T>`; `_with_null` only where omission cannot express null;
   `<name>_promise()` beside every async binding** (workers-rs-2, `parity/errors.md` Session 2).
 - **`http` feature mirrors `worker`'s**: `TryFrom` conversions and `#[event(fetch)]` accepting an
