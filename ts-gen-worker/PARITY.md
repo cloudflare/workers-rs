@@ -23,7 +23,7 @@ is the merged index.
 | Error model (`--error-type`, `--fallible`, `@throws` enum) | integrated; plus `JsNullable` results, `_with_null` forms, `_promise` companions | `parity/errors.md` |
 | Input from `@cloudflare/workers-types` | integrated: bindings generated from `node_modules/@cloudflare/workers-types/index.d.ts` + `types/annotations.d.ts` (`--annotate`: `@throws`, `@rust` integer hints, type-parameter defaults); `types/worker.d.ts` deleted; 19.8k generated lines | `parity/workers-types.md` |
 | `Error`, `#[event]` macros, ergonomic impls | integrated; `#[event(connect)]`, `Response::into_parts`, builder `header/cors/body/from_websocket`, `Request::new_with_method`, serde storage helpers; `MIGRATING.md` written; 192 tests green on both modes | `parity/crate.md`, `MIGRATING.md` |
-| ts-gen PRs | wave 1 posted: ts-gen #39–#47 (stack #48), CI green; waves 2–9 cut as a linear branch stack for Guy's review (`parity/ts-gen-prs.md`) | `parity/ts-gen-prs.md` |
+| ts-gen PRs | wave 1: #39–#47 (#40, #41 merged); waves 2–10 posted as stack #61–#69 on top of #39, #42–#47, #51–#54; CI pending | `parity/ts-gen-prs.md` |
 | Test suite port | integrated: all 26 spec files run (187 tests; 4 skipped are upstream's own gates); `signal`, `container`, `panic` ported, trap recovery via the wasm-bindgen fork's reinit | `parity/test-port.md`, `parity/errors.md` Session 4 |
 
 ## Open problems for Guy
@@ -41,6 +41,10 @@ file.
 - **Overloads differing only in return type collapse to the first.** KV `get` variants, DO
   `storage.get(keys[])`. workers-rs-3 has a candidate fix (`ac26895`), pending integration.
   (`parity/test-port.md` #2)
+- **The `wasm-bindgen` submodule points at a local commit `1ea319f65`** = #5375's branch plus
+  wasm-bindgen#5376 (`TryFromJsValue` for string enums, Guy's PR, required by ts-gen #39's enum
+  payloads). It exists only in these worktrees; it must be pushed to a branch (or #5375 rebased
+  to include #5376) before `gbedford/ts-gen-worker` is shared. Guy to decide which.
 - **The branch depends on unmerged wasm-bindgen PR
   [#5375](https://github.com/wasm-bindgen/wasm-bindgen/pull/5375)** (`reinit = "reconstruct"`),
   pinned via the `wasm-bindgen` submodule and `[patch.crates-io]`; `#[durable_object]` emits the
