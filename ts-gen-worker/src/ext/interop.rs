@@ -4,7 +4,13 @@
 //!
 //! What has no `http` equivalent rides in the extensions: `AbortSignal` and
 //! `IncomingRequestCfProperties` on a request, `WebSocket` on a response.
+//!
+//! The conversions back to the platform types are generic over any `http_body::Body`,
+//! which is what `#[event(fetch)]` relies on; a `ByteStream` body (the type the other
+//! direction produces) is recognised by downcast and its original `ReadableStream` is
+//! handed straight back, so a round trip never re-wraps a stream.
 
+use std::any::Any;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
@@ -13,10 +19,12 @@ use futures_util::Stream;
 use http::{HeaderMap, StatusCode, Version};
 use http_body::Body;
 use pin_project::pin_project;
+use wasm_bindgen::JsCast;
 
 use crate::{
     readable_stream_from, AbortSignal, ByteStream, Error, FromRequest, Headers,
-    IncomingRequestCfProperties, IntoResponse, Request, RequestInit, Response, Result, WebSocket,
+    IncomingRequestCfProperties, IntoResponse, ReadableStream, Request, RequestInit, Response,
+    Result, WebSocket,
 };
 
 pub type HttpRequest = http::Request<ByteStream>;
@@ -55,7 +63,7 @@ impl TryFrom<Request> for HttpRequest {
             .method(req.method().as_str())
             .extension(req.signal());
         if let Some(headers) = builder.headers_mut() {
-            *headers = HeaderMap::from(&req.headers());
+            *headers = HeaderMap::try_from(&req.headers())?;
         }
         if let Some(cf) = req.cf() {
             builder = builder.version(version(&cf.http_protocol())).extension(cf);
@@ -75,7 +83,7 @@ where
     fn try_from(mut req: http::Request<B>) -> Result<Self> {
         let mut init = RequestInit::builder()
             .method(req.method().as_str())
-            .headers(&Headers::from(req.headers()));
+            .headers(&Headers::try_from(req.headers())?);
         if let Some(signal) = req.extensions_mut().remove::<AbortSignal>() {
             init = init.signal(&signal);
         }
@@ -83,9 +91,8 @@ where
             init = init.cf(&cf);
         }
         let uri = req.uri().to_string();
-        let body = req.into_body();
-        if !body.is_end_stream() {
-            init = init.body(&readable_stream_from(BodyStream { inner: body }));
+        if let Some(body) = body_stream(req.into_body()) {
+            init = init.body(body.unchecked_ref());
         }
         Ok(Request::new_with_str_and_init(&uri, &init.build())?)
     }
@@ -97,7 +104,7 @@ impl TryFrom<Response> for HttpResponse {
     fn try_from(res: Response) -> Result<Self> {
         let mut builder = http::Response::builder().status(StatusCode::from_u16(res.status())?);
         if let Some(headers) = builder.headers_mut() {
-            *headers = HeaderMap::from(&res.headers());
+            *headers = HeaderMap::try_from(&res.headers())?;
         }
         if let Some(ws) = res.web_socket() {
             builder = builder.extension(ws);
@@ -117,16 +124,11 @@ where
     fn try_from(mut res: http::Response<B>) -> Result<Self> {
         let mut init = Response::builder()
             .status(res.status().as_u16())
-            .headers(&Headers::from(res.headers()));
+            .headers(&Headers::try_from(res.headers())?);
         if let Some(ws) = res.extensions_mut().remove::<WebSocket>() {
             init = init.web_socket(&ws);
         }
-        let body = res.into_body();
-        if body.is_end_stream() {
-            init.empty()
-        } else {
-            init.from_stream(BodyStream { inner: body })
-        }
+        init.body(body_stream(res.into_body()))
     }
 }
 
@@ -144,6 +146,22 @@ where
     fn into_response(self) -> Result<Response> {
         self.try_into()
     }
+}
+
+/// The JS stream for an `http` body: a `ByteStream`'s own `ReadableStream`, a new one
+/// over the frames of any other body, `None` when the body is already at its end.
+fn body_stream<B>(body: B) -> Option<ReadableStream>
+where
+    B: Body<Data = Bytes> + 'static,
+    B::Error: Into<BoxError>,
+{
+    let mut slot = Some(body);
+    if let Some(bytes) = (&mut slot as &mut dyn Any).downcast_mut::<Option<ByteStream>>() {
+        return bytes.take()?.into_inner();
+    }
+    let body = slot?;
+    (!body.is_end_stream())
+        .then(|| readable_stream_from(BodyStream { inner: body }).unchecked_into())
 }
 
 /// An `http_body::Body`'s data frames as a `Stream`; trailers end it.

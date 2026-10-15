@@ -318,4 +318,9 @@ describe("ts-gen-worker ext: Rust-native surface", () => {
       'Some(Body { id: "s", count: 2 }) Some(7) None',
     );
   });
+
+  test("http round trip hands the original ReadableStream back", async () => {
+    const res = await get2("/ext/http-roundtrip", { method: "POST", body: "payload" });
+    expect(await res.text()).toBe("true payload | true stream | one true two");
+  });
 });

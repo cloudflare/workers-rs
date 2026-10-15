@@ -480,6 +480,44 @@ pub async fn handle(
                 .await?)
         }
 
+        ("POST", ["http-roundtrip"]) => {
+            let req_body = req.body().ok_or_else(|| Error::from("no body"))?;
+            let http_req: HttpRequest = req.try_into()?;
+            let back: Request = http_req.try_into()?;
+            let req_same = back.body().as_ref() == Some(&req_body);
+            let text = back.text().await?;
+
+            let out = futures_util::stream::iter([Ok::<_, Error>(b"stream".to_vec())]);
+            let res = Response::builder().from_stream(out)?;
+            let res_body = res.body().ok_or_else(|| Error::from("no body"))?;
+            let http_res: HttpResponse = res.try_into()?;
+            let back: Response = http_res.try_into()?;
+            let res_same = back.body().as_ref() == Some(&res_body);
+            let res_text = back.text().await?;
+
+            // After a partial read, into_inner still returns the same object (now disturbed,
+            // so the platform refuses it as a body, but a streams consumer can continue it).
+            let partial = Response::builder().from_stream(futures_util::stream::iter([
+                Ok::<_, Error>(b"one".to_vec()),
+                Ok(b"two".to_vec()),
+            ]))?;
+            let partial_body = partial.body().ok_or_else(|| Error::from("no body"))?;
+            let mut stream = ByteStream::from(partial_body.clone());
+            let first =
+                String::from_utf8_lossy(&stream.next().await.transpose()?.unwrap_or_default())
+                    .into_owned();
+            let partial_same = stream.into_inner().as_ref() == Some(&partial_body);
+            let mut rest = String::new();
+            let mut stream = ByteStream::from(partial_body);
+            while let Some(chunk) = stream.next().await {
+                rest.push_str(&String::from_utf8_lossy(&chunk?));
+            }
+
+            Response::builder().ok(format!(
+                "{req_same} {text} | {res_same} {res_text} | {first} {partial_same} {rest}"
+            ))
+        }
+
         ("GET", ["error-number"]) => Err(JsValue::from(42).into()),
         ("GET", ["error-null"]) => Err(JsValue::NULL.into()),
         ("GET", ["error-rust"]) => Err(Error::from("boom")),

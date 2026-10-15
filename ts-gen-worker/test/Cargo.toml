@@ -21,11 +21,13 @@ regex = "1.8.4"
 serde.workspace = true
 serde_json.workspace = true
 serde-wasm-bindgen.workspace = true
-ts-gen-worker = { path = "..", features = ["url"] }
+http.workspace = true
+ts-gen-worker = { path = "..", features = ["url", "http"] }
 url = "2"
 uuid = { version = "1.17", features = ["v4", "serde", "js"] }
 wasm-bindgen.workspace = true
 wasm-bindgen-futures.workspace = true
 
+# Switches the fetch export to the `http` handler signature; the conversions are always built.
 [features]
-http = ["ts-gen-worker/http"]
+http = []

@@ -3103,6 +3103,7 @@ dependencies = [
  "futures-channel",
  "futures-util",
  "hex",
+ "http",
  "js-sys",
  "md5",
  "regex",
