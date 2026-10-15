@@ -1,7 +1,7 @@
 # crate: `#[event]` macros and the `impl` layer
 
-Owner: workers-rs-4. Branch `gbedford/tgw-crate` (on `gbedford/ts-gen-worker` `77390bf`);
-ts-gen branch `agent/crate` (one unlanded commit, `462937b` on `349056c`).
+Owner: workers-rs-4. Branch `gbedford/tgw-crate` (on `gbedford/ts-gen-worker` `583b73d`);
+ts-gen branch `agent/crate` (nothing unlanded).
 
 Everything below is an `impl` on a generated type, a Rust-native helper type, or a
 proc-macro; no wrapper structs. The layer is written against the `--fallible` bindings and
@@ -175,12 +175,8 @@ done in Session 3.
 
 ## Open problems
 
-- **`http` round trip double-wraps streaming bodies.** `TryFrom<http::Request<B>>` is
-  generic over `B`, so a `ByteStream` body goes Rust stream → JS `ReadableStream` → Rust
-  again rather than handing back the original `ReadableStream` (`into_inner()`). Same as
-  `worker`; a non-generic fast path would need specialization or a separate `From`.
-- **`Headers` ↔ `HeaderMap` drops invalid entries silently** (pre-existing in
-  `ext/headers.rs`); `worker` errored. Affects the `http` conversions only.
+None open from Sessions 1–2; the `http` double-wrap and the lossy `Headers` ↔ `HeaderMap`
+conversion were resolved in Session 4.
 
 ## Gaps found
 
@@ -289,6 +285,108 @@ the rebase onto `77390bf` (185 before the session).
   `block_concurrency_while` over a Rust future (blocked on the generic
   `blockConcurrencyWhile<T>` ts-gen gap).
 
+## Session 4: the two `http` open problems and a size/startup comparison
+
+### Done
+
+- **`http` round trip hands the original `ReadableStream` back.** `ByteStream` keeps the JS
+  stream as given and locks it to a reader on the first poll, reading through the generated
+  `ReadableStreamDefaultReader` bindings; `into_inner()` releases the lock and returns the
+  same object with the unread chunks still in it. The conversions back to the platform
+  types recognise a `ByteStream` body by downcast and hand its stream straight through.
+  Test (`ext.spec.ts` "http round trip"): request and response bodies come back as the
+  same object (`==` on the handle), and a partially read stream continues from the next
+  chunk.
+- **`Headers` ↔ `HeaderMap` is `TryFrom`.** A non-ASCII value going to JS, or a byte `http`
+  accepts and the Fetch spec does not (DEL) coming back, is an error naming the header;
+  the `http` interop propagates it. Test: both directions.
+- The test crate always builds the `http` conversions (`ts-gen-worker/http` on the
+  dependency); its own `http` feature only switches the fetch export's signature, so the
+  conversions are exercised by `test:ts-gen-worker` too.
+- `bench/coldstart.mjs` and the measurements below. Suite: 194 passed, 4 skipped in both
+  chomp tasks (192 before).
+
+### Decisions
+
+- **No non-generic `From<http::Request<ByteStream>>`.** The plan asked for one beside the
+  generic `TryFrom<http::Request<B>>`, but core's blanket `impl<T, U: Into<T>> TryFrom<U>
+  for T` makes the two overlap for `B = ByteStream` (a coherence error), and the same holds
+  for `IntoResponse`. Instead the generic impl downcasts the body (`B: 'static` already, so
+  `&mut Option<B> as &mut dyn Any`) and takes the fast path for a `ByteStream`; every
+  caller, including `#[event(fetch)]`, gets it with one API.
+- **`ByteStream` reads through the generated reader bindings, not `wasm_streams`.**
+  `wasm_streams::ReadableStream::into_stream` cancels the stream on drop, which made
+  `into_inner()` after a partial read return a cancelled stream (the first test run proved
+  it: the remainder was empty). The reader form that only releases the lock borrows the
+  wrapper, so it cannot be stored. Reading by hand is forty lines over
+  `get_reader()` / `read_promise()` / `release_lock()` / `cancel()`; `wasm_streams` stays
+  for the Rust → JS direction (`readable_stream_from`).
+- **Drop still cancels.** A polled `ByteStream` that is dropped cancels the JS stream, as
+  `worker`'s did (a dropped body should not leave the producer waiting); only
+  `into_inner()` detaches without cancelling. An unpolled `ByteStream` never locked the
+  stream, so dropping it leaves the stream untouched.
+- **A disturbed stream is still the same stream.** After a partial read, `into_inner()`
+  returns the original object, but the platform refuses a stream that has been read from
+  as a `Response` body (`TypeError: This ReadableStream is disturbed`); a streams consumer
+  can continue it. Documented on `into_inner`.
+- **No lossy header conversion is kept.** Nothing needed it; a caller who wants to drop
+  entries can filter the `HeaderMap` first.
+- **JS `Headers` flatten repeated names.** `Headers → HeaderMap` yields one `x-a: 1, 2`
+  entry for two appended `x-a` headers because that is what `Headers.entries()` yields;
+  only `Set-Cookie` stays separate. Not a conversion bug; noted because the test shows it.
+
+### Measurements
+
+Release builds of the two test workers (`test/` with `worker`, `ts-gen-worker/test` with
+`ts-gen-worker`), same workspace `[profile.release]` (`opt-level = "z"`, `lto`,
+`codegen-units = 1`), same wasm-bindgen, same wasm-opt (binaryen 132 from
+`~/.cache/worker-build`, the feature flags `worker-build` passes). Informational; nothing
+was optimized.
+
+| | `worker` (`test/`) | `ts-gen-worker` (`ts-gen-worker/test`) |
+| --- | ---: | ---: |
+| `cargo build --release` `.wasm` | 14,348,579 | 13,804,798 |
+| after `wasm-bindgen --target module` | 13,430,546 | 12,752,313 |
+| of which code section / data section / `name` | 1,525,206 / 11,059,526 / 811,145 | 1,222,539 / 11,011,941 / 483,320 |
+| after `wasm-opt -Oz` | 7,105,245 | 6,886,283 |
+| of which code section / data section | 1,274,832 / 5,800,039 | 1,100,617 / 5,752,429 |
+| wasm-bindgen `index.js` (+ snippets) | 139,829 (+335) | 152,642 (+239) |
+| shipped by `worker-build --release` (`wasm-opt -O --debuginfo`, esbuild-minified shim + glue) | 7,621,242 + 125,906 | n/a |
+| cold start to first response, median of 10 (two runs) | 207 ms, 190 ms | 194 ms, 168 ms |
+
+The data section (≈5.7 MB after `-Oz`, a segment of mostly `0x01` bytes) is common to
+both workers and dominates both sizes; it comes from the suites' shared dependencies,
+not from either crate, and was not investigated. The code sections are the comparable
+numbers: the generated bindings are 14% smaller than the hand-written `worker-sys` +
+`worker` layer for the same suite. The generated JS glue is 9% larger (every binding is an
+import with its own glue, where `worker` shares `web-sys` imports). Cold start is
+dominated by starting the workerd process under Miniflare (160–280 ms per fresh
+instance); the two are indistinguishable within that noise.
+
+Commands (from the workspace root; `WB=wasm-bindgen/target/debug/wasm-bindgen`,
+`OPT=~/.cache/worker-build/binaryen-x86_64-linux-version_132_jspi_hooks_1/bin/wasm-opt`,
+`FEAT` = the seven `--enable-*` flags in `worker-build/src/build/mod.rs`):
+
+```sh
+cargo build --release --target wasm32-unknown-unknown -p ts-gen-worker-test
+cargo build --release --target wasm32-unknown-unknown -p worker-sandbox
+for p in ts_gen_worker_test:tgw worker_sandbox:worker; do w=${p%%:*}; n=${p##*:}
+  $WB --target module --out-name index --force-enable-abort-handler --out-dir /tmp/bench-$n \
+    target/wasm32-unknown-unknown/release/$w.wasm
+  $OPT -Oz $FEAT -o /tmp/bench-$n/index_bg.oz.wasm /tmp/bench-$n/index_bg.wasm
+done
+(cd test && WASM_BINDGEN_BIN=../wasm-bindgen/target/debug/wasm-bindgen ../target/debug/worker-build --release)
+# cold start: a dir holding index.js, index_bg.wasm (the -Oz one for ts-gen-worker,
+# test/build/index_bg.wasm + test/build/index.js for worker) and snippets/
+cd ts-gen-worker/test
+node ../bench/coldstart.mjs /tmp/cs-tgw index.js /request 10
+node ../bench/coldstart.mjs /tmp/cs-worker index.js /request 10
+```
+
+`/request` rather than `/` because the `worker` suite has no `GET /`. Section sizes
+were read with a twenty-line Python section walker (the `(data ...)` segment identified
+with `wasm-tools print`).
+
 ## Migration table
 
 The non-binding `worker` surface used in `test/src/*.rs` (plus the handler kinds and context
@@ -386,7 +484,7 @@ module. Under `--fallible` every sync binding that can throw returns `Result`, s
 | `headers.entries()` / `for (k, v) in &headers` | same |
 | `headers.keys()` / `values()` | generated `js_sys::Iterator<JsString>` (items are `Result<JsString>`) |
 | `[(k, v)].into_iter().collect::<Headers>()` | same |
-| `HeaderMap` ↔ `Headers` (feature `http`) | `From` both ways |
+| `HeaderMap` ↔ `Headers` (feature `http`) | `TryFrom` both ways (non-ASCII value, DEL byte are errors) |
 | **Router** | |
 | `Router::new()` / `Router::with_data(d)` | `Router::<Env>::new()` / `Router::<Env, D>::with_data(d)` |
 | `.get/post/.._async(pattern, handler)` / `.run(req, env)` | same |

@@ -133,7 +133,7 @@ Request::new_with_str_and_init(url, &RequestInit::builder().method("POST").body_
 `Headers::new()?` or `Headers::default()`; `get`/`has`/`set`/`append`/`delete`/`get_all`
 as before; `for (k, v) in &headers` and `[(k, v)].into_iter().collect::<Headers>()` as
 before. `keys()`/`values()` are the generated JS iterators. `HeaderMap` converts both
-ways under the `http` feature.
+ways under the `http` feature (`try_into()`: a value JS cannot hold is an error).
 
 ## Durable Objects
 
