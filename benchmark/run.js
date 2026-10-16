@@ -1,149 +1,268 @@
 #!/usr/bin/env node
 
 /**
- * Benchmark runner for workers-rs
+ * Benchmark runner: the same routes on plain JS, `worker` and `ts-gen-worker`.
  *
- * This script runs performance benchmarks against the worker server.
- * It measures the time taken to complete a benchmark that makes 10 parallel
- * sub-requests, each streaming 1MB of data internally.
+ * One Miniflare per variant, all built with the same options and alive at once. Requests are
+ * dispatched in-process (`dispatchFetch`) and timed with `performance.now()` from dispatch to
+ * the last body byte. Variants are interleaved request by request, rotating the order each
+ * round, so machine drift lands on all of them alike. Each repetition waits for a 1-minute load
+ * average below 2, measures cold start, starts fresh instances, sends `--prewarm` rounds of
+ * `/hello` to all of them (the Node side of `dispatchFetch` takes hundreds of requests to reach
+ * a steady state), then for every route discards the first `--warmup` requests per variant
+ * and keeps the next `--requests`.
+ *
+ * Build first: `benchmark/build.sh` (or `chomp build:bench`) from the workspace root.
  */
 
 import { Miniflare } from 'miniflare';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { loadavg } from 'node:os';
+import { dirname, join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { parseArgs } from 'node:util';
 
-async function runBenchmark() {
-  console.log('🚀 Starting workers-rs benchmark suite\n');
+const here = dirname(fileURLToPath(import.meta.url));
 
-  // Initialize Miniflare instance with the compiled worker
-  console.log('📦 Initializing Miniflare...');
-  const mf = new Miniflare({
+const { values: args } = parseArgs({
+  options: {
+    requests: { type: 'string', default: '2000' },
+    warmup: { type: 'string', default: '50' },
+    reps: { type: 'string', default: '3' },
+    cold: { type: 'string', default: '10' },
+    prewarm: { type: 'string', default: '500' },
+    routes: { type: 'string' },
+    out: { type: 'string' },
+  },
+});
+const REQUESTS = Number(args.requests);
+const WARMUP = Number(args.warmup);
+const REPS = Number(args.reps);
+const COLD = Number(args.cold);
+const PREWARM = Number(args.prewarm);
+
+const VARIANTS = [
+  { name: 'js', dir: join(here, 'js'), main: 'index.js' },
+  { name: 'worker', dir: join(here, 'build'), main: 'index.js' },
+  { name: 'worker (no shim)', dir: join(here, 'build-noshim'), main: 'entry.js' },
+  { name: 'ts-gen-worker', dir: join(here, '../ts-gen-worker/benchmark/build'), main: 'index.js' },
+];
+
+function collectModules(root) {
+  const modules = {};
+  (function walk(dir) {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const path = join(dir, entry.name);
+      const name = relative(root, path);
+      if (entry.isDirectory()) walk(path);
+      else if (/\.m?js$/.test(name)) modules[name] = { type: 'esm', contents: readFileSync(path, 'utf8') };
+      else if (name.endsWith('.wasm')) modules[name] = { type: 'wasm', contents: new Uint8Array(readFileSync(path)) };
+    }
+  })(root);
+  return modules;
+}
+
+for (const variant of VARIANTS) variant.modules = collectModules(variant.dir);
+
+function miniflare(variant) {
+  return new Miniflare({
     workers: [
       {
         config: {
-          name: 'benchmark',
-          type: 'worker',
-          compatibilityDate: '2025-01-06',
-          manifest: {
-            mainModule: 'build/index.js',
-            modules: {
-              'build/index.js': {
-                type: 'esm',
-                contents: readFileSync('./build/index.js', 'utf8'),
-              },
-              'build/index_bg.wasm': {
-                type: 'wasm',
-                contents: new Uint8Array(readFileSync('./build/index_bg.wasm')),
-              },
-            },
+          name: 'bench',
+          compatibilityDate: '2026-03-17',
+          manifest: { mainModule: variant.main, modules: variant.modules },
+          env: {
+            KV: { type: 'kv', id: 'KV' },
+            SERVICE: { type: 'worker', worker: 'bench' },
           },
         },
-        dev: {
-          outboundService: { type: 'worker', worker: 'benchmark' },
-        },
-      }
-    ]
+      },
+    ],
   });
-
-  const mfUrl = await mf.ready;
-  console.log(`✅ Miniflare ready at ${mfUrl}\n`);
-
-  // Run warmup requests
-  console.log('🔥 Running warmup requests...');
-  for (let i = 0; i < 3; i++) {
-    await mf.dispatchFetch(`${mfUrl}benchmark`);
-  }
-  console.log('✅ Warmup complete\n');
-
-  // Run benchmark iterations
-  const iterations = 20;
-  const results = [];
-
-  console.log(`📊 Running ${iterations} benchmark iterations...\n`);
-
-  for (let i = 0; i < iterations; i++) {
-    const iterStart = Date.now();
-    const response = await mf.dispatchFetch(`${mfUrl}benchmark`);
-    const iterEnd = Date.now();
-
-    const nodeJsDuration = iterEnd - iterStart;
-    const result = await response.json();
-
-    if (!result.success) {
-      console.error(`❌ Iteration ${i + 1} failed:`, result.errors);
-      await mf.dispose();
-      process.exit(1);
-    }
-
-    results.push({
-      iteration: i + 1,
-      nodeJsDuration,
-      workerDuration: result.duration_ms,
-      totalBytes: result.total_bytes,
-      numRequests: result.num_requests,
-    });
-
-    console.log(`  Iteration ${i + 1}:`);
-    console.log(`    Node.js end-to-end time: ${nodeJsDuration}ms`);
-    console.log(`    Worker internal time:    ${result.duration_ms}ms`);
-    console.log(`    Data transferred:        ${(result.total_bytes / (1024 * 1024)).toFixed(2)}MB`);
-    console.log(`    Sub-requests:            ${result.num_requests}`);
-    console.log();
-  }
-
-  // Calculate statistics
-  const nodeJsDurations = results.map(r => r.nodeJsDuration);
-  const workerDurations = results.map(r => r.workerDuration);
-
-  const avgNodeJs = nodeJsDurations.reduce((a, b) => a + b, 0) / iterations;
-  const avgWorker = workerDurations.reduce((a, b) => a + b, 0) / iterations;
-
-  const minNodeJs = Math.min(...nodeJsDurations);
-  const maxNodeJs = Math.max(...nodeJsDurations);
-  const minWorker = Math.min(...workerDurations);
-  const maxWorker = Math.max(...workerDurations);
-
-  // Print summary
-  console.log('━'.repeat(60));
-  console.log('📈 BENCHMARK SUMMARY');
-  console.log('━'.repeat(60));
-  console.log();
-  console.log('Node.js End-to-End Time:');
-  console.log(`  Average: ${avgNodeJs.toFixed(2)}ms`);
-  console.log(`  Min:     ${minNodeJs.toFixed(2)}ms`);
-  console.log(`  Max:     ${maxNodeJs.toFixed(2)}ms`);
-  console.log();
-  console.log('Worker Internal Time:');
-  console.log(`  Average: ${avgWorker.toFixed(2)}ms`);
-  console.log(`  Min:     ${minWorker.toFixed(2)}ms`);
-  console.log(`  Max:     ${maxWorker.toFixed(2)}ms`);
-  console.log();
-  console.log('Benchmark Configuration:');
-  console.log(`  Parallel sub-requests:    10`);
-  console.log(`  Data per sub-request:     1MB`);
-  console.log(`  Total data per iteration: 10MB`);
-  console.log(`  Iterations:               ${iterations}`);
-  console.log();
-  console.log('━'.repeat(60));
-
-  // Calculate throughput
-  const totalBytes = results[0].totalBytes;
-  const throughputMbps = (totalBytes * 8 / (avgWorker / 1000)) / (1024 * 1024);
-  console.log(`🚀 Average throughput: ${throughputMbps.toFixed(2)} Mbps`);
-  console.log('━'.repeat(60));
-
-  // Write results JSON if BENCH_RESULT env is set
-  const resultPath = process.env.BENCH_RESULT;
-  if (resultPath) {
-    writeFileSync(resultPath, JSON.stringify(results, null, 2));
-    console.log(`\n📁 Results written to ${resultPath}`);
-  }
-
-  // Cleanup
-  await mf.dispose();
-  console.log('\n✅ Benchmark complete!');
 }
 
-runBenchmark().catch((error) => {
-  console.error('❌ Benchmark failed:', error);
-  process.exit(1);
-});
+// Deterministic payloads: 16 KB of ASCII for /echo, ~2 KB of JSON for /json.
+const ECHO = Array.from({ length: 16384 }, (_, i) => String.fromCharCode(97 + ((i * 7) % 26))).join('');
+const PAYLOAD = {
+  id: 41,
+  name: 'benchmark payload',
+  active: true,
+  score: 98.25,
+  tags: ['alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta', 'eta', 'theta'],
+  items: Array.from({ length: 28 }, (_, i) => ({ id: i, label: `item-${i}-label`, qty: i % 7, price: 1.5 + i })),
+};
+const PAYLOAD_JSON = JSON.stringify(PAYLOAD);
+const HEADERS = Object.fromEntries([1, 2, 3, 4, 5].map((i) => [`x-h${i}`, `request-value-${i}`]));
+
+const decode = (body) => new TextDecoder().decode(body);
+
+const HELLO = { name: 'hello', path: '/hello', check: (body) => decode(body) === 'hello' };
+const ROUTES = [
+  HELLO,
+  {
+    name: 'headers',
+    path: '/headers',
+    init: { headers: HEADERS },
+    check: (_, res) => [1, 2, 3, 4, 5].every((i) => res.headers.get(`x-o${i}`) === HEADERS[`x-h${i}`]),
+  },
+  { name: 'echo', path: '/echo', init: { method: 'POST', body: ECHO }, check: (body) => decode(body) === ECHO },
+  {
+    name: 'json',
+    path: '/json',
+    init: { method: 'POST', body: PAYLOAD_JSON, headers: { 'content-type': 'application/json' } },
+    check: (body) => {
+      const out = JSON.parse(decode(body));
+      return out.id === PAYLOAD.id + 1 && JSON.stringify({ ...out, id: PAYLOAD.id }) === PAYLOAD_JSON;
+    },
+  },
+  { name: 'kv', path: '/kv', check: (body) => decode(body) === 'v'.repeat(1024) },
+  { name: 'stream', path: '/stream', check: (body) => body.byteLength === 1024 * 1024 },
+  { name: 'fanout', path: '/fanout', check: (body) => decode(body) === '50' },
+].filter((route) => !args.routes || args.routes.split(',').includes(route.name));
+
+async function hit(mf, route, variant) {
+  const t0 = performance.now();
+  const res = await mf.dispatchFetch(`http://bench${route.path}`, route.init);
+  const body = await res.arrayBuffer();
+  const ms = performance.now() - t0;
+  if (res.status !== 200 || !route.check(body, res)) {
+    throw new Error(`${variant.name} ${route.path}: ${res.status} ${decode(body).slice(0, 200)}`);
+  }
+  return ms;
+}
+
+async function quiet() {
+  for (let waited = 0; ; waited += 10) {
+    const load = loadavg()[0];
+    if (load < 2) return load;
+    if (waited >= 600) throw new Error(`load average ${load.toFixed(2)} stayed >= 2 for 10 minutes`);
+    console.log(`  load ${load.toFixed(2)} >= 2, waiting`);
+    await new Promise((resolve) => setTimeout(resolve, 10_000));
+  }
+}
+
+const percentile = (sorted, q) => sorted[Math.min(sorted.length - 1, Math.ceil(q * sorted.length) - 1)];
+const median = (xs) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
+
+function stats(samples) {
+  const sorted = [...samples].sort((a, b) => a - b);
+  const mean = samples.reduce((a, b) => a + b, 0) / samples.length;
+  return {
+    n: samples.length,
+    p50: percentile(sorted, 0.5),
+    p90: percentile(sorted, 0.9),
+    p99: percentile(sorted, 0.99),
+    mean,
+    // Sequential: one request in flight, so throughput is the inverse of the mean latency.
+    rps: 1000 / mean,
+  };
+}
+
+// Fresh instance per sample: `new Miniflare` to first response (process start, module
+// evaluation, first request), and `ready` to first response (the first request alone).
+async function coldStart() {
+  const total = VARIANTS.map(() => []);
+  const first = VARIANTS.map(() => []);
+  // The first instance in a process also pays Miniflare's own one-time setup.
+  const discard = miniflare(VARIANTS[0]);
+  await hit(discard, HELLO, VARIANTS[0]);
+  await discard.dispose();
+  for (let i = 0; i < COLD; i++) {
+    for (let k = 0; k < VARIANTS.length; k++) {
+      const v = (i + k) % VARIANTS.length;
+      const t0 = performance.now();
+      const mf = miniflare(VARIANTS[v]);
+      await mf.ready;
+      const t1 = performance.now();
+      await hit(mf, HELLO, VARIANTS[v]);
+      const t2 = performance.now();
+      await mf.dispose();
+      total[v].push(t2 - t0);
+      first[v].push(t2 - t1);
+    }
+  }
+  return VARIANTS.map((_, v) => ({ total: median(total[v]), first: median(first[v]) }));
+}
+
+async function repetition(rep) {
+  const loadBefore = await quiet();
+  console.log(`rep ${rep + 1}/${REPS}: load ${loadBefore.toFixed(2)}`);
+  const cold = COLD > 0 ? await coldStart() : [];
+  const instances = [];
+  for (const variant of VARIANTS) {
+    const mf = miniflare(variant);
+    await mf.ready;
+    instances.push(mf);
+  }
+  const routes = {};
+  try {
+    for (let i = 0; i < PREWARM; i++) {
+      for (let v = 0; v < VARIANTS.length; v++) await hit(instances[v], HELLO, VARIANTS[v]);
+    }
+    for (const route of ROUTES) {
+      const samples = VARIANTS.map(() => []);
+      for (let i = 0; i < WARMUP + REQUESTS; i++) {
+        for (let k = 0; k < VARIANTS.length; k++) {
+          const v = (i + k) % VARIANTS.length;
+          const ms = await hit(instances[v], route, VARIANTS[v]);
+          if (i >= WARMUP) samples[v].push(ms);
+        }
+      }
+      routes[route.name] = samples.map((xs) => ({ ...stats(xs), samples: xs }));
+      const line = VARIANTS.map((variant, v) => `${variant.name} ${routes[route.name][v].p50.toFixed(3)}`).join('  ');
+      console.log(`  ${route.name.padEnd(8)} p50 ms: ${line}`);
+    }
+  } finally {
+    await Promise.all(instances.map((mf) => mf.dispose()));
+  }
+  return { loadBefore, loadAfter: loadavg()[0], cold, routes };
+}
+
+function sizes(variant) {
+  const wasm = Object.entries(variant.modules).find(([name]) => name.endsWith('.wasm'));
+  // `worker/shim.mjs` is worker-build's re-export alias of `index.js`.
+  const js = Object.keys(variant.modules).filter((name) => /\.m?js$/.test(name) && name !== 'worker/shim.mjs');
+  const jsBytes = js.reduce((n, name) => n + statSync(join(variant.dir, name)).size, 0);
+  return { wasm: wasm ? wasm[1].contents.byteLength : 0, js: jsBytes };
+}
+
+const results = [];
+for (let rep = 0; rep < REPS; rep++) results.push(await repetition(rep));
+
+const fmt = (ms) => ms.toFixed(3);
+console.log(`\n${REQUESTS} requests per route per variant after ${WARMUP} warmup, ${REPS} repetitions;`);
+console.log('each cell is the median over repetitions, with the p50 range over repetitions.\n');
+console.log('| route | variant | p50 ms | p50 range | p90 ms | p99 ms | req/s |');
+console.log('| --- | --- | ---: | ---: | ---: | ---: | ---: |');
+for (const route of ROUTES) {
+  VARIANTS.forEach((variant, v) => {
+    const per = results.map((r) => r.routes[route.name][v]);
+    const p50s = per.map((s) => s.p50);
+    const cells = [
+      fmt(median(p50s)),
+      `${fmt(Math.min(...p50s))}–${fmt(Math.max(...p50s))}`,
+      fmt(median(per.map((s) => s.p90))),
+      fmt(median(per.map((s) => s.p99))),
+      median(per.map((s) => s.rps)).toFixed(0),
+    ];
+    console.log(`| \`${route.path}\` | ${variant.name} | ${cells.join(' | ')} |`);
+  });
+}
+if (COLD > 0) {
+  console.log(`\n| variant | .wasm bytes | JS bytes | cold start ms (new Miniflare → response) | first request ms (ready → response) |`);
+  console.log('| --- | ---: | ---: | ---: | ---: |');
+  VARIANTS.forEach((variant, v) => {
+    const { wasm, js } = sizes(variant);
+    const total = results.map((r) => fmt(r.cold[v].total)).join(', ');
+    const first = results.map((r) => fmt(r.cold[v].first)).join(', ');
+    console.log(`| ${variant.name} | ${wasm} | ${js} | ${total} | ${first} |`);
+  });
+}
+console.log(`\nload average before/after each repetition: ${results.map((r) => `${r.loadBefore.toFixed(2)}/${r.loadAfter.toFixed(2)}`).join(', ')}`);
+
+const out = args.out ?? process.env.BENCH_RESULT;
+if (out) {
+  writeFileSync(out, JSON.stringify({ requests: REQUESTS, warmup: WARMUP, variants: VARIANTS.map((v) => v.name), results }));
+  console.log(`results written to ${out}`);
+}

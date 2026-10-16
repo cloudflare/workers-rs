@@ -11,6 +11,7 @@ members = [
     "ts-gen-worker",
     "ts-gen-worker-macros",
     "ts-gen-worker/test",
+    "ts-gen-worker/benchmark",
 ]
 exclude = [
     "examples/coredump",

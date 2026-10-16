@@ -1,16 +1,81 @@
+use serde::{Deserialize, Serialize};
 use worker::wasm_bindgen::JsCast;
 use worker::*;
 
 #[event(fetch)]
-async fn main(req: Request, _env: Env, _ctx: Context) -> Result<Response> {
-    let url = req.url()?;
-    let path = url.path();
-
-    match path {
+async fn main(mut req: Request, env: Env, _ctx: Context) -> Result<Response> {
+    match req.path().as_str() {
+        "/hello" => Response::ok("hello"),
+        "/headers" => handle_headers(&req),
+        "/echo" => Response::ok(req.text().await?),
+        "/json" => handle_json(&mut req).await,
+        "/kv" => handle_kv(&env).await,
         "/stream" => handle_stream().await,
-        "/benchmark" => handle_benchmark(&url).await,
+        "/fanout" => handle_fanout(&env).await,
+        "/benchmark" => handle_benchmark(&req.url()?).await,
         _ => Response::error("Not Found", 404),
     }
+}
+
+fn handle_headers(req: &Request) -> Result<Response> {
+    let headers = req.headers();
+    let mut values = Vec::with_capacity(5);
+    for name in ["x-h1", "x-h2", "x-h3", "x-h4", "x-h5"] {
+        values.push(headers.get(name)?.unwrap_or_default());
+    }
+    Ok(ResponseBuilder::new()
+        .with_header("x-o1", &values[0])?
+        .with_header("x-o2", &values[1])?
+        .with_header("x-o3", &values[2])?
+        .with_header("x-o4", &values[3])?
+        .with_header("x-o5", &values[4])?
+        .empty())
+}
+
+#[derive(Deserialize, Serialize)]
+struct Payload {
+    id: u64,
+    name: String,
+    active: bool,
+    score: f64,
+    tags: Vec<String>,
+    items: Vec<Item>,
+}
+
+#[derive(Deserialize, Serialize)]
+struct Item {
+    id: u32,
+    label: String,
+    qty: u32,
+    price: f64,
+}
+
+async fn handle_json(req: &mut Request) -> Result<Response> {
+    let mut payload: Payload = req.json().await?;
+    payload.id += 1;
+    Response::from_json(&payload)
+}
+
+async fn handle_kv(env: &Env) -> Result<Response> {
+    let kv = env.kv("KV")?;
+    let value = match kv.get("bench").text().await? {
+        Some(value) => value,
+        None => "v".repeat(1024),
+    };
+    kv.put("bench", &value)?.execute().await?;
+    Response::ok(value)
+}
+
+/// Makes 10 parallel sub-requests to `/hello` through the service binding to this worker.
+async fn handle_fanout(env: &Env) -> Result<Response> {
+    let service = env.service("SERVICE")?;
+    let tasks = (0..10).map(|_| async {
+        let mut res = service.fetch("http://bench/hello", None).await?;
+        res.text().await
+    });
+    let bodies = futures_util::future::try_join_all(tasks).await?;
+    let total: usize = bodies.iter().map(String::len).sum();
+    Response::ok(total.to_string())
 }
 
 /// Streams 1MB of data in chunks

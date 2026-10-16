@@ -76,7 +76,11 @@ ts-gen --input ts-gen-worker/test/types/env.d.ts --output ts-gen-worker/test/src
   --external "RateLimit=::ts_gen_worker::RateLimit" \
   --external "SendEmail=::ts_gen_worker::SendEmail" \
   --external "D1Database=::ts_gen_worker::D1Database" \
-  --external "R2Bucket=::ts_gen_worker::R2Bucket"'''
+  --external "R2Bucket=::ts_gen_worker::R2Bucket"
+ts-gen --input ts-gen-worker/benchmark/types/env.d.ts --output ts-gen-worker/benchmark/src/env.rs \
+  --fallible --error-type ts_gen_worker::Error \
+  --external "KVNamespace=::ts_gen_worker::KVNamespace" \
+  --external "Fetcher=::ts_gen_worker::Fetcher"'''
 
 [[task]]
 name = 'build:ts-gen-worker'
@@ -106,6 +110,18 @@ deps = ['build:ts-gen-worker-http']
 cwd = 'ts-gen-worker/test'
 env.NODE_OPTIONS = '--experimental-vm-modules'
 run = 'npx vitest run --root .'
+
+# The plain JS, `worker` and `ts-gen-worker` benchmark workers (see benchmark/README.md).
+[[task]]
+name = 'build:bench'
+deps = ['build']
+run = 'benchmark/build.sh'
+
+[[task]]
+name = 'bench'
+deps = ['build:bench']
+cwd = 'benchmark'
+run = 'node run.js'
 
 [[task]]
 name = 'build:wasm-bindgen'

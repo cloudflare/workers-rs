@@ -3087,6 +3087,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ts-gen-worker-benchmark"
+version = "0.0.0"
+dependencies = [
+ "futures-util",
+ "js-sys",
+ "serde",
+ "ts-gen-worker",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "ts-gen-worker-macros"
 version = "0.1.0"
 dependencies = [
