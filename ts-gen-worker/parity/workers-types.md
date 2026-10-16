@@ -153,6 +153,9 @@ test-suite port on the `ext/` layer and macros, with the http feature):
   `unchecked_into::<Array>()` and `d1.rs` deserializes `Vec<Array>` rows. On the rebase onto
   `cb8cd7d` the new `ext/` surface lost three more (`KvStore`'s `get_with_metadata_…` calls,
   `Delay`'s `set_timeout_with_ms_delay`).
+- `c9e4c10` Regenerated from the restacked ts-gen tip `2171ea7` (on main `a306021`); statics
+  lower-cased, `cloudflare::*` module items re-exported flat, one ts-gen regression hand-patched
+  (see "Restack regressions (session 11)").
 
 ## Decisions
 
@@ -433,6 +436,75 @@ Also from the rebase: string enums in unions are enum payload variants (`Iso3166
 Iso3166Alpha2Code)`), which needs wasm-bindgen#5376 — the `wasm-bindgen` submodule carries that
 commit (`1ea319f65`) on top of the `reinit = "reconstruct"` branch; it is local until that branch
 is pushed. The regenerated `bindings.rs` is 561 lines shorter than before the rebase.
+
+## Restack regressions (session 11)
+
+Bindings regenerated from the restacked tip (ts-gen `2171ea7` on main `a306021`, `c9e4c10`).
+`chomp test:ts-gen-worker` and `-http`: 194 passed / 4 skipped each (baseline unchanged);
+`worker`'s own `chomp test`: 145 passed / 4 skipped. No spec went red; nothing was loosened.
+`bindings.rs` diff: 647 lines, every hunk below.
+
+| # | Change (old → new) | Cause | Port change | Class |
+|---|---|---|---|---|
+| 1 | `EmailAttachment::new_inline*` / `new_attachment*` bodies: `inner.set_disposition("inline")` against `set_disposition(val: DispositionKind)`; does not compile, in `bindings.rs` **and** `worker/src/bindings/email.rs` | main #39 `88d0863` (enum setters by value) meets the discriminated-union branch factory, which still bakes the raw literal; present on main's own `workers-types` snapshot | hand patch, marked `// ts-gen regression:`: `bindings.rs` 19146, 19164, 19182 (`Inline`), 19225, 19241, 19257 (`Attachment`); `email.rs` 201, 219, 237, 280, 296, 312 | **regression** (ts-gen bug 1) |
+| 2 | `WebSocket`, `RequestInitCfProperties`, `IncomingRequestCfPropertiesBase`, `CloudflareAccessIdentity`: `derive(PartialEq, Eq)` → `derive(PartialEq)` | main #81 `70e8b95` `derive_eq` (first parent written with TS args: `EventTarget<WebSocketEventMap>`, `Record<string, unknown>`), kept for non-generic types by the restack | none (nothing in the port uses `Eq`) | **regression**: `worker::WebSocket` is `Eq`; no `HashSet<WebSocket>` (ts-gen bug 2) |
+| 3 | `pub static CONSOLE/CRYPTO/CACHES/PERFORMANCE` → `console/crypto/caches/performance` with `#[allow(non_upper_case_globals)]` | main #45 `2191f49` | ~20 call sites renamed (`ext/console.rs`, `lib.rs`, `test/src`); `#[allow(non_upper_case_globals)] mod bindings;` in `lib.rs`, since the pinned wasm-bindgen (`1ea319f65`) predates #5377 and drops the per-static `allow` (clippy `-D warnings` fails otherwise) | neutral drift |
+| 4 | `connect`, `connect_with_*` → `cloudflare::sockets::…`; `EmailMessage` → `cloudflare::email::EmailMessage` (both crates; `ForwardableEmailMessage extends = cloudflare::email::EmailMessage`) | main #94 `76a5d01`; roots closure `b1314e1` places module declarations in their nested `pub mod` | `pub use` re-exports in `ts-gen-worker/src/lib.rs` and `worker/src/email.rs`; flat spelling unchanged at every call site | neutral drift |
+| 5 | `pub type Cloudflare` (`compatibilityFlags`) gone; `pub mod cloudflare` gains the `Cloudflare` namespace's `Env`, `GlobalProps` and the `GlobalProp`/`MainModule`/`Exports` aliases | `e011e0f` (closure through namespace owners): `Cloudflare.Exports` now reaches the namespace, not the merged interface; #88/#94 share one `pub mod` | none (unused; `exports()` was and is `JsValue`) | neutral drift (not a root) |
+| 6 | string-enum setters and builder methods `&str` → enum by value: `Response::set_type(TypeKind)`, `ResponseInit` / `RequestInit` `encode_body(EncodeBodyKind)`, `cache(CacheKind)`, `WebSocket::set_binary_type`, `EmailAttachment::set_disposition`, cf `polish`/`grpc_web`, image `fit`/`gravity`/`trim`/`flip`/`format`/…, container stdio | main #39 | `.encode_body("manual")` → `.encode_body(EncodeBodyKind::Manual)` (2 sites) | improvement (typed; breaking for `&str` callers) |
+| 7 | mixed-union setters renamed with the type: `set_country_with_js_value(&str)` → `set_country_with_country_kind(CountryKind)`; likewise `stdin`, `repeat`, `quality` (and builder methods) | main #39 enum payloads + #80 `eaa84b2` setter routing | none | improvement (typed; breaking rename) |
+| 8 | `set_rotate(f64)` → `set_rotate(RotateKind)` (`0 \| 90 \| 180 \| 270 \| 360`) | main #39 / #84 | none | improvement |
+| 9 | `Array<T>` → `Vec<T>` returns and `&Array<T>` → `&[T]` arguments over a type parameter: `D1Result::results`, `KVNamespaceListResult::keys`, `MessageBatch::messages`, `SqlStorageCursor::to_array`, their factories | `809a44e` dropped; main #96 `7e3d3dd` | `.keys().length()` → `.keys().len()` (3 sites) | neutral drift |
+| 10 | `slice_to_array` dropped on variadics and handle slices (`console.*`, D1 `bind`/`batch`, R2 `complete`, `Blob`/`File` bits, `AbortSignal.any`, email attachments/recipients); added on `&[f64]` (`AnalyticsEngineDataPoint::set_doubles`) | main #96 | none; D1 batch/bind and R2 multipart specs confirm handle slices still cross as an `Array` on the pinned wasm-bindgen | neutral drift; `set_doubles` improvement (`Array`, not a `Float64Array` view) |
+| 11 | `IncomingRequestCfProperties::bot_management() -> JsValue` → `IncomingRequestCfPropertiesBotManagementBase` (also the enterprise variant and every factory) | main #81 (member-position intersection bounded to its most specific member) | none | improvement (enterprise `ja3Hash` reachable only by cast) |
+| 12 | `#[wasm_bindgen(private)]` on every generated enum | main #39 | none | neutral drift |
+
+### ts-gen bugs found
+
+1. **Discriminated-union branch factory passes a literal to an enum setter** (on main). Input:
+   ```ts
+   type Att =
+     | { disposition: "inline"; id: string }
+     | { disposition: "attachment"; name: string };
+   declare function send(a: Att): void;
+   ```
+   Output: `set_disposition(this: &Att, val: DispositionKind)` but `new_inline` does
+   `inner.set_disposition("inline")`. The interface-field form (`certRevoked: "1" | "0"`) already
+   bakes `CertRevokedKind::_1`; the branch factory needs the same literal → variant mapping.
+2. **`derive_eq` drops `Eq` where the parent has it.** Input:
+   ```ts
+   declare class Target<M = {}> { on(): void; }
+   interface Sock extends Target<{ a: string }> { send(): void; }
+   declare var Sock: { prototype: Sock; new (): Sock };
+   interface Props extends Record<string, unknown> { a?: string }
+   declare function f(p: Props): Sock;
+   ```
+   Output: `Sock` and `Props` derive `PartialEq` only, while `declare class Sock extends
+   Target<{…}>` derives `PartialEq, Eq`. `Target<M>` carries the handle-identity `Eq` from the
+   generics layer, so #81's reason for dropping `Eq` no longer holds. Before the restack these
+   types derived `Eq` and compiled.
+
+Not ts-gen: the pinned `wasm-bindgen` (`1ea319f65`) lacks #5377, which main's pin (`2df31ba`) has;
+moving the submodule there removes the `allow` on `mod bindings`. Also, `~/.cargo/bin/ts-gen` is
+shared by every worktree, so whichever agent ran `cargo install` last decides what everyone
+generates with. Reinstall from this worktree's `ts-gen/` before every regeneration (this session
+did).
+
+### Migration-table deltas (for workers-rs-4 / MIGRATING.md)
+
+- Global statics: `console`, `caches`, `crypto`, `performance` (lower-case, like JS);
+  `console.with(|c| c.log(..))`, `caches.with(CacheStorage::default)`. The `console_log!`-style
+  macros are unchanged.
+- `connect`, `EmailMessage`: unchanged spelling at the crate root (re-exported); the canonical
+  paths are `cloudflare::sockets::connect` and `cloudflare::email::EmailMessage`.
+- String-enum options take the enum, not a string: `.encode_body(EncodeBodyKind::Manual)`,
+  `.cache(CacheKind::NoStore)`, `set_binary_type(BinaryTypeKind::Arraybuffer)`,
+  `EmailAttachment::set_disposition(DispositionKind::Inline)`; mixed setters are named after the
+  type (`set_country_with_country_kind(CountryKind::…)`).
+- `D1Result::results()`, `KVNamespaceListResult::keys()`, `MessageBatch::messages()`,
+  `SqlStorageCursor::to_array()` return `Vec<T>` (`.len()`, slice iteration) instead of
+  `Array<T>`.
+- `WebSocket` is `PartialEq` but no longer `Eq` (bug 2 above).
 
 ## Review follow-up
 
