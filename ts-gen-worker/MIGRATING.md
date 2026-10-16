@@ -13,6 +13,13 @@ Every sync binding that can throw returns `Result`, so a few calls gain a `?`
 (`Headers::new()?`, `ctx.pass_through_on_exception()?`). Awaited values come back as
 native types (`text().await?` is a `String`, `status()` is a `u16`).
 
+Arguments spell which empty the JS type admits: `x?: T` takes `Option<&T>`, `T | null`
+takes `&js_sys::JsNullable<T>` (`&JsNullable::wrap(v)` or `&JsNullable::new()`). String-enum
+options take the generated enum (`EncodeBodyKind::Manual`, `CacheKind::NoStore`,
+`BinaryTypeKind::Arraybuffer`), and arrays come back as `Vec<T>`. The JS globals are
+lower-case statics: `console`, `caches`, `crypto`, `performance` (`caches.with(CacheStorage::default)`
+is `worker`'s `Cache::default()`).
+
 ## Env
 
 `worker::Env` was dynamic (`env.kv("X")?`). Here the app declares its bindings in a
@@ -53,8 +60,8 @@ async fn main(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response>
 `http::Request`/`http::Response` handler signature work as before. Differences:
 
 * `scheduled` receives a `ScheduledController` and an `ExecutionContext`.
-* `queue` receives an untyped `MessageBatch`; deserialize each message with
-  `message.body_into::<T>()?`.
+* `queue` receives an untyped `MessageBatch`; `batch.messages()` is a `Vec<Message>`;
+  deserialize each message with `message.body_into::<T>()?`.
 * `connect` has no `(udp)` form: one handler serves TCP and UDP and dispatches on the
   socket's protocol.
 * `ctx.wait_until(fut)` is `ctx.spawn(fut)?`; the generated `wait_until(&Promise)` keeps
@@ -82,8 +89,9 @@ Response::builder().status(201).header("x-a", "1")?.ok("hi")
 ```
 
 `with_headers(h)` is `.headers(&h)`, `with_cors(&c)?` is `.cors(&c)?`, `with_websocket(ws)`
-is `.web_socket(&ws)`, `with_encode_body(EncodeBody::Manual)` is `.encode_body("manual")`,
-`with_cf(v)?` is `.cf(&serde_wasm_bindgen::to_value(&v)?)`.
+is `.web_socket(&JsNullable::wrap(ws))`, `with_encode_body(EncodeBody::Manual)` is
+`.encode_body(EncodeBodyKind::Manual)`, `with_cf(v)?` is
+`.cf(&serde_wasm_bindgen::to_value(&v)?)`.
 
 A JS `Response` is immutable, so `res.with_status(..)` does not exist; split and
 re-construct as `worker`'s `into_parts` did:
@@ -121,8 +129,13 @@ Request::new_with_init(url, &RequestInit::new().with_method(Method::Post).with_b
 
 // ts-gen-worker
 Request::new_with_method(url, Method::Post)?
-Request::new_with_str_and_init(url, &RequestInit::builder().method("POST").body_with_str(b).build())?
+Request::new_with_str_and_init(
+    url,
+    &RequestInit::builder().method("POST").body_with_str(&JsNullable::wrap(b.into())).build(),
+)?
 ```
+
+`with_cache(CacheMode::NoStore)` is `.cache(CacheKind::NoStore)`.
 
 `Fetch::Url(..).send()`, `Fetch::Request(..).send_with_signal(&signal)` and
 `AbortController::default()` are unchanged (`Fetch::Url` holds a `String`); the generated
@@ -150,7 +163,8 @@ impl DurableObject for Counter {
 ```
 
 `websocket_message` receives a `DataKind` (`String(s)` / `ArrayBuffer(buf)`) instead of
-`WebSocketIncomingMessage`; `websocket_close`/`websocket_error` are unchanged.
+`WebSocketIncomingMessage`; `websocket_close`/`websocket_error` are unchanged. `WebSocket`
+is `PartialEq` but not `Eq`, so it cannot key a `HashSet`.
 
 ```rust
 // worker                                         // ts-gen-worker
@@ -178,7 +192,7 @@ kv.list().prefix(p).execute().await?        kv.list_builder().prefix(p).execute(
 ```
 
 `get_bulk`, `put_bytes`, `put_stream` keep their names. `list()` returns the generated
-`KVNamespaceListResult` (`keys()` is an `Array`, `list_complete()`, `cursor()`).
+`KVNamespaceListResult` (`keys()` is a `Vec`, `list_complete()`, `cursor()`).
 
 ## Errors
 

@@ -541,10 +541,105 @@ node run.js --routes echo --cold 0
 node run.js --routes echo --cold 0 --warmup 1000
 ```
 
+## Session 6: the benchmark on the restacked bindings
+
+### Done
+
+- `gbedford/tgw-crate` reset to `ceb6811` (bindings from ts-gen `2171ea7`, wasm-bindgen
+  `1ea319f65`), with the two Session 5 benchmark commits re-applied on top since `ceb6811`
+  does not carry them. `ts-gen` reinstalled from the submodule; `build:ts-gen-worker:types`
+  leaves `ts-gen-worker/benchmark/src/env.rs` unchanged.
+- Session 5 protocol rerun unchanged: `chomp build:bench`, `node run.js` (3 repetitions × 2000
+  per route per variant after 50 discarded, all four variants interleaved, load before each
+  repetition 1.79 / 1.75 / 1.91).
+- Migration table and `MIGRATING.md` updated for the `parity/workers-types.md` deltas (see
+  Decisions).
+
+### Results
+
+The `worker` and `worker (no shim)` builds are byte-identical to Session 5 (`.wasm` and glue),
+so they measure machine drift only. Δ is Session 6 minus Session 5 of the median p50; the
+paired column is `ts-gen-worker` minus `worker` p50 within each repetition (µs, reps 1/2/3),
+which cancels drift that hits both.
+
+| route | ts-gen-worker S5 → S6 ms | Δ µs | worker S5 → S6 ms | Δ µs | js Δ µs | paired S5 | paired S6 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `/hello` | 0.774 → 0.759 | −15 | 0.811 → 0.790 | −21 | −4 | −36/−71/−39 | −56/−28/−22 |
+| `/headers` | 0.736 → 0.742 | +6 | 0.767 → 0.762 | −5 | +5 | −17/−28/−48 | −40/−20/−29 |
+| `/echo` | 1.099 → 1.079 | −20 | 1.121 → 1.119 | −1 | +8 | −44/−51/+207 | −32/−47/−29 |
+| `/json` | 0.990 → 0.998 | +7 | 1.042 → 1.062 | +21 | +21 | −53/−51/−25 | −62/−66/−63 |
+| `/kv` | 2.682 → 2.501 | −181 | 2.734 → 2.544 | −190 | −177 | −81/−23/−1 | −57/−52/−36 |
+| `/stream` | 7.168 → 7.354 | +186 | 7.189 → 7.459 | +271 | +437 | −10/+67/−111 | +15/−93/−105 |
+| `/fanout` | 1.275 → 1.286 | +11 | 1.625 → 1.660 | +35 | +15 | −338/−351/−351 | −374/−370/−331 |
+
+| ts-gen-worker | Session 5 | Session 6 |
+| --- | ---: | ---: |
+| `.wasm` after `-Oz` | 120,933 | 120,656 |
+| of which code / data | 96,548 / 17,915 | 96,318 / 17,915 |
+| glue `index.js` | 33,991 | 33,871 |
+| `grep -c '^function\|^const .* = function'` | 23 | 23 |
+| glue import shims / wasm imports / wasm exports | 69 / 77 / 33 | 69 / 77 / 31 |
+| cold start ms, median of 10 (reps 1/2/3) | 130.5/120.6/126.5 | 119.0/123.8/138.2 |
+| first request ms after `ready` (reps 1/2/3) | 5.48/7.29/4.50 | 7.19/5.52/4.54 |
+
+`worker` cold start in Session 6: 124.3/123.1/140.3 ms, first request 8.71/8.51/5.44 ms.
+
+**Reading.** No route got slower. The absolute p50s moved by the same amount for all four
+variants, plain JS included (`/kv` about −180 µs, `/stream` +186 to +437 µs), and `worker`,
+whose code did not change, moved further than `ts-gen-worker` on five of seven routes
+(`/hello`, `/json`, `/kv`, `/stream`, `/fanout`); those deltas are machine drift. Paired against
+`worker`, the median moves by −83 to +12 µs per route; the two positive ones (`/hello` +11,
+`/echo` +12) are inside the Session 6 spread of the paired values (34 and 18 µs). For scale,
+the shim's cost (`worker` minus `worker (no shim)`, the same bytes in both sessions) went from
+21–35 to −3–18 µs on `/hello` and from 19–47 to 1–10 µs on `/headers`: cross-session
+differences of about 25 µs are not attributable to anything. That matches the glue diff, which
+touches no route's imports: the variadic `console.error` reads its arguments as a view instead
+of copying and freeing them (drops the `__externref_drop_slice` and `__wbindgen_free` exports;
+reached only from the error path), the `CONSOLE` accessor is renamed `console`, and the
+unused `RotateKind` is no longer exported. The import list is otherwise identical.
+
+### Decisions
+
+- **Both workers-types delta lists applied.** Session 11's list (lower-case globals, enum
+  options, `Vec` returns, `WebSocket` not `Eq`, the `cloudflare::*` paths) and the earlier
+  rebased-stack list (`JsNullable` arguments), since the table still showed the pre-#51 forms
+  (`.web_socket(&ws)`, `.body_with_str(..)`). Rows changed: queue `messages()`, email
+  `EmailMessage` path, `.with_websocket`, `.with_encode_body`, `RequestInit` body, KV list
+  `keys()`; rows added: `.with_cache`, `Cache::default()` (with the globals), `WebSocket: Eq`.
+  The R2, `KVNamespaceListOptions`, `clear_timeout` and `EmailAttachment` deltas have no row:
+  the table excludes those APIs, or `ext/` hides the change (the KV list builder). Every new
+  form is checked against `bindings.rs` and the port's call sites.
+
+### Open problems
+
+- **The `/echo` slow mode is in the shim-free entry, not in the bindings** (update to
+  Session 5's open problem). This run, `worker (no shim)` was in it for all of repetition 1
+  (p50 1.488 ms, +285 µs over `worker`) and for the first 400 measured requests of
+  repetition 2. `ts-gen-worker` was in it for the first 400 requests of every repetition
+  (median of the first 400 +276 to +382 µs above the last 1600), which is where its `/echo`
+  p90 (1.502 vs `worker` 1.296 ms) comes from. `worker` with its shim never was, in either
+  session (its first 400 sit at most +122 µs above the rest, as plain JS's do). The two
+  variants that show it share the direct `export default` entry (no `WorkerEntrypoint` class
+  or `Proxy` in front of the export) and differ in glue, so the generated bindings are not
+  needed to produce it. The CPU-profile proposal stands,
+  now comparing `worker` to `worker (no shim)`; a longer per-route warmup would take the
+  effect out of the steady-state numbers.
+
+### Commands
+
+As Session 5, plus the comparison scripts (not committed):
+
+```sh
+benchmark/build.sh
+cd benchmark && node run.js --out /tmp/opencode/wr4-s6-results.json
+node /tmp/opencode/wr4-s6-analyze.mjs /tmp/opencode/bench-session5.json /tmp/opencode/wr4-s6-results.json
+node /tmp/opencode/wr4-s6-echo.mjs /tmp/opencode/wr4-s6-results.json echo
+```
+
 ## Migration table
 
 The non-binding `worker` surface used in `test/src/*.rs` (plus the handler kinds and context
-calls it does not use), and its `ts-gen-worker` form, as the code is after Session 3. Rows from
+calls it does not use), and its `ts-gen-worker` form, as the code is after Session 6. Rows from
 `parity/test-port.md` Session 2 are merged in. Binding APIs beyond KV and DO storage (R2, D1,
 Cache, queue producers, SQL storage, sockets, rate limiting, analytics, secrets store,
 containers, assets, `send_email`) are not listed: `parity/test-port.md` has them module by
@@ -560,9 +655,9 @@ module. Under `--fallible` every sync binding that can throw returns `Result`, s
 | `worker::Body` / `Body::empty()` / `body.into_inner()` | `ByteStream` / `ByteStream::empty()` / `into_inner()` |
 | `http::Request<Body>: TryFrom<Request>` and back; same for `Response` | same (`try_into()`); extensions `AbortSignal`, `IncomingRequestCfProperties`, `WebSocket` instead of `Cf`/`RequestRedirect`/`WebSocket` |
 | `#[event(start)]` (several allowed) | same |
-| `#[event(queue)] async fn q(batch: MessageBatch<T>, ..) -> Result<()>` | `batch: MessageBatch`; `message.body_into::<T>()?` |
+| `#[event(queue)] async fn q(batch: MessageBatch<T>, ..) -> Result<()>` | `batch: MessageBatch`; `batch.messages()` is a `Vec<Message>` (no `?`); `message.body_into::<T>()?` |
 | `#[event(scheduled)] async fn s(event: ScheduledEvent, env, ctx: ScheduleContext)` | `(controller: ScheduledController, env, ctx: ExecutionContext)` |
-| `#[event(email)]` | same |
+| `#[event(email)]` | same (`EmailMessage` re-exported at the root; canonical `cloudflare::email::EmailMessage`) |
 | `#[event(connect)] async fn c(socket: Socket, env, ctx)` | same |
 | `#[event(connect(udp))] async fn c(socket: UdpSocket, ..)` | one `connect` handler for both protocols, dispatching on the socket's protocol |
 | `#[send]`, `send::SendFuture`, `send::SendWrapper`, `IntoSendFuture` | same |
@@ -597,8 +692,8 @@ module. Under `--fallible` every sync binding that can throw returns `Result`, s
 | `.with_headers(h)` | `.headers(&h)` |
 | `.with_header(k, v)?` | `.header(k, v)?` |
 | `.with_cors(&cors)?` on the builder | `.cors(&cors)?` |
-| `.with_websocket(ws)` | `.web_socket(&ws)` |
-| `.with_encode_body(EncodeBody::Manual)` | `.encode_body("manual")` |
+| `.with_websocket(ws)` | `.web_socket(&JsNullable::wrap(ws))` (or the terminal `.from_websocket(ws)`) |
+| `.with_encode_body(EncodeBody::Manual)` | `.encode_body(EncodeBodyKind::Manual)` |
 | `.with_cf(v)?` | `.cf(&serde_wasm_bindgen::to_value(&v)?)` |
 | `res.into_parts()` → `(builder, body)`; `builder.with_status(404).body(body)` | `res.into_parts()`; `builder.status(404).body(body)?` |
 | `res.status_code()` | `res.status()` |
@@ -615,7 +710,8 @@ module. Under `--fallible` every sync binding that can throw returns `Result`, s
 | **Request** | |
 | `Request::new(url, Method::Post)` | `Request::new_with_method(url, Method::Post)` |
 | `Request::new_with_init(url, &init)` | `Request::new_with_str_and_init(url, &init)` |
-| `RequestInit::new().with_method(..)` / `.with_body(Some(v))` / `.with_headers(h)` | `RequestInit::builder().method(..)` / `.body_with_str(..)` / `.headers(&h)`, then `.build()` |
+| `RequestInit::new().with_method(..)` / `.with_body(Some(v))` / `.with_headers(h)` | `RequestInit::builder().method(..)` / `.body_with_str(&JsNullable::wrap(s.into()))` / `.headers(&h)`, then `.build()` |
+| `.with_cache(CacheMode::NoStore)` | `.cache(CacheKind::NoStore)` |
 | `Fetch::Url(url).send().await?` | `Fetch::Url(url.into()).send().await?` (or `fetch_with_str(url).await?`) |
 | `Fetch::Request(req).send().await?` | same (or `fetch(&req).await?`) |
 | `fetch.send_with_signal(&signal)` / `AbortController::default()` | same |
@@ -658,7 +754,7 @@ module. Under `--fallible` every sync binding that can throw returns `Result`, s
 | `kv.put("k", &t)?.expiration_ttl(60).metadata(m)?.execute().await?` | `kv.put_builder("k", &t)?.expiration_ttl(60).metadata(m)?.execute().await?` |
 | `kv.put_bytes("k", &b)?.execute()` / `kv.put_stream("k", s)?.execute()` | `kv.put_bytes("k", &b).execute()` / `kv.put_stream("k", s).execute()` (infallible builders) |
 | `kv.list().prefix(p).limit(n).cursor(c).execute().await?` | `kv.list_builder().prefix(p).limit(n).cursor(c).execute().await?` |
-| `list.keys[i].name` / `.expiration: Option<u64>` / `list.list_complete` / `list.cursor` | `list.keys().get(i).name()` (`Array`) / `.expiration() -> Option<f64>` / `list.list_complete()` / `list.cursor()` |
+| `list.keys[i].name` / `.expiration: Option<u64>` / `list.list_complete` / `list.cursor` | `list.keys()[i].name()` (`Vec`) / `.expiration() -> Option<f64>` / `list.list_complete()` / `list.cursor()` |
 | `kv.delete("k").await?` | same |
 | `KvError` | `Error` |
 | **Errors and misc** | |
@@ -671,3 +767,5 @@ module. Under `--fallible` every sync binding that can throw returns `Result`, s
 | `Date::new(DateInit::Millis(n))` / `DateInit::Millis(n).into()` | `js_sys::Date::from_init(DateInit::Millis(n))` / same `.into()` |
 | `date.as_millis()` | same (`DateExt`) |
 | `Cors::new().with_origins(..)` | same |
+| `Cache::default()` | `caches.with(CacheStorage::default)` (JS globals are lower-case statics: `console`, `caches`, `crypto`, `performance`) |
+| `WebSocket: Eq` (`HashSet<WebSocket>`) | `PartialEq` only (ts-gen bug 2 in `parity/workers-types.md`) |
