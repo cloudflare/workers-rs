@@ -170,6 +170,7 @@ macro_rules! add_routes (
     add_route!($obj, get, "/cloned-fetch", fetch::handle_cloned_fetch);
     add_route!($obj, get, "/cloned-response", fetch::handle_cloned_response_attributes);
     add_route!($obj, get, format_route!("/wait/{}", "delay"), request::handle_wait_delay);
+    add_route!($obj, get, "/delay-race", request::handle_delay_race);
     add_route!($obj, get, "/custom-response-body", request::handle_custom_response_body);
     add_route!($obj, get, "/init-called", handle_init_called);
     add_route!($obj, get, "/cache-example", cache::handle_cache_example);
