@@ -479,3 +479,152 @@ and `-http`: 194 passed / 4 skipped each. Migration deltas are in `parity/worker
 #64 declaration-shapes → #65 inheritance-namespaces-unions → #66 annotations → #67
 inference-naming → #68 inline-wrappers → #69 builder-from-dict. Titles/bodies set via the REST
 PATCH (the per-wave prose above plus the base note and the drops), all undrafted.
+
+## Restack (session 10)
+
+Analysis only: nothing rebased, nothing pushed, branches untouched. `origin/main` = `a306021`.
+The stack is 63 commits over `origin/gbedford/wasm-embed` (`9743bf8`, still on `f050db9`): 24
+wave-1 copies, our copies of #51–#54 plus integration commit `8ee1ca2` (5), and our 34.
+
+Method. Dry run: each commit cherry-picked in order with `git merge-tree` onto `origin/main` plus
+our #51–#54 copies (the new #51–#54 tips are not out yet; this is the nearest stand-in). Each
+conflict was recorded, then the chain continued with `-X theirs` so later commits keep the context
+they were written against. Superseded check: main's `ts-gen` (`a306021`) and our tip run on every
+fixture our commits add, on ad-hoc inputs, and on `workers-types.d.ts`.
+
+### Base commits
+
+- **Wave-1 copies (24): merged, drop.** For #42, #44, #46 and #47 our copy's code/doc diff is
+  identical to the squash. Three merged in a different form:
+  - **#43 `22d3c3e`** uses the main-form `first_overload_len` counter, not our `indices`. Our
+    `d6d15bd` and `9c3a072` must reintroduce the per-overload index (see below).
+  - **#45 `2191f49`** changed design: statics keep the JS casing with
+    `#[allow(non_upper_case_globals)]` (wasm-bindgen#5377), so `console`/`caches`/`crypto`, not
+    `CONSOLE`/`CACHES`.
+  - **#39 `88d0863`** landed with Guy's resolution, not our local `home_scope` one.
+- **wasm-bindgen pin.** Main pins `2df31ba` (#5376 as `2a0fd20e3` + #5377 + three commits:
+  same-named enums/dynamic unions across modules, shared name space). Our base pins `5c070ca`,
+  and workers-rs' `wasm-bindgen` submodule (`1ea319f65`) must move to the reinit branch + `2df31ba`.
+- **#51–#54 copies on main** (for whoever rebases them):
+  - `03f59c2` (#51) conflicts in `Cargo.toml`, `integration-tests/build.rs`, `package(-lock).json`,
+    `codegen/classes.rs` (2 hunks), `codegen/typemap.rs` (4), `parse/literal_union.rs` (1).
+  - `3061943` (#53) conflicts in `Cargo.lock` only.
+  - `6d01332` (#52) and `fa0d514` (#54) apply clean.
+  - `8ee1ca2` is still needed: main's `static-names` fixture still has `déjà` and `value` in two
+    modules. It belongs on the #53 rebase.
+
+### Classification of our 34
+
+Superseded 3, superseded with a residual 2, drop recommended 1, overlapping 13, clean 15 (several
+need a compile fixup).
+
+"Conflict" lists code/doc files only. Snapshot conflicts are re-blessed and listed only where the
+re-bless changes the commit's meaning.
+
+| Wave | SHA | Commit | Class | Dry-run conflict | Re-expression / note |
+|---|---|---|---|---|---|
+| 2 | `565ba66` | `--error-type` | clean | `typemap.rs` (adjacency) | #83 added a 4th `from_module_full` test call site → `&GenerateOptions::new()` |
+| 2 | `f298bd8` | `--fallible` | clean | `classes.rs` (2) | `used_names` → `names` (#86); tests need `rust_name: None` (#94) and #80's `prop()` helper needs `throws` |
+| 2 | `d85f2b3` | `--error-enum` | overlapping (#83, #86, #101) | – (won't compile) | collect over `surfaces.values()` (#101 already drops unexported module statics/ctors), drop the Namespace recursion (members are `TypeId`s now), reserve `JsException` via `names.claim` instead of the local-type check |
+| 3 | `a69fd3d` | `_promise` siblings | overlapping (#86) | – (won't compile) | `dedupe_name(…, used_names)` → `names.declare(…, Suffix::Snake)`; meaning unchanged |
+| 3 | `c48a7dc` | awaited values like sync returns | clean | `typemap.rs` (test) | take our deletion of the mono test cases; ours is better on main's own enum cases (`Promise<Level>` → `Level`, main `JsString`) |
+| 4 | `9038e6e` | type-param defaults | clean | `classes.rs` (adjacency with #81 `derive_eq`) | – |
+| 4 | `841ab2a` | type-level generics defaults | overlapping (#81) | `classes.rs` (2) | our bare-head `extends` hunk is superseded by #81's `extends_list`; our handle-identity `PartialEq`/`Eq` covers what #81's `derive_eq` does, so remove `derive_eq` and change #81's CONVENTIONS line (**decision**). Main derives `Eq` on `AbortSignal extends EventTarget` with a generic `EventTarget` (from reading the code, not compiled) |
+| 4 | `90e93d7` | generic alias chasing | overlapping (#89) | `mod.rs`, CONVENTIONS | fold #89's `Ns.Alias` branch into `resolve_alias_instance` via `gctx.resolve_path`; otherwise `ns::Alias<JsString>` against a param-dropped alias is E0107 |
+| 4 | `142810c` | construct-signature type params | overlapping (#74/#95) | `members.rs` | #74 deleted `convert_construct_signature`: drop that hunk, keep the `extract_var_members` / class-ctor / `merge_class_pairs` hunks; re-bless may add ctors on `XConstructor`-merged classes |
+| 4 | `809a44e` | `Array<T>` for `T[]` over a type param | **superseded (#96)** | `classes.rs`, `functions.rs`, `typemap.rs` | #96 decides `slice_to_array` from the lowered element, so `&[T]`/`Vec<T>` compile; main's form is better. Drop |
+| 5 | `9bf524a` | intersection aliases → interfaces | **superseded by #81, residual** | CONVENTIONS, `classes.rs`, `populate.rs` | #81 hoists `A & B & {…}` with extends and alias params, and is better on `string & {__brand}` → `JsString`, `T & {…}` → `T`, unbound parents. Lost: an **inline conditional part** (`(T extends … ? … : unknown) & {…}`) makes #81's `inline_shape` give up, so **`Fetcher<T, R> = JsValue`** on main, `DurableObjectStub` extends `Object` only, `Loopback*` erase. Residual commit: skip conditional/`object`/`unknown` parts in `inline_shape`'s Intersection arm with a warning. Rewrite the message |
+| 5 | `e95ad9b` | constructor-shaped vars → classes | overlapping (#74) | `populate.rs` | main still emits `static web_socket_pair: Object`; move into `push_static_side_class` (inline and `XConstructor` forms) for the no-instance-interface case; compare resolved decls, not names (#95 renames) |
+| 5 | `1761f62` | union-of-literals part of an intersection | overlapping (#81) | – (clean only via our 9bf524a) | main: `R2Objects = JsValue`. Add a union part to `InlineShape::Intersection` (Join branches, then Meet). **Decision:** explicit `truncated: boolean` beside a joined `true \| false` becomes a bounded intersection under Meet; ours lets the explicit member win |
+| 5 | `2422f10` | collapse global interface into module ctor class | **drop recommended** | – (same region as e95ad9b) | its reason (two flat `pub type EmailMessage`) is gone with #94; a collapse contradicts main's "global and module-scoped resolve independently". Re-expressed e95ad9b gives `cloudflare::email::EmailMessage extends = super::super::EmailMessage` (**decision**) |
+| 5 | `c43a789` | factory names drop single-literal fields | clean | – | main still emits `new_0_none_0______________()`, `new_bytes()` |
+| 6 | `af6ce2a` | `--export <Name>` roots | overlapping (#94, #101) | CONVENTIONS, `mod.rs`, `main.rs` | main reads `--export Bucket` as a module specifier. Closure feeds `exported_modules` before `from_module_full`, gate `collect_surfaces` by `should_emit`; module decls the closure reaches go to their nested `pub mod`, not lifted (CONVENTIONS/README "lifted as if listed" changes); fold in 260383d's `surface.rs` hunk. **Bug in ours:** `--export TailStream.TailEvent` (the documented example) fails, since namespace members aren't roots |
+| 6 | `d6d15bd` | each overload's own return type | overlapping (#43 main form, #86) | `signatures.rs` (2) | keep an `indices` vec parallel to `deduped` beside `first_overload_len`, rotate with the primary; keep #86's `names.declare`. Main still has R2Bucket `get(key)` → `JsOption<R2Object>` (ours `Option<R2ObjectBody>`) and leaks `use JsValue as U;` |
+| 6 | `260383d` | global namespace refs, `use super::*` | **superseded (#88, #83, #89, #94)** | CONVENTIONS, `mod.rs` | main matches ours on the fixture and is better on namespace aliases, nested `js_namespace`, namespaces in modules. Drop (its `surface.rs` hunk moves to af6ce2a) |
+| 6 | `f9edc64` | erase primitive-constrained type params | clean + fixup | – (won't compile) | #81's `is_extendable` needs a `Binding::Erased` arm. **Bug in ours:** `interface W<K extends string> extends Base<K>` emits `new(b: &K)` with `K` unresolved; substitute the erased arg through `extends` args |
+| 6 | `54cd2ec` | inherited members beyond the first parent | overlapping (#81) | `classes.rs`, `converters.rs`, `parse/mod.rs` | collect next to #81's `extends_list`; add `type_arguments` at oxc 0.154's `convert_ts_type_name_to_ref`. **Regression in ours:** a parent's required readonly field empties the child's factory (`QueryResult::new(results)` → `new()`, 10 `StreamError` subtypes lose `name`); main is right. Without 841ab2a's `derive_eq` removal, the re-bless also drops `Eq` on `WebSocket`/`RequestInitCfProperties` |
+| 6 | `4c69ee8` | `Named & {…}` params → interfaces | **superseded (#81)** | `members.rs` | identical names and shapes on main (`R2BucketOptions extends R2GetOptions`). Drop |
+| 6 | `632769d` | keep overload groups in var+interface merge | clean | – | main still drops `ReadableStream.getReader()` (keeps only the options form) and `Response.text()` in `basic` |
+| 6 | `2e23735` | instance members own the base name | overlapping (#86) | `classes.rs` (2) | pre-`claim` instance names in `generate_extern_block`'s `LocalScope`, `release` on emit; main gives `json` to the static and `json_2` to the instance |
+| 6 | `a6b136f` | hoist inline return literals | overlapping (#81) | CONVENTIONS, `members.rs` | route through `try_synthesize_inline_param` (`<Member>Return`), port the enclosing-type-param capture (also fixes main's non-generic `CursorOpts` for `{value: T}` params). Main reuses one union enum across sites (`ImageOptions.border -> Option<NextReturnKind>`). **Decision:** hoist `Named & {…}` returns, or bound them to `Named` as #81 does |
+| 6 | `29fe72e` | variadic callbacks → `Function` | clean | – | main: `set_timeout(&Function<fn(Array) -> Undefined>)` |
+| 7 | `f3f1f6b` | `@rust` tags | clean + 2 fixups | – | call `apply_rust_tags` in `merge::extract_var_members` (#74 path, else tags on `FooConstructor` are dropped); add `RustScalar` to `is_native_array_element` (#96, else `&[u8]` loses `slice_to_array`) |
+| 7 | `081ec47` | `--annotate` | clean + fixup | – (won't compile) | #81 already added `GlobalContext::get_type_mut`: drop ours. After #74 side files annotate `declare abstract class Foo { static … }`, not `FooConstructor` |
+| 7 | `9530900` | `--annotate` defaults | clean | – | – |
+| 8 | `f28a591` | Rust prelude collisions | **superseded mechanism (#86/#89), residual** | CONVENTIONS, `classes.rs`, `typemap.rs` | main has `RUST_PRELUDE_RESERVED` (`Option`, `Result`, `String`, `Vec`) through `LocalScope`, also for aliases. Residual: extend the list with what our stack spells bare (`From` for 0ff7462, `PartialEq`/`Eq`/`AsRef` for 841ab2a) |
+| 8 | `85be297` | erase uninferrable method type params | clean | `functions.rs` (trivial) | keep our erase block, main's `LocalScope` |
+| 9 | `4ffe291` | u64/i64 inline wrappers | clean + fixups | – | claim the private `<name>_js` via `LocalScope` (today `@rust u64 size` + `sizeJs` emit two `size_js`); `WideScalar` in `is_native_array_element` |
+| 9 | `9c3a072` | literal-keyed overload wrappers | overlapping (#43 main form, #86) | `signatures.rs` (4) | `arms` parallel to `deduped` beside `first_overload_len`; needs d6d15bd's per-overload index; `dedupe_name` → `names.declare`. **Bug in ours:** under mono the `_js_string` sibling re-emits `get_text`/`get_json` |
+| 9 | `b9cde35` | `@throws {never}` on constructors | clean | – | main's CONVENTIONS still says "ignored on a constructor" |
+| 10 | `0ff7462` | builders `From<Dict>` | clean | – | needs `From` reserved (f28a591 residual) |
+
+Dry-run straight onto main without the #51–#54 copies adds conflicts only where those copies sit
+underneath (`565ba66` `mod.rs`/`main.rs`, `d85f2b3` AGENTS, `2422f10` `abi/mod.rs`, `f3f1f6b`
+`ir.rs` from #51's IR, more snapshots), so the table above is the representative one.
+
+Restacked order (drops removed, residuals in place):
+- error-model: `565ba66` `f298bd8` `d85f2b3`
+- nullable-async: `a69fd3d` `c48a7dc`
+- generics: `9038e6e` `841ab2a` `90e93d7` `142810c`
+- declaration-shapes: conditional parts (9bf524a residual) `e95ad9b` `1761f62` `c43a789`
+- wave 6: `af6ce2a` `d6d15bd` `f9edc64` `54cd2ec` `632769d` `2e23735` `a6b136f` `29fe72e`
+- annotations: `f3f1f6b` `081ec47` `9530900`
+- inference-naming: prelude list (f28a591 residual) `85be297`
+- inline-wrappers: `4ffe291` `9c3a072` `b9cde35`
+- builder-from-dict: `0ff7462`
+
+### Regressions: main vs ours on the same input, and what workers-rs relies on
+
+Each line: what main produces, what ours produces, and what the workers-rs port (`ts-gen-worker/src`
+`ext/` and `test/src`) uses today.
+
+- **`Fetcher`.** Main: `pub type Fetcher<T, R> = JsValue`. Ours: an interface with
+  `fetch`/`connect`. The port relies on ours: `env.rs` `remote()`/`assets() -> Fetcher`, and
+  `DurableObjectStub` reaches `fetch` through `extends = Fetcher`. Needs the 9bf524a residual.
+- **`WebSocketPair`.** Main: `static web_socket_pair: Object`. Ours: a class. The port relies on
+  ours: `WebSocketPair::new()` in `ws.rs`, `counter.rs` ×2, `container.rs`, `ext.rs`. Needs
+  e95ad9b.
+- **`ReadableStream.getReader()`.** Main: missing. Ours: present. The port relies on ours:
+  `ext/streams.rs`, `request.rs`, `socket.rs` ×3. Needs 632769d.
+- **`setTimeout` callback.** Main: `&Function<fn(Array) -> Undefined>`. Ours: `&Function`. The
+  port relies on ours: `ext/delay.rs` and `test/util.rs` pass a plain `js_sys::Function`. Needs
+  29fe72e.
+- **`KVNamespace`.** Main: `KVNamespace<Key>` with no default. Ours: bare. The port relies on
+  ours: `KVNamespace` is spelled bare throughout `env.rs`, `kv.rs` and `ext/kv.rs`. Needs f9edc64
+  plus 9038e6e/841ab2a.
+- **`IncomingRequestCfProperties` (and `D1Result::new`).** Main: no members from parents beyond
+  the first. Ours: accessors such as `country()`. The port relies on ours (`request.rs`,
+  `ext/interop.rs`, `ext/response.rs`). Needs 54cd2ec with its factory regression fixed.
+- **`R2Objects`.** Main: `JsValue`. Ours: an interface. The port relies on ours: `test/src/r2.rs`
+  `list()` reads `objects()`/`truncated()`/`cursor()`. Needs the 9bf524a residual + 1761f62.
+- **Statics (#45 as merged).** Main: `console`/`caches`/`crypto`/`performance`. The port uses
+  `CONSOLE`/`CACHES` (`ext/console.rs`, `lib.rs`, ~15 test sites). Port change after the restack;
+  migration-table delta.
+- **Declared modules (#94).** `connect`, `Socket` and `EmailMessage` move to
+  `cloudflare::sockets::…` / `cloudflare::email::…`. Today they are flat: `test/src/socket.rs`
+  calls `connect(…)` and `#[event(connect)]` takes `Socket`, through `ts_gen_worker::*`. Needs
+  `pub use` re-exports in `ts-gen-worker/src/lib.rs` or path changes; migration-table delta.
+- **`D1Result.results()`.** Main: `Vec<T>` (809a44e dropped). Ours: `Array<T>`. The port's
+  `.results().into_iter()` works with both.
+
+Main bugs our stack fixes (worth raising upstream regardless):
+- one dynamic-union enum reused across sites (a6b136f);
+- `use JsValue as U;` leak with unresolved overload type params (d6d15bd);
+- possibly `Eq` derived over a generic parent (841ab2a; from reading, not compiled);
+- `@throws {never}` constructors still `catch` (b9cde35).
+
+Both main and ours collapse constructor overloads from `var X: { new(a); new(a, b) }` into one
+(`extract_var_members` returns a single ctor).
+
+### Decisions for Guy
+
+1. **841ab2a:** replace #81's `derive_eq` (no `Eq` when the first parent has TS args) with the
+   handle-identity `PartialEq`/`Eq` impls, editing #81's CONVENTIONS line.
+2. **2422f10:** drop, and let `cloudflare::email::EmailMessage` extend the global interface
+   (recommended), or re-express the collapse under the export map.
+3. **1761f62:** explicit member vs joined literal union under Meet: let the explicit member win
+   (ours), or teach `simplify_intersection` that `boolean ⊇ true | false`.
+4. **a6b136f:** hoist `Named & {…}` in return position (ours today) or bound it to `Named` as #81
+   does for parameters of named parts only.
+5. **f28a591 residual:** the full prelude list, or only the trait names the generated code spells
+   bare (`From`, `PartialEq`, `Eq`, `AsRef`).
