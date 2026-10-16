@@ -1,5 +1,6 @@
 use super::SomeSharedData;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use worker::{Env, Request, Response, Result};
 
 macro_rules! kv_assert_eq {
@@ -145,6 +146,27 @@ pub async fn put_metadata_struct(
 
     kv_assert_eq!(val.unwrap(), "test")?;
     kv_assert_eq!(meta.unwrap(), put_meta)?;
+
+    Response::ok("passed")
+}
+
+/// A value with map-shaped fields, stored with the plain `KvStore::put`.
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
+pub struct MapValue {
+    pub id: String,
+    pub map: HashMap<String, String>,
+    pub value: serde_json::Value,
+}
+
+#[worker::send]
+pub async fn put_struct_map(mut req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let input: MapValue = req.json().await?;
+
+    let store = env.kv(TEST_NAMESPACE)?;
+    store.put("put_struct_map", &input)?.execute().await?;
+
+    let val = store.get("put_struct_map").json::<MapValue>().await?;
+    kv_assert_eq!(val, Some(input))?;
 
     Response::ok("passed")
 }
