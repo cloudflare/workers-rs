@@ -1,6 +1,6 @@
 # crate: `#[event]` macros and the `impl` layer
 
-Owner: workers-rs-4. Branch `gbedford/tgw-crate` (on `gbedford/ts-gen-worker` `583b73d`);
+Owner: workers-rs-4. Branch `gbedford/tgw-crate` (on `gbedford/ts-gen-worker` `3f5a311`);
 ts-gen branch `agent/crate` (nothing unlanded).
 
 Everything below is an `impl` on a generated type, a Rust-native helper type, or a
@@ -386,6 +386,160 @@ node ../bench/coldstart.mjs /tmp/cs-worker index.js /request 10
 `/request` rather than `/` because the `worker` suite has no `GET /`. Section sizes
 were read with a twenty-line Python section walker (the `(data ...)` segment identified
 with `wasm-tools print`).
+
+## Session 5: steady-state benchmark, worker vs ts-gen-worker vs plain JS
+
+### Done
+
+- `benchmark/js/index.js` (plain JS), `benchmark/src/lib.rs` (`worker`, extended; `/stream`
+  and `/benchmark` kept) and `ts-gen-worker/benchmark/` (new workspace member, generated
+  `Env` with `KV` and `SERVICE`), each serving `/hello /headers /echo /json /kv /stream
+  /fanout` with each crate's idiomatic calls (`Response::ok` / `Response::builder().ok`,
+  `req.json()` / `req.json_into()`, `kv.get(..).text()` / `kv.get(..)`, ...).
+- `benchmark/build.sh` (`chomp build:bench`): one release pipeline for both Rust workers.
+  `benchmark/run.js` (`chomp bench`): the driver. Suite unchanged: 194 passed, 4 skipped in
+  both chomp tasks.
+
+### Decisions
+
+- **A fourth variant, `worker (no shim)`.** `worker` only runs under worker-build's entrypoint
+  shim (a `WorkerEntrypoint` subclass behind `Proxy`s for trap recovery), which
+  `ts-gen-worker` replaces with wasm-bindgen's own reinit. Without a control, any gap
+  between the two would mix the shim with the bindings. The control is the same `.wasm`
+  (byte-identical code; 23 bytes of producers metadata differ) and the same glue, run from a
+  three-line `export default { fetch }` entry.
+- **Identical pipeline.** Both Rust workers: workspace `[profile.release]`, the submodule's
+  wasm-bindgen, then the same `wasm-opt -Oz` with the seven feature flags worker-build
+  passes. `worker` is packaged by `worker-build --release --no-opt` with `NO_MINIFY=1`
+  (its own `-O` pass replaced by the shared `-Oz`; unminified so the glue matches the
+  control). `WASM_BINDGEN_USE_JS_SYS=1`, which worker-build sets, is not set for
+  `ts-gen-worker`: it only switches the macro's paths from `wasm_bindgen_futures::` to
+  `js_sys::futures::`, which the former re-exports.
+- **Timing.** One Miniflare per variant, identical options (`compatibilityDate
+  2026-03-17`, `KV` in-memory, `SERVICE` bound to the worker itself), all alive at once,
+  requests interleaved one by one with the order rotated each round. `performance.now()`
+  from `dispatchFetch` to the last body byte, response validated afterwards. Each repetition
+  waits for a 1-minute load average below 2, measures cold start, starts fresh instances,
+  sends 500 rounds of `/hello` to all of them (the first trial run showed Node's side of
+  `dispatchFetch` still getting faster after 1000 requests: p50 1.65 → 0.73 ms), then per
+  route discards 50 requests per variant and keeps 2000. req/s is sequential (one request in
+  flight, `1000 / mean`), so it includes the harness.
+
+### Results
+
+`benchmark/run.js` defaults: 2000 requests per route per variant after 50 discarded, 3
+repetitions, fresh instances each. Cells are the median over repetitions; "p50 range" is
+the spread of the three p50s; "vs JS" is the median p50 minus plain JS's.
+
+| route | variant | p50 ms | p50 range | p90 ms | p99 ms | req/s | vs JS µs |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `/hello` | js | 0.715 | 0.695–0.746 | 0.873 | 2.949 | 1266 | |
+| | worker | 0.811 | 0.780–0.855 | 0.973 | 3.216 | 1115 | +96 |
+| | worker (no shim) | 0.786 | 0.745–0.834 | 0.939 | 2.968 | 1161 | +71 |
+| | ts-gen-worker | 0.774 | 0.741–0.784 | 0.925 | 3.240 | 1161 | +59 |
+| `/headers` | js | 0.693 | 0.682–0.699 | 0.792 | 3.159 | 1293 | |
+| | worker | 0.767 | 0.765–0.780 | 0.869 | 3.196 | 1195 | +74 |
+| | worker (no shim) | 0.741 | 0.733–0.747 | 0.829 | 3.245 | 1228 | +48 |
+| | ts-gen-worker | 0.736 | 0.731–0.750 | 0.828 | 3.244 | 1221 | +43 |
+| `/echo` | js | 0.979 | 0.977–1.035 | 1.157 | 3.231 | 926 | |
+| | worker | 1.121 | 1.117–1.143 | 1.345 | 3.456 | 793 | +142 |
+| | worker (no shim) | 1.097 | 1.082–1.131 | 1.270 | 3.504 | 821 | +118 |
+| | ts-gen-worker | 1.099 | 1.069–1.324 | 1.474 | 3.595 | 798 | +120 |
+| `/json` | js | 0.912 | 0.908–0.914 | 1.000 | 2.995 | 1009 | |
+| | worker | 1.042 | 1.041–1.052 | 1.153 | 3.256 | 885 | +130 |
+| | worker (no shim) | 1.034 | 1.032–1.044 | 1.135 | 3.125 | 897 | +122 |
+| | ts-gen-worker | 0.990 | 0.988–1.028 | 1.123 | 2.946 | 933 | +78 |
+| `/kv` | js | 2.581 | 2.515–2.629 | 4.418 | 7.042 | 325 | |
+| | worker | 2.734 | 2.682–2.763 | 4.464 | 7.197 | 306 | +153 |
+| | worker (no shim) | 2.715 | 2.665–2.776 | 4.466 | 6.897 | 312 | +134 |
+| | ts-gen-worker | 2.682 | 2.682–2.711 | 4.504 | 7.293 | 310 | +101 |
+| `/stream` | js | 6.657 | 6.608–6.829 | 9.694 | 15.517 | 138 | |
+| | worker | 7.189 | 7.178–7.253 | 10.206 | 24.235 | 127 | +532 |
+| | worker (no shim) | 7.166 | 7.072–7.394 | 10.280 | 23.240 | 127 | +509 |
+| | ts-gen-worker | 7.168 | 7.077–7.320 | 10.148 | 23.767 | 126 | +511 |
+| `/fanout` | js | 1.094 | 1.088–1.095 | 1.278 | 3.902 | 772 | |
+| | worker | 1.625 | 1.622–1.626 | 1.858 | 4.629 | 538 | +531 |
+| | worker (no shim) | 1.555 | 1.553–1.556 | 1.791 | 4.438 | 556 | +461 |
+| | ts-gen-worker | 1.275 | 1.274–1.285 | 1.525 | 4.189 | 675 | +181 |
+
+Because the variants are interleaved, the paired difference within a repetition is tighter
+than the ranges above. `ts-gen-worker` minus `worker (no shim)`, p50 µs, repetitions 1/2/3:
+`/hello` −11/−50/−4, `/headers` 2/−5/−1, `/echo` −31/−27/+242, `/json` −46/−54/−5, `/kv`
+−33/−64/+17, `/stream` 2/+248/−317, `/fanout` −270/−278/−283. The shim (`worker` minus
+`worker (no shim)`): `/hello` 25/21/35, `/headers` 19/24/47, `/fanout` 67/73/68.
+
+| | js | worker | worker (no shim) | ts-gen-worker |
+| --- | ---: | ---: | ---: | ---: |
+| `.wasm` after `-Oz` | | 398,223 | 398,200 | 120,933 |
+| of which code / data | | 258,082 / 128,815 | same | 96,548 / 17,915 |
+| `.wasm` after `-Oz` without the `/benchmark` route | | 210,978 | | |
+| of which code / data | | 171,835 / 28,443 | | |
+| JS shipped | 1,626 | 50,665 (shim + glue bundled) | 54,632 (entry + glue + snippet) | 33,991 |
+| `grep -c '^function\|^const .* = function'` | | 26 | 21 | 23 |
+| glue import shims (`__wbg_*: function`) | | 129 | 129 | 69 |
+| wasm imports (`wasm-tools print \| grep -c '(import'`) | | 138 | 138 | 77 |
+| wasm exports | | 54 | 54 | 33 |
+| cold start ms, median of 10 (reps 1/2/3) | 127.5/112.2/125.3 | 139.8/125.3/134.2 | 140.9/124.0/131.8 | 130.5/120.6/126.5 |
+| first request ms after `ready`, median of 10 | 3.75/4.90/3.09 | 6.24/8.24/5.36 | 6.63/8.22/5.35 | 5.48/7.29/4.50 |
+
+Load average before/after each repetition: 1.51/2.13, 1.87/1.84, 1.84/1.56 (the benchmark's own
+node and workerd processes account for most of it).
+
+**Reading.** At p50, `ts-gen-worker` is not slower than `worker` on any route, and its cost over
+plain JS on `/hello` through `/kv` is 43–120 µs per request where `worker`'s is 74–153 µs
+(both about +510 µs on the 1 MB stream, where the shared `wasm_streams` path dominates). Two things move the comparison:
+the shim, which costs `worker` about 20–35 µs per handler invocation, and `/fanout`, where 10
+in-process sub-requests multiply the per-invocation cost without the Node transport: there
+`ts-gen-worker` is 275 µs faster than `worker (no shim)`, about 25 µs per sub-request. Reading
+the glue, `worker` does more per invocation (`Request::from` eagerly marshals `method`, `url`,
+`headers` and `cf`; the response is a Rust-side builder converted to a `ResponseInit` with a
+`Uint8Array` copy of the body; sub-request bodies are read with `arrayBuffer()`, copied and
+UTF-8 validated), but which of these dominates was not isolated. Against the shim-free
+control, the remaining differences on `/hello`, `/headers`, `/kv`, `/stream` are within the
+paired noise; `/json` is 35 µs faster on average (the two serialize differently:
+`serde_wasm_bindgen` into `Response.json()` versus a `serde_json` string; not isolated). The candidates the plan named are not visible as a cost: in this
+wasm-bindgen neither glue has a `handleError` JS wrapper; `catch` imports are caught in wasm
+via `WebAssembly.JSTag`, so the `--fallible` `Result`s cost nothing on the non-throwing path.
+`JsNullable` adds no glue (`new Response(arg0, arg1)` directly). The visible extra
+conversions in `ts-gen-worker` (`path()` parses the URL in JS: two more imports than
+`worker`'s Rust-side scan; every `.header()` on the builder rebuilds the `Headers` from the
+init, five times on `/headers`) are below the resolution of this harness. The one place
+`ts-gen-worker` is slower is `/echo`'s tail (p90 +129 µs over `worker`, and one repetition's
+p50 +242 µs over the control), which is the instance-level bimodality in Open problems. Sizes: `ts-gen-worker`'s `.wasm` is
+0.57× `worker`'s once the legacy `/benchmark` route (which alone pulls in `url`/IDNA tables,
+`Fetch` and `serde_json::json!`, 187 KB) is excluded, with about half the imports and glue
+shims; cold start and first-request latency are a few ms lower, consistently across the three
+repetitions but small against the 110–140 ms of process start.
+
+### Open problems
+
+- **`ts-gen-worker` `/echo` is bimodal per instance.** Across the main run and targeted
+  `--routes echo` reruns, 13 repetitions were free of outside load (plain JS at its usual
+  p50). In 3 of those 13 fresh `ts-gen-worker` instances (2 of 8 as benchmarked, one of them
+  after 1000 warmup requests; 1 of 5 in the A/B below) the `/echo` p50 sat about 250 µs above
+  its usual value for the whole window, and in 2 more for the first ~400 measured requests
+  only. No `worker` or `worker (no shim)` instance did. 250 µs over 16 KB is about 15 ns per
+  character, interpreter speed for a per-character loop. Swapping the response to
+  `from_bytes` (the body form `worker` uses, removing `ts-gen-worker`'s only extra 16 KB step,
+  the `TextDecoder` decode) did not remove it. The only per-character
+  JS loop left on the path is wasm-bindgen's `passStringToWasm0` ASCII fast path in
+  `text()`, identical in both glues; `--trace-opt` through `MINIFLARE_WORKERD_V8_FLAGS`
+  shows it reaching Maglev and its TurboFan/OSR compile being requested in both variants,
+  with completion rarely logged in either, so the traces did not separate them. Unexplained:
+  why only `ts-gen-worker`'s instances land there. Proposal: a CPU profile of a slow instance
+  through Miniflare's `inspectorPort` to see where the 250 µs goes; nothing is blocked on it.
+
+### Commands
+
+From the workspace root (needs `chomp build`: the submodule's wasm-bindgen and worker-build):
+
+```sh
+benchmark/build.sh            # or chomp build:bench
+cd benchmark && node run.js   # or chomp bench; --out results.json keeps every sample
+# targeted reruns used above
+node run.js --routes echo --cold 0
+node run.js --routes echo --cold 0 --warmup 1000
+```
 
 ## Migration table
 
