@@ -1,12 +1,15 @@
-// Checks that a Wasm module kept the sections worker-build preserves through linking: the
-// `name` section, with function names from each given crate, and `target_features`.
+// Checks that a Wasm module's `name` section holds function names from each given crate, or with
+// `--no-names`, that it has no `name` section.
 //
 // Usage: node check-wasm-names.mjs <module.wasm> <crate-name> [...]
+//        node check-wasm-names.mjs --no-names <module.wasm>
 import { readFileSync } from "node:fs";
 
-const [path, ...expected] = process.argv.slice(2);
-if (!path || expected.length === 0) {
+const noNames = process.argv[2] === "--no-names";
+const [path, ...expected] = process.argv.slice(noNames ? 3 : 2);
+if (!path || noNames === expected.length > 0) {
   console.error("usage: node check-wasm-names.mjs <module.wasm> <crate-name> [...]");
+  console.error("       node check-wasm-names.mjs --no-names <module.wasm>");
   process.exit(2);
 }
 
@@ -60,8 +63,8 @@ while (pos < bytes.length) {
 }
 
 const failures = [];
-for (const section of ["name", "target_features"]) {
-  if (!customSections.includes(section)) failures.push(`no \`${section}\` section`);
+if (customSections.includes("name") === noNames) {
+  failures.push(noNames ? "unexpected `name` section" : "no `name` section");
 }
 // Demangled legacy symbols start with `crate::`, and v0 symbols with `crate[hash]::`.
 for (const crate of expected) {

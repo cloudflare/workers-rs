@@ -534,33 +534,29 @@ mod test {
     use super::{parse_wasm_pack_opts, Build};
 
     #[test]
-    fn test_no_preserve_wasm_names_flag() {
-        let opts = parse_wasm_pack_opts([
-            "--release".to_owned(),
-            "--no-preserve-wasm-names".to_owned(),
-        ])
-        .unwrap();
-        assert!(opts.no_preserve_wasm_names);
+    fn test_remove_name_section_flag() {
+        let opts =
+            parse_wasm_pack_opts(["--release".to_owned(), "--remove-name-section".to_owned()])
+                .unwrap();
+        assert!(opts.remove_name_section);
         assert!(opts.extra_options.is_empty());
         assert!(
             !parse_wasm_pack_opts(Vec::new())
                 .unwrap()
-                .no_preserve_wasm_names
+                .remove_name_section
         );
     }
 
     #[test]
-    fn test_no_preserve_wasm_names_rejected_with_profiling() {
-        let opts = parse_wasm_pack_opts([
-            "--profiling".to_owned(),
-            "--no-preserve-wasm-names".to_owned(),
-        ])
-        .unwrap();
+    fn test_remove_name_section_rejected_with_profiling() {
+        let opts =
+            parse_wasm_pack_opts(["--profiling".to_owned(), "--remove-name-section".to_owned()])
+                .unwrap();
         // Rejected before the crate path is resolved.
         let err = Build::try_from_opts(opts).err().unwrap();
         assert!(err
             .to_string()
-            .starts_with("--no-preserve-wasm-names cannot be used with --profiling"));
+            .starts_with("--remove-name-section cannot be used with --profiling"));
     }
 
     #[test]

@@ -5,7 +5,7 @@ use crate::build::BuildProfile;
 use crate::build::PBAR;
 use crate::emoji;
 use crate::emscripten::{self, Toolchain};
-use crate::versions::{MIN_KEEP_SECTION_RUSTC_VERSION, MIN_RUSTC_VERSION};
+use crate::versions::MIN_RUSTC_VERSION;
 use anyhow::{anyhow, bail, Context, Result};
 use core::str;
 use log::error;
@@ -332,11 +332,6 @@ fn append_env(name: &str, extra: String) -> String {
 
 // from https://github.com/alexcrichton/proc-macro2/blob/79e40a113b51836f33214c6d00228934b41bd4ad/build.rs#L44-L61
 fn rustc_minor_version() -> Option<u32> {
-    rustc_minor_version_of(Command::new("rustc"))
-}
-
-/// The minor version reported by `rustc`, a command that runs rustc without arguments.
-fn rustc_minor_version_of(mut rustc: Command) -> Option<u32> {
     macro_rules! otry {
         ($e:expr) => {
             match $e {
@@ -345,24 +340,13 @@ fn rustc_minor_version_of(mut rustc: Command) -> Option<u32> {
             }
         };
     }
-    let output = otry!(rustc.arg("--version").output().ok());
+    let output = otry!(Command::new("rustc").arg("--version").output().ok());
     let version = otry!(str::from_utf8(&output.stdout).ok());
     let mut pieces = version.split('.');
     if pieces.next() != Some("rustc 1") {
         return None;
     }
     otry!(pieces.next()).parse().ok()
-}
-
-/// The minor version of the rustc that `cargo_build_wasm` links with: the toolchain selected in
-/// the crate directory, or nightly for panic=unwind builds.
-fn link_rustc_minor_version(path: &Path, panic_unwind: bool) -> Option<u32> {
-    let mut rustc = Command::new("rustc");
-    if panic_unwind {
-        rustc.arg("+nightly");
-    }
-    rustc.current_dir(path);
-    rustc_minor_version_of(rustc)
 }
 
 /// Emscripten link configuration for `cargo_build_wasm`.
@@ -375,48 +359,13 @@ pub struct EmscriptenBuild<'a> {
     pub bindgen_dir: &'a Path,
 }
 
-/// The Wasm section holding the function names that CPU profiles and stack traces show.
-const NAME_SECTION: &str = "name";
-/// wasm-bindgen reads this section to enable the reference-types transforms that its catch
-/// wrappers need, so stripping it breaks bindgen for crates with `#[wasm_bindgen(catch)]`.
-const TARGET_FEATURES_SECTION: &str = "target_features";
-
-/// The sections the final link keeps despite `strip = true`; empty means a plain `cargo build`.
-fn final_link_sections(
-    profile: &BuildProfile,
-    emscripten: bool,
-    preserve_names: bool,
-    rustc_minor: Option<u32>,
-) -> &'static [&'static str] {
-    let sections: &'static [&'static str] = match profile {
-        _ if emscripten => return &[],
-        BuildProfile::Dev | BuildProfile::Custom(_) => return &[],
-        BuildProfile::Release if !preserve_names => &[TARGET_FEATURES_SECTION],
-        BuildProfile::Release | BuildProfile::Profiling => &[NAME_SECTION, TARGET_FEATURES_SECTION],
-    };
-    // An unknown version passed `check_rustc_version`, so assume a current toolchain.
-    if let Some(minor) =
-        rustc_minor.filter(|&minor| minor < MIN_KEEP_SECTION_RUSTC_VERSION.minor as u32)
-    {
-        PBAR.warn(&format!(
-            "Rust 1.{minor}'s Wasm linker cannot keep sections that `strip = true` removes, so \
-             the Cargo profile decides whether Wasm names and the `target_features` section \
-             survive. Use Rust {} or newer to keep them.",
-            *MIN_KEEP_SECTION_RUSTC_VERSION
-        ));
-        return &[];
-    }
-    sections
-}
-
-/// Run `cargo rustc` targetting `wasm32-unknown-unknown`, or
+/// Run `cargo build` targetting `wasm32-unknown-unknown`, or
 /// `wasm32-unknown-emscripten` with emcc as the linker.
 pub fn cargo_build_wasm(
     path: &Path,
     profile: BuildProfile,
     extra_options: &[String],
     panic_unwind: bool,
-    preserve_names: bool,
     emscripten: Option<EmscriptenBuild<'_>>,
 ) -> Result<()> {
     let msg = if panic_unwind {
@@ -428,41 +377,6 @@ pub fn cargo_build_wasm(
     };
     PBAR.info(&msg);
 
-    let keep_sections = final_link_sections(
-        &profile,
-        emscripten.is_some(),
-        preserve_names,
-        link_rustc_minor_version(path, panic_unwind),
-    );
-    let cmd = cargo_build_command(
-        path,
-        profile,
-        extra_options,
-        panic_unwind,
-        emscripten,
-        keep_sections,
-    )?;
-    utils::run(cmd, "cargo").with_context(|| {
-        if keep_sections.is_empty() {
-            "Compiling your crate to WebAssembly failed"
-        } else {
-            "Compiling your crate to WebAssembly failed. Try `--profile release` to build without \
-             `cargo rustc` and `--keep-section`."
-        }
-    })?;
-    Ok(())
-}
-
-/// The Cargo invocation for `cargo_build_wasm`. Keeping sections uses `cargo rustc`, so that
-/// the `--keep-section` link arguments reach only the final crate.
-fn cargo_build_command(
-    path: &Path,
-    profile: BuildProfile,
-    extra_options: &[String],
-    panic_unwind: bool,
-    emscripten: Option<EmscriptenBuild<'_>>,
-    keep_sections: &[&str],
-) -> Result<Command> {
     let mut cmd = Command::new("cargo");
 
     // When panic_unwind is enabled, use nightly toolchain
@@ -470,11 +384,7 @@ fn cargo_build_command(
         cmd.arg("+nightly");
     }
 
-    cmd.current_dir(path).arg(if keep_sections.is_empty() {
-        "build"
-    } else {
-        "rustc"
-    });
+    cmd.current_dir(path).arg("build");
     match &emscripten {
         Some(em) => cmd.arg("--bin").arg(em.bin),
         None => cmd.arg("--lib"),
@@ -590,188 +500,7 @@ fn cargo_build_command(
         })
         .collect::<Result<Vec<_>>>()?;
     cmd.args(extra_options_with_absolute_paths);
-    if !keep_sections.is_empty() {
-        // Arguments after `--` reach only the final crate's rustc, so Cargo's own rustflags
-        // resolution (CARGO_ENCODED_RUSTFLAGS, RUSTFLAGS, config) is left as is. The final
-        // link still covers dependency code, including under LTO.
-        cmd.arg("--");
-        for section in keep_sections {
-            cmd.arg("-C")
-                .arg(format!("link-arg=--keep-section={section}"));
-        }
-    }
-    Ok(cmd)
-}
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    const KEEP_NAME_ARGS: [&str; 5] = [
-        "--",
-        "-C",
-        "link-arg=--keep-section=name",
-        "-C",
-        "link-arg=--keep-section=target_features",
-    ];
-    const KEEP_TARGET_FEATURES_ARGS: [&str; 3] =
-        ["--", "-C", "link-arg=--keep-section=target_features"];
-
-    /// A toolchain whose rust-lld accepts `--keep-section`.
-    const CURRENT_RUSTC_MINOR: Option<u32> = Some(91);
-
-    fn options(options: &[&str]) -> Vec<String> {
-        options.iter().map(|option| option.to_string()).collect()
-    }
-
-    /// The Cargo command for a non-Emscripten build, as `cargo_build_wasm` constructs it.
-    fn command(
-        profile: BuildProfile,
-        extra: &[&str],
-        panic_unwind: bool,
-        preserve_names: bool,
-    ) -> Result<Command> {
-        let extra = options(extra);
-        let keep_sections =
-            final_link_sections(&profile, false, preserve_names, CURRENT_RUSTC_MINOR);
-        cargo_build_command(
-            Path::new("."),
-            profile,
-            &extra,
-            panic_unwind,
-            None,
-            keep_sections,
-        )
-    }
-
-    fn args(cmd: &Command) -> Vec<String> {
-        cmd.get_args()
-            .map(|arg| arg.to_str().unwrap().to_string())
-            .collect()
-    }
-
-    fn env(cmd: &Command, name: &str) -> Option<String> {
-        cmd.get_envs()
-            .find(|(key, _)| *key == name)
-            .and_then(|(_, value)| value)
-            .map(|value| value.to_str().unwrap().to_string())
-    }
-
-    fn release_args(extra: &[&str], preserve_names: bool) -> Vec<String> {
-        args(&command(BuildProfile::Release, extra, false, preserve_names).unwrap())
-    }
-
-    #[test]
-    fn release_uses_cargo_rustc_keeping_names_and_target_features() {
-        let cmd = command(BuildProfile::Release, &["--features", "http"], false, true).unwrap();
-        let mut expected = vec![
-            "rustc",
-            "--lib",
-            "--release",
-            "--target",
-            WASM32_UNKNOWN,
-            "--features",
-            "http",
-        ];
-        expected.extend(KEEP_NAME_ARGS);
-        assert_eq!(args(&cmd), expected);
-        // Cargo's own rustflags resolution must stay intact.
-        assert_eq!(env(&cmd, "RUSTFLAGS"), None);
-        assert_eq!(env(&cmd, "CARGO_ENCODED_RUSTFLAGS"), None);
-    }
-
-    #[test]
-    fn release_opt_out_keeps_only_target_features() {
-        let mut expected = vec!["rustc", "--lib", "--release", "--target", WASM32_UNKNOWN];
-        expected.extend(KEEP_TARGET_FEATURES_ARGS);
-        assert_eq!(release_args(&[], false), expected);
-    }
-
-    #[test]
-    fn dev_and_custom_profiles_use_cargo_build_without_link_args() {
-        for preserve_names in [true, false] {
-            let dev = command(BuildProfile::Dev, &["--workspace"], false, preserve_names);
-            assert_eq!(
-                args(&dev.unwrap()),
-                ["build", "--lib", "--target", WASM32_UNKNOWN, "--workspace"]
-            );
-            let custom = command(
-                BuildProfile::Custom("perf".into()),
-                &[],
-                false,
-                preserve_names,
-            );
-            assert_eq!(
-                args(&custom.unwrap()),
-                [
-                    "build",
-                    "--lib",
-                    "--profile",
-                    "perf",
-                    "--target",
-                    WASM32_UNKNOWN
-                ]
-            );
-        }
-    }
-
-    #[test]
-    fn profiling_uses_cargo_rustc_with_final_crate_link_args() {
-        let cmd = command(
-            BuildProfile::Profiling,
-            &["--features", "http"],
-            false,
-            true,
-        )
-        .unwrap();
-        let mut expected = vec![
-            "rustc",
-            "--lib",
-            "--release",
-            "--target",
-            WASM32_UNKNOWN,
-            "--features",
-            "http",
-        ];
-        expected.extend(KEEP_NAME_ARGS);
-        assert_eq!(args(&cmd), expected);
-        assert_eq!(env(&cmd, "RUSTFLAGS"), None);
-    }
-
-    #[test]
-    fn panic_unwind_keeps_build_std_and_rustflags() {
-        for profile in [BuildProfile::Release, BuildProfile::Profiling] {
-            let cmd = command(profile, &[], true, true).unwrap();
-            let args = args(&cmd);
-            assert_eq!(args[..2], ["+nightly", "rustc"]);
-            assert!(args
-                .windows(2)
-                .any(|pair| pair == ["-Z", "build-std=std,panic_unwind"]));
-            assert!(args.ends_with(&KEEP_NAME_ARGS.map(String::from)));
-            let rustflags = env(&cmd, "RUSTFLAGS").unwrap();
-            assert!(rustflags.ends_with("-Cpanic=unwind"));
-            assert!(!rustflags.contains("keep-section"));
-        }
-    }
-
-    #[test]
-    fn toolchains_without_keep_section_keep_no_sections() {
-        for profile in [BuildProfile::Release, BuildProfile::Profiling] {
-            for preserve_names in [true, false] {
-                assert!(final_link_sections(&profile, false, preserve_names, Some(77)).is_empty());
-            }
-        }
-        // Unknown versions passed `check_rustc_version`, as did the first linker with the flag.
-        for rustc_minor in [None, Some(78)] {
-            let sections = final_link_sections(&BuildProfile::Release, false, true, rustc_minor);
-            assert_eq!(sections, [NAME_SECTION, TARGET_FEATURES_SECTION]);
-        }
-    }
-
-    #[test]
-    fn emscripten_keeps_no_sections() {
-        for profile in [BuildProfile::Release, BuildProfile::Profiling] {
-            assert!(final_link_sections(&profile, true, true, CURRENT_RUSTC_MINOR).is_empty());
-        }
-    }
+    utils::run(cmd, "cargo build").context("Compiling your crate to WebAssembly failed")?;
+    Ok(())
 }

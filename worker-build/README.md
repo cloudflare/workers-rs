@@ -19,17 +19,19 @@ globs = ["**/*.wasm"]
 type  = "CompiledWasm"
 ```
 
-## Smaller release builds with `--no-preserve-wasm-names`
+## Smaller release builds with `--remove-name-section`
 
-Release builds keep Wasm function names, which CPU profiles and stack traces show, even when the
-Cargo profile sets `strip = true`. To drop them for a size-sensitive Worker, build with:
+Release builds keep Wasm function names, which CPU profiles and stack traces show. To drop them
+for a size-sensitive Worker, build with:
 
 ```bash
-worker-build --release --no-preserve-wasm-names
+worker-build --release --remove-name-section
 ```
 
-Keeping names increases the size of the Wasm when the profile sets `strip = true`. Cargo's
-default release profile keeps them either way.
+This removes only the `name` section, in the `wasm-opt` pass, so it has no effect on builds that
+skip `wasm-opt`, such as `--dev` builds. Use it instead of `strip = true` in the Cargo profile,
+which makes the linker drop every custom section that later steps and tools rely on. Keeping
+names increases the size of the Wasm.
 
 ## Environment Variables
 
