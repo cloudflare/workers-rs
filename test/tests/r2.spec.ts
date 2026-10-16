@@ -22,6 +22,24 @@ describe("r2", () => {
     expect(await resp.text()).toBe("ok");
   });
 
+  test("get with offset and length range", async () => {
+    const resp = await mf.dispatchFetch(`${mfUrl}r2/get-range/offset-length`);
+    expect(await resp.text()).toBe("Ok(OffsetWithLength { offset: 2, length: 3 })");
+  });
+
+  test("get with suffix range", async () => {
+    // The runtime echoes a suffix read as the resolved `{offset, length}`.
+    const resp = await mf.dispatchFetch(`${mfUrl}r2/get-range/suffix`);
+    expect(await resp.text()).toBe("Ok(OffsetWithLength { offset: 7, length: 3 })");
+  });
+
+  test("get without range", async () => {
+    // Miniflare echoes the whole object as the range when none was requested;
+    // workerd omits `range` there and `Object::range()` returns `Err`.
+    const resp = await mf.dispatchFetch(`${mfUrl}r2/get-range/none`);
+    expect(await resp.text()).toBe("Ok(OffsetWithLength { offset: 0, length: 10 })");
+  });
+
   test("put", async () => {
     const resp = await mf.dispatchFetch(`${mfUrl}r2/put`, {
       method: "put",
