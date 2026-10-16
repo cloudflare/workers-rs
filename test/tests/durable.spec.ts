@@ -139,4 +139,15 @@ describe("durable", () => {
     const text = await resp.text();
     expect(text).toBe("Hello from unknown!");
   });
+
+  // set_alarm_with_options / get_alarm_with_options / delete_alarm_with_options send
+  // GetAlarmOptions / SetAlarmOptions to the runtime as camelCase (allowConcurrency,
+  // allowUnconfirmed); workerd silently ignores any other key.
+  test("alarm options", async () => {
+    const resp = await mf.dispatchFetch(`${mfUrl}durable/alarm-options`);
+    expect(resp.status).toBe(200);
+    expect(await resp.text()).toBe(
+      'true:None:{"allowConcurrency":true}:{"allowConcurrency":true,"allowUnconfirmed":true}',
+    );
+  });
 });
