@@ -230,12 +230,16 @@ impl Object {
         .into()
     }
 
+    /// The HTTP metadata of the object. Objects returned by [Bucket::list] carry it only when the
+    /// listing asked for it with [Include::HttpMetadata]; otherwise this is an empty
+    /// [HttpMetadata].
     pub fn http_metadata(&self) -> HttpMetadata {
         match &self.inner {
             ObjectInner::NoBody(inner) => inner.http_metadata().unwrap(),
             ObjectInner::Body(inner) => inner.http_metadata().unwrap(),
         }
-        .into()
+        .map(Into::into)
+        .unwrap_or_default()
     }
 
     pub fn checksum(&self) -> R2Checksums {
@@ -246,10 +250,15 @@ impl Object {
         .into()
     }
 
+    /// The custom metadata of the object. Objects returned by [Bucket::list] carry it only when
+    /// the listing asked for it with [Include::CustomMetadata]; otherwise this is an empty map.
     pub fn custom_metadata(&self) -> Result<HashMap<String, String>> {
         let metadata = match &self.inner {
             ObjectInner::NoBody(inner) => inner.custom_metadata().unwrap(),
             ObjectInner::Body(inner) => inner.custom_metadata().unwrap(),
+        };
+        let Some(metadata) = metadata else {
+            return Ok(HashMap::new());
         };
 
         let keys = js_sys::Object::keys(&metadata).to_vec();
