@@ -49,6 +49,7 @@ pub struct Build {
     pub extra_options: Vec<String>,
     pub wasm_bindgen_version: Option<String>,
     pub panic_unwind: bool,
+    pub remove_name_section: bool,
     pub emscripten: bool,
     pub bin: Option<String>,
     pub emscripten_toolchain: Option<emscripten::Toolchain>,
@@ -163,6 +164,10 @@ pub struct BuildOptions {
     /// List of extra options to pass to `cargo build`
     pub extra_options: Vec<String>,
 
+    #[clap(long = "remove-name-section")]
+    /// Remove the Wasm `name` section in the wasm-opt pass, to reduce size
+    pub remove_name_section: bool,
+
     #[clap(long, hide = true)]
     /// Pass-through for --no-panic-recovery
     pub no_panic_recovery: bool,
@@ -189,6 +194,12 @@ type BuildStep = fn(&mut Build) -> Result<()>;
 impl Build {
     /// Construct a build command from the given options.
     pub fn try_from_opts(mut build_opts: BuildOptions) -> Result<Self> {
+        if build_opts.profile.profiling && build_opts.remove_name_section {
+            bail!(
+                "--remove-name-section cannot be used with --profiling, which exists to keep \
+                 Wasm names. Use --release --remove-name-section for a smaller release build."
+            );
+        }
         if let Some(path) = &build_opts.path {
             if path.to_string_lossy().starts_with("--") {
                 let path = build_opts.path.take().unwrap();
@@ -240,6 +251,7 @@ impl Build {
             extra_options: build_opts.extra_options,
             wasm_bindgen_version: None,
             panic_unwind: build_opts.panic_unwind,
+            remove_name_section: build_opts.remove_name_section,
             emscripten: build_opts.emscripten,
             bin: build_opts.bin,
             emscripten_toolchain: None,
@@ -608,7 +620,9 @@ impl Build {
             args.push(format!("--enable-{feature}"));
         }
         // Keep the Wasm names section
-        args.push("--debuginfo".into());
+        if !self.remove_name_section {
+            args.push("--debuginfo".into());
+        }
         info!("executing wasm-opt with {args:?}");
         wasm_opt_run(&self.out_dir, &args).map_err(|e| {
             anyhow!(

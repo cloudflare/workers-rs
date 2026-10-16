@@ -127,6 +127,15 @@ jobs:
               cd ../..
           done
 
+      - name: Check Wasm names in release builds
+        run: |
+          cd examples/router
+          export WASM_BINDGEN_BIN='../../wasm-bindgen/target/debug/wasm-bindgen'
+          ../../target/debug/worker-build --release
+          node ../../.github/check-wasm-names.mjs build/index_bg.wasm worker router_on_workers
+          ../../target/debug/worker-build --release --remove-name-section
+          node ../../.github/check-wasm-names.mjs --no-names build/index_bg.wasm
+
   build-emscripten:
     name: Emscripten example
     needs: worker-build
