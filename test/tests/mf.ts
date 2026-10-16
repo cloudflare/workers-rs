@@ -66,6 +66,7 @@ const mf_instance = new Miniflare({
           SEEDED_BUCKET: { type: "r2", name: "SEEDED_BUCKET" },
           DELETE_BUCKET: { type: "r2", name: "DELETE_BUCKET" },
           my_queue: { type: "queue", name: "my_queue" },
+          map_queue: { type: "queue", name: "map_queue" },
           remote: {
             type: "fetcher",
             handler: async () => new Response("hello world"),
@@ -105,7 +106,10 @@ const mf_instance = new Miniflare({
           SqlCounter: { type: "durable-object", storage: "sqlite" },
           SqlIterator: { type: "durable-object", storage: "sqlite" },
         },
-        triggers: [{ type: "queue", name: "my_queue", maxBatchTimeout: 1 }],
+        triggers: [
+          { type: "queue", name: "my_queue", maxBatchTimeout: 1 },
+          { type: "queue", name: "map_queue", maxBatchTimeout: 1 },
+        ],
         assets: {
           directory: "./public",
           hasUserWorker: true,

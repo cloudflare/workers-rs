@@ -54,4 +54,49 @@ describe("queue", () => {
     const message_2 = messages.find((msg) => msg.id === id_2.toString());
     expect(message_2).toMatchObject({ id: id_2.toString() });
   });
+
+  // Maps are serialized as JS `Map`s by default, which the `json` content type
+  // encodes as `{}`; the producer must emit plain objects instead.
+  const mapBody = (id: string) => ({
+    id,
+    map: { k1: "v1", k2: "v2" },
+    value: { a: 1, b: { c: "d" }, list: [1, "two", null] },
+  });
+
+  test("send message with map fields to queue", async () => {
+    const id = uuid.v4();
+    let resp = await mf.dispatchFetch(`${mfUrl}queue/map/send`, {
+      method: "POST",
+      body: JSON.stringify(mapBody(id)),
+    });
+    expect(resp.status).toBe(200);
+
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+
+    resp = await mf.dispatchFetch(`${mfUrl}queue/map`);
+    expect(resp.status).toBe(200);
+
+    const messages = (await resp.json()) as { id: string }[];
+    const message = messages.find((msg) => msg.id === id);
+    expect(message).toEqual(mapBody(id));
+  });
+
+  test("batch send messages with map fields to queue", async () => {
+    const id_1 = uuid.v4();
+    const id_2 = uuid.v4();
+    let resp = await mf.dispatchFetch(`${mfUrl}queue/map/send_batch`, {
+      method: "POST",
+      body: JSON.stringify([mapBody(id_1), mapBody(id_2)]),
+    });
+    expect(resp.status).toBe(200);
+
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+
+    resp = await mf.dispatchFetch(`${mfUrl}queue/map`);
+    expect(resp.status).toBe(200);
+
+    const messages = (await resp.json()) as { id: string }[];
+    expect(messages.find((msg) => msg.id === id_1)).toEqual(mapBody(id_1));
+    expect(messages.find((msg) => msg.id === id_2)).toEqual(mapBody(id_2));
+  });
 });

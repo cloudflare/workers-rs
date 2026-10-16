@@ -348,6 +348,7 @@ impl AsRef<JsValue> for Queue {
 #[derive(Clone, Copy, Debug)]
 pub enum QueueContentType {
     /// Send a JavaScript object that can be JSON-serialized. This content type can be previewed from the Cloudflare dashboard.
+    /// Rust maps are serialized as plain objects and byte buffers as arrays so that the body survives JSON encoding.
     Json,
     /// Send a String. This content type can be previewed with the List messages from the dashboard feature.
     Text,
@@ -471,8 +472,20 @@ pub struct SendMessage<T> {
 
 impl<T: Serialize> SendMessage<T> {
     fn into_raw_send_message(self) -> Result<SendMessage<JsValue>> {
+        let message = match self.options.as_ref().and_then(|o| o.content_type) {
+            Some(QueueContentType::Json) => {
+                // The runtime JSON-encodes the body, which turns a JS `Map` into `{}` and a
+                // `Uint8Array` into an object keyed by index, so maps and byte buffers are
+                // emitted in their JSON shapes (plain object, array) instead.
+                let ser = serde_wasm_bindgen::Serializer::new()
+                    .serialize_maps_as_objects(true)
+                    .serialize_bytes_as_arrays(true);
+                self.message.serialize(&ser)?
+            }
+            _ => serde_wasm_bindgen::to_value(&self.message)?,
+        };
         Ok(SendMessage {
-            message: serde_wasm_bindgen::to_value(&self.message)?,
+            message,
             options: self.options,
         })
     }
@@ -584,7 +597,8 @@ impl<T: Serialize> BatchSendMessage<T> {
 impl Queue {
     /// Sends a message to the Queue.
     ///
-    /// Accepts a struct that is `serializable`.
+    /// Accepts a struct that is `serializable`. With the default `QueueContentType::Json` the
+    /// message is serialized in its JSON shape (maps as plain objects, byte buffers as arrays).
     ///
     /// If message options are needed use the `MessageBuilder` to create the message.
     ///

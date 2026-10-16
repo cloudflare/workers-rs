@@ -49,6 +49,13 @@ queue = "my_queue"
 [[queues.producers]]
 queue = "my_queue"
 binding = "my_queue"
+
+[[queues.consumers]]
+queue = "map_queue"
+
+[[queues.producers]]
+queue = "map_queue"
+binding = "map_queue"
 [[r2_buckets]]
 binding = 'EMPTY_BUCKET'
 bucket_name = 'empty-bucket'
