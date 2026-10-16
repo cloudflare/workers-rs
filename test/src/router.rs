@@ -224,6 +224,7 @@ macro_rules! add_routes (
     add_route!($obj, get, "/durable/ctor-name", durable::handle_ctor_name);
     add_route!($obj, get, "/durable/hello-unique", durable::handle_hello_unique);
     add_route!($obj, get, "/durable/storage", durable::handle_storage);
+    add_route!($obj, get, "/durable/get-options", durable::handle_get_options);
     add_route!($obj, get, "/durable/block-concurrency", durable::handle_block_concurrency);
     add_route!($obj, get, "/durable/block-concurrency-errors-as-values", durable::handle_block_concurrency_errors_as_values);
     add_route!($obj, get, "/durable/block-concurrency-reset-count", durable::handle_block_concurrency_reset_count);
