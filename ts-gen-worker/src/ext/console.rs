@@ -5,27 +5,27 @@
 #[macro_export]
 macro_rules! console_log {
     ($($t:tt)*) => {
-        $crate::CONSOLE.with(|c| c.log(&[$crate::wasm_bindgen::JsValue::from(::std::format!($($t)*))]))
+        $crate::console.with(|c| c.log(&[$crate::wasm_bindgen::JsValue::from(::std::format!($($t)*))]))
     };
 }
 
 #[macro_export]
 macro_rules! console_debug {
     ($($t:tt)*) => {
-        $crate::CONSOLE.with(|c| c.debug(&[$crate::wasm_bindgen::JsValue::from(::std::format!($($t)*))]))
+        $crate::console.with(|c| c.debug(&[$crate::wasm_bindgen::JsValue::from(::std::format!($($t)*))]))
     };
 }
 
 #[macro_export]
 macro_rules! console_warn {
     ($($t:tt)*) => {
-        $crate::CONSOLE.with(|c| c.warn(&[$crate::wasm_bindgen::JsValue::from(::std::format!($($t)*))]))
+        $crate::console.with(|c| c.warn(&[$crate::wasm_bindgen::JsValue::from(::std::format!($($t)*))]))
     };
 }
 
 #[macro_export]
 macro_rules! console_error {
     ($($t:tt)*) => {
-        $crate::CONSOLE.with(|c| c.error(&[$crate::wasm_bindgen::JsValue::from(::std::format!($($t)*))]))
+        $crate::console.with(|c| c.error(&[$crate::wasm_bindgen::JsValue::from(::std::format!($($t)*))]))
     };
 }

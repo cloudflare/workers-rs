@@ -156,7 +156,7 @@ pub async fn handle_api_data(req: Request, _env: Env, _data: SomeSharedData) -> 
 
     unsafe { todo.title.as_mut_vec().reverse() };
 
-    CONSOLE
+    console
         .with(|c| c.log(&[format!("todo = (title {}) (id {})", todo.title, todo.user_id).into()]));
 
     Response::builder().from_bytes(&serde_json::to_vec(&todo).map_err(|e| e.to_string())?)

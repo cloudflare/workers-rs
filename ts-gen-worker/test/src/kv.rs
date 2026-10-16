@@ -60,7 +60,7 @@ pub async fn list_keys(_req: Request, env: Env, _data: SomeSharedData) -> Result
     let store = test_store(&env).await;
     let list_res = store.list().await?;
 
-    kv_assert_eq!(list_res.keys().length(), 1)?;
+    kv_assert_eq!(list_res.keys().len(), 1)?;
 
     Response::builder().ok("passed")
 }

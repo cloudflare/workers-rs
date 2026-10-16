@@ -66,7 +66,7 @@ static DATA_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\d{4}-\d{2}-
 #[event(start)]
 pub fn start() {
     std::panic::set_hook(Box::new(|info| {
-        CONSOLE.with(|c| c.error(&[info.to_string().into()]))
+        console.with(|c| c.error(&[info.to_string().into()]))
     }));
     GLOBAL_STATE.store(true, Ordering::SeqCst);
 }
@@ -199,8 +199,8 @@ async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response
             Ok(Response::new_with_str(&JsNullable::wrap(("ok").into()))?)
         }
         ("GET", ["log"]) => {
-            CONSOLE.with(|c| c.log(&[JsValue::from("hello"), 1.0.into()]));
-            CONSOLE.with(|c| c.warn(&Array::of1(&"warned".into()).to_vec()));
+            console.with(|c| c.log(&[JsValue::from("hello"), 1.0.into()]));
+            console.with(|c| c.warn(&Array::of1(&"warned".into()).to_vec()));
             Ok(Response::new_with_str(&JsNullable::wrap(
                 ("logged").into(),
             ))?)
@@ -462,7 +462,7 @@ async fn handle_close_event(_req: Request, env: Env, _data: SomeSharedData) -> R
 
 async fn catchall(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     let path = req.path();
-    CONSOLE.with(|c| c.log(&[format!("[or_else_any_method_async] caught: {}", path).into()]));
+    console.with(|c| c.log(&[format!("[or_else_any_method_async] caught: {}", path).into()]));
 
     let (builder, body) = fetch_with_str("https://github.com/404").await?.into_parts();
     builder.status(404).body(body)

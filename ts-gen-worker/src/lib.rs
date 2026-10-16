@@ -7,6 +7,9 @@
 //! roots listed in `chompfile.toml`.
 
 #[allow(clippy::all)]
+// The pinned wasm-bindgen predates wasm-bindgen#5377, so it drops the `allow` ts-gen puts on
+// each lower-case static.
+#[allow(non_upper_case_globals)]
 mod bindings;
 mod durable;
 mod error;
@@ -16,6 +19,11 @@ mod router;
 pub mod send;
 pub mod signal;
 
+pub use bindings::cloudflare::email::EmailMessage;
+pub use bindings::cloudflare::sockets::{
+    connect, connect_with_socket_address, connect_with_socket_address_and_options,
+    connect_with_str_and_options,
+};
 pub use bindings::*;
 pub use durable::DurableObject;
 pub use error::{Error, Result};
@@ -50,7 +58,7 @@ pub mod __macro {
     /// Logs the handler error and builds the 500 response; `respond_with_errors`
     /// passes the error's `Display` text for the body.
     pub fn error_response(err: JsValue, message: Option<String>) -> Response {
-        crate::CONSOLE.with(|c| c.error(std::slice::from_ref(&err)));
+        crate::console.with(|c| c.error(std::slice::from_ref(&err)));
         let body = message.unwrap_or_else(|| "INTERNAL SERVER ERROR".to_owned());
         // Constructing a text response with status 500 cannot throw.
         Response::builder().error(body, 500).unwrap()

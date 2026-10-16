@@ -40,29 +40,37 @@ impl EmailSendResult {
         inner
     }
 }
-#[wasm_bindgen(module = "cloudflare:email")]
-extern "C" {
-    # [wasm_bindgen (extends = Object)]
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    pub type EmailMessage;
-    #[wasm_bindgen(constructor, catch)]
-    pub fn new(from: &str, to: &str, raw: &str) -> Result<EmailMessage, ::js_sys::Error>;
-    #[wasm_bindgen(constructor, catch, js_name = "EmailMessage")]
-    pub fn new_with_readable_stream(
-        from: &str,
-        to: &str,
-        raw: &ReadableStream,
-    ) -> Result<EmailMessage, ::js_sys::Error>;
-    #[doc = " Envelope From attribute of the email message."]
-    #[wasm_bindgen(method, getter)]
-    pub fn from(this: &EmailMessage) -> String;
-    #[doc = " Envelope To attribute of the email message."]
-    #[wasm_bindgen(method, getter)]
-    pub fn to(this: &EmailMessage) -> String;
+pub mod cloudflare {
+    #[allow(unused_imports)]
+    use super::*;
+    pub mod email {
+        #[allow(unused_imports)]
+        use super::*;
+        #[wasm_bindgen(module = "cloudflare:email")]
+        extern "C" {
+            # [wasm_bindgen (extends = Object)]
+            #[derive(Debug, Clone, PartialEq, Eq)]
+            pub type EmailMessage;
+            #[wasm_bindgen(constructor, catch)]
+            pub fn new(from: &str, to: &str, raw: &str) -> Result<EmailMessage, ::js_sys::Error>;
+            #[wasm_bindgen(constructor, catch, js_name = "EmailMessage")]
+            pub fn new_with_readable_stream(
+                from: &str,
+                to: &str,
+                raw: &ReadableStream,
+            ) -> Result<EmailMessage, ::js_sys::Error>;
+            #[doc = " Envelope From attribute of the email message."]
+            #[wasm_bindgen(method, getter)]
+            pub fn from(this: &EmailMessage) -> String;
+            #[doc = " Envelope To attribute of the email message."]
+            #[wasm_bindgen(method, getter)]
+            pub fn to(this: &EmailMessage) -> String;
+        }
+    }
 }
 #[wasm_bindgen]
 extern "C" {
-    # [wasm_bindgen (extends = EmailMessage , extends = Object)]
+    # [wasm_bindgen (extends = cloudflare :: email :: EmailMessage , extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type ForwardableEmailMessage;
     #[doc = " Stream of the email message content."]
@@ -135,7 +143,7 @@ extern "C" {
     #[wasm_bindgen(method, catch)]
     pub async fn reply(
         this: &ForwardableEmailMessage,
-        message: &EmailMessage,
+        message: &cloudflare::email::EmailMessage,
     ) -> Result<EmailSendResult, ::js_sys::Error>;
     #[doc = " Reply to the sender of this email message with a new EmailMessage object."]
     #[doc = ""]
@@ -145,7 +153,7 @@ extern "C" {
     #[wasm_bindgen(method, js_name = "reply")]
     pub fn reply_promise(
         this: &ForwardableEmailMessage,
-        message: &EmailMessage,
+        message: &cloudflare::email::EmailMessage,
     ) -> Promise<EmailSendResult>;
 }
 #[wasm_bindgen]
@@ -156,7 +164,7 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn disposition(this: &EmailAttachment) -> DispositionKind;
     #[wasm_bindgen(method, setter)]
-    pub fn set_disposition(this: &EmailAttachment, val: &str);
+    pub fn set_disposition(this: &EmailAttachment, val: DispositionKind);
     #[wasm_bindgen(method, getter, js_name = "contentId")]
     pub fn content_id(this: &EmailAttachment) -> Option<String>;
     #[wasm_bindgen(method, setter, js_name = "contentId")]
@@ -189,7 +197,8 @@ impl EmailAttachment {
         content: &str,
     ) -> EmailAttachment {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_disposition("inline");
+        // ts-gen regression: the branch factory passes the literal "inline" to the enum setter.
+        inner.set_disposition(DispositionKind::Inline);
         inner.set_content_id(content_id);
         inner.set_filename(filename);
         inner.set_type(r#type);
@@ -206,7 +215,8 @@ impl EmailAttachment {
         content: &ArrayBuffer,
     ) -> EmailAttachment {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_disposition("inline");
+        // ts-gen regression: the branch factory passes the literal "inline" to the enum setter.
+        inner.set_disposition(DispositionKind::Inline);
         inner.set_content_id(content_id);
         inner.set_filename(filename);
         inner.set_type(r#type);
@@ -223,7 +233,8 @@ impl EmailAttachment {
         content: &T,
     ) -> EmailAttachment {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_disposition("inline");
+        // ts-gen regression: the branch factory passes the literal "inline" to the enum setter.
+        inner.set_disposition(DispositionKind::Inline);
         inner.set_content_id(content_id);
         inner.set_filename(filename);
         inner.set_type(r#type);
@@ -265,7 +276,8 @@ impl EmailAttachment {
         content: &str,
     ) -> EmailAttachmentBuilder {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_disposition("attachment");
+        // ts-gen regression: the branch factory passes the literal "attachment" to the enum setter.
+        inner.set_disposition(DispositionKind::Attachment);
         inner.set_filename(filename);
         inner.set_type(r#type);
         inner.set_content(content);
@@ -280,7 +292,8 @@ impl EmailAttachment {
         content: &ArrayBuffer,
     ) -> EmailAttachmentBuilder {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_disposition("attachment");
+        // ts-gen regression: the branch factory passes the literal "attachment" to the enum setter.
+        inner.set_disposition(DispositionKind::Attachment);
         inner.set_filename(filename);
         inner.set_type(r#type);
         inner.set_content_with_array_buffer(content);
@@ -295,7 +308,8 @@ impl EmailAttachment {
         content: &T,
     ) -> EmailAttachmentBuilder {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_disposition("attachment");
+        // ts-gen regression: the branch factory passes the literal "attachment" to the enum setter.
+        inner.set_disposition(DispositionKind::Attachment);
         inner.set_filename(filename);
         inner.set_type(r#type);
         inner.set_content_with_typed_array(content);
@@ -349,10 +363,13 @@ extern "C" {
     #[wasm_bindgen(method, catch)]
     pub async fn send(
         this: &SendEmail,
-        message: &EmailMessage,
+        message: &cloudflare::email::EmailMessage,
     ) -> Result<EmailSendResult, ::js_sys::Error>;
     #[wasm_bindgen(method, js_name = "send")]
-    pub fn send_promise(this: &SendEmail, message: &EmailMessage) -> Promise<EmailSendResult>;
+    pub fn send_promise(
+        this: &SendEmail,
+        message: &cloudflare::email::EmailMessage,
+    ) -> Promise<EmailSendResult>;
     #[wasm_bindgen(method, catch, js_name = "send")]
     pub async fn send_with_builder(
         this: &SendEmail,
@@ -417,7 +434,7 @@ extern "C" {
     pub fn set_html(this: &SendEmailBuilder, val: &str);
     #[wasm_bindgen(method, getter)]
     pub fn attachments(this: &SendEmailBuilder) -> Option<Vec<EmailAttachment>>;
-    #[wasm_bindgen(method, setter, slice_to_array)]
+    #[wasm_bindgen(method, setter)]
     pub fn set_attachments(this: &SendEmailBuilder, val: &[EmailAttachment]);
 }
 impl SendEmailBuilder {
@@ -543,23 +560,23 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn message(this: &EmailEvent) -> ForwardableEmailMessage;
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum DispositionKind {
     Inline = "inline",
     Attachment = "attachment",
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum ContentKind {
     String(String),
     ArrayBuffer(ArrayBuffer),
     Uint8Array(Uint8Array),
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum FromKind {
     String(String),
     EmailAddress(EmailAddress),
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum ToKind {
     String(String),
     VecOfString(Vec<String>),

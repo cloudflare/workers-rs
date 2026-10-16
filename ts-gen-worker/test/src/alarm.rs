@@ -39,7 +39,7 @@ impl DurableObject for AlarmObject {
             .storage()
             .put_serialized("alarmed", &true)
             .await?;
-        CONSOLE.with(|c| c.log(&["Alarm has been triggered!".into()]));
+        console.with(|c| c.log(&["Alarm has been triggered!".into()]));
         Ok(())
     }
 }

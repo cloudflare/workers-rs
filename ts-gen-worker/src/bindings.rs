@@ -9,9 +9,9 @@ extern "C" {
     # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type Console;
-    #[wasm_bindgen(method, variadic, catch, slice_to_array)]
+    #[wasm_bindgen(method, variadic, catch)]
     pub fn assert(this: &Console, data: &[JsValue]) -> Result<(), crate::Error>;
-    #[wasm_bindgen(method, variadic, catch, slice_to_array, js_name = "assert")]
+    #[wasm_bindgen(method, variadic, catch, js_name = "assert")]
     pub fn assert_with_condition(
         this: &Console,
         condition: bool,
@@ -45,7 +45,7 @@ extern "C" {
     #[doc = " The **`console.debug()`** static method outputs a message to the console at the \"debug\" log level. The message is only displayed to the user if the console is configured to display debug output. In most cases, the log level is configured within the console UI. This log level might correspond to the Debug or Verbose log level."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/debug_static)"]
-    #[wasm_bindgen(method, variadic, slice_to_array)]
+    #[wasm_bindgen(method, variadic)]
     pub fn debug(this: &Console, data: &[JsValue]);
     #[doc = " The **`console.dir()`** static method displays a list of the properties of the specified JavaScript object. In browser consoles, the output is presented as a hierarchical listing with disclosure triangles that let you see the contents of child objects."]
     #[doc = ""]
@@ -69,22 +69,22 @@ extern "C" {
     #[doc = " The **`console.dirxml()`** static method displays an interactive tree of the descendant elements of the specified XML/HTML element. If it is not possible to display as an element the JavaScript Object view is shown instead. The output is presented as a hierarchical listing of expandable nodes that let you see the contents of child nodes."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/dirxml_static)"]
-    #[wasm_bindgen(method, variadic, catch, slice_to_array)]
+    #[wasm_bindgen(method, variadic, catch)]
     pub fn dirxml(this: &Console, data: &[JsValue]) -> Result<(), crate::Error>;
     #[doc = " The **`console.error()`** static method outputs a message to the console at the \"error\" log level. The message is only displayed to the user if the console is configured to display error output. In most cases, the log level is configured within the console UI. The message may be formatted as an error, with red colors and call stack information."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/error_static)"]
-    #[wasm_bindgen(method, variadic, slice_to_array)]
+    #[wasm_bindgen(method, variadic)]
     pub fn error(this: &Console, data: &[JsValue]);
     #[doc = " The **`console.group()`** static method creates a new inline group in the Web console log, causing any subsequent console messages to be indented by an additional level, until console.groupEnd() is called."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/group_static)"]
-    #[wasm_bindgen(method, variadic, catch, slice_to_array)]
+    #[wasm_bindgen(method, variadic, catch)]
     pub fn group(this: &Console, data: &[JsValue]) -> Result<(), crate::Error>;
     #[doc = " The **`console.groupCollapsed()`** static method creates a new inline group in the console. Unlike console.group(), however, the new group is created collapsed. The user will need to use the disclosure button next to it to expand it, revealing the entries created in the group."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/groupCollapsed_static)"]
-    #[wasm_bindgen(method, variadic, catch, slice_to_array, js_name = "groupCollapsed")]
+    #[wasm_bindgen(method, variadic, catch, js_name = "groupCollapsed")]
     pub fn group_collapsed(this: &Console, data: &[JsValue]) -> Result<(), crate::Error>;
     #[doc = " The **`console.groupEnd()`** static method exits the current inline group in the console. See Using groups in the console in the console documentation for details and examples."]
     #[doc = ""]
@@ -94,12 +94,12 @@ extern "C" {
     #[doc = " The **`console.info()`** static method outputs a message to the console at the \"info\" log level. The message is only displayed to the user if the console is configured to display info output. In most cases, the log level is configured within the console UI. The message may receive special formatting, such as a small \"i\" icon next to it."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/info_static)"]
-    #[wasm_bindgen(method, variadic, slice_to_array)]
+    #[wasm_bindgen(method, variadic)]
     pub fn info(this: &Console, data: &[JsValue]);
     #[doc = " The **`console.log()`** static method outputs a message to the console."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/log_static)"]
-    #[wasm_bindgen(method, variadic, slice_to_array)]
+    #[wasm_bindgen(method, variadic)]
     pub fn log(this: &Console, data: &[JsValue]);
     #[doc = " The **`console.table()`** static method displays tabular data as a table."]
     #[doc = ""]
@@ -146,12 +146,12 @@ extern "C" {
     #[doc = " The **`console.timeLog()`** static method logs the current value of a timer that was previously started by calling console.time()."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/timeLog_static)"]
-    #[wasm_bindgen(method, variadic, catch, slice_to_array, js_name = "timeLog")]
+    #[wasm_bindgen(method, variadic, catch, js_name = "timeLog")]
     pub fn time_log(this: &Console, data: &[JsValue]) -> Result<(), crate::Error>;
     #[doc = " The **`console.timeLog()`** static method logs the current value of a timer that was previously started by calling console.time()."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/timeLog_static)"]
-    #[wasm_bindgen(method, variadic, catch, slice_to_array, js_name = "timeLog")]
+    #[wasm_bindgen(method, variadic, catch, js_name = "timeLog")]
     pub fn time_log_with_label(
         this: &Console,
         label: &str,
@@ -164,18 +164,19 @@ extern "C" {
     #[doc = " The **`console.trace()`** static method outputs a stack trace to the console."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/trace_static)"]
-    #[wasm_bindgen(method, variadic, catch, slice_to_array)]
+    #[wasm_bindgen(method, variadic, catch)]
     pub fn trace(this: &Console, data: &[JsValue]) -> Result<(), crate::Error>;
     #[doc = " The **`console.warn()`** static method outputs a warning message to the console at the \"warning\" log level. The message is only displayed to the user if the console is configured to display warning output. In most cases, the log level is configured within the console UI. The message may receive special formatting, such as yellow colors and a warning icon."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/console/warn_static)"]
-    #[wasm_bindgen(method, variadic, slice_to_array)]
+    #[wasm_bindgen(method, variadic)]
     pub fn warn(this: &Console, data: &[JsValue]);
 }
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(thread_local_v2, js_name = "console")]
-    pub static CONSOLE: Console;
+    #[allow(non_upper_case_globals)]
+    #[wasm_bindgen(thread_local_v2)]
+    pub static console: Console;
 }
 #[wasm_bindgen]
 extern "C" {
@@ -286,16 +287,18 @@ extern "C" {
     #[doc = " compared to those implemented in most browsers."]
     #[doc = ""]
     #[doc = " [Cloudflare Docs Reference](https://developers.cloudflare.com/workers/runtime-apis/web-crypto/)"]
-    #[wasm_bindgen(thread_local_v2, js_name = "crypto")]
-    pub static CRYPTO: Crypto;
+    #[allow(non_upper_case_globals)]
+    #[wasm_bindgen(thread_local_v2)]
+    pub static crypto: Crypto;
 }
 #[wasm_bindgen]
 extern "C" {
     #[doc = " The Cache API allows fine grained control of reading and writing from the Cloudflare global network cache."]
     #[doc = ""]
     #[doc = " [Cloudflare Docs Reference](https://developers.cloudflare.com/workers/runtime-apis/cache/)"]
-    #[wasm_bindgen(thread_local_v2, js_name = "caches")]
-    pub static CACHES: CacheStorage;
+    #[allow(non_upper_case_globals)]
+    #[wasm_bindgen(thread_local_v2)]
+    pub static caches: CacheStorage;
 }
 #[wasm_bindgen]
 extern "C" {
@@ -303,8 +306,9 @@ extern "C" {
     #[doc = " as well as timing of subrequests and other operations."]
     #[doc = ""]
     #[doc = " [Cloudflare Docs Reference](https://developers.cloudflare.com/workers/runtime-apis/performance/)"]
-    #[wasm_bindgen(thread_local_v2, js_name = "performance")]
-    pub static PERFORMANCE: Performance;
+    #[allow(non_upper_case_globals)]
+    #[wasm_bindgen(thread_local_v2)]
+    pub static performance: Performance;
 }
 #[wasm_bindgen]
 extern "C" {
@@ -364,23 +368,6 @@ impl<Props: ::wasm_bindgen::JsGeneric> Eq for ExecutionContext<Props> {}
 extern "C" {
     # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
-    pub type Cloudflare;
-    #[wasm_bindgen(method, getter, js_name = "compatibilityFlags")]
-    pub fn compatibility_flags(this: &Cloudflare) -> Object<Boolean>;
-}
-impl Cloudflare {
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> Cloudflare {
-        #[allow(unused_unsafe)]
-        unsafe {
-            JsValue::from(js_sys::Object::new()).unchecked_into()
-        }
-    }
-}
-#[wasm_bindgen]
-extern "C" {
-    # [wasm_bindgen (extends = Object)]
-    #[derive(Debug, Clone, PartialEq, Eq)]
     pub type CachePurgeError;
     #[wasm_bindgen(method, getter)]
     pub fn code(this: &CachePurgeError) -> f64;
@@ -410,7 +397,7 @@ extern "C" {
     pub fn set_success(this: &CachePurgeResult, val: bool);
     #[wasm_bindgen(method, getter)]
     pub fn errors(this: &CachePurgeResult) -> Vec<CachePurgeError>;
-    #[wasm_bindgen(method, setter, slice_to_array)]
+    #[wasm_bindgen(method, setter)]
     pub fn set_errors(this: &CachePurgeResult, val: &[CachePurgeError]);
 }
 impl CachePurgeResult {
@@ -594,7 +581,7 @@ impl<T: ::wasm_bindgen::JsGeneric> PartialEq for DurableObjectNamespace<T> {
     }
 }
 impl<T: ::wasm_bindgen::JsGeneric> Eq for DurableObjectNamespace<T> {}
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DurableObjectJurisdiction {
     Eu = "eu",
@@ -646,7 +633,7 @@ impl From<DurableObjectNamespaceNewUniqueIdOptions>
         Self { inner }
     }
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DurableObjectLocationHint {
     Wnam = "wnam",
@@ -661,7 +648,7 @@ pub enum DurableObjectLocationHint {
     Afr = "afr",
     Me = "me",
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DurableObjectRoutingMode {
     PrimaryOnly = "primary-only",
@@ -1825,15 +1812,15 @@ extern "C" {
     pub type AnalyticsEngineDataPoint;
     #[wasm_bindgen(method, getter)]
     pub fn indexes(this: &AnalyticsEngineDataPoint) -> Option<Vec<JsValue>>;
-    #[wasm_bindgen(method, setter, slice_to_array)]
+    #[wasm_bindgen(method, setter)]
     pub fn set_indexes(this: &AnalyticsEngineDataPoint, val: &[JsValue]);
     #[wasm_bindgen(method, getter)]
     pub fn doubles(this: &AnalyticsEngineDataPoint) -> Option<Vec<f64>>;
-    #[wasm_bindgen(method, setter)]
+    #[wasm_bindgen(method, setter, slice_to_array)]
     pub fn set_doubles(this: &AnalyticsEngineDataPoint, val: &[f64]);
     #[wasm_bindgen(method, getter)]
     pub fn blobs(this: &AnalyticsEngineDataPoint) -> Option<Vec<JsValue>>;
-    #[wasm_bindgen(method, setter, slice_to_array)]
+    #[wasm_bindgen(method, setter)]
     pub fn set_blobs(this: &AnalyticsEngineDataPoint, val: &[JsValue]);
 }
 impl AnalyticsEngineDataPoint {
@@ -2351,7 +2338,7 @@ extern "C" {
     #[doc = " The **`AbortSignal.any()`** static method takes an iterable of abort signals and returns an AbortSignal. The returned abort signal is aborted when any of the input iterable abort signals are aborted. The abort reason will be set to the reason of the first signal that is aborted. If any of the given abort signals are already aborted then so will be the returned AbortSignal."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/AbortSignal/any_static)"]
-    # [wasm_bindgen (static_method_of = AbortSignal , catch , slice_to_array)]
+    # [wasm_bindgen (static_method_of = AbortSignal , catch)]
     pub fn any(signals: &[AbortSignal]) -> Result<AbortSignal, crate::Error>;
     #[doc = " The **`aborted`** read-only property returns a value that indicates whether the asynchronous operations the signal is communicating with are aborted (true) or not (false)."]
     #[doc = ""]
@@ -2391,9 +2378,9 @@ extern "C" {
     pub type Blob;
     #[wasm_bindgen(constructor, catch)]
     pub fn new() -> Result<Blob, crate::Error>;
-    #[wasm_bindgen(constructor, catch, slice_to_array, js_name = "Blob")]
+    #[wasm_bindgen(constructor, catch, js_name = "Blob")]
     pub fn new_with_bits(bits: &[JsValue]) -> Result<Blob, crate::Error>;
-    #[wasm_bindgen(constructor, catch, slice_to_array, js_name = "Blob")]
+    #[wasm_bindgen(constructor, catch, js_name = "Blob")]
     pub fn new_with_bits_and_options(
         bits: &[JsValue],
         options: &BlobOptions,
@@ -2515,9 +2502,9 @@ extern "C" {
     # [wasm_bindgen (extends = Blob , extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type File;
-    #[wasm_bindgen(constructor, catch, slice_to_array)]
+    #[wasm_bindgen(constructor, catch)]
     pub fn new(bits: Option<&[JsValue]>, name: &str) -> Result<File, crate::Error>;
-    #[wasm_bindgen(constructor, catch, slice_to_array, js_name = "File")]
+    #[wasm_bindgen(constructor, catch, js_name = "File")]
     pub fn new_with_options(
         bits: Option<&[JsValue]>,
         name: &str,
@@ -4119,7 +4106,7 @@ extern "C" {
     pub fn set_qi(this: &JsonWebKey, val: &str);
     #[wasm_bindgen(method, getter)]
     pub fn oth(this: &JsonWebKey) -> Option<Vec<RsaOtherPrimesInfo>>;
-    #[wasm_bindgen(method, setter, slice_to_array)]
+    #[wasm_bindgen(method, setter)]
     pub fn set_oth(this: &JsonWebKey, val: &[RsaOtherPrimesInfo]);
     #[wasm_bindgen(method, getter)]
     pub fn k(this: &JsonWebKey) -> Option<String>;
@@ -5575,7 +5562,7 @@ extern "C" {
     #[wasm_bindgen(method, getter, js_name = "type")]
     pub fn type_(this: &Response) -> TypeKind;
     #[wasm_bindgen(method, setter)]
-    pub fn set_type(this: &Response, val: &str);
+    pub fn set_type(this: &Response, val: TypeKind);
 }
 #[wasm_bindgen]
 extern "C" {
@@ -5609,7 +5596,7 @@ extern "C" {
     #[wasm_bindgen(method, getter, js_name = "encodeBody")]
     pub fn encode_body(this: &ResponseInit) -> Option<EncodeBodyKind>;
     #[wasm_bindgen(method, setter, js_name = "encodeBody")]
-    pub fn set_encode_body(this: &ResponseInit, val: &str);
+    pub fn set_encode_body(this: &ResponseInit, val: EncodeBodyKind);
 }
 impl ResponseInit {
     pub fn new() -> ResponseInit {
@@ -5653,7 +5640,7 @@ impl ResponseInitBuilder {
         self.inner.set_web_socket(val);
         self
     }
-    pub fn encode_body(self, val: &str) -> Self {
+    pub fn encode_body(self, val: EncodeBodyKind) -> Self {
         self.inner.set_encode_body(val);
         self
     }
@@ -5840,7 +5827,7 @@ extern "C" {
     #[wasm_bindgen(method, setter)]
     pub fn set_cache<CfHostMetadata: ::wasm_bindgen::JsGeneric, Cf: ::wasm_bindgen::JsGeneric>(
         this: &Request<CfHostMetadata, Cf>,
-        val: &str,
+        val: CacheKind,
     );
 }
 impl<CfHostMetadata: ::wasm_bindgen::JsGeneric, Cf: ::wasm_bindgen::JsGeneric> PartialEq
@@ -5937,7 +5924,7 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn cache<Cf: ::wasm_bindgen::JsGeneric>(this: &RequestInit<Cf>) -> Option<CacheKind>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_cache<Cf: ::wasm_bindgen::JsGeneric>(this: &RequestInit<Cf>, val: &str);
+    pub fn set_cache<Cf: ::wasm_bindgen::JsGeneric>(this: &RequestInit<Cf>, val: CacheKind);
     #[wasm_bindgen(method, getter)]
     pub fn integrity<Cf: ::wasm_bindgen::JsGeneric>(this: &RequestInit<Cf>) -> Option<String>;
     #[wasm_bindgen(method, setter)]
@@ -5956,7 +5943,7 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "encodeResponseBody")]
     pub fn set_encode_response_body<Cf: ::wasm_bindgen::JsGeneric>(
         this: &RequestInit<Cf>,
-        val: &str,
+        val: EncodeBodyKind,
     );
 }
 impl<Cf: ::wasm_bindgen::JsGeneric> PartialEq for RequestInit<Cf> {
@@ -6039,7 +6026,7 @@ impl<Cf: ::wasm_bindgen::JsGeneric> RequestInitBuilder<Cf> {
         self.inner.set_cf(val);
         self
     }
-    pub fn cache(self, val: &str) -> Self {
+    pub fn cache(self, val: CacheKind) -> Self {
         self.inner.set_cache(val);
         self
     }
@@ -6051,7 +6038,7 @@ impl<Cf: ::wasm_bindgen::JsGeneric> RequestInitBuilder<Cf> {
         self.inner.set_signal(val);
         self
     }
-    pub fn encode_response_body(self, val: &str) -> Self {
+    pub fn encode_response_body(self, val: EncodeBodyKind) -> Self {
         self.inner.set_encode_response_body(val);
         self
     }
@@ -6262,11 +6249,11 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn keys<Metadata: ::wasm_bindgen::JsGeneric>(
         this: &KVNamespaceListResult<Metadata>,
-    ) -> Array<KVNamespaceListKey<Metadata>>;
+    ) -> Vec<KVNamespaceListKey<Metadata>>;
     #[wasm_bindgen(method, setter)]
     pub fn set_keys<Metadata: ::wasm_bindgen::JsGeneric>(
         this: &KVNamespaceListResult<Metadata>,
-        val: &Array<KVNamespaceListKey<Metadata>>,
+        val: &[KVNamespaceListKey<Metadata>],
     );
     #[wasm_bindgen(method, getter)]
     pub fn cursor<Metadata: ::wasm_bindgen::JsGeneric>(
@@ -6298,7 +6285,7 @@ impl<Metadata: ::wasm_bindgen::JsGeneric> KVNamespaceListResult<Metadata> {
     #[doc = ""]
     #[doc = " * `list_complete: false`"]
     pub fn new_false(
-        keys: &Array<KVNamespaceListKey<Metadata>>,
+        keys: &[KVNamespaceListKey<Metadata>],
         cursor: &str,
         cache_status: &JsNullable<JsString>,
     ) -> KVNamespaceListResult<Metadata> {
@@ -6313,7 +6300,7 @@ impl<Metadata: ::wasm_bindgen::JsGeneric> KVNamespaceListResult<Metadata> {
     #[doc = ""]
     #[doc = " * `list_complete: true`"]
     pub fn new_true(
-        keys: &Array<KVNamespaceListKey<Metadata>>,
+        keys: &[KVNamespaceListKey<Metadata>],
         cache_status: &JsNullable<JsString>,
     ) -> KVNamespaceListResult<Metadata> {
         Self::builder_true(keys, cache_status).build()
@@ -6322,7 +6309,7 @@ impl<Metadata: ::wasm_bindgen::JsGeneric> KVNamespaceListResult<Metadata> {
     #[doc = ""]
     #[doc = " * `list_complete: true`"]
     pub fn builder_true(
-        keys: &Array<KVNamespaceListKey<Metadata>>,
+        keys: &[KVNamespaceListKey<Metadata>],
         cache_status: &JsNullable<JsString>,
     ) -> KVNamespaceListResultBuilder<Metadata> {
         let inner: KVNamespaceListResult<Metadata> = JsCast::unchecked_into(js_sys::Object::new());
@@ -6435,59 +6422,59 @@ extern "C" {
         key: &str,
         options: &KVNamespaceGetOptions<JsString>,
     ) -> Result<Promise<JsNullable<JsString>>, crate::Error>;
-    #[wasm_bindgen(method, catch, slice_to_array, js_name = "get")]
+    #[wasm_bindgen(method, catch, js_name = "get")]
     async fn get_text_with_array_js(
         this: &KVNamespace,
         key: &Array<JsString>,
         r#type: &str,
     ) -> Result<Map<JsString, JsNullable<JsString>>, crate::Error>;
-    #[wasm_bindgen(method, catch, slice_to_array, js_name = "get")]
+    #[wasm_bindgen(method, catch, js_name = "get")]
     fn get_text_with_array_promise_js(
         this: &KVNamespace,
         key: &Array<JsString>,
         r#type: &str,
     ) -> Result<Promise<Map<JsString, JsNullable<JsString>>>, crate::Error>;
-    #[wasm_bindgen(method, catch, slice_to_array, js_name = "get")]
+    #[wasm_bindgen(method, catch, js_name = "get")]
     async fn get_json_with_array_js(
         this: &KVNamespace,
         key: &Array<JsString>,
         r#type: &str,
     ) -> Result<Map<JsString, JsValue>, crate::Error>;
-    #[wasm_bindgen(method, catch, slice_to_array, js_name = "get")]
+    #[wasm_bindgen(method, catch, js_name = "get")]
     fn get_json_with_array_promise_js(
         this: &KVNamespace,
         key: &Array<JsString>,
         r#type: &str,
     ) -> Result<Promise<Map<JsString, JsValue>>, crate::Error>;
-    #[wasm_bindgen(method, catch, slice_to_array, js_name = "get")]
+    #[wasm_bindgen(method, catch, js_name = "get")]
     pub async fn get_with_array(
         this: &KVNamespace,
         key: &Array<JsString>,
     ) -> Result<Map<JsString, JsNullable<JsString>>, crate::Error>;
-    #[wasm_bindgen(method, catch, slice_to_array, js_name = "get")]
+    #[wasm_bindgen(method, catch, js_name = "get")]
     pub fn get_with_array_promise(
         this: &KVNamespace,
         key: &Array<JsString>,
     ) -> Result<Promise<Map<JsString, JsNullable<JsString>>>, crate::Error>;
-    #[wasm_bindgen(method, catch, slice_to_array, js_name = "get")]
+    #[wasm_bindgen(method, catch, js_name = "get")]
     pub async fn get_with_array_and_kv_namespace_get_options(
         this: &KVNamespace,
         key: &Array<JsString>,
         options: &KVNamespaceGetOptions<Undefined>,
     ) -> Result<Map<JsString, JsNullable<JsString>>, crate::Error>;
-    #[wasm_bindgen(method, catch, slice_to_array, js_name = "get")]
+    #[wasm_bindgen(method, catch, js_name = "get")]
     pub fn get_with_array_and_kv_namespace_get_options_promise(
         this: &KVNamespace,
         key: &Array<JsString>,
         options: &KVNamespaceGetOptions<Undefined>,
     ) -> Result<Promise<Map<JsString, JsNullable<JsString>>>, crate::Error>;
-    #[wasm_bindgen(method, catch, slice_to_array, js_name = "get")]
+    #[wasm_bindgen(method, catch, js_name = "get")]
     pub async fn get_with_key_array_and_options_kv_namespace_get_options(
         this: &KVNamespace,
         key: &Array<JsString>,
         options: &KVNamespaceGetOptions<JsString>,
     ) -> Result<Map<JsString, JsNullable<JsString>>, crate::Error>;
-    #[wasm_bindgen(method, catch, slice_to_array, js_name = "get")]
+    #[wasm_bindgen(method, catch, js_name = "get")]
     pub fn get_with_key_array_and_options_kv_namespace_get_options_promise(
         this: &KVNamespace,
         key: &Array<JsString>,
@@ -6691,13 +6678,13 @@ extern "C" {
         key: &str,
         options: &KVNamespaceGetOptions<JsString>,
     ) -> Result<Promise<KVNamespaceGetWithMetadataResult<JsString, JsValue>>, crate::Error>;
-    #[wasm_bindgen(method, catch, slice_to_array, js_name = "getWithMetadata")]
+    #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
     async fn get_with_metadata_text_with_array_js(
         this: &KVNamespace,
         key: &Array<JsString>,
         r#type: &str,
     ) -> Result<Map<JsString, KVNamespaceGetWithMetadataResult<JsString, JsValue>>, crate::Error>;
-    #[wasm_bindgen(method, catch, slice_to_array, js_name = "getWithMetadata")]
+    #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
     fn get_with_metadata_text_with_array_promise_js(
         this: &KVNamespace,
         key: &Array<JsString>,
@@ -6706,13 +6693,13 @@ extern "C" {
         Promise<Map<JsString, KVNamespaceGetWithMetadataResult<JsString, JsValue>>>,
         crate::Error,
     >;
-    #[wasm_bindgen(method, catch, slice_to_array, js_name = "getWithMetadata")]
+    #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
     async fn get_with_metadata_json_with_array_js(
         this: &KVNamespace,
         key: &Array<JsString>,
         r#type: &str,
     ) -> Result<Map<JsString, KVNamespaceGetWithMetadataResult<JsValue, JsValue>>, crate::Error>;
-    #[wasm_bindgen(method, catch, slice_to_array, js_name = "getWithMetadata")]
+    #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
     fn get_with_metadata_json_with_array_promise_js(
         this: &KVNamespace,
         key: &Array<JsString>,
@@ -6721,12 +6708,12 @@ extern "C" {
         Promise<Map<JsString, KVNamespaceGetWithMetadataResult<JsValue, JsValue>>>,
         crate::Error,
     >;
-    #[wasm_bindgen(method, catch, slice_to_array, js_name = "getWithMetadata")]
+    #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
     pub async fn get_with_metadata_with_array(
         this: &KVNamespace,
         key: &Array<JsString>,
     ) -> Result<Map<JsString, KVNamespaceGetWithMetadataResult<JsString, JsValue>>, crate::Error>;
-    #[wasm_bindgen(method, catch, slice_to_array, js_name = "getWithMetadata")]
+    #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
     pub fn get_with_metadata_with_array_promise(
         this: &KVNamespace,
         key: &Array<JsString>,
@@ -6734,13 +6721,13 @@ extern "C" {
         Promise<Map<JsString, KVNamespaceGetWithMetadataResult<JsString, JsValue>>>,
         crate::Error,
     >;
-    #[wasm_bindgen(method, catch, slice_to_array, js_name = "getWithMetadata")]
+    #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
     pub async fn get_with_metadata_with_array_and_kv_namespace_get_options(
         this: &KVNamespace,
         key: &Array<JsString>,
         options: &KVNamespaceGetOptions<Undefined>,
     ) -> Result<Map<JsString, KVNamespaceGetWithMetadataResult<JsString, JsValue>>, crate::Error>;
-    #[wasm_bindgen(method, catch, slice_to_array, js_name = "getWithMetadata")]
+    #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
     pub fn get_with_metadata_with_array_and_kv_namespace_get_options_promise(
         this: &KVNamespace,
         key: &Array<JsString>,
@@ -6749,13 +6736,13 @@ extern "C" {
         Promise<Map<JsString, KVNamespaceGetWithMetadataResult<JsString, JsValue>>>,
         crate::Error,
     >;
-    #[wasm_bindgen(method, catch, slice_to_array, js_name = "getWithMetadata")]
+    #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
     pub async fn get_with_metadata_with_key_array_and_options_kv_namespace_get_options(
         this: &KVNamespace,
         key: &Array<JsString>,
         options: &KVNamespaceGetOptions<JsString>,
     ) -> Result<Map<JsString, KVNamespaceGetWithMetadataResult<JsString, JsValue>>, crate::Error>;
-    #[wasm_bindgen(method, catch, slice_to_array, js_name = "getWithMetadata")]
+    #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
     pub fn get_with_metadata_with_key_array_and_options_kv_namespace_get_options_promise(
         this: &KVNamespace,
         key: &Array<JsString>,
@@ -7175,7 +7162,7 @@ impl<Value: ::wasm_bindgen::JsGeneric, Metadata: ::wasm_bindgen::JsGeneric>
         inner
     }
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum QueueContentType {
     Text = "text",
@@ -7740,7 +7727,7 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn messages<Body: ::wasm_bindgen::JsGeneric>(
         this: &MessageBatch<Body>,
-    ) -> Array<Message<Body>>;
+    ) -> Vec<Message<Body>>;
     #[wasm_bindgen(method, getter)]
     pub fn queue<Body: ::wasm_bindgen::JsGeneric>(this: &MessageBatch<Body>) -> String;
     #[wasm_bindgen(method, getter)]
@@ -8470,12 +8457,12 @@ extern "C" {
     pub async fn abort(this: &R2MultipartUpload) -> Result<(), crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "abort")]
     pub fn abort_promise(this: &R2MultipartUpload) -> Result<Promise<Undefined>, crate::Error>;
-    #[wasm_bindgen(method, catch, slice_to_array)]
+    #[wasm_bindgen(method, catch)]
     pub async fn complete(
         this: &R2MultipartUpload,
         uploaded_parts: &[R2UploadedPart],
     ) -> Result<R2Object, crate::Error>;
-    #[wasm_bindgen(method, catch, slice_to_array, js_name = "complete")]
+    #[wasm_bindgen(method, catch, js_name = "complete")]
     pub fn complete_promise(
         this: &R2MultipartUpload,
         uploaded_parts: &[R2UploadedPart],
@@ -9206,7 +9193,7 @@ extern "C" {
     pub fn set_cursor(this: &R2Objects, val: &str);
     #[wasm_bindgen(method, getter)]
     pub fn objects(this: &R2Objects) -> Vec<R2Object>;
-    #[wasm_bindgen(method, setter, slice_to_array)]
+    #[wasm_bindgen(method, setter)]
     pub fn set_objects(this: &R2Objects, val: &[R2Object]);
     #[wasm_bindgen(method, getter, js_name = "delimitedPrefixes")]
     pub fn delimited_prefixes(this: &R2Objects) -> Vec<String>;
@@ -11092,7 +11079,7 @@ impl WebSocketEventMap {
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = EventTarget , extends = Object)]
-    #[derive(Debug, Clone, PartialEq, Eq)]
+    #[derive(Debug, Clone, PartialEq)]
     pub type WebSocket;
     #[wasm_bindgen(constructor, catch)]
     pub fn new(url: &str) -> Result<WebSocket, crate::Error>;
@@ -11196,7 +11183,7 @@ extern "C" {
     #[wasm_bindgen(method, getter, js_name = "binaryType")]
     pub fn binary_type(this: &WebSocket) -> BinaryTypeKind;
     #[wasm_bindgen(method, setter, js_name = "binaryType")]
-    pub fn set_binary_type(this: &WebSocket, val: &str);
+    pub fn set_binary_type(this: &WebSocket, val: BinaryTypeKind);
 }
 #[wasm_bindgen]
 extern "C" {
@@ -11261,7 +11248,7 @@ extern "C" {
     # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type SqlStorage;
-    #[wasm_bindgen(method, variadic, catch, slice_to_array)]
+    #[wasm_bindgen(method, variadic, catch)]
     pub fn exec(
         this: &SqlStorage,
         query: &str,
@@ -11290,7 +11277,7 @@ extern "C" {
     #[wasm_bindgen(method, catch, js_name = "toArray")]
     pub fn to_array<T: ::wasm_bindgen::JsGeneric>(
         this: &SqlStorageCursor<T>,
-    ) -> Result<Array<T>, crate::Error>;
+    ) -> Result<Vec<T>, crate::Error>;
     #[wasm_bindgen(method, catch)]
     pub fn one<T: ::wasm_bindgen::JsGeneric>(this: &SqlStorageCursor<T>)
         -> Result<T, crate::Error>;
@@ -11617,15 +11604,15 @@ extern "C" {
     #[wasm_bindgen(method, setter)]
     pub fn set_stdin(this: &ContainerExecOptions, val: &ReadableStream);
     #[wasm_bindgen(method, setter, js_name = "stdin")]
-    pub fn set_stdin_with_js_value(this: &ContainerExecOptions, val: &str);
+    pub fn set_stdin_with_stdin_kind(this: &ContainerExecOptions, val: StdinKind);
     #[wasm_bindgen(method, getter)]
     pub fn stdout(this: &ContainerExecOptions) -> Option<StdoutKind>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_stdout(this: &ContainerExecOptions, val: &str);
+    pub fn set_stdout(this: &ContainerExecOptions, val: StdoutKind);
     #[wasm_bindgen(method, getter)]
     pub fn stderr(this: &ContainerExecOptions) -> Option<StderrKind>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_stderr(this: &ContainerExecOptions, val: &str);
+    pub fn set_stderr(this: &ContainerExecOptions, val: StderrKind);
 }
 impl ContainerExecOptions {
     pub fn new() -> ContainerExecOptions {
@@ -11669,15 +11656,15 @@ impl ContainerExecOptionsBuilder {
         self.inner.set_stdin(val);
         self
     }
-    pub fn stdin_with_js_value(self, val: &str) -> Self {
-        self.inner.set_stdin_with_js_value(val);
+    pub fn stdin_with_stdin_kind(self, val: StdinKind) -> Self {
+        self.inner.set_stdin_with_stdin_kind(val);
         self
     }
-    pub fn stdout(self, val: &str) -> Self {
+    pub fn stdout(self, val: StdoutKind) -> Self {
         self.inner.set_stdout(val);
         self
     }
-    pub fn stderr(self, val: &str) -> Self {
+    pub fn stderr(self, val: StderrKind) -> Self {
         self.inner.set_stderr(val);
         self
     }
@@ -12157,7 +12144,7 @@ extern "C" {
     pub fn directory_snapshots(
         this: &ContainerStartupOptions,
     ) -> Option<Vec<ContainerDirectorySnapshotRestoreParams>>;
-    #[wasm_bindgen(method, setter, slice_to_array, js_name = "directorySnapshots")]
+    #[wasm_bindgen(method, setter, js_name = "directorySnapshots")]
     pub fn set_directory_snapshots(
         this: &ContainerStartupOptions,
         val: &[ContainerDirectorySnapshotRestoreParams],
@@ -12233,7 +12220,7 @@ extern "C" {
     #[doc = " The **`postMessage()`** method of the MessagePort interface sends a message from the port, and optionally, transfers ownership of objects to other browsing contexts."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/MessagePort/postMessage)"]
-    #[wasm_bindgen(method, catch, slice_to_array, js_name = "postMessage")]
+    #[wasm_bindgen(method, catch, js_name = "postMessage")]
     pub fn post_message_with_data_and_slice(
         this: &MessagePort,
         data: &JsValue,
@@ -12270,7 +12257,7 @@ extern "C" {
     pub type MessagePortPostMessageOptions;
     #[wasm_bindgen(method, getter)]
     pub fn transfer(this: &MessagePortPostMessageOptions) -> Option<Vec<JsValue>>;
-    #[wasm_bindgen(method, setter, slice_to_array)]
+    #[wasm_bindgen(method, setter)]
     pub fn set_transfer(this: &MessagePortPostMessageOptions, val: &[JsValue]);
 }
 impl MessagePortPostMessageOptions {
@@ -12905,7 +12892,7 @@ extern "C" {
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
-    #[derive(Debug, Clone, PartialEq, Eq)]
+    #[derive(Debug, Clone, PartialEq)]
     pub type CloudflareAccessIdentity;
     #[doc = " The user's email address, if available from the identity provider."]
     #[wasm_bindgen(method, getter)]
@@ -12955,7 +12942,7 @@ extern "C" {
     #[doc = " Group memberships from the identity provider."]
     #[wasm_bindgen(method, getter)]
     pub fn groups(this: &CloudflareAccessIdentity) -> Option<Array<Object>>;
-    #[wasm_bindgen(method, setter, slice_to_array)]
+    #[wasm_bindgen(method, setter)]
     pub fn set_groups(this: &CloudflareAccessIdentity, val: &Array<Object>);
     #[doc = " Device posture check results, keyed by check ID."]
     #[wasm_bindgen(method, getter, js_name = "devicePosture")]
@@ -13051,7 +13038,7 @@ impl From<CloudflareAccessIdentity> for CloudflareAccessIdentityBuilder {
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
-    #[derive(Debug, Clone, PartialEq, Eq)]
+    #[derive(Debug, Clone, PartialEq)]
     pub type RequestInitCfProperties;
     #[wasm_bindgen(method, getter, js_name = "cacheEverything")]
     pub fn cache_everything(this: &RequestInitCfProperties) -> Option<bool>;
@@ -13154,7 +13141,7 @@ extern "C" {
     #[wasm_bindgen(method, getter, js_name = "grpcWeb")]
     pub fn grpc_web(this: &RequestInitCfProperties) -> Option<GrpcWebKind>;
     #[wasm_bindgen(method, setter, js_name = "grpcWeb")]
-    pub fn set_grpc_web(this: &RequestInitCfProperties, val: &str);
+    pub fn set_grpc_web(this: &RequestInitCfProperties, val: GrpcWebKind);
     #[wasm_bindgen(method, getter)]
     pub fn image(this: &RequestInitCfProperties) -> Option<RequestInitCfPropertiesImage>;
     #[wasm_bindgen(method, setter)]
@@ -13170,7 +13157,7 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn polish(this: &RequestInitCfProperties) -> Option<PolishKind>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_polish(this: &RequestInitCfProperties, val: &str);
+    pub fn set_polish(this: &RequestInitCfProperties, val: PolishKind);
     #[wasm_bindgen(method, getter)]
     pub fn r2(this: &RequestInitCfProperties) -> Option<RequestInitCfPropertiesR2>;
     #[wasm_bindgen(method, setter)]
@@ -13265,7 +13252,7 @@ impl RequestInitCfPropertiesBuilder {
         self.inner.set_apps(val);
         self
     }
-    pub fn grpc_web(self, val: &str) -> Self {
+    pub fn grpc_web(self, val: GrpcWebKind) -> Self {
         self.inner.set_grpc_web(val);
         self
     }
@@ -13281,7 +13268,7 @@ impl RequestInitCfPropertiesBuilder {
         self.inner.set_mirage(val);
         self
     }
-    pub fn polish(self, val: &str) -> Self {
+    pub fn polish(self, val: PolishKind) -> Self {
         self.inner.set_polish(val);
         self
     }
@@ -13302,7 +13289,7 @@ impl From<RequestInitCfProperties> for RequestInitCfPropertiesBuilder {
         Self { inner }
     }
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RequestInitCfPropertiesVaryAction {
     Normalize = "normalize",
@@ -13568,7 +13555,7 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn gravity(this: &BasicImageTransformations) -> Option<GravityKind>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_gravity(this: &BasicImageTransformations, val: &str);
+    pub fn set_gravity(this: &BasicImageTransformations, val: GravityKind);
     #[wasm_bindgen(method, setter, js_name = "gravity")]
     pub fn set_gravity_with_basic_image_transformations_gravity_coordinates(
         this: &BasicImageTransformations,
@@ -13612,7 +13599,7 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn fit(this: &BasicImageTransformations) -> Option<FitKind>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_fit(this: &BasicImageTransformations, val: &str);
+    pub fn set_fit(this: &BasicImageTransformations, val: FitKind);
     #[doc = " Allows you to trim your image. Takes dpr into account and is performed before"]
     #[doc = " resizing or rotation."]
     #[doc = ""]
@@ -13629,7 +13616,7 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn trim(this: &BasicImageTransformations) -> Option<TrimKind>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_trim(this: &BasicImageTransformations, val: &str);
+    pub fn set_trim(this: &BasicImageTransformations, val: TrimKind);
     #[wasm_bindgen(method, setter, js_name = "trim")]
     pub fn set_trim_with_object(this: &BasicImageTransformations, val: &Object);
     #[doc = " Background color to add underneath the image. Applies only to images with"]
@@ -13645,13 +13632,13 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn flip(this: &BasicImageTransformations) -> Option<FlipKind>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_flip(this: &BasicImageTransformations, val: &str);
+    pub fn set_flip(this: &BasicImageTransformations, val: FlipKind);
     #[doc = " Number of degrees (90, 180, 270) to rotate the image by. width and height"]
     #[doc = " options refer to axes after rotation."]
     #[wasm_bindgen(method, getter)]
     pub fn rotate(this: &BasicImageTransformations) -> Option<RotateKind>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_rotate(this: &BasicImageTransformations, val: f64);
+    pub fn set_rotate(this: &BasicImageTransformations, val: RotateKind);
     #[doc = " Strength of sharpening filter to apply to the image. Floating-point"]
     #[doc = " number between 0 (no sharpening, default) and 10 (maximum). 1.0 is a"]
     #[doc = " recommended value for downscaled images."]
@@ -13723,7 +13710,7 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn upscale(this: &BasicImageTransformations) -> Option<UpscaleKind>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_upscale(this: &BasicImageTransformations, val: &str);
+    pub fn set_upscale(this: &BasicImageTransformations, val: UpscaleKind);
 }
 impl BasicImageTransformations {
     pub fn new() -> BasicImageTransformations {
@@ -13747,7 +13734,7 @@ impl BasicImageTransformationsBuilder {
         self.inner.set_height(val);
         self
     }
-    pub fn gravity(self, val: &str) -> Self {
+    pub fn gravity(self, val: GravityKind) -> Self {
         self.inner.set_gravity(val);
         self
     }
@@ -13763,11 +13750,11 @@ impl BasicImageTransformationsBuilder {
         self.inner.set_zoom(val);
         self
     }
-    pub fn fit(self, val: &str) -> Self {
+    pub fn fit(self, val: FitKind) -> Self {
         self.inner.set_fit(val);
         self
     }
-    pub fn trim(self, val: &str) -> Self {
+    pub fn trim(self, val: TrimKind) -> Self {
         self.inner.set_trim(val);
         self
     }
@@ -13779,11 +13766,11 @@ impl BasicImageTransformationsBuilder {
         self.inner.set_background(val);
         self
     }
-    pub fn flip(self, val: &str) -> Self {
+    pub fn flip(self, val: FlipKind) -> Self {
         self.inner.set_flip(val);
         self
     }
-    pub fn rotate(self, val: f64) -> Self {
+    pub fn rotate(self, val: RotateKind) -> Self {
         self.inner.set_rotate(val);
         self
     }
@@ -13823,7 +13810,7 @@ impl BasicImageTransformationsBuilder {
         self.inner.set_segment(val);
         self
     }
-    pub fn upscale(self, val: &str) -> Self {
+    pub fn upscale(self, val: UpscaleKind) -> Self {
         self.inner.set_upscale(val);
         self
     }
@@ -13852,7 +13839,7 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn mode(this: &BasicImageTransformationsGravityCoordinates) -> Option<ModeKind>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_mode(this: &BasicImageTransformationsGravityCoordinates, val: &str);
+    pub fn set_mode(this: &BasicImageTransformationsGravityCoordinates, val: ModeKind);
 }
 impl BasicImageTransformationsGravityCoordinates {
     pub fn new() -> BasicImageTransformationsGravityCoordinates {
@@ -13876,7 +13863,7 @@ impl BasicImageTransformationsGravityCoordinatesBuilder {
         self.inner.set_y(val);
         self
     }
-    pub fn mode(self, val: &str) -> Self {
+    pub fn mode(self, val: ModeKind) -> Self {
         self.inner.set_mode(val);
         self
     }
@@ -13920,12 +13907,12 @@ extern "C" {
     #[wasm_bindgen(method, setter)]
     pub fn set_repeat(this: &RequestInitCfPropertiesImageDraw, val: bool);
     #[wasm_bindgen(method, setter, js_name = "repeat")]
-    pub fn set_repeat_with_js_value(this: &RequestInitCfPropertiesImageDraw, val: &str);
+    pub fn set_repeat_with_repeat_kind(this: &RequestInitCfPropertiesImageDraw, val: RepeatKind);
     #[doc = " How to combine the foreground and backdrop pixels to create the result"]
     #[wasm_bindgen(method, getter)]
     pub fn composite(this: &RequestInitCfPropertiesImageDraw) -> Option<CompositeKind>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_composite(this: &RequestInitCfPropertiesImageDraw, val: &str);
+    pub fn set_composite(this: &RequestInitCfPropertiesImageDraw, val: CompositeKind);
     #[doc = " Position of the overlay image relative to a given edge. Each property is"]
     #[doc = " an offset in pixels. 0 aligns exactly to the edge. For example, left: 10"]
     #[doc = " positions left side of the overlay 10 pixels from the left edge of the"]
@@ -13980,7 +13967,7 @@ impl RequestInitCfPropertiesImageDrawBuilder {
         self.inner.set_height(val);
         self
     }
-    pub fn gravity(self, val: &str) -> Self {
+    pub fn gravity(self, val: GravityKind) -> Self {
         self.inner.set_gravity(val);
         self
     }
@@ -13996,11 +13983,11 @@ impl RequestInitCfPropertiesImageDrawBuilder {
         self.inner.set_zoom(val);
         self
     }
-    pub fn fit(self, val: &str) -> Self {
+    pub fn fit(self, val: FitKind) -> Self {
         self.inner.set_fit(val);
         self
     }
-    pub fn trim(self, val: &str) -> Self {
+    pub fn trim(self, val: TrimKind) -> Self {
         self.inner.set_trim(val);
         self
     }
@@ -14012,11 +13999,11 @@ impl RequestInitCfPropertiesImageDrawBuilder {
         self.inner.set_background(val);
         self
     }
-    pub fn flip(self, val: &str) -> Self {
+    pub fn flip(self, val: FlipKind) -> Self {
         self.inner.set_flip(val);
         self
     }
-    pub fn rotate(self, val: f64) -> Self {
+    pub fn rotate(self, val: RotateKind) -> Self {
         self.inner.set_rotate(val);
         self
     }
@@ -14056,7 +14043,7 @@ impl RequestInitCfPropertiesImageDrawBuilder {
         self.inner.set_segment(val);
         self
     }
-    pub fn upscale(self, val: &str) -> Self {
+    pub fn upscale(self, val: UpscaleKind) -> Self {
         self.inner.set_upscale(val);
         self
     }
@@ -14068,11 +14055,11 @@ impl RequestInitCfPropertiesImageDrawBuilder {
         self.inner.set_repeat(val);
         self
     }
-    pub fn repeat_with_js_value(self, val: &str) -> Self {
-        self.inner.set_repeat_with_js_value(val);
+    pub fn repeat_with_repeat_kind(self, val: RepeatKind) -> Self {
+        self.inner.set_repeat_with_repeat_kind(val);
         self
     }
-    pub fn composite(self, val: &str) -> Self {
+    pub fn composite(self, val: CompositeKind) -> Self {
         self.inner.set_composite(val);
         self
     }
@@ -14114,7 +14101,7 @@ extern "C" {
     #[wasm_bindgen(method, setter)]
     pub fn set_quality(this: &RequestInitCfPropertiesImage, val: f64);
     #[wasm_bindgen(method, setter, js_name = "quality")]
-    pub fn set_quality_with_js_value(this: &RequestInitCfPropertiesImage, val: &str);
+    pub fn set_quality_with_quality_kind(this: &RequestInitCfPropertiesImage, val: QualityKind);
     #[doc = " Output format to generate. It can be:"]
     #[doc = "  - avif: generate images in AVIF format."]
     #[doc = "  - webp: generate images in Google WebP format. Set quality to 100 to get"]
@@ -14127,7 +14114,7 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn format(this: &RequestInitCfPropertiesImage) -> Option<FormatKind>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_format(this: &RequestInitCfPropertiesImage, val: &str);
+    pub fn set_format(this: &RequestInitCfPropertiesImage, val: FormatKind);
     #[doc = " Whether to preserve animation frames from input files. Default is true."]
     #[doc = " Setting it to false reduces animations to still images. This setting is"]
     #[doc = " recommended when enlarging images or processing arbitrary user content,"]
@@ -14152,14 +14139,14 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn metadata(this: &RequestInitCfPropertiesImage) -> Option<MetadataKind>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_metadata(this: &RequestInitCfPropertiesImage, val: &str);
+    pub fn set_metadata(this: &RequestInitCfPropertiesImage, val: MetadataKind);
     #[doc = " Overlays are drawn in the order they appear in the array (last array"]
     #[doc = " entry is the topmost layer)."]
     #[wasm_bindgen(method, getter)]
     pub fn draw(
         this: &RequestInitCfPropertiesImage,
     ) -> Option<Vec<RequestInitCfPropertiesImageDraw>>;
-    #[wasm_bindgen(method, setter, slice_to_array)]
+    #[wasm_bindgen(method, setter)]
     pub fn set_draw(this: &RequestInitCfPropertiesImage, val: &[RequestInitCfPropertiesImageDraw]);
     #[doc = " Fetching image from authenticated origin. Setting this property will"]
     #[doc = " pass authentication headers (Authorization, Cookie, etc.) through to"]
@@ -14201,7 +14188,7 @@ impl RequestInitCfPropertiesImageBuilder {
         self.inner.set_height(val);
         self
     }
-    pub fn gravity(self, val: &str) -> Self {
+    pub fn gravity(self, val: GravityKind) -> Self {
         self.inner.set_gravity(val);
         self
     }
@@ -14217,11 +14204,11 @@ impl RequestInitCfPropertiesImageBuilder {
         self.inner.set_zoom(val);
         self
     }
-    pub fn fit(self, val: &str) -> Self {
+    pub fn fit(self, val: FitKind) -> Self {
         self.inner.set_fit(val);
         self
     }
-    pub fn trim(self, val: &str) -> Self {
+    pub fn trim(self, val: TrimKind) -> Self {
         self.inner.set_trim(val);
         self
     }
@@ -14233,11 +14220,11 @@ impl RequestInitCfPropertiesImageBuilder {
         self.inner.set_background(val);
         self
     }
-    pub fn flip(self, val: &str) -> Self {
+    pub fn flip(self, val: FlipKind) -> Self {
         self.inner.set_flip(val);
         self
     }
-    pub fn rotate(self, val: f64) -> Self {
+    pub fn rotate(self, val: RotateKind) -> Self {
         self.inner.set_rotate(val);
         self
     }
@@ -14277,7 +14264,7 @@ impl RequestInitCfPropertiesImageBuilder {
         self.inner.set_segment(val);
         self
     }
-    pub fn upscale(self, val: &str) -> Self {
+    pub fn upscale(self, val: UpscaleKind) -> Self {
         self.inner.set_upscale(val);
         self
     }
@@ -14285,11 +14272,11 @@ impl RequestInitCfPropertiesImageBuilder {
         self.inner.set_quality(val);
         self
     }
-    pub fn quality_with_js_value(self, val: &str) -> Self {
-        self.inner.set_quality_with_js_value(val);
+    pub fn quality_with_quality_kind(self, val: QualityKind) -> Self {
+        self.inner.set_quality_with_quality_kind(val);
         self
     }
-    pub fn format(self, val: &str) -> Self {
+    pub fn format(self, val: FormatKind) -> Self {
         self.inner.set_format(val);
         self
     }
@@ -14297,7 +14284,7 @@ impl RequestInitCfPropertiesImageBuilder {
         self.inner.set_anim(val);
         self
     }
-    pub fn metadata(self, val: &str) -> Self {
+    pub fn metadata(self, val: MetadataKind) -> Self {
         self.inner.set_metadata(val);
         self
     }
@@ -14434,11 +14421,11 @@ extern "C" {
     #[wasm_bindgen(method, getter, js_name = "botManagement")]
     pub fn bot_management<HostMetadata: ::wasm_bindgen::JsGeneric>(
         this: &IncomingRequestCfProperties<HostMetadata>,
-    ) -> JsValue;
+    ) -> IncomingRequestCfPropertiesBotManagementBase;
     #[wasm_bindgen(method, setter, js_name = "botManagement")]
     pub fn set_bot_management<HostMetadata: ::wasm_bindgen::JsGeneric>(
         this: &IncomingRequestCfProperties<HostMetadata>,
-        val: &JsValue,
+        val: &IncomingRequestCfPropertiesBotManagementBase,
     );
     #[doc = " Custom metadata set per-host in [Cloudflare for SaaS](https://developers.cloudflare.com/cloudflare-for-platforms/cloudflare-for-saas/)."]
     #[doc = ""]
@@ -14472,9 +14459,9 @@ extern "C" {
         val: Iso3166Alpha2Code,
     );
     #[wasm_bindgen(method, setter, js_name = "country")]
-    pub fn set_country_with_js_value<HostMetadata: ::wasm_bindgen::JsGeneric>(
+    pub fn set_country_with_country_kind<HostMetadata: ::wasm_bindgen::JsGeneric>(
         this: &IncomingRequestCfProperties<HostMetadata>,
-        val: &str,
+        val: CountryKind,
     );
     #[doc = " If present, this property indicates that the request originated in the EU"]
     #[doc = ""]
@@ -14690,7 +14677,7 @@ impl<HostMetadata: ::wasm_bindgen::JsGeneric> IncomingRequestCfProperties<HostMe
         tls_version: &str,
         tls_cipher: &str,
         client_trust_score: f64,
-        bot_management: &JsValue,
+        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
         tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuth,
     ) -> IncomingRequestCfProperties<HostMetadata> {
         Self::builder_0(
@@ -14759,7 +14746,7 @@ impl<HostMetadata: ::wasm_bindgen::JsGeneric> IncomingRequestCfProperties<HostMe
         tls_version: &str,
         tls_cipher: &str,
         client_trust_score: f64,
-        bot_management: &JsValue,
+        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
         tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
     ) -> IncomingRequestCfProperties<HostMetadata> {
         Self::builder_0_with_incoming_request_cf_properties_tls_client_auth_placeholder(
@@ -14828,7 +14815,7 @@ impl<HostMetadata: ::wasm_bindgen::JsGeneric> IncomingRequestCfProperties<HostMe
         tls_version: &str,
         tls_cipher: &str,
         client_trust_score: f64,
-        bot_management: &JsValue,
+        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
         tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuth,
     ) -> IncomingRequestCfProperties<HostMetadata> {
         Self::builder_1(
@@ -14897,7 +14884,7 @@ impl<HostMetadata: ::wasm_bindgen::JsGeneric> IncomingRequestCfProperties<HostMe
         tls_version: &str,
         tls_cipher: &str,
         client_trust_score: f64,
-        bot_management: &JsValue,
+        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
         tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
     ) -> IncomingRequestCfProperties<HostMetadata> {
         Self::builder_1_with_incoming_request_cf_properties_tls_client_auth_placeholder(
@@ -14966,7 +14953,7 @@ impl<HostMetadata: ::wasm_bindgen::JsGeneric> IncomingRequestCfProperties<HostMe
         tls_version: &str,
         tls_cipher: &str,
         client_trust_score: f64,
-        bot_management: &JsValue,
+        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
         tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuth,
     ) -> IncomingRequestCfProperties<HostMetadata> {
         Self::builder_2(
@@ -15035,7 +15022,7 @@ impl<HostMetadata: ::wasm_bindgen::JsGeneric> IncomingRequestCfProperties<HostMe
         tls_version: &str,
         tls_cipher: &str,
         client_trust_score: f64,
-        bot_management: &JsValue,
+        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
         tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
     ) -> IncomingRequestCfProperties<HostMetadata> {
         Self::builder_2_with_incoming_request_cf_properties_tls_client_auth_placeholder(
@@ -15104,7 +15091,7 @@ impl<HostMetadata: ::wasm_bindgen::JsGeneric> IncomingRequestCfProperties<HostMe
         tls_version: &str,
         tls_cipher: &str,
         client_trust_score: f64,
-        bot_management: &JsValue,
+        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
         tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuth,
     ) -> IncomingRequestCfProperties<HostMetadata> {
         Self::builder_3(
@@ -15173,7 +15160,7 @@ impl<HostMetadata: ::wasm_bindgen::JsGeneric> IncomingRequestCfProperties<HostMe
         tls_version: &str,
         tls_cipher: &str,
         client_trust_score: f64,
-        bot_management: &JsValue,
+        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
         tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
     ) -> IncomingRequestCfProperties<HostMetadata> {
         Self::builder_3_with_incoming_request_cf_properties_tls_client_auth_placeholder(
@@ -15242,7 +15229,7 @@ impl<HostMetadata: ::wasm_bindgen::JsGeneric> IncomingRequestCfProperties<HostMe
         tls_version: &str,
         tls_cipher: &str,
         client_trust_score: f64,
-        bot_management: &JsValue,
+        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
         tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuth,
     ) -> IncomingRequestCfProperties<HostMetadata> {
         Self::builder_4(
@@ -15311,7 +15298,7 @@ impl<HostMetadata: ::wasm_bindgen::JsGeneric> IncomingRequestCfProperties<HostMe
         tls_version: &str,
         tls_cipher: &str,
         client_trust_score: f64,
-        bot_management: &JsValue,
+        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
         tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
     ) -> IncomingRequestCfProperties<HostMetadata> {
         Self::builder_4_with_incoming_request_cf_properties_tls_client_auth_placeholder(
@@ -15380,7 +15367,7 @@ impl<HostMetadata: ::wasm_bindgen::JsGeneric> IncomingRequestCfProperties<HostMe
         tls_version: &str,
         tls_cipher: &str,
         client_trust_score: f64,
-        bot_management: &JsValue,
+        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
         tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuth,
     ) -> IncomingRequestCfProperties<HostMetadata> {
         Self::builder_5(
@@ -15449,7 +15436,7 @@ impl<HostMetadata: ::wasm_bindgen::JsGeneric> IncomingRequestCfProperties<HostMe
         tls_version: &str,
         tls_cipher: &str,
         client_trust_score: f64,
-        bot_management: &JsValue,
+        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
         tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
     ) -> IncomingRequestCfProperties<HostMetadata> {
         Self::builder_5_with_incoming_request_cf_properties_tls_client_auth_placeholder(
@@ -15518,7 +15505,7 @@ impl<HostMetadata: ::wasm_bindgen::JsGeneric> IncomingRequestCfProperties<HostMe
         tls_version: &str,
         tls_cipher: &str,
         client_trust_score: f64,
-        bot_management: &JsValue,
+        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
         tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuth,
     ) -> IncomingRequestCfPropertiesBuilder<HostMetadata> {
         let inner: IncomingRequestCfProperties<HostMetadata> =
@@ -15588,7 +15575,7 @@ impl<HostMetadata: ::wasm_bindgen::JsGeneric> IncomingRequestCfProperties<HostMe
         tls_version: &str,
         tls_cipher: &str,
         client_trust_score: f64,
-        bot_management: &JsValue,
+        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
         tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
     ) -> IncomingRequestCfPropertiesBuilder<HostMetadata> {
         let inner: IncomingRequestCfProperties<HostMetadata> =
@@ -15660,7 +15647,7 @@ impl<HostMetadata: ::wasm_bindgen::JsGeneric> IncomingRequestCfProperties<HostMe
         tls_version: &str,
         tls_cipher: &str,
         client_trust_score: f64,
-        bot_management: &JsValue,
+        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
         tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuth,
     ) -> IncomingRequestCfPropertiesBuilder<HostMetadata> {
         let inner: IncomingRequestCfProperties<HostMetadata> =
@@ -15730,7 +15717,7 @@ impl<HostMetadata: ::wasm_bindgen::JsGeneric> IncomingRequestCfProperties<HostMe
         tls_version: &str,
         tls_cipher: &str,
         client_trust_score: f64,
-        bot_management: &JsValue,
+        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
         tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
     ) -> IncomingRequestCfPropertiesBuilder<HostMetadata> {
         let inner: IncomingRequestCfProperties<HostMetadata> =
@@ -15802,7 +15789,7 @@ impl<HostMetadata: ::wasm_bindgen::JsGeneric> IncomingRequestCfProperties<HostMe
         tls_version: &str,
         tls_cipher: &str,
         client_trust_score: f64,
-        bot_management: &JsValue,
+        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
         tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuth,
     ) -> IncomingRequestCfPropertiesBuilder<HostMetadata> {
         let inner: IncomingRequestCfProperties<HostMetadata> =
@@ -15872,7 +15859,7 @@ impl<HostMetadata: ::wasm_bindgen::JsGeneric> IncomingRequestCfProperties<HostMe
         tls_version: &str,
         tls_cipher: &str,
         client_trust_score: f64,
-        bot_management: &JsValue,
+        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
         tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
     ) -> IncomingRequestCfPropertiesBuilder<HostMetadata> {
         let inner: IncomingRequestCfProperties<HostMetadata> =
@@ -15944,7 +15931,7 @@ impl<HostMetadata: ::wasm_bindgen::JsGeneric> IncomingRequestCfProperties<HostMe
         tls_version: &str,
         tls_cipher: &str,
         client_trust_score: f64,
-        bot_management: &JsValue,
+        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
         tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuth,
     ) -> IncomingRequestCfPropertiesBuilder<HostMetadata> {
         let inner: IncomingRequestCfProperties<HostMetadata> =
@@ -16014,7 +16001,7 @@ impl<HostMetadata: ::wasm_bindgen::JsGeneric> IncomingRequestCfProperties<HostMe
         tls_version: &str,
         tls_cipher: &str,
         client_trust_score: f64,
-        bot_management: &JsValue,
+        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
         tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
     ) -> IncomingRequestCfPropertiesBuilder<HostMetadata> {
         let inner: IncomingRequestCfProperties<HostMetadata> =
@@ -16086,7 +16073,7 @@ impl<HostMetadata: ::wasm_bindgen::JsGeneric> IncomingRequestCfProperties<HostMe
         tls_version: &str,
         tls_cipher: &str,
         client_trust_score: f64,
-        bot_management: &JsValue,
+        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
         tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuth,
     ) -> IncomingRequestCfPropertiesBuilder<HostMetadata> {
         let inner: IncomingRequestCfProperties<HostMetadata> =
@@ -16156,7 +16143,7 @@ impl<HostMetadata: ::wasm_bindgen::JsGeneric> IncomingRequestCfProperties<HostMe
         tls_version: &str,
         tls_cipher: &str,
         client_trust_score: f64,
-        bot_management: &JsValue,
+        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
         tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
     ) -> IncomingRequestCfPropertiesBuilder<HostMetadata> {
         let inner: IncomingRequestCfProperties<HostMetadata> =
@@ -16228,7 +16215,7 @@ impl<HostMetadata: ::wasm_bindgen::JsGeneric> IncomingRequestCfProperties<HostMe
         tls_version: &str,
         tls_cipher: &str,
         client_trust_score: f64,
-        bot_management: &JsValue,
+        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
         tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuth,
     ) -> IncomingRequestCfPropertiesBuilder<HostMetadata> {
         let inner: IncomingRequestCfProperties<HostMetadata> =
@@ -16298,7 +16285,7 @@ impl<HostMetadata: ::wasm_bindgen::JsGeneric> IncomingRequestCfProperties<HostMe
         tls_version: &str,
         tls_cipher: &str,
         client_trust_score: f64,
-        bot_management: &JsValue,
+        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
         tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
     ) -> IncomingRequestCfPropertiesBuilder<HostMetadata> {
         let inner: IncomingRequestCfProperties<HostMetadata> =
@@ -16352,8 +16339,8 @@ impl<HostMetadata: ::wasm_bindgen::JsGeneric> IncomingRequestCfPropertiesBuilder
         self.inner.set_country(val);
         self
     }
-    pub fn country_with_js_value(self, val: &str) -> Self {
-        self.inner.set_country_with_js_value(val);
+    pub fn country_with_country_kind(self, val: CountryKind) -> Self {
+        self.inner.set_country_with_country_kind(val);
         self
     }
     pub fn is_eu_country(self, val: &str) -> Self {
@@ -16410,7 +16397,7 @@ impl<HostMetadata: ::wasm_bindgen::JsGeneric> From<IncomingRequestCfProperties<H
 #[wasm_bindgen]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
-    #[derive(Debug, Clone, PartialEq, Eq)]
+    #[derive(Debug, Clone, PartialEq)]
     pub type IncomingRequestCfPropertiesBase;
     #[doc = " [ASN](https://www.iana.org/assignments/as-numbers/as-numbers.xhtml) of the incoming request."]
     #[doc = ""]
@@ -17217,11 +17204,13 @@ extern "C" {
     pub type IncomingRequestCfPropertiesBotManagementEnterprise;
     #[doc = " Results of Cloudflare's Bot Management analysis"]
     #[wasm_bindgen(method, getter, js_name = "botManagement")]
-    pub fn bot_management(this: &IncomingRequestCfPropertiesBotManagementEnterprise) -> JsValue;
+    pub fn bot_management(
+        this: &IncomingRequestCfPropertiesBotManagementEnterprise,
+    ) -> IncomingRequestCfPropertiesBotManagementBase;
     #[wasm_bindgen(method, setter, js_name = "botManagement")]
     pub fn set_bot_management(
         this: &IncomingRequestCfPropertiesBotManagementEnterprise,
-        val: &JsValue,
+        val: &IncomingRequestCfPropertiesBotManagementBase,
     );
 }
 impl IncomingRequestCfPropertiesBotManagementEnterprise {
@@ -17231,7 +17220,7 @@ impl IncomingRequestCfPropertiesBotManagementEnterprise {
     #[doc = " * `bot_management` - Results of Cloudflare's Bot Management analysis"]
     pub fn new(
         client_trust_score: f64,
-        bot_management: &JsValue,
+        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
     ) -> IncomingRequestCfPropertiesBotManagementEnterprise {
         let inner: IncomingRequestCfPropertiesBotManagementEnterprise =
             JsCast::unchecked_into(js_sys::Object::new());
@@ -17489,9 +17478,9 @@ extern "C" {
         val: Iso3166Alpha2Code,
     );
     #[wasm_bindgen(method, setter, js_name = "country")]
-    pub fn set_country_with_js_value(
+    pub fn set_country_with_country_kind(
         this: &IncomingRequestCfPropertiesGeographicInformation,
-        val: &str,
+        val: CountryKind,
     );
     #[doc = " If present, this property indicates that the request originated in the EU"]
     #[doc = ""]
@@ -17590,8 +17579,8 @@ impl IncomingRequestCfPropertiesGeographicInformationBuilder {
         self.inner.set_country(val);
         self
     }
-    pub fn country_with_js_value(self, val: &str) -> Self {
-        self.inner.set_country_with_js_value(val);
+    pub fn country_with_country_kind(self, val: CountryKind) -> Self {
+        self.inner.set_country_with_country_kind(val);
         self
     }
     pub fn is_eu_country(self, val: &str) -> Self {
@@ -17673,7 +17662,7 @@ extern "C" {
     #[wasm_bindgen(method, getter, js_name = "certRevoked")]
     pub fn cert_revoked(this: &IncomingRequestCfPropertiesTLSClientAuth) -> CertRevokedKind;
     #[wasm_bindgen(method, setter, js_name = "certRevoked")]
-    pub fn set_cert_revoked(this: &IncomingRequestCfPropertiesTLSClientAuth, val: &str);
+    pub fn set_cert_revoked(this: &IncomingRequestCfPropertiesTLSClientAuth, val: CertRevokedKind);
     #[doc = " The certificate issuer's [distinguished name](https://knowledge.digicert.com/generalinformation/INFO1745.html)"]
     #[doc = ""]
     #[doc = " @example \"CN=cloudflareaccess.com, C=US, ST=Texas, L=Austin, O=Cloudflare\""]
@@ -17891,7 +17880,7 @@ impl IncomingRequestCfPropertiesTLSClientAuth {
             JsCast::unchecked_into(js_sys::Object::new());
         inner.set_cert_presented("1");
         inner.set_cert_verified(cert_verified);
-        inner.set_cert_revoked("1");
+        inner.set_cert_revoked(CertRevokedKind::_1);
         inner.set_cert_issuer_dn(cert_issuer_dn);
         inner.set_cert_subject_dn(cert_subject_dn);
         inner.set_cert_issuer_dnrfc2253(cert_issuer_dnrfc2253);
@@ -18000,7 +17989,7 @@ impl IncomingRequestCfPropertiesTLSClientAuth {
             JsCast::unchecked_into(js_sys::Object::new());
         inner.set_cert_presented("1");
         inner.set_cert_verified(cert_verified);
-        inner.set_cert_revoked("0");
+        inner.set_cert_revoked(CertRevokedKind::_0);
         inner.set_cert_issuer_dn(cert_issuer_dn);
         inner.set_cert_subject_dn(cert_subject_dn);
         inner.set_cert_issuer_dnrfc2253(cert_issuer_dnrfc2253);
@@ -18229,7 +18218,7 @@ impl IncomingRequestCfPropertiesTLSClientAuthPlaceholder {
         inner
     }
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CertVerificationStatus {
     Success = "SUCCESS",
@@ -18242,7 +18231,7 @@ pub enum CertVerificationStatus {
 }
 #[allow(dead_code)]
 pub type IncomingRequestCfPropertiesEdgeRequestKeepAliveStatus = Number;
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Iso3166Alpha2Code {
     Ad = "AD",
@@ -18495,7 +18484,7 @@ pub enum Iso3166Alpha2Code {
     Zm = "ZM",
     Zw = "ZW",
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ContinentCode {
     Af = "AF",
@@ -18707,9 +18696,9 @@ extern "C" {
     #[derive(Debug, Clone)]
     pub type D1Result<T: ::wasm_bindgen::JsGeneric = JsValue>;
     #[wasm_bindgen(method, getter)]
-    pub fn results<T: ::wasm_bindgen::JsGeneric>(this: &D1Result<T>) -> Array<T>;
+    pub fn results<T: ::wasm_bindgen::JsGeneric>(this: &D1Result<T>) -> Vec<T>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_results<T: ::wasm_bindgen::JsGeneric>(this: &D1Result<T>, val: &Array<T>);
+    pub fn set_results<T: ::wasm_bindgen::JsGeneric>(this: &D1Result<T>, val: &[T]);
 }
 impl<T: ::wasm_bindgen::JsGeneric> PartialEq for D1Result<T> {
     fn eq(&self, other: &Self) -> bool {
@@ -18721,13 +18710,13 @@ impl<T: ::wasm_bindgen::JsGeneric> D1Result<T> {
     #[doc = " ## Inlined fields"]
     #[doc = ""]
     #[doc = " * `success: true`"]
-    pub fn new(meta: &JsValue, results: &Array<T>) -> D1Result<T> {
+    pub fn new(meta: &JsValue, results: &[T]) -> D1Result<T> {
         Self::builder(meta, results).build()
     }
     #[doc = " ## Inlined fields"]
     #[doc = ""]
     #[doc = " * `success: true`"]
-    pub fn builder(meta: &JsValue, results: &Array<T>) -> D1ResultBuilder<T> {
+    pub fn builder(meta: &JsValue, results: &[T]) -> D1ResultBuilder<T> {
         let inner: D1Result<T> = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_success(true);
         inner.set_meta(meta);
@@ -18774,7 +18763,7 @@ impl D1ExecResult {
         inner
     }
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum D1SessionConstraint {
     FirstPrimary = "first-primary",
@@ -18789,12 +18778,12 @@ extern "C" {
     pub type D1Database;
     #[wasm_bindgen(method)]
     pub fn prepare(this: &D1Database, query: &str) -> D1PreparedStatement;
-    #[wasm_bindgen(method, catch, slice_to_array)]
+    #[wasm_bindgen(method, catch)]
     pub async fn batch(
         this: &D1Database,
         statements: &[D1PreparedStatement],
     ) -> Result<Vec<D1Result<JsValue>>, crate::Error>;
-    #[wasm_bindgen(method, catch, slice_to_array, js_name = "batch")]
+    #[wasm_bindgen(method, catch, js_name = "batch")]
     pub fn batch_promise(
         this: &D1Database,
         statements: &[D1PreparedStatement],
@@ -18847,12 +18836,12 @@ extern "C" {
     pub type D1DatabaseSession;
     #[wasm_bindgen(method)]
     pub fn prepare(this: &D1DatabaseSession, query: &str) -> D1PreparedStatement;
-    #[wasm_bindgen(method, catch, slice_to_array)]
+    #[wasm_bindgen(method, catch)]
     pub async fn batch(
         this: &D1DatabaseSession,
         statements: &[D1PreparedStatement],
     ) -> Result<Vec<D1Result<JsValue>>, crate::Error>;
-    #[wasm_bindgen(method, catch, slice_to_array, js_name = "batch")]
+    #[wasm_bindgen(method, catch, js_name = "batch")]
     pub fn batch_promise(
         this: &D1DatabaseSession,
         statements: &[D1PreparedStatement],
@@ -18868,7 +18857,7 @@ extern "C" {
     # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type D1PreparedStatement;
-    #[wasm_bindgen(method, variadic, catch, slice_to_array)]
+    #[wasm_bindgen(method, variadic, catch)]
     pub fn bind(
         this: &D1PreparedStatement,
         values: &[JsValue],
@@ -19006,7 +18995,7 @@ impl EmailSendResult {
 }
 #[wasm_bindgen]
 extern "C" {
-    # [wasm_bindgen (extends = EmailMessage , extends = Object)]
+    # [wasm_bindgen (extends = cloudflare :: email :: EmailMessage , extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type ForwardableEmailMessage;
     #[doc = " Stream of the email message content."]
@@ -19079,7 +19068,7 @@ extern "C" {
     #[wasm_bindgen(method, catch)]
     pub async fn reply(
         this: &ForwardableEmailMessage,
-        message: &EmailMessage,
+        message: &cloudflare::email::EmailMessage,
     ) -> Result<EmailSendResult, crate::Error>;
     #[doc = " Reply to the sender of this email message with a new EmailMessage object."]
     #[doc = ""]
@@ -19089,7 +19078,7 @@ extern "C" {
     #[wasm_bindgen(method, catch, js_name = "reply")]
     pub fn reply_promise(
         this: &ForwardableEmailMessage,
-        message: &EmailMessage,
+        message: &cloudflare::email::EmailMessage,
     ) -> Result<Promise<EmailSendResult>, crate::Error>;
     #[doc = " Reply to the sender of this email message with a new EmailMessage object."]
     #[doc = ""]
@@ -19120,7 +19109,7 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn disposition(this: &EmailAttachment) -> DispositionKind;
     #[wasm_bindgen(method, setter)]
-    pub fn set_disposition(this: &EmailAttachment, val: &str);
+    pub fn set_disposition(this: &EmailAttachment, val: DispositionKind);
     #[wasm_bindgen(method, getter, js_name = "contentId")]
     pub fn content_id(this: &EmailAttachment) -> Option<String>;
     #[wasm_bindgen(method, setter, js_name = "contentId")]
@@ -19153,7 +19142,8 @@ impl EmailAttachment {
         content: &str,
     ) -> EmailAttachment {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_disposition("inline");
+        // ts-gen regression: the branch factory passes the literal "inline" to the enum setter.
+        inner.set_disposition(DispositionKind::Inline);
         inner.set_content_id(content_id);
         inner.set_filename(filename);
         inner.set_type(r#type);
@@ -19170,7 +19160,8 @@ impl EmailAttachment {
         content: &ArrayBuffer,
     ) -> EmailAttachment {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_disposition("inline");
+        // ts-gen regression: the branch factory passes the literal "inline" to the enum setter.
+        inner.set_disposition(DispositionKind::Inline);
         inner.set_content_id(content_id);
         inner.set_filename(filename);
         inner.set_type(r#type);
@@ -19187,7 +19178,8 @@ impl EmailAttachment {
         content: &T,
     ) -> EmailAttachment {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_disposition("inline");
+        // ts-gen regression: the branch factory passes the literal "inline" to the enum setter.
+        inner.set_disposition(DispositionKind::Inline);
         inner.set_content_id(content_id);
         inner.set_filename(filename);
         inner.set_type(r#type);
@@ -19229,7 +19221,8 @@ impl EmailAttachment {
         content: &str,
     ) -> EmailAttachmentBuilder {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_disposition("attachment");
+        // ts-gen regression: the branch factory passes the literal "attachment" to the enum setter.
+        inner.set_disposition(DispositionKind::Attachment);
         inner.set_filename(filename);
         inner.set_type(r#type);
         inner.set_content(content);
@@ -19244,7 +19237,8 @@ impl EmailAttachment {
         content: &ArrayBuffer,
     ) -> EmailAttachmentBuilder {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_disposition("attachment");
+        // ts-gen regression: the branch factory passes the literal "attachment" to the enum setter.
+        inner.set_disposition(DispositionKind::Attachment);
         inner.set_filename(filename);
         inner.set_type(r#type);
         inner.set_content_with_array_buffer(content);
@@ -19259,7 +19253,8 @@ impl EmailAttachment {
         content: &T,
     ) -> EmailAttachmentBuilder {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_disposition("attachment");
+        // ts-gen regression: the branch factory passes the literal "attachment" to the enum setter.
+        inner.set_disposition(DispositionKind::Attachment);
         inner.set_filename(filename);
         inner.set_type(r#type);
         inner.set_content_with_typed_array(content);
@@ -19316,7 +19311,7 @@ extern "C" {
     pub fn set_to(this: &EmailDestinations, val: &str);
     #[wasm_bindgen(method, setter, js_name = "to")]
     pub fn set_to_with_email_address(this: &EmailDestinations, val: &EmailAddress);
-    #[wasm_bindgen(method, setter, slice_to_array, js_name = "to")]
+    #[wasm_bindgen(method, setter, js_name = "to")]
     pub fn set_to_with_slice(this: &EmailDestinations, val: &[JsValue]);
     #[wasm_bindgen(method, getter)]
     pub fn cc(this: &EmailDestinations) -> Option<ToKind>;
@@ -19324,7 +19319,7 @@ extern "C" {
     pub fn set_cc(this: &EmailDestinations, val: &str);
     #[wasm_bindgen(method, setter, js_name = "cc")]
     pub fn set_cc_with_email_address(this: &EmailDestinations, val: &EmailAddress);
-    #[wasm_bindgen(method, setter, slice_to_array, js_name = "cc")]
+    #[wasm_bindgen(method, setter, js_name = "cc")]
     pub fn set_cc_with_slice(this: &EmailDestinations, val: &[JsValue]);
     #[wasm_bindgen(method, getter)]
     pub fn bcc(this: &EmailDestinations) -> Option<ToKind>;
@@ -19332,7 +19327,7 @@ extern "C" {
     pub fn set_bcc(this: &EmailDestinations, val: &str);
     #[wasm_bindgen(method, setter, js_name = "bcc")]
     pub fn set_bcc_with_email_address(this: &EmailDestinations, val: &EmailAddress);
-    #[wasm_bindgen(method, setter, slice_to_array, js_name = "bcc")]
+    #[wasm_bindgen(method, setter, js_name = "bcc")]
     pub fn set_bcc_with_slice(this: &EmailDestinations, val: &[JsValue]);
 }
 impl EmailDestinations {
@@ -19429,7 +19424,7 @@ extern "C" {
     pub fn set_html(this: &EmailReplyMessageBuilder, val: &str);
     #[wasm_bindgen(method, getter)]
     pub fn attachments(this: &EmailReplyMessageBuilder) -> Option<Vec<EmailAttachment>>;
-    #[wasm_bindgen(method, setter, slice_to_array)]
+    #[wasm_bindgen(method, setter)]
     pub fn set_attachments(this: &EmailReplyMessageBuilder, val: &[EmailAttachment]);
 }
 impl EmailReplyMessageBuilder {
@@ -19503,7 +19498,7 @@ extern "C" {
     pub fn set_to(this: &EmailMessageBuilder, val: &str);
     #[wasm_bindgen(method, setter, js_name = "to")]
     pub fn set_to_with_email_address(this: &EmailMessageBuilder, val: &EmailAddress);
-    #[wasm_bindgen(method, setter, slice_to_array, js_name = "to")]
+    #[wasm_bindgen(method, setter, js_name = "to")]
     pub fn set_to_with_slice(this: &EmailMessageBuilder, val: &[JsValue]);
     #[wasm_bindgen(method, getter)]
     pub fn cc(this: &EmailMessageBuilder) -> Option<ToKind>;
@@ -19511,7 +19506,7 @@ extern "C" {
     pub fn set_cc(this: &EmailMessageBuilder, val: &str);
     #[wasm_bindgen(method, setter, js_name = "cc")]
     pub fn set_cc_with_email_address(this: &EmailMessageBuilder, val: &EmailAddress);
-    #[wasm_bindgen(method, setter, slice_to_array, js_name = "cc")]
+    #[wasm_bindgen(method, setter, js_name = "cc")]
     pub fn set_cc_with_slice(this: &EmailMessageBuilder, val: &[JsValue]);
     #[wasm_bindgen(method, getter)]
     pub fn bcc(this: &EmailMessageBuilder) -> Option<ToKind>;
@@ -19519,7 +19514,7 @@ extern "C" {
     pub fn set_bcc(this: &EmailMessageBuilder, val: &str);
     #[wasm_bindgen(method, setter, js_name = "bcc")]
     pub fn set_bcc_with_email_address(this: &EmailMessageBuilder, val: &EmailAddress);
-    #[wasm_bindgen(method, setter, slice_to_array, js_name = "bcc")]
+    #[wasm_bindgen(method, setter, js_name = "bcc")]
     pub fn set_bcc_with_slice(this: &EmailMessageBuilder, val: &[JsValue]);
 }
 impl EmailMessageBuilder {
@@ -19626,12 +19621,12 @@ extern "C" {
     #[wasm_bindgen(method, catch)]
     pub async fn send(
         this: &SendEmail,
-        message: &EmailMessage,
+        message: &cloudflare::email::EmailMessage,
     ) -> Result<EmailSendResult, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "send")]
     pub fn send_promise(
         this: &SendEmail,
-        message: &EmailMessage,
+        message: &cloudflare::email::EmailMessage,
     ) -> Result<Promise<EmailSendResult>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "send")]
     pub async fn send_with_builder(
@@ -19652,21 +19647,87 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn message(this: &EmailEvent) -> ForwardableEmailMessage;
 }
-#[wasm_bindgen(module = "cloudflare:email")]
-extern "C" {
-    # [wasm_bindgen (extends = Object)]
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    pub type EmailMessage;
-    #[wasm_bindgen(constructor, catch)]
-    pub fn new(from: &str, to: &str, raw: &ReadableStream) -> Result<EmailMessage, crate::Error>;
-    #[wasm_bindgen(constructor, catch, js_name = "EmailMessage")]
-    pub fn new_with_str(from: &str, to: &str, raw: &str) -> Result<EmailMessage, crate::Error>;
-    #[doc = " Envelope From attribute of the email message."]
-    #[wasm_bindgen(method, getter)]
-    pub fn from(this: &EmailMessage) -> String;
-    #[doc = " Envelope To attribute of the email message."]
-    #[wasm_bindgen(method, getter)]
-    pub fn to(this: &EmailMessage) -> String;
+pub mod cloudflare {
+    #[allow(unused_imports)]
+    use super::*;
+    pub mod email {
+        #[allow(unused_imports)]
+        use super::*;
+        #[wasm_bindgen(module = "cloudflare:email")]
+        extern "C" {
+            # [wasm_bindgen (extends = Object)]
+            #[derive(Debug, Clone, PartialEq, Eq)]
+            pub type EmailMessage;
+            #[wasm_bindgen(constructor, catch)]
+            pub fn new(
+                from: &str,
+                to: &str,
+                raw: &super::super::ReadableStream,
+            ) -> Result<EmailMessage, crate::Error>;
+            #[wasm_bindgen(constructor, catch, js_name = "EmailMessage")]
+            pub fn new_with_str(
+                from: &str,
+                to: &str,
+                raw: &str,
+            ) -> Result<EmailMessage, crate::Error>;
+            #[doc = " Envelope From attribute of the email message."]
+            #[wasm_bindgen(method, getter)]
+            pub fn from(this: &EmailMessage) -> String;
+            #[doc = " Envelope To attribute of the email message."]
+            #[wasm_bindgen(method, getter)]
+            pub fn to(this: &EmailMessage) -> String;
+        }
+    }
+    #[wasm_bindgen]
+    extern "C" {
+        # [wasm_bindgen (extends = Object , js_namespace = "Cloudflare")]
+        #[derive(Debug, Clone, PartialEq, Eq)]
+        pub type Env;
+    }
+    #[wasm_bindgen]
+    extern "C" {
+        # [wasm_bindgen (extends = Object , js_namespace = "Cloudflare")]
+        #[derive(Debug, Clone, PartialEq, Eq)]
+        pub type GlobalProps;
+    }
+    #[allow(dead_code)]
+    pub type GlobalProp = JsValue;
+    #[allow(dead_code)]
+    pub type MainModule = JsValue;
+    #[allow(dead_code)]
+    pub type Exports = JsValue;
+    pub mod sockets {
+        #[allow(unused_imports)]
+        use super::*;
+        #[wasm_bindgen(module = "cloudflare:sockets")]
+        extern "C" {
+            #[wasm_bindgen(catch)]
+            pub fn connect(address: &str) -> Result<super::super::Socket, crate::Error>;
+        }
+        #[wasm_bindgen(module = "cloudflare:sockets")]
+        extern "C" {
+            #[wasm_bindgen(catch, js_name = "connect")]
+            pub fn connect_with_socket_address(
+                address: &super::super::SocketAddress,
+            ) -> Result<super::super::Socket, crate::Error>;
+        }
+        #[wasm_bindgen(module = "cloudflare:sockets")]
+        extern "C" {
+            #[wasm_bindgen(catch, js_name = "connect")]
+            pub fn connect_with_str_and_options(
+                address: &str,
+                options: &super::super::SocketOptions,
+            ) -> Result<super::super::Socket, crate::Error>;
+        }
+        #[wasm_bindgen(module = "cloudflare:sockets")]
+        extern "C" {
+            #[wasm_bindgen(catch, js_name = "connect")]
+            pub fn connect_with_socket_address_and_options(
+                address: &super::super::SocketAddress,
+                options: &super::super::SocketOptions,
+            ) -> Result<super::super::Socket, crate::Error>;
+        }
+    }
 }
 #[wasm_bindgen]
 extern "C" {
@@ -19773,32 +19834,6 @@ extern "C" {
     #[doc = " if it exists, or throws an error if it does not exist"]
     #[wasm_bindgen(method, catch, js_name = "get")]
     pub fn get_promise(this: &SecretsStoreSecret) -> Result<Promise<JsString>, crate::Error>;
-}
-#[wasm_bindgen(module = "cloudflare:sockets")]
-extern "C" {
-    #[wasm_bindgen(catch)]
-    pub fn connect(address: &str) -> Result<Socket, crate::Error>;
-}
-#[wasm_bindgen(module = "cloudflare:sockets")]
-extern "C" {
-    #[wasm_bindgen(catch, js_name = "connect")]
-    pub fn connect_with_socket_address(address: &SocketAddress) -> Result<Socket, crate::Error>;
-}
-#[wasm_bindgen(module = "cloudflare:sockets")]
-extern "C" {
-    #[wasm_bindgen(catch, js_name = "connect")]
-    pub fn connect_with_str_and_options(
-        address: &str,
-        options: &SocketOptions,
-    ) -> Result<Socket, crate::Error>;
-}
-#[wasm_bindgen(module = "cloudflare:sockets")]
-extern "C" {
-    #[wasm_bindgen(catch, js_name = "connect")]
-    pub fn connect_with_socket_address_and_options(
-        address: &SocketAddress,
-        options: &SocketOptions,
-    ) -> Result<Socket, crate::Error>;
 }
 #[wasm_bindgen]
 extern "C" {
@@ -19981,22 +20016,22 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type DispatchNamespaceArgs;
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum IdKind {
     DurableObjectId(DurableObjectId),
     String(String),
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum GenerateKeyReturnKind {
     CryptoKey(CryptoKey),
     CryptoKeyPair(CryptoKeyPair),
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum ExportKeyReturnKind {
     ArrayBuffer(ArrayBuffer),
     JsonWebKey(JsonWebKey),
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum AlgorithmKind {
     CryptoKeyKeyAlgorithm(CryptoKeyKeyAlgorithm),
     CryptoKeyAesKeyAlgorithm(CryptoKeyAesKeyAlgorithm),
@@ -20005,105 +20040,105 @@ pub enum AlgorithmKind {
     CryptoKeyEllipticKeyAlgorithm(CryptoKeyEllipticKeyAlgorithm),
     CryptoKeyArbitraryKeyAlgorithm(CryptoKeyArbitraryKeyAlgorithm),
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum SaltKind {
     ArrayBuffer(ArrayBuffer),
     Uint8Array(Uint8Array),
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum HashKind {
     String(String),
     SubtleCryptoHashAlgorithm(SubtleCryptoHashAlgorithm),
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum BytesWrittenKind {
     F64(f64),
     BigInt(BigInt),
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum DataKind {
     ArrayBuffer(ArrayBuffer),
     String(String),
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum TypeKind {
     Default = "default",
     Error = "error",
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum EncodeBodyKind {
     Automatic = "automatic",
     Manual = "manual",
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum CacheKind {
     NoStore = "no-store",
     NoCache = "no-cache",
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum OnlyIfKind {
     R2Conditional(R2Conditional),
     Headers(Headers),
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum RangeKind {
     R2Range(R2Range),
     Headers(Headers),
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum HttpMetadataKind {
     R2HttpMetadata(R2HTTPMetadata),
     Headers(Headers),
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum Md5Kind {
     JsValue(JsValue),
     String(String),
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum BinaryTypeKind {
     Blob = "blob",
     Arraybuffer = "arraybuffer",
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum SecureTransportKind {
     On = "on",
     Off = "off",
     Starttls = "starttls",
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum PtyKind {
     Bool(bool),
     ContainerExecPtyOptions(ContainerExecPtyOptions),
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum StdinKind {
     ReadableStream(ReadableStream),
     Pipe = "pipe",
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum StdoutKind {
     Pipe = "pipe",
     Ignore = "ignore",
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum StderrKind {
     Pipe = "pipe",
     Ignore = "ignore",
     Combined = "combined",
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum GrpcWebKind {
     Passthrough = "passthrough",
     Convert = "convert",
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum PolishKind {
     Lossy = "lossy",
     Lossless = "lossless",
     Off = "off",
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum GravityKind {
     Face = "face",
     Left = "left",
@@ -20115,7 +20150,7 @@ pub enum GravityKind {
     Entropy = "entropy",
     BasicImageTransformationsGravityCoordinates(BasicImageTransformationsGravityCoordinates),
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum FitKind {
     ScaleDown = "scale-down",
     ScaleUp = "scale-up",
@@ -20125,18 +20160,18 @@ pub enum FitKind {
     Pad = "pad",
     Squeeze = "squeeze",
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum TrimKind {
     Border = "border",
     Object(Object),
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum FlipKind {
     H = "h",
     V = "v",
     Hv = "hv",
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum RotateKind {
     N0 = 0,
     N90 = 90,
@@ -20144,23 +20179,23 @@ pub enum RotateKind {
     N270 = 270,
     N360 = 360,
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum UpscaleKind {
     Interpolate = "interpolate",
     Generate = "generate",
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum ModeKind {
     Remainder = "remainder",
     BoxCenter = "box-center",
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum RepeatKind {
     Bool(bool),
     X = "x",
     Y = "y",
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum CompositeKind {
     Over = "over",
     In = "in",
@@ -20169,7 +20204,7 @@ pub enum CompositeKind {
     Xor = "xor",
     Lighter = "lighter",
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum QualityKind {
     F64(f64),
     Low = "low",
@@ -20177,7 +20212,7 @@ pub enum QualityKind {
     MediumHigh = "medium-high",
     High = "high",
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum FormatKind {
     Avif = "avif",
     Webp = "webp",
@@ -20188,47 +20223,47 @@ pub enum FormatKind {
     PngForce = "png-force",
     Svg = "svg",
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum MetadataKind {
     Keep = "keep",
     Copyright = "copyright",
     None = "none",
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum CountryKind {
     Iso3166Alpha2Code(Iso3166Alpha2Code),
     T1 = "T1",
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum TlsClientAuthKind {
     IncomingRequestCfPropertiesTlsClientAuth(IncomingRequestCfPropertiesTLSClientAuth),
     IncomingRequestCfPropertiesTlsClientAuthPlaceholder(
         IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
     ),
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum CertRevokedKind {
     _1 = "1",
     _0 = "0",
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum DispositionKind {
     Inline = "inline",
     Attachment = "attachment",
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum ContentKind {
     String(String),
     ArrayBuffer(ArrayBuffer),
     Uint8Array(Uint8Array),
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum ToKind {
     String(String),
     EmailAddress(EmailAddress),
     VecOfJsValue(Vec<JsValue>),
 }
-#[wasm_bindgen]
+#[wasm_bindgen(private)]
 pub enum FromKind {
     String(String),
     EmailAddress(EmailAddress),

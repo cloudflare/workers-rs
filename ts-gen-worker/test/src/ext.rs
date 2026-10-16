@@ -400,9 +400,9 @@ pub async fn handle(
 
             let list = kv.list_builder().prefix("t").limit(10).execute().await?;
             let names: Vec<String> = list.keys().iter().map(|k| k.name()).collect();
-            let all = kv.list_builder().execute().await?.keys().length();
+            let all = kv.list_builder().execute().await?.keys().len();
             kv.delete("n").await?;
-            let after = kv.list_builder().execute().await?.keys().length();
+            let after = kv.list_builder().execute().await?.keys().len();
 
             Response::builder().ok(format!(
                 "{text:?} {text2:?} {meta:?} {no_meta:?} {n:?} {j:?} {bytes:?} {missing:?} {stream} {no_stream} | {bulk:?} | {bulk_meta:?} | {names:?} {} {all} {after}",
@@ -447,7 +447,7 @@ pub async fn handle(
                 .header("x-a", "2")?
                 .header("content-type", "text/csv")?
                 .cors(&cors)?
-                .encode_body("manual")
+                .encode_body(EncodeBodyKind::Manual)
                 .ok("a,b")?;
             Response::builder().ok(format!(
                 "{} {} {}",

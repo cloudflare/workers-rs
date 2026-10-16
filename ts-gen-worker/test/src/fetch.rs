@@ -49,7 +49,7 @@ pub async fn handle_proxy_request(
         .skip(1)
         .collect::<Vec<_>>()
         .join("/");
-    CONSOLE.with(|c| c.log(&[url.clone().into()]));
+    console.with(|c| c.log(&[url.clone().into()]));
     fetch_with_str(&url).await
 }
 
@@ -180,7 +180,7 @@ pub async fn handle_cloned_response_attributes(
         &JsNullable::wrap(("").into()),
         &ResponseInit::builder()
             .status(200)
-            .encode_body("manual")
+            .encode_body(EncodeBodyKind::Manual)
             .cf(&cf)
             .build(),
     )?;
