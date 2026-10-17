@@ -116,9 +116,11 @@ opt-level = "z"
 # These are local patches we use to test against local wasm bindgen
 # We always align on the exact stable wasm bindgen version for releases
 #
-# The submodule is wasm-bindgen main with PR #5375 (`reinit = "reconstruct"`,
-# schema 0.2.130, unreleased) rebased on top: `#[durable_object]` depends on
-# it, so the whole workspace builds from the submodule until 0.2.130 ships.
+# The submodule is wasm-bindgen PR #5384 (`slice = view | array | copy`, on
+# main) with PR #5375 (`reinit = "reconstruct"`, schema 0.2.130, unreleased)
+# rebased on top: ts-gen emits #5384's slice modes and `#[durable_object]`
+# depends on #5375, so the whole workspace builds from the submodule until
+# both ship.
 [patch.crates-io]
 js-sys = { version = "0.3.106", path = './wasm-bindgen/crates/js-sys' }
 wasm-bindgen = { version = "0.2.129", path = './wasm-bindgen' }
