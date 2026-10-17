@@ -7,9 +7,6 @@
 //! roots listed in `chompfile.toml`.
 
 #[allow(clippy::all)]
-// The pinned wasm-bindgen predates wasm-bindgen#5377, so it drops the `allow` ts-gen puts on
-// each lower-case static.
-#[allow(non_upper_case_globals)]
 mod bindings;
 mod durable;
 mod error;
