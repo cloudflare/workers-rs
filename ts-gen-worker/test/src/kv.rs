@@ -1,6 +1,6 @@
 use super::SomeSharedData;
 use crate::Env;
-use js_sys::{Array, JsNullable, JsString};
+use js_sys::JsNullable;
 use serde::{Deserialize, Serialize};
 use ts_gen_worker::*;
 use wasm_bindgen::prelude::*;
@@ -162,12 +162,8 @@ pub async fn put_metadata_struct(
 }
 
 async fn get_bulk_text(store: &KVNamespace, keys: &[&str]) -> Result<js_sys::Map> {
-    let keys: Array<JsString> = keys
-        .iter()
-        .map(|k| JsString::from(*k))
-        .collect::<Array>()
-        .unchecked_into();
-    Ok(store.get_with_array(&keys).await?.unchecked_into())
+    let keys: Vec<String> = keys.iter().map(|k| (*k).to_owned()).collect();
+    Ok(store.get_with_slice(&keys).await?.unchecked_into())
 }
 
 pub async fn get_bulk(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {

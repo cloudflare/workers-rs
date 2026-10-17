@@ -5,7 +5,7 @@
 
 use std::collections::HashMap;
 
-use js_sys::{Array, ArrayBuffer, JsNullable, JsString, Map, Promise, Uint8Array};
+use js_sys::{ArrayBuffer, JsNullable, JsString, Map, Promise, Uint8Array};
 use wasm_bindgen::{JsCast, JsValue};
 
 use crate::{
@@ -28,7 +28,7 @@ impl KVNamespace {
     pub fn get_bulk(&self, keys: &[impl AsRef<str>]) -> KvGetBulkBuilder {
         KvGetBulkBuilder {
             kv: self.clone(),
-            keys: Array::from_iter_typed(keys.iter().map(|k| JsString::from(k.as_ref()))),
+            keys: keys.iter().map(|k| k.as_ref().to_owned()).collect(),
             cache_ttl: None,
         }
     }
@@ -242,7 +242,7 @@ impl KvGetBuilder {
 #[must_use = "a KvGetBulkBuilder does nothing until one of its read methods is awaited"]
 pub struct KvGetBulkBuilder {
     kv: KVNamespace,
-    keys: Array<JsString>,
+    keys: Vec<String>,
     cache_ttl: Option<u64>,
 }
 
@@ -257,7 +257,7 @@ impl KvGetBulkBuilder {
         let options = get_options(value_type, self.cache_ttl);
         let map = self
             .kv
-            .get_with_key_array_and_options_kv_namespace_get_options(&self.keys, &options)
+            .get_with_key_slice_and_options_kv_namespace_get_options(&self.keys, &options)
             .await?;
         Ok(map.unchecked_into())
     }
@@ -267,7 +267,7 @@ impl KvGetBulkBuilder {
         let options = get_options(value_type, self.cache_ttl);
         let map = self
             .kv
-            .get_with_metadata_with_key_array_and_options_kv_namespace_get_options(
+            .get_with_metadata_with_key_slice_and_options_kv_namespace_get_options(
                 &self.keys, &options,
             )
             .await?;

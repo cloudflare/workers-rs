@@ -396,7 +396,7 @@ extern "C" {
     pub fn to(this: &SendEmailBuilder) -> ToKind;
     #[wasm_bindgen(method, setter)]
     pub fn set_to(this: &SendEmailBuilder, val: &str);
-    #[wasm_bindgen(method, setter, slice_to_array, js_name = "to")]
+    #[wasm_bindgen(method, setter, js_name = "to")]
     pub fn set_to_with_slice(this: &SendEmailBuilder, val: &[String]);
     #[wasm_bindgen(method, getter)]
     pub fn subject(this: &SendEmailBuilder) -> String;
@@ -412,13 +412,13 @@ extern "C" {
     pub fn cc(this: &SendEmailBuilder) -> Option<ToKind>;
     #[wasm_bindgen(method, setter)]
     pub fn set_cc(this: &SendEmailBuilder, val: &str);
-    #[wasm_bindgen(method, setter, slice_to_array, js_name = "cc")]
+    #[wasm_bindgen(method, setter, js_name = "cc")]
     pub fn set_cc_with_slice(this: &SendEmailBuilder, val: &[String]);
     #[wasm_bindgen(method, getter)]
     pub fn bcc(this: &SendEmailBuilder) -> Option<ToKind>;
     #[wasm_bindgen(method, setter)]
     pub fn set_bcc(this: &SendEmailBuilder, val: &str);
-    #[wasm_bindgen(method, setter, slice_to_array, js_name = "bcc")]
+    #[wasm_bindgen(method, setter, js_name = "bcc")]
     pub fn set_bcc_with_slice(this: &SendEmailBuilder, val: &[String]);
     #[wasm_bindgen(method, getter)]
     pub fn headers(this: &SendEmailBuilder) -> Option<Object<JsString>>;
