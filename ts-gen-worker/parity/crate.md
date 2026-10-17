@@ -768,4 +768,4 @@ module. Under `--fallible` every sync binding that can throw returns `Result`, s
 | `date.as_millis()` | same (`DateExt`) |
 | `Cors::new().with_origins(..)` | same |
 | `Cache::default()` | `caches.with(CacheStorage::default)` (JS globals are lower-case statics: `console`, `caches`, `crypto`, `performance`) |
-| `WebSocket: Eq` (`HashSet<WebSocket>`) | `PartialEq` only (ts-gen bug 2 in `parity/workers-types.md`) |
+| `WebSocket: PartialEq + Eq` | same (by handle) |

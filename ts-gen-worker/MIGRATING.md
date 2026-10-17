@@ -18,7 +18,8 @@ takes `&js_sys::JsNullable<T>` (`&JsNullable::wrap(v)` or `&JsNullable::new()`).
 options take the generated enum (`EncodeBodyKind::Manual`, `CacheKind::NoStore`,
 `BinaryTypeKind::Arraybuffer`), and arrays come back as `Vec<T>`. The JS globals are
 lower-case statics: `console`, `caches`, `crypto`, `performance` (`caches.with(CacheStorage::default)`
-is `worker`'s `Cache::default()`).
+is `worker`'s `Cache::default()`). `PerformanceMark` has no constructor here;
+`performance.with(|p| p.mark(name))?` creates one.
 
 ## Env
 
@@ -164,7 +165,7 @@ impl DurableObject for Counter {
 
 `websocket_message` receives a `DataKind` (`String(s)` / `ArrayBuffer(buf)`) instead of
 `WebSocketIncomingMessage`; `websocket_close`/`websocket_error` are unchanged. `WebSocket`
-is `PartialEq` but not `Eq`, so it cannot key a `HashSet`.
+is `PartialEq` and `Eq` by handle, as in `worker`, so a struct deriving `Eq` can hold one.
 
 ```rust
 // worker                                         // ts-gen-worker
@@ -191,7 +192,8 @@ kv.put("k", &t)?.expiration_ttl(60).execute().await?
 kv.list().prefix(p).execute().await?        kv.list_builder().prefix(p).execute().await?
 ```
 
-`get_bulk`, `put_bytes`, `put_stream` keep their names. `list()` returns the generated
+`get_bulk`, `put_bytes`, `put_stream` keep their names; the generated bulk read underneath is
+`kv.get_with_slice(&keys)` with `keys: &[String]`. `list()` returns the generated
 `KVNamespaceListResult` (`keys()` is a `Vec`, `list_complete()`, `cursor()`).
 
 ## Errors
