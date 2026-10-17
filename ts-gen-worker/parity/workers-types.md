@@ -448,7 +448,7 @@ Bindings regenerated from the restacked tip (ts-gen `2171ea7` on main `a306021`,
 |---|---|---|---|---|
 | 1 | `EmailAttachment::new_inline*` / `new_attachment*` bodies: `inner.set_disposition("inline")` against `set_disposition(val: DispositionKind)`; does not compile, in `bindings.rs` **and** `worker/src/bindings/email.rs` | main #39 `88d0863` (enum setters by value) meets the discriminated-union branch factory, which still bakes the raw literal; present on main's own `workers-types` snapshot | hand patch, marked `// ts-gen regression:`: `bindings.rs` 19146, 19164, 19182 (`Inline`), 19225, 19241, 19257 (`Attachment`); `email.rs` 201, 219, 237, 280, 296, 312 | **regression** (ts-gen bug 1) |
 | 2 | `WebSocket`, `RequestInitCfProperties`, `IncomingRequestCfPropertiesBase`, `CloudflareAccessIdentity`: `derive(PartialEq, Eq)` → `derive(PartialEq)` | main #81 `70e8b95` `derive_eq` (first parent written with TS args: `EventTarget<WebSocketEventMap>`, `Record<string, unknown>`), kept for non-generic types by the restack | none (nothing in the port uses `Eq`) | **regression**: `worker::WebSocket` is `Eq`; no `HashSet<WebSocket>` (ts-gen bug 2) |
-| 3 | `pub static CONSOLE/CRYPTO/CACHES/PERFORMANCE` → `console/crypto/caches/performance` with `#[allow(non_upper_case_globals)]` | main #45 `2191f49` | ~20 call sites renamed (`ext/console.rs`, `lib.rs`, `test/src`); `#[allow(non_upper_case_globals)] mod bindings;` in `lib.rs`, since the pinned wasm-bindgen (`1ea319f65`) predates #5377 and drops the per-static `allow` (clippy `-D warnings` fails otherwise) | neutral drift |
+| 3 | `pub static CONSOLE/CRYPTO/CACHES/PERFORMANCE` → `console/crypto/caches/performance` with `#[allow(non_upper_case_globals)]` | main #45 `2191f49` | ~20 call sites renamed (`ext/console.rs`, `lib.rs`, `test/src`); a crate-level `allow` on `mod bindings` while the pin predated #5377, removed in `db26b8b` | neutral drift |
 | 4 | `connect`, `connect_with_*` → `cloudflare::sockets::…`; `EmailMessage` → `cloudflare::email::EmailMessage` (both crates; `ForwardableEmailMessage extends = cloudflare::email::EmailMessage`) | main #94 `76a5d01`; roots closure `b1314e1` places module declarations in their nested `pub mod` | `pub use` re-exports in `ts-gen-worker/src/lib.rs` and `worker/src/email.rs`; flat spelling unchanged at every call site | neutral drift |
 | 5 | `pub type Cloudflare` (`compatibilityFlags`) gone; `pub mod cloudflare` gains the `Cloudflare` namespace's `Env`, `GlobalProps` and the `GlobalProp`/`MainModule`/`Exports` aliases | `e011e0f` (closure through namespace owners): `Cloudflare.Exports` now reaches the namespace, not the merged interface; #88/#94 share one `pub mod` | none (unused; `exports()` was and is `JsValue`) | neutral drift (not a root) |
 | 6 | string-enum setters and builder methods `&str` → enum by value: `Response::set_type(TypeKind)`, `ResponseInit` / `RequestInit` `encode_body(EncodeBodyKind)`, `cache(CacheKind)`, `WebSocket::set_binary_type`, `EmailAttachment::set_disposition`, cf `polish`/`grpc_web`, image `fit`/`gravity`/`trim`/`flip`/`format`/…, container stdio | main #39 | `.encode_body("manual")` → `.encode_body(EncodeBodyKind::Manual)` (2 sites) | improvement (typed; breaking for `&str` callers) |
@@ -483,12 +483,45 @@ Bindings regenerated from the restacked tip (ts-gen `2171ea7` on main `a306021`,
    Target<{…}>` derives `PartialEq, Eq`. `Target<M>` carries the handle-identity `Eq` from the
    generics layer, so #81's reason for dropping `Eq` no longer holds. Before the restack these
    types derived `Eq` and compiled.
+3. **A branch admitting several literals breaks the merged discriminant's enum** (on main):
+   `type S = { kind: "open" } | { kind: "close" | "error" }; declare function f(s: S): void;`
+   merges `kind` as a nested union and emits `enum KindKind { Open = "open", JsValue(String) }`
+   plus `set_kind_with_str("close")`, instead of one enum with three variants.
 
-Not ts-gen: the pinned `wasm-bindgen` (`1ea319f65`) lacks #5377, which main's pin (`2df31ba`) has;
-moving the submodule there removes the `allow` on `mod bindings`. Also, `~/.cargo/bin/ts-gen` is
-shared by every worktree, so whichever agent ran `cargo install` last decides what everyone
-generates with. Reinstall from this worktree's `ts-gen/` before every regeneration (this session
-did).
+Bug 1 has a fix on ts-gen `gbedford/branch-factory-enum-literal` (`0415dee`, on main, under review).
+
+Not ts-gen: `~/.cargo/bin/ts-gen` is shared by every worktree, so whichever agent ran
+`cargo install` last decides what everyone generates with. Reinstall from this worktree's
+`ts-gen/` before every regeneration (sessions 11 and 12 did).
+
+### wasm-bindgen pin (session 12)
+
+`db26b8b`: the submodule is wasm-bindgen `origin/main` `9bec40cf3` (#5376, #5377, #5381, #5383)
+with #5375's branch rebased on top as local `gbedford/reinit-reconstruct` = `41c895974` (not
+pushed; origin's branch is still `870389dd3`). Rebase record:
+
+- `6f84fd3f3` (re-bless stale reference fixtures): dropped, already upstream.
+- `262626e26` → `c8fc01078` (export call guard before argument conversion), `binding.rs`: main
+  #5350 moved body generation into `BodyParams::generate`, which reruns when argument names
+  shadow; the hoisted `__wbg_call_guard();` moved there, after the subclass sentinel and before
+  the receiver's stale check. The `wrap_hoisted_export_call` hunk merged with main's `js.local`.
+- `88b506e56` → `7ced3643a` (parse `reinit`): main already set `SCHEMA_VERSION = "0.2.130"`, so
+  only `APPROVED_SCHEMA_FILE_HASH` moves (`17908788602150006240`); message amended to say so.
+- `870389dd3` → `41c895974` (reconstruct): `BodyParams::generate`'s inline stale-object prelude
+  becomes `js.assert_not_stale("this")`; CHANGELOG keeps main's #5376 entry and #5375's.
+
+Checked on the rebased branch: each commit `cargo check`s (`cli-support`, `macro-support`,
+`shared`); `schema_version`; reference tests `panic_unwind{,_legacy}`, `reinit_reconstruct`,
+`targets` (+ `_atomics`, `_mvp`), `import`; `reinit*` / `termination*` CLI tests: 10 pass, and the
+4 that fail (`termination`, `termination_reset_state`, `termination_abort_handler_unwind_{panic,
+abort2}`) fail identically on `origin/main` in this environment. Macro UI tests and the rest of
+the CLI suite not run (disk).
+
+Workspace: bindings regenerate byte-identical; the `allow` on `mod bindings` is gone (#5377);
+fmt, `cargo check --locked` (no `Cargo.lock` change), clippy, `chomp test:ts-gen-worker` /
+`-http` 194 passed / 4 skipped, `chomp test` 145 / 4. With #5383 the output compiles as is:
+non-generic types' `derive(PartialEq, Eq)` and the generic types' manual handle-identity impls
+coexist (the manual impls become redundant once ts-gen derives everywhere).
 
 ### Migration-table deltas (for workers-rs-4 / MIGRATING.md)
 
