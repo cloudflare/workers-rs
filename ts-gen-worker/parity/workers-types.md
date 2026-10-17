@@ -156,6 +156,8 @@ test-suite port on the `ext/` layer and macros, with the http feature):
 - `c9e4c10` Regenerated from the restacked ts-gen tip `2171ea7` (on main `a306021`); statics
   lower-cased, `cloudflare::*` module items re-exported flat, one ts-gen regression hand-patched
   (see "Restack regressions (session 11)").
+- `8dacaa6` wasm-bindgen submodule on #5384 (`69d72955b`, ts-gen's pin) with #5375 rebased on top;
+  `38d0d0d` regenerated from the restack-3 tip `5b2d7bf` (see "Restack 3 (session 13)").
 
 ## Decisions
 
@@ -259,6 +261,10 @@ test-suite port on the `ext/` layer and macros, with the http feature):
   ones; the child's own redeclaration remains the override.
 - **`console` stays a `thread_local_v2` static** (`console.with(|c| c.log(..))`), the honest
   lowering of `declare const console: Console`; a `console_log!` ergonomic belongs in `ext/`.
+- **The wasm-bindgen pin follows ts-gen's.** ts-gen main emits wasm-bindgen#5384's slice modes,
+  which main `9bec40cf3` rejects, so the submodule moved from main to `69d72955b` (the revision
+  ts-gen's integration tests pin), not the newer `copy-slice` tip. Hand-patching ~70
+  `slice_to_array` attributes back in would have been the alternative.
 
 ## Open problems
 
@@ -287,12 +293,6 @@ test-suite port on the `ext/` layer and macros, with the http feature):
   `RequestInit`/`ResponseInit` setters still erase to `JsValue` (generator warnings).
 - ts-gen: `Message.attempts`, `WebSocket.readyState`, `AlarmInvocationInfo.retryCount` are integers
   `worker` does not expose; untagged here (out of scope).
-- ts-gen: dynamic-union enums are emitted at crate root and resolve payloads in the root scope, so
-  a namespaced payload (`OnsetInfoKind(FetchEventInfo)` in TailStream) is unqualified and fails to
-  compile (review #14; outside the inventory).
-- ts-gen: `AttributeValueKind { VecOfBool(Vec<bool>), VecOfF64(Vec<f64>) }` payloads do not
-  satisfy `ErasableGeneric` (review #18; outside the inventory). The earlier claim that `1a6f004`
-  fixed `Vec<bool>`/`Vec<f64>` in dynamic unions was wrong and is corrected below.
 - ts-gen: two inline option literals differing only in a literal (`raw({columnNames: true})` /
   `raw({columnNames?: false})`) synthesize `D1PreparedStatementOptions` and `…Options2`.
 - ts-gen: a required nullable dictionary field (`tag: string | null`) has no way to be set to
@@ -304,11 +304,11 @@ test-suite port on the `ext/` layer and macros, with the http feature):
 - ts-gen: a declared `class String` resolves to the lib builtin, so a return of that class emits
   the bare prelude `String` (kept out of the `prelude-collision` fixture; no such declaration in
   the inventory).
+- ts-gen: the surface walk follows type-parameter constraints, so `--export Service` emits ~1,900
+  lines nothing references (bug 4 under "Restack 3 (session 13)").
 - ts-gen: an erased type parameter with a constraint but no default could erase to the constraint
   (TypeScript's own inference) instead of `any`, when the constraint does not mention the
   parameter; would give `SqlStorageCursor.raw()` → `Iterator<Array>`.
-- ts-gen: `(string | null)[]` still lowers to `Vec<Option<String>>`, which has no wasm-bindgen ABI
-  either (same family as the nested-array fix; not in the inventory).
 
 ## Findings on the raw input
 
@@ -447,7 +447,7 @@ Bindings regenerated from the restacked tip (ts-gen `2171ea7` on main `a306021`,
 | # | Change (old → new) | Cause | Port change | Class |
 |---|---|---|---|---|
 | 1 | `EmailAttachment::new_inline*` / `new_attachment*` bodies: `inner.set_disposition("inline")` against `set_disposition(val: DispositionKind)`; does not compile, in `bindings.rs` **and** `worker/src/bindings/email.rs` | main #39 `88d0863` (enum setters by value) meets the discriminated-union branch factory, which still bakes the raw literal; present on main's own `workers-types` snapshot | hand patch, marked `// ts-gen regression:`: `bindings.rs` 19146, 19164, 19182 (`Inline`), 19225, 19241, 19257 (`Attachment`); `email.rs` 201, 219, 237, 280, 296, 312 | **regression** (ts-gen bug 1) |
-| 2 | `WebSocket`, `RequestInitCfProperties`, `IncomingRequestCfPropertiesBase`, `CloudflareAccessIdentity`: `derive(PartialEq, Eq)` → `derive(PartialEq)` | main #81 `70e8b95` `derive_eq` (first parent written with TS args: `EventTarget<WebSocketEventMap>`, `Record<string, unknown>`), kept for non-generic types by the restack | none (nothing in the port uses `Eq`) | **regression**: `worker::WebSocket` is `Eq`; no `HashSet<WebSocket>` (ts-gen bug 2) |
+| 2 | `WebSocket`, `RequestInitCfProperties`, `IncomingRequestCfPropertiesBase`, `CloudflareAccessIdentity`: `derive(PartialEq, Eq)` → `derive(PartialEq)` | main #81 `70e8b95` `derive_eq` (first parent written with TS args: `EventTarget<WebSocketEventMap>`, `Record<string, unknown>`), kept for non-generic types by the restack | none (nothing in the port uses `Eq`) | **regression**: `worker::WebSocket` is `Eq`; a user struct deriving `Eq` cannot hold one (ts-gen bug 2) |
 | 3 | `pub static CONSOLE/CRYPTO/CACHES/PERFORMANCE` → `console/crypto/caches/performance` with `#[allow(non_upper_case_globals)]` | main #45 `2191f49` | ~20 call sites renamed (`ext/console.rs`, `lib.rs`, `test/src`); a crate-level `allow` on `mod bindings` while the pin predated #5377, removed in `db26b8b` | neutral drift |
 | 4 | `connect`, `connect_with_*` → `cloudflare::sockets::…`; `EmailMessage` → `cloudflare::email::EmailMessage` (both crates; `ForwardableEmailMessage extends = cloudflare::email::EmailMessage`) | main #94 `76a5d01`; roots closure `b1314e1` places module declarations in their nested `pub mod` | `pub use` re-exports in `ts-gen-worker/src/lib.rs` and `worker/src/email.rs`; flat spelling unchanged at every call site | neutral drift |
 | 5 | `pub type Cloudflare` (`compatibilityFlags`) gone; `pub mod cloudflare` gains the `Cloudflare` namespace's `Env`, `GlobalProps` and the `GlobalProp`/`MainModule`/`Exports` aliases | `e011e0f` (closure through namespace owners): `Cloudflare.Exports` now reaches the namespace, not the merged interface; #88/#94 share one `pub mod` | none (unused; `exports()` was and is `JsValue`) | neutral drift (not a root) |
@@ -560,3 +560,68 @@ Independent review of the first 17 commits (`~/Projects/master/session/review-wo
   signature return mapping — not needed by workers-types, documented as-is), #13 (structural
   bound matching in `widen_async_return_param` and the two wasm-bindgen limitations — upstream
   issues to file rather than ts-gen changes), #14 (recorded under Gaps; outside the inventory).
+
+## Restack 3 (session 13)
+
+Bindings regenerated from ts-gen `5b2d7bf` (#61–#69 on #51, #52, #155, #53, #54 over main
+`2796dd3`), `38d0d0d`; the previous tip `b0d7ef4` gave byte-identical output (its inline-wrappers
+doc fix changes nothing here). The output targets wasm-bindgen#5384, so `8dacaa6` first moves the
+submodule to `69d72955b` with #5375's three commits rebased on top (only the approved schema hash
+moved, now `10903523727203315678`; the old bindings build and pass on it unchanged).
+`chomp test:ts-gen-worker` and `-http`: 194 passed / 4 skipped each; `chomp test`: 145 / 4
+(baselines unchanged). Nothing loosened. `bindings.rs` 20,329 → 21,955 lines (+2,086 / −460).
+
+| # | Change (old → new) | Cause | Port change | Class |
+|---|---|---|---|---|
+| 1 | 38 generic types (`Request`, `ReadableStream`, `ExecutionContext`, `DurableObjectStub`, `KVNamespaceListResult`, `D1Result`, `IncomingRequestCfProperties`, …): manual `impl PartialEq` / `impl Eq` → `derive(PartialEq, Eq)` | #63 on wasm-bindgen#5383 (derive compares handles, no bound on the type parameters) | none | improvement (same semantics, ~300 lines less) |
+| 2 | `WebSocket`, `RequestInitCfProperties`, `IncomingRequestCfPropertiesBase`, `CloudflareAccessIdentity`: `derive(PartialEq)` → `derive(PartialEq, Eq)` | #63 (same fold) | none | improvement: resolves session 11 row 2 / bug 2 |
+| 3 | `slice_to_array` dropped on the 76 `&[String]` arguments (`console.table`, storage `get`/`delete` keys, `acceptWebSocket` tags, SubtleCrypto key usages, `R2Bucket.delete`, `WebSocket::new_with_slice`, `Container.exec`, `string[]` setters) and `email.rs`'s `set_to/cc/bcc_with_slice` | main #104 / #118: wasm-bindgen#5384 passes a borrowed slice element by element as a JS array | wasm-bindgen pin (`8dacaa6`) | neutral (same JS array; needs #5384) |
+| 4 | `AnalyticsEngineDataPoint::set_doubles(&[f64])`, `set_detection_ids(&[u32])`: `slice_to_array` → `#[wasm_bindgen(slice = "array")]` on the argument | main #104 | pin | neutral |
+| 5 | KV bulk `get_with_array*(&Array<JsString>)` → `get_with_slice*(&[String])` (`get`, `getWithMetadata`, their text/json wrappers and `_promise` forms) | main #113 (`Array<T>` = `T[]`) on the erased `Key extends string` | `ext/kv.rs` `KvGetBulkBuilder` holds a `Vec<String>`; test `get_bulk_text` passes `&[String]` | improvement (no `Array` building; breaking rename) |
+| 6 | `CloudflareAccessIdentity::groups() -> Option<Array<Object>>` → `Option<Vec<Object>>`, setter / builder `&[Object]` | main #113 | none | neutral drift |
+| 7 | `PerformanceMark::new`, `new_with_maybe_options` gone | #155: a class reached only by reference (`Performance.mark()`'s return) is emitted as a type, without its constructor | none (unused; `--export PerformanceMark` restores it) | neutral (by design) |
+| 8 | `pub mod cloudflare` loses `Env`, `GlobalProps`, `GlobalProp`, `MainModule`; `Exports = JsValue` stays | #155 closure (does not enter the erased mapped type) | none | neutral: reverts session 11 row 5's unused additions |
+| 9 | new, ~1,900 lines: `ExportedHandler` (+ builder) and its 8 handler aliases, `EmailExportedHandler`, `TestController`, `TraceItem` and 20 `Trace*` types, `ScriptVersion`, `TracePreviewInfo`, `pub mod rpc` (3 branded types), `pub mod tail_stream` (36 types), `SqlStorageValue = JsValue`, root enums `EventKind`, `GetWebSocketEventKind`, `InfoKind`, `OnsetInfoKind`, `SpanOpenInfoKind`, `MessageKind`, `LevelKind`, `ValueKind` | #155's surface walk follows type-parameter constraints: `type Service<T extends … \| ExportedHandler<any, any, any> \| undefined>` (itself `pub type Service = JsValue`), `SqlStorage.exec<T extends Record<string, SqlStorageValue>>` | none | neutral drift: unreachable from anything emitted (ts-gen bug 4) |
+| 10 | `pub type EventListener<EventType>` → `EventListener<EventType = Event>` | #63 (alias parameters carry defaults) | none | improvement |
+
+No other hunks. The `cloudflare::email::EmailMessage` collapse, the `--export` roots and every
+other #155 path produce the session-12 output unchanged.
+
+### Resolved since session 11
+
+- Session 11 row 2 / bug 2 (`derive_eq` dropping `Eq`): resolved (rows 1–2); the session-12 note
+  that the manual impls would become redundant is done.
+- Session 11 row 5 (`Cloudflare` namespace items): gone again (row 8).
+- Session 11 row 10 (`set_doubles` `slice_to_array`): now `slice = "array"`, same `Array`.
+- Gaps (removed from the list): the namespaced dynamic-union payload (`OnsetInfoKind` now holds
+  `tail_stream::FetchEventInfo`, and row 9 makes it compile in this crate), `Vec<f64>` /
+  `Vec<bool>` payloads (`ValueKind { VecOfF64(Vec<f64>), VecOfBool(Vec<Boolean>) }` builds on
+  #5384), and `(string | null)[]` (`TraceEventInfo::traces() -> Vec<JsNullable<JsString>>`).
+- Still open: bug 1 (branch factory literal; the 12 `// ts-gen regression:` patches are
+  re-applied, the fix being ts-gen #157 outside this stack) and bug 3 (multi-literal branch:
+  `enum KindKind { Open, JsValue(String) }` plus `set_kind_with_str("close")`, rechecked on
+  `5b2d7bf`).
+
+### ts-gen bugs found
+
+4. **The surface walk follows type-parameter constraints, even of an alias that erases**
+   (#155, `type_params` in `codegen/surface.rs`). Input:
+   ```ts
+   interface Handler { fetch?(): void; }
+   interface Fetcher<T = undefined> { go(): void; }
+   type Service<T extends Handler | undefined = undefined> =
+     T extends Handler ? Fetcher<T> : Fetcher<undefined>;
+   ```
+   `--export Service` emits `pub type Service = JsValue` and `Handler`, which nothing emitted
+   names (and not `Fetcher`, which the body does name). A constraint never reaches the Rust output
+   (a kept parameter is `T: JsGeneric = Default`; primitive-constraint erasure emits nothing), so
+   walking only defaults would drop row 9 without losing a reference. Proposal: drop
+   `p.constraint` from the walk.
+
+### Migration-table deltas (for workers-rs-4 / MIGRATING.md)
+
+- KV bulk get: `kv.get_with_slice(&keys)` with `keys: &[String]` (was
+  `get_with_array(&Array<JsString>)`); `ext/`'s `get_bulk(&[impl AsRef<str>])` is unchanged.
+- `WebSocket` (and the other three in row 2) are `Eq` again, so a user struct deriving `Eq` can
+  hold one, as with `worker::WebSocket`.
+- `PerformanceMark` has no constructor in this surface; `performance.mark(name)` creates one.
