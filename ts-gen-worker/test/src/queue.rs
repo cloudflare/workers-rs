@@ -62,11 +62,14 @@ pub async fn handle_batch_send(req: Request, env: Env, _: SomeSharedData) -> Res
 
     let my_queue = env.my_queue();
 
-    let batch = js_sys::Array::new();
-    for message in &messages {
-        let body = serde_wasm_bindgen::to_value(message)?;
-        batch.push(&MessageSendRequest::new(&body));
-    }
+    let batch = messages
+        .iter()
+        .map(|message| {
+            Ok(MessageSendRequest::new(&serde_wasm_bindgen::to_value(
+                message,
+            )?))
+        })
+        .collect::<Result<Vec<_>>>()?;
 
     match my_queue.send_batch(&batch).await {
         Ok(_) => Response::builder().ok("Message sent"),

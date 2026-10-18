@@ -5330,7 +5330,7 @@ extern "C" {
     #[wasm_bindgen(method, setter)]
     pub fn set_colno(this: &ErrorEventErrorEventInit, val: f64);
     #[wasm_bindgen(method, getter)]
-    pub fn error(this: &ErrorEventErrorEventInit) -> JsValue;
+    pub fn error(this: &ErrorEventErrorEventInit) -> Option<JsValue>;
     #[wasm_bindgen(method, setter)]
     pub fn set_error(this: &ErrorEventErrorEventInit, val: &JsValue);
 }
@@ -5551,7 +5551,7 @@ extern "C" {
     #[doc = ""]
     #[doc = " * `TypeError` — if `init` contains an invalid header name or value"]
     #[wasm_bindgen(constructor, catch, js_name = "Headers")]
-    pub fn new_with_iterable(init: &JsValue) -> Result<Headers, JsException>;
+    pub fn new_with_slice(init: &[JsValue]) -> Result<Headers, JsException>;
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `init` contains an invalid header name or value"]
@@ -5739,7 +5739,12 @@ extern "C" {
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
-    pub fn new_with_iterable(body: &JsValue) -> Result<Response, JsException>;
+    pub fn new_with_slice(body: &[JsValue]) -> Result<Response, JsException>;
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
+    #[wasm_bindgen(constructor, catch, js_name = "Response")]
+    pub fn new_with_async_iterable(body: &JsValue) -> Result<Response, JsException>;
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
     fn new_with_null_js(body: &JsValue) -> Result<Response, JsException>;
     #[doc = " ## Errors"]
@@ -5802,7 +5807,15 @@ extern "C" {
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
-    pub fn new_with_iterable_and_init(
+    pub fn new_with_slice_and_init(
+        body: &[JsValue],
+        init: &ResponseInit,
+    ) -> Result<Response, JsException>;
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
+    #[wasm_bindgen(constructor, catch, js_name = "Response")]
+    pub fn new_with_async_iterable_and_init(
         body: &JsValue,
         init: &ResponseInit,
     ) -> Result<Response, JsException>;
@@ -5905,7 +5918,7 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "webSocket")]
     pub fn set_web_socket(this: &Response, val: Option<&WebSocket>);
     #[wasm_bindgen(method, getter)]
-    pub fn cf(this: &Response) -> JsValue;
+    pub fn cf(this: &Response) -> Option<JsValue>;
     #[wasm_bindgen(method, setter)]
     pub fn set_cf(this: &Response, val: Option<&JsValue>);
     #[doc = " The **`type`** read-only property of the Response interface contains the type of the response. The type determines whether scripts are able to access the response body and headers."]
@@ -5944,15 +5957,15 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "statusText")]
     pub fn set_status_text(this: &ResponseInit, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
-    pub fn headers(this: &ResponseInit) -> JsValue;
+    pub fn headers(this: &ResponseInit) -> Option<JsValue>;
     #[wasm_bindgen(method, setter)]
     pub fn set_headers(this: &ResponseInit, val: &Headers);
     #[wasm_bindgen(method, setter, js_name = "headers")]
-    pub fn set_headers_with_iterable(this: &ResponseInit, val: &JsValue);
+    pub fn set_headers_with_slice(this: &ResponseInit, val: &[JsValue]);
     #[wasm_bindgen(method, setter, js_name = "headers")]
     pub fn set_headers_with_record(this: &ResponseInit, val: &Object<String>);
     #[wasm_bindgen(method, getter)]
-    pub fn cf(this: &ResponseInit) -> JsValue;
+    pub fn cf(this: &ResponseInit) -> Option<JsValue>;
     #[wasm_bindgen(method, setter)]
     pub fn set_cf(this: &ResponseInit, val: &JsValue);
     #[wasm_bindgen(method, getter, js_name = "webSocket")]
@@ -5990,8 +6003,8 @@ impl ResponseInitBuilder {
         self.inner.set_headers(val);
         self
     }
-    pub fn headers_with_iterable(self, val: &JsValue) -> Self {
-        self.inner.set_headers_with_iterable(val);
+    pub fn headers_with_slice(self, val: &[JsValue]) -> Self {
+        self.inner.set_headers_with_slice(val);
         self
     }
     pub fn headers_with_record(self, val: &Object<String>) -> Self {
@@ -6213,11 +6226,11 @@ extern "C" {
     #[wasm_bindgen(method, setter)]
     pub fn set_method<Cf>(this: &RequestInit<Cf>, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
-    pub fn headers<Cf>(this: &RequestInit<Cf>) -> JsValue;
+    pub fn headers<Cf>(this: &RequestInit<Cf>) -> Option<JsValue>;
     #[wasm_bindgen(method, setter)]
     pub fn set_headers<Cf>(this: &RequestInit<Cf>, val: &Headers);
     #[wasm_bindgen(method, setter, js_name = "headers")]
-    pub fn set_headers_with_iterable<Cf>(this: &RequestInit<Cf>, val: &JsValue);
+    pub fn set_headers_with_slice<Cf>(this: &RequestInit<Cf>, val: &[JsValue]);
     #[wasm_bindgen(method, setter, js_name = "headers")]
     pub fn set_headers_with_record<Cf>(this: &RequestInit<Cf>, val: &Object<String>);
     #[wasm_bindgen(method, getter)]
@@ -6237,7 +6250,9 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "body")]
     pub fn set_body_with_form_data<Cf>(this: &RequestInit<Cf>, val: &FormData);
     #[wasm_bindgen(method, setter, js_name = "body")]
-    pub fn set_body_with_iterable<Cf>(this: &RequestInit<Cf>, val: &JsValue);
+    pub fn set_body_with_slice<Cf>(this: &RequestInit<Cf>, val: &[JsValue]);
+    #[wasm_bindgen(method, setter, js_name = "body")]
+    pub fn set_body_with_async_iterable<Cf>(this: &RequestInit<Cf>, val: &JsValue);
     #[wasm_bindgen(method, setter, js_name = "body")]
     fn set_body_with_null_js<Cf>(this: &RequestInit<Cf>, val: &JsValue);
     #[wasm_bindgen(method, getter)]
@@ -6304,8 +6319,8 @@ where
         self.inner.set_headers(val);
         self
     }
-    pub fn headers_with_iterable(self, val: &JsValue) -> Self {
-        self.inner.set_headers_with_iterable(val);
+    pub fn headers_with_slice(self, val: &[JsValue]) -> Self {
+        self.inner.set_headers_with_slice(val);
         self
     }
     pub fn headers_with_record(self, val: &Object<String>) -> Self {
@@ -6343,8 +6358,12 @@ where
         self.inner.set_body_with_form_data(val);
         self
     }
-    pub fn body_with_iterable(self, val: &JsValue) -> Self {
-        self.inner.set_body_with_iterable(val);
+    pub fn body_with_slice(self, val: &[JsValue]) -> Self {
+        self.inner.set_body_with_slice(val);
+        self
+    }
+    pub fn body_with_async_iterable(self, val: &JsValue) -> Self {
+        self.inner.set_body_with_async_iterable(val);
         self
     }
     pub fn redirect(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
@@ -7553,23 +7572,23 @@ extern "C" {
     #[wasm_bindgen(method, catch, js_name = "sendBatch")]
     pub async fn send_batch<Body>(
         this: &Queue<Body>,
-        messages: &JsValue,
+        messages: &[MessageSendRequest<Body>],
     ) -> Result<QueueSendBatchResponse, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "sendBatch")]
     pub fn send_batch_promise<Body>(
         this: &Queue<Body>,
-        messages: &JsValue,
+        messages: &[MessageSendRequest<Body>],
     ) -> Result<Promise<QueueSendBatchResponse>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "sendBatch")]
     pub async fn send_batch_with_options<Body>(
         this: &Queue<Body>,
-        messages: &JsValue,
+        messages: &[MessageSendRequest<Body>],
         options: &QueueSendBatchOptions,
     ) -> Result<QueueSendBatchResponse, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "sendBatch")]
     pub fn send_batch_with_options_promise<Body>(
         this: &Queue<Body>,
-        messages: &JsValue,
+        messages: &[MessageSendRequest<Body>],
         options: &QueueSendBatchOptions,
     ) -> Result<Promise<QueueSendBatchResponse>, crate::Error>;
 }
@@ -11436,7 +11455,7 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type TraceItemFetchEventInfoRequest;
     #[wasm_bindgen(method, getter)]
-    pub fn cf(this: &TraceItemFetchEventInfoRequest) -> JsValue;
+    pub fn cf(this: &TraceItemFetchEventInfoRequest) -> Option<JsValue>;
     #[wasm_bindgen(method, getter)]
     pub fn headers(this: &TraceItemFetchEventInfoRequest) -> Object<String>;
     #[wasm_bindgen(method, getter)]
@@ -11870,7 +11889,7 @@ extern "C" {
     #[wasm_bindgen(constructor, catch)]
     pub fn new() -> Result<URLSearchParams, crate::Error>;
     #[wasm_bindgen(constructor, catch, js_name = "URLSearchParams")]
-    pub fn new_with_iterable(init: &JsValue) -> Result<URLSearchParams, crate::Error>;
+    pub fn new_with_slice(init: &[JsValue]) -> Result<URLSearchParams, crate::Error>;
     #[wasm_bindgen(constructor, catch, js_name = "URLSearchParams")]
     pub fn new_with_record(init: &Object<String>) -> Result<URLSearchParams, crate::Error>;
     #[wasm_bindgen(constructor, catch, js_name = "URLSearchParams")]
@@ -13702,7 +13721,7 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type PerformanceMarkOptions;
     #[wasm_bindgen(method, getter)]
-    pub fn detail(this: &PerformanceMarkOptions) -> JsValue;
+    pub fn detail(this: &PerformanceMarkOptions) -> Option<JsValue>;
     #[wasm_bindgen(method, setter)]
     pub fn set_detail(this: &PerformanceMarkOptions, val: &JsValue);
     #[wasm_bindgen(method, getter, js_name = "startTime")]
@@ -13747,7 +13766,7 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type PerformanceMeasureOptions;
     #[wasm_bindgen(method, getter)]
-    pub fn detail(this: &PerformanceMeasureOptions) -> JsValue;
+    pub fn detail(this: &PerformanceMeasureOptions) -> Option<JsValue>;
     #[wasm_bindgen(method, setter)]
     pub fn set_detail(this: &PerformanceMeasureOptions, val: &JsValue);
     #[wasm_bindgen(method, getter)]
@@ -19378,7 +19397,7 @@ pub enum CertVerificationStatus {
     Failed = "FAILED",
 }
 #[allow(dead_code)]
-pub type IncomingRequestCfPropertiesEdgeRequestKeepAliveStatus = Number;
+pub type IncomingRequestCfPropertiesEdgeRequestKeepAliveStatus = f64;
 #[wasm_bindgen(private)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Iso3166Alpha2Code {
@@ -19918,7 +19937,7 @@ pub enum D1SessionConstraint {
     FirstUnconstrained = "first-unconstrained",
 }
 #[allow(dead_code)]
-pub type D1SessionBookmark = JsString;
+pub type D1SessionBookmark = String;
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
