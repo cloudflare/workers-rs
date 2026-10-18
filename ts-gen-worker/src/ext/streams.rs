@@ -184,7 +184,7 @@ impl ResponseInitBuilder {
         S::Error: Into<Error>,
     {
         Ok(Response::new_with_readable_stream_and_init(
-            Some(&readable_stream_from(stream)),
+            &readable_stream_from(stream),
             &self.build(),
         )?)
     }

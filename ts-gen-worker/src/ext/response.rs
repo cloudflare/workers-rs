@@ -78,30 +78,27 @@ impl ResponseInitBuilder {
     /// A text body with `content-type: text/plain; charset=utf-8`.
     pub fn ok(self, body: impl AsRef<str>) -> Result<Response> {
         let init = self.with_content_type("text/plain; charset=utf-8")?;
-        Ok(Response::new_with_str_and_init(Some(body.as_ref()), &init)?)
+        Ok(Response::new_with_str_and_init(body.as_ref(), &init)?)
     }
 
     /// A text body with `content-type: text/html; charset=utf-8`.
     pub fn from_html(self, html: impl AsRef<str>) -> Result<Response> {
         let init = self.with_content_type("text/html; charset=utf-8")?;
-        Ok(Response::new_with_str_and_init(Some(html.as_ref()), &init)?)
+        Ok(Response::new_with_str_and_init(html.as_ref(), &init)?)
     }
 
     /// A body of raw bytes.
     pub fn from_bytes(self, bytes: impl AsRef<[u8]>) -> Result<Response> {
         let buffer = Uint8Array::from(bytes.as_ref()).buffer();
         Ok(Response::new_with_array_buffer_and_init(
-            Some(&buffer),
+            &buffer,
             &self.build(),
         )?)
     }
 
     /// A response with no body. Required for null-body statuses such as 204 and 304.
     pub fn empty(self) -> Result<Response> {
-        Ok(Response::new_with_str_and_init(
-            None::<&str>,
-            &self.build(),
-        )?)
+        Ok(Response::new_with_null_and_init(&self.build())?)
     }
 
     /// A body taken from a JS stream, as returned by `Response::body()` or
@@ -109,7 +106,7 @@ impl ResponseInitBuilder {
     pub fn body(self, body: Option<ReadableStream>) -> Result<Response> {
         match body {
             Some(stream) => Ok(Response::new_with_readable_stream_and_init(
-                Some(stream.unchecked_ref()),
+                stream.unchecked_ref(),
                 &self.build(),
             )?),
             None => self.empty(),
@@ -129,7 +126,7 @@ impl ResponseInitBuilder {
             )));
         }
         Ok(Response::new_with_str_and_init(
-            Some(msg.as_ref()),
+            msg.as_ref(),
             &self.status(status).build(),
         )?)
     }

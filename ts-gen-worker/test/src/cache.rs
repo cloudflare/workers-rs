@@ -20,7 +20,7 @@ fn timestamp_response() -> Result<Response> {
     headers.set("cache-control", "s-maxage=10")?;
     headers.set("content-type", "application/json")?;
     Ok(Response::new_with_str_and_init(
-        Some(serde_json::json!({ "timestamp": js_sys::Date::now() as u64 }).to_string()),
+        serde_json::json!({ "timestamp": js_sys::Date::now() as u64 }).to_string(),
         &ResponseInit::builder().headers(&headers).build(),
     )?)
 }
@@ -133,7 +133,7 @@ pub async fn handle_cache_stream(
         let headers = Headers::new()?;
         headers.set("cache-control", "s-maxage=10")?;
         let resp = Response::new_with_readable_stream_and_init(
-            Some(&transform.readable()),
+            &transform.readable(),
             &ResponseInit::builder().headers(&headers).build(),
         )?;
         console_log!("resp = {resp:?}");

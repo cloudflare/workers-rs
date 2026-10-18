@@ -86,9 +86,7 @@ pub async fn handle_xor(req: Request, _env: Env, _data: SomeSharedData) -> Resul
         let _ = writer.close().await;
     });
 
-    Ok(Response::new_with_readable_stream(Some(
-        &transform.readable(),
-    ))?)
+    Ok(Response::new_with_readable_stream(&transform.readable())?)
 }
 
 pub async fn handle_headers(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
@@ -96,7 +94,7 @@ pub async fn handle_headers(req: Request, _env: Env, _data: SomeSharedData) -> R
     headers.append("Hello", "World!")?;
 
     Ok(Response::new_with_str_and_init(
-        Some("returned your headers to you."),
+        "returned your headers to you.",
         &ResponseInit::builder().headers(&headers).build(),
     )?)
 }
@@ -176,7 +174,7 @@ pub async fn handle_status(req: Request, _env: Env, _data: SomeSharedData) -> Re
     if let Some(code) = code {
         return match code.parse::<u16>() {
             Ok(status) => Ok(Response::new_with_str_and_init(
-                Some("You set the status code!"),
+                "You set the status code!",
                 &ResponseInit::builder().status(status).build(),
             )?),
             Err(_e) => Response::builder().error("Failed to parse your status code.", 400),
@@ -208,7 +206,7 @@ pub async fn handle_now(_req: Request, _env: Env, _data: SomeSharedData) -> Resu
 }
 
 pub async fn handle_cloned(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
-    let resp = Response::new_with_str(Some("Hello"))?;
+    let resp = Response::new_with_str("Hello")?;
     let resp1 = resp.clone()?;
 
     let left = resp.text().await?;
@@ -235,7 +233,7 @@ pub async fn handle_cloned_stream(
         let _ = writer.close().await;
     });
 
-    let resp = Response::new_with_readable_stream(Some(&transform.readable()))?;
+    let resp = Response::new_with_readable_stream(&transform.readable())?;
     let resp1 = resp.clone()?;
 
     let left = resp.text().await?;

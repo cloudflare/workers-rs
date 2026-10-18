@@ -31,11 +31,8 @@ impl PutRawTestObject {
     async fn put_multiple_raw(&self) -> Result<()> {
         const BAR: &[u8] = b"bar";
         let storage = self.state.storage();
-        let obj = js_sys::Object::new_typed();
-        let value = Uint8Array::new_with_length(u32::try_from(BAR.len()).unwrap());
-        value.copy_from(BAR);
-        js_sys::Reflect::set(&obj, "foo", &value)?;
-        storage.put_with_entries(&obj).await?;
+        let entries = js_sys::Object::from_iter([("foo", Uint8Array::from(BAR))]);
+        storage.put_with_entries(&entries).await?;
 
         assert_eq!(
             storage

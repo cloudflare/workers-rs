@@ -170,7 +170,7 @@ pub async fn handle_cloned_response_attributes(
         foo: "bar".to_owned(),
     })?;
     let resp = Response::new_with_str_and_init(
-        Some(""),
+        "",
         &ResponseInit::builder()
             .status(200)
             .encode_body(EncodeBodyKind::Manual)

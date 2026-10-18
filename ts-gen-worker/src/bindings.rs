@@ -5703,53 +5703,51 @@ extern "C" {
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
     pub fn new_with_readable_stream(
-        body: Option<&ReadableStream<Uint8Array>>,
+        body: &ReadableStream<Uint8Array>,
     ) -> Result<Response, JsException>;
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
-    pub fn new_with_str(
-        body: Option<impl ::wasm_bindgen::JsStringLike>,
-    ) -> Result<Response, JsException>;
+    pub fn new_with_str(body: impl ::wasm_bindgen::JsStringLike) -> Result<Response, JsException>;
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
-    pub fn new_with_array_buffer(body: Option<&ArrayBuffer>) -> Result<Response, JsException>;
+    pub fn new_with_array_buffer(body: &ArrayBuffer) -> Result<Response, JsException>;
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
-    pub fn new_with_typed_array(body: Option<&Object>) -> Result<Response, JsException>;
+    pub fn new_with_typed_array(body: &Object) -> Result<Response, JsException>;
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
-    pub fn new_with_blob(body: Option<&Blob>) -> Result<Response, JsException>;
+    pub fn new_with_blob(body: &Blob) -> Result<Response, JsException>;
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
-    pub fn new_with_url_search_params(
-        body: Option<&URLSearchParams>,
-    ) -> Result<Response, JsException>;
+    pub fn new_with_url_search_params(body: &URLSearchParams) -> Result<Response, JsException>;
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
-    pub fn new_with_form_data(body: Option<&FormData>) -> Result<Response, JsException>;
+    pub fn new_with_form_data(body: &FormData) -> Result<Response, JsException>;
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
-    pub fn new_with_iterable(body: Option<&JsValue>) -> Result<Response, JsException>;
+    pub fn new_with_iterable(body: &JsValue) -> Result<Response, JsException>;
+    #[wasm_bindgen(constructor, catch, js_name = "Response")]
+    fn new_with_null_js(body: &JsValue) -> Result<Response, JsException>;
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
     pub fn new_with_readable_stream_and_init(
-        body: Option<&ReadableStream<Uint8Array>>,
+        body: &ReadableStream<Uint8Array>,
         init: &ResponseInit,
     ) -> Result<Response, JsException>;
     #[doc = " ## Errors"]
@@ -5757,7 +5755,7 @@ extern "C" {
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
     pub fn new_with_str_and_init(
-        body: Option<impl ::wasm_bindgen::JsStringLike>,
+        body: impl ::wasm_bindgen::JsStringLike,
         init: &ResponseInit,
     ) -> Result<Response, JsException>;
     #[doc = " ## Errors"]
@@ -5765,7 +5763,7 @@ extern "C" {
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
     pub fn new_with_array_buffer_and_init(
-        body: Option<&ArrayBuffer>,
+        body: &ArrayBuffer,
         init: &ResponseInit,
     ) -> Result<Response, JsException>;
     #[doc = " ## Errors"]
@@ -5773,7 +5771,7 @@ extern "C" {
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
     pub fn new_with_typed_array_and_init(
-        body: Option<&Object>,
+        body: &Object,
         init: &ResponseInit,
     ) -> Result<Response, JsException>;
     #[doc = " ## Errors"]
@@ -5781,7 +5779,7 @@ extern "C" {
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
     pub fn new_with_blob_and_init(
-        body: Option<&Blob>,
+        body: &Blob,
         init: &ResponseInit,
     ) -> Result<Response, JsException>;
     #[doc = " ## Errors"]
@@ -5789,7 +5787,7 @@ extern "C" {
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
     pub fn new_with_url_search_params_and_init(
-        body: Option<&URLSearchParams>,
+        body: &URLSearchParams,
         init: &ResponseInit,
     ) -> Result<Response, JsException>;
     #[doc = " ## Errors"]
@@ -5797,7 +5795,7 @@ extern "C" {
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
     pub fn new_with_form_data_and_init(
-        body: Option<&FormData>,
+        body: &FormData,
         init: &ResponseInit,
     ) -> Result<Response, JsException>;
     #[doc = " ## Errors"]
@@ -5805,7 +5803,12 @@ extern "C" {
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
     pub fn new_with_iterable_and_init(
-        body: Option<&JsValue>,
+        body: &JsValue,
+        init: &ResponseInit,
+    ) -> Result<Response, JsException>;
+    #[wasm_bindgen(constructor, catch, js_name = "Response")]
+    fn new_with_null_and_init_js(
+        body: &JsValue,
         init: &ResponseInit,
     ) -> Result<Response, JsException>;
     # [wasm_bindgen (static_method_of = Response , catch)]
@@ -5912,6 +5915,20 @@ extern "C" {
     pub fn type_(this: &Response) -> TypeKind;
     #[wasm_bindgen(method, setter)]
     pub fn set_type(this: &Response, val: TypeKind);
+}
+impl Response {
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
+    pub fn new_with_null() -> Result<Response, JsException> {
+        Self::new_with_null_js(&::wasm_bindgen::JsValue::NULL)
+    }
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
+    pub fn new_with_null_and_init(init: &ResponseInit) -> Result<Response, JsException> {
+        Self::new_with_null_and_init_js(&::wasm_bindgen::JsValue::NULL, init)
+    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -6206,27 +6223,23 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn body<Cf>(this: &RequestInit<Cf>) -> JsValue;
     #[wasm_bindgen(method, setter)]
-    pub fn set_body<Cf>(this: &RequestInit<Cf>, val: Option<&ReadableStream<Uint8Array>>);
+    pub fn set_body<Cf>(this: &RequestInit<Cf>, val: &ReadableStream<Uint8Array>);
     #[wasm_bindgen(method, setter, js_name = "body")]
-    pub fn set_body_with_str<Cf>(
-        this: &RequestInit<Cf>,
-        val: Option<impl ::wasm_bindgen::JsStringLike>,
-    );
+    pub fn set_body_with_str<Cf>(this: &RequestInit<Cf>, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, setter, js_name = "body")]
-    pub fn set_body_with_array_buffer<Cf>(this: &RequestInit<Cf>, val: Option<&ArrayBuffer>);
+    pub fn set_body_with_array_buffer<Cf>(this: &RequestInit<Cf>, val: &ArrayBuffer);
     #[wasm_bindgen(method, setter, js_name = "body")]
-    pub fn set_body_with_typed_array<Cf>(this: &RequestInit<Cf>, val: Option<&Object>);
+    pub fn set_body_with_typed_array<Cf, T: ::js_sys::TypedArray>(this: &RequestInit<Cf>, val: &T);
     #[wasm_bindgen(method, setter, js_name = "body")]
-    pub fn set_body_with_blob<Cf>(this: &RequestInit<Cf>, val: Option<&Blob>);
+    pub fn set_body_with_blob<Cf>(this: &RequestInit<Cf>, val: &Blob);
     #[wasm_bindgen(method, setter, js_name = "body")]
-    pub fn set_body_with_url_search_params<Cf>(
-        this: &RequestInit<Cf>,
-        val: Option<&URLSearchParams>,
-    );
+    pub fn set_body_with_url_search_params<Cf>(this: &RequestInit<Cf>, val: &URLSearchParams);
     #[wasm_bindgen(method, setter, js_name = "body")]
-    pub fn set_body_with_form_data<Cf>(this: &RequestInit<Cf>, val: Option<&FormData>);
+    pub fn set_body_with_form_data<Cf>(this: &RequestInit<Cf>, val: &FormData);
     #[wasm_bindgen(method, setter, js_name = "body")]
-    pub fn set_body_with_iterable<Cf>(this: &RequestInit<Cf>, val: Option<&JsValue>);
+    pub fn set_body_with_iterable<Cf>(this: &RequestInit<Cf>, val: &JsValue);
+    #[wasm_bindgen(method, setter, js_name = "body")]
+    fn set_body_with_null_js<Cf>(this: &RequestInit<Cf>, val: &JsValue);
     #[wasm_bindgen(method, getter)]
     pub fn redirect<Cf>(this: &RequestInit<Cf>) -> Option<String>;
     #[wasm_bindgen(method, setter)]
@@ -6255,6 +6268,11 @@ extern "C" {
     pub fn encode_response_body<Cf>(this: &RequestInit<Cf>) -> Option<EncodeBodyKind>;
     #[wasm_bindgen(method, setter, js_name = "encodeResponseBody")]
     pub fn set_encode_response_body<Cf>(this: &RequestInit<Cf>, val: EncodeBodyKind);
+}
+impl<Cf> RequestInit<Cf> {
+    pub fn set_body_with_null(&self) {
+        self.set_body_with_null_js(&::wasm_bindgen::JsValue::NULL)
+    }
 }
 impl<Cf> RequestInit<Cf>
 where
@@ -6295,39 +6313,38 @@ where
         self
     }
     pub fn body(self, val: &ReadableStream<Uint8Array>) -> Self {
-        self.inner.set_body(Some(val));
+        self.inner.set_body(val);
         self
     }
     pub fn body_with_str(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
-        self.inner.set_body_with_str(Some(val));
+        self.inner.set_body_with_str(val);
         self
     }
     pub fn body_with_array_buffer(self, val: &ArrayBuffer) -> Self {
-        self.inner.set_body_with_array_buffer(Some(val));
+        self.inner.set_body_with_array_buffer(val);
         self
     }
     pub fn body_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self
     where
         for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
     {
-        self.inner
-            .set_body_with_typed_array(Some(::wasm_bindgen::JsCast::unchecked_ref(val)));
+        self.inner.set_body_with_typed_array(val);
         self
     }
     pub fn body_with_blob(self, val: &Blob) -> Self {
-        self.inner.set_body_with_blob(Some(val));
+        self.inner.set_body_with_blob(val);
         self
     }
     pub fn body_with_url_search_params(self, val: &URLSearchParams) -> Self {
-        self.inner.set_body_with_url_search_params(Some(val));
+        self.inner.set_body_with_url_search_params(val);
         self
     }
     pub fn body_with_form_data(self, val: &FormData) -> Self {
-        self.inner.set_body_with_form_data(Some(val));
+        self.inner.set_body_with_form_data(val);
         self
     }
     pub fn body_with_iterable(self, val: &JsValue) -> Self {
-        self.inner.set_body_with_iterable(Some(val));
+        self.inner.set_body_with_iterable(val);
         self
     }
     pub fn redirect(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
@@ -8175,200 +8192,240 @@ extern "C" {
     pub async fn put(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: Option<&ReadableStream>,
+        value: &ReadableStream,
     ) -> Result<Option<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: Option<&ReadableStream>,
+        value: &ReadableStream,
     ) -> Result<Promise<Option<R2Object>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub async fn put_with_array_buffer(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: Option<&ArrayBuffer>,
+        value: &ArrayBuffer,
     ) -> Result<Option<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_array_buffer_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: Option<&ArrayBuffer>,
+        value: &ArrayBuffer,
     ) -> Result<Promise<Option<R2Object>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub async fn put_with_typed_array(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: Option<&Object>,
+        value: &Object,
     ) -> Result<Option<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_typed_array_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: Option<&Object>,
+        value: &Object,
     ) -> Result<Promise<Option<R2Object>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub async fn put_with_str(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: Option<impl ::wasm_bindgen::JsStringLike>,
+        value: impl ::wasm_bindgen::JsStringLike,
     ) -> Result<Option<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_str_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: Option<impl ::wasm_bindgen::JsStringLike>,
+        value: impl ::wasm_bindgen::JsStringLike,
     ) -> Result<Promise<Option<R2Object>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub async fn put_with_blob(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: Option<&Blob>,
+        value: &Blob,
     ) -> Result<Option<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_blob_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: Option<&Blob>,
+        value: &Blob,
+    ) -> Result<Promise<Option<R2Object>>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    async fn put_with_null_js(
+        this: &R2Bucket,
+        key: impl ::wasm_bindgen::JsStringLike,
+        value: &JsValue,
+    ) -> Result<Option<R2Object>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    fn put_with_null_promise_js(
+        this: &R2Bucket,
+        key: impl ::wasm_bindgen::JsStringLike,
+        value: &JsValue,
     ) -> Result<Promise<Option<R2Object>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub async fn put_with_readable_stream_and_r2_bucket_options2(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: Option<&ReadableStream>,
+        value: &ReadableStream,
         options: &R2BucketOptions2,
     ) -> Result<Option<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_readable_stream_and_r2_bucket_options2_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: Option<&ReadableStream>,
+        value: &ReadableStream,
         options: &R2BucketOptions2,
     ) -> Result<Promise<Option<R2Object>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub async fn put_with_array_buffer_and_r2_bucket_options2(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: Option<&ArrayBuffer>,
+        value: &ArrayBuffer,
         options: &R2BucketOptions2,
     ) -> Result<Option<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_array_buffer_and_r2_bucket_options2_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: Option<&ArrayBuffer>,
+        value: &ArrayBuffer,
         options: &R2BucketOptions2,
     ) -> Result<Promise<Option<R2Object>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub async fn put_with_typed_array_and_r2_bucket_options2(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: Option<&Object>,
+        value: &Object,
         options: &R2BucketOptions2,
     ) -> Result<Option<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_typed_array_and_r2_bucket_options2_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: Option<&Object>,
+        value: &Object,
         options: &R2BucketOptions2,
     ) -> Result<Promise<Option<R2Object>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub async fn put_with_str_and_r2_bucket_options2(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: Option<impl ::wasm_bindgen::JsStringLike>,
+        value: impl ::wasm_bindgen::JsStringLike,
         options: &R2BucketOptions2,
     ) -> Result<Option<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_str_and_r2_bucket_options2_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: Option<impl ::wasm_bindgen::JsStringLike>,
+        value: impl ::wasm_bindgen::JsStringLike,
         options: &R2BucketOptions2,
     ) -> Result<Promise<Option<R2Object>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub async fn put_with_blob_and_r2_bucket_options2(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: Option<&Blob>,
+        value: &Blob,
         options: &R2BucketOptions2,
     ) -> Result<Option<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_blob_and_r2_bucket_options2_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: Option<&Blob>,
+        value: &Blob,
+        options: &R2BucketOptions2,
+    ) -> Result<Promise<Option<R2Object>>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    async fn put_with_null_and_r2_bucket_options2_js(
+        this: &R2Bucket,
+        key: impl ::wasm_bindgen::JsStringLike,
+        value: &JsValue,
+        options: &R2BucketOptions2,
+    ) -> Result<Option<R2Object>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    fn put_with_null_and_r2_bucket_options2_promise_js(
+        this: &R2Bucket,
+        key: impl ::wasm_bindgen::JsStringLike,
+        value: &JsValue,
         options: &R2BucketOptions2,
     ) -> Result<Promise<Option<R2Object>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub async fn put_with_readable_stream_and_r2_put_options(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: Option<&ReadableStream>,
+        value: &ReadableStream,
         options: &R2PutOptions,
     ) -> Result<R2Object, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_readable_stream_and_r2_put_options_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: Option<&ReadableStream>,
+        value: &ReadableStream,
         options: &R2PutOptions,
     ) -> Result<Promise<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub async fn put_with_array_buffer_and_r2_put_options(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: Option<&ArrayBuffer>,
+        value: &ArrayBuffer,
         options: &R2PutOptions,
     ) -> Result<R2Object, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_array_buffer_and_r2_put_options_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: Option<&ArrayBuffer>,
+        value: &ArrayBuffer,
         options: &R2PutOptions,
     ) -> Result<Promise<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub async fn put_with_typed_array_and_r2_put_options(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: Option<&Object>,
+        value: &Object,
         options: &R2PutOptions,
     ) -> Result<R2Object, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_typed_array_and_r2_put_options_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: Option<&Object>,
+        value: &Object,
         options: &R2PutOptions,
     ) -> Result<Promise<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub async fn put_with_str_and_r2_put_options(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: Option<impl ::wasm_bindgen::JsStringLike>,
+        value: impl ::wasm_bindgen::JsStringLike,
         options: &R2PutOptions,
     ) -> Result<R2Object, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_str_and_r2_put_options_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: Option<impl ::wasm_bindgen::JsStringLike>,
+        value: impl ::wasm_bindgen::JsStringLike,
         options: &R2PutOptions,
     ) -> Result<Promise<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub async fn put_with_blob_and_r2_put_options(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: Option<&Blob>,
+        value: &Blob,
         options: &R2PutOptions,
     ) -> Result<R2Object, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_blob_and_r2_put_options_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: Option<&Blob>,
+        value: &Blob,
+        options: &R2PutOptions,
+    ) -> Result<Promise<R2Object>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    async fn put_with_null_and_r2_put_options_js(
+        this: &R2Bucket,
+        key: impl ::wasm_bindgen::JsStringLike,
+        value: &JsValue,
+        options: &R2PutOptions,
+    ) -> Result<R2Object, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    fn put_with_null_and_r2_put_options_promise_js(
+        this: &R2Bucket,
+        key: impl ::wasm_bindgen::JsStringLike,
+        value: &JsValue,
         options: &R2PutOptions,
     ) -> Result<Promise<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "createMultipartUpload")]
@@ -8433,6 +8490,59 @@ extern "C" {
         this: &R2Bucket,
         options: &R2ListOptions,
     ) -> Result<Promise<R2Objects>, crate::Error>;
+}
+impl R2Bucket {
+    pub async fn put_with_null(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+    ) -> Result<Option<R2Object>, crate::Error> {
+        self.put_with_null_js(key, &::wasm_bindgen::JsValue::NULL)
+            .await
+    }
+    pub fn put_with_null_promise(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+    ) -> Result<Promise<Option<R2Object>>, crate::Error> {
+        self.put_with_null_promise_js(key, &::wasm_bindgen::JsValue::NULL)
+    }
+    pub async fn put_with_null_and_r2_bucket_options2(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &R2BucketOptions2,
+    ) -> Result<Option<R2Object>, crate::Error> {
+        self.put_with_null_and_r2_bucket_options2_js(key, &::wasm_bindgen::JsValue::NULL, options)
+            .await
+    }
+    pub fn put_with_null_and_r2_bucket_options2_promise(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &R2BucketOptions2,
+    ) -> Result<Promise<Option<R2Object>>, crate::Error> {
+        self.put_with_null_and_r2_bucket_options2_promise_js(
+            key,
+            &::wasm_bindgen::JsValue::NULL,
+            options,
+        )
+    }
+    pub async fn put_with_null_and_r2_put_options(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &R2PutOptions,
+    ) -> Result<R2Object, crate::Error> {
+        self.put_with_null_and_r2_put_options_js(key, &::wasm_bindgen::JsValue::NULL, options)
+            .await
+    }
+    pub fn put_with_null_and_r2_put_options_promise(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &R2PutOptions,
+    ) -> Result<Promise<R2Object>, crate::Error> {
+        self.put_with_null_and_r2_put_options_promise_js(
+            key,
+            &::wasm_bindgen::JsValue::NULL,
+            options,
+        )
+    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
