@@ -16,8 +16,12 @@ from the #5167 compile matrix (`~/Projects/wasm-bindgen-5` `2497681c1`, stable j
 4. The cost in size and time: benchmark wasm +586 (+0.5%), test glue +9,149 (+5.2%) (phase 1: +12.7%), test imports +18 (phase 1: +16), 0 generic shims (phase 1: 177). `ts-gen-worker` compiles +5% debug and +7% release (§4).
 5. Mono's own lead over C is unchanged from phase 1:
    - leaf type arguments on generated generics (`get::<f64>`, `get_with_metadata_typed::<f64>`, `first`);
-   - primitive and buffer-source unions as one function;
+   - primitive unions as one function;
    - callbacks with Rust leaves.
+
+   Buffer-source unions are only partly a mono lead: the handle forms share one wire format, so C could take them
+   through an inline wrapper over `&JsValue`. Only the `&[u8]` view and the `Vec<u8>` copy need per-instantiation
+   lowering.
 
    Most other gains are ts-gen lowering or unstable js-sys, which a non-mono build could also adopt (§5).
 6. Lowering policies chosen while building B, each reversible in ts-gen alone, are listed in §7 for review.
@@ -104,10 +108,12 @@ Response::new_with_str_and_init(None::<&str>, &init)?
 Response::new_with_array_buffer_and_init(Some(&out.buffer()), &init)?
 ```
 - An expanded `BodyInit | null` takes each arm bare and emits the `null` arm as its own wrapper, so neither `Some(…)` nor `None::<&str>` appears. All 44 `JsNullable::wrap/new` are gone.
-- `ArrayBuffer | ArrayBufferView` is one argument, `impl js_sys::BufferSourceLike`, a sealed trait like the primitive-union ones. Buffer handles pass as themselves and `Vec<u8>` as a copy. The `_array_buffer` / `_typed_array` arm pairs are gone (crypto `verify` had 8 arms).
-  - A `&[u8]` call argument is a view into wasm memory. That is right because platform calls copy before returning: workerd's KV and R2 `put`, and `Response` by the Fetch spec.
-  - A dictionary setter stores its value, so it takes `slice = "copy"` and a `&[u8]` arrives as a fresh `Uint8Array` (`R2PutOptions::md5`, crypto `iv`/`salt`, `RequestInit` body, attachment content). `test/src/r2.rs:349-356` zeroes the digest after `.md5(&hash[..])` and R2 still verifies it.
-  - `ReadableByteStreamController::enqueue` transfers its buffer, so a `&[u8]` there throws `TypeError`.
+- `ArrayBuffer | ArrayBufferView` is one argument, `impl js_sys::BufferSourceLike`, a sealed trait like the primitive-union ones. The `_array_buffer` / `_typed_array` arm pairs are gone (crypto `verify` had 8 arms). It takes three forms:
+  - buffer handles (`&ArrayBuffer`, typed arrays, `&DataView`) pass as themselves;
+  - `Vec<u8>` passes as a copy;
+  - `&[u8]`, the form the port uses (`&bytes[..]`), is a view into wasm memory that is valid only for the call. That is right where the callee copies before returning: workerd's KV and R2 `put`, and `Response` by the Fetch spec.
+- A dictionary setter stores its value, so it takes `slice = "copy"` and a `&[u8]` arrives as a fresh `Uint8Array` (15 setters: `R2PutOptions::md5`, crypto `iv`/`salt`, `RequestInit` body, attachment content). `test/src/r2.rs:349-356` zeroes the digest after `.md5(&hash[..])` and R2 still verifies it.
+- A callee that transfers the buffer (`ReadableByteStreamController::enqueue`) throws `TypeError` on a `&[u8]` view, because wasm memory cannot be detached (§6).
 - `Body::body()` is `Option<ReadableStream<Uint8Array>>` through an `@retype` in `annotations.d.ts`. Upstream types it as `ReadableStream`, with `any` chunks.
 - C could adopt the same arm lowering, since it is ts-gen, not mono.
 
@@ -642,7 +648,7 @@ Every change B needed, all built (commits and files in `mono-prototype-patches.m
 | `catch` on a `Promise<T>` return hands a synchronous throw back as a rejection | wasm-bindgen macro | 2 | no |
 | `Map` by `Borrow<Q>`, `Map::get` for every `V` | js-sys | 2 | no |
 | `Function<fn(A..) -> R>` with any ABI `A`/`R`, `()` for void; `Function::from_fn` / `once`; typed `Promise::new` | js-sys | 2 | yes |
-| sealed `BufferSourceLike` (`&[u8]`, `Vec<u8>`, `ArrayBuffer`, typed arrays, `DataView`) | js-sys | 2 | yes |
+| sealed `BufferSourceLike` (`&[u8]`, `Vec<u8>`, `ArrayBuffer`, typed arrays, `DataView`) | js-sys | 2 | partly (the handle forms share one wire format) |
 | `String` returns from built-ins (`Error`, `Date`, `JSON`, `Intl`); `Date::new_with_value`; `ArrayBuffer` bytes | js-sys | 2 | no |
 | iterators yield `T`; `Entries<K, V>`; Map/Set/Object as Rust collections | js-sys | 2 | no |
 | stopgaps #1–#5 replaced by ts-gen fixes (`mono-patch` deleted) | ts-gen | 2 | yes |
@@ -660,7 +666,7 @@ Every change B needed, all built (commits and files in `mono-prototype-patches.m
 C would need instead (none built):
 - #5167 with the root `&T` slot leak fixed;
 - `JsStr<'a>` and a sealed `JsStringLike::as_js_str`, plus a list either type;
-- tagged enums with `From` impls for the 13 primitive unions;
+- tagged enums with `From` impls for the 12 primitive unions;
 - hand-written `IntoJsGeneric`/`FromJsGeneric` for every user type used as a type argument.
 
 Every "no" row carries over to C as is. The js-sys collection behaviour would carry over too,
@@ -681,6 +687,9 @@ Not built, by owner. Every audit item not listed here is done.
 - Every patch is prototype quality. `mono-prototype-patches.md` groups them by upstream PR.
 
 **ts-gen.**
+- `&[u8]` into a transferring callee throws (audit B1): `ReadableByteStreamController::enqueue` and `ReadableStreamBYOBRequest::respond_with_new_view` take `impl BufferSourceLike` without `slice = "copy"`, and workerd requires a detachable buffer. More broadly, `&[u8]` is a view unless a site opts into the copy, though the view is proven safe only at the callees checked here.
+- `[A, ...B[]]` lowers to a fixed 2-tuple (audit B2). D1 `raw`'s `{ columnNames: true }` arm returns `[string[], ...T[]]`, but `ArrayTuple<(Array<String>, Array<T>)>` reads the first row as `Array<T>`, and the later rows are unreachable. A and B1 had the same lowering.
+- Per-key listeners have only the plain and listener-object arms (audit B4). `{ once: true }` or `{ signal }` still need the erased `add_event_listener_with_options` and a `fn(JsValue)` handler; the same holds for `remove_*`.
 - `IncomingRequestCfProperties` has numbered builders, from crossing a dictionary-union field with the type's other unions. Only mocks build an incoming `cf`.
 - `File | string` and other handle-or-string unions stay `JsValue`. That needs a ts-gen enum in any mode.
 
@@ -714,8 +723,13 @@ ts-gen alone.
   `.await`. The cost is the tail position. A tail `x.await` in a fn returning `Result<_, Error>` becomes
   `Ok(x.await?)`, because the promise rejects with `JsValue` (37 port sites).
 
-  The alternative was a ts-gen-worker wrapper with `Output = Result<T, Error>` and an `into_promise()`. It keeps
-  tail sites unchanged, but it adds a type to every async return.
+  There are two alternatives:
+  - A ts-gen-worker wrapper with `Output = Result<T, Error>` and an `into_promise()`. It keeps tail sites
+    unchanged, but it adds a type to every async return.
+  - `Promise<T, E = JsValue>` in js-sys, with `IntoFuture<Output = Result<T, E>> where E: From<JsValue>` and `E`
+    erased for the ABI (audit B5). ts-gen would emit `Promise<T, crate::Error>`, so the tails and the configured
+    error type come back, with no wrapper and no change for existing `Promise<T>` users. The cost is a second
+    parameter on `Promise`.
 - **Typed event listeners per key (D2).** `addEventListener<K extends keyof M>(type: K, handler: (e: M[K]) => …)`
   on a class whose `M` is a declared interface gets one binding per key, with the type string set by the binding:
   `WebSocket::add_event_listener_message(&Function<fn(MessageEvent)>)`. Subclasses declare them for their first

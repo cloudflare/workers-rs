@@ -88,7 +88,7 @@ workers-rs-3 builds the whole prototype. `js_sys_unstable_apis` is on for wasm32
 | `14be4c3` | `.cargo/config.toml` | `--cfg js_sys_unstable_apis` for wasm32 | the mono js-sys APIs live behind the cfg | workers-rs; drop once stable |
 | `14be4c3` | `ts-gen-worker/vendor-patches/serde-wasm-bindgen`, `Cargo.toml` `[patch.crates-io]` | `get_unchecked`, `set_ref`, `Object::entries_typed`, `Array::from_iterable` (19 lines) | 0.6.5 has 6 errors under the cfg | serde-wasm-bindgen (cfg-gated) |
 | `14be4c3` | `ts-gen-worker/vendor-patches/wasm-streams` | `catch_map`, `get_unchecked` (10 lines) | 0.7.0 has 4 errors under the cfg | wasm-streams |
-| `df2ad74` | `ts-gen-worker/types/annotations.d.ts` | `{@string copy}` declaration defaults on 122 declarations, `{@string both}` on `Body`/`Blob`/`R2ObjectBody` `text()`; KV values keep both | small strings `String` only; twins where a body may go back to JS (389 → 76 twins) | workers-rs |
+| `df2ad74` | `ts-gen-worker/types/annotations.d.ts` | `{@string copy}` declaration defaults on 122 declarations, `{@string both}` on `Body`/`Blob`/`R2ObjectBody` `text()`; KV values keep both | small strings `String` only; twins where a body may go back to JS (386 → 73 twins in `bindings.rs`) | workers-rs |
 | `06ec97f` | `chompfile.toml`, `ts-gen-worker/tools` | `mono-patch` step and tool deleted | ts-gen output compiles as generated | workers-rs |
 | `8ab0eab` | `ts-gen-worker/src/ext/websocket.rs` | `From<WebSocketPair> for (WebSocket, WebSocket)` | `_0()`/`_1()` getters from upstream's `0`/`1` keys | workers-rs |
 | `8ab0eab` | `ts-gen-worker/{test,benchmark}/types/env.d.ts` | `readonly` + `{@string copy}` on `Env` | no setters or twins on bindings | workers-rs |
