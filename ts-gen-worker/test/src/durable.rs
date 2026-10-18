@@ -164,19 +164,15 @@ impl DurableObject for MyClass {
                         "Didn't put the right thing with put_multiple"
                     );
 
-                    storage
-                        .delete_with_keys(&["thing".to_string(), "other".to_string()])
-                        .await?;
+                    storage.delete_with_keys(&["thing", "other"]).await?;
 
                     {
                         const BAR: &[u8] = b"bar";
-                        let obj = js_sys::Object::new();
+                        let obj = js_sys::Object::new_typed();
                         let value = Uint8Array::new_with_length(u32::try_from(BAR.len()).unwrap());
                         value.copy_from(BAR);
-                        js_sys::Reflect::set(&obj, "foo", &value.into())?;
-                        storage
-                            .put_with_entries::<JsValue>(&obj.unchecked_into())
-                            .await?;
+                        js_sys::Reflect::set(&obj, "foo", &value)?;
+                        storage.put_with_entries(&obj).await?;
                         assert_eq!(
                             storage
                                 .get_into::<Vec<u8>>("foo")

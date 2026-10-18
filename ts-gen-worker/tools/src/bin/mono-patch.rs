@@ -16,6 +16,7 @@ const JS_GENERIC: &str = "::wasm_bindgen::JsGeneric";
 const OPTION_ABI: &str = "::wasm_bindgen::convert::OptionIntoWasmAbi";
 const VEC_REF_ABI: &str = "::wasm_bindgen::convert::VectorRefIntoWasmAbi";
 const STATIC: &str = "'static";
+const OPTION_FROM_ABI: &str = "::wasm_bindgen::convert::OptionFromWasmAbi";
 
 struct Src {
     text: String,
@@ -368,12 +369,23 @@ fn main() {
                         );
                         *p.counts.entry("#4 renamed twins").or_default() += 1;
                     }
+                    let ret = match &f.sig.output {
+                        syn::ReturnType::Type(_, t) => quote::quote!(#t).to_string(),
+                        syn::ReturnType::Default => String::new(),
+                    };
                     let own: BTreeMap<_, _> = f
                         .sig
                         .generics
                         .type_params()
                         .filter(|t| t.bounds.is_empty())
-                        .map(|t| (t.ident.to_string(), BTreeSet::from([STATIC])))
+                        .map(|t| {
+                            let id = t.ident.to_string();
+                            let mut want = BTreeSet::from([STATIC]);
+                            if ret.contains(&format!("Option < {id} >")) {
+                                want.insert(OPTION_FROM_ABI);
+                            }
+                            (id, want)
+                        })
                         .collect();
                     if !own.is_empty() && body.contains("_js (") && p.bound(&f.sig.generics, &own) {
                         p.mark(

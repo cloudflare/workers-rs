@@ -164,7 +164,7 @@ pub async fn list(_req: Request, env: Env, _data: SomeSharedData) -> Result<Resp
     let objects = bucket
         .list_with_options(
             &R2ListOptions::builder()
-                .include(&["customMetadata".to_string()])
+                .include(&["customMetadata"])
                 .build(),
         )
         .await?;
@@ -175,11 +175,7 @@ pub async fn list(_req: Request, env: Env, _data: SomeSharedData) -> Result<Resp
         .count();
     assert_eq!(count, 1);
     let objects = bucket
-        .list_with_options(
-            &R2ListOptions::builder()
-                .include(&["httpMetadata".to_string()])
-                .build(),
-        )
+        .list_with_options(&R2ListOptions::builder().include(&["httpMetadata"]).build())
         .await?;
     let count = objects
         .objects()

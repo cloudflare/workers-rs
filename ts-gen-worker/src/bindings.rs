@@ -1295,7 +1295,7 @@ extern "C" {
     pub async fn get<T>(
         this: &DurableObjectTransaction,
         key: impl ::wasm_bindgen::JsStringLike,
-    ) -> Result<JsOption<T>, crate::Error>;
+    ) -> Result<Option<T>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
     pub fn get_promise<T>(
         this: &DurableObjectTransaction,
@@ -1306,7 +1306,7 @@ extern "C" {
         this: &DurableObjectTransaction,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &DurableObjectGetOptions,
-    ) -> Result<JsOption<T>, crate::Error>;
+    ) -> Result<Option<T>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
     pub fn get_with_key_and_options_promise<T>(
         this: &DurableObjectTransaction,
@@ -1546,7 +1546,7 @@ extern "C" {
     pub async fn get<T>(
         this: &DurableObjectStorage,
         key: impl ::wasm_bindgen::JsStringLike,
-    ) -> Result<JsOption<T>, crate::Error>;
+    ) -> Result<Option<T>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
     pub fn get_promise<T>(
         this: &DurableObjectStorage,
@@ -1557,7 +1557,7 @@ extern "C" {
         this: &DurableObjectStorage,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &DurableObjectGetOptions,
-    ) -> Result<JsOption<T>, crate::Error>;
+    ) -> Result<Option<T>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
     pub fn get_with_key_and_options_promise<T>(
         this: &DurableObjectStorage,
@@ -7054,7 +7054,7 @@ extern "C" {
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         r#type: impl ::wasm_bindgen::JsStringLike,
-    ) -> Result<JsNullable<ExpectedValue>, crate::Error>;
+    ) -> Result<Option<ExpectedValue>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
     fn get_json_promise_js<ExpectedValue>(
         this: &KVNamespace,
@@ -7481,14 +7481,14 @@ impl KVNamespace {
         self.get_text_promise_js(key, "text")
     }
     // ts-gen mono: `'static` on the inline wrapper's type parameters (generic-mono.md #5)
-    pub async fn get_json<ExpectedValue: 'static>(
+    pub async fn get_json<ExpectedValue: 'static + ::wasm_bindgen::convert::OptionFromWasmAbi>(
         &self,
         key: impl ::wasm_bindgen::JsStringLike,
-    ) -> Result<JsNullable<ExpectedValue>, crate::Error> {
+    ) -> Result<Option<ExpectedValue>, crate::Error> {
         self.get_json_js(key, "json").await
     }
     // ts-gen mono: `'static` on the inline wrapper's type parameters (generic-mono.md #5)
-    pub fn get_json_promise<ExpectedValue: 'static>(
+    pub fn get_json_promise<ExpectedValue: 'static + ::wasm_bindgen::convert::OptionFromWasmAbi>(
         &self,
         key: impl ::wasm_bindgen::JsStringLike,
     ) -> Result<Promise<Option<ExpectedValue>>, crate::Error> {
@@ -21129,7 +21129,7 @@ extern "C" {
         values: &[JsValue],
     ) -> Result<D1PreparedStatement, crate::Error>;
     #[wasm_bindgen(method, catch)]
-    pub async fn first<T>(this: &D1PreparedStatement) -> Result<JsNullable<T>, crate::Error>;
+    pub async fn first<T>(this: &D1PreparedStatement) -> Result<Option<T>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "first")]
     pub fn first_promise<T>(this: &D1PreparedStatement)
         -> Result<Promise<Option<T>>, crate::Error>;
@@ -21137,7 +21137,7 @@ extern "C" {
     pub async fn first_with_col_name<T>(
         this: &D1PreparedStatement,
         col_name: impl ::wasm_bindgen::JsStringLike,
-    ) -> Result<JsNullable<T>, crate::Error>;
+    ) -> Result<Option<T>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "first")]
     pub fn first_with_col_name_promise<T>(
         this: &D1PreparedStatement,
