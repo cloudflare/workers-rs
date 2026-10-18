@@ -1,7 +1,8 @@
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
-use wasm_bindgen::JsValue;
+use js_sys::Object;
+use wasm_bindgen::{JsCast, JsValue};
 
 use crate::{DurableObjectStorage, Message, Request, Response, ResponseInitBuilder, Result};
 
@@ -46,15 +47,21 @@ impl DurableObjectStorage {
     /// `storage.get(key)` deserialized; `None` when the key is absent. Values go through
     /// `serde_wasm_bindgen` both ways, so a `put_serialized` value round-trips.
     pub async fn get_into<T: DeserializeOwned>(&self, key: &str) -> Result<Option<T>> {
-        match self.get::<JsValue>(key).await? {
-            None => Ok(None),
-            Some(value) => Ok(Some(serde_wasm_bindgen::from_value(value)?)),
-        }
+        let value = self.get::<JsValue>(key).await?;
+        Ok(value.map(serde_wasm_bindgen::from_value).transpose()?)
     }
 
     /// `storage.put(key, value)` with `value` serialized through `serde_wasm_bindgen`;
     /// maps become `Map`s, which structured clone preserves.
     pub async fn put_serialized<T: Serialize + ?Sized>(&self, key: &str, value: &T) -> Result<()> {
         self.put(key, &serde_wasm_bindgen::to_value(value)?).await
+    }
+
+    /// `storage.put(entries)`: each field of `entries` (a struct or a string-keyed map) is
+    /// stored under its name, its value serialized as `put_serialized` would.
+    pub async fn put_entries_serialized<T: Serialize + ?Sized>(&self, entries: &T) -> Result<()> {
+        let serializer = serde_wasm_bindgen::Serializer::new().serialize_maps_as_objects(true);
+        let entries: Object = entries.serialize(&serializer)?.unchecked_into();
+        self.put_with_entries(&entries).await
     }
 }

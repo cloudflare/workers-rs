@@ -1,5 +1,5 @@
 use js_sys::Uint8Array;
-use wasm_bindgen::JsCast;
+use wasm_bindgen::{JsCast, JsStringLike};
 
 use crate::{
     Cors, Error, Headers, ReadableStream, Response, ResponseInit, ResponseInitBuilder, Result,
@@ -63,7 +63,7 @@ impl ResponseInitBuilder {
     }
 
     /// Sets one header, keeping those set before.
-    pub fn header(self, name: &str, value: &str) -> Result<Self> {
+    pub fn header(self, name: impl JsStringLike, value: impl JsStringLike) -> Result<Self> {
         self.edit_headers(|headers| Ok(headers.set(name, value)?))
     }
 
@@ -73,15 +73,15 @@ impl ResponseInitBuilder {
     }
 
     /// A text body with `content-type: text/plain; charset=utf-8`.
-    pub fn ok(self, body: impl AsRef<str>) -> Result<Response> {
+    pub fn ok(self, body: impl JsStringLike) -> Result<Response> {
         let init = self.with_content_type("text/plain; charset=utf-8")?;
-        Ok(Response::new_with_str_and_init(body.as_ref(), &init)?)
+        Ok(Response::new_with_str_and_init(body, &init)?)
     }
 
     /// A text body with `content-type: text/html; charset=utf-8`.
-    pub fn from_html(self, html: impl AsRef<str>) -> Result<Response> {
+    pub fn from_html(self, html: impl JsStringLike) -> Result<Response> {
         let init = self.with_content_type("text/html; charset=utf-8")?;
-        Ok(Response::new_with_str_and_init(html.as_ref(), &init)?)
+        Ok(Response::new_with_str_and_init(html, &init)?)
     }
 
     /// A body of raw bytes.
@@ -116,14 +116,14 @@ impl ResponseInitBuilder {
     }
 
     /// A text body with an error status. `status` must be in `400..=599`.
-    pub fn error(self, msg: impl AsRef<str>, status: u16) -> Result<Response> {
+    pub fn error(self, msg: impl JsStringLike, status: u16) -> Result<Response> {
         if !(400..=599).contains(&status) {
             return Err(Error::Rust(format!(
                 "error status codes must be in the 400-599 range, got {status}"
             )));
         }
         Ok(Response::new_with_str_and_init(
-            msg.as_ref(),
+            msg,
             &self.status(status).build(),
         )?)
     }

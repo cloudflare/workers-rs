@@ -12807,11 +12807,6 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/url)"]
     #[wasm_bindgen(method, getter)]
     pub fn url(this: &WebSocket) -> Option<String>;
-    #[doc = " The **`WebSocket.url`** read-only property returns the absolute URL of the WebSocket as resolved by the constructor."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/url)"]
-    #[wasm_bindgen(method, getter, js_name = "url")]
-    pub fn url_js_string(this: &WebSocket) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_url(this: &WebSocket, val: Option<impl ::wasm_bindgen::JsStringLike>);
     #[doc = " The **`WebSocket.protocol`** read-only property returns the name of the sub-protocol the server selected; this will be one of the strings specified in the protocols parameter when creating the WebSocket object, or the empty string if no connection is established."]
@@ -12819,11 +12814,6 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/protocol)"]
     #[wasm_bindgen(method, getter)]
     pub fn protocol(this: &WebSocket) -> Option<String>;
-    #[doc = " The **`WebSocket.protocol`** read-only property returns the name of the sub-protocol the server selected; this will be one of the strings specified in the protocols parameter when creating the WebSocket object, or the empty string if no connection is established."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/protocol)"]
-    #[wasm_bindgen(method, getter, js_name = "protocol")]
-    pub fn protocol_js_string(this: &WebSocket) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_protocol(this: &WebSocket, val: Option<impl ::wasm_bindgen::JsStringLike>);
     #[doc = " The **`WebSocket.extensions`** read-only property returns the extensions selected by the server. This is currently only the empty string or a list of extensions as negotiated by the connection."]
@@ -12831,11 +12821,6 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/extensions)"]
     #[wasm_bindgen(method, getter)]
     pub fn extensions(this: &WebSocket) -> Option<String>;
-    #[doc = " The **`WebSocket.extensions`** read-only property returns the extensions selected by the server. This is currently only the empty string or a list of extensions as negotiated by the connection."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/extensions)"]
-    #[wasm_bindgen(method, getter, js_name = "extensions")]
-    pub fn extensions_js_string(this: &WebSocket) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_extensions(this: &WebSocket, val: Option<impl ::wasm_bindgen::JsStringLike>);
     #[doc = " The **`WebSocket.binaryType`** property controls the type of binary data being received over the WebSocket connection."]

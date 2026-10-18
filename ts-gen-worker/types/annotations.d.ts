@@ -98,6 +98,7 @@ interface Socket {
   /** @retype */
   readonly writable: WritableStream<Uint8Array>;
 }
+/** {@string copy} */
 interface WebSocket {
   /** @rust code: u16 */
   close(code?: number, reason?: string): void;

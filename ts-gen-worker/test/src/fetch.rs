@@ -4,7 +4,6 @@ use crate::Env;
 use futures_util::future::Either;
 use serde::{Deserialize, Serialize};
 use ts_gen_worker::*;
-use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
 pub async fn handle_fetch(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
@@ -23,12 +22,10 @@ pub async fn handle_fetch_json(
     _env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    let data: ApiData = serde_wasm_bindgen::from_value(
-        fetch_with_str("https://jsonplaceholder.typicode.com/todos/1")
-            .await?
-            .json::<JsValue>()
-            .await?,
-    )?;
+    let data: ApiData = fetch_with_str("https://jsonplaceholder.typicode.com/todos/1")
+        .await?
+        .json_into()
+        .await?;
     Response::builder().ok(format!(
         "API Returned user: {} with title: {} and completed: {}",
         data.user_id, data.title, data.completed

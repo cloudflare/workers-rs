@@ -7,6 +7,7 @@ use std::collections::HashMap;
 
 use js_sys::{ArrayBuffer, Map, Uint8Array};
 use wasm_bindgen::convert::FromWasmAbi;
+use wasm_bindgen::JsStringLike;
 #[cfg(feature = "serde")]
 use wasm_bindgen::JsValue;
 
@@ -372,13 +373,13 @@ impl KvListBuilder {
     }
 
     /// Continues a previous listing from its `cursor`.
-    pub fn cursor(self, cursor: impl AsRef<str>) -> Self {
-        self.options.set_cursor(Some(cursor.as_ref()));
+    pub fn cursor(self, cursor: impl JsStringLike) -> Self {
+        self.options.set_cursor(Some(cursor));
         self
     }
 
-    pub fn prefix(self, prefix: impl AsRef<str>) -> Self {
-        self.options.set_prefix(Some(prefix.as_ref()));
+    pub fn prefix(self, prefix: impl JsStringLike) -> Self {
+        self.options.set_prefix(Some(prefix));
         self
     }
 

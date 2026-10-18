@@ -132,13 +132,10 @@ impl DurableObject for MyClass {
                         other: i32,
                     }
                     storage
-                        .put_with_entries::<JsValue>(
-                            &serde_wasm_bindgen::to_value(&Stuff {
-                                thing: "Hello there".to_string(),
-                                other: 56,
-                            })?
-                            .unchecked_into(),
-                        )
+                        .put_entries_serialized(&Stuff {
+                            thing: "Hello there".to_string(),
+                            other: 56,
+                        })
                         .await?;
 
                     assert_eq!(
