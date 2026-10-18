@@ -1,5 +1,5 @@
 use crate::{Env, SomeSharedData};
-use js_sys::{Object, Reflect, Uint8Array};
+use js_sys::{Object, Uint8Array};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use ts_gen_worker::*;
@@ -327,14 +327,13 @@ pub async fn deserialize_optional_none(
     _env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    let js_value = Object::new();
-    Reflect::set(&js_value, "id", &JsValue::from_f64(1.0)).unwrap();
-    Reflect::set(&js_value, "name", &JsValue::NULL).unwrap();
-    Reflect::set(&js_value, "age", &JsValue::NULL).unwrap();
+    let js_value = Object::from_iter([
+        ("id", JsValue::from(1.0)),
+        ("name", JsValue::NULL),
+        ("age", JsValue::NULL),
+    ]);
 
-    let js_value: JsValue = js_value.into();
-
-    let value: NullablePerson = serde_wasm_bindgen::from_value(js_value).unwrap();
+    let value: NullablePerson = serde_wasm_bindgen::from_value(js_value.into()).unwrap();
 
     assert_eq!(value.id, 1);
     assert_eq!(value.name, None);

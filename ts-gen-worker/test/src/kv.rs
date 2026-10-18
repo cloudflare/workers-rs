@@ -85,9 +85,9 @@ pub async fn put_metadata(_req: Request, env: Env, _data: SomeSharedData) -> Res
         )
         .await?;
 
-    let result = store.get_with_metadata("put_b").await?;
+    let result = store.get_with_metadata_typed::<f64>("put_b").await?;
     kv_assert_eq!(result.value().unwrap(), "test")?;
-    kv_assert_eq!(result.metadata().unwrap().as_f64().unwrap() as usize, 100)?;
+    kv_assert_eq!(result.metadata(), Some(100.0))?;
 
     Response::builder().ok("passed")
 }
