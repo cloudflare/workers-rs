@@ -2,17 +2,15 @@
 //! not provide. Each helper mirrors a `worker` API and is a parity gap; see
 //! `parity/test-port.md`.
 
-use js_sys::{Function, Promise};
+use std::time::Duration;
+
+use js_sys::Function;
 use ts_gen_worker::*;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 
-/// `worker::Delay`.
 pub async fn sleep(ms: f64) {
-    let promise = Promise::<JsValue>::new(&mut |resolve, _| {
-        let _ = set_timeout_with_function_and_ms_delay(resolve.unchecked_ref(), ms);
-    });
-    let _ = JsFuture::from(promise).await;
+    Delay::from(Duration::from_millis(ms as u64)).await;
 }
 
 /// `worker::WebsocketEvent`: `WebSocket::events()` is a stream over these.
