@@ -20,6 +20,7 @@ from the #5167 compile matrix (`~/Projects/wasm-bindgen-5` `2497681c1`, stable j
    - callbacks with Rust leaves.
 
    Most other gains are ts-gen lowering or unstable js-sys, which a non-mono build could also adopt (§5).
+6. Lowering policies chosen while building B, each reversible in ts-gen alone, are listed in §7 for review.
 
 ## 1. End-state examples
 
@@ -122,7 +123,7 @@ KVNamespaceListOptions::builder().prefix(&JsNullable::wrap("put_c".into()))
 ```
 ```rust
 // B: src/ext/kv.rs:114-121, 158-175, test/src/kv.rs:88-90, 163-174, 112
-let options = KVNamespaceGetOptionsPartial::builder().cache_ttl(ttl).build();  // Partial<X>: all fields optional
+let options = KVNamespaceGetOptionsPartial::builder().cache_ttl(ttl).build();  // Partial<X>: synthesized XPartial
 self.kv.get_text_with_options(&self.key, &options).await                      // sets type: "text"; Option<String>
 self.kv.get_array_buffer_with_options(&self.key, &options).await?.map(Vec::from)
 let result = store.get_with_metadata_typed::<f64>("put_b").await?;           // nested return-only param
@@ -199,7 +200,7 @@ Ok(serde_wasm_bindgen::from_value(value)?)
 let bytes = Uint8Array::new(&db.dump().await?.into()).to_vec();
 ```
 ```rust
-// B: test/src/d1.rs:16-19, 57-61, 261
+// B: test/src/d1.rs:16-19, 57-61, 260
 let bindings = args.iter().map(|arg| arg.serialize(&serializer)).collect::<Result<Vec<_>, _>>()?;
 let value = match col_name {
     Some(col) => stmt.first_with_col_name(col).await?,                      // Option<T>, T = JsValue inferred
@@ -488,8 +489,8 @@ generated `bindings.rs` and the test and benchmark `env.rs`, and skipping commen
 | `.as_string()` | 14 | 9 | 7 |
 | `unchecked_into` / `unchecked_ref` | 29 | 19 | 6 |
 | `dyn_into` / `dyn_ref` | 7 | 7 | 6 |
-| turbofish `::<JsValue` | 9 | 7 | 3 |
-| all turbofish `::<` | 92 | 91 | 86 |
+| turbofish `::<JsValue` | 9 | 7 | 2 |
+| all turbofish `::<` | 92 | 91 | 85 |
 | `let x: T =` annotations | 85 | 80 | 75 |
 | `None::<…>` | 0 | 0 | 0 |
 | `&[] as &[…]` | 0 | 1 | 1 |
@@ -555,6 +556,9 @@ Type-level counts (doc and comment lines skipped):
 | public fn names over 50 chars | 109 | 113 | 54 |
 | `IntoIterator for &T` | 0 | 0 | 5 |
 | `-> Option<JsValue>` | 0 | 0 | 8 |
+| `_promise` twins | 277 | 276 | 322 |
+| `async fn`s | 277 | 292 | 337 |
+| `KVNamespace` get/put/list/delete fns | 70 | 78 | 138 |
 | lines | 18,366 | 19,548 | 20,082 |
 
 Every item that is **still worse in B than in A**:
@@ -564,9 +568,10 @@ Every item that is **still worse in B than in A**:
 - **Surface size.** The added items are:
   - `_typed` twins (53), for constructors and nested return-only parameters;
   - `_with_null` arms (16);
-  - KV typed reads.
+  - KV typed reads: `KVNamespace` has 138 get/put/list/delete fns, against 70 in A and 78 in B1, with names like `get_with_metadata_text_with_options_typed_js_string`;
+  - `_promise` twins on 322 of the 337 async fns (A and B1 have them too).
 
-  Twins are down to 15, all intended (`text()` and KV values). The 64 `JsString` mentions left are all inside those twin families.
+  Twins are down to 15, all intended (`text()` and KV values), and they hold every `JsString` in the public API. 41 of the 64 `JsString` mentions are `JsString::from("type")` inside the KV typed-read wrapper bodies.
 - **Surface outside `bindings.rs` (unstable js-sys):** `Reflect::get` → `Result<Option<T>>`, `Array::get` → `Option<T>`, `JSON::stringify` → `Option<String>`, and iterators that rethrow instead of yielding `Result`. Code written against stable js-sys does not compile under the cfg (`worker`, `worker-sys`, serde-wasm-bindgen, wasm-streams).
 
 ## 4. Costs
@@ -660,6 +665,7 @@ Not built, by owner. Every audit item not listed here is done.
 - Every patch is prototype quality. `mono-prototype-patches.md` groups them by upstream PR.
 
 **ts-gen.**
+- D1 `raw(options)`'s `{ columnNames: true }` arm returns `[string[], ...T[]]`, but the caller sets `column_names` on a synthesized dictionary, so passing `false` gets rows typed as a header tuple (audit A1). It is the same unchecked-return shape as KV's `type` before `e4d3fde`; `get_reader_with_options({ mode: "byob" })` has it too.
 - Names: `json_with_maybe_init` keeps upstream's parameter name, and `IncomingRequestCfProperties` has numbered builders for a union of dictionaries.
 - `File | string` and other handle-or-string unions stay `JsValue`. That needs a ts-gen enum in any mode.
 
@@ -673,3 +679,21 @@ Not built, by owner. Every audit item not listed here is done.
 - Event-map listeners stay `fn(JsValue)` because `addEventListener<K>` indexes a map type. `any` values stay `JsValue`.
 - `void | Promise<void>` callback returns are `Option<Promise<()>>`. That is correct, but a hand-built handler closure returns `None`/`Some(p)`; the macros hide it.
 - Mono's compile-time cost (§4).
+
+## 7. Decisions taken during the prototype (reversible, for review)
+
+Each one was needed to finish a port idiom. None is load-bearing for the A / B / C comparison, and each
+can be reverted in ts-gen alone.
+
+- **Return-only type parameters (audit #8).** A method whose return is exactly `T` or `T | null` keeps the
+  generic, so the turbofish is the cast (`storage.get::<f64>(k)`, like `parse::<T>()`). When the parameter is
+  nested in the return (`getWithMetadata<Metadata>`, `list<Metadata>`), the default form erases it and a
+  `_typed::<T>` twin binds it, the same suffix constructors use. Keeping the generic everywhere was rejected:
+  Rust fns have no default type parameters, so `kv.list().await?` would need a turbofish with metadata unused.
+- **`T | null` arguments are `Option<…>`, and `None` crosses as `undefined`.** This conflicts with #51's
+  no-coercion rule. Expanded unions keep an exact `null` through their `_with_null` arms.
+- **An optional parameter's trailing `null` arm is dropped.** Omitting the argument covers it. That is exact
+  for WebIDL `T? = null`; a non-WebIDL callee that tells missing from `null` loses the bare-`null` call.
+- **Optional properties typed only `never` or `undefined` have no accessors.** This removes
+  `D1Result::error()`, which `worker` exposes as `Option<String>`.
+
