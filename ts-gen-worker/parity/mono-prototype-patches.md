@@ -26,6 +26,7 @@ workers-rs-3 builds the whole prototype. `js_sys_unstable_apis` is on for wasm32
 | `160741bcf` | same | direct bounds on a synthesized `impl Trait` param stay on the outer wrapper | `4fe6881c0` dropped them (`impl Clone` imports failed) | fold into the feedback-8 PR |
 | `160741bcf` | same | `impl IntoWasmAbi for &Option<T>`; CLI reads `REF OPTIONAL T` as `OPTIONAL REF T` | `Map<_, Option<_>>::set(&k, &Some(v))` | wasm-bindgen |
 | `cb872c471` | `macro-support/src/codegen.rs`, `src/convert/impls.rs`, `cli-support/src/descriptor.rs` | mono `Option<&T>` arguments (`for<'a> Option<&'a T>: IntoWasmAbi`), `Option<&prim>: IntoWasmAbi`; `unraw()` for derived idents | `T \| null` → `Option<&T>` for generic args; `__wbg_slot_r#type` panic | generic-mono PR |
+| `56ac6f184` | `macro-support/src/codegen.rs`, `src/convert/slices.rs`, 2 reference files | `extends = Parent<A, B>` with concrete type arguments (parent conversions via `<Parent as JsCast>::unchecked_from_js`); `Vec<Option<T>>` returns for handles, `String`, `bool`, `char`, numbers | `IdentityTransformStream extends TransformStream<…, Uint8Array>`; `TraceEventInfo::traces -> Vec<Option<String>>` | wasm-bindgen |
 
 ## js-sys (all under `js_sys_unstable_apis` unless noted)
 
@@ -37,6 +38,7 @@ workers-rs-3 builds the whole prototype. `js_sys_unstable_apis` is on for wasm32
 | `9d903011a` | small-string returns are `String` (`Error::{name,message}`, `Date::to_*string`, `Number::to_fixed`, `RegExp::{source,flags}`, `Function::name`); `Date::new_with_value(impl JsNumberOrStringLike)` | port's `String::from(js)` and `Date::new(&JsValue::from_f64(..))` | js-sys unstable |
 | `366274d92` | `Iterator<T>` iterates as `T` (throw → `throw_val`; `try_iter` keeps the protocol's `Result`); `Entries<K, V>`; Map/Set `iter`/`IntoIterator`/`FromIterator`/`Extend`; Set lookups by `Borrow<Q>`; `Object::keys` → `Array<String>`; `JsStream<T: FromWasmAbi>` | Rust-collection behaviour; audit #3 (`HeadersIter`, `collect::<Result<…>>`) | js-sys unstable |
 | `429a22215` | `From<ScopedClosure<'static, C>> for Function<F>` | `Closure` → typed `Function` without a cast | js-sys |
+| `008fba104` | `JSON::stringify*` → `Result<Option<String>, JsValue>` (`None` for `undefined`); 28 `Intl` string returns are `String` | audit #7 | js-sys unstable |
 | `866b0d33d` | `Object<T>` as a record: `iter()`, `IntoIterator for &Object<T>`, `FromIterator`/`Extend<(K: PropertyKey, V: Borrow<T>)>`; `IntoIterator for &Array<T>` (both cfgs) | R2 custom-metadata helpers, `Reflect::set` loops | js-sys unstable |
 
 ## ts-gen
@@ -53,6 +55,11 @@ workers-rs-3 builds the whole prototype. `js_sys_unstable_apis` is on for wasm32
 | `1ed2145` | callbacks take native leaves, `void` is `()`, `void \| Promise<void>` is `Option<Promise<()>>`, `Promise<Undefined>` → `Promise<()>`; `() => Promise<T>` keeps `T`; helper bounds only on bare type-parameter mentions | audit #4; needs `83af8baa2` + `cb872c471` | ts-gen mono PR (bounds) |
 | `64e785e` | an expanded null-admitting union takes bare arms plus a `_with_null` arm (`Response::new_with_null_and_init(&init)`, `R2Bucket::put_with_null(k)`) | audit #1(a): no `Some(..)` on every body | ts-gen mono PR (nullable args) |
 | `ccd963b` | `Iterable<T>` arguments → slices; alias leaves native (`D1SessionBookmark = String`); undefined-only `any` returns → `Option<JsValue>` | audit #9, #10 | ts-gen mono PR (leaves) |
+| `121bae9` | `--annotate`: `@retype` (the side member's type replaces a getter's or every overload's return); side `declare namespace` reaches namespace members | `Body::body` is a byte stream; TailStream's 64 twins | ts-gen "annotate: retype + namespaces" PR |
+| `9220a19` | overloads keyed by a literal type argument (`get(key, "text" \| { type: "text" })`) are bindings of their own: `get_text_with_options`, `get_json_with_options::<T>`, `get_with_metadata_array_buffer_with_options`, … | audit #6: KV's typed reads collapsed to one text-typed form | ts-gen mono PR (overloads) |
+| `d21202a` | `IntoIterator for &T` from `[Symbol.iterator]()` (`Headers`, `FormData`, `URLSearchParams`, `SqlStorageCursor<T>`) | audit #3 follow-on | ts-gen mono PR (iteration) |
+| `8e09b3d` | overload suffixes imply the primary arm and name dictionary arms by parameter (`fetch_with_init`, `set_timeout_with_ms_delay`, `put_with_options`); names over 50 chars 97 → 40 | audit #11 | ts-gen mono PR (names) |
+| `76caab3` | inline parameter types named `<Parent><Method><Param>` under mono (`R2BucketGetOptions`, not `R2BucketOptions2`) | audit #11 | ts-gen mono PR (names) |
 
 ## workers-rs (`ts-gen-worker`)
 
@@ -65,7 +72,8 @@ workers-rs-3 builds the whole prototype. `js_sys_unstable_apis` is on for wasm32
 | `06ec97f` | `chompfile.toml`, `ts-gen-worker/tools` | `mono-patch` step and tool deleted | ts-gen output compiles as generated | workers-rs |
 | `8ab0eab` | `ts-gen-worker/src/ext/websocket.rs` | `From<WebSocketPair> for (WebSocket, WebSocket)` | `_0()`/`_1()` getters from upstream's `0`/`1` keys | workers-rs |
 | `8ab0eab` | `ts-gen-worker/{test,benchmark}/types/env.d.ts` | `readonly` + `{@string copy}` on `Env` | no setters or twins on bindings | workers-rs |
-| `636cfab`…`507177f` | `ts-gen-worker/{src/ext,test/src,benchmark/src}` | port rewritten to each new surface | ideal idioms | workers-rs |
+| `faefa97` | `ts-gen-worker/types/annotations.d.ts` | `@retype` `Body::body`, `R2ObjectBody::body`, `Socket::{readable,writable}` to `Uint8Array` streams; `{@string copy}` on the TailStream namespace | upstream types them `ReadableStream` (`any` chunks); 64 twins | workers-rs (or workers-types) |
+| `636cfab`…HEAD | `ts-gen-worker/{src/ext,test/src,benchmark/src}` | port rewritten to each new surface | ideal idioms | workers-rs |
 
 Superseded local fixes (folded upstream, not in the final tree): wasm-bindgen `a3d285150`
 (raw-identifier slot names, now in `cb872c471`), ts-gen `3e42fce` (`ArrayBufferView` builder
