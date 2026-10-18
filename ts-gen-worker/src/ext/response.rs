@@ -17,7 +17,7 @@ impl Response {
     /// `cf`, plus the body stream, so a new response can be constructed with changes; a
     /// JS `Response` is immutable. `statusText` is not carried: the platform derives the
     /// default from the final status. `builder.body(body)` reassembles.
-    pub fn into_parts(self) -> (ResponseInitBuilder, Option<ReadableStream>) {
+    pub fn into_parts(self) -> (ResponseInitBuilder, Option<ReadableStream<Uint8Array>>) {
         let mut builder = Response::builder()
             .status(self.status())
             .headers(&self.headers());
@@ -100,10 +100,10 @@ impl ResponseInitBuilder {
 
     /// A body taken from a JS stream, as returned by `Response::body()` or
     /// `into_parts()`; `None` is an empty body.
-    pub fn body(self, body: Option<ReadableStream>) -> Result<Response> {
+    pub fn body(self, body: Option<ReadableStream<Uint8Array>>) -> Result<Response> {
         match body {
             Some(stream) => Ok(Response::new_with_readable_stream_and_init(
-                stream.unchecked_ref(),
+                &stream,
                 &self.build(),
             )?),
             None => self.empty(),

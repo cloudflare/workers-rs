@@ -9,14 +9,17 @@ static CONNECTIONS: AtomicUsize = AtomicUsize::new(0);
 
 /// Reads from a stream until `buf` is full; the leftover of the final chunk is dropped
 /// since the handlers below only ever read once.
-async fn read_exact(reader: &ReadableStreamDefaultReader, buf: &mut [u8]) -> Result<()> {
+async fn read_exact(
+    reader: &ReadableStreamDefaultReader<Uint8Array>,
+    buf: &mut [u8],
+) -> Result<()> {
     let mut filled = 0;
     while filled < buf.len() {
         let chunk = reader.read().await?;
         if chunk.done() {
             return Err("socket closed before the request was read".into());
         }
-        let bytes = Uint8Array::new(&chunk.value().unwrap_or_default()).to_vec();
+        let bytes = chunk.value().unwrap_or_default().to_vec();
         let n = bytes.len().min(buf.len() - filled);
         buf[filled..filled + n].copy_from_slice(&bytes[..n]);
         filled += n;
@@ -24,7 +27,7 @@ async fn read_exact(reader: &ReadableStreamDefaultReader, buf: &mut [u8]) -> Res
     Ok(())
 }
 
-async fn write_all(writer: &WritableStreamDefaultWriter, data: &[u8]) -> Result<()> {
+async fn write_all(writer: &WritableStreamDefaultWriter<Uint8Array>, data: &[u8]) -> Result<()> {
     writer.write_with_chunk(&Uint8Array::from(data)).await?;
     Ok(())
 }

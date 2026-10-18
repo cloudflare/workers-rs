@@ -23,9 +23,9 @@ use crate::{
 /// consumer can continue from the chunks not yet read.
 #[derive(Debug)]
 pub struct ByteStream {
-    raw: Option<ReadableStream>,
-    reader: Option<ReadableStreamDefaultReader>,
-    pending: Option<JsFuture<ReadableStreamReadResult>>,
+    raw: Option<ReadableStream<Uint8Array>>,
+    reader: Option<ReadableStreamDefaultReader<Uint8Array>>,
+    pending: Option<JsFuture<ReadableStreamReadResult<Uint8Array>>>,
     done: bool,
 }
 
@@ -42,7 +42,7 @@ impl ByteStream {
 
     /// Back to the JS `ReadableStream` this was made from, releasing the reader's lock;
     /// `None` for the empty stream.
-    pub fn into_inner(mut self) -> Option<ReadableStream> {
+    pub fn into_inner(mut self) -> Option<ReadableStream<Uint8Array>> {
         self.pending = None;
         if let Some(reader) = self.reader.take() {
             let _ = reader.release_lock();
@@ -51,8 +51,8 @@ impl ByteStream {
     }
 }
 
-impl From<ReadableStream> for ByteStream {
-    fn from(stream: ReadableStream) -> Self {
+impl From<ReadableStream<Uint8Array>> for ByteStream {
+    fn from(stream: ReadableStream<Uint8Array>) -> Self {
         Self {
             raw: Some(stream),
             reader: None,
@@ -96,7 +96,10 @@ impl ByteStream {
         Poll::Ready(match result {
             Ok(result) if result.done() => Ok(None),
             Ok(result) => Ok(Some(
-                Uint8Array::from(result.value().unwrap_or_default()).to_vec(),
+                result
+                    .value()
+                    .map(|chunk| chunk.to_vec())
+                    .unwrap_or_default(),
             )),
             Err(e) => Err(e.into()),
         })

@@ -5658,7 +5658,7 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type Body;
     #[wasm_bindgen(method, getter)]
-    pub fn body(this: &Body) -> Option<ReadableStream>;
+    pub fn body(this: &Body) -> Option<ReadableStream<Uint8Array>>;
     #[wasm_bindgen(method, getter, js_name = "bodyUsed")]
     pub fn body_used(this: &Body) -> bool;
     #[wasm_bindgen(method, catch, js_name = "arrayBuffer")]
@@ -8983,7 +8983,7 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type R2ObjectBody;
     #[wasm_bindgen(method, getter)]
-    pub fn body(this: &R2ObjectBody) -> ReadableStream;
+    pub fn body(this: &R2ObjectBody) -> ReadableStream<Uint8Array>;
     #[wasm_bindgen(method, getter, js_name = "bodyUsed")]
     pub fn body_used(this: &R2ObjectBody) -> bool;
     #[wasm_bindgen(method, catch, js_name = "arrayBuffer")]
@@ -12208,6 +12208,11 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/url)"]
     #[wasm_bindgen(method, getter)]
     pub fn url(this: &WebSocket) -> Option<String>;
+    #[doc = " The **`WebSocket.url`** read-only property returns the absolute URL of the WebSocket as resolved by the constructor."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/url)"]
+    #[wasm_bindgen(method, getter, js_name = "url")]
+    pub fn url_js_string(this: &WebSocket) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_url(this: &WebSocket, val: Option<impl ::wasm_bindgen::JsStringLike>);
     #[doc = " The **`WebSocket.protocol`** read-only property returns the name of the sub-protocol the server selected; this will be one of the strings specified in the protocols parameter when creating the WebSocket object, or the empty string if no connection is established."]
@@ -12215,6 +12220,11 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/protocol)"]
     #[wasm_bindgen(method, getter)]
     pub fn protocol(this: &WebSocket) -> Option<String>;
+    #[doc = " The **`WebSocket.protocol`** read-only property returns the name of the sub-protocol the server selected; this will be one of the strings specified in the protocols parameter when creating the WebSocket object, or the empty string if no connection is established."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/protocol)"]
+    #[wasm_bindgen(method, getter, js_name = "protocol")]
+    pub fn protocol_js_string(this: &WebSocket) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_protocol(this: &WebSocket, val: Option<impl ::wasm_bindgen::JsStringLike>);
     #[doc = " The **`WebSocket.extensions`** read-only property returns the extensions selected by the server. This is currently only the empty string or a list of extensions as negotiated by the connection."]
@@ -12222,6 +12232,11 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/extensions)"]
     #[wasm_bindgen(method, getter)]
     pub fn extensions(this: &WebSocket) -> Option<String>;
+    #[doc = " The **`WebSocket.extensions`** read-only property returns the extensions selected by the server. This is currently only the empty string or a list of extensions as negotiated by the connection."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/extensions)"]
+    #[wasm_bindgen(method, getter, js_name = "extensions")]
+    pub fn extensions_js_string(this: &WebSocket) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_extensions(this: &WebSocket, val: Option<impl ::wasm_bindgen::JsStringLike>);
     #[doc = " The **`WebSocket.binaryType`** property controls the type of binary data being received over the WebSocket connection."]
@@ -12402,9 +12417,9 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type Socket;
     #[wasm_bindgen(method, getter)]
-    pub fn readable(this: &Socket) -> ReadableStream;
+    pub fn readable(this: &Socket) -> ReadableStream<Uint8Array>;
     #[wasm_bindgen(method, getter)]
-    pub fn writable(this: &Socket) -> WritableStream;
+    pub fn writable(this: &Socket) -> WritableStream<Uint8Array>;
     #[wasm_bindgen(method, getter)]
     pub fn closed(this: &Socket) -> Promise<()>;
     #[wasm_bindgen(method, getter)]
@@ -21064,12 +21079,8 @@ pub mod tail_stream {
         pub type Header;
         #[wasm_bindgen(method, getter)]
         pub fn name(this: &Header) -> String;
-        #[wasm_bindgen(method, getter, js_name = "name")]
-        pub fn name_js_string(this: &Header) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn value(this: &Header) -> String;
-        #[wasm_bindgen(method, getter, js_name = "value")]
-        pub fn value_js_string(this: &Header) -> JsString;
     }
     impl Header {
         #[allow(clippy::new_without_default)]
@@ -21087,16 +21098,10 @@ pub mod tail_stream {
         pub type FetchEventInfo;
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &FetchEventInfo) -> String;
-        #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type_js_string(this: &FetchEventInfo) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn method(this: &FetchEventInfo) -> String;
-        #[wasm_bindgen(method, getter, js_name = "method")]
-        pub fn method_js_string(this: &FetchEventInfo) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn url(this: &FetchEventInfo) -> String;
-        #[wasm_bindgen(method, getter, js_name = "url")]
-        pub fn url_js_string(this: &FetchEventInfo) -> JsString;
         #[wasm_bindgen(method, getter, js_name = "cfJson")]
         pub fn cf_json(this: &FetchEventInfo) -> Option<Object>;
         #[wasm_bindgen(method, getter)]
@@ -21118,8 +21123,6 @@ pub mod tail_stream {
         pub type JsRpcEventInfo;
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &JsRpcEventInfo) -> String;
-        #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type_js_string(this: &JsRpcEventInfo) -> JsString;
     }
     impl JsRpcEventInfo {
         #[allow(clippy::new_without_default)]
@@ -21137,14 +21140,10 @@ pub mod tail_stream {
         pub type ScheduledEventInfo;
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &ScheduledEventInfo) -> String;
-        #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type_js_string(this: &ScheduledEventInfo) -> JsString;
         #[wasm_bindgen(method, getter, js_name = "scheduledTime")]
         pub fn scheduled_time(this: &ScheduledEventInfo) -> Date;
         #[wasm_bindgen(method, getter)]
         pub fn cron(this: &ScheduledEventInfo) -> String;
-        #[wasm_bindgen(method, getter, js_name = "cron")]
-        pub fn cron_js_string(this: &ScheduledEventInfo) -> JsString;
     }
     impl ScheduledEventInfo {
         #[allow(clippy::new_without_default)]
@@ -21162,8 +21161,6 @@ pub mod tail_stream {
         pub type AlarmEventInfo;
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &AlarmEventInfo) -> String;
-        #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type_js_string(this: &AlarmEventInfo) -> JsString;
         #[wasm_bindgen(method, getter, js_name = "scheduledTime")]
         pub fn scheduled_time(this: &AlarmEventInfo) -> Date;
     }
@@ -21183,12 +21180,8 @@ pub mod tail_stream {
         pub type QueueEventInfo;
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &QueueEventInfo) -> String;
-        #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type_js_string(this: &QueueEventInfo) -> JsString;
         #[wasm_bindgen(method, getter, js_name = "queueName")]
         pub fn queue_name(this: &QueueEventInfo) -> String;
-        #[wasm_bindgen(method, getter, js_name = "queueName")]
-        pub fn queue_name_js_string(this: &QueueEventInfo) -> JsString;
         #[wasm_bindgen(method, getter, js_name = "batchSize")]
         pub fn batch_size(this: &QueueEventInfo) -> f64;
     }
@@ -21208,16 +21201,10 @@ pub mod tail_stream {
         pub type EmailEventInfo;
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &EmailEventInfo) -> String;
-        #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type_js_string(this: &EmailEventInfo) -> JsString;
         #[wasm_bindgen(method, getter, js_name = "mailFrom")]
         pub fn mail_from(this: &EmailEventInfo) -> String;
-        #[wasm_bindgen(method, getter, js_name = "mailFrom")]
-        pub fn mail_from_js_string(this: &EmailEventInfo) -> JsString;
         #[wasm_bindgen(method, getter, js_name = "rcptTo")]
         pub fn rcpt_to(this: &EmailEventInfo) -> String;
-        #[wasm_bindgen(method, getter, js_name = "rcptTo")]
-        pub fn rcpt_to_js_string(this: &EmailEventInfo) -> JsString;
         #[wasm_bindgen(method, getter, js_name = "rawSize")]
         pub fn raw_size(this: &EmailEventInfo) -> f64;
     }
@@ -21237,8 +21224,6 @@ pub mod tail_stream {
         pub type TraceEventInfo;
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &TraceEventInfo) -> String;
-        #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type_js_string(this: &TraceEventInfo) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn traces(this: &TraceEventInfo) -> Vec<JsNullable<JsString>>;
     }
@@ -21258,8 +21243,6 @@ pub mod tail_stream {
         pub type HibernatableWebSocketEventInfoMessage;
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &HibernatableWebSocketEventInfoMessage) -> String;
-        #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type_js_string(this: &HibernatableWebSocketEventInfoMessage) -> JsString;
     }
     impl HibernatableWebSocketEventInfoMessage {
         #[allow(clippy::new_without_default)]
@@ -21277,8 +21260,6 @@ pub mod tail_stream {
         pub type HibernatableWebSocketEventInfoError;
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &HibernatableWebSocketEventInfoError) -> String;
-        #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type_js_string(this: &HibernatableWebSocketEventInfoError) -> JsString;
     }
     impl HibernatableWebSocketEventInfoError {
         #[allow(clippy::new_without_default)]
@@ -21296,8 +21277,6 @@ pub mod tail_stream {
         pub type HibernatableWebSocketEventInfoClose;
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &HibernatableWebSocketEventInfoClose) -> String;
-        #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type_js_string(this: &HibernatableWebSocketEventInfoClose) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn code(this: &HibernatableWebSocketEventInfoClose) -> f64;
         #[wasm_bindgen(method, getter, js_name = "wasClean")]
@@ -21319,8 +21298,6 @@ pub mod tail_stream {
         pub type HibernatableWebSocketEventInfo;
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &HibernatableWebSocketEventInfo) -> String;
-        #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type_js_string(this: &HibernatableWebSocketEventInfo) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn info(this: &HibernatableWebSocketEventInfo) -> InfoKind;
     }
@@ -21340,8 +21317,6 @@ pub mod tail_stream {
         pub type CustomEventInfo;
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &CustomEventInfo) -> String;
-        #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type_js_string(this: &CustomEventInfo) -> JsString;
     }
     impl CustomEventInfo {
         #[allow(clippy::new_without_default)]
@@ -21359,8 +21334,6 @@ pub mod tail_stream {
         pub type FetchResponseInfo;
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &FetchResponseInfo) -> String;
-        #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type_js_string(this: &FetchResponseInfo) -> JsString;
         #[wasm_bindgen(method, getter, js_name = "statusCode")]
         pub fn status_code(this: &FetchResponseInfo) -> f64;
     }
@@ -21380,8 +21353,6 @@ pub mod tail_stream {
         pub type ConnectEventInfo;
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &ConnectEventInfo) -> String;
-        #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type_js_string(this: &ConnectEventInfo) -> JsString;
     }
     impl ConnectEventInfo {
         #[allow(clippy::new_without_default)]
@@ -21416,16 +21387,10 @@ pub mod tail_stream {
         pub type ScriptVersion;
         #[wasm_bindgen(method, getter)]
         pub fn id(this: &ScriptVersion) -> String;
-        #[wasm_bindgen(method, getter, js_name = "id")]
-        pub fn id_js_string(this: &ScriptVersion) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn tag(this: &ScriptVersion) -> Option<String>;
-        #[wasm_bindgen(method, getter, js_name = "tag")]
-        pub fn tag_js_string(this: &ScriptVersion) -> Option<JsString>;
         #[wasm_bindgen(method, getter)]
         pub fn message(this: &ScriptVersion) -> Option<String>;
-        #[wasm_bindgen(method, getter, js_name = "message")]
-        pub fn message_js_string(this: &ScriptVersion) -> Option<JsString>;
     }
     impl ScriptVersion {
         #[allow(clippy::new_without_default)]
@@ -21443,16 +21408,10 @@ pub mod tail_stream {
         pub type TracePreviewInfo;
         #[wasm_bindgen(method, getter)]
         pub fn id(this: &TracePreviewInfo) -> String;
-        #[wasm_bindgen(method, getter, js_name = "id")]
-        pub fn id_js_string(this: &TracePreviewInfo) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn slug(this: &TracePreviewInfo) -> String;
-        #[wasm_bindgen(method, getter, js_name = "slug")]
-        pub fn slug_js_string(this: &TracePreviewInfo) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn name(this: &TracePreviewInfo) -> String;
-        #[wasm_bindgen(method, getter, js_name = "name")]
-        pub fn name_js_string(this: &TracePreviewInfo) -> JsString;
     }
     impl TracePreviewInfo {
         #[allow(clippy::new_without_default)]
@@ -21470,38 +21429,22 @@ pub mod tail_stream {
         pub type Onset;
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &Onset) -> String;
-        #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type_js_string(this: &Onset) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn attributes(this: &Onset) -> Vec<Attribute>;
         #[wasm_bindgen(method, getter, js_name = "spanId")]
         pub fn span_id(this: &Onset) -> String;
-        #[wasm_bindgen(method, getter, js_name = "spanId")]
-        pub fn span_id_js_string(this: &Onset) -> JsString;
         #[wasm_bindgen(method, getter, js_name = "dispatchNamespace")]
         pub fn dispatch_namespace(this: &Onset) -> Option<String>;
-        #[wasm_bindgen(method, getter, js_name = "dispatchNamespace")]
-        pub fn dispatch_namespace_js_string(this: &Onset) -> Option<JsString>;
         #[wasm_bindgen(method, getter)]
         pub fn entrypoint(this: &Onset) -> Option<String>;
-        #[wasm_bindgen(method, getter, js_name = "entrypoint")]
-        pub fn entrypoint_js_string(this: &Onset) -> Option<JsString>;
         #[wasm_bindgen(method, getter, js_name = "executionModel")]
         pub fn execution_model(this: &Onset) -> String;
-        #[wasm_bindgen(method, getter, js_name = "executionModel")]
-        pub fn execution_model_js_string(this: &Onset) -> JsString;
         #[wasm_bindgen(method, getter, js_name = "durableObjectId")]
         pub fn durable_object_id(this: &Onset) -> Option<String>;
-        #[wasm_bindgen(method, getter, js_name = "durableObjectId")]
-        pub fn durable_object_id_js_string(this: &Onset) -> Option<JsString>;
         #[wasm_bindgen(method, getter, js_name = "scriptName")]
         pub fn script_name(this: &Onset) -> Option<String>;
-        #[wasm_bindgen(method, getter, js_name = "scriptName")]
-        pub fn script_name_js_string(this: &Onset) -> Option<JsString>;
         #[wasm_bindgen(method, getter, js_name = "scriptTags")]
         pub fn script_tags(this: &Onset) -> Option<Vec<String>>;
-        #[wasm_bindgen(method, getter, js_name = "scriptTags")]
-        pub fn script_tags_js_string(this: &Onset) -> Option<Array<JsString>>;
         #[wasm_bindgen(method, getter, js_name = "scriptVersion")]
         pub fn script_version(this: &Onset) -> Option<ScriptVersion>;
         #[wasm_bindgen(method, getter)]
@@ -21525,8 +21468,6 @@ pub mod tail_stream {
         pub type Outcome;
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &Outcome) -> String;
-        #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type_js_string(this: &Outcome) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn outcome(this: &Outcome) -> EventOutcome;
         #[wasm_bindgen(method, getter, js_name = "cpuTime")]
@@ -21550,16 +21491,10 @@ pub mod tail_stream {
         pub type SpanOpen;
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &SpanOpen) -> String;
-        #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type_js_string(this: &SpanOpen) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn name(this: &SpanOpen) -> String;
-        #[wasm_bindgen(method, getter, js_name = "name")]
-        pub fn name_js_string(this: &SpanOpen) -> JsString;
         #[wasm_bindgen(method, getter, js_name = "spanId")]
         pub fn span_id(this: &SpanOpen) -> String;
-        #[wasm_bindgen(method, getter, js_name = "spanId")]
-        pub fn span_id_js_string(this: &SpanOpen) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn info(this: &SpanOpen) -> Option<SpanOpenInfoKind>;
     }
@@ -21579,8 +21514,6 @@ pub mod tail_stream {
         pub type SpanClose;
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &SpanClose) -> String;
-        #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type_js_string(this: &SpanClose) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn outcome(this: &SpanClose) -> EventOutcome;
     }
@@ -21600,12 +21533,8 @@ pub mod tail_stream {
         pub type DiagnosticChannelEvent;
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &DiagnosticChannelEvent) -> String;
-        #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type_js_string(this: &DiagnosticChannelEvent) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn channel(this: &DiagnosticChannelEvent) -> String;
-        #[wasm_bindgen(method, getter, js_name = "channel")]
-        pub fn channel_js_string(this: &DiagnosticChannelEvent) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn message(this: &DiagnosticChannelEvent) -> JsValue;
     }
@@ -21625,20 +21554,12 @@ pub mod tail_stream {
         pub type Exception;
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &Exception) -> String;
-        #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type_js_string(this: &Exception) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn name(this: &Exception) -> String;
-        #[wasm_bindgen(method, getter, js_name = "name")]
-        pub fn name_js_string(this: &Exception) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn message(this: &Exception) -> String;
-        #[wasm_bindgen(method, getter, js_name = "message")]
-        pub fn message_js_string(this: &Exception) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn stack(this: &Exception) -> Option<String>;
-        #[wasm_bindgen(method, getter, js_name = "stack")]
-        pub fn stack_js_string(this: &Exception) -> Option<JsString>;
     }
     impl Exception {
         #[allow(clippy::new_without_default)]
@@ -21656,16 +21577,10 @@ pub mod tail_stream {
         pub type TailStreamErrorInfo;
         #[wasm_bindgen(method, getter)]
         pub fn name(this: &TailStreamErrorInfo) -> String;
-        #[wasm_bindgen(method, getter, js_name = "name")]
-        pub fn name_js_string(this: &TailStreamErrorInfo) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn message(this: &TailStreamErrorInfo) -> String;
-        #[wasm_bindgen(method, getter, js_name = "message")]
-        pub fn message_js_string(this: &TailStreamErrorInfo) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn stack(this: &TailStreamErrorInfo) -> Option<String>;
-        #[wasm_bindgen(method, getter, js_name = "stack")]
-        pub fn stack_js_string(this: &TailStreamErrorInfo) -> Option<JsString>;
     }
     impl TailStreamErrorInfo {
         #[allow(clippy::new_without_default)]
@@ -21687,8 +21602,6 @@ pub mod tail_stream {
         pub fn truncated(this: &Log) -> Option<bool>;
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &Log) -> String;
-        #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type_js_string(this: &Log) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn level(this: &Log) -> LevelKind;
         #[wasm_bindgen(method, getter, js_name = "errorInfo")]
@@ -21710,8 +21623,6 @@ pub mod tail_stream {
         pub type DroppedEventsDiagnostic;
         #[wasm_bindgen(method, getter, js_name = "diagnosticsType")]
         pub fn diagnostics_type(this: &DroppedEventsDiagnostic) -> String;
-        #[wasm_bindgen(method, getter, js_name = "diagnosticsType")]
-        pub fn diagnostics_type_js_string(this: &DroppedEventsDiagnostic) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn count(this: &DroppedEventsDiagnostic) -> f64;
     }
@@ -21731,8 +21642,6 @@ pub mod tail_stream {
         pub type StreamDiagnostic;
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &StreamDiagnostic) -> String;
-        #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type_js_string(this: &StreamDiagnostic) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn diagnostic(this: &StreamDiagnostic) -> DroppedEventsDiagnostic;
     }
@@ -21752,8 +21661,6 @@ pub mod tail_stream {
         pub type Return;
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &Return) -> String;
-        #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type_js_string(this: &Return) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn info(this: &Return) -> Option<FetchResponseInfo>;
     }
@@ -21773,8 +21680,6 @@ pub mod tail_stream {
         pub type Attribute;
         #[wasm_bindgen(method, getter)]
         pub fn name(this: &Attribute) -> String;
-        #[wasm_bindgen(method, getter, js_name = "name")]
-        pub fn name_js_string(this: &Attribute) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn value(this: &Attribute) -> ValueKind;
     }
@@ -21794,8 +21699,6 @@ pub mod tail_stream {
         pub type Attributes;
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &Attributes) -> String;
-        #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type_js_string(this: &Attributes) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn info(this: &Attributes) -> Vec<Attribute>;
     }
@@ -21817,12 +21720,8 @@ pub mod tail_stream {
         pub type SpanContext;
         #[wasm_bindgen(method, getter, js_name = "traceId")]
         pub fn trace_id(this: &SpanContext) -> String;
-        #[wasm_bindgen(method, getter, js_name = "traceId")]
-        pub fn trace_id_js_string(this: &SpanContext) -> JsString;
         #[wasm_bindgen(method, getter, js_name = "spanId")]
         pub fn span_id(this: &SpanContext) -> Option<String>;
-        #[wasm_bindgen(method, getter, js_name = "spanId")]
-        pub fn span_id_js_string(this: &SpanContext) -> Option<JsString>;
         #[wasm_bindgen(method, getter, js_name = "traceFlags")]
         pub fn trace_flags(this: &SpanContext) -> Option<f64>;
     }
@@ -21842,8 +21741,6 @@ pub mod tail_stream {
         pub type TailEvent<Event = JsValue>;
         #[wasm_bindgen(method, getter, js_name = "invocationId")]
         pub fn invocation_id<Event>(this: &TailEvent<Event>) -> String;
-        #[wasm_bindgen(method, getter, js_name = "invocationId")]
-        pub fn invocation_id_js_string<Event>(this: &TailEvent<Event>) -> JsString;
         #[wasm_bindgen(method, getter, js_name = "spanContext")]
         pub fn span_context<Event>(this: &TailEvent<Event>) -> SpanContext;
         #[wasm_bindgen(method, getter)]

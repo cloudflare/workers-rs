@@ -72,8 +72,7 @@ pub async fn handle_xor(req: Request, _env: Env, _data: SomeSharedData) -> Resul
             if chunk.done() {
                 break;
             }
-            let bytes = Uint8Array::new(&chunk.value().unwrap_or_default());
-            let mut buf = bytes.to_vec();
+            let mut buf = chunk.value().unwrap_or_default().to_vec();
             buf.iter_mut().for_each(|x| *x ^= num);
             if writer
                 .write_with_chunk(&Uint8Array::from(&buf[..]))

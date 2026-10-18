@@ -92,6 +92,12 @@ interface ResponseInit {
 }
 
 /** {@string copy} */
+interface Socket {
+  /** @retype */
+  readonly readable: ReadableStream<Uint8Array>;
+  /** @retype */
+  readonly writable: WritableStream<Uint8Array>;
+}
 interface WebSocket {
   /** @rust code: u16 */
   close(code?: number, reason?: string): void;
@@ -463,9 +469,48 @@ interface DurableObjectId {
 interface Body {
   /** {@string both} */
   text(): Promise<string>;
+  /** @retype */
+  readonly body: ReadableStream<Uint8Array> | null;
 }
 /** {@string copy} */
 interface R2ObjectBody {
   /** {@string both} */
   text(): Promise<string>;
+  /** @retype */
+  readonly body: ReadableStream<Uint8Array>;
+}
+
+declare namespace TailStream {
+  /** {@string copy} */ interface AlarmEventInfo {}
+  /** {@string copy} */ interface Attribute {}
+  /** {@string copy} */ interface Attributes {}
+  /** {@string copy} */ interface ConnectEventInfo {}
+  /** {@string copy} */ interface CustomEventInfo {}
+  /** {@string copy} */ interface DiagnosticChannelEvent {}
+  /** {@string copy} */ interface DroppedEventsDiagnostic {}
+  /** {@string copy} */ interface EmailEventInfo {}
+  /** {@string copy} */ interface Exception {}
+  /** {@string copy} */ interface FetchEventInfo {}
+  /** {@string copy} */ interface FetchResponseInfo {}
+  /** {@string copy} */ interface Header {}
+  /** {@string copy} */ interface HibernatableWebSocketEventInfo {}
+  /** {@string copy} */ interface HibernatableWebSocketEventInfoClose {}
+  /** {@string copy} */ interface HibernatableWebSocketEventInfoError {}
+  /** {@string copy} */ interface HibernatableWebSocketEventInfoMessage {}
+  /** {@string copy} */ interface JsRpcEventInfo {}
+  /** {@string copy} */ interface Log {}
+  /** {@string copy} */ interface Onset {}
+  /** {@string copy} */ interface Outcome {}
+  /** {@string copy} */ interface QueueEventInfo {}
+  /** {@string copy} */ interface Return {}
+  /** {@string copy} */ interface ScheduledEventInfo {}
+  /** {@string copy} */ interface SpanClose {}
+  /** {@string copy} */ interface SpanContext {}
+  /** {@string copy} */ interface SpanOpen {}
+  /** {@string copy} */ interface StreamDiagnostic {}
+  /** {@string copy} */ interface TailStreamErrorInfo {}
+  /** {@string copy} */ interface TraceEventInfo {}
+  /** {@string copy} */ interface ScriptVersion {}
+  /** {@string copy} */ interface TailEvent {}
+  /** {@string copy} */ interface TracePreviewInfo {}
 }

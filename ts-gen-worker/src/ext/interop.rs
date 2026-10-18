@@ -18,8 +18,8 @@ use bytes::Bytes;
 use futures_util::Stream;
 use http::{HeaderMap, StatusCode, Version};
 use http_body::Body;
+use js_sys::Uint8Array;
 use pin_project::pin_project;
-use wasm_bindgen::JsCast;
 
 use crate::{
     readable_stream_from, AbortSignal, ByteStream, Error, FromRequest, Headers,
@@ -92,7 +92,7 @@ where
         }
         let uri = req.uri().to_string();
         if let Some(body) = body_stream(req.into_body()) {
-            init = init.body(body.unchecked_ref());
+            init = init.body(&body);
         }
         Ok(Request::new_with_str_and_init(&uri, &init.build())?)
     }
@@ -150,7 +150,7 @@ where
 
 /// The JS stream for an `http` body: a `ByteStream`'s own `ReadableStream`, a new one
 /// over the frames of any other body, `None` when the body is already at its end.
-fn body_stream<B>(body: B) -> Option<ReadableStream>
+fn body_stream<B>(body: B) -> Option<ReadableStream<Uint8Array>>
 where
     B: Body<Data = Bytes> + 'static,
     B::Error: Into<BoxError>,
@@ -160,8 +160,7 @@ where
         return bytes.take()?.into_inner();
     }
     let body = slot?;
-    (!body.is_end_stream())
-        .then(|| readable_stream_from(BodyStream { inner: body }).unchecked_into())
+    (!body.is_end_stream()).then(|| readable_stream_from(BodyStream { inner: body }))
 }
 
 /// An `http_body::Body`'s data frames as a `Stream`; trailers end it.
