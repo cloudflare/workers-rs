@@ -11,12 +11,12 @@ from the #5167 compile matrix (`~/Projects/wasm-bindgen-5` `2497681c1`, stable j
 ## Verdict
 
 1. B builds as generated, with no stopgaps, and passes the suite (194/194, plain and `-http`). The port has none of: `JsString`, `String::from(<js>)`, `JsNullable`, `None::<…>`, `map_err(|e| e.to_string())`, `JsFuture::from` at call sites. `unchecked_*` casts went from 29 (A) to 6. Each of the 6 sits at an `any`-typed or erased boundary (§2).
-2. Everything phase 1 assumed is built, and the R audit's items are done except the ones in §6. Phase 2 also built Rust iteration, `Object<T>` as a map, typed KV reads, byte-stream bodies and shorter overload names.
+2. Everything phase 1 assumed is built, and the R audit's items are done except the ones in §6. Phase 2 also built Rust iteration, `Object<T>` as a map, typed KV reads, byte-stream bodies, one argument for buffer sources, one `Promise<T>` per async member, and shorter overload names.
 3. The cost in commits: 11 wasm-bindgen/js-sys commits and 20 ts-gen commits on top of phase 1. Under the cfg, js-sys is a different API in which collections behave like Rust collections. That API break, and the fallout in `worker`, serde-wasm-bindgen and wasm-streams, is the price of the containers. `worker` is not ported (§6).
-4. The cost in size and time: benchmark wasm +1,380 (+1.1%), test glue +7,455 (+4.2%) (phase 1: +12.7%), test imports +15 (phase 1: +16), 0 generic shims (phase 1: 177). `ts-gen-worker` compiles +23% debug and +25% release (§4).
+4. The cost in size and time: benchmark wasm +211 (+0.2%), test glue +7,392 (+4.2%) (phase 1: +12.7%), test imports +14 (phase 1: +16), 0 generic shims (phase 1: 177). `ts-gen-worker` compiles +3% debug and +7% release (§4).
 5. Mono's own lead over C is unchanged from phase 1:
    - leaf type arguments on generated generics (`get::<f64>`, `get_with_metadata_typed::<f64>`, `first`);
-   - primitive unions as one function;
+   - primitive and buffer-source unions as one function;
    - callbacks with Rust leaves.
 
    Most other gains are ts-gen lowering or unstable js-sys, which a non-mono build could also adopt (§5).
@@ -92,7 +92,7 @@ Response::new_with_readable_stream_and_init(&JsNullable::wrap(stream.unchecked_i
 ```
 ```rust
 // B: test/src/lib.rs:142-158, src/ext/response.rs:97-110
-Response::new_with_array_buffer_and_init(&ArrayBuffer::from(bytes), &init)?
+Response::new_with_buffer_source_and_init(&bytes[..], &init)?            // bytes: impl BufferSourceLike
 Response::new_with_str(format!("{a}|{b}"))?                              // body: impl JsStringLike
 Response::new_with_null_and_init(&init)?                                 // the union's null arm
 Response::new_with_readable_stream_and_init(&stream, &init)?             // stream: ReadableStream<Uint8Array>
@@ -104,6 +104,7 @@ Response::new_with_str_and_init(None::<&str>, &init)?
 Response::new_with_array_buffer_and_init(Some(&out.buffer()), &init)?
 ```
 - An expanded `BodyInit | null` takes each arm bare and emits the `null` arm as its own wrapper, so neither `Some(…)` nor `None::<&str>` appears. All 44 `JsNullable::wrap/new` are gone.
+- `ArrayBuffer | ArrayBufferView` is one argument, `impl js_sys::BufferSourceLike`, a sealed trait like the primitive-union ones. `&[u8]` passes as a view into wasm memory, `Vec<u8>` as a copy, and buffer handles as themselves. The `_array_buffer` / `_typed_array` arm pairs are gone (crypto `verify` had 8 arms).
 - `Body::body()` is `Option<ReadableStream<Uint8Array>>` through an `@retype` in `annotations.d.ts`. Upstream types it as `ReadableStream`, with `any` chunks.
 - C could adopt the same arm lowering, since it is ts-gen, not mono.
 
@@ -123,8 +124,8 @@ KVNamespaceListOptions::builder().prefix(&JsNullable::wrap("put_c".into()))
 ```
 ```rust
 // B: src/ext/kv.rs:114-121, 158-175, test/src/kv.rs:88-90, 163-174, 112
-let options = KVNamespaceGetOptionsPartial::builder().cache_ttl(ttl).build();  // Partial<X>: synthesized XPartial
-self.kv.get_text_with_options(&self.key, &options).await                      // sets type: "text"; Option<String>
+let options = KVNamespaceGetOptionsPartial::builder().cache_ttl(ttl).build();  // Partial<X>: all fields optional
+Ok(self.kv.get_text_with_options(&self.key, &options).await?)                  // sets type: "text"; Option<String>
 self.kv.get_array_buffer_with_options(&self.key, &options).await?.map(Vec::from)
 let result = store.get_with_metadata_typed::<f64>("put_b").await?;           // nested return-only param
 kv_assert_eq!(result.metadata(), Some(100.0))?;
@@ -417,8 +418,9 @@ kv.put_with_options(key, value, &options)                                  // a 
 bucket.get_with_options(key, &options)
 bucket.put_with_str_and_options(key, value, &options)                      // inline `onlyIf` form: put_with_str_and_r2_bucket_put_options
 ```
-Public names over 50 characters fell from 109 to 54. The longest left are `_with_slice_and_options`
-KV reads and `IncomingRequestCfProperties`' numbered builders. Every rule here is ts-gen naming,
+Public names over 50 characters fell from 109 to 27. Most of the rest are
+`IncomingRequestCfProperties`' numbered builders and spelled-out multi-parameter arms
+(`add_event_listener_with_event_listener_object_and_options`). Every rule here is ts-gen naming,
 so C could adopt it too.
 
 ### Env vars and secrets
@@ -489,8 +491,8 @@ generated `bindings.rs` and the test and benchmark `env.rs`, and skipping commen
 | `.as_string()` | 14 | 9 | 7 |
 | `unchecked_into` / `unchecked_ref` | 29 | 19 | 6 |
 | `dyn_into` / `dyn_ref` | 7 | 7 | 6 |
-| turbofish `::<JsValue` | 9 | 7 | 2 |
-| all turbofish `::<` | 92 | 91 | 85 |
+| turbofish `::<JsValue` | 9 | 7 | 1 |
+| all turbofish `::<` | 92 | 91 | 84 |
 | `let x: T =` annotations | 85 | 80 | 75 |
 | `None::<…>` | 0 | 0 | 0 |
 | `&[] as &[…]` | 0 | 1 | 1 |
@@ -501,10 +503,10 @@ generated `bindings.rs` and the test and benchmark `env.rs`, and skipping commen
 | `map_err(\|e\| e.to_string())` | 21 | 21 | 0 |
 | `console.with(…)` | 19 | 19 | 7 |
 | `JsFuture::from` | 6 | 6 | 1 |
-| `Closure::` | 4 | 4 | 2 |
+| `Closure::` | 4 | 4 | 1 |
 | `._0()` / `._1()` | 10 | 10 | 2 |
 | `Uint8Array::new(&…)` re-wraps | 5 | 5 | 0 |
-| lines | 7,444 | 7,386 | 7,221 |
+| lines | 7,444 | 7,386 | 7,220 |
 
 The 6 remaining casts:
 - the wasm-streams boundary (`web_sys::ReadableStream` → `ReadableStream<Uint8Array>`, `src/ext/streams.rs:164`);
@@ -514,64 +516,66 @@ The 6 remaining casts:
 - the two event-map listeners (`test/src/util.rs:34,38`).
 
 The `.as_string()` / `dyn_*` calls are on `any` values: `MessageEvent::data`, attachments,
-FormData `File | string`, SQL values and `Error::cause`. The one `::<JsValue>` left on a
-binding is `block_concurrency_while_promise` (§6).
+FormData `File | string`, SQL values and `Error::cause`. No `::<JsValue>` is left on a binding:
+`Function::once` gives `block_concurrency_while` its `T` from the closure's return.
 
 ## 3. API diff
 
 `tools/api-diff` over the generated `bindings.rs` (item-keyed signatures):
 
-- **B vs A**: 1509 items changed, 292 removed, 491 added, 3254 unchanged. Most removed/added pairs are renames (overload suffixes, `_with_null` arms, KV typed reads).
-- **B vs B1**: 355 changed, 653 removed (376 of them `_js_string` twins), 481 added, 4418 unchanged.
+- **B vs A**: 1403 items changed, 585 removed, 345 added, 3067 unchanged. Most removed/added pairs are renames (overload suffixes, `_with_null` arms, KV typed reads).
+- **B vs B1**: 498 changed, 946 removed (376 of them `_js_string` twins), 335 added, 3982 unchanged.
 
 Type-level counts (doc and comment lines skipped):
 
 | pattern | A `a4cbe97` | B1 `2aa55cc` | B |
 |---|---:|---:|---:|
-| `JsString` (word) | 175 | 422 | 64 |
+| `JsString` (word) | 175 | 422 | 21 |
 | `_js_string` twins | 0 | 383 | 15 |
 | `Map<JsString, …>` | 44 | 0 | 0 |
 | `Array<JsString>` | 3 | 18 | 0 |
-| `Promise<JsString>` | 8 | 0 | 0 |
+| `Promise<JsString>` | 8 | 0 | 3 |
 | `Object<JsString>` | 28 | 0 | 0 |
 | `Iterator<JsString>` | 6 | 0 | 0 |
 | `JsNullable<JsString>` | 39 | 24 | 0 |
 | `JsNullable<…>` | 136 | 91 | 0 |
 | `JsOption<…>` | 110 | 95 | 0 |
 | `Function<fn(…JsString…)>` | 8 | 8 | 0 |
-| `Function<fn(…)>` | 101 | 101 | 113 |
+| `Function<fn(…)>` | 101 | 101 | 111 |
 | `-> Undefined` | 17 | 17 | 0 |
 | `Promise<Undefined>` | 163 | 162 | 0 |
-| `Promise<()>` | 0 | 0 | 162 |
+| `Promise<()>` | 0 | 0 | 160 |
 | `Boolean` / `Number` | 32 | 8 | 0 |
-| `impl JsStringLike` | 0 | 1,268 | 1,436 |
-| `Option<impl JsStringLike>` | 0 | 7 | 16 |
-| `&[impl JsStringLike]` | 0 | 117 | 165 |
-| `impl js_sys::Js…Like` (primitive unions) | 0 | 13 | 13 |
+| `impl JsStringLike` | 0 | 1,268 | 1,135 |
+| `Option<impl JsStringLike>` | 0 | 7 | 15 |
+| `&[impl JsStringLike]` | 0 | 117 | 90 |
+| `impl js_sys::Js…Like` (primitive unions) | 0 | 13 | 12 |
 | `Option<&str>` / `&[String]` | 124 | 0 | 0 |
 | `: JsGeneric` bounds | 666 | 75 | 0 |
 | `for<'a>` where-clauses | 0 | 66 | 12 |
-| `_typed` fns | 0 | 0 | 53 |
-| `_with_null` fns | 0 | 0 | 16 |
-| public fn names over 50 chars | 109 | 113 | 54 |
+| `_typed` fns | 0 | 0 | 52 |
+| `_with_null` fns | 0 | 0 | 10 |
+| public fn names over 50 chars | 109 | 113 | 27 |
 | `IntoIterator for &T` | 0 | 0 | 5 |
 | `-> Option<JsValue>` | 0 | 0 | 8 |
-| `_promise` twins | 277 | 276 | 322 |
-| `async fn`s | 277 | 292 | 337 |
-| `KVNamespace` get/put/list/delete fns | 70 | 78 | 138 |
-| lines | 18,366 | 19,548 | 20,082 |
+| `impl BufferSourceLike` | 0 | 0 | 70 |
+| `_array_buffer` / `_typed_array` arms | 140 | 140 | 0 |
+| `_promise` twins | 277 | 276 | 0 |
+| `async fn`s | 277 | 292 | 0 |
+| `KVNamespace` get/put/list/delete fns | 70 | 78 | 73 |
+| lines | 18,366 | 19,548 | 17,003 |
 
 Every item that is **still worse in B than in A**:
 - **`&[String]` → `&[impl JsStringLike]`:** `&[]` needs `&[] as &[&str]`. Literal lists and `&Vec<String>` both work.
-- **`Option<&str>` → `Option<impl JsStringLike>` (16):** this remains on raw setters and on required nullable dictionary fields. `None` there needs `None::<&str>`. Builders and expanded unions no longer have it.
+- **`Option<&str>` → `Option<impl JsStringLike>` (15):** this remains on raw setters and on required nullable dictionary fields. `None` there needs `None::<&str>`. Builders and expanded unions no longer have it.
 - **Generic user code over a helper** must restate a `for<'a> &'a T: IntoWasmAbi` bound when the helper's `T` is unbounded (12 where-clauses, down from phase 1's 66; handle-bounded helpers need none). A needed `T: JsGeneric`.
 - **Surface size.** The added items are:
-  - `_typed` twins (53), for constructors and nested return-only parameters;
-  - `_with_null` arms (16);
-  - KV typed reads: `KVNamespace` has 138 get/put/list/delete fns, against 70 in A and 78 in B1, with names like `get_with_metadata_text_with_options_typed_js_string`;
-  - `_promise` twins on 322 of the 337 async fns (A and B1 have them too).
+  - `_typed` twins (52), for constructors and nested return-only parameters;
+  - `_with_null` arms (10);
+  - KV typed reads. With the `_promise` twins gone, `KVNamespace` has 73 get/put/list/delete fns, against 70 in A and 78 in B1 (138 before D1). The longest is `get_with_metadata_text_with_options_typed_js_string`.
 
-  Twins are down to 15, all intended (`text()` and KV values), and they hold every `JsString` in the public API. 41 of the 64 `JsString` mentions are `JsString::from("type")` inside the KV typed-read wrapper bodies.
+  Twins are down to 15, all intended (`text()` and KV values), and every `JsString` mention left is in their signatures.
+- **Tail `.await`:** an async member returns `Promise<T>`, which rejects with `JsValue`, so a tail `x.await` in a fn returning `Result<_, Error>` needs `Ok(x.await?)` (37 port sites). A and B1's `async fn`s returned `crate::Error` directly. `x.await?` is unchanged (§7).
 - **Surface outside `bindings.rs` (unstable js-sys):** `Reflect::get` → `Result<Option<T>>`, `Array::get` → `Option<T>`, `JSON::stringify` → `Option<String>`, and iterators that rethrow instead of yielding `Result`. Code written against stable js-sys does not compile under the cfg (`worker`, `worker-sys`, serde-wasm-bindgen, wasm-streams).
 
 ## 4. Costs
@@ -579,16 +583,16 @@ Every item that is **still worse in B than in A**:
 **Size.** Each state is built from its own commit with its own wasm-bindgen pin, on the same
 machine. The benchmark worker is a release build run through `wasm-opt -Oz` with
 `benchmark/build.sh`'s flags. The test worker is a debug build and covers the whole suite's
-surface. gz is `gzip -9`. B was measured at `2be8dbd`. A was re-measured for this report and
+surface. gz is `gzip -9`. B was measured at `0946d3f`. A was re-measured for this report and
 reproduces phase 1's numbers exactly. B1 is phase 1's measurement.
 
 | | A | B1 | B | B − A |
 |---|---:|---:|---:|---:|
-| benchmark `index_bg.wasm` | 120,645 (51,600 gz) | 121,251 (51,735 gz) | 122,025 (52,005 gz) | +1,380 (+1.1%), +405 gz |
-| benchmark `index.js` | 33,871 (6,371 gz) | 35,165 (6,449 gz) | 34,745 (6,296 gz) | +874 (+2.6%), -75 gz |
-| benchmark wasm imports | 77 | 77 | 78 | +1 |
-| test worker glue | 175,754 | 198,024 | 183,209 | +7,455 (+4.2%) |
-| test worker wasm imports | 472 | 488 | 487 | +15 |
+| benchmark `index_bg.wasm` | 120,645 (51,600 gz) | 121,251 (51,735 gz) | 120,856 (51,295 gz) | +211 (+0.2%), -305 gz |
+| benchmark `index.js` | 33,871 (6,371 gz) | 35,165 (6,449 gz) | 35,521 (6,338 gz) | +1,650 (+4.9%), -33 gz |
+| benchmark wasm imports | 77 | 77 | 79 | +2 |
+| test worker glue | 175,754 | 198,024 | 183,146 | +7,392 (+4.2%) |
+| test worker wasm imports | 472 | 488 | 486 | +14 |
 | test worker generic shims (`// generic import`) | 0 | 177 | 0 | +0 |
 | test worker `finally` blocks (owned-string frees) | 10 | 14 | 6 | -4 |
 
@@ -598,24 +602,27 @@ phase 1's measurement.
 
 | | A | B1 | B | B − A |
 |---|---:|---:|---:|---:|
-| debug | 14.3 s | 17.6 s | 17.6 s | +3.3 s (+23%) |
-| release | 11.2 s | 13.9 s | 14.0 s | +2.8 s (+25%) |
-| test crate alone on top (debug) | 4.1 s | 4.3 s | 4.2 s | +0.0 s |
+| debug | 14.3 s | 17.6 s | 14.6 s | +0.4 s (+3%) |
+| release | 11.2 s | 13.9 s | 11.9 s | +0.8 s (+7%) |
+| test crate alone on top (debug) | 4.1 s | 4.3 s | 4.1 s | +0.0 s |
 
 What moved since phase 1 (B1 → B):
-- **Generic shims 177 → 0, glue +22,270 B → +7,455 B over A.** J's wire-format grouping makes `&str`, `String`, `&String` and `JsString` one import, and handles one import whether passed by value or by reference. The `// generic import` comments are gone without `--keep-debug`. Owned strings cross borrowed, so the `finally` frees went from 14 to 6 (A has 10).
+- **Generic shims 177 → 0, glue +22,270 B → +7,392 B over A.** J's wire-format grouping makes `&str`, `String`, `&String` and `JsString` one import, and handles one import whether passed by value or by reference. The `// generic import` comments are gone without `--keep-debug`. Owned strings cross borrowed, so the `finally` frees went from 14 to 6 (A has 10).
 - **Twins 383 → 15.** `{@string copy}` on small strings means less surface. The output does not depend on it, because unused twins never reach the binary.
+- **Compile time +23–25% → +2–7%.** D1 removed every `async fn` wrapper and `_promise` twin, and A3 the buffer arm pairs. `bindings.rs` is now 20,490 lines, against A's 22,148, B1's 23,740 and round 1's 23,890. What is left is the mono macro's larger expansion per generic binding.
 
 What B still costs over A:
-- **Benchmark: +1 import, +1.1% wasm.** The import diff, with A's and B's import bodies normalised, is three swaps and one addition:
+- **Benchmark: +2 imports, +0.2% wasm (gzip −0.6%).** The import diff, with A's and B's import bodies normalised, is three swaps and two additions:
   - `Error::name` and `Error::message` return a `String` copy instead of a handle (two swaps);
   - `ResponseInit::headers` is read as `Option` (a swap);
-  - string bodies cross as UTF-8 (`new Response(getStringFromWasm0(..), init)`) beside the handle form the stream and `null` bodies use (the one addition).
-- **Test worker: +15 imports, +4.2% glue.** The added imports are distinct wire formats rather than per-type shims:
+  - string bodies cross as UTF-8 (`new Response(getStringFromWasm0(..), init)`) beside the handle form the stream and `null` bodies use;
+  - awaiting a `Promise<()>` resolves through a closure typed `fn(())`. js-sys's `IntoFuture` for `Promise<T>` makes one closure cast per awaited wire format.
+- **Test worker: +14 imports, +4.2% glue.** The added imports are distinct wire formats rather than per-type shims:
   - string returns copied into Rust (`toISOString`, `toString`, tuple and record values) where A handed back a `JsString`;
   - string arguments as UTF-8 where A passed a handle (`body`, `prefix`);
+  - awaited wire formats (`()`, `Option<f64>`, `Option<ArrayBuffer>`): 3 more closure casts, net;
   - the port's wider API use: per-type KV reads, `get_with_metadata_typed::<f64>`, generated `[Symbol.iterator]`, `Object::from_iter`/`collect` (`Reflect.set` by string key), three `Function::from_fn` closures.
-- **Compile time** sits in the bindings crate. The mono macro emits more code per generic binding than the erased path, and the surface grew (`_typed` twins, `_with_null` arms, KV typed reads). Phase 1 put 1.0 s on the twins; their removal is offset by the new items, so B lands on B1's time. The test crate on top is flat, so instantiation at use sites costs little.
+- **Compile time** is within measurement noise of A in the test crate on top. The bindings crate's remaining +3% debug / +7% release is mono's own cost.
 
 ## 5. "Fleshed out" checklist
 
@@ -629,7 +636,8 @@ Every change B needed, all built (commits and files in `mono-prototype-patches.m
 | one import per wire format; no `// generic import` comments; `?Sized` mono params; `&Option<T>`, `Option<&T>` args | wasm-bindgen macro + CLI | 2 | yes (mono's own cost) |
 | `extends = Parent<A, B>`; `Vec<Option<T>>` returns; blanket `&T` ABI for handles | wasm-bindgen | 2 | partly |
 | `Map` by `Borrow<Q>`, `Map::get` for every `V` | js-sys | 2 | no |
-| `Function<fn(A..) -> R>` with any ABI `A`/`R`, `()` for void; `Function::from_fn`; typed `Promise::new` | js-sys | 2 | yes |
+| `Function<fn(A..) -> R>` with any ABI `A`/`R`, `()` for void; `Function::from_fn` / `once`; typed `Promise::new` | js-sys | 2 | yes |
+| sealed `BufferSourceLike` (`&[u8]`, `Vec<u8>`, `ArrayBuffer`, typed arrays, `DataView`) | js-sys | 2 | yes |
 | `String` returns from built-ins (`Error`, `Date`, `JSON`, `Intl`); `Date::new_with_value`; `ArrayBuffer` bytes | js-sys | 2 | no |
 | iterators yield `T`; `Entries<K, V>`; Map/Set/Object as Rust collections | js-sys | 2 | no |
 | stopgaps #1–#5 replaced by ts-gen fixes (`mono-patch` deleted) | ts-gen | 2 | yes |
@@ -637,8 +645,10 @@ Every change B needed, all built (commits and files in `mono-prototype-patches.m
 | `_typed` twins (constructors, nested return-only params); concrete construct returns | ts-gen | 2 | yes |
 | `T \| null` args: bare arms + `_with_null` arm; bare builder values | ts-gen | 2 | no |
 | callbacks with Rust leaves, `Promise<()>` | ts-gen | 2 | yes |
+| async members return `Promise<T>`, with no `async fn` / `_promise` pair | ts-gen | 2 | partly |
 | `Iterable<T>` → slices; alias leaves; optional `any` → `Option<JsValue>`; generated `IntoIterator` | ts-gen | 2 | no |
-| per-literal overload bindings (KV typed reads); shorter overload and inline-type names | ts-gen | 2 | no |
+| per-literal overload bindings (KV typed reads); literal-only dictionaries set by the binding (`raw_with_column_names`, `get_reader_byob`); shorter overload and inline-type names | ts-gen | 2 | no |
+| `ArrayBuffer \| ArrayBufferView` → `impl BufferSourceLike`; `this` returns the receiver; optional `Partial` getters | ts-gen | 2 | partly |
 | bare generic-class arguments take any instantiation | ts-gen | 2 | yes |
 
 C would need instead (none built):
@@ -665,17 +675,17 @@ Not built, by owner. Every audit item not listed here is done.
 - Every patch is prototype quality. `mono-prototype-patches.md` groups them by upstream PR.
 
 **ts-gen.**
-- D1 `raw(options)`'s `{ columnNames: true }` arm returns `[string[], ...T[]]`, but the caller sets `column_names` on a synthesized dictionary, so passing `false` gets rows typed as a header tuple (audit A1). It is the same unchecked-return shape as KV's `type` before `e4d3fde`; `get_reader_with_options({ mode: "byob" })` has it too.
-- Names: `json_with_maybe_init` keeps upstream's parameter name, and `IncomingRequestCfProperties` has numbered builders for a union of dictionaries.
+- `IncomingRequestCfProperties` has numbered builders, from crossing a dictionary-union field with the type's other unions. Only mocks build an incoming `cf`.
 - `File | string` and other handle-or-string unions stay `JsValue`. That needs a ts-gen enum in any mode.
 
 **wasm-bindgen / js-sys.**
+- Promise-returning imports do not `catch`, so a synchronous throw unwinds through wasm instead of rejecting (§7, D1). The fix is `catch` on a `Promise<T>` return meaning `Promise.reject(e)` from the glue. *Open*.
 - `none = "null"` (exact `null` for an omitted argument, for non-WebIDL libraries) is deferred. `JsNullable<T>` is still the way to send it.
-- A `Closure::once` does not infer a typed `Function`'s parameters through `from_closure`, so `block_concurrency_while_promise::<JsValue>` keeps its turbofish (`test/src/util.rs:85`). An `FnOnce` form of `Function::from_fn` would fix it.
+- `BufferSourceLike for &[u8]` is a view into wasm memory, which is only right where the callee copies before returning (workerd's KV and R2 `put`, `Response` by the Fetch spec). Dictionary setters and builder methods also take `impl BufferSourceLike`, and a dictionary keeps the view after the borrow ends, so `opts.md5(&hash[..])` can read freed memory at `put`. The port passes an owned `Uint8Array` there. *Open*: those positions need a bound without `&[u8]`, or `&[u8]` should copy there.
 - Array callback methods other than `for_each` (`map`, `filter`, …) stay erased. Rust iteration covers them.
 
 **By design (no action).**
-- `&[] as &[&str]`. `None::<&str>` on raw setters and required nullable fields (16 arguments).
+- `&[] as &[&str]`. `None::<&str>` on raw setters and required nullable fields (15 arguments).
 - Event-map listeners stay `fn(JsValue)` because `addEventListener<K>` indexes a map type. `any` values stay `JsValue`.
 - `void | Promise<void>` callback returns are `Option<Promise<()>>`. That is correct, but a hand-built handler closure returns `None`/`Some(p)`; the macros hide it.
 - Mono's compile-time cost (§4).
@@ -690,6 +700,18 @@ can be reverted in ts-gen alone.
   nested in the return (`getWithMetadata<Metadata>`, `list<Metadata>`), the default form erases it and a
   `_typed::<T>` twin binds it, the same suffix constructors use. Keeping the generic everywhere was rejected:
   Rust fns have no default type parameters, so `kv.list().await?` would need a turbofish with metadata unused.
+- **Async members return `Promise<T>` (D1).** Each async member is one binding returning `Promise<T>`, with `T`
+  the awaited form (`Promise<Option<String>>`, `Promise<()>`). There is no `async fn` / `_promise` pair: the 293
+  `_promise` twins are gone and public fns went from 3,628 to 3,335. js-sys's `Promise<T>` is
+  `IntoFuture<Output = Result<T, JsValue>>`, so `x.await?` is unchanged, and the same value passes to JS
+  (`block_concurrency_while(&callback)` returns the promise that holds the gate). The costs:
+  - a tail `x.await` in a fn returning `Result<_, Error>` becomes `Ok(x.await?)`, because the promise rejects with
+    `JsValue` (37 port sites);
+  - the imports no longer `catch`, so a synchronous throw from a promise-returning member unwinds through wasm
+    instead of rejecting. wasm-bindgen can turn it into a rejection in the glue (asked of J, *open*).
+
+  The alternative was a ts-gen-worker wrapper with `Output = Result<T, Error>` and an `into_promise()`. It keeps
+  tail sites unchanged and catches in Rust, but it adds a type to every async return.
 - **`T | null` arguments are `Option<…>`, and `None` crosses as `undefined`.** This conflicts with #51's
   no-coercion rule. Expanded unions keep an exact `null` through their `_with_null` arms.
 - **An optional parameter's trailing `null` arm is dropped.** Omitting the argument covers it. That is exact
