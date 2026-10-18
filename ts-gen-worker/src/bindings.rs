@@ -8297,13 +8297,13 @@ extern "C" {
     pub async fn get_with_options(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        options: &R2BucketOptions,
+        options: &R2BucketGetOptions,
     ) -> Result<Option<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
     pub fn get_with_options_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        options: &R2BucketOptions,
+        options: &R2BucketGetOptions,
     ) -> Result<Promise<Option<R2Object>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
     pub async fn get_with_r2_get_options(
@@ -8394,84 +8394,84 @@ extern "C" {
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &ReadableStream,
-        options: &R2BucketOptions2,
+        options: &R2BucketPutOptions,
     ) -> Result<Option<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_options_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &ReadableStream,
-        options: &R2BucketOptions2,
+        options: &R2BucketPutOptions,
     ) -> Result<Promise<Option<R2Object>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub async fn put_with_array_buffer_and_options(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &ArrayBuffer,
-        options: &R2BucketOptions2,
+        options: &R2BucketPutOptions,
     ) -> Result<Option<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_array_buffer_and_options_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &ArrayBuffer,
-        options: &R2BucketOptions2,
+        options: &R2BucketPutOptions,
     ) -> Result<Promise<Option<R2Object>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub async fn put_with_typed_array_and_options(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &Object,
-        options: &R2BucketOptions2,
+        options: &R2BucketPutOptions,
     ) -> Result<Option<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_typed_array_and_options_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &Object,
-        options: &R2BucketOptions2,
+        options: &R2BucketPutOptions,
     ) -> Result<Promise<Option<R2Object>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub async fn put_with_str_and_options(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         value: impl ::wasm_bindgen::JsStringLike,
-        options: &R2BucketOptions2,
+        options: &R2BucketPutOptions,
     ) -> Result<Option<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_str_and_options_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         value: impl ::wasm_bindgen::JsStringLike,
-        options: &R2BucketOptions2,
+        options: &R2BucketPutOptions,
     ) -> Result<Promise<Option<R2Object>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub async fn put_with_blob_and_options(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &Blob,
-        options: &R2BucketOptions2,
+        options: &R2BucketPutOptions,
     ) -> Result<Option<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_blob_and_options_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &Blob,
-        options: &R2BucketOptions2,
+        options: &R2BucketPutOptions,
     ) -> Result<Promise<Option<R2Object>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     async fn put_with_null_and_options_js(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &JsValue,
-        options: &R2BucketOptions2,
+        options: &R2BucketPutOptions,
     ) -> Result<Option<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     fn put_with_null_and_options_promise_js(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &JsValue,
-        options: &R2BucketOptions2,
+        options: &R2BucketPutOptions,
     ) -> Result<Promise<Option<R2Object>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub async fn put_with_readable_stream_and_r2_put_options(
@@ -8637,7 +8637,7 @@ impl R2Bucket {
     pub async fn put_with_null_and_options(
         &self,
         key: impl ::wasm_bindgen::JsStringLike,
-        options: &R2BucketOptions2,
+        options: &R2BucketPutOptions,
     ) -> Result<Option<R2Object>, crate::Error> {
         self.put_with_null_and_options_js(key, &::wasm_bindgen::JsValue::NULL, options)
             .await
@@ -8645,7 +8645,7 @@ impl R2Bucket {
     pub fn put_with_null_and_options_promise(
         &self,
         key: impl ::wasm_bindgen::JsStringLike,
-        options: &R2BucketOptions2,
+        options: &R2BucketPutOptions,
     ) -> Result<Promise<Option<R2Object>>, crate::Error> {
         self.put_with_null_and_options_promise_js(key, &::wasm_bindgen::JsValue::NULL, options)
     }
@@ -8673,36 +8673,36 @@ impl R2Bucket {
 extern "C" {
     # [wasm_bindgen (extends = R2GetOptions , extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
-    pub type R2BucketOptions;
+    pub type R2BucketGetOptions;
     #[wasm_bindgen(method, getter, js_name = "onlyIf")]
-    pub fn only_if(this: &R2BucketOptions) -> OnlyIfKind;
+    pub fn only_if(this: &R2BucketGetOptions) -> OnlyIfKind;
     #[wasm_bindgen(method, setter, js_name = "onlyIf")]
-    pub fn set_only_if(this: &R2BucketOptions, val: &R2Conditional);
+    pub fn set_only_if(this: &R2BucketGetOptions, val: &R2Conditional);
     #[wasm_bindgen(method, setter, js_name = "onlyIf")]
-    pub fn set_only_if_with_headers(this: &R2BucketOptions, val: &Headers);
+    pub fn set_only_if_with_headers(this: &R2BucketGetOptions, val: &Headers);
 }
-impl R2BucketOptions {
-    pub fn new(only_if: &R2Conditional) -> R2BucketOptions {
+impl R2BucketGetOptions {
+    pub fn new(only_if: &R2Conditional) -> R2BucketGetOptions {
         Self::builder(only_if).build()
     }
-    pub fn new_with_headers(only_if: &Headers) -> R2BucketOptions {
+    pub fn new_with_headers(only_if: &Headers) -> R2BucketGetOptions {
         Self::builder_with_headers(only_if).build()
     }
-    pub fn builder(only_if: &R2Conditional) -> R2BucketOptionsBuilder {
-        let inner: R2BucketOptions = JsCast::unchecked_into(js_sys::Object::new());
+    pub fn builder(only_if: &R2Conditional) -> R2BucketGetOptionsBuilder {
+        let inner: R2BucketGetOptions = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_only_if(only_if);
-        R2BucketOptionsBuilder { inner }
+        R2BucketGetOptionsBuilder { inner }
     }
-    pub fn builder_with_headers(only_if: &Headers) -> R2BucketOptionsBuilder {
-        let inner: R2BucketOptions = JsCast::unchecked_into(js_sys::Object::new());
+    pub fn builder_with_headers(only_if: &Headers) -> R2BucketGetOptionsBuilder {
+        let inner: R2BucketGetOptions = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_only_if_with_headers(only_if);
-        R2BucketOptionsBuilder { inner }
+        R2BucketGetOptionsBuilder { inner }
     }
 }
-pub struct R2BucketOptionsBuilder {
-    inner: R2BucketOptions,
+pub struct R2BucketGetOptionsBuilder {
+    inner: R2BucketGetOptions,
 }
-impl R2BucketOptionsBuilder {
+impl R2BucketGetOptionsBuilder {
     pub fn range(self, val: &R2Range) -> Self {
         self.inner.set_range(val);
         self
@@ -8719,12 +8719,12 @@ impl R2BucketOptionsBuilder {
         self.inner.set_ssec_key_with_str(val);
         self
     }
-    pub fn build(self) -> R2BucketOptions {
+    pub fn build(self) -> R2BucketGetOptions {
         self.inner
     }
 }
-impl From<R2BucketOptions> for R2BucketOptionsBuilder {
-    fn from(inner: R2BucketOptions) -> Self {
+impl From<R2BucketGetOptions> for R2BucketGetOptionsBuilder {
+    fn from(inner: R2BucketGetOptions) -> Self {
         Self { inner }
     }
 }
@@ -8732,36 +8732,36 @@ impl From<R2BucketOptions> for R2BucketOptionsBuilder {
 extern "C" {
     # [wasm_bindgen (extends = R2PutOptions , extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
-    pub type R2BucketOptions2;
+    pub type R2BucketPutOptions;
     #[wasm_bindgen(method, getter, js_name = "onlyIf")]
-    pub fn only_if(this: &R2BucketOptions2) -> OnlyIfKind;
+    pub fn only_if(this: &R2BucketPutOptions) -> OnlyIfKind;
     #[wasm_bindgen(method, setter, js_name = "onlyIf")]
-    pub fn set_only_if(this: &R2BucketOptions2, val: &R2Conditional);
+    pub fn set_only_if(this: &R2BucketPutOptions, val: &R2Conditional);
     #[wasm_bindgen(method, setter, js_name = "onlyIf")]
-    pub fn set_only_if_with_headers(this: &R2BucketOptions2, val: &Headers);
+    pub fn set_only_if_with_headers(this: &R2BucketPutOptions, val: &Headers);
 }
-impl R2BucketOptions2 {
-    pub fn new(only_if: &R2Conditional) -> R2BucketOptions2 {
+impl R2BucketPutOptions {
+    pub fn new(only_if: &R2Conditional) -> R2BucketPutOptions {
         Self::builder(only_if).build()
     }
-    pub fn new_with_headers(only_if: &Headers) -> R2BucketOptions2 {
+    pub fn new_with_headers(only_if: &Headers) -> R2BucketPutOptions {
         Self::builder_with_headers(only_if).build()
     }
-    pub fn builder(only_if: &R2Conditional) -> R2BucketOptions2Builder {
-        let inner: R2BucketOptions2 = JsCast::unchecked_into(js_sys::Object::new());
+    pub fn builder(only_if: &R2Conditional) -> R2BucketPutOptionsBuilder {
+        let inner: R2BucketPutOptions = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_only_if(only_if);
-        R2BucketOptions2Builder { inner }
+        R2BucketPutOptionsBuilder { inner }
     }
-    pub fn builder_with_headers(only_if: &Headers) -> R2BucketOptions2Builder {
-        let inner: R2BucketOptions2 = JsCast::unchecked_into(js_sys::Object::new());
+    pub fn builder_with_headers(only_if: &Headers) -> R2BucketPutOptionsBuilder {
+        let inner: R2BucketPutOptions = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_only_if_with_headers(only_if);
-        R2BucketOptions2Builder { inner }
+        R2BucketPutOptionsBuilder { inner }
     }
 }
-pub struct R2BucketOptions2Builder {
-    inner: R2BucketOptions2,
+pub struct R2BucketPutOptionsBuilder {
+    inner: R2BucketPutOptions,
 }
-impl R2BucketOptions2Builder {
+impl R2BucketPutOptionsBuilder {
     pub fn http_metadata(self, val: &R2HTTPMetadata) -> Self {
         self.inner.set_http_metadata(val);
         self
@@ -8861,12 +8861,12 @@ impl R2BucketOptions2Builder {
         self.inner.set_ssec_key_with_str(val);
         self
     }
-    pub fn build(self) -> R2BucketOptions2 {
+    pub fn build(self) -> R2BucketPutOptions {
         self.inner
     }
 }
-impl From<R2BucketOptions2> for R2BucketOptions2Builder {
-    fn from(inner: R2BucketOptions2) -> Self {
+impl From<R2BucketPutOptions> for R2BucketPutOptionsBuilder {
+    fn from(inner: R2BucketPutOptions) -> Self {
         Self { inner }
     }
 }
@@ -20192,40 +20192,40 @@ extern "C" {
     #[wasm_bindgen(method, catch, js_name = "raw")]
     pub async fn raw_with_options(
         this: &D1PreparedStatement,
-        options: &D1PreparedStatementOptions,
+        options: &D1PreparedStatementRawOptions,
     ) -> Result<ArrayTuple<(Array<String>, Array<Array>)>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "raw")]
     pub fn raw_with_options_promise(
         this: &D1PreparedStatement,
-        options: &D1PreparedStatementOptions,
+        options: &D1PreparedStatementRawOptions,
     ) -> Result<Promise<ArrayTuple<(Array<String>, Array<Array>)>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "raw")]
-    pub async fn raw_with_d1_prepared_statement_options2(
+    pub async fn raw_with_d1_prepared_statement_raw_options2(
         this: &D1PreparedStatement,
-        options: &D1PreparedStatementOptions2,
+        options: &D1PreparedStatementRawOptions2,
     ) -> Result<Vec<Array>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "raw")]
-    pub fn raw_with_d1_prepared_statement_options2_promise(
+    pub fn raw_with_d1_prepared_statement_raw_options2_promise(
         this: &D1PreparedStatement,
-        options: &D1PreparedStatementOptions2,
+        options: &D1PreparedStatementRawOptions2,
     ) -> Result<Promise<Array<Array>>, crate::Error>;
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
-    pub type D1PreparedStatementOptions;
+    pub type D1PreparedStatementRawOptions;
     #[wasm_bindgen(method, getter, js_name = "columnNames")]
-    pub fn column_names(this: &D1PreparedStatementOptions) -> bool;
+    pub fn column_names(this: &D1PreparedStatementRawOptions) -> bool;
     #[wasm_bindgen(method, setter, js_name = "columnNames")]
-    pub fn set_column_names(this: &D1PreparedStatementOptions, val: bool);
+    pub fn set_column_names(this: &D1PreparedStatementRawOptions, val: bool);
 }
-impl D1PreparedStatementOptions {
+impl D1PreparedStatementRawOptions {
     #[doc = " ## Inlined fields"]
     #[doc = ""]
     #[doc = " * `columnNames: true`"]
-    pub fn new() -> D1PreparedStatementOptions {
-        let inner: D1PreparedStatementOptions = JsCast::unchecked_into(js_sys::Object::new());
+    pub fn new() -> D1PreparedStatementRawOptions {
+        let inner: D1PreparedStatementRawOptions = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_column_names(true);
         inner
     }
@@ -20234,36 +20234,36 @@ impl D1PreparedStatementOptions {
 extern "C" {
     # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
-    pub type D1PreparedStatementOptions2;
+    pub type D1PreparedStatementRawOptions2;
     #[wasm_bindgen(method, getter, js_name = "columnNames")]
-    pub fn column_names(this: &D1PreparedStatementOptions2) -> Option<bool>;
+    pub fn column_names(this: &D1PreparedStatementRawOptions2) -> Option<bool>;
     #[wasm_bindgen(method, setter, js_name = "columnNames")]
-    pub fn set_column_names(this: &D1PreparedStatementOptions2, val: bool);
+    pub fn set_column_names(this: &D1PreparedStatementRawOptions2, val: bool);
 }
-impl D1PreparedStatementOptions2 {
-    pub fn new() -> D1PreparedStatementOptions2 {
+impl D1PreparedStatementRawOptions2 {
+    pub fn new() -> D1PreparedStatementRawOptions2 {
         Self::builder().build()
     }
-    pub fn builder() -> D1PreparedStatementOptions2Builder {
-        D1PreparedStatementOptions2Builder {
+    pub fn builder() -> D1PreparedStatementRawOptions2Builder {
+        D1PreparedStatementRawOptions2Builder {
             inner: JsCast::unchecked_into(js_sys::Object::new()),
         }
     }
 }
-pub struct D1PreparedStatementOptions2Builder {
-    inner: D1PreparedStatementOptions2,
+pub struct D1PreparedStatementRawOptions2Builder {
+    inner: D1PreparedStatementRawOptions2,
 }
-impl D1PreparedStatementOptions2Builder {
+impl D1PreparedStatementRawOptions2Builder {
     pub fn column_names(self, val: bool) -> Self {
         self.inner.set_column_names(val);
         self
     }
-    pub fn build(self) -> D1PreparedStatementOptions2 {
+    pub fn build(self) -> D1PreparedStatementRawOptions2 {
         self.inner
     }
 }
-impl From<D1PreparedStatementOptions2> for D1PreparedStatementOptions2Builder {
-    fn from(inner: D1PreparedStatementOptions2) -> Self {
+impl From<D1PreparedStatementRawOptions2> for D1PreparedStatementRawOptions2Builder {
+    fn from(inner: D1PreparedStatementRawOptions2) -> Self {
         Self { inner }
     }
 }
@@ -22184,7 +22184,7 @@ extern "C" {
     pub fn get_with_args(
         this: &DispatchNamespace,
         name: impl ::wasm_bindgen::JsStringLike,
-        args: &DispatchNamespaceArgs,
+        args: &DispatchNamespaceGetArgs,
     ) -> Result<Fetcher, crate::Error>;
     #[doc = " * `name` - Name of the Worker script."]
     #[doc = " * `args` - Arguments to Worker script."]
@@ -22199,7 +22199,7 @@ extern "C" {
     pub fn get_with_args_and_options(
         this: &DispatchNamespace,
         name: impl ::wasm_bindgen::JsStringLike,
-        args: &DispatchNamespaceArgs,
+        args: &DispatchNamespaceGetArgs,
         options: &DynamicDispatchOptions,
     ) -> Result<Fetcher, crate::Error>;
 }
@@ -22207,7 +22207,7 @@ extern "C" {
 extern "C" {
     # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
-    pub type DispatchNamespaceArgs;
+    pub type DispatchNamespaceGetArgs;
 }
 #[wasm_bindgen(private)]
 pub enum IdKind {
