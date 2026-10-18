@@ -78,7 +78,7 @@ impl TryFrom<JsValue> for SqlStorageValue {
         } else if let Some(bytes) = js_val.dyn_ref::<Uint8Array>() {
             Ok(SqlStorageValue::Blob(bytes.to_vec()))
         } else if let Some(buffer) = js_val.dyn_ref::<js_sys::ArrayBuffer>() {
-            Ok(SqlStorageValue::Blob(Uint8Array::new(buffer).to_vec()))
+            Ok(SqlStorageValue::Blob(buffer.to_vec()))
         } else {
             Err(format!("Unsupported SQL value: {js_val:?}").into())
         }

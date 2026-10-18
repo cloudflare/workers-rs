@@ -5,7 +5,7 @@
 
 use std::collections::HashMap;
 
-use js_sys::{ArrayBuffer, Map, Uint8Array};
+use js_sys::{ArrayBuffer, Map};
 use wasm_bindgen::convert::{FromWasmAbi, Upcast};
 use wasm_bindgen::JsStringLike;
 #[cfg(feature = "serde")]
@@ -45,7 +45,7 @@ impl KVNamespace {
     }
 
     pub fn put_bytes(&self, key: &str, value: &[u8]) -> KvPutBuilder {
-        self.put_value(key, KvPutValue::Bytes(Uint8Array::from(value).buffer()))
+        self.put_value(key, KvPutValue::Bytes(ArrayBuffer::from(value)))
     }
 
     /// A write of the stream's chunks; any chunk type (a byte stream, `Body::body()`)
@@ -120,10 +120,6 @@ fn get_options(value_type: &str, cache_ttl: Option<u64>) -> KVNamespaceGetOption
     .build()
 }
 
-fn to_bytes(buffer: ArrayBuffer) -> Vec<u8> {
-    Uint8Array::new(&buffer).to_vec()
-}
-
 #[cfg(feature = "serde")]
 fn parse_json<T: serde::de::DeserializeOwned>(text: Option<&str>) -> Result<Option<T>> {
     Ok(text.map(serde_json::from_str).transpose()?)
@@ -176,7 +172,7 @@ impl KvGetBuilder {
             .kv
             .get_array_buffer_with_options(&self.key, &options)
             .await?;
-        Ok(buffer.map(to_bytes))
+        Ok(buffer.map(Vec::from))
     }
 
     pub async fn stream(self) -> Result<Option<ReadableStream>> {
@@ -216,7 +212,7 @@ impl KvGetBuilder {
             .kv
             .get_with_metadata_array_buffer_with_options(&self.key, &options)
             .await?;
-        Ok((entry.value().map(to_bytes), metadata(&entry)?))
+        Ok((entry.value().map(Vec::from), metadata(&entry)?))
     }
 
     #[cfg(feature = "serde")]

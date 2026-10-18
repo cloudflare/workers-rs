@@ -5835,8 +5835,6 @@ extern "C" {
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
     pub fn new_with_async_iterable(body: &JsValue) -> Result<Response, JsException>;
-    #[wasm_bindgen(constructor, catch, js_name = "Response")]
-    fn new_with_null_js(body: &JsValue) -> Result<Response, JsException>;
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
@@ -6020,12 +6018,6 @@ extern "C" {
     pub fn set_type(this: &Response, val: TypeKind);
 }
 impl Response {
-    #[doc = " ## Errors"]
-    #[doc = ""]
-    #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
-    pub fn new_with_null() -> Result<Response, JsException> {
-        Self::new_with_null_js(&::wasm_bindgen::JsValue::NULL)
-    }
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
@@ -8778,25 +8770,25 @@ extern "C" {
         key: impl ::wasm_bindgen::JsStringLike,
     ) -> Result<Promise<Option<R2ObjectBody>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
-    pub async fn get_with_options(
+    pub async fn get_with_r2_bucket_get_options(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &R2BucketGetOptions,
     ) -> Result<Option<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
-    pub fn get_with_options_promise(
+    pub fn get_with_r2_bucket_get_options_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &R2BucketGetOptions,
     ) -> Result<Promise<Option<R2Object>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
-    pub async fn get_with_r2_get_options(
+    pub async fn get_with_options(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &R2GetOptions,
     ) -> Result<Option<R2ObjectBody>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
-    pub fn get_with_r2_get_options_promise(
+    pub fn get_with_options_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &R2GetOptions,
@@ -8874,168 +8866,168 @@ extern "C" {
         value: &JsValue,
     ) -> Result<Promise<Option<R2Object>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
-    pub async fn put_with_options(
+    pub async fn put_with_r2_bucket_put_options(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &ReadableStream<impl Sized>,
         options: &R2BucketPutOptions,
     ) -> Result<Option<R2Object>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    pub fn put_with_r2_bucket_put_options_promise(
+        this: &R2Bucket,
+        key: impl ::wasm_bindgen::JsStringLike,
+        value: &ReadableStream<impl Sized>,
+        options: &R2BucketPutOptions,
+    ) -> Result<Promise<Option<R2Object>>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    pub async fn put_with_array_buffer_and_r2_bucket_put_options(
+        this: &R2Bucket,
+        key: impl ::wasm_bindgen::JsStringLike,
+        value: &ArrayBuffer,
+        options: &R2BucketPutOptions,
+    ) -> Result<Option<R2Object>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    pub fn put_with_array_buffer_and_r2_bucket_put_options_promise(
+        this: &R2Bucket,
+        key: impl ::wasm_bindgen::JsStringLike,
+        value: &ArrayBuffer,
+        options: &R2BucketPutOptions,
+    ) -> Result<Promise<Option<R2Object>>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    pub async fn put_with_typed_array_and_r2_bucket_put_options(
+        this: &R2Bucket,
+        key: impl ::wasm_bindgen::JsStringLike,
+        value: &Object,
+        options: &R2BucketPutOptions,
+    ) -> Result<Option<R2Object>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    pub fn put_with_typed_array_and_r2_bucket_put_options_promise(
+        this: &R2Bucket,
+        key: impl ::wasm_bindgen::JsStringLike,
+        value: &Object,
+        options: &R2BucketPutOptions,
+    ) -> Result<Promise<Option<R2Object>>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    pub async fn put_with_str_and_r2_bucket_put_options(
+        this: &R2Bucket,
+        key: impl ::wasm_bindgen::JsStringLike,
+        value: impl ::wasm_bindgen::JsStringLike,
+        options: &R2BucketPutOptions,
+    ) -> Result<Option<R2Object>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    pub fn put_with_str_and_r2_bucket_put_options_promise(
+        this: &R2Bucket,
+        key: impl ::wasm_bindgen::JsStringLike,
+        value: impl ::wasm_bindgen::JsStringLike,
+        options: &R2BucketPutOptions,
+    ) -> Result<Promise<Option<R2Object>>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    pub async fn put_with_blob_and_r2_bucket_put_options(
+        this: &R2Bucket,
+        key: impl ::wasm_bindgen::JsStringLike,
+        value: &Blob,
+        options: &R2BucketPutOptions,
+    ) -> Result<Option<R2Object>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    pub fn put_with_blob_and_r2_bucket_put_options_promise(
+        this: &R2Bucket,
+        key: impl ::wasm_bindgen::JsStringLike,
+        value: &Blob,
+        options: &R2BucketPutOptions,
+    ) -> Result<Promise<Option<R2Object>>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    async fn put_with_null_and_r2_bucket_put_options_js(
+        this: &R2Bucket,
+        key: impl ::wasm_bindgen::JsStringLike,
+        value: &JsValue,
+        options: &R2BucketPutOptions,
+    ) -> Result<Option<R2Object>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    fn put_with_null_and_r2_bucket_put_options_promise_js(
+        this: &R2Bucket,
+        key: impl ::wasm_bindgen::JsStringLike,
+        value: &JsValue,
+        options: &R2BucketPutOptions,
+    ) -> Result<Promise<Option<R2Object>>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "put")]
+    pub async fn put_with_options(
+        this: &R2Bucket,
+        key: impl ::wasm_bindgen::JsStringLike,
+        value: &ReadableStream<impl Sized>,
+        options: &R2PutOptions,
+    ) -> Result<R2Object, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_options_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &ReadableStream<impl Sized>,
-        options: &R2BucketPutOptions,
-    ) -> Result<Promise<Option<R2Object>>, crate::Error>;
+        options: &R2PutOptions,
+    ) -> Result<Promise<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub async fn put_with_array_buffer_and_options(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &ArrayBuffer,
-        options: &R2BucketPutOptions,
-    ) -> Result<Option<R2Object>, crate::Error>;
+        options: &R2PutOptions,
+    ) -> Result<R2Object, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_array_buffer_and_options_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &ArrayBuffer,
-        options: &R2BucketPutOptions,
-    ) -> Result<Promise<Option<R2Object>>, crate::Error>;
+        options: &R2PutOptions,
+    ) -> Result<Promise<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub async fn put_with_typed_array_and_options(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &Object,
-        options: &R2BucketPutOptions,
-    ) -> Result<Option<R2Object>, crate::Error>;
+        options: &R2PutOptions,
+    ) -> Result<R2Object, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_typed_array_and_options_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &Object,
-        options: &R2BucketPutOptions,
-    ) -> Result<Promise<Option<R2Object>>, crate::Error>;
+        options: &R2PutOptions,
+    ) -> Result<Promise<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub async fn put_with_str_and_options(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         value: impl ::wasm_bindgen::JsStringLike,
-        options: &R2BucketPutOptions,
-    ) -> Result<Option<R2Object>, crate::Error>;
+        options: &R2PutOptions,
+    ) -> Result<R2Object, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_str_and_options_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         value: impl ::wasm_bindgen::JsStringLike,
-        options: &R2BucketPutOptions,
-    ) -> Result<Promise<Option<R2Object>>, crate::Error>;
+        options: &R2PutOptions,
+    ) -> Result<Promise<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub async fn put_with_blob_and_options(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &Blob,
-        options: &R2BucketPutOptions,
-    ) -> Result<Option<R2Object>, crate::Error>;
+        options: &R2PutOptions,
+    ) -> Result<R2Object, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_blob_and_options_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &Blob,
-        options: &R2BucketPutOptions,
-    ) -> Result<Promise<Option<R2Object>>, crate::Error>;
+        options: &R2PutOptions,
+    ) -> Result<Promise<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     async fn put_with_null_and_options_js(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &JsValue,
-        options: &R2BucketPutOptions,
-    ) -> Result<Option<R2Object>, crate::Error>;
+        options: &R2PutOptions,
+    ) -> Result<R2Object, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     fn put_with_null_and_options_promise_js(
-        this: &R2Bucket,
-        key: impl ::wasm_bindgen::JsStringLike,
-        value: &JsValue,
-        options: &R2BucketPutOptions,
-    ) -> Result<Promise<Option<R2Object>>, crate::Error>;
-    #[wasm_bindgen(method, catch, js_name = "put")]
-    pub async fn put_with_readable_stream_and_r2_put_options(
-        this: &R2Bucket,
-        key: impl ::wasm_bindgen::JsStringLike,
-        value: &ReadableStream<impl Sized>,
-        options: &R2PutOptions,
-    ) -> Result<R2Object, crate::Error>;
-    #[wasm_bindgen(method, catch, js_name = "put")]
-    pub fn put_with_readable_stream_and_r2_put_options_promise(
-        this: &R2Bucket,
-        key: impl ::wasm_bindgen::JsStringLike,
-        value: &ReadableStream<impl Sized>,
-        options: &R2PutOptions,
-    ) -> Result<Promise<R2Object>, crate::Error>;
-    #[wasm_bindgen(method, catch, js_name = "put")]
-    pub async fn put_with_array_buffer_and_r2_put_options(
-        this: &R2Bucket,
-        key: impl ::wasm_bindgen::JsStringLike,
-        value: &ArrayBuffer,
-        options: &R2PutOptions,
-    ) -> Result<R2Object, crate::Error>;
-    #[wasm_bindgen(method, catch, js_name = "put")]
-    pub fn put_with_array_buffer_and_r2_put_options_promise(
-        this: &R2Bucket,
-        key: impl ::wasm_bindgen::JsStringLike,
-        value: &ArrayBuffer,
-        options: &R2PutOptions,
-    ) -> Result<Promise<R2Object>, crate::Error>;
-    #[wasm_bindgen(method, catch, js_name = "put")]
-    pub async fn put_with_typed_array_and_r2_put_options(
-        this: &R2Bucket,
-        key: impl ::wasm_bindgen::JsStringLike,
-        value: &Object,
-        options: &R2PutOptions,
-    ) -> Result<R2Object, crate::Error>;
-    #[wasm_bindgen(method, catch, js_name = "put")]
-    pub fn put_with_typed_array_and_r2_put_options_promise(
-        this: &R2Bucket,
-        key: impl ::wasm_bindgen::JsStringLike,
-        value: &Object,
-        options: &R2PutOptions,
-    ) -> Result<Promise<R2Object>, crate::Error>;
-    #[wasm_bindgen(method, catch, js_name = "put")]
-    pub async fn put_with_str_and_r2_put_options(
-        this: &R2Bucket,
-        key: impl ::wasm_bindgen::JsStringLike,
-        value: impl ::wasm_bindgen::JsStringLike,
-        options: &R2PutOptions,
-    ) -> Result<R2Object, crate::Error>;
-    #[wasm_bindgen(method, catch, js_name = "put")]
-    pub fn put_with_str_and_r2_put_options_promise(
-        this: &R2Bucket,
-        key: impl ::wasm_bindgen::JsStringLike,
-        value: impl ::wasm_bindgen::JsStringLike,
-        options: &R2PutOptions,
-    ) -> Result<Promise<R2Object>, crate::Error>;
-    #[wasm_bindgen(method, catch, js_name = "put")]
-    pub async fn put_with_blob_and_r2_put_options(
-        this: &R2Bucket,
-        key: impl ::wasm_bindgen::JsStringLike,
-        value: &Blob,
-        options: &R2PutOptions,
-    ) -> Result<R2Object, crate::Error>;
-    #[wasm_bindgen(method, catch, js_name = "put")]
-    pub fn put_with_blob_and_r2_put_options_promise(
-        this: &R2Bucket,
-        key: impl ::wasm_bindgen::JsStringLike,
-        value: &Blob,
-        options: &R2PutOptions,
-    ) -> Result<Promise<R2Object>, crate::Error>;
-    #[wasm_bindgen(method, catch, js_name = "put")]
-    async fn put_with_null_and_r2_put_options_js(
-        this: &R2Bucket,
-        key: impl ::wasm_bindgen::JsStringLike,
-        value: &JsValue,
-        options: &R2PutOptions,
-    ) -> Result<R2Object, crate::Error>;
-    #[wasm_bindgen(method, catch, js_name = "put")]
-    fn put_with_null_and_r2_put_options_promise_js(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &JsValue,
@@ -9118,39 +9110,43 @@ impl R2Bucket {
     ) -> Result<Promise<Option<R2Object>>, crate::Error> {
         self.put_with_null_promise_js(key, &::wasm_bindgen::JsValue::NULL)
     }
-    pub async fn put_with_null_and_options(
+    pub async fn put_with_null_and_r2_bucket_put_options(
         &self,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &R2BucketPutOptions,
     ) -> Result<Option<R2Object>, crate::Error> {
+        self.put_with_null_and_r2_bucket_put_options_js(
+            key,
+            &::wasm_bindgen::JsValue::NULL,
+            options,
+        )
+        .await
+    }
+    pub fn put_with_null_and_r2_bucket_put_options_promise(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &R2BucketPutOptions,
+    ) -> Result<Promise<Option<R2Object>>, crate::Error> {
+        self.put_with_null_and_r2_bucket_put_options_promise_js(
+            key,
+            &::wasm_bindgen::JsValue::NULL,
+            options,
+        )
+    }
+    pub async fn put_with_null_and_options(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &R2PutOptions,
+    ) -> Result<R2Object, crate::Error> {
         self.put_with_null_and_options_js(key, &::wasm_bindgen::JsValue::NULL, options)
             .await
     }
     pub fn put_with_null_and_options_promise(
         &self,
         key: impl ::wasm_bindgen::JsStringLike,
-        options: &R2BucketPutOptions,
-    ) -> Result<Promise<Option<R2Object>>, crate::Error> {
-        self.put_with_null_and_options_promise_js(key, &::wasm_bindgen::JsValue::NULL, options)
-    }
-    pub async fn put_with_null_and_r2_put_options(
-        &self,
-        key: impl ::wasm_bindgen::JsStringLike,
-        options: &R2PutOptions,
-    ) -> Result<R2Object, crate::Error> {
-        self.put_with_null_and_r2_put_options_js(key, &::wasm_bindgen::JsValue::NULL, options)
-            .await
-    }
-    pub fn put_with_null_and_r2_put_options_promise(
-        &self,
-        key: impl ::wasm_bindgen::JsStringLike,
         options: &R2PutOptions,
     ) -> Result<Promise<R2Object>, crate::Error> {
-        self.put_with_null_and_r2_put_options_promise_js(
-            key,
-            &::wasm_bindgen::JsValue::NULL,
-            options,
-        )
+        self.put_with_null_and_options_promise_js(key, &::wasm_bindgen::JsValue::NULL, options)
     }
 }
 #[wasm_bindgen(experimental_generic_mono)]
@@ -10967,20 +10963,20 @@ extern "C" {
     #[wasm_bindgen(constructor, catch, js_name = "ReadableStream")]
     pub fn new_typed<R>() -> Result<ReadableStream<R>, crate::Error>;
     #[wasm_bindgen(constructor, catch, js_name = "ReadableStream")]
-    pub fn new_with_underlying_source(
+    pub fn new_with_underlying_byte_source(
         underlying_source: &UnderlyingByteSource,
     ) -> Result<ReadableStream<Uint8Array>, crate::Error>;
     #[wasm_bindgen(constructor, catch, js_name = "ReadableStream")]
-    pub fn new_with_underlying_source_and_strategy(
+    pub fn new_with_underlying_byte_source_and_strategy(
         underlying_source: &UnderlyingByteSource,
         strategy: &QueuingStrategy<Uint8Array>,
     ) -> Result<ReadableStream<Uint8Array>, crate::Error>;
     #[wasm_bindgen(constructor, catch, js_name = "ReadableStream")]
-    pub fn new_with_underlying_source_underlying_source<R>(
+    pub fn new_with_underlying_source<R>(
         underlying_source: &UnderlyingSource<R>,
     ) -> Result<ReadableStream<R>, crate::Error>;
     #[wasm_bindgen(constructor, catch, js_name = "ReadableStream")]
-    pub fn new_with_underlying_source_and_queuing_strategy<R>(
+    pub fn new_with_underlying_source_and_strategy<R>(
         underlying_source: &UnderlyingSource<R>,
         strategy: &QueuingStrategy<R>,
     ) -> Result<ReadableStream<R>, crate::Error>;
@@ -16300,7 +16296,9 @@ extern "C" {
         val: &IncomingRequestCfPropertiesTLSClientAuth,
     );
     #[wasm_bindgen(method, setter, js_name = "tlsClientAuth")]
-    pub fn set_tls_client_auth_with_val<HostMetadata>(
+    pub fn set_tls_client_auth_with_incoming_request_cf_properties_tls_client_auth_placeholder<
+        HostMetadata,
+    >(
         this: &IncomingRequestCfProperties<HostMetadata>,
         val: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
     );
@@ -17275,7 +17273,9 @@ where
         inner.set_tls_cipher(tls_cipher);
         inner.set_client_trust_score(client_trust_score);
         inner.set_bot_management(bot_management);
-        inner.set_tls_client_auth_with_val(tls_client_auth);
+        inner.set_tls_client_auth_with_incoming_request_cf_properties_tls_client_auth_placeholder(
+            tls_client_auth,
+        );
         IncomingRequestCfPropertiesBuilder { inner }
     }
     #[doc = " ## Inlined fields"]
@@ -17415,7 +17415,9 @@ where
         inner.set_tls_cipher(tls_cipher);
         inner.set_client_trust_score(client_trust_score);
         inner.set_bot_management(bot_management);
-        inner.set_tls_client_auth_with_val(tls_client_auth);
+        inner.set_tls_client_auth_with_incoming_request_cf_properties_tls_client_auth_placeholder(
+            tls_client_auth,
+        );
         IncomingRequestCfPropertiesBuilder { inner }
     }
     #[doc = " ## Inlined fields"]
@@ -17555,7 +17557,9 @@ where
         inner.set_tls_cipher(tls_cipher);
         inner.set_client_trust_score(client_trust_score);
         inner.set_bot_management(bot_management);
-        inner.set_tls_client_auth_with_val(tls_client_auth);
+        inner.set_tls_client_auth_with_incoming_request_cf_properties_tls_client_auth_placeholder(
+            tls_client_auth,
+        );
         IncomingRequestCfPropertiesBuilder { inner }
     }
     #[doc = " ## Inlined fields"]
@@ -17695,7 +17699,9 @@ where
         inner.set_tls_cipher(tls_cipher);
         inner.set_client_trust_score(client_trust_score);
         inner.set_bot_management(bot_management);
-        inner.set_tls_client_auth_with_val(tls_client_auth);
+        inner.set_tls_client_auth_with_incoming_request_cf_properties_tls_client_auth_placeholder(
+            tls_client_auth,
+        );
         IncomingRequestCfPropertiesBuilder { inner }
     }
     #[doc = " ## Inlined fields"]
@@ -17835,7 +17841,9 @@ where
         inner.set_tls_cipher(tls_cipher);
         inner.set_client_trust_score(client_trust_score);
         inner.set_bot_management(bot_management);
-        inner.set_tls_client_auth_with_val(tls_client_auth);
+        inner.set_tls_client_auth_with_incoming_request_cf_properties_tls_client_auth_placeholder(
+            tls_client_auth,
+        );
         IncomingRequestCfPropertiesBuilder { inner }
     }
     #[doc = " ## Inlined fields"]
@@ -17975,7 +17983,9 @@ where
         inner.set_tls_cipher(tls_cipher);
         inner.set_client_trust_score(client_trust_score);
         inner.set_bot_management(bot_management);
-        inner.set_tls_client_auth_with_val(tls_client_auth);
+        inner.set_tls_client_auth_with_incoming_request_cf_properties_tls_client_auth_placeholder(
+            tls_client_auth,
+        );
         IncomingRequestCfPropertiesBuilder { inner }
     }
 }
@@ -19013,7 +19023,7 @@ extern "C" {
         val: &IncomingRequestCfPropertiesTLSClientAuth,
     );
     #[wasm_bindgen(method, setter, js_name = "tlsClientAuth")]
-    pub fn set_tls_client_auth_with_val(
+    pub fn set_tls_client_auth_with_incoming_request_cf_properties_tls_client_auth_placeholder(
         this: &IncomingRequestCfPropertiesCloudflareAccessOrApiShield,
         val: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
     );
@@ -19056,7 +19066,9 @@ impl IncomingRequestCfPropertiesCloudflareAccessOrApiShield {
     ) -> IncomingRequestCfPropertiesCloudflareAccessOrApiShield {
         let inner: IncomingRequestCfPropertiesCloudflareAccessOrApiShield =
             JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_tls_client_auth_with_val(tls_client_auth);
+        inner.set_tls_client_auth_with_incoming_request_cf_properties_tls_client_auth_placeholder(
+            tls_client_auth,
+        );
         inner
     }
 }
@@ -20714,12 +20726,12 @@ extern "C" {
     #[wasm_bindgen(method, catch, js_name = "raw")]
     pub fn raw_promise(this: &D1PreparedStatement) -> Result<Promise<Array<Array>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "raw")]
-    pub async fn raw_with_options(
+    pub async fn raw_with_d1_prepared_statement_raw_options(
         this: &D1PreparedStatement,
         options: &D1PreparedStatementRawOptions,
     ) -> Result<ArrayTuple<(Array<String>, Array<Array>)>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "raw")]
-    pub fn raw_with_options_promise(
+    pub fn raw_with_d1_prepared_statement_raw_options_promise(
         this: &D1PreparedStatement,
         options: &D1PreparedStatementRawOptions,
     ) -> Result<Promise<ArrayTuple<(Array<String>, Array<Array>)>>, crate::Error>;
@@ -20740,12 +20752,12 @@ extern "C" {
         this: &D1PreparedStatement,
     ) -> Result<Promise<Array<T>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "raw")]
-    pub async fn raw_with_options_typed<T>(
+    pub async fn raw_with_d1_prepared_statement_raw_options_typed<T>(
         this: &D1PreparedStatement,
         options: &D1PreparedStatementRawOptions,
     ) -> Result<ArrayTuple<(Array<String>, Array<T>)>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "raw")]
-    pub fn raw_with_options_typed_promise<T>(
+    pub fn raw_with_d1_prepared_statement_raw_options_typed_promise<T>(
         this: &D1PreparedStatement,
         options: &D1PreparedStatementRawOptions,
     ) -> Result<Promise<ArrayTuple<(Array<String>, Array<T>)>>, crate::Error>;

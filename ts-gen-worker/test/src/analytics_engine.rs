@@ -1,6 +1,5 @@
 use super::SomeSharedData;
 use crate::Env;
-use js_sys::Uint8Array;
 use ts_gen_worker::*;
 use uuid::Uuid;
 
@@ -16,9 +15,7 @@ pub async fn handle_analytics_event(
         .indexes(&["index1".into()])
         .blobs(&[
             req.method().into(),
-            Uint8Array::from(request_id.as_bytes().as_ref())
-                .buffer()
-                .into(),
+            js_sys::ArrayBuffer::from(&request_id.as_bytes()[..]).into(),
         ])
         .doubles(&[200.0])
         .build();

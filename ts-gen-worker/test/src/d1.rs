@@ -1,5 +1,5 @@
 use crate::{Env, SomeSharedData};
-use js_sys::{Object, Uint8Array};
+use js_sys::Object;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use ts_gen_worker::*;
@@ -258,7 +258,7 @@ pub async fn exec(req: Request, env: Env, _data: SomeSharedData) -> Result<Respo
 
 pub async fn dump(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let db = env.db();
-    let bytes = Uint8Array::new(&db.dump().await?.into()).to_vec();
+    let bytes = db.dump().await?.to_vec();
     Response::builder().from_bytes(&bytes)
 }
 

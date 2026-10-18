@@ -1,4 +1,4 @@
-use js_sys::Uint8Array;
+use js_sys::{ArrayBuffer, Uint8Array};
 use wasm_bindgen::{JsCast, JsStringLike};
 
 use crate::{
@@ -86,7 +86,7 @@ impl ResponseInitBuilder {
 
     /// A body of raw bytes.
     pub fn from_bytes(self, bytes: impl AsRef<[u8]>) -> Result<Response> {
-        let buffer = Uint8Array::from(bytes.as_ref()).buffer();
+        let buffer = ArrayBuffer::from(bytes.as_ref());
         Ok(Response::new_with_array_buffer_and_init(
             &buffer,
             &self.build(),
