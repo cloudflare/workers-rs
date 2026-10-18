@@ -11,9 +11,8 @@ wherever a name was free. The full row-by-row list is the migration table in
 
 Every sync binding that can throw returns `Result`, so a few calls gain a `?`
 (`Headers::new()?`, `ctx.pass_through_on_exception()?`). Async members return a typed
-`Promise<T>` that awaits to the native type (`text().await?` is a `String`) and passes back to JS
-as is. It rejects with a `JsValue`, so a tail `x.await` in a fn returning `Result` is
-`Ok(x.await?)`.
+`Promise<T, Error>` that awaits to `Result<T, Error>` (`text().await?` is a `String`) and passes
+back to JS (`p.upcast()` where a `&Promise` is taken).
 
 The bindings are generated with mono generics on js-sys's unstable API
 (`--cfg js_sys_unstable_apis`, set in `.cargo/config.toml`), so js-sys collections behave
