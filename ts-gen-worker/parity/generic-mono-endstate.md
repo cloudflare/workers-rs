@@ -11,8 +11,8 @@ from the #5167 compile matrix (`~/Projects/wasm-bindgen-5` `2497681c1`, stable j
 ## Verdict
 
 1. B builds as generated, with no stopgaps, and passes the suite (195/195, plain and `-http`; A has 194, plus the `MessageEvent` catch-all test). The port has none of: `JsString`, `String::from(<js>)`, `JsNullable`, `None::<…>`, `map_err(|e| e.to_string())`, `JsFuture::from` at call sites. `unchecked_*` casts went from 29 (A) to 4. Each of the 4 sits at an `any`-typed or erased boundary (§2).
-2. Everything phase 1 assumed is built, and the R audit's items are done except the ones in §6. Phase 2 also built Rust iteration, `Object<T>` as a map, typed KV reads, byte-stream bodies, one argument for buffer sources, one `Promise<T, crate::Error>` per async method, and shorter overload names.
-3. The cost in commits: 15 wasm-bindgen/js-sys commits and 34 ts-gen commits on top of phase 1. Under the cfg, js-sys is a different API in which collections behave like Rust collections. That API break, and the fallout in `worker`, serde-wasm-bindgen and wasm-streams, is the price of the containers. `worker` is not ported (§6).
+2. Everything phase 1 assumed is built, and the R audit's items are done except the ones in §6. Phase 2 also built Rust iteration, `Object<T>` as a map, typed KV reads, byte-stream bodies, one argument for buffer sources, one `Promise<T, crate::Error>` per async method, shorter overload names, and signatures whose bounds are the declaration's (no `WasmDescribe` or `for<'__wbg>` in rustdoc, §3).
+3. The cost in commits: 20 wasm-bindgen/js-sys commits (three are wasm-bindgen#5385) and 35 ts-gen commits on top of phase 1. Under the cfg, js-sys is a different API in which collections behave like Rust collections. That API break, and the fallout in `worker`, serde-wasm-bindgen and wasm-streams, is the price of the containers. `worker` is not ported (§6).
 4. The cost in size and time: benchmark wasm +846 (+0.7%), test glue +9,486 (+5.4%) (phase 1: +12.7%), test imports +19 (phase 1: +16), 0 generic shims (phase 1: 177). `ts-gen-worker` compiles +5% debug and +6% release (§4).
 5. Mono's own lead over C is unchanged from phase 1:
    - leaf type arguments on generated generics (`get::<f64>`, `get_with_metadata_typed::<f64>`, `first`);
@@ -539,7 +539,7 @@ entries, SQL values and `Error::cause`. No `::<JsValue>` is left on a binding:
 `tools/api-diff` over the generated `bindings.rs` (item-keyed signatures):
 
 - **B vs A**: 1409 items changed, 585 removed, 437 added, 3061 unchanged. Most removed/added pairs are renames (overload suffixes, `_with_null` arms, KV typed reads).
-- **B vs B1**: 505 changed, 946 removed (376 of them `_js_string` twins), 427 added, 3975 unchanged.
+- **B vs B1**: 539 changed, 946 removed (376 of them `_js_string` twins), 427 added, 3941 unchanged.
 
 Type-level counts (doc and comment lines skipped):
 
@@ -569,7 +569,7 @@ Type-level counts (doc and comment lines skipped):
 | `impl js_sys::Js…Like` (primitive unions) | 0 | 13 | 12 |
 | `Option<&str>` / `&[String]` | 124 | 0 | 0 |
 | `: JsGeneric` bounds | 666 | 75 | 0 |
-| `for<'a>` where-clauses | 0 | 66 | 12 |
+| `for<'a>` where-clauses | 0 | 66 | 0 |
 | `_typed` fns | 0 | 0 | 51 |
 | `_with_null` fns | 0 | 0 | 10 |
 | public fn names over 50 chars | 109 | 113 | 50 |
@@ -580,12 +580,100 @@ Type-level counts (doc and comment lines skipped):
 | `_promise` twins | 277 | 276 | 0 |
 | `async fn`s | 277 | 292 | 0 |
 | `KVNamespace` get/put/list/delete fns | 70 | 78 | 73 |
-| lines | 18,366 | 19,548 | 17,745 |
+| lines | 18,366 | 19,548 | 17,756 |
+
+**Rustdoc signatures.** With wasm-bindgen#5385 the mono macro adds no ABI bounds to the public wrapper, so
+the declaration's bounds are the whole contract, and ts-gen states exactly those (`1fb83ab`):
+- `impl JsStringLike` / `impl BufferSourceLike` arguments and concrete imported types (`&RequestInit<Cf>`,
+  `Promise<T, crate::Error>`, `&Function<fn(MessageEvent)>`) need nothing: their ABI impls are unconditional.
+- `&T` / `Option<&T>` arguments are `T: RefIntoWasmAbi`, by-value `T` is `T: IntoWasmAbi`, `&[T]` is
+  `T: VectorRefIntoWasmAbi`, and returns are `T: FromWasmAbi`, all inline. `RefIntoWasmAbi` is per type, like
+  upstream's `RefFromWasmAbi`: the macro implements it for each imported type, and wasm-bindgen for `JsValue`,
+  strings and primitives. There is no `&T` blanket (`5314b95a1`).
+- `Option<T>` and `Vec<T>` returns are bounded whole, in a first-order `where Option<T>: FromWasmAbi`.
+  `T: OptionFromWasmAbi` would be inline but is the helper of upstream's `Option<T>` blanket, and it excludes
+  `f64` (`KVNamespaceGetWithMetadataResult<_, f64>::metadata()`).
+
+Counts over every fn signature in the crate's rustdoc (`for<'__wbg>` was the macro's, `WasmDescribe` every
+synthesized bound's). The total grows by 4 × 299: each imported type now lists its own `RefIntoWasmAbi`
+and the restored upstream `IntoWasmAbi` / `OptionIntoWasmAbi for &Foo` impls:
+
+| in rustdoc signatures | before | after |
+|---|---:|---:|
+| `WasmDescribe` | 1,879 | 0 |
+| `for<'` | 1,104 | 0 |
+| `+ IntoWasmAbi` | 925 | 0 |
+| `IntoWasmAbi` (not `RefIntoWasmAbi`) | 1,748 | 0 |
+| `RefIntoWasmAbi` | 53 | 18 |
+| `FromWasmAbi` | 131 | 5 |
+| signatures with an ABI `where` | 808 | 8 |
+| fn signatures (total) | 31,802 | 32,998 |
+
+```rust
+// before
+pub fn new_with_str_and_init(input: impl JsStringLike + IntoWasmAbi + WasmDescribe, init: &RequestInit<Cf>)
+    -> Result<Request<JsValue, Cf>, JsException>
+    where for<'__wbg> &'__wbg RequestInit<Cf>: IntoWasmAbi + WasmDescribe, Request<JsValue, Cf>: FromWasmAbi +
+        WasmDescribe,
+// after
+pub fn new_with_str_and_init(input: impl JsStringLike, init: &RequestInit<Cf>)
+    -> Result<Request<JsValue, Cf>, JsException>
+```
+```rust
+// before
+pub fn get_with_metadata_typed<Metadata>(&self, key: impl JsStringLike + IntoWasmAbi + WasmDescribe)
+    -> Promise<KVNamespaceGetWithMetadataResult<String, Metadata>, Error>
+    where Promise<KVNamespaceGetWithMetadataResult<String, Metadata>, Error>: FromWasmAbi + WasmDescribe,
+// after
+pub fn get_with_metadata_typed<Metadata>(&self, key: impl JsStringLike)
+    -> Promise<KVNamespaceGetWithMetadataResult<String, Metadata>, Error>
+```
+```rust
+// before
+pub fn put_with_buffer_source(&self, key: impl JsStringLike + IntoWasmAbi + WasmDescribe, value: impl
+    BufferSourceLike + IntoWasmAbi + WasmDescribe)
+    -> Promise<Option<R2Object>, Error>
+// after
+pub fn put_with_buffer_source(&self, key: impl JsStringLike, value: impl BufferSourceLike)
+    -> Promise<Option<R2Object>, Error>
+```
+```rust
+// before
+pub fn put<T>(&self, key: impl JsStringLike + IntoWasmAbi + WasmDescribe, value: &T)
+    -> Promise<(), Error>
+    where for<'__wbg> &'__wbg T: IntoWasmAbi + WasmDescribe,
+// after
+pub fn put<T: RefIntoWasmAbi>(&self, key: impl JsStringLike, value: &T) -> Promise<(), Error>
+```
+```rust
+// before
+pub fn get_random_values<T>(&self, buffer: &T)
+    -> Result<T, Error>
+    where for<'__wbg> &'__wbg T: IntoWasmAbi + WasmDescribe, T: FromWasmAbi + WasmDescribe,
+// after
+pub fn get_random_values<T: RefIntoWasmAbi + FromWasmAbi>(&self, buffer: &T) -> Result<T, Error>
+```
+```rust
+// before
+pub fn cf(self, val: &Cf) -> Self where for<'__wbg> &'__wbg Cf: IntoWasmAbi + WasmDescribe,
+// after
+pub fn cf(self, val: &Cf) -> Self where Cf: RefIntoWasmAbi,
+```
+
+What is left in rustdoc:
+- 8 `where` clauses, all first-order: 7 builder methods (`pub fn value(self, val: &R) -> Self where R: RefIntoWasmAbi`),
+  where the bound on the builder's own parameter stays method-level so the other builder methods remain callable
+  for an `R` with no ABI; and `SyncKvStorage::get<T>` (`where Option<T>: FromWasmAbi`). The getters' and helpers'
+  bounds are hoisted to the `impl` header (`impl<R> ReadableStreamReadResult<R> where Option<R>: FromWasmAbi`).
+- A class's methods are split across `impl` blocks, one per bound set: `KVNamespaceGetWithMetadataResult`
+  has seven.
+- `respond_with_new_view(view: impl BufferSourceLike + AsRef<JsValue>)`: the `{@slice handle}` restriction, which
+  excludes `&[u8]` because the view is transferred back. It is not an ABI bound.
 
 Every item that is **still worse in B than in A**:
 - **`&[String]` → `&[impl JsStringLike]`:** `&[]` needs `&[] as &[&str]`. Literal lists and `&Vec<String>` both work.
 - **`Option<&str>` → `Option<impl JsStringLike>` (15):** this remains on raw setters and on required nullable dictionary fields. `None` there needs `None::<&str>`. Builders and expanded unions no longer have it.
-- **Generic user code over a helper** must restate a `for<'a> &'a T: IntoWasmAbi` bound when the helper's `T` is unbounded (12 where-clauses, down from phase 1's 66; handle-bounded helpers need none). A needed `T: JsGeneric`.
+- **Generic user code over a binding** restates the binding's declared bound: `T: RefIntoWasmAbi` for a `&T` argument, `T: FromWasmAbi` for a return, `Option<T>: FromWasmAbi` / `Vec<T>: FromWasmAbi` for those returns. All are first-order (phase 1 had 66 `for<'a>` clauses, phase 2 before #5385 had 12). A needed `T: JsGeneric`, which still covers a `&T` argument (`JsGeneric: RefIntoWasmAbi`).
 - **Surface size.** The added items are:
   - `_typed` twins (51), for constructors and nested return-only parameters;
   - `_with_null` arms (10);
@@ -599,7 +687,7 @@ Every item that is **still worse in B than in A**:
 **Size.** Each state is built from its own commit with its own wasm-bindgen pin, on the same
 machine. The benchmark worker is a release build run through `wasm-opt -Oz` with
 `benchmark/build.sh`'s flags. The test worker is a debug build and covers the whole suite's
-surface. gz is `gzip -9`. B was measured at `b901d43`; the commits after it drop two unused string twins and add the `DataKind` catch-all arm with its test route. The benchmark `index.js` is unchanged since round 2, as are its imports. A was re-measured for this report and
+surface. gz is `gzip -9`. B was measured at `b901d43`; the commits after it drop two unused string twins and add the `DataKind` catch-all arm with its test route. The benchmark `index.js` is unchanged since round 2, as are its imports. The explicit bounds (`d51120d`) leave the benchmark wasm the same size. A was re-measured for this report and
 reproduces phase 1's numbers exactly. B1 is phase 1's measurement.
 
 | | A | B1 | B | B − A |
@@ -625,7 +713,7 @@ phase 1's measurement.
 What moved since phase 1 (B1 → B):
 - **Generic shims 177 → 0, glue +22,270 B → +9,486 B over A.** J's wire-format grouping makes `&str`, `String`, `&String` and `JsString` one import, and handles one import whether passed by value or by reference. The `// generic import` comments are gone without `--keep-debug`. Owned strings cross borrowed, so the `finally` frees went from 14 to 6 (A has 10).
 - **Twins 383 → 15.** `{@string copy}` on small strings means less surface. The output does not depend on it, because unused twins never reach the binary.
-- **Compile time +23–25% → +5–6% over A.** D1 removed every `async fn` wrapper and `_promise` twin, and A3 the buffer arm pairs. `bindings.rs` is now 21,483 lines, against A's 22,148, B1's 23,740 and round 1's 23,890.
+- **Compile time +23–25% → +5–6% over A.** D1 removed every `async fn` wrapper and `_promise` twin, and A3 the buffer arm pairs. `bindings.rs` is now 21,494 lines, against A's 22,148, B1's 23,740 and round 1's 23,890.
 
 What B still costs over A:
 - **Benchmark: +3 imports, +0.7% wasm (gzip +0.1%).** The import diff, with A's and B's import bodies normalised, is three swaps and three additions:
@@ -667,6 +755,7 @@ Every change B needed, all built (commits and files in `mono-prototype-patches.m
 | `T \| null` args: bare arms + `_with_null` arm; bare builder values | ts-gen | 2 | no |
 | callbacks with Rust leaves, `Promise<()>` | ts-gen | 2 | yes |
 | async methods return `Promise<T, crate::Error>`, with no `async fn` / `_promise` pair | ts-gen | 2 | partly |
+| bounds are the declaration's: inline `T: RefIntoWasmAbi` / `T: FromWasmAbi`, first-order `Option<T>: FromWasmAbi`, nothing on `impl …Like` or concrete types | wasm-bindgen (#5385, per-type `RefIntoWasmAbi`) + ts-gen | 2 | yes |
 | `Iterable<T>` → slices; alias leaves; optional `any` → `Option<JsValue>`; generated `IntoIterator` | ts-gen | 2 | no |
 | per-literal overload bindings (KV typed reads); literal-only dictionaries set by the binding (`raw_with_column_names`, `get_reader_byob`); shorter overload and inline-type names | ts-gen | 2 | no |
 | `ArrayBuffer \| ArrayBufferView` → `impl BufferSourceLike`, copied unless `{@slice view}`, handles only for `{@slice handle}`; `this` returns the receiver; optional `Partial` getters | ts-gen + `annotations.d.ts` | 2 | partly |
