@@ -10494,6 +10494,248 @@ extern "C" {
     pub fn binary_type(this: &WebSocket) -> BinaryTypeKind;
     #[wasm_bindgen(method, setter, js_name = "binaryType")]
     pub fn set_binary_type(this: &WebSocket, val: BinaryTypeKind);
+    #[wasm_bindgen(method, catch, js_name = "addEventListener")]
+    fn add_event_listener_close_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &Function<fn(CloseEvent)>,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "addEventListener")]
+    fn add_event_listener_close_with_event_listener_object_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &EventListenerObject<CloseEvent>,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "addEventListener")]
+    fn add_event_listener_message_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &Function<fn(MessageEvent)>,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "addEventListener")]
+    fn add_event_listener_message_with_event_listener_object_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &EventListenerObject<MessageEvent>,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "addEventListener")]
+    fn add_event_listener_open_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &Function<fn(Event)>,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "addEventListener")]
+    fn add_event_listener_open_with_event_listener_object_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &EventListenerObject<Event>,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "addEventListener")]
+    fn add_event_listener_error_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &Function<fn(ErrorEvent)>,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "addEventListener")]
+    fn add_event_listener_error_with_event_listener_object_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &EventListenerObject<ErrorEvent>,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
+    fn remove_event_listener_close_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &Function<fn(CloseEvent)>,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
+    fn remove_event_listener_close_with_event_listener_object_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &EventListenerObject<CloseEvent>,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
+    fn remove_event_listener_message_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &Function<fn(MessageEvent)>,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
+    fn remove_event_listener_message_with_event_listener_object_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &EventListenerObject<MessageEvent>,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
+    fn remove_event_listener_open_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &Function<fn(Event)>,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
+    fn remove_event_listener_open_with_event_listener_object_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &EventListenerObject<Event>,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
+    fn remove_event_listener_error_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &Function<fn(ErrorEvent)>,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
+    fn remove_event_listener_error_with_event_listener_object_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &EventListenerObject<ErrorEvent>,
+    ) -> Result<(), crate::Error>;
+}
+impl WebSocket {
+    #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
+    pub fn add_event_listener_close(
+        &self,
+        handler: &Function<fn(CloseEvent)>,
+    ) -> Result<(), crate::Error> {
+        self.add_event_listener_close_js("close", handler)
+    }
+    #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
+    pub fn add_event_listener_close_with_event_listener_object(
+        &self,
+        handler: &EventListenerObject<CloseEvent>,
+    ) -> Result<(), crate::Error> {
+        self.add_event_listener_close_with_event_listener_object_js("close", handler)
+    }
+    #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
+    pub fn add_event_listener_message(
+        &self,
+        handler: &Function<fn(MessageEvent)>,
+    ) -> Result<(), crate::Error> {
+        self.add_event_listener_message_js("message", handler)
+    }
+    #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
+    pub fn add_event_listener_message_with_event_listener_object(
+        &self,
+        handler: &EventListenerObject<MessageEvent>,
+    ) -> Result<(), crate::Error> {
+        self.add_event_listener_message_with_event_listener_object_js("message", handler)
+    }
+    #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
+    pub fn add_event_listener_open(
+        &self,
+        handler: &Function<fn(Event)>,
+    ) -> Result<(), crate::Error> {
+        self.add_event_listener_open_js("open", handler)
+    }
+    #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
+    pub fn add_event_listener_open_with_event_listener_object(
+        &self,
+        handler: &EventListenerObject<Event>,
+    ) -> Result<(), crate::Error> {
+        self.add_event_listener_open_with_event_listener_object_js("open", handler)
+    }
+    #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
+    pub fn add_event_listener_error(
+        &self,
+        handler: &Function<fn(ErrorEvent)>,
+    ) -> Result<(), crate::Error> {
+        self.add_event_listener_error_js("error", handler)
+    }
+    #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
+    pub fn add_event_listener_error_with_event_listener_object(
+        &self,
+        handler: &EventListenerObject<ErrorEvent>,
+    ) -> Result<(), crate::Error> {
+        self.add_event_listener_error_with_event_listener_object_js("error", handler)
+    }
+    #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target. The event listener to be removed is identified using a combination of the event type, the event listener function itself, and various optional options that may affect the matching process; see Matching event listeners for removal."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
+    pub fn remove_event_listener_close(
+        &self,
+        handler: &Function<fn(CloseEvent)>,
+    ) -> Result<(), crate::Error> {
+        self.remove_event_listener_close_js("close", handler)
+    }
+    #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target. The event listener to be removed is identified using a combination of the event type, the event listener function itself, and various optional options that may affect the matching process; see Matching event listeners for removal."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
+    pub fn remove_event_listener_close_with_event_listener_object(
+        &self,
+        handler: &EventListenerObject<CloseEvent>,
+    ) -> Result<(), crate::Error> {
+        self.remove_event_listener_close_with_event_listener_object_js("close", handler)
+    }
+    #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target. The event listener to be removed is identified using a combination of the event type, the event listener function itself, and various optional options that may affect the matching process; see Matching event listeners for removal."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
+    pub fn remove_event_listener_message(
+        &self,
+        handler: &Function<fn(MessageEvent)>,
+    ) -> Result<(), crate::Error> {
+        self.remove_event_listener_message_js("message", handler)
+    }
+    #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target. The event listener to be removed is identified using a combination of the event type, the event listener function itself, and various optional options that may affect the matching process; see Matching event listeners for removal."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
+    pub fn remove_event_listener_message_with_event_listener_object(
+        &self,
+        handler: &EventListenerObject<MessageEvent>,
+    ) -> Result<(), crate::Error> {
+        self.remove_event_listener_message_with_event_listener_object_js("message", handler)
+    }
+    #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target. The event listener to be removed is identified using a combination of the event type, the event listener function itself, and various optional options that may affect the matching process; see Matching event listeners for removal."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
+    pub fn remove_event_listener_open(
+        &self,
+        handler: &Function<fn(Event)>,
+    ) -> Result<(), crate::Error> {
+        self.remove_event_listener_open_js("open", handler)
+    }
+    #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target. The event listener to be removed is identified using a combination of the event type, the event listener function itself, and various optional options that may affect the matching process; see Matching event listeners for removal."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
+    pub fn remove_event_listener_open_with_event_listener_object(
+        &self,
+        handler: &EventListenerObject<Event>,
+    ) -> Result<(), crate::Error> {
+        self.remove_event_listener_open_with_event_listener_object_js("open", handler)
+    }
+    #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target. The event listener to be removed is identified using a combination of the event type, the event listener function itself, and various optional options that may affect the matching process; see Matching event listeners for removal."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
+    pub fn remove_event_listener_error(
+        &self,
+        handler: &Function<fn(ErrorEvent)>,
+    ) -> Result<(), crate::Error> {
+        self.remove_event_listener_error_js("error", handler)
+    }
+    #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target. The event listener to be removed is identified using a combination of the event type, the event listener function itself, and various optional options that may affect the matching process; see Matching event listeners for removal."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
+    pub fn remove_event_listener_error_with_event_listener_object(
+        &self,
+        handler: &EventListenerObject<ErrorEvent>,
+    ) -> Result<(), crate::Error> {
+        self.remove_event_listener_error_with_event_listener_object_js("error", handler)
+    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
