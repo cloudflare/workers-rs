@@ -7163,7 +7163,6 @@ extern "C" {
     ) -> Result<Promise<Map<String, Option<String>>>, crate::Error>;
     #[wasm_bindgen(method, catch)]
     pub async fn list(this: &KVNamespace) -> Result<KVNamespaceListResult<JsValue>, crate::Error>;
-    // ts-gen mono: `list_js_string` removed; its return passes an argument for an erased type parameter (generic-mono.md #3)
     #[wasm_bindgen(method, catch, js_name = "list")]
     pub fn list_promise(
         this: &KVNamespace,
@@ -7173,7 +7172,6 @@ extern "C" {
         this: &KVNamespace,
         options: &KVNamespaceListOptions,
     ) -> Result<KVNamespaceListResult<JsValue>, crate::Error>;
-    // ts-gen mono: `list_with_options_js_string` removed; its return passes an argument for an erased type parameter (generic-mono.md #3)
     #[wasm_bindgen(method, catch, js_name = "list")]
     pub fn list_with_options_promise(
         this: &KVNamespace,
@@ -7467,7 +7465,6 @@ impl KVNamespace {
     ) -> Result<Option<String>, crate::Error> {
         self.get_text_js(key, "text").await
     }
-    // ts-gen mono: `_js_string` twin of an inline wrapper took the base name (generic-mono.md #4)
     pub async fn get_text_js_string(
         &self,
         key: impl ::wasm_bindgen::JsStringLike,
@@ -7484,14 +7481,21 @@ impl KVNamespace {
     pub async fn get_json<ExpectedValue: 'static + ::wasm_bindgen::convert::OptionFromWasmAbi>(
         &self,
         key: impl ::wasm_bindgen::JsStringLike,
-    ) -> Result<Option<ExpectedValue>, crate::Error> {
+    ) -> Result<Option<ExpectedValue>, crate::Error>
+    where
+        Option<ExpectedValue>: ::wasm_bindgen::convert::FromWasmAbi + 'static,
+    {
         self.get_json_js(key, "json").await
     }
     // ts-gen mono: `'static` on the inline wrapper's type parameters (generic-mono.md #5)
     pub fn get_json_promise<ExpectedValue: 'static + ::wasm_bindgen::convert::OptionFromWasmAbi>(
         &self,
         key: impl ::wasm_bindgen::JsStringLike,
-    ) -> Result<Promise<Option<ExpectedValue>>, crate::Error> {
+    ) -> Result<Promise<Option<ExpectedValue>>, crate::Error>
+    where
+        Promise<Option<ExpectedValue>>:
+            ::wasm_bindgen::convert::FromWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+    {
         self.get_json_promise_js(key, "json")
     }
     pub async fn get_array_buffer(
@@ -7548,7 +7552,6 @@ impl KVNamespace {
     ) -> Result<KVNamespaceGetWithMetadataResult<String, JsValue>, crate::Error> {
         self.get_with_metadata_text_js(key, "text").await
     }
-    // ts-gen mono: `_js_string` twin of an inline wrapper took the base name (generic-mono.md #4)
     pub async fn get_with_metadata_text_js_string(
         &self,
         key: impl ::wasm_bindgen::JsStringLike,
