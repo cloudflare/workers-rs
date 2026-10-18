@@ -26,7 +26,9 @@ async fn read_exact(reader: &ReadableStreamDefaultReader, buf: &mut [u8]) -> Res
 }
 
 async fn write_all(writer: &WritableStreamDefaultWriter, data: &[u8]) -> Result<()> {
-    writer.write_with_chunk(&Uint8Array::from(data)).await?;
+    writer
+        .write_with_chunk(Uint8Array::from(data).into())
+        .await?;
     Ok(())
 }
 
@@ -56,7 +58,7 @@ async fn handle_udp(socket: Socket) -> Result<()> {
             break;
         }
         writer
-            .write_with_chunk(&chunk.value().unwrap_or_default())
+            .write_with_chunk(chunk.value().unwrap_or_default())
             .await?;
     }
     Ok(())

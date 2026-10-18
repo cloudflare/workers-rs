@@ -149,7 +149,7 @@ async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response
             let sum: u32 = bytes.iter().map(|b| *b as u32).sum();
             let out = Uint8Array::from(&bytes[..]);
             let headers = Headers::new()?;
-            headers.set("x-sum", &sum.to_string())?;
+            headers.set("x-sum", sum.to_string())?;
             Ok(Response::new_with_array_buffer_and_init(
                 &JsNullable::wrap(out.buffer()),
                 &ResponseInit::builder().headers(&headers).build(),

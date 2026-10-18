@@ -38,7 +38,11 @@ deps = ['install:ts-gen']
 # `ts_gen_worker::Error` but share the crate's `JsException` rather than
 # generating a second enum. The Env file references binding types from the
 # crate; ts-gen has no file-level `--external`, so each one is mapped by name.
-run = '''ts-gen --input node_modules/@cloudflare/workers-types/index.d.ts \
+#
+# Under `--experimental-generic-mono` the generated bindings do not compile as
+# emitted; `mono-patch` applies the stopgap edits listed in
+# `ts-gen-worker/parity/generic-mono.md`, each marked `// ts-gen mono:`.
+run = '''ts-gen --experimental-generic-mono --input node_modules/@cloudflare/workers-types/index.d.ts \
   --output ts-gen-worker/src/bindings.rs \
   --fallible --error-type crate::Error --error-enum JsException \
   --annotate ts-gen-worker/types/annotations.d.ts \
@@ -65,7 +69,9 @@ run = '''ts-gen --input node_modules/@cloudflare/workers-types/index.d.ts \
   --export IncomingRequestCfProperties RequestInitCfProperties \
   --export crypto DigestStream console performance setTimeout clearTimeout \
   --export cloudflare:sockets
-ts-gen --input ts-gen-worker/test/types/env.d.ts --output ts-gen-worker/test/src/env.rs \
+cargo run -q --release --manifest-path ts-gen-worker/tools/Cargo.toml --bin mono-patch -- ts-gen-worker/src/bindings.rs
+rustfmt --edition 2021 ts-gen-worker/src/bindings.rs
+ts-gen --experimental-generic-mono --input ts-gen-worker/test/types/env.d.ts --output ts-gen-worker/test/src/env.rs \
   --fallible --error-type ts_gen_worker::Error \
   --external "KVNamespace=::ts_gen_worker::KVNamespace" \
   --external "Queue=::ts_gen_worker::Queue" \
@@ -77,7 +83,7 @@ ts-gen --input ts-gen-worker/test/types/env.d.ts --output ts-gen-worker/test/src
   --external "SendEmail=::ts_gen_worker::SendEmail" \
   --external "D1Database=::ts_gen_worker::D1Database" \
   --external "R2Bucket=::ts_gen_worker::R2Bucket"
-ts-gen --input ts-gen-worker/benchmark/types/env.d.ts --output ts-gen-worker/benchmark/src/env.rs \
+ts-gen --experimental-generic-mono --input ts-gen-worker/benchmark/types/env.d.ts --output ts-gen-worker/benchmark/src/env.rs \
   --fallible --error-type ts_gen_worker::Error \
   --external "KVNamespace=::ts_gen_worker::KVNamespace" \
   --external "Fetcher=::ts_gen_worker::Fetcher"'''

@@ -102,8 +102,8 @@ impl ToRawKvValue for String {
 /// string, an `ArrayBuffer` or a stream depending on the requested `type`.
 type Entry = KVNamespaceGetWithMetadataResult<JsValue, JsValue>;
 
-fn get_options(value_type: &str, cache_ttl: Option<u64>) -> KVNamespaceGetOptions<JsString> {
-    let builder = KVNamespaceGetOptions::builder(&JsString::from(value_type));
+fn get_options(value_type: &str, cache_ttl: Option<u64>) -> KVNamespaceGetOptions<String> {
+    let builder = KVNamespaceGetOptions::builder(value_type.to_string());
     match cache_ttl {
         Some(ttl) => builder.cache_ttl(ttl),
         None => builder,

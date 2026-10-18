@@ -132,11 +132,8 @@ pub async fn handle_send_email(req: Request, env: Env, _data: SomeSharedData) ->
 }
 
 async fn dispatch_mime(sender: &SendEmail, scenario: &MimeScenario) -> Result<String> {
-    let message = EmailMessage::new_with_str(
-        scenario.envelope_from,
-        scenario.envelope_to,
-        &scenario.raw(),
-    )?;
+    let message =
+        EmailMessage::new_with_str(scenario.envelope_from, scenario.envelope_to, scenario.raw())?;
     let result = sender.send(&message).await?;
     Ok(result.message_id())
 }
@@ -149,7 +146,9 @@ async fn dispatch_mime_stream(sender: &SendEmail) -> Result<String> {
     let fixed = FixedLengthStream::new(raw.len() as f64)?;
     let writer = fixed.writable().get_writer()?;
     spawn_local(async move {
-        let _ = writer.write_with_chunk(&Uint8Array::from(&raw[..])).await;
+        let _ = writer
+            .write_with_chunk(Uint8Array::from(&raw[..]).into())
+            .await;
         let _ = writer.close().await;
     });
     let stream = fixed.readable();

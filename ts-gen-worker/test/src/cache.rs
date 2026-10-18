@@ -122,13 +122,13 @@ pub async fn handle_cache_stream(
     } else {
         console.with(|c| c.log(&["Cache MISS!".into()]));
         let count = (js_sys::Math::random() * 10.0) as usize;
-        let transform = TransformStream::new()?;
+        let transform: TransformStream<Uint8Array, Uint8Array> = TransformStream::new()?;
         let writer = transform.writable().get_writer()?;
         spawn_local(async move {
             for _ in 0..count {
                 sleep(50.0).await;
                 let chunk = Uint8Array::from("Hello, world!\n".as_bytes());
-                if writer.write_with_chunk(&chunk).await.is_err() {
+                if writer.write_with_chunk(chunk).await.is_err() {
                     return;
                 }
             }

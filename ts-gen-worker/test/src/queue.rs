@@ -47,7 +47,7 @@ pub async fn handle_queue_send(req: Request, env: Env, _data: SomeSharedData) ->
         id_string: id.to_string(),
     })
     .map_err(|e| e.to_string())?;
-    match my_queue.send(&body).await {
+    match my_queue.send(body).await {
         Ok(_) => Response::builder().ok("Message sent"),
         Err(err) => {
             Response::builder().error(format!("Failed to send message to queue: {err:?}"), 500)

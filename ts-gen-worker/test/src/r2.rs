@@ -253,7 +253,7 @@ pub async fn put(_req: Request, env: Env, _data: SomeSharedData) -> Result<Respo
     spawn_local(async move {
         for _ in 0..16 {
             if writer
-                .write_with_chunk(&Uint8Array::from(&[0u8; 16][..]))
+                .write_with_chunk(Uint8Array::from(&[0u8; 16][..]).into())
                 .await
                 .is_err()
             {

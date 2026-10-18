@@ -64,7 +64,7 @@ impl DurableObject for Counter {
         let mut count: usize = self.state.storage().get_into("count").await?.unwrap_or(0);
         count += 10;
         self.state.storage().put_serialized("count", &count).await?;
-        ws.send_with_str(&format!("{count}"))
+        ws.send_with_str(format!("{count}"))
             .expect("failed to send value to client");
         Ok(())
     }

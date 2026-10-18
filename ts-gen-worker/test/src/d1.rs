@@ -55,7 +55,7 @@ async fn first<T: DeserializeOwned>(
     col_name: Option<&str>,
 ) -> Result<Option<T>> {
     let value: JsValue = match col_name {
-        Some(col) => stmt.first_with_col_name::<JsValue>(col).await?,
+        Some(col) => stmt.first_with_col_name::<JsValue, _>(col).await?,
         None => stmt.first::<JsValue>().await?,
     }
     .into();

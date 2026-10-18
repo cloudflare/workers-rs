@@ -117,12 +117,12 @@ async fn redir_websocket(dst: WebSocket, src: WebSocket) {
         match event {
             WebsocketEvent::Message(msg) => {
                 dst.send_with_str(
-                    &message_text(&msg).expect_throw("expect a text message from src"),
+                    message_text(&msg).expect_throw("expect a text message from src"),
                 )
                 .expect_throw("failed to send to dst");
                 if let Some(WebsocketEvent::Message(msg)) = dst_events.next().await {
                     src.send_with_str(
-                        &message_text(&msg).expect_throw("expect a text message from dst"),
+                        message_text(&msg).expect_throw("expect a text message from dst"),
                     )
                     .expect_throw("failed to send to src");
                 } else {
@@ -130,7 +130,7 @@ async fn redir_websocket(dst: WebSocket, src: WebSocket) {
                 }
             }
             WebsocketEvent::Close(reason) => {
-                dst.close_with_code_and_reason(reason.code(), &reason.reason())
+                dst.close_with_code_and_reason(reason.code(), reason.reason())
                     .expect_throw("failed to close dst websocket");
             }
         }

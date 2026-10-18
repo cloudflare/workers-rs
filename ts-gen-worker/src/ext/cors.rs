@@ -59,22 +59,19 @@ impl Cors {
             headers.set("Access-Control-Allow-Credentials", "true")?;
         }
         if let Some(max_age) = self.max_age {
-            headers.set("Access-Control-Max-Age", &max_age.to_string())?;
+            headers.set("Access-Control-Max-Age", max_age.to_string())?;
         }
         if !self.origins.is_empty() {
-            headers.set("Access-Control-Allow-Origin", &join(&self.origins))?;
+            headers.set("Access-Control-Allow-Origin", join(&self.origins))?;
         }
         if !self.methods.is_empty() {
-            headers.set("Access-Control-Allow-Methods", &join(&self.methods))?;
+            headers.set("Access-Control-Allow-Methods", join(&self.methods))?;
         }
         if !self.allowed_headers.is_empty() {
-            headers.set("Access-Control-Allow-Headers", &join(&self.allowed_headers))?;
+            headers.set("Access-Control-Allow-Headers", join(&self.allowed_headers))?;
         }
         if !self.exposed_headers.is_empty() {
-            headers.set(
-                "Access-Control-Expose-Headers",
-                &join(&self.exposed_headers),
-            )?;
+            headers.set("Access-Control-Expose-Headers", join(&self.exposed_headers))?;
         }
         Ok(())
     }

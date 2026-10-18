@@ -88,7 +88,7 @@ where
             init = init.signal(&js_sys::JsNullable::wrap(signal));
         }
         if let Some(cf) = req.extensions_mut().remove::<IncomingRequestCfProperties>() {
-            init = init.cf(&cf);
+            init = init.cf(cf);
         }
         let uri = req.uri().to_string();
         if let Some(body) = body_stream(req.into_body()) {

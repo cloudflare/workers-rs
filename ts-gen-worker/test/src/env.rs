@@ -24,27 +24,35 @@ use ::ts_gen_worker::SendEmail;
 use js_sys::*;
 #[allow(unused_imports)]
 use wasm_bindgen::prelude::*;
-#[wasm_bindgen]
+#[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type Env;
     #[wasm_bindgen(method, getter, js_name = "GREETING")]
     pub fn greeting(this: &Env) -> String;
+    #[wasm_bindgen(method, getter, js_name = "GREETING")]
+    pub fn greeting_js_string(this: &Env) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "GREETING")]
-    pub fn set_greeting(this: &Env, val: &str);
+    pub fn set_greeting(this: &Env, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "EXAMPLE_SECRET")]
     pub fn example_secret(this: &Env) -> String;
+    #[wasm_bindgen(method, getter, js_name = "EXAMPLE_SECRET")]
+    pub fn example_secret_js_string(this: &Env) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "EXAMPLE_SECRET")]
-    pub fn set_example_secret(this: &Env, val: &str);
+    pub fn set_example_secret(this: &Env, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "SOME_SECRET")]
     pub fn some_secret(this: &Env) -> String;
+    #[wasm_bindgen(method, getter, js_name = "SOME_SECRET")]
+    pub fn some_secret_js_string(this: &Env) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "SOME_SECRET")]
-    pub fn set_some_secret(this: &Env, val: &str);
+    pub fn set_some_secret(this: &Env, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "SOME_VARIABLE")]
     pub fn some_variable(this: &Env) -> String;
+    #[wasm_bindgen(method, getter, js_name = "SOME_VARIABLE")]
+    pub fn some_variable_js_string(this: &Env) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "SOME_VARIABLE")]
-    pub fn set_some_variable(this: &Env, val: &str);
+    pub fn set_some_variable(this: &Env, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "SOME_OBJECT_VARIABLE")]
     pub fn some_object_variable(this: &Env) -> Object;
     #[wasm_bindgen(method, setter, js_name = "SOME_OBJECT_VARIABLE")]
@@ -152,10 +160,10 @@ extern "C" {
 }
 impl Env {
     pub fn new(
-        greeting: &str,
-        example_secret: &str,
-        some_secret: &str,
-        some_variable: &str,
+        greeting: impl ::wasm_bindgen::JsStringLike,
+        example_secret: impl ::wasm_bindgen::JsStringLike,
+        some_secret: impl ::wasm_bindgen::JsStringLike,
+        some_variable: impl ::wasm_bindgen::JsStringLike,
         some_object_variable: &Object,
         db: &D1Database,
         some_namespace: &KVNamespace,

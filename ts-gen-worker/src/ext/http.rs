@@ -93,7 +93,7 @@ impl Request {
     }
 
     fn parsed_url(&self) -> crate::Result<URL> {
-        URL::new(&self.url())
+        URL::new(self.url())
     }
 
     /// The path component of the request URL; `/` if the URL does not parse.

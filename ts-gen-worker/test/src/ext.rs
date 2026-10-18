@@ -96,7 +96,7 @@ impl DurableObject for MacroCounter {
             return Response::builder().ok(format!("{after:?} {n:?} {missing:?}"));
         }
         let count = storage
-            .get::<JsValue>("count")
+            .get::<JsValue, _>("count")
             .await?
             .as_f64()
             .unwrap_or(0.0)

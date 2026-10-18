@@ -46,7 +46,7 @@ impl DurableObjectStorage {
     /// `storage.get(key)` deserialized; `None` when the key is absent. Values go through
     /// `serde_wasm_bindgen` both ways, so a `put_serialized` value round-trips.
     pub async fn get_into<T: DeserializeOwned>(&self, key: &str) -> Result<Option<T>> {
-        match self.get::<JsValue>(key).await?.into_option() {
+        match self.get::<JsValue, _>(key).await?.into_option() {
             None => Ok(None),
             Some(value) => Ok(Some(serde_wasm_bindgen::from_value(value)?)),
         }
