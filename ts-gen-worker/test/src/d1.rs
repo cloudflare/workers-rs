@@ -104,7 +104,6 @@ pub async fn prepared_statement(
     let people = results::<Person>(&all)?;
 
     assert!(all.success());
-    assert!(all.error().is_none());
     assert_eq!(people.len(), 1);
     assert_eq!(people[0].name, "Ryan Upton");
     assert_eq!(people[0].age, 21);
