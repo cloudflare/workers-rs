@@ -45,6 +45,7 @@ workers-rs-3 builds the whole prototype. `js_sys_unstable_apis` is on for wasm32
 | `008fba104` | `JSON::stringify*` → `Result<Option<String>, JsValue>` (`None` for `undefined`); 28 `Intl` string returns are `String` | audit #7 | js-sys unstable |
 | `b503ab30f` | `ArrayBuffer::to_vec`, `From<&[u8]>`/`From<Vec<u8>>` for `ArrayBuffer`, `From<ArrayBuffer> for Vec<u8>` | `Uint8Array` round trips for bytes (audit N3) | js-sys unstable |
 | `3ef8cb93b` | sealed `BufferSourceLike` for `&[u8]` (wasm-memory view), `Vec<u8>` (copy), `ArrayBuffer`, `DataView` and every typed array, owned and `&`; `Function::once(f)` inferred like `from_fn` | audit A3 (one argument for `ArrayBuffer \| ArrayBufferView`), A4 (`block_concurrency_while` turbofish) | js-sys unstable |
+| `70c2c0e64` | `Promise<T, E = JsValue>`: `IntoFuture<Output = Result<T, E>>` for `E: From<JsValue>`, `E` erased for the ABI; `upcast()` changes `E`; `JsFuture<T, E>` | audit B5: async members can await to the crate's error type | js-sys unstable |
 
 ## ts-gen
 
@@ -80,6 +81,11 @@ workers-rs-3 builds the whole prototype. `js_sys_unstable_apis` is on for wasm32
 | `6815c11` | `M[K]` over a concrete `M` binds once per key, with the key's literal set by the binding (`WebSocket::add_event_listener_message(&Function<fn(MessageEvent)>)`), declared on subclasses for the first parent's methods; overloads told apart by one literal are named by it | design D2: event listeners took `fn(JsValue)` and a cast | ts-gen mono PR (types) |
 | `16a19f9` | `Promise<T>` imports keep `catch`, so a synchronous throw is a rejection at `.await` | design D1; needs `627ff72ba` | ts-gen mono PR (async) |
 | `3e9f8ee` | setters whose value is `impl BufferSourceLike` carry `slice = "copy"`; builders and factories store through them (15 setters) | a dictionary outlives the `&[u8]` borrow; needs `a8994870b` | ts-gen mono PR (types) |
+| `09de2f6` | buffer-source arguments copy a `&[u8]` unless `{@slice view}`; `{@slice handle}` takes handles only; `--annotate` carries `@param` `{@slice}` tags | audit B1: a view is only safe where the callee copies before returning | ts-gen mono PR (types) |
+| `5b20797` | `[A, ...B[]]` lowers to an array of the common element type (ungated) | audit B2: D1 `raw`'s header-and-rows tuple was typed as a 2-tuple | ts-gen |
+| `c98d196` | inline types reached only by an omitted argument are not emitted | audit B3: orphan `D1PreparedStatementRawOptions2` | ts-gen mono PR (overloads) |
+| `a2e3344` | per-key listeners gain `_with_options` / `_with_bool` and the listener-object pairs (16 → 48 on `WebSocket`) | audit B4: `{ once }` / `{ signal }` needed the erased form | ts-gen mono PR (types) |
+| `e35a4b9` | buffer-source slice modes go on each argument, not the fn | a `{@slice view}` on one argument no longer depends on the others | ts-gen mono PR (types) |
 
 ## workers-rs (`ts-gen-worker`)
 
@@ -93,6 +99,7 @@ workers-rs-3 builds the whole prototype. `js_sys_unstable_apis` is on for wasm32
 | `8ab0eab` | `ts-gen-worker/src/ext/websocket.rs` | `From<WebSocketPair> for (WebSocket, WebSocket)` | `_0()`/`_1()` getters from upstream's `0`/`1` keys | workers-rs |
 | `8ab0eab` | `ts-gen-worker/{test,benchmark}/types/env.d.ts` | `readonly` + `{@string copy}` on `Env` | no setters or twins on bindings | workers-rs |
 | `2d6136e` | `ts-gen-worker/src/ext/serde.rs` | `DurableObjectStorage::put_entries_serialized` (a struct's fields as DO entries) | `put_with_entries::<JsValue>(&to_value(..)?.unchecked_into())` at call sites | workers-rs |
+| `e5d3707` | `ts-gen-worker/types/annotations.d.ts` | `{@slice view}` on `Response`'s body, KV/R2 `put`, R2 `uploadPart`, SubtleCrypto data arguments; `{@slice handle}` on `respondWithNewView` | a `&[u8]` view only where the callee copies before returning | workers-rs |
 | `faefa97` | `ts-gen-worker/types/annotations.d.ts` | `@retype` `Body::body`, `R2ObjectBody::body`, `Socket::{readable,writable}` to `Uint8Array` streams; `{@string copy}` on the TailStream namespace | upstream types them `ReadableStream` (`any` chunks); 64 twins | workers-rs (or workers-types) |
 | `636cfab`…HEAD | `ts-gen-worker/{src/ext,test/src,benchmark/src}` | port rewritten to each new surface | ideal idioms | workers-rs |
 
@@ -111,6 +118,7 @@ Each row of the tables above is one change. Landing them is a smaller set of PRs
 | js-sys unstable: Rust-typed collections (tuples, `Map`/`Set`/`Object`, iteration) | `86a54f19d`, `4aeed9f00`, `366274d92`, `866b0d33d` | — |
 | js-sys unstable: `Function<fn(A..) -> R>`, `from_fn`, `once`, typed `Promise::new` | `83af8baa2`, part of `3ef8cb93b` (+ `429a22215`, stable) | — |
 | js-sys unstable: `BufferSourceLike` | part of `3ef8cb93b` | — |
+| js-sys unstable: `Promise<T, E>` | `70c2c0e64` | — |
 | wasm-bindgen: slice modes on generic mono arguments | `a8994870b` | — |
 | js-sys unstable: `String` returns, `Date::new_with_value`, `ArrayBuffer` bytes | `9d903011a`, `008fba104`, part of `b503ab30f` | — |
 | ts-gen: string return modes | `cdf4f12` | — |
@@ -121,9 +129,10 @@ Each row of the tables above is one change. Landing them is a smaller set of PRs
 | ts-gen mono: nullable arguments | `17df4e9`, `64e785e` | `cb872c471` |
 | ts-gen mono: overloads and names | `9220a19`, `e4d3fde`, `8e09b3d`, `76caab3`, `1549ee7`, `6f85b11`, `7ec1b4c` | — |
 | ts-gen mono: generic-class arguments, `Partial`, `()` | `6115484`, `76b070a`, `d4d3303` | `56ac6f184` |
-| ts-gen mono: buffer-source arguments | `e798487`, `3e9f8ee` | `3ef8cb93b`, `a8994870b` |
+| ts-gen mono: buffer-source arguments | `e798487`, `3e9f8ee`, `09de2f6`, `e35a4b9` | `3ef8cb93b`, `a8994870b` |
 | wasm-bindgen: `catch` on `Promise<T>` returns | `627ff72ba` | — |
-| ts-gen mono: per-key `M[K]` bindings | `6815c11` | — |
+| ts-gen mono: per-key `M[K]` bindings | `6815c11`, `a2e3344` | — |
+| ts-gen: rest tuples, orphan inline types | `5b20797`, `c98d196` | — |
 | ts-gen mono: `Promise<T>` async returns | `16402cd`, `16a19f9` | `627ff72ba` |
 | ts-gen mono: generated `IntoIterator` | `d21202a` | `866b0d33d` |
 | serde-wasm-bindgen, wasm-streams: build under `js_sys_unstable_apis` | `ts-gen-worker/vendor-patches` | js-sys unstable |
