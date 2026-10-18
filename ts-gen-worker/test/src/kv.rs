@@ -76,7 +76,7 @@ pub async fn put_simple(_req: Request, env: Env, _data: SomeSharedData) -> Resul
 pub async fn put_metadata(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let store = test_store(&env).await;
     store
-        .put_with_str_and_options(
+        .put_with_options(
             "put_b",
             "test",
             &KVNamespacePutOptions::builder()
@@ -96,7 +96,7 @@ pub async fn put_expiration(_req: Request, env: Env, _data: SomeSharedData) -> R
     const EXPIRATION: u64 = 2_000_000_000;
     let store = test_store(&env).await;
     store
-        .put_with_str_and_options(
+        .put_with_options(
             "put_c",
             "test",
             &KVNamespacePutOptions::builder()
@@ -136,7 +136,7 @@ pub async fn put_metadata_struct(
 
     let store = test_store(&env).await;
     store
-        .put_with_str_and_options(
+        .put_with_options(
             "put_d",
             "test",
             &KVNamespacePutOptions::builder()

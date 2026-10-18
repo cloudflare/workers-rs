@@ -18,8 +18,7 @@ pub mod signal;
 
 pub use bindings::cloudflare::email::EmailMessage;
 pub use bindings::cloudflare::sockets::{
-    connect, connect_with_socket_address, connect_with_socket_address_and_options,
-    connect_with_str_and_options,
+    connect, connect_with_address, connect_with_address_and_options, connect_with_options,
 };
 pub use bindings::*;
 pub use durable::DurableObject;

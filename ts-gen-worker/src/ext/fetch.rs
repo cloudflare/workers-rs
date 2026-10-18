@@ -1,6 +1,6 @@
 use crate::{
-    fetch, fetch_with_request_and_init, fetch_with_str, fetch_with_str_and_init, AbortController,
-    AbortSignal, Request, RequestInit, Response, Result,
+    fetch, fetch_with_init, fetch_with_str, fetch_with_str_and_init, AbortController, AbortSignal,
+    Request, RequestInit, Response, Result,
 };
 
 /// A fetch call built from a URL or a `Request`; `send` runs it. A thin convenience
@@ -23,7 +23,7 @@ impl Fetch {
         let init = RequestInit::builder().signal(signal).build();
         match self {
             Fetch::Url(url) => fetch_with_str_and_init(url, &init).await,
-            Fetch::Request(req) => fetch_with_request_and_init(req, &init).await,
+            Fetch::Request(req) => fetch_with_init(req, &init).await,
         }
     }
 }

@@ -8,7 +8,7 @@ use std::time::Duration;
 use js_sys::Function;
 use wasm_bindgen::prelude::*;
 
-use crate::{clear_timeout, set_timeout_with_function_and_ms_delay};
+use crate::{clear_timeout, set_timeout_with_ms_delay};
 
 /// A `Future` that resolves after a duration, over `setTimeout`.
 ///
@@ -51,7 +51,7 @@ impl Future for Delay {
                 waker.wake_by_ref();
             });
             // `setTimeout` with a function and a finite delay cannot throw.
-            *this.timeout_id = set_timeout_with_function_and_ms_delay(
+            *this.timeout_id = set_timeout_with_ms_delay(
                 Function::closure_ref(&closure),
                 this.duration.as_millis() as f64,
             )

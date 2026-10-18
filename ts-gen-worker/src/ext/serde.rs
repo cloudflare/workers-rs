@@ -28,7 +28,7 @@ impl Response {
 impl ResponseInitBuilder {
     /// A JSON response via `Response.json()`, which sets `content-type: application/json`.
     pub fn from_json<T: Serialize + ?Sized>(self, value: &T) -> Result<Response> {
-        Ok(Response::json_with_response_init(
+        Ok(Response::json_with_maybe_init(
             &to_js(value)?,
             &self.build(),
         )?)
