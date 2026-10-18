@@ -625,3 +625,28 @@ other #155 path produce the session-12 output unchanged.
 - `WebSocket` (and the other three in row 2) are `Eq` again, so a user struct deriving `Eq` can
   hold one, as with `worker::WebSocket`.
 - `PerformanceMark` has no constructor in this surface; `performance.mark(name)` creates one.
+
+## Restack 5 (session 15a)
+
+Baseline before generic mono: bindings regenerated without mono from ts-gen `45a278c` (the stack
+rebased onto main `f8466d4`, i.e. #155 as landed plus #157), wasm-bindgen pin unchanged
+(`a8aff4642`). `chomp test:ts-gen-worker` and `-http`: 194 passed / 4 skipped each (one `-http` run timed
+out `r2 > delete` at 5 s; the rerun and three isolated `r2.spec.ts` runs pass); `chomp test`:
+145 / 4; clippy clean; benchmark `.wasm` / glue byte-identical to `9439547` (120,645 / 33,871).
+Nothing loosened. `bindings.rs` 21,955 → 22,148 lines
+(+206 / −13); `email.rs` −6.
+
+| # | Change (old → new) | Cause | Port change | Class |
+|---|---|---|---|---|
+| 1 | `set_timeout(cb, args)` (variadic), `set_timeout_with_ms_delay(cb, ms, args)` → `set_timeout(cb)`, `set_timeout_with_function_and_ms_delay(cb, ms)`, `set_timeout_with_function_and_args(cb, args)`, `set_timeout_with_function_and_ms_delay_and_args(cb, ms, args)` | main #155 as landed: a function's declarations are its overloads, so the non-variadic `declare function setTimeout(callback, msDelay?)` now expands; before, only the later generic variadic one survived | `ext/delay.rs`, `test/src/util.rs`: `set_timeout_with_function_and_ms_delay(cb, ms)`, no `&[]` | improvement (a non-variadic form); breaking renames, and `_with_function_` is noise (both overloads' callbacks lower to `&Function`, yet the suffix still names it) |
+| 2 | `ReadableStream::new_with_underlying_source_and_strategy` → `…_and_queuing_strategy`; new `new_with_underlying_byte_source{,_and_queuing_strategy}`, and the types they reach: `UnderlyingByteSource` (+ builder), `ReadableByteStreamController`, `ReadableStreamBYOBRequest` | #155: every construct signature of `declare const ReadableStream: { new (UnderlyingByteSource, …); new <R>(UnderlyingSource<R>, …) }` is a constructor overload; before, the later one replaced the first | none (unused) | improvement (byte streams constructible); the byte form returns `ReadableStream` (`<JsValue>`), not the declared `ReadableStream<Uint8Array>` (gap) |
+| 3 | `ForwardableEmailMessage::reply_with_builder{,_promise}` docs: its own overload's JSDoc instead of `reply(message)`'s | #155 (each overload keeps its own JSDoc) | none | improvement |
+| 4 | the 12 `// ts-gen regression:` hand patches (6 in `bindings.rs`, 6 in `email.rs`) are gone; the factory emits `set_disposition(DispositionKind::Inline)` itself | main #157 | patches dropped | improvement: resolves session 11 bug 1 |
+
+No other hunks.
+
+### Migration-table deltas (for workers-rs-4 / MIGRATING.md)
+
+- `setTimeout`: `set_timeout_with_function_and_ms_delay(&cb, ms)` (was
+  `set_timeout_with_ms_delay(&cb, ms, &[])`); the variadic forms are `…_and_args`. `Delay` is
+  unchanged.
