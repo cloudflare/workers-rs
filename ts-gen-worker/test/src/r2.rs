@@ -346,17 +346,16 @@ async fn put_full_properties(
     bucket: &R2Bucket,
 ) -> Result<(HttpMetadata, HashMap<String, String>, R2Object)> {
     let (http_metadata, custom_metadata) = dummy_properties();
-    let md5_hash: [u8; 16] = md5::compute("example").into();
+    let mut md5_hash: [u8; 16] = md5::compute("example").into();
+    let options = R2PutOptions::builder()
+        .http_metadata(&http_metadata.to_js())
+        .custom_metadata(&custom_metadata.iter().collect())
+        .md5(&md5_hash[..])
+        .build();
+    // The options keep their own copy of the digest, not a view of `md5_hash`.
+    md5_hash.fill(0);
     let object_with_props = bucket
-        .put_with_str_and_options(
-            name,
-            "example",
-            &R2PutOptions::builder()
-                .http_metadata(&http_metadata.to_js())
-                .custom_metadata(&custom_metadata.iter().collect())
-                .md5(Uint8Array::from(&md5_hash[..]))
-                .build(),
-        )
+        .put_with_str_and_options(name, "example", &options)
         .await?;
     Ok((http_metadata, custom_metadata, object_with_props))
 }

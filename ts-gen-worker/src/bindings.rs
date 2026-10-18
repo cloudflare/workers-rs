@@ -3252,7 +3252,7 @@ extern "C" {
     pub fn set_name(this: &SubtleCryptoDeriveKeyAlgorithm, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn salt(this: &SubtleCryptoDeriveKeyAlgorithm) -> Option<SaltKind>;
-    #[wasm_bindgen(method, setter)]
+    #[wasm_bindgen(method, setter, slice = "copy")]
     pub fn set_salt(this: &SubtleCryptoDeriveKeyAlgorithm, val: impl ::js_sys::BufferSourceLike);
     #[wasm_bindgen(method, getter)]
     pub fn iterations(this: &SubtleCryptoDeriveKeyAlgorithm) -> Option<f64>;
@@ -3273,7 +3273,7 @@ extern "C" {
     pub fn set_public(this: &SubtleCryptoDeriveKeyAlgorithm, val: &CryptoKey);
     #[wasm_bindgen(method, getter)]
     pub fn info(this: &SubtleCryptoDeriveKeyAlgorithm) -> Option<SaltKind>;
-    #[wasm_bindgen(method, setter)]
+    #[wasm_bindgen(method, setter, slice = "copy")]
     pub fn set_info(this: &SubtleCryptoDeriveKeyAlgorithm, val: impl ::js_sys::BufferSourceLike);
 }
 impl SubtleCryptoDeriveKeyAlgorithm {
@@ -3336,11 +3336,11 @@ extern "C" {
     pub fn set_name(this: &SubtleCryptoEncryptAlgorithm, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn iv(this: &SubtleCryptoEncryptAlgorithm) -> Option<SaltKind>;
-    #[wasm_bindgen(method, setter)]
+    #[wasm_bindgen(method, setter, slice = "copy")]
     pub fn set_iv(this: &SubtleCryptoEncryptAlgorithm, val: impl ::js_sys::BufferSourceLike);
     #[wasm_bindgen(method, getter, js_name = "additionalData")]
     pub fn additional_data(this: &SubtleCryptoEncryptAlgorithm) -> Option<SaltKind>;
-    #[wasm_bindgen(method, setter, js_name = "additionalData")]
+    #[wasm_bindgen(method, setter, js_name = "additionalData", slice = "copy")]
     pub fn set_additional_data(
         this: &SubtleCryptoEncryptAlgorithm,
         val: impl ::js_sys::BufferSourceLike,
@@ -3351,7 +3351,7 @@ extern "C" {
     pub fn set_tag_length(this: &SubtleCryptoEncryptAlgorithm, val: f64);
     #[wasm_bindgen(method, getter)]
     pub fn counter(this: &SubtleCryptoEncryptAlgorithm) -> Option<SaltKind>;
-    #[wasm_bindgen(method, setter)]
+    #[wasm_bindgen(method, setter, slice = "copy")]
     pub fn set_counter(this: &SubtleCryptoEncryptAlgorithm, val: impl ::js_sys::BufferSourceLike);
     #[wasm_bindgen(method, getter)]
     pub fn length(this: &SubtleCryptoEncryptAlgorithm) -> Option<f64>;
@@ -3359,7 +3359,7 @@ extern "C" {
     pub fn set_length(this: &SubtleCryptoEncryptAlgorithm, val: f64);
     #[wasm_bindgen(method, getter)]
     pub fn label(this: &SubtleCryptoEncryptAlgorithm) -> Option<SaltKind>;
-    #[wasm_bindgen(method, setter)]
+    #[wasm_bindgen(method, setter, slice = "copy")]
     pub fn set_label(this: &SubtleCryptoEncryptAlgorithm, val: impl ::js_sys::BufferSourceLike);
 }
 impl SubtleCryptoEncryptAlgorithm {
@@ -3439,7 +3439,7 @@ extern "C" {
     pub fn set_modulus_length(this: &SubtleCryptoGenerateKeyAlgorithm, val: f64);
     #[wasm_bindgen(method, getter, js_name = "publicExponent")]
     pub fn public_exponent(this: &SubtleCryptoGenerateKeyAlgorithm) -> Option<SaltKind>;
-    #[wasm_bindgen(method, setter, js_name = "publicExponent")]
+    #[wasm_bindgen(method, setter, js_name = "publicExponent", slice = "copy")]
     pub fn set_public_exponent(
         this: &SubtleCryptoGenerateKeyAlgorithm,
         val: impl ::js_sys::BufferSourceLike,
@@ -3749,7 +3749,7 @@ extern "C" {
     pub fn set_modulus_length(this: &CryptoKeyRsaKeyAlgorithm, val: f64);
     #[wasm_bindgen(method, getter, js_name = "publicExponent")]
     pub fn public_exponent(this: &CryptoKeyRsaKeyAlgorithm) -> SaltKind;
-    #[wasm_bindgen(method, setter, js_name = "publicExponent")]
+    #[wasm_bindgen(method, setter, js_name = "publicExponent", slice = "copy")]
     pub fn set_public_exponent(
         this: &CryptoKeyRsaKeyAlgorithm,
         val: impl ::js_sys::BufferSourceLike,
@@ -4858,7 +4858,7 @@ extern "C" {
     pub fn set_body<Cf>(this: &RequestInit<Cf>, val: &ReadableStream<Uint8Array>);
     #[wasm_bindgen(method, setter, js_name = "body")]
     pub fn set_body_with_str<Cf>(this: &RequestInit<Cf>, val: impl ::wasm_bindgen::JsStringLike);
-    #[wasm_bindgen(method, setter, js_name = "body")]
+    #[wasm_bindgen(method, setter, js_name = "body", slice = "copy")]
     pub fn set_body_with_buffer_source<Cf>(
         this: &RequestInit<Cf>,
         val: impl ::js_sys::BufferSourceLike,
@@ -7671,31 +7671,31 @@ extern "C" {
     pub fn set_custom_metadata(this: &R2PutOptions, val: &Object<String>);
     #[wasm_bindgen(method, getter)]
     pub fn md5(this: &R2PutOptions) -> Option<Md5Kind>;
-    #[wasm_bindgen(method, setter)]
+    #[wasm_bindgen(method, setter, slice = "copy")]
     pub fn set_md5(this: &R2PutOptions, val: impl ::js_sys::BufferSourceLike);
     #[wasm_bindgen(method, setter, js_name = "md5")]
     pub fn set_md5_with_str(this: &R2PutOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn sha1(this: &R2PutOptions) -> Option<Md5Kind>;
-    #[wasm_bindgen(method, setter)]
+    #[wasm_bindgen(method, setter, slice = "copy")]
     pub fn set_sha1(this: &R2PutOptions, val: impl ::js_sys::BufferSourceLike);
     #[wasm_bindgen(method, setter, js_name = "sha1")]
     pub fn set_sha1_with_str(this: &R2PutOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn sha256(this: &R2PutOptions) -> Option<Md5Kind>;
-    #[wasm_bindgen(method, setter)]
+    #[wasm_bindgen(method, setter, slice = "copy")]
     pub fn set_sha256(this: &R2PutOptions, val: impl ::js_sys::BufferSourceLike);
     #[wasm_bindgen(method, setter, js_name = "sha256")]
     pub fn set_sha256_with_str(this: &R2PutOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn sha384(this: &R2PutOptions) -> Option<Md5Kind>;
-    #[wasm_bindgen(method, setter)]
+    #[wasm_bindgen(method, setter, slice = "copy")]
     pub fn set_sha384(this: &R2PutOptions, val: impl ::js_sys::BufferSourceLike);
     #[wasm_bindgen(method, setter, js_name = "sha384")]
     pub fn set_sha384_with_str(this: &R2PutOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn sha512(this: &R2PutOptions) -> Option<Md5Kind>;
-    #[wasm_bindgen(method, setter)]
+    #[wasm_bindgen(method, setter, slice = "copy")]
     pub fn set_sha512(this: &R2PutOptions, val: impl ::js_sys::BufferSourceLike);
     #[wasm_bindgen(method, setter, js_name = "sha512")]
     pub fn set_sha512_with_str(this: &R2PutOptions, val: impl ::wasm_bindgen::JsStringLike);
@@ -18643,7 +18643,7 @@ extern "C" {
     pub fn content(this: &EmailAttachment) -> ContentKind;
     #[wasm_bindgen(method, setter)]
     pub fn set_content(this: &EmailAttachment, val: impl ::wasm_bindgen::JsStringLike);
-    #[wasm_bindgen(method, setter, js_name = "content")]
+    #[wasm_bindgen(method, setter, js_name = "content", slice = "copy")]
     pub fn set_content_with_buffer_source(
         this: &EmailAttachment,
         val: impl ::js_sys::BufferSourceLike,
