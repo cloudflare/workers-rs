@@ -403,5 +403,5 @@ pub async fn handle_sql_iterator(
 
     let new_url = format!("https://fake-host{path}");
 
-    Ok(stub.fetch_with_str(&new_url).await?)
+    stub.fetch_with_str(&new_url).await
 }

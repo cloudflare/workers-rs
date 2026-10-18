@@ -51,7 +51,7 @@ impl DurableObjectStorage {
     /// `storage.put(key, value)` with `value` serialized through `serde_wasm_bindgen`;
     /// maps become `Map`s, which structured clone preserves.
     pub async fn put_serialized<T: Serialize + ?Sized>(&self, key: &str, value: &T) -> Result<()> {
-        Ok(self.put(key, &serde_wasm_bindgen::to_value(value)?).await?)
+        self.put(key, &serde_wasm_bindgen::to_value(value)?).await
     }
 
     /// `storage.put(entries)`: each field of `entries` (a struct or a string-keyed map) is
@@ -59,6 +59,6 @@ impl DurableObjectStorage {
     pub async fn put_entries_serialized<T: Serialize + ?Sized>(&self, entries: &T) -> Result<()> {
         let serializer = serde_wasm_bindgen::Serializer::new().serialize_maps_as_objects(true);
         let entries: Object = entries.serialize(&serializer)?.unchecked_into();
-        Ok(self.put_with_entries(&entries).await?)
+        self.put_with_entries(&entries).await
     }
 }

@@ -43,5 +43,5 @@ pub async fn handle_auto_response(
     let namespace = env.auto();
     let stub = namespace.get(&namespace.id_from_name("singleton")?)?;
     stub.fetch_with_str("https://fake-host/set").await?;
-    Ok(stub.fetch_with_str("https://fake-host/get").await?)
+    stub.fetch_with_str("https://fake-host/get").await
 }

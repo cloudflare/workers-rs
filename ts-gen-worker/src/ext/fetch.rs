@@ -14,16 +14,16 @@ pub enum Fetch {
 impl Fetch {
     pub async fn send(&self) -> Result<Response> {
         match self {
-            Fetch::Url(url) => Ok(fetch_with_str(url).await?),
-            Fetch::Request(req) => Ok(fetch(req).await?),
+            Fetch::Url(url) => fetch_with_str(url).await,
+            Fetch::Request(req) => fetch(req).await,
         }
     }
 
     pub async fn send_with_signal(&self, signal: &AbortSignal) -> Result<Response> {
         let init = RequestInit::builder().signal(signal).build();
         match self {
-            Fetch::Url(url) => Ok(fetch_with_str_and_init(url, &init).await?),
-            Fetch::Request(req) => Ok(fetch_with_init(req, &init).await?),
+            Fetch::Url(url) => fetch_with_str_and_init(url, &init).await,
+            Fetch::Request(req) => fetch_with_init(req, &init).await,
         }
     }
 }

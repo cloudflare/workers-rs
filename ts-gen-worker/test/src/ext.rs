@@ -131,7 +131,7 @@ async fn send_handler(env: Env) -> Result<String> {
     // A JS handle held across an await would make this future !Send without the macro.
     let stub = env.macro_counter().get_by_name("send")?;
     let res = stub.fetch_with_str("https://do/send").await?;
-    Ok(res.text().await?)
+    res.text().await
 }
 
 pub async fn handle(

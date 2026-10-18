@@ -10,5 +10,5 @@ pub async fn handle_asset(
     let name: String = url.path_segments().unwrap().nth(1).unwrap().to_string();
     let url: String = ["https://dummyurl.com/", &name].concat();
 
-    Ok(env.assets().fetch_with_str(&url).await?)
+    env.assets().fetch_with_str(&url).await
 }

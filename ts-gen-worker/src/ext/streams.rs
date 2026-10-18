@@ -25,7 +25,7 @@ use crate::{
 pub struct ByteStream {
     raw: Option<ReadableStream<Uint8Array>>,
     reader: Option<ReadableStreamDefaultReader<Uint8Array>>,
-    pending: Option<JsFuture<ReadableStreamReadResult<Uint8Array>>>,
+    pending: Option<JsFuture<ReadableStreamReadResult<Uint8Array>, Error>>,
     done: bool,
 }
 
@@ -98,7 +98,7 @@ impl ByteStream {
                     .map(|chunk| chunk.to_vec())
                     .unwrap_or_default(),
             )),
-            Err(e) => Err(e.into()),
+            Err(e) => Err(e),
         })
     }
 }

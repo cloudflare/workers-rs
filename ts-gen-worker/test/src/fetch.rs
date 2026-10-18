@@ -45,7 +45,7 @@ pub async fn handle_proxy_request(
         .collect::<Vec<_>>()
         .join("/");
     console_log!("{url}");
-    Ok(fetch_with_str(&url).await?)
+    fetch_with_str(&url).await
 }
 
 pub async fn handle_request_init_fetch(
@@ -54,11 +54,11 @@ pub async fn handle_request_init_fetch(
     _data: SomeSharedData,
 ) -> Result<Response> {
     let init = RequestInit::new();
-    Ok(fetch(&Request::new_with_str_and_init(
+    fetch(&Request::new_with_str_and_init(
         "https://cloudflare.com",
         &init,
     )?)
-    .await?)
+    .await
 }
 
 pub async fn handle_request_init_fetch_post(
@@ -67,11 +67,11 @@ pub async fn handle_request_init_fetch_post(
     _data: SomeSharedData,
 ) -> Result<Response> {
     let init = RequestInit::builder().method("POST").build();
-    Ok(fetch(&Request::new_with_str_and_init(
+    fetch(&Request::new_with_str_and_init(
         "https://httpbin.org/post",
         &init,
     )?)
-    .await?)
+    .await
 }
 
 pub async fn handle_cancelled_fetch(
@@ -87,9 +87,7 @@ pub async fn handle_cancelled_fetch(
     spawn_local({
         async move {
             let init = RequestInit::builder().signal(&signal).build();
-            let res = fetch_with_str_and_init("https://cloudflare.com", &init)
-                .await
-                .map_err(Error::from);
+            let res = fetch_with_str_and_init("https://cloudflare.com", &init).await;
             tx.send(res).unwrap();
         }
     });

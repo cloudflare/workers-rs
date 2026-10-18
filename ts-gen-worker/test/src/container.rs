@@ -56,7 +56,7 @@ impl DurableObject for EchoContainer {
             sleep(100.0).await;
         }
         match self.state.container() {
-            Some(container) => Ok(container.get_tcp_port(8080)?.fetch(&req).await?),
+            Some(container) => container.get_tcp_port(8080)?.fetch(&req).await,
             None => Response::builder().error("No container", 500),
         }
     }
@@ -78,7 +78,7 @@ pub async fn handle_container(req: Request, env: Env, _data: SomeSharedData) -> 
                     .body_with_str(body)
                     .build(),
             )?;
-            Ok(stub.fetch(&req).await?)
+            stub.fetch(&req).await
         }
         "GET" => {
             let (client, server) = WebSocketPair::new()?.into();
