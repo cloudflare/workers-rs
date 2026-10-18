@@ -26,8 +26,8 @@ overload (`Response::new_with_null_and_init(&init)`) or a builder method left un
 raw setters take `Option<…>`. Byte arguments take `impl BufferSourceLike`: `&[u8]`, `Vec<u8>` or
 any buffer handle. In a dictionary field (`R2PutOptions::builder().md5(..)`) pass an owned
 `Uint8Array` or `Vec<u8>`, since `&[u8]` is a view into wasm memory and the dictionary outlives the
-borrow. Callbacks are `Function::from_fn(|event: JsValue| …)`, or `Function::once(|| …)` for a
-one-shot. String-enum
+borrow. Callbacks are `Function::from_fn(|event: MessageEvent| …)`, or `Function::once(|| …)` for
+a one-shot. String-enum
 options take the generated enum (`EncodeBodyKind::Manual`, `CacheKind::NoStore`,
 `BinaryTypeKind::Arraybuffer`), and arrays come back as `Vec<T>`. The JS globals are
 lower-case statics: `console`, `caches`, `crypto`, `performance` (`caches.with(CacheStorage::default)`
@@ -179,6 +179,9 @@ impl DurableObject for Counter {
 `websocket_message` receives a `DataKind` (`String(s)` / `ArrayBuffer(buf)`) instead of
 `WebSocketIncomingMessage`; `websocket_close`/`websocket_error` are unchanged. `WebSocket`
 is `PartialEq` and `Eq` by handle, as in `worker`, so a struct deriving `Eq` can hold one.
+`worker`'s `ws.events()` stream is a listener per event type:
+`ws.add_event_listener_message(&Function::from_fn(|e: MessageEvent| …))?`, and the same for
+`close` and `error`.
 
 ```rust
 // worker                                         // ts-gen-worker
