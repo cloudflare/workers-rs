@@ -12,8 +12,8 @@ from the #5167 compile matrix (`~/Projects/wasm-bindgen-5` `2497681c1`, stable j
 
 1. B builds as generated, with no stopgaps, and passes the suite (194/194, plain and `-http`). The port has none of: `JsString`, `String::from(<js>)`, `JsNullable`, `None::<…>`, `map_err(|e| e.to_string())`, `JsFuture::from` at call sites. `unchecked_*` casts went from 29 (A) to 4. Each of the 4 sits at an `any`-typed or erased boundary (§2).
 2. Everything phase 1 assumed is built, and the R audit's items are done except the ones in §6. Phase 2 also built Rust iteration, `Object<T>` as a map, typed KV reads, byte-stream bodies, one argument for buffer sources, one `Promise<T>` per async member, and shorter overload names.
-3. The cost in commits: 13 wasm-bindgen/js-sys commits and 26 ts-gen commits on top of phase 1. Under the cfg, js-sys is a different API in which collections behave like Rust collections. That API break, and the fallout in `worker`, serde-wasm-bindgen and wasm-streams, is the price of the containers. `worker` is not ported (§6).
-4. The cost in size and time: benchmark wasm +586 (+0.5%), test glue +9,067 (+5.2%) (phase 1: +12.7%), test imports +18 (phase 1: +16), 0 generic shims (phase 1: 177). `ts-gen-worker` compiles +5% debug and +7% release (§4).
+3. The cost in commits: 14 wasm-bindgen/js-sys commits and 27 ts-gen commits on top of phase 1. Under the cfg, js-sys is a different API in which collections behave like Rust collections. That API break, and the fallout in `worker`, serde-wasm-bindgen and wasm-streams, is the price of the containers. `worker` is not ported (§6).
+4. The cost in size and time: benchmark wasm +586 (+0.5%), test glue +9,149 (+5.2%) (phase 1: +12.7%), test imports +18 (phase 1: +16), 0 generic shims (phase 1: 177). `ts-gen-worker` compiles +5% debug and +7% release (§4).
 5. Mono's own lead over C is unchanged from phase 1:
    - leaf type arguments on generated generics (`get::<f64>`, `get_with_metadata_typed::<f64>`, `first`);
    - primitive and buffer-source unions as one function;
@@ -104,7 +104,10 @@ Response::new_with_str_and_init(None::<&str>, &init)?
 Response::new_with_array_buffer_and_init(Some(&out.buffer()), &init)?
 ```
 - An expanded `BodyInit | null` takes each arm bare and emits the `null` arm as its own wrapper, so neither `Some(…)` nor `None::<&str>` appears. All 44 `JsNullable::wrap/new` are gone.
-- `ArrayBuffer | ArrayBufferView` is one argument, `impl js_sys::BufferSourceLike`, a sealed trait like the primitive-union ones. `&[u8]` passes as a view into wasm memory, `Vec<u8>` as a copy, and buffer handles as themselves. The `_array_buffer` / `_typed_array` arm pairs are gone (crypto `verify` had 8 arms).
+- `ArrayBuffer | ArrayBufferView` is one argument, `impl js_sys::BufferSourceLike`, a sealed trait like the primitive-union ones. Buffer handles pass as themselves and `Vec<u8>` as a copy. The `_array_buffer` / `_typed_array` arm pairs are gone (crypto `verify` had 8 arms).
+  - A `&[u8]` call argument is a view into wasm memory. That is right because platform calls copy before returning: workerd's KV and R2 `put`, and `Response` by the Fetch spec.
+  - A dictionary setter stores its value, so it takes `slice = "copy"` and a `&[u8]` arrives as a fresh `Uint8Array` (`R2PutOptions::md5`, crypto `iv`/`salt`, `RequestInit` body, attachment content). `test/src/r2.rs:349-356` zeroes the digest after `.md5(&hash[..])` and R2 still verifies it.
+  - `ReadableByteStreamController::enqueue` transfers its buffer, so a `&[u8]` there throws `TypeError`.
 - `Body::body()` is `Option<ReadableStream<Uint8Array>>` through an `@retype` in `annotations.d.ts`. Upstream types it as `ReadableStream`, with `any` chunks.
 - C could adopt the same arm lowering, since it is ts-gen, not mono.
 
@@ -169,7 +172,7 @@ bucket.put_with_str("no-props-no-body", &JsNullable::new()).await?;
 R2ListOptions::builder().include(&["customMetadata".to_string()])            // &[String]
 ```
 ```rust
-// B: test/src/r2.rs:74-79, 105, 154, 356
+// B: test/src/r2.rs:74-79, 105, 154, 352
 object.custom_metadata().map(|record| record.iter().collect()).unwrap_or_default() // (String, String)
     .custom_metadata(&custom_metadata.iter().collect())                    // HashMap -> Object<String>
 bucket.put_with_null("no-props-no-body").await?;
@@ -367,7 +370,7 @@ EmailMessage::new_with_str(from, to, &scenario.raw())?
 EmailAttachment::builder(/* … */).content_id(None)                           // val: Option<&str>
 ```
 ```rust
-// B: test/src/send_email.rs:139; content_id is signature only
+// B: test/src/send_email.rs:138; content_id is signature only
 EmailMessage::new_with_str(from, to, scenario.raw())?
 EmailAttachment::builder(/* … */).content_id("logo")                         // bare; omit the call for none
 ```
@@ -410,7 +413,7 @@ bucket.get_with_r2_get_options(key, &options)
 bucket.put_with_str_and_r2_put_options(key, value, &options)              // beside put_with_str_and_r2_bucket_options2
 ```
 ```rust
-// B: src/ext/fetch.rs:26, src/ext/delay.rs:54, src/ext/kv.rs:160, test/src/kv.rs:79, test/src/r2.rs:184, 351
+// B: src/ext/fetch.rs:26, src/ext/delay.rs:54, src/ext/kv.rs:160, test/src/kv.rs:79, test/src/r2.rs:184, 358
 fetch_with_init(&req, &init)                                               // the primary arm (Request) is implied
 set_timeout_with_ms_delay(&callback, ms)
 kv.get_text_with_options(&key, &options)                                   // one binding per `type` literal
@@ -418,7 +421,7 @@ kv.put_with_options(key, value, &options)                                  // a 
 bucket.get_with_options(key, &options)
 bucket.put_with_str_and_options(key, value, &options)                      // inline `onlyIf` form: put_with_str_and_r2_bucket_put_options
 ```
-Public names over 50 characters fell from 109 to 27. Most of the rest are
+Public names over 50 characters fell from 109 to 34. Most of the rest are
 `IncomingRequestCfProperties`' numbered builders and spelled-out multi-parameter arms
 (`add_event_listener_with_event_listener_object_and_options`). Every rule here is ts-gen naming,
 so C could adopt it too.
@@ -506,7 +509,7 @@ generated `bindings.rs` and the test and benchmark `env.rs`, and skipping commen
 | `Closure::` | 4 | 4 | 1 |
 | `._0()` / `._1()` | 10 | 10 | 2 |
 | `Uint8Array::new(&…)` re-wraps | 5 | 5 | 0 |
-| lines | 7,444 | 7,386 | 7,220 |
+| lines | 7,444 | 7,386 | 7,217 |
 
 The 4 remaining casts:
 - the wasm-streams boundary (`web_sys::ReadableStream` → `ReadableStream<Uint8Array>`, `src/ext/streams.rs:161`);
@@ -582,15 +585,15 @@ Every item that is **still worse in B than in A**:
 **Size.** Each state is built from its own commit with its own wasm-bindgen pin, on the same
 machine. The benchmark worker is a release build run through `wasm-opt -Oz` with
 `benchmark/build.sh`'s flags. The test worker is a debug build and covers the whole suite's
-surface. gz is `gzip -9`. B was measured at `e5e88b9`. A was re-measured for this report and
+surface. gz is `gzip -9`. B was measured at `0bf25a7` (sizes) and `e5e88b9` (times; the commit between only adds `slice = "copy"` to 15 setters). A was re-measured for this report and
 reproduces phase 1's numbers exactly. B1 is phase 1's measurement.
 
 | | A | B1 | B | B − A |
 |---|---:|---:|---:|---:|
-| benchmark `index_bg.wasm` | 120,645 (51,600 gz) | 121,251 (51,735 gz) | 121,231 (51,444 gz) | +586 (+0.5%), -156 gz |
+| benchmark `index_bg.wasm` | 120,645 (51,600 gz) | 121,251 (51,735 gz) | 121,231 (51,443 gz) | +586 (+0.5%), -157 gz |
 | benchmark `index.js` | 33,871 (6,371 gz) | 35,165 (6,449 gz) | 35,658 (6,358 gz) | +1,787 (+5.3%), -13 gz |
 | benchmark wasm imports | 77 | 77 | 80 | +3 |
-| test worker glue | 175,754 | 198,024 | 184,821 | +9,067 (+5.2%) |
+| test worker glue | 175,754 | 198,024 | 184,903 | +9,149 (+5.2%) |
 | test worker wasm imports | 472 | 488 | 490 | +18 |
 | test worker generic shims (`// generic import`) | 0 | 177 | 0 | +0 |
 | test worker `finally` blocks (owned-string frees) | 10 | 14 | 6 | -4 |
@@ -606,7 +609,7 @@ phase 1's measurement.
 | test crate alone on top (debug) | 4.2 s | 4.3 s | 4.2 s | +0.0 s |
 
 What moved since phase 1 (B1 → B):
-- **Generic shims 177 → 0, glue +22,270 B → +9,067 B over A.** J's wire-format grouping makes `&str`, `String`, `&String` and `JsString` one import, and handles one import whether passed by value or by reference. The `// generic import` comments are gone without `--keep-debug`. Owned strings cross borrowed, so the `finally` frees went from 14 to 6 (A has 10).
+- **Generic shims 177 → 0, glue +22,270 B → +9,149 B over A.** J's wire-format grouping makes `&str`, `String`, `&String` and `JsString` one import, and handles one import whether passed by value or by reference. The `// generic import` comments are gone without `--keep-debug`. Owned strings cross borrowed, so the `finally` frees went from 14 to 6 (A has 10).
 - **Twins 383 → 15.** `{@string copy}` on small strings means less surface. The output does not depend on it, because unused twins never reach the binary.
 - **Compile time +23–25% → +5–7% over A.** D1 removed every `async fn` wrapper and `_promise` twin, and A3 the buffer arm pairs. `bindings.rs` is now 20,733 lines, against A's 22,148, B1's 23,740 and round 1's 23,890.
 
@@ -683,7 +686,6 @@ Not built, by owner. Every audit item not listed here is done.
 
 **wasm-bindgen / js-sys.**
 - `none = "null"` (exact `null` for an omitted argument, for non-WebIDL libraries) is deferred. `JsNullable<T>` is still the way to send it.
-- `BufferSourceLike for &[u8]` is a view into wasm memory, which is only right where the callee copies before returning (workerd's KV and R2 `put`, `Response` by the Fetch spec). Dictionary setters and builder methods also take `impl BufferSourceLike`, and a dictionary keeps the view after the borrow ends, so `opts.md5(&hash[..])` can read freed memory at `put`. The port passes an owned `Uint8Array` there. *Open*: those positions need a bound without `&[u8]`, or `&[u8]` should copy there.
 - Array callback methods other than `for_each` (`map`, `filter`, …) stay erased. Rust iteration covers them.
 - `Option<JsValue>` treats only `undefined` as `None`, so `M | null` is `None` for `null` at `M = f64` but `Some(null)` at `M = JsValue`. The port filters by hand (`src/ext/kv.rs:133`). One `Option<JsValue>` cannot mean both `T | undefined` and `T | null`, so this needs design.
 
