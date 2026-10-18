@@ -66,6 +66,9 @@ workers-rs-3 builds the whole prototype. `js_sys_unstable_apis` is on for wasm32
 | `890f23a` | returned lists read nullable elements as `Option` (`Vec<Option<String>>`) | audit #10(b); needs `56ac6f184` | ts-gen mono PR (leaves) |
 | `6115484` | a bare generic-class argument at its `any` defaults takes any instantiation (`&ReadableStream<impl Sized>`); `_typed` reader/writer constructors unify with the stream; `extends` keeps concrete arguments | audit N1, #2(a) | ts-gen mono PR (generic args) |
 | `1549ee7` | dictionary suffixes independent of overload order (R2 `get_with_options`); no trailing `null` arm duplicating `new()` | audit N4(c) | ts-gen mono PR (names) |
+| `76b070a` | a `Partial<X>` parameter names a synthesized all-optional `XPartial` (`KVNamespaceGetOptionsPartial`); `undefined` type arguments and defaults are `()` (`DurableObjectStub<T = ()>`) | audit N5 | ts-gen mono PR (types) |
+| `e4d3fde` | literal type-argument bindings are wrappers that set the field the literal types (`get_text_with_options` sets `type: "text"`) | audit N2: the return type followed the method, the runtime result the caller's `type` | ts-gen mono PR (overloads) |
+| `333b9e8` | `extends` keeps the child's own parameters (`Child<T> extends Par<T, T>`); helpers over a `TypedArray`/handle-bounded `T` drop the `for<'a> &'a T: IntoWasmAbi` clause | audit N7; needs `b503ab30f` | ts-gen mono PR (bounds) |
 
 ## workers-rs (`ts-gen-worker`)
 
@@ -78,9 +81,33 @@ workers-rs-3 builds the whole prototype. `js_sys_unstable_apis` is on for wasm32
 | `06ec97f` | `chompfile.toml`, `ts-gen-worker/tools` | `mono-patch` step and tool deleted | ts-gen output compiles as generated | workers-rs |
 | `8ab0eab` | `ts-gen-worker/src/ext/websocket.rs` | `From<WebSocketPair> for (WebSocket, WebSocket)` | `_0()`/`_1()` getters from upstream's `0`/`1` keys | workers-rs |
 | `8ab0eab` | `ts-gen-worker/{test,benchmark}/types/env.d.ts` | `readonly` + `{@string copy}` on `Env` | no setters or twins on bindings | workers-rs |
+| `2d6136e` | `ts-gen-worker/src/ext/serde.rs` | `DurableObjectStorage::put_entries_serialized` (a struct's fields as DO entries) | `put_with_entries::<JsValue>(&to_value(..)?.unchecked_into())` at call sites | workers-rs |
 | `faefa97` | `ts-gen-worker/types/annotations.d.ts` | `@retype` `Body::body`, `R2ObjectBody::body`, `Socket::{readable,writable}` to `Uint8Array` streams; `{@string copy}` on the TailStream namespace | upstream types them `ReadableStream` (`any` chunks); 64 twins | workers-rs (or workers-types) |
-| `636cfab`…HEAD | `ts-gen-worker/{src/ext,test/src,benchmark/src}` | port rewritten to each new surface | ideal idioms | workers-rs |
+| `636cfab`…`2be8dbd` | `ts-gen-worker/{src/ext,test/src,benchmark/src}` | port rewritten to each new surface | ideal idioms | workers-rs |
 
 Superseded local fixes (folded upstream, not in the final tree): wasm-bindgen `a3d285150`
 (raw-identifier slot names, now in `cb872c471`), ts-gen `3e42fce` (`ArrayBufferView` builder
 upcast, now in `17df4e9`).
+
+## Upstream PR grouping
+
+Each row of the tables above is one change. Landing them is a smaller set of PRs:
+
+| PR | commits | depends on |
+|---|---|---|
+| wasm-bindgen: generic mono (arity, one import per wire format, `?Sized`, `Option<&T>`, raw idents) | `4fe6881c0`, `160741bcf`, `cb872c471` | — |
+| wasm-bindgen: `extends = Parent<A, B>`, `Vec<Option<T>>` returns, blanket `&T` ABI, `&Option<T>` | `56ac6f184`, `b503ab30f`, part of `160741bcf` | — |
+| js-sys unstable: Rust-typed collections (tuples, `Map`/`Set`/`Object`, iteration) | `86a54f19d`, `4aeed9f00`, `366274d92`, `866b0d33d` | — |
+| js-sys unstable: `Function<fn(A..) -> R>`, `from_fn`, typed `Promise::new` | `83af8baa2` (+ `429a22215`, stable) | — |
+| js-sys unstable: `String` returns, `Date::new_with_value`, `ArrayBuffer` bytes | `9d903011a`, `008fba104`, part of `b503ab30f` | — |
+| ts-gen: string return modes | `cdf4f12` | — |
+| ts-gen: `--annotate` `@retype` + namespaces | `121bae9` | — |
+| ts-gen mono: leaves (containers, awaited `Option`, `Iterable` slices, aliases, nullable list elements) | `f69a59d`, `ea1db10`, `ccd963b`, `890f23a` | `56ac6f184` |
+| ts-gen mono: bounds and callbacks | `62843fb`, `1ed2145`, `333b9e8` | `83af8baa2`, `cb872c471`, `b503ab30f` |
+| ts-gen mono: constructors and return-only parameters (`_typed`) | `2744756`, `789c1ca` | — |
+| ts-gen mono: nullable arguments | `17df4e9`, `64e785e` | `cb872c471` |
+| ts-gen mono: overloads and names | `9220a19`, `e4d3fde`, `8e09b3d`, `76caab3`, `1549ee7` | — |
+| ts-gen mono: generic-class arguments, `Partial`, `()` | `6115484`, `76b070a` | `56ac6f184` |
+| ts-gen mono: generated `IntoIterator` | `d21202a` | `866b0d33d` |
+| serde-wasm-bindgen, wasm-streams: build under `js_sys_unstable_apis` | `ts-gen-worker/vendor-patches` | js-sys unstable |
+| workers-rs: inputs (`annotations.d.ts`, `env.d.ts`), ext, port | workers-rs rows | all of the above |
