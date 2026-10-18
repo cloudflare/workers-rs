@@ -42,6 +42,7 @@ workers-rs-3 builds the whole prototype. `js_sys_unstable_apis` is on for wasm32
 | `866b0d33d` | `Object<T>` as a record: `iter()`, `IntoIterator for &Object<T>`, `FromIterator`/`Extend<(K: PropertyKey, V: Borrow<T>)>`; `IntoIterator for &Array<T>` (both cfgs) | R2 custom-metadata helpers, `Reflect::set` loops | js-sys unstable |
 | `008fba104` | `JSON::stringify*` → `Result<Option<String>, JsValue>` (`None` for `undefined`); 28 `Intl` string returns are `String` | audit #7 | js-sys unstable |
 | `b503ab30f` | `ArrayBuffer::to_vec`, `From<&[u8]>`/`From<Vec<u8>>` for `ArrayBuffer`, `From<ArrayBuffer> for Vec<u8>` | `Uint8Array` round trips for bytes (audit N3) | js-sys unstable |
+| `3ef8cb93b` | sealed `BufferSourceLike` for `&[u8]` (wasm-memory view), `Vec<u8>` (copy), `ArrayBuffer`, `DataView` and every typed array, owned and `&`; `Function::once(f)` inferred like `from_fn` | audit A3 (one argument for `ArrayBuffer \| ArrayBufferView`), A4 (`block_concurrency_while` turbofish) | js-sys unstable |
 
 ## ts-gen
 
@@ -70,6 +71,9 @@ workers-rs-3 builds the whole prototype. `js_sys_unstable_apis` is on for wasm32
 | `e4d3fde` | literal type-argument bindings are wrappers that set the field the literal types (`get_text_with_options` sets `type: "text"`) | audit N2: the return type followed the method, the runtime result the caller's `type` | ts-gen mono PR (overloads) |
 | `333b9e8` | `extends` keeps the child's own parameters (`Child<T> extends Par<T, T>`); helpers over a `TypedArray`/handle-bounded `T` drop the `for<'a> &'a T: IntoWasmAbi` clause | audit N7; needs `b503ab30f` | ts-gen mono PR (bounds) |
 | `d4d3303` | optional properties typed only `never` or `undefined` get no accessors (D1's `error?: never`) | audit N5 tail: `Option<Undefined>` getters | ts-gen mono PR (types) |
+| `6f85b11` | a dictionary argument whose fields are all literals is set by the binding: `raw_with_column_names{,_typed}()`, `get_reader_byob()`; a `{ x?: false }` arm folds into the omitted form | audit A1: D1 `raw`'s tuple return trusted the caller's `columnNames` | ts-gen mono PR (overloads) |
+| `7ec1b4c` | `Partial` getters return `Option`; field-literal wrappers call the typed setter instead of `Reflect::set`; `this` returns lower to the receiver (`Span::set_attribute`); names (`json_with_init`, `with_session_with_constraint`, `verify`/`measure` arms) | audit A2 | ts-gen mono PR (overloads, names) |
+| `e798487` | `ArrayBuffer \| ArrayBufferView` and `BufferSource` lower to `impl js_sys::BufferSourceLike` (`Option<…>` with `null`); one `_buffer_source` binding replaces the `_array_buffer` + `_typed_array` arms | audit A3; needs `3ef8cb93b` | ts-gen mono PR (types) |
 
 ## workers-rs (`ts-gen-worker`)
 
@@ -84,7 +88,7 @@ workers-rs-3 builds the whole prototype. `js_sys_unstable_apis` is on for wasm32
 | `8ab0eab` | `ts-gen-worker/{test,benchmark}/types/env.d.ts` | `readonly` + `{@string copy}` on `Env` | no setters or twins on bindings | workers-rs |
 | `2d6136e` | `ts-gen-worker/src/ext/serde.rs` | `DurableObjectStorage::put_entries_serialized` (a struct's fields as DO entries) | `put_with_entries::<JsValue>(&to_value(..)?.unchecked_into())` at call sites | workers-rs |
 | `faefa97` | `ts-gen-worker/types/annotations.d.ts` | `@retype` `Body::body`, `R2ObjectBody::body`, `Socket::{readable,writable}` to `Uint8Array` streams; `{@string copy}` on the TailStream namespace | upstream types them `ReadableStream` (`any` chunks); 64 twins | workers-rs (or workers-types) |
-| `636cfab`…`b7a75d3` | `ts-gen-worker/{src/ext,test/src,benchmark/src}` | port rewritten to each new surface | ideal idioms | workers-rs |
+| `636cfab`…HEAD | `ts-gen-worker/{src/ext,test/src,benchmark/src}` | port rewritten to each new surface | ideal idioms | workers-rs |
 
 Superseded local fixes (folded upstream, not in the final tree): wasm-bindgen `a3d285150`
 (raw-identifier slot names, now in `cb872c471`), ts-gen `3e42fce` (`ArrayBufferView` builder
@@ -99,7 +103,8 @@ Each row of the tables above is one change. Landing them is a smaller set of PRs
 | wasm-bindgen: generic mono (arity, one import per wire format, `?Sized`, `Option<&T>`, raw idents) | `4fe6881c0`, `160741bcf`, `cb872c471` | — |
 | wasm-bindgen: `extends = Parent<A, B>`, `Vec<Option<T>>` returns, blanket `&T` ABI, `&Option<T>` | `56ac6f184`, `b503ab30f`, part of `160741bcf` | — |
 | js-sys unstable: Rust-typed collections (tuples, `Map`/`Set`/`Object`, iteration) | `86a54f19d`, `4aeed9f00`, `366274d92`, `866b0d33d` | — |
-| js-sys unstable: `Function<fn(A..) -> R>`, `from_fn`, typed `Promise::new` | `83af8baa2` (+ `429a22215`, stable) | — |
+| js-sys unstable: `Function<fn(A..) -> R>`, `from_fn`, `once`, typed `Promise::new` | `83af8baa2`, part of `3ef8cb93b` (+ `429a22215`, stable) | — |
+| js-sys unstable: `BufferSourceLike` | part of `3ef8cb93b` | — |
 | js-sys unstable: `String` returns, `Date::new_with_value`, `ArrayBuffer` bytes | `9d903011a`, `008fba104`, part of `b503ab30f` | — |
 | ts-gen: string return modes | `cdf4f12` | — |
 | ts-gen: `--annotate` `@retype` + namespaces | `121bae9` | — |
@@ -107,8 +112,9 @@ Each row of the tables above is one change. Landing them is a smaller set of PRs
 | ts-gen mono: bounds and callbacks | `62843fb`, `1ed2145`, `333b9e8` | `83af8baa2`, `cb872c471`, `b503ab30f` |
 | ts-gen mono: constructors and return-only parameters (`_typed`) | `2744756`, `789c1ca` | — |
 | ts-gen mono: nullable arguments | `17df4e9`, `64e785e` | `cb872c471` |
-| ts-gen mono: overloads and names | `9220a19`, `e4d3fde`, `8e09b3d`, `76caab3`, `1549ee7` | — |
+| ts-gen mono: overloads and names | `9220a19`, `e4d3fde`, `8e09b3d`, `76caab3`, `1549ee7`, `6f85b11`, `7ec1b4c` | — |
 | ts-gen mono: generic-class arguments, `Partial`, `()` | `6115484`, `76b070a`, `d4d3303` | `56ac6f184` |
+| ts-gen mono: buffer-source arguments | `e798487` | `3ef8cb93b` |
 | ts-gen mono: generated `IntoIterator` | `d21202a` | `866b0d33d` |
 | serde-wasm-bindgen, wasm-streams: build under `js_sys_unstable_apis` | `ts-gen-worker/vendor-patches` | js-sys unstable |
 | workers-rs: inputs (`annotations.d.ts`, `env.d.ts`), ext, port, `MIGRATING.md` | workers-rs rows | all of the above |
