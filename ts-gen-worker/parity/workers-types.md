@@ -158,6 +158,12 @@ test-suite port on the `ext/` layer and macros, with the http feature):
   (see "Restack regressions (session 11)").
 - `8dacaa6` wasm-bindgen submodule on #5384 (`69d72955b`, ts-gen's pin) with #5375 rebased on top;
   `38d0d0d` regenerated from the restack-3 tip `5b2d7bf` (see "Restack 3 (session 13)").
+- `a4cbe97` Regenerated without mono from the restack-5 tip `45a278c` (see "Restack 5 (session
+  15a)").
+- `54d15c2` wasm-bindgen submodule on #5390 (`67e24940f`) with #5375 rebased on top; `f8fb34a`
+  regenerated with `--experimental-generic-mono` from `01ed819` (#122 on `45a278c`), with the
+  `mono-patch` stopgaps and the `api-diff` script in `ts-gen-worker/tools/` (see "Generic mono
+  (session 15)").
 
 ## Decisions
 
@@ -306,6 +312,9 @@ test-suite port on the `ext/` layer and macros, with the http feature):
   the inventory).
 - ts-gen: the surface walk follows type-parameter constraints, so `--export Service` emits ~1,900
   lines nothing references (bug 4 under "Restack 3 (session 13)").
+- ts-gen: a construct signature's concrete return arguments are dropped: `new (UnderlyingByteSource,
+  …): ReadableStream<Uint8Array>` returns `ReadableStream` (non-mono) or an unconstrained
+  `ReadableStream<R>` (mono).
 - ts-gen: an erased type parameter with a constraint but no default could erase to the constraint
   (TypeScript's own inference) instead of `any`, when the constraint does not mention the
   parameter; would give `SqlStorageCursor.raw()` → `Iterator<Array>`.
@@ -630,11 +639,11 @@ other #155 path produce the session-12 output unchanged.
 
 Baseline before generic mono: bindings regenerated without mono from ts-gen `45a278c` (the stack
 rebased onto main `f8466d4`, i.e. #155 as landed plus #157), wasm-bindgen pin unchanged
-(`a8aff4642`). `chomp test:ts-gen-worker` and `-http`: 194 passed / 4 skipped each (one `-http` run timed
-out `r2 > delete` at 5 s; the rerun and three isolated `r2.spec.ts` runs pass); `chomp test`:
-145 / 4; clippy clean; benchmark `.wasm` / glue byte-identical to `9439547` (120,645 / 33,871).
-Nothing loosened. `bindings.rs` 21,955 → 22,148 lines
-(+206 / −13); `email.rs` −6.
+(`a8aff4642`). `chomp test:ts-gen-worker` and `-http`: 194 passed / 4 skipped each (one `-http`
+run timed out `r2 > delete` at 5 s; the rerun and three isolated `r2.spec.ts` runs pass);
+`chomp test`: 145 / 4; clippy clean; benchmark `.wasm` / glue the same size as at `9439547`
+(120,645 / 33,871 B). Nothing loosened. `bindings.rs` 21,955 → 22,148 lines (+206 / −13);
+`email.rs` −6.
 
 | # | Change (old → new) | Cause | Port change | Class |
 |---|---|---|---|---|
@@ -650,3 +659,103 @@ No other hunks.
 - `setTimeout`: `set_timeout_with_function_and_ms_delay(&cb, ms)` (was
   `set_timeout_with_ms_delay(&cb, ms, &[])`); the variadic forms are `…_and_args`. `Delay` is
   unchanged.
+
+## Generic mono (session 15)
+
+`build:ts-gen-worker:types` passes `--experimental-generic-mono` to all three generations; ts-gen is
+`01ed819` (`workers-mono-test`: the stack tip `45a278c` with #122's five commits). The full
+reading — patterns, interesting cases, every port call site, sizes, feedback with reproducers — is
+`generic-mono.md`; the signature-level diff is `generic-mono-api-diff.md` (script in
+`ts-gen-worker/tools/`). `worker/src/bindings/email.rs` stays non-mono and is byte-identical.
+
+### wasm-bindgen pin
+
+`54d15c2`: the submodule is wasm-bindgen `67e24940f` (#5390 on #5384, #122's pin) with #5375's
+three commits rebased on top as local `gbedford/reinit-reconstruct-5390` = `ea363f37e` (not
+pushed). `67e24940f` descends from the previous base `69d72955b`, so the rebase is `--onto
+67e24940f 69d72955b`:
+
+- `001a19b0b` → `39bb0617f` (export call guard): clean.
+- `99db02f77` → `f600be2ef` (parse `reinit`): conflict only in `APPROVED_SCHEMA_FILE_HASH`;
+  #5390 changed the schema files, so the hash is recomputed (`16382874117616585400`).
+- `a8aff4642` → `ea363f37e` (reconstruct): clean.
+
+Each commit `cargo check`s (`cli-support`, `macro-support`, `shared`); `schema_version` passes; CLI
+tests filtered on `reinit`, `panic_unwind`, `targets`, `_import_rs`, `termination`: 22 pass and the
+same 4 `termination*` as session 12 fail (environment). The non-mono bindings build and pass on
+the new pin unchanged (`chomp test:ts-gen-worker` / `-http` 194 / 4, `chomp test` 145 / 4).
+
+### `js_sys_unstable_apis`: not enabled
+
+The mono output does not need it: the generated code fails with the same errors with and without
+the cfg, and builds both ways once patched. It also cannot be enabled: crates.io
+`serde-wasm-bindgen 0.6.5` and `wasm-streams 0.7.0` stop compiling under it, both sit in `worker`'s
+and `ts-gen-worker`'s dependency graphs, and a `--cfg` applies to the whole build (cargo has no
+stable per-package rustflags), so scoping it to the ts-gen-worker crates would mean separate cargo
+invocations and target directories for a cfg nothing uses.
+
+### Stopgap patches
+
+As emitted, `bindings.rs` has 499 errors at 113 sites from five ts-gen causes (none from #122;
+generic-mono.md feedback 1–5). `ts-gen-worker/tools` `mono-patch` (run by the chomp task after
+generation, then `rustfmt`) makes 55 span-located edits, each marked `// ts-gen mono: …
+(generic-mono.md #N)`: `JsGeneric` on type parameters inside `Function<…>` (33 extern fns), the
+missing builder/factory impl bounds (16 impls), two `_js_string` twins naming an erased parameter
+removed, two colliding inline-wrapper twins renamed, `'static` on two inline wrappers. The task
+regenerates the committed file byte for byte.
+
+### Result
+
+fmt, `cargo check --locked`, the clippy line, `chomp test:ts-gen-worker` and `-http` (194 passed /
+4 skipped each), `chomp test` (145 / 4), `chomp build:bench`: all green. No spec changed. Port: 16
+call sites for mono, 12 for clippy's `needless_borrows_for_generic_args` (generic-mono.md (d)).
+
+| # | Change (old → new) | Cause | Port change | Class |
+|---|---|---|---|---|
+| 1 | `&str` arguments → `impl JsStringLike` (853 items) | mono | 12 clippy-driven `&x` → `x` | neutral / improvement |
+| 2 | `JsGeneric` bounds dropped (479) | mono | none | improvement once it compiles; 33 sites do not (bug 1) |
+| 3 | `&[String]` → `&[impl JsStringLike]` (117) | #122 | none | improvement; `&[]` needs a type |
+| 4 | 385 `_js_string` twins (367 `JsString`, 18 `Array<JsString>` from #122) | mono / #122 | none | neutral; surface growth, `type__js_string` naming |
+| 5 | generic-typed arguments `&T` → `T` (41): `Queue::send`, `write_with_chunk`, builder `cf`, `MessageSendRequest::new`, `read_at_least` | mono | `send(body)`, `write_with_chunk(chunk)` / `(… .into())` ×7, `init.cf(cf)` | **regression**: moves, and a borrow silently instantiates `T = &X` |
+| 6 | constructors generic over the class's parameters (16): `TransformStream::new<I, O>()`, `Request::new_with_str<CfHostMetadata, Cf>`, `ReadableStream::new<R>()` | mono | `let t: TransformStream<Uint8Array, Uint8Array> = TransformStream::new()?` ×3 | **regression**: annotations needed, not tied to arguments |
+| 7 | `impl JsStringLike` makes turbofish count a hidden parameter | wasm-bindgen | `get::<JsValue, _>` ×3 | **regression** |
+| 8 | `KVNamespaceGetOptions<JsString>` → `<String>`, builder takes `Type` by value (24 items with `String` type arguments) | mono | `builder(value_type.to_string())` | neutral |
+| 9 | `number \| bigint` and `string \| number \| boolean` → `impl JsBigIntOrNumberLike` / `JsBooleanOrNumberOrStringLike`; 15 `_with_big_int` / `_with_f64` / `_with_str` overloads removed | mono | none (`f64` still passes) | improvement |
+| 10 | `Option<&str>` → `Option<impl JsStringLike>` (7) | mono | none | **regression**: `None` needs `None::<&str>` |
+| 11 | `TypedArray` builder methods gain `where for<'a> &'a T: IntoWasmAbi` (22) | mono | none | neutral |
+| 12 | `ValueKind::VecOfBool(Vec<Boolean>)` → `Vec<bool>` | #122 | none | improvement |
+
+Sizes against `9439547` (benchmark worker, `-Oz`): `.wasm` 120,645 → 120,942 B (+0.2%; gzip −24 B),
+glue 33,871 → 35,064 B (+3.5%; gzip +66 B), 77 imports both. Debug test worker glue +10.1%, of which
+three quarters is the per-shim `// generic import` comment. `ts-gen-worker` compiles ~20–28% slower.
+
+### Issues to raise
+
+From #122: none that breaks the build. Two ergonomic notes: `&[]` for a `&[impl JsStringLike]`
+parameter needs `&[] as &[&str]` (generic-mono.md feedback 9), and 18 more `_js_string` twins
+(feedback 11).
+
+Pre-existing mono, ts-gen main (reproduce on `f8466d4`): feedback 1 (unbounded parameters inside
+`Function<…>`), 2 (impl bounds for `&[T]` setters), 6 (constructor type parameters), 7 (by-value
+generic arguments), 9 (`None` for `Option<impl JsStringLike>`), 10 (`type__js_string`), 11 (twin
+volume).
+
+Pre-existing mono × stack layers (do not reproduce on main): feedback 2 for `Option<T>` (`2d6cfaf`),
+3 (`_js_string` twin over a primitive-erased parameter, `592db90`), 4 and 5 (inline wrappers'
+twins and bounds, `49afaaf`).
+
+wasm-bindgen: feedback 8 (turbofish arity with argument-position `impl Trait`) and 12 (shim comment,
+one shim per string type).
+
+### Migration-table deltas (for workers-rs-4 / MIGRATING.md)
+
+Only if the port adopts mono:
+
+- Generic constructors need the type: `let t: TransformStream<Uint8Array, Uint8Array> =
+  TransformStream::new()?;` (or `TransformStream<JsValue, JsValue>` for the untyped stream).
+- Generic-typed arguments move: `queue.send(body)`, `writer.write_with_chunk(chunk)`; an untyped
+  writer takes `JsValue` (`Uint8Array::from(bytes).into()`).
+- Turbofish counts the string argument: `storage.get::<JsValue, _>(key)`,
+  `stmt.first_with_col_name::<JsValue, _>(col)`.
+- KV options: `KVNamespaceGetOptions::builder("text".to_string())` is a `KVNamespaceGetOptions<String>`.
+- String arguments accept `&str`, `String`, `JsString` alike; `None` / `&[]` need a type.
