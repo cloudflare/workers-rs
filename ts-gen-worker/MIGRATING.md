@@ -24,9 +24,8 @@ String arguments take `impl JsStringLike` (`&str`, `String`, `&String`), and str
 `&[impl JsStringLike]` (`&["a", "b"]`). An optional or nullable argument is either its own
 overload (`Response::new_with_null_and_init(&init)`) or a builder method left uncalled; only
 raw setters take `Option<…>`. Byte arguments take `impl BufferSourceLike`: `&[u8]`, `Vec<u8>` or
-any buffer handle. In a dictionary field (`R2PutOptions::builder().md5(..)`) pass an owned
-`Uint8Array` or `Vec<u8>`, since `&[u8]` is a view into wasm memory and the dictionary outlives the
-borrow. Callbacks are `Function::from_fn(|event: MessageEvent| …)`, or `Function::once(|| …)` for
+any buffer handle (`bucket.put_with_buffer_source(k, &bytes[..])`, `.md5(&digest[..])`). A call
+argument passes `&[u8]` as a view, and a dictionary field stores a copy. Callbacks are `Function::from_fn(|event: MessageEvent| …)`, or `Function::once(|| …)` for
 a one-shot. String-enum
 options take the generated enum (`EncodeBodyKind::Manual`, `CacheKind::NoStore`,
 `BinaryTypeKind::Arraybuffer`), and arrays come back as `Vec<T>`. The JS globals are

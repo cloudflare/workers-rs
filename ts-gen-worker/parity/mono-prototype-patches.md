@@ -29,6 +29,7 @@ workers-rs-3 builds the whole prototype. `js_sys_unstable_apis` is on for wasm32
 | `56ac6f184` | `macro-support/src/codegen.rs`, `src/convert/slices.rs`, 2 reference files | `extends = Parent<A, B>` with concrete type arguments (parent conversions via `<Parent as JsCast>::unchecked_from_js`); `Vec<Option<T>>` returns for handles, `String`, `bool`, `char`, numbers | `IdentityTransformStream extends TransformStream<…, Uint8Array>`; `TraceEventInfo::traces -> Vec<Option<String>>` | wasm-bindgen |
 | `b503ab30f` | `macro-support/src/codegen.rs`, `src/convert/impls.rs`, `src/lib.rs` (`JsGeneric: WasmDescribe`) | `extends = Par<T, T>` naming the child's parameters; one blanket `IntoWasmAbi for &T` / `Option<&T>` over every `T: JsGeneric` | ts-gen keeps `Child<T>` arguments; drops the `for<'a> &'a T: IntoWasmAbi` clause on handle-bounded helpers (audit N7) | wasm-bindgen |
 | `627ff72ba` | `macro-support/src/{ast,parser,codegen}.rs`, `src/convert/traits.rs`, js-sys | `catch` on an import whose return is `Promise<..>` (not `Result`) returns a synchronous throw as a rejected promise (`FromCaughtException`, `Promise::reject_typed`) | design D1: a sync throw from a promise-returning member must surface at `.await`, not unwind through wasm | wasm-bindgen |
+| `a8994870b` | `macro-support/src/codegen.rs`, js-sys | `slice = "copy"` (and the other slice modes) on a generic mono argument applies per instantiation: `&[u8]` crosses as a fresh `Uint8Array`, handles as themselves | a stored `BufferSourceLike` must not be a view into wasm memory | wasm-bindgen |
 
 ## js-sys (all under `js_sys_unstable_apis` unless noted)
 
@@ -78,6 +79,7 @@ workers-rs-3 builds the whole prototype. `js_sys_unstable_apis` is on for wasm32
 | `16402cd` | async members are one import returning `Promise<T>` (`T` the awaited form), with no `async fn` / `_promise` pair (293 twins → 0) | design D1: one value that awaits and passes to JS | ts-gen mono PR (async) |
 | `6815c11` | `M[K]` over a concrete `M` binds once per key, with the key's literal set by the binding (`WebSocket::add_event_listener_message(&Function<fn(MessageEvent)>)`), declared on subclasses for the first parent's methods; overloads told apart by one literal are named by it | design D2: event listeners took `fn(JsValue)` and a cast | ts-gen mono PR (types) |
 | `16a19f9` | `Promise<T>` imports keep `catch`, so a synchronous throw is a rejection at `.await` | design D1; needs `627ff72ba` | ts-gen mono PR (async) |
+| `3e9f8ee` | setters whose value is `impl BufferSourceLike` carry `slice = "copy"`; builders and factories store through them (15 setters) | a dictionary outlives the `&[u8]` borrow; needs `a8994870b` | ts-gen mono PR (types) |
 
 ## workers-rs (`ts-gen-worker`)
 
@@ -109,6 +111,7 @@ Each row of the tables above is one change. Landing them is a smaller set of PRs
 | js-sys unstable: Rust-typed collections (tuples, `Map`/`Set`/`Object`, iteration) | `86a54f19d`, `4aeed9f00`, `366274d92`, `866b0d33d` | — |
 | js-sys unstable: `Function<fn(A..) -> R>`, `from_fn`, `once`, typed `Promise::new` | `83af8baa2`, part of `3ef8cb93b` (+ `429a22215`, stable) | — |
 | js-sys unstable: `BufferSourceLike` | part of `3ef8cb93b` | — |
+| wasm-bindgen: slice modes on generic mono arguments | `a8994870b` | — |
 | js-sys unstable: `String` returns, `Date::new_with_value`, `ArrayBuffer` bytes | `9d903011a`, `008fba104`, part of `b503ab30f` | — |
 | ts-gen: string return modes | `cdf4f12` | — |
 | ts-gen: `--annotate` `@retype` + namespaces | `121bae9` | — |
@@ -118,7 +121,7 @@ Each row of the tables above is one change. Landing them is a smaller set of PRs
 | ts-gen mono: nullable arguments | `17df4e9`, `64e785e` | `cb872c471` |
 | ts-gen mono: overloads and names | `9220a19`, `e4d3fde`, `8e09b3d`, `76caab3`, `1549ee7`, `6f85b11`, `7ec1b4c` | — |
 | ts-gen mono: generic-class arguments, `Partial`, `()` | `6115484`, `76b070a`, `d4d3303` | `56ac6f184` |
-| ts-gen mono: buffer-source arguments | `e798487` | `3ef8cb93b` |
+| ts-gen mono: buffer-source arguments | `e798487`, `3e9f8ee` | `3ef8cb93b`, `a8994870b` |
 | wasm-bindgen: `catch` on `Promise<T>` returns | `627ff72ba` | — |
 | ts-gen mono: per-key `M[K]` bindings | `6815c11` | — |
 | ts-gen mono: `Promise<T>` async returns | `16402cd`, `16a19f9` | `627ff72ba` |
