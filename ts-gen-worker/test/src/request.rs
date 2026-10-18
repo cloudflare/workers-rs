@@ -9,10 +9,8 @@ use ts_gen_worker::*;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
-/// Incoming requests carry `IncomingRequestCfProperties`; upstream types
-/// `Request.cf` as the union with the outgoing `RequestInitCfProperties`.
 fn cf_summary(req: &Request) -> (String, String) {
-    let cf: Option<IncomingRequestCfProperties> = req.cf().map(JsCast::unchecked_into);
+    let cf = req.cf();
     (
         format!(
             "{:?}",

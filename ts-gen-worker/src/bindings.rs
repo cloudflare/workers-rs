@@ -836,8 +836,6 @@ extern "C" {
     pub fn set_code(this: &CachePurgeError, val: f64);
     #[wasm_bindgen(method, getter)]
     pub fn message(this: &CachePurgeError) -> String;
-    #[wasm_bindgen(method, getter, js_name = "message")]
-    pub fn message_js_string(this: &CachePurgeError) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_message(this: &CachePurgeError, val: impl ::wasm_bindgen::JsStringLike);
 }
@@ -878,14 +876,10 @@ extern "C" {
     pub type CachePurgeOptions;
     #[wasm_bindgen(method, getter)]
     pub fn tags(this: &CachePurgeOptions) -> Option<Vec<String>>;
-    #[wasm_bindgen(method, getter, js_name = "tags")]
-    pub fn tags_js_string(this: &CachePurgeOptions) -> Option<Array<JsString>>;
     #[wasm_bindgen(method, setter)]
     pub fn set_tags(this: &CachePurgeOptions, val: &[impl ::wasm_bindgen::JsStringLike]);
     #[wasm_bindgen(method, getter, js_name = "pathPrefixes")]
     pub fn path_prefixes(this: &CachePurgeOptions) -> Option<Vec<String>>;
-    #[wasm_bindgen(method, getter, js_name = "pathPrefixes")]
-    pub fn path_prefixes_js_string(this: &CachePurgeOptions) -> Option<Array<JsString>>;
     #[wasm_bindgen(method, setter, js_name = "pathPrefixes")]
     pub fn set_path_prefixes(this: &CachePurgeOptions, val: &[impl ::wasm_bindgen::JsStringLike]);
     #[wasm_bindgen(method, getter, js_name = "purgeEverything")]
@@ -951,8 +945,6 @@ extern "C" {
     pub type CloudflareAccessContext;
     #[wasm_bindgen(method, getter)]
     pub fn aud(this: &CloudflareAccessContext) -> String;
-    #[wasm_bindgen(method, getter, js_name = "aud")]
-    pub fn aud_js_string(this: &CloudflareAccessContext) -> JsString;
     #[wasm_bindgen(method, catch, js_name = "getIdentity")]
     pub async fn get_identity(
         this: &CloudflareAccessContext,
@@ -971,8 +963,6 @@ extern "C" {
     pub fn id<T>(this: &DurableObjectStub<T>) -> DurableObjectId;
     #[wasm_bindgen(method, getter)]
     pub fn name<T>(this: &DurableObjectStub<T>) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "name")]
-    pub fn name_js_string<T>(this: &DurableObjectStub<T>) -> Option<JsString>;
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -981,18 +971,12 @@ extern "C" {
     pub type DurableObjectId;
     #[wasm_bindgen(method, js_name = "toString")]
     pub fn to_string(this: &DurableObjectId) -> String;
-    #[wasm_bindgen(method, js_name = "toString")]
-    pub fn to_string_js_string(this: &DurableObjectId) -> JsString;
     #[wasm_bindgen(method)]
     pub fn equals(this: &DurableObjectId, other: &DurableObjectId) -> bool;
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &DurableObjectId) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "name")]
-    pub fn name_js_string(this: &DurableObjectId) -> Option<JsString>;
     #[wasm_bindgen(method, getter)]
     pub fn jurisdiction(this: &DurableObjectId) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "jurisdiction")]
-    pub fn jurisdiction_js_string(this: &DurableObjectId) -> Option<JsString>;
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -1273,11 +1257,6 @@ extern "C" {
         this: &DurableObjectState<Props>,
         ws: &WebSocket,
     ) -> Result<Vec<String>, crate::Error>;
-    #[wasm_bindgen(method, catch, js_name = "getTags")]
-    pub fn get_tags_js_string<Props>(
-        this: &DurableObjectState<Props>,
-        ws: &WebSocket,
-    ) -> Result<Array<JsString>, crate::Error>;
     #[wasm_bindgen(method, catch)]
     pub fn abort<Props>(this: &DurableObjectState<Props>) -> Result<(), crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "abort")]
@@ -1817,10 +1796,6 @@ extern "C" {
     #[wasm_bindgen(method, catch, js_name = "getCurrentBookmark")]
     pub async fn get_current_bookmark(this: &DurableObjectStorage) -> Result<String, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getCurrentBookmark")]
-    pub async fn get_current_bookmark_js_string(
-        this: &DurableObjectStorage,
-    ) -> Result<JsString, crate::Error>;
-    #[wasm_bindgen(method, catch, js_name = "getCurrentBookmark")]
     pub fn get_current_bookmark_promise(
         this: &DurableObjectStorage,
     ) -> Result<Promise<String>, crate::Error>;
@@ -1829,11 +1804,6 @@ extern "C" {
         this: &DurableObjectStorage,
         timestamp: f64,
     ) -> Result<String, crate::Error>;
-    #[wasm_bindgen(method, catch, js_name = "getBookmarkForTime")]
-    pub async fn get_bookmark_for_time_js_string(
-        this: &DurableObjectStorage,
-        timestamp: f64,
-    ) -> Result<JsString, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getBookmarkForTime")]
     pub fn get_bookmark_for_time_promise(
         this: &DurableObjectStorage,
@@ -1845,11 +1815,6 @@ extern "C" {
         timestamp: &Date,
     ) -> Result<String, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getBookmarkForTime")]
-    pub async fn get_bookmark_for_time_with_date_js_string(
-        this: &DurableObjectStorage,
-        timestamp: &Date,
-    ) -> Result<JsString, crate::Error>;
-    #[wasm_bindgen(method, catch, js_name = "getBookmarkForTime")]
     pub fn get_bookmark_for_time_with_date_promise(
         this: &DurableObjectStorage,
         timestamp: &Date,
@@ -1859,11 +1824,6 @@ extern "C" {
         this: &DurableObjectStorage,
         bookmark: impl ::wasm_bindgen::JsStringLike,
     ) -> Result<String, crate::Error>;
-    #[wasm_bindgen(method, catch, js_name = "onNextSessionRestoreBookmark")]
-    pub async fn on_next_session_restore_bookmark_js_string(
-        this: &DurableObjectStorage,
-        bookmark: impl ::wasm_bindgen::JsStringLike,
-    ) -> Result<JsString, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "onNextSessionRestoreBookmark")]
     pub fn on_next_session_restore_bookmark_promise(
         this: &DurableObjectStorage,
@@ -1890,26 +1850,18 @@ extern "C" {
     pub type DurableObjectListOptions;
     #[wasm_bindgen(method, getter)]
     pub fn start(this: &DurableObjectListOptions) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "start")]
-    pub fn start_js_string(this: &DurableObjectListOptions) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_start(this: &DurableObjectListOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "startAfter")]
     pub fn start_after(this: &DurableObjectListOptions) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "startAfter")]
-    pub fn start_after_js_string(this: &DurableObjectListOptions) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "startAfter")]
     pub fn set_start_after(this: &DurableObjectListOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn end(this: &DurableObjectListOptions) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "end")]
-    pub fn end_js_string(this: &DurableObjectListOptions) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_end(this: &DurableObjectListOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn prefix(this: &DurableObjectListOptions) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "prefix")]
-    pub fn prefix_js_string(this: &DurableObjectListOptions) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_prefix(this: &DurableObjectListOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
@@ -2176,12 +2128,8 @@ extern "C" {
     ) -> Result<WebSocketRequestResponsePair, crate::Error>;
     #[wasm_bindgen(method, getter)]
     pub fn request(this: &WebSocketRequestResponsePair) -> String;
-    #[wasm_bindgen(method, getter, js_name = "request")]
-    pub fn request_js_string(this: &WebSocketRequestResponsePair) -> JsString;
     #[wasm_bindgen(method, getter)]
     pub fn response(this: &WebSocketRequestResponsePair) -> String;
-    #[wasm_bindgen(method, getter, js_name = "response")]
-    pub fn response_js_string(this: &WebSocketRequestResponsePair) -> JsString;
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -2354,11 +2302,6 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/type)"]
     #[wasm_bindgen(method, getter, js_name = "type")]
     pub fn type_(this: &Event) -> String;
-    #[doc = " The **`type`** read-only property of the Event interface returns a string containing the event's type. It is set when the event is constructed and is the name commonly used to refer to the specific event, such as click, load, or error."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/type)"]
-    #[wasm_bindgen(method, getter, js_name = "type")]
-    pub fn type__js_string(this: &Event) -> JsString;
     #[doc = " The **`eventPhase`** read-only property of the Event interface indicates which phase of the event flow is currently being evaluated."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Event/eventPhase)"]
@@ -2862,11 +2805,6 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/type)"]
     #[wasm_bindgen(method, getter, js_name = "type")]
     pub fn type_(this: &Blob) -> String;
-    #[doc = " The **`type`** read-only property of the Blob interface returns the MIME type of the file."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/type)"]
-    #[wasm_bindgen(method, getter, js_name = "type")]
-    pub fn type__js_string(this: &Blob) -> JsString;
     #[doc = " The **`slice()`** method of the Blob interface creates and returns a new Blob object which contains data from a subset of the blob on which it's called."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Blob/slice)"]
@@ -2944,8 +2882,6 @@ extern "C" {
     pub type BlobOptions;
     #[wasm_bindgen(method, getter, js_name = "type")]
     pub fn type_(this: &BlobOptions) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "type")]
-    pub fn type__js_string(this: &BlobOptions) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_type(this: &BlobOptions, val: impl ::wasm_bindgen::JsStringLike);
 }
@@ -2997,11 +2933,6 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/File/name)"]
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &File) -> String;
-    #[doc = " The **`name`** read-only property of the File interface returns the name of the file represented by a File object. For security reasons, the path is excluded from this property."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/File/name)"]
-    #[wasm_bindgen(method, getter, js_name = "name")]
-    pub fn name_js_string(this: &File) -> JsString;
     #[wasm_bindgen(method, getter, js_name = "lastModified")]
     fn last_modified_js(this: &File) -> f64;
 }
@@ -3020,8 +2951,6 @@ extern "C" {
     pub type FileOptions;
     #[wasm_bindgen(method, getter, js_name = "type")]
     pub fn type_(this: &FileOptions) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "type")]
-    pub fn type__js_string(this: &FileOptions) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_type(this: &FileOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "lastModified")]
@@ -3314,12 +3243,6 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Crypto/randomUUID)"]
     #[wasm_bindgen(method, catch, js_name = "randomUUID")]
     pub fn random_uuid(this: &Crypto) -> Result<String, crate::Error>;
-    #[doc = " The **`randomUUID()`** method of the Crypto interface is used to generate a v4 UUID using a cryptographically secure random number generator."]
-    #[doc = " Available only in secure contexts."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Crypto/randomUUID)"]
-    #[wasm_bindgen(method, catch, js_name = "randomUUID")]
-    pub fn random_uuid_js_string(this: &Crypto) -> Result<JsString, crate::Error>;
     #[wasm_bindgen(method, getter, js_name = "DigestStream")]
     pub fn digest_stream(this: &Crypto) -> JsValue;
     #[wasm_bindgen(method, setter, js_name = "DigestStream")]
@@ -4495,11 +4418,6 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/CryptoKey/type)"]
     #[wasm_bindgen(method, getter, js_name = "type")]
     pub fn type_(this: &CryptoKey) -> String;
-    #[doc = " The read-only **`type`** property of the CryptoKey interface indicates which kind of key is represented by the object. It can have the following values:"]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/CryptoKey/type)"]
-    #[wasm_bindgen(method, getter, js_name = "type")]
-    pub fn type__js_string(this: &CryptoKey) -> JsString;
     #[doc = " The read-only **`extractable`** property of the CryptoKey interface indicates whether or not the key may be extracted using SubtleCrypto.exportKey() or SubtleCrypto.wrapKey()."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/CryptoKey/extractable)"]
@@ -4515,11 +4433,6 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/CryptoKey/usages)"]
     #[wasm_bindgen(method, getter)]
     pub fn usages(this: &CryptoKey) -> Vec<String>;
-    #[doc = " The read-only **`usages`** property of the CryptoKey interface indicates what can be done with the key."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/CryptoKey/usages)"]
-    #[wasm_bindgen(method, getter, js_name = "usages")]
-    pub fn usages_js_string(this: &CryptoKey) -> Array<JsString>;
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -4550,26 +4463,18 @@ extern "C" {
     pub type JsonWebKey;
     #[wasm_bindgen(method, getter)]
     pub fn kty(this: &JsonWebKey) -> String;
-    #[wasm_bindgen(method, getter, js_name = "kty")]
-    pub fn kty_js_string(this: &JsonWebKey) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_kty(this: &JsonWebKey, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "use")]
     pub fn use_(this: &JsonWebKey) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "use")]
-    pub fn use__js_string(this: &JsonWebKey) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_use(this: &JsonWebKey, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn key_ops(this: &JsonWebKey) -> Option<Vec<String>>;
-    #[wasm_bindgen(method, getter, js_name = "key_ops")]
-    pub fn key_ops_js_string(this: &JsonWebKey) -> Option<Array<JsString>>;
     #[wasm_bindgen(method, setter)]
     pub fn set_key_ops(this: &JsonWebKey, val: &[impl ::wasm_bindgen::JsStringLike]);
     #[wasm_bindgen(method, getter)]
     pub fn alg(this: &JsonWebKey) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "alg")]
-    pub fn alg_js_string(this: &JsonWebKey) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_alg(this: &JsonWebKey, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
@@ -4578,68 +4483,46 @@ extern "C" {
     pub fn set_ext(this: &JsonWebKey, val: bool);
     #[wasm_bindgen(method, getter)]
     pub fn crv(this: &JsonWebKey) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "crv")]
-    pub fn crv_js_string(this: &JsonWebKey) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_crv(this: &JsonWebKey, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn x(this: &JsonWebKey) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "x")]
-    pub fn x_js_string(this: &JsonWebKey) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_x(this: &JsonWebKey, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn y(this: &JsonWebKey) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "y")]
-    pub fn y_js_string(this: &JsonWebKey) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_y(this: &JsonWebKey, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn d(this: &JsonWebKey) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "d")]
-    pub fn d_js_string(this: &JsonWebKey) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_d(this: &JsonWebKey, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn n(this: &JsonWebKey) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "n")]
-    pub fn n_js_string(this: &JsonWebKey) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_n(this: &JsonWebKey, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn e(this: &JsonWebKey) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "e")]
-    pub fn e_js_string(this: &JsonWebKey) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_e(this: &JsonWebKey, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn p(this: &JsonWebKey) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "p")]
-    pub fn p_js_string(this: &JsonWebKey) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_p(this: &JsonWebKey, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn q(this: &JsonWebKey) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "q")]
-    pub fn q_js_string(this: &JsonWebKey) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_q(this: &JsonWebKey, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn dp(this: &JsonWebKey) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "dp")]
-    pub fn dp_js_string(this: &JsonWebKey) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_dp(this: &JsonWebKey, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn dq(this: &JsonWebKey) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "dq")]
-    pub fn dq_js_string(this: &JsonWebKey) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_dq(this: &JsonWebKey, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn qi(this: &JsonWebKey) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "qi")]
-    pub fn qi_js_string(this: &JsonWebKey) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_qi(this: &JsonWebKey, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
@@ -4648,8 +4531,6 @@ extern "C" {
     pub fn set_oth(this: &JsonWebKey, val: &[RsaOtherPrimesInfo]);
     #[wasm_bindgen(method, getter)]
     pub fn k(this: &JsonWebKey) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "k")]
-    pub fn k_js_string(this: &JsonWebKey) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_k(this: &JsonWebKey, val: impl ::wasm_bindgen::JsStringLike);
 }
@@ -4751,20 +4632,14 @@ extern "C" {
     pub type RsaOtherPrimesInfo;
     #[wasm_bindgen(method, getter)]
     pub fn r(this: &RsaOtherPrimesInfo) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "r")]
-    pub fn r_js_string(this: &RsaOtherPrimesInfo) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_r(this: &RsaOtherPrimesInfo, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn d(this: &RsaOtherPrimesInfo) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "d")]
-    pub fn d_js_string(this: &RsaOtherPrimesInfo) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_d(this: &RsaOtherPrimesInfo, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn t(this: &RsaOtherPrimesInfo) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "t")]
-    pub fn t_js_string(this: &RsaOtherPrimesInfo) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_t(this: &RsaOtherPrimesInfo, val: impl ::wasm_bindgen::JsStringLike);
 }
@@ -4810,8 +4685,6 @@ extern "C" {
     pub type SubtleCryptoDeriveKeyAlgorithm;
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &SubtleCryptoDeriveKeyAlgorithm) -> String;
-    #[wasm_bindgen(method, getter, js_name = "name")]
-    pub fn name_js_string(this: &SubtleCryptoDeriveKeyAlgorithm) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_name(this: &SubtleCryptoDeriveKeyAlgorithm, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
@@ -4920,8 +4793,6 @@ extern "C" {
     pub type SubtleCryptoEncryptAlgorithm;
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &SubtleCryptoEncryptAlgorithm) -> String;
-    #[wasm_bindgen(method, getter, js_name = "name")]
-    pub fn name_js_string(this: &SubtleCryptoEncryptAlgorithm) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_name(this: &SubtleCryptoEncryptAlgorithm, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
@@ -5051,8 +4922,6 @@ extern "C" {
     pub type SubtleCryptoGenerateKeyAlgorithm;
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &SubtleCryptoGenerateKeyAlgorithm) -> String;
-    #[wasm_bindgen(method, getter, js_name = "name")]
-    pub fn name_js_string(this: &SubtleCryptoGenerateKeyAlgorithm) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_name(
         this: &SubtleCryptoGenerateKeyAlgorithm,
@@ -5089,8 +4958,6 @@ extern "C" {
     pub fn set_length(this: &SubtleCryptoGenerateKeyAlgorithm, val: f64);
     #[wasm_bindgen(method, getter, js_name = "namedCurve")]
     pub fn named_curve(this: &SubtleCryptoGenerateKeyAlgorithm) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "namedCurve")]
-    pub fn named_curve_js_string(this: &SubtleCryptoGenerateKeyAlgorithm) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "namedCurve")]
     pub fn set_named_curve(
         this: &SubtleCryptoGenerateKeyAlgorithm,
@@ -5160,8 +5027,6 @@ extern "C" {
     pub type SubtleCryptoHashAlgorithm;
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &SubtleCryptoHashAlgorithm) -> String;
-    #[wasm_bindgen(method, getter, js_name = "name")]
-    pub fn name_js_string(this: &SubtleCryptoHashAlgorithm) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_name(this: &SubtleCryptoHashAlgorithm, val: impl ::wasm_bindgen::JsStringLike);
 }
@@ -5179,8 +5044,6 @@ extern "C" {
     pub type SubtleCryptoImportKeyAlgorithm;
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &SubtleCryptoImportKeyAlgorithm) -> String;
-    #[wasm_bindgen(method, getter, js_name = "name")]
-    pub fn name_js_string(this: &SubtleCryptoImportKeyAlgorithm) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_name(this: &SubtleCryptoImportKeyAlgorithm, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
@@ -5198,8 +5061,6 @@ extern "C" {
     pub fn set_length(this: &SubtleCryptoImportKeyAlgorithm, val: f64);
     #[wasm_bindgen(method, getter, js_name = "namedCurve")]
     pub fn named_curve(this: &SubtleCryptoImportKeyAlgorithm) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "namedCurve")]
-    pub fn named_curve_js_string(this: &SubtleCryptoImportKeyAlgorithm) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "namedCurve")]
     pub fn set_named_curve(
         this: &SubtleCryptoImportKeyAlgorithm,
@@ -5262,8 +5123,6 @@ extern "C" {
     pub type SubtleCryptoSignAlgorithm;
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &SubtleCryptoSignAlgorithm) -> String;
-    #[wasm_bindgen(method, getter, js_name = "name")]
-    pub fn name_js_string(this: &SubtleCryptoSignAlgorithm) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_name(this: &SubtleCryptoSignAlgorithm, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
@@ -5330,8 +5189,6 @@ extern "C" {
     pub type CryptoKeyKeyAlgorithm;
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &CryptoKeyKeyAlgorithm) -> String;
-    #[wasm_bindgen(method, getter, js_name = "name")]
-    pub fn name_js_string(this: &CryptoKeyKeyAlgorithm) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_name(this: &CryptoKeyKeyAlgorithm, val: impl ::wasm_bindgen::JsStringLike);
 }
@@ -5349,8 +5206,6 @@ extern "C" {
     pub type CryptoKeyAesKeyAlgorithm;
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &CryptoKeyAesKeyAlgorithm) -> String;
-    #[wasm_bindgen(method, getter, js_name = "name")]
-    pub fn name_js_string(this: &CryptoKeyAesKeyAlgorithm) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_name(this: &CryptoKeyAesKeyAlgorithm, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
@@ -5373,8 +5228,6 @@ extern "C" {
     pub type CryptoKeyHmacKeyAlgorithm;
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &CryptoKeyHmacKeyAlgorithm) -> String;
-    #[wasm_bindgen(method, getter, js_name = "name")]
-    pub fn name_js_string(this: &CryptoKeyHmacKeyAlgorithm) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_name(this: &CryptoKeyHmacKeyAlgorithm, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
@@ -5406,8 +5259,6 @@ extern "C" {
     pub type CryptoKeyRsaKeyAlgorithm;
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &CryptoKeyRsaKeyAlgorithm) -> String;
-    #[wasm_bindgen(method, getter, js_name = "name")]
-    pub fn name_js_string(this: &CryptoKeyRsaKeyAlgorithm) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_name(this: &CryptoKeyRsaKeyAlgorithm, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "modulusLength")]
@@ -5496,14 +5347,10 @@ extern "C" {
     pub type CryptoKeyEllipticKeyAlgorithm;
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &CryptoKeyEllipticKeyAlgorithm) -> String;
-    #[wasm_bindgen(method, getter, js_name = "name")]
-    pub fn name_js_string(this: &CryptoKeyEllipticKeyAlgorithm) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_name(this: &CryptoKeyEllipticKeyAlgorithm, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "namedCurve")]
     pub fn named_curve(this: &CryptoKeyEllipticKeyAlgorithm) -> String;
-    #[wasm_bindgen(method, getter, js_name = "namedCurve")]
-    pub fn named_curve_js_string(this: &CryptoKeyEllipticKeyAlgorithm) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "namedCurve")]
     pub fn set_named_curve(
         this: &CryptoKeyEllipticKeyAlgorithm,
@@ -5528,8 +5375,6 @@ extern "C" {
     pub type CryptoKeyArbitraryKeyAlgorithm;
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &CryptoKeyArbitraryKeyAlgorithm) -> String;
-    #[wasm_bindgen(method, getter, js_name = "name")]
-    pub fn name_js_string(this: &CryptoKeyArbitraryKeyAlgorithm) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_name(this: &CryptoKeyArbitraryKeyAlgorithm, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
@@ -5538,8 +5383,6 @@ extern "C" {
     pub fn set_hash(this: &CryptoKeyArbitraryKeyAlgorithm, val: &CryptoKeyKeyAlgorithm);
     #[wasm_bindgen(method, getter, js_name = "namedCurve")]
     pub fn named_curve(this: &CryptoKeyArbitraryKeyAlgorithm) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "namedCurve")]
-    pub fn named_curve_js_string(this: &CryptoKeyArbitraryKeyAlgorithm) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "namedCurve")]
     pub fn set_named_curve(
         this: &CryptoKeyArbitraryKeyAlgorithm,
@@ -5620,21 +5463,11 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/ErrorEvent/filename)"]
     #[wasm_bindgen(method, getter)]
     pub fn filename(this: &ErrorEvent) -> String;
-    #[doc = " The **`filename`** read-only property of the ErrorEvent interface returns a string containing the name of the script file in which the error occurred."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/ErrorEvent/filename)"]
-    #[wasm_bindgen(method, getter, js_name = "filename")]
-    pub fn filename_js_string(this: &ErrorEvent) -> JsString;
     #[doc = " The **`message`** read-only property of the ErrorEvent interface returns a string containing a human-readable error message describing the problem."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/ErrorEvent/message)"]
     #[wasm_bindgen(method, getter)]
     pub fn message(this: &ErrorEvent) -> String;
-    #[doc = " The **`message`** read-only property of the ErrorEvent interface returns a string containing a human-readable error message describing the problem."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/ErrorEvent/message)"]
-    #[wasm_bindgen(method, getter, js_name = "message")]
-    pub fn message_js_string(this: &ErrorEvent) -> JsString;
     #[doc = " The **`lineno`** read-only property of the ErrorEvent interface returns an integer containing the line number of the script file on which the error occurred."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/ErrorEvent/lineno)"]
@@ -5658,14 +5491,10 @@ extern "C" {
     pub type ErrorEventErrorEventInit;
     #[wasm_bindgen(method, getter)]
     pub fn message(this: &ErrorEventErrorEventInit) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "message")]
-    pub fn message_js_string(this: &ErrorEventErrorEventInit) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_message(this: &ErrorEventErrorEventInit, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn filename(this: &ErrorEventErrorEventInit) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "filename")]
-    pub fn filename_js_string(this: &ErrorEventErrorEventInit) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_filename(this: &ErrorEventErrorEventInit, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
@@ -5744,21 +5573,11 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/MessageEvent/origin)"]
     #[wasm_bindgen(method, getter)]
     pub fn origin(this: &MessageEvent) -> Option<String>;
-    #[doc = " The **`origin`** read-only property of the MessageEvent interface is a string representing the origin of the message emitter."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/MessageEvent/origin)"]
-    #[wasm_bindgen(method, getter, js_name = "origin")]
-    pub fn origin_js_string(this: &MessageEvent) -> Option<JsString>;
     #[doc = " The **`lastEventId`** read-only property of the MessageEvent interface is a string representing a unique ID for the event."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/MessageEvent/lastEventId)"]
     #[wasm_bindgen(method, getter, js_name = "lastEventId")]
     pub fn last_event_id(this: &MessageEvent) -> String;
-    #[doc = " The **`lastEventId`** read-only property of the MessageEvent interface is a string representing a unique ID for the event."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/MessageEvent/lastEventId)"]
-    #[wasm_bindgen(method, getter, js_name = "lastEventId")]
-    pub fn last_event_id_js_string(this: &MessageEvent) -> JsString;
     #[doc = " The **`source`** read-only property of the MessageEvent interface is a MessageEventSource (which can be a WindowProxy, MessagePort, or ServiceWorker object) representing the message emitter."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/MessageEvent/source)"]
@@ -5926,18 +5745,6 @@ extern "C" {
         this: &Headers,
         name: impl ::wasm_bindgen::JsStringLike,
     ) -> Result<Option<String>, JsException>;
-    #[doc = " The **`get()`** method of the Headers interface returns a byte string of all the values of a header within a Headers object with a given name. If the requested header doesn't exist in the Headers object, it returns null."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/get)"]
-    #[doc = ""]
-    #[doc = " ## Errors"]
-    #[doc = ""]
-    #[doc = " * `TypeError` — if `name` is not a valid header name"]
-    #[wasm_bindgen(method, catch, js_name = "get")]
-    pub fn get_js_string(
-        this: &Headers,
-        name: impl ::wasm_bindgen::JsStringLike,
-    ) -> Result<Option<JsString>, JsException>;
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `name` is not `Set-Cookie`"]
@@ -5946,24 +5753,11 @@ extern "C" {
         this: &Headers,
         name: impl ::wasm_bindgen::JsStringLike,
     ) -> Result<Vec<String>, JsException>;
-    #[doc = " ## Errors"]
-    #[doc = ""]
-    #[doc = " * `TypeError` — if `name` is not `Set-Cookie`"]
-    #[wasm_bindgen(method, catch, js_name = "getAll")]
-    pub fn get_all_js_string(
-        this: &Headers,
-        name: impl ::wasm_bindgen::JsStringLike,
-    ) -> Result<Array<JsString>, JsException>;
     #[doc = " The **`getSetCookie()`** method of the Headers interface returns an array containing the values of all Set-Cookie headers associated with a response. This allows Headers objects to handle having multiple Set-Cookie headers, which wasn't possible prior to its implementation."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/getSetCookie)"]
     #[wasm_bindgen(method, catch, js_name = "getSetCookie")]
     pub fn get_set_cookie(this: &Headers) -> Result<Vec<String>, crate::Error>;
-    #[doc = " The **`getSetCookie()`** method of the Headers interface returns an array containing the values of all Set-Cookie headers associated with a response. This allows Headers objects to handle having multiple Set-Cookie headers, which wasn't possible prior to its implementation."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/getSetCookie)"]
-    #[wasm_bindgen(method, catch, js_name = "getSetCookie")]
-    pub fn get_set_cookie_js_string(this: &Headers) -> Result<Array<JsString>, crate::Error>;
     #[doc = " The **`has()`** method of the Headers interface returns a boolean stating whether a Headers object contains a certain header."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Headers/has)"]
@@ -6247,11 +6041,6 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/statusText)"]
     #[wasm_bindgen(method, getter, js_name = "statusText")]
     pub fn status_text(this: &Response) -> String;
-    #[doc = " The **`statusText`** read-only property of the Response interface contains the status message corresponding to the HTTP status code in Response.status."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/statusText)"]
-    #[wasm_bindgen(method, getter, js_name = "statusText")]
-    pub fn status_text_js_string(this: &Response) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "statusText")]
     pub fn set_status_text(this: &Response, val: impl ::wasm_bindgen::JsStringLike);
     #[doc = " The **`headers`** read-only property of the Response interface contains the Headers object associated with the response."]
@@ -6280,11 +6069,6 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/url)"]
     #[wasm_bindgen(method, getter)]
     pub fn url(this: &Response) -> String;
-    #[doc = " The **`url`** read-only property of the Response interface contains the URL of the response. The value of the url property will be the final URL obtained after any redirects."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/url)"]
-    #[wasm_bindgen(method, getter, js_name = "url")]
-    pub fn url_js_string(this: &Response) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_url(this: &Response, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "webSocket")]
@@ -6314,8 +6098,6 @@ extern "C" {
     pub fn set_status(this: &ResponseInit, val: u16);
     #[wasm_bindgen(method, getter, js_name = "statusText")]
     pub fn status_text(this: &ResponseInit) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "statusText")]
-    pub fn status_text_js_string(this: &ResponseInit) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "statusText")]
     pub fn set_status_text(this: &ResponseInit, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
@@ -6458,11 +6240,6 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/method)"]
     #[wasm_bindgen(method, getter)]
     pub fn method<CfHostMetadata, Cf>(this: &Request<CfHostMetadata, Cf>) -> String;
-    #[doc = " The **`method`** read-only property of the Request interface contains the request's method (GET, POST, etc.)"]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/method)"]
-    #[wasm_bindgen(method, getter, js_name = "method")]
-    pub fn method_js_string<CfHostMetadata, Cf>(this: &Request<CfHostMetadata, Cf>) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_method<CfHostMetadata, Cf>(
         this: &Request<CfHostMetadata, Cf>,
@@ -6473,11 +6250,6 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/url)"]
     #[wasm_bindgen(method, getter)]
     pub fn url<CfHostMetadata, Cf>(this: &Request<CfHostMetadata, Cf>) -> String;
-    #[doc = " The **`url`** read-only property of the Request interface contains the URL of the request."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/url)"]
-    #[wasm_bindgen(method, getter, js_name = "url")]
-    pub fn url_js_string<CfHostMetadata, Cf>(this: &Request<CfHostMetadata, Cf>) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_url<CfHostMetadata, Cf>(
         this: &Request<CfHostMetadata, Cf>,
@@ -6495,11 +6267,6 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/redirect)"]
     #[wasm_bindgen(method, getter)]
     pub fn redirect<CfHostMetadata, Cf>(this: &Request<CfHostMetadata, Cf>) -> String;
-    #[doc = " The **`redirect`** read-only property of the Request interface contains the mode for how redirects are handled."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/redirect)"]
-    #[wasm_bindgen(method, getter, js_name = "redirect")]
-    pub fn redirect_js_string<CfHostMetadata, Cf>(this: &Request<CfHostMetadata, Cf>) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_redirect<CfHostMetadata, Cf>(
         this: &Request<CfHostMetadata, Cf>,
@@ -6528,11 +6295,6 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/integrity)"]
     #[wasm_bindgen(method, getter)]
     pub fn integrity<CfHostMetadata, Cf>(this: &Request<CfHostMetadata, Cf>) -> String;
-    #[doc = " The **`integrity`** read-only property of the Request interface contains the subresource integrity value of the request."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/integrity)"]
-    #[wasm_bindgen(method, getter, js_name = "integrity")]
-    pub fn integrity_js_string<CfHostMetadata, Cf>(this: &Request<CfHostMetadata, Cf>) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_integrity<CfHostMetadata, Cf>(
         this: &Request<CfHostMetadata, Cf>,
@@ -6560,8 +6322,6 @@ extern "C" {
     pub type RequestInit<Cf = JsValue>;
     #[wasm_bindgen(method, getter)]
     pub fn method<Cf>(this: &RequestInit<Cf>) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "method")]
-    pub fn method_js_string<Cf>(this: &RequestInit<Cf>) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_method<Cf>(this: &RequestInit<Cf>, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
@@ -6595,8 +6355,6 @@ extern "C" {
     pub fn set_body_with_iterable<Cf>(this: &RequestInit<Cf>, val: &JsValue);
     #[wasm_bindgen(method, getter)]
     pub fn redirect<Cf>(this: &RequestInit<Cf>) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "redirect")]
-    pub fn redirect_js_string<Cf>(this: &RequestInit<Cf>) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_redirect<Cf>(this: &RequestInit<Cf>, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
@@ -6613,8 +6371,6 @@ extern "C" {
     pub fn set_cache<Cf>(this: &RequestInit<Cf>, val: CacheKind);
     #[wasm_bindgen(method, getter)]
     pub fn integrity<Cf>(this: &RequestInit<Cf>) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "integrity")]
-    pub fn integrity_js_string<Cf>(this: &RequestInit<Cf>) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_integrity<Cf>(this: &RequestInit<Cf>, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
@@ -6831,8 +6587,6 @@ extern "C" {
     pub type KVNamespaceListKey<Metadata = JsValue>;
     #[wasm_bindgen(method, getter)]
     pub fn name<Metadata>(this: &KVNamespaceListKey<Metadata>) -> String;
-    #[wasm_bindgen(method, getter, js_name = "name")]
-    pub fn name_js_string<Metadata>(this: &KVNamespaceListKey<Metadata>) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_name<Metadata>(
         this: &KVNamespaceListKey<Metadata>,
@@ -6912,8 +6666,6 @@ extern "C" {
     );
     #[wasm_bindgen(method, getter)]
     pub fn cursor<Metadata>(this: &KVNamespaceListResult<Metadata>) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "cursor")]
-    pub fn cursor_js_string<Metadata>(this: &KVNamespaceListResult<Metadata>) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_cursor<Metadata>(
         this: &KVNamespaceListResult<Metadata>,
@@ -6921,10 +6673,6 @@ extern "C" {
     );
     #[wasm_bindgen(method, getter, js_name = "cacheStatus")]
     pub fn cache_status<Metadata>(this: &KVNamespaceListResult<Metadata>) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "cacheStatus")]
-    pub fn cache_status_js_string<Metadata>(
-        this: &KVNamespaceListResult<Metadata>,
-    ) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "cacheStatus")]
     pub fn set_cache_status<Metadata>(
         this: &KVNamespaceListResult<Metadata>,
@@ -7642,14 +7390,10 @@ extern "C" {
     fn set_limit_js(this: &KVNamespaceListOptions, val: f64);
     #[wasm_bindgen(method, getter)]
     pub fn prefix(this: &KVNamespaceListOptions) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "prefix")]
-    pub fn prefix_js_string(this: &KVNamespaceListOptions) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_prefix(this: &KVNamespaceListOptions, val: &JsNullable<JsString>);
     #[wasm_bindgen(method, getter)]
     pub fn cursor(this: &KVNamespaceListOptions) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "cursor")]
-    pub fn cursor_js_string(this: &KVNamespaceListOptions) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_cursor(this: &KVNamespaceListOptions, val: &JsNullable<JsString>);
 }
@@ -7845,10 +7589,6 @@ extern "C" {
     pub fn cache_status<Value, Metadata>(
         this: &KVNamespaceGetWithMetadataResult<Value, Metadata>,
     ) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "cacheStatus")]
-    pub fn cache_status_js_string<Value, Metadata>(
-        this: &KVNamespaceGetWithMetadataResult<Value, Metadata>,
-    ) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "cacheStatus")]
     pub fn set_cache_status<Value, Metadata>(
         this: &KVNamespaceGetWithMetadataResult<Value, Metadata>,
@@ -8386,8 +8126,6 @@ extern "C" {
     pub type Message<Body = JsValue>;
     #[wasm_bindgen(method, getter)]
     pub fn id<Body>(this: &Message<Body>) -> String;
-    #[wasm_bindgen(method, getter, js_name = "id")]
-    pub fn id_js_string<Body>(this: &Message<Body>) -> JsString;
     #[wasm_bindgen(method, getter)]
     pub fn timestamp<Body>(this: &Message<Body>) -> Date;
     #[wasm_bindgen(method, getter)]
@@ -8413,8 +8151,6 @@ extern "C" {
     pub fn messages<Body>(this: &MessageBatch<Body>) -> Vec<Message<Body>>;
     #[wasm_bindgen(method, getter)]
     pub fn queue<Body>(this: &MessageBatch<Body>) -> String;
-    #[wasm_bindgen(method, getter, js_name = "queue")]
-    pub fn queue_js_string<Body>(this: &MessageBatch<Body>) -> JsString;
     #[wasm_bindgen(method, getter)]
     pub fn metadata<Body>(this: &MessageBatch<Body>) -> MessageBatchMetadata;
     #[wasm_bindgen(method, catch, js_name = "retryAll")]
@@ -8438,32 +8174,22 @@ extern "C" {
     pub fn set_limit(this: &R2ListOptions, val: u32);
     #[wasm_bindgen(method, getter)]
     pub fn prefix(this: &R2ListOptions) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "prefix")]
-    pub fn prefix_js_string(this: &R2ListOptions) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_prefix(this: &R2ListOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn cursor(this: &R2ListOptions) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "cursor")]
-    pub fn cursor_js_string(this: &R2ListOptions) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_cursor(this: &R2ListOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn delimiter(this: &R2ListOptions) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "delimiter")]
-    pub fn delimiter_js_string(this: &R2ListOptions) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_delimiter(this: &R2ListOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "startAfter")]
     pub fn start_after(this: &R2ListOptions) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "startAfter")]
-    pub fn start_after_js_string(this: &R2ListOptions) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "startAfter")]
     pub fn set_start_after(this: &R2ListOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn include(this: &R2ListOptions) -> Option<Vec<String>>;
-    #[wasm_bindgen(method, getter, js_name = "include")]
-    pub fn include_js_string(this: &R2ListOptions) -> Option<Array<JsString>>;
     #[wasm_bindgen(method, setter)]
     pub fn set_include(this: &R2ListOptions, val: &[impl ::wasm_bindgen::JsStringLike]);
 }
@@ -9034,12 +8760,8 @@ extern "C" {
     pub type R2MultipartUpload;
     #[wasm_bindgen(method, getter)]
     pub fn key(this: &R2MultipartUpload) -> String;
-    #[wasm_bindgen(method, getter, js_name = "key")]
-    pub fn key_js_string(this: &R2MultipartUpload) -> JsString;
     #[wasm_bindgen(method, getter, js_name = "uploadId")]
     pub fn upload_id(this: &R2MultipartUpload) -> String;
-    #[wasm_bindgen(method, getter, js_name = "uploadId")]
-    pub fn upload_id_js_string(this: &R2MultipartUpload) -> JsString;
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub async fn upload_part(
         this: &R2MultipartUpload,
@@ -9196,8 +8918,6 @@ extern "C" {
     pub fn set_part_number(this: &R2UploadedPart, val: u16);
     #[wasm_bindgen(method, getter)]
     pub fn etag(this: &R2UploadedPart) -> String;
-    #[wasm_bindgen(method, getter, js_name = "etag")]
-    pub fn etag_js_string(this: &R2UploadedPart) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_etag(this: &R2UploadedPart, val: impl ::wasm_bindgen::JsStringLike);
 }
@@ -9216,22 +8936,14 @@ extern "C" {
     pub type R2Object;
     #[wasm_bindgen(method, getter)]
     pub fn key(this: &R2Object) -> String;
-    #[wasm_bindgen(method, getter, js_name = "key")]
-    pub fn key_js_string(this: &R2Object) -> JsString;
     #[wasm_bindgen(method, getter)]
     pub fn version(this: &R2Object) -> String;
-    #[wasm_bindgen(method, getter, js_name = "version")]
-    pub fn version_js_string(this: &R2Object) -> JsString;
     #[wasm_bindgen(method, getter, js_name = "size")]
     fn size_js(this: &R2Object) -> f64;
     #[wasm_bindgen(method, getter)]
     pub fn etag(this: &R2Object) -> String;
-    #[wasm_bindgen(method, getter, js_name = "etag")]
-    pub fn etag_js_string(this: &R2Object) -> JsString;
     #[wasm_bindgen(method, getter, js_name = "httpEtag")]
     pub fn http_etag(this: &R2Object) -> String;
-    #[wasm_bindgen(method, getter, js_name = "httpEtag")]
-    pub fn http_etag_js_string(this: &R2Object) -> JsString;
     #[wasm_bindgen(method, getter)]
     pub fn checksums(this: &R2Object) -> R2Checksums;
     #[wasm_bindgen(method, getter)]
@@ -9244,12 +8956,8 @@ extern "C" {
     pub fn range(this: &R2Object) -> Option<R2Range>;
     #[wasm_bindgen(method, getter, js_name = "storageClass")]
     pub fn storage_class(this: &R2Object) -> String;
-    #[wasm_bindgen(method, getter, js_name = "storageClass")]
-    pub fn storage_class_js_string(this: &R2Object) -> JsString;
     #[wasm_bindgen(method, getter, js_name = "ssecKeyMd5")]
     pub fn ssec_key_md5(this: &R2Object) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "ssecKeyMd5")]
-    pub fn ssec_key_md5_js_string(this: &R2Object) -> Option<JsString>;
     #[wasm_bindgen(method, catch, js_name = "writeHttpMetadata")]
     pub fn write_http_metadata(this: &R2Object, headers: &Headers) -> Result<(), crate::Error>;
 }
@@ -9350,14 +9058,10 @@ extern "C" {
     pub type R2Conditional;
     #[wasm_bindgen(method, getter, js_name = "etagMatches")]
     pub fn etag_matches(this: &R2Conditional) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "etagMatches")]
-    pub fn etag_matches_js_string(this: &R2Conditional) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "etagMatches")]
     pub fn set_etag_matches(this: &R2Conditional, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "etagDoesNotMatch")]
     pub fn etag_does_not_match(this: &R2Conditional) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "etagDoesNotMatch")]
-    pub fn etag_does_not_match_js_string(this: &R2Conditional) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "etagDoesNotMatch")]
     pub fn set_etag_does_not_match(this: &R2Conditional, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "uploadedBefore")]
@@ -9550,8 +9254,6 @@ extern "C" {
     pub fn set_sha512_with_str(this: &R2PutOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "storageClass")]
     pub fn storage_class(this: &R2PutOptions) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "storageClass")]
-    pub fn storage_class_js_string(this: &R2PutOptions) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "storageClass")]
     pub fn set_storage_class(this: &R2PutOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "ssecKey")]
@@ -9708,8 +9410,6 @@ extern "C" {
     pub fn set_custom_metadata(this: &R2MultipartOptions, val: &Object<String>);
     #[wasm_bindgen(method, getter, js_name = "storageClass")]
     pub fn storage_class(this: &R2MultipartOptions) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "storageClass")]
-    pub fn storage_class_js_string(this: &R2MultipartOptions) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "storageClass")]
     pub fn set_storage_class(this: &R2MultipartOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "ssecKey")]
@@ -9791,32 +9491,22 @@ extern "C" {
     pub type R2StringChecksums;
     #[wasm_bindgen(method, getter)]
     pub fn md5(this: &R2StringChecksums) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "md5")]
-    pub fn md5_js_string(this: &R2StringChecksums) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_md5(this: &R2StringChecksums, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn sha1(this: &R2StringChecksums) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "sha1")]
-    pub fn sha1_js_string(this: &R2StringChecksums) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_sha1(this: &R2StringChecksums, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn sha256(this: &R2StringChecksums) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "sha256")]
-    pub fn sha256_js_string(this: &R2StringChecksums) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_sha256(this: &R2StringChecksums, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn sha384(this: &R2StringChecksums) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "sha384")]
-    pub fn sha384_js_string(this: &R2StringChecksums) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_sha384(this: &R2StringChecksums, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn sha512(this: &R2StringChecksums) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "sha512")]
-    pub fn sha512_js_string(this: &R2StringChecksums) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_sha512(this: &R2StringChecksums, val: impl ::wasm_bindgen::JsStringLike);
 }
@@ -9870,32 +9560,22 @@ extern "C" {
     pub type R2HTTPMetadata;
     #[wasm_bindgen(method, getter, js_name = "contentType")]
     pub fn content_type(this: &R2HTTPMetadata) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "contentType")]
-    pub fn content_type_js_string(this: &R2HTTPMetadata) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "contentType")]
     pub fn set_content_type(this: &R2HTTPMetadata, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "contentLanguage")]
     pub fn content_language(this: &R2HTTPMetadata) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "contentLanguage")]
-    pub fn content_language_js_string(this: &R2HTTPMetadata) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "contentLanguage")]
     pub fn set_content_language(this: &R2HTTPMetadata, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "contentDisposition")]
     pub fn content_disposition(this: &R2HTTPMetadata) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "contentDisposition")]
-    pub fn content_disposition_js_string(this: &R2HTTPMetadata) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "contentDisposition")]
     pub fn set_content_disposition(this: &R2HTTPMetadata, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "contentEncoding")]
     pub fn content_encoding(this: &R2HTTPMetadata) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "contentEncoding")]
-    pub fn content_encoding_js_string(this: &R2HTTPMetadata) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "contentEncoding")]
     pub fn set_content_encoding(this: &R2HTTPMetadata, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "cacheControl")]
     pub fn cache_control(this: &R2HTTPMetadata) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "cacheControl")]
-    pub fn cache_control_js_string(this: &R2HTTPMetadata) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "cacheControl")]
     pub fn set_cache_control(this: &R2HTTPMetadata, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "cacheExpiry")]
@@ -9961,8 +9641,6 @@ extern "C" {
     pub fn set_truncated(this: &R2Objects, val: bool);
     #[wasm_bindgen(method, getter)]
     pub fn cursor(this: &R2Objects) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "cursor")]
-    pub fn cursor_js_string(this: &R2Objects) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_cursor(this: &R2Objects, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
@@ -9971,8 +9649,6 @@ extern "C" {
     pub fn set_objects(this: &R2Objects, val: &[R2Object]);
     #[wasm_bindgen(method, getter, js_name = "delimitedPrefixes")]
     pub fn delimited_prefixes(this: &R2Objects) -> Vec<String>;
-    #[wasm_bindgen(method, getter, js_name = "delimitedPrefixes")]
-    pub fn delimited_prefixes_js_string(this: &R2Objects) -> Array<JsString>;
     #[wasm_bindgen(method, setter, js_name = "delimitedPrefixes")]
     pub fn set_delimited_prefixes(this: &R2Objects, val: &[impl ::wasm_bindgen::JsStringLike]);
 }
@@ -10094,8 +9770,6 @@ extern "C" {
     pub fn scheduled_time(this: &ScheduledController) -> f64;
     #[wasm_bindgen(method, getter)]
     pub fn cron(this: &ScheduledController) -> String;
-    #[wasm_bindgen(method, getter, js_name = "cron")]
-    pub fn cron_js_string(this: &ScheduledController) -> JsString;
     #[wasm_bindgen(method, catch, js_name = "noRetry")]
     pub fn no_retry(this: &ScheduledController) -> Result<(), crate::Error>;
 }
@@ -10169,8 +9843,6 @@ extern "C" {
     pub type UnderlyingSink<W = JsValue>;
     #[wasm_bindgen(method, getter, js_name = "type")]
     pub fn type_<W>(this: &UnderlyingSink<W>) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "type")]
-    pub fn type__js_string<W>(this: &UnderlyingSink<W>) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_type<W>(this: &UnderlyingSink<W>, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
@@ -10276,8 +9948,6 @@ extern "C" {
     pub type UnderlyingByteSource;
     #[wasm_bindgen(method, getter, js_name = "type")]
     pub fn type_(this: &UnderlyingByteSource) -> String;
-    #[wasm_bindgen(method, getter, js_name = "type")]
-    pub fn type__js_string(this: &UnderlyingByteSource) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_type(this: &UnderlyingByteSource, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "autoAllocateChunkSize")]
@@ -10370,8 +10040,6 @@ extern "C" {
     pub type UnderlyingSource<R = JsValue>;
     #[wasm_bindgen(method, getter, js_name = "type")]
     pub fn type_<R>(this: &UnderlyingSource<R>) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "type")]
-    pub fn type__js_string<R>(this: &UnderlyingSource<R>) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_type<R>(this: &UnderlyingSource<R>, val: Option<impl ::wasm_bindgen::JsStringLike>);
     // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
@@ -10477,8 +10145,6 @@ extern "C" {
     pub type Transformer<I = JsValue, O = JsValue>;
     #[wasm_bindgen(method, getter, js_name = "readableType")]
     pub fn readable_type<I, O>(this: &Transformer<I, O>) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "readableType")]
-    pub fn readable_type_js_string<I, O>(this: &Transformer<I, O>) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "readableType")]
     pub fn set_readable_type<I, O>(
         this: &Transformer<I, O>,
@@ -10486,8 +10152,6 @@ extern "C" {
     );
     #[wasm_bindgen(method, getter, js_name = "writableType")]
     pub fn writable_type<I, O>(this: &Transformer<I, O>) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "writableType")]
-    pub fn writable_type_js_string<I, O>(this: &Transformer<I, O>) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "writableType")]
     pub fn set_writable_type<I, O>(
         this: &Transformer<I, O>,
@@ -11009,11 +10673,6 @@ extern "C" {
     #[doc = " This call behaves the same way as the no-argument variant, except that it only works on readable byte streams, i.e. streams which were constructed specifically with the ability to handle \"bring your own buffer\" reading. The returned BYOB reader provides the ability to directly read individual chunks from the stream via its read() method, into developer-supplied buffers, allowing more precise control over allocation."]
     #[wasm_bindgen(method, getter)]
     pub fn mode(this: &ReadableStreamGetReaderOptions) -> String;
-    #[doc = " Creates a ReadableStreamBYOBReader and locks the stream to the new reader."]
-    #[doc = ""]
-    #[doc = " This call behaves the same way as the no-argument variant, except that it only works on readable byte streams, i.e. streams which were constructed specifically with the ability to handle \"bring your own buffer\" reading. The returned BYOB reader provides the ability to directly read individual chunks from the stream via its read() method, into developer-supplied buffers, allowing more precise control over allocation."]
-    #[wasm_bindgen(method, getter, js_name = "mode")]
-    pub fn mode_js_string(this: &ReadableStreamGetReaderOptions) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_mode(this: &ReadableStreamGetReaderOptions, val: impl ::wasm_bindgen::JsStringLike);
 }
@@ -11551,20 +11210,14 @@ extern "C" {
     pub type TracePreviewInfo;
     #[wasm_bindgen(method, getter)]
     pub fn id(this: &TracePreviewInfo) -> String;
-    #[wasm_bindgen(method, getter, js_name = "id")]
-    pub fn id_js_string(this: &TracePreviewInfo) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_id(this: &TracePreviewInfo, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn slug(this: &TracePreviewInfo) -> String;
-    #[wasm_bindgen(method, getter, js_name = "slug")]
-    pub fn slug_js_string(this: &TracePreviewInfo) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_slug(this: &TracePreviewInfo, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &TracePreviewInfo) -> String;
-    #[wasm_bindgen(method, getter, js_name = "name")]
-    pub fn name_js_string(this: &TracePreviewInfo) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_name(this: &TracePreviewInfo, val: impl ::wasm_bindgen::JsStringLike);
 }
@@ -11588,20 +11241,14 @@ extern "C" {
     pub type ScriptVersion;
     #[wasm_bindgen(method, getter)]
     pub fn id(this: &ScriptVersion) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "id")]
-    pub fn id_js_string(this: &ScriptVersion) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_id(this: &ScriptVersion, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn tag(this: &ScriptVersion) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "tag")]
-    pub fn tag_js_string(this: &ScriptVersion) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_tag(this: &ScriptVersion, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn message(this: &ScriptVersion) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "message")]
-    pub fn message_js_string(this: &ScriptVersion) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_message(this: &ScriptVersion, val: impl ::wasm_bindgen::JsStringLike);
 }
@@ -11657,38 +11304,24 @@ extern "C" {
     pub fn diagnostics_channel_events(this: &TraceItem) -> Vec<TraceDiagnosticChannelEvent>;
     #[wasm_bindgen(method, getter, js_name = "scriptName")]
     pub fn script_name(this: &TraceItem) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "scriptName")]
-    pub fn script_name_js_string(this: &TraceItem) -> Option<JsString>;
     #[wasm_bindgen(method, getter)]
     pub fn entrypoint(this: &TraceItem) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "entrypoint")]
-    pub fn entrypoint_js_string(this: &TraceItem) -> Option<JsString>;
     #[wasm_bindgen(method, getter, js_name = "scriptVersion")]
     pub fn script_version(this: &TraceItem) -> Option<ScriptVersion>;
     #[wasm_bindgen(method, getter, js_name = "dispatchNamespace")]
     pub fn dispatch_namespace(this: &TraceItem) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "dispatchNamespace")]
-    pub fn dispatch_namespace_js_string(this: &TraceItem) -> Option<JsString>;
     #[wasm_bindgen(method, getter, js_name = "scriptTags")]
     pub fn script_tags(this: &TraceItem) -> Option<Vec<String>>;
-    #[wasm_bindgen(method, getter, js_name = "scriptTags")]
-    pub fn script_tags_js_string(this: &TraceItem) -> Option<Array<JsString>>;
     #[wasm_bindgen(method, getter, js_name = "tailAttributes")]
     pub fn tail_attributes(this: &TraceItem) -> Option<Object>;
     #[wasm_bindgen(method, getter)]
     pub fn preview(this: &TraceItem) -> Option<TracePreviewInfo>;
     #[wasm_bindgen(method, getter, js_name = "durableObjectId")]
     pub fn durable_object_id(this: &TraceItem) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "durableObjectId")]
-    pub fn durable_object_id_js_string(this: &TraceItem) -> Option<JsString>;
     #[wasm_bindgen(method, getter)]
     pub fn outcome(this: &TraceItem) -> String;
-    #[wasm_bindgen(method, getter, js_name = "outcome")]
-    pub fn outcome_js_string(this: &TraceItem) -> JsString;
     #[wasm_bindgen(method, getter, js_name = "executionModel")]
     pub fn execution_model(this: &TraceItem) -> String;
-    #[wasm_bindgen(method, getter, js_name = "executionModel")]
-    pub fn execution_model_js_string(this: &TraceItem) -> JsString;
     #[wasm_bindgen(method, getter)]
     pub fn truncated(this: &TraceItem) -> bool;
     #[wasm_bindgen(method, getter, js_name = "cpuTime")]
@@ -11743,8 +11376,6 @@ extern "C" {
     pub fn scheduled_time(this: &TraceItemScheduledEventInfo) -> f64;
     #[wasm_bindgen(method, getter)]
     pub fn cron(this: &TraceItemScheduledEventInfo) -> String;
-    #[wasm_bindgen(method, getter, js_name = "cron")]
-    pub fn cron_js_string(this: &TraceItemScheduledEventInfo) -> JsString;
 }
 impl TraceItemScheduledEventInfo {
     #[allow(clippy::new_without_default)]
@@ -11762,8 +11393,6 @@ extern "C" {
     pub type TraceItemQueueEventInfo;
     #[wasm_bindgen(method, getter)]
     pub fn queue(this: &TraceItemQueueEventInfo) -> String;
-    #[wasm_bindgen(method, getter, js_name = "queue")]
-    pub fn queue_js_string(this: &TraceItemQueueEventInfo) -> JsString;
     #[wasm_bindgen(method, getter, js_name = "batchSize")]
     pub fn batch_size(this: &TraceItemQueueEventInfo) -> f64;
 }
@@ -11783,12 +11412,8 @@ extern "C" {
     pub type TraceItemEmailEventInfo;
     #[wasm_bindgen(method, getter, js_name = "mailFrom")]
     pub fn mail_from(this: &TraceItemEmailEventInfo) -> String;
-    #[wasm_bindgen(method, getter, js_name = "mailFrom")]
-    pub fn mail_from_js_string(this: &TraceItemEmailEventInfo) -> JsString;
     #[wasm_bindgen(method, getter, js_name = "rcptTo")]
     pub fn rcpt_to(this: &TraceItemEmailEventInfo) -> String;
-    #[wasm_bindgen(method, getter, js_name = "rcptTo")]
-    pub fn rcpt_to_js_string(this: &TraceItemEmailEventInfo) -> JsString;
     #[wasm_bindgen(method, getter, js_name = "rawSize")]
     pub fn raw_size(this: &TraceItemEmailEventInfo) -> f64;
 }
@@ -11825,8 +11450,6 @@ extern "C" {
     pub type TraceItemTailEventInfoTailItem;
     #[wasm_bindgen(method, getter, js_name = "scriptName")]
     pub fn script_name(this: &TraceItemTailEventInfoTailItem) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "scriptName")]
-    pub fn script_name_js_string(this: &TraceItemTailEventInfoTailItem) -> Option<JsString>;
 }
 impl TraceItemTailEventInfoTailItem {
     #[allow(clippy::new_without_default)]
@@ -11867,12 +11490,8 @@ extern "C" {
     pub fn headers(this: &TraceItemFetchEventInfoRequest) -> Object<String>;
     #[wasm_bindgen(method, getter)]
     pub fn method(this: &TraceItemFetchEventInfoRequest) -> String;
-    #[wasm_bindgen(method, getter, js_name = "method")]
-    pub fn method_js_string(this: &TraceItemFetchEventInfoRequest) -> JsString;
     #[wasm_bindgen(method, getter)]
     pub fn url(this: &TraceItemFetchEventInfoRequest) -> String;
-    #[wasm_bindgen(method, getter, js_name = "url")]
-    pub fn url_js_string(this: &TraceItemFetchEventInfoRequest) -> JsString;
     #[wasm_bindgen(method, catch, js_name = "getUnredacted")]
     pub fn get_unredacted(
         this: &TraceItemFetchEventInfoRequest,
@@ -11902,8 +11521,6 @@ extern "C" {
     pub type TraceItemJsRpcEventInfo;
     #[wasm_bindgen(method, getter, js_name = "rpcMethod")]
     pub fn rpc_method(this: &TraceItemJsRpcEventInfo) -> String;
-    #[wasm_bindgen(method, getter, js_name = "rpcMethod")]
-    pub fn rpc_method_js_string(this: &TraceItemJsRpcEventInfo) -> JsString;
 }
 impl TraceItemJsRpcEventInfo {
     #[allow(clippy::new_without_default)]
@@ -11940,10 +11557,6 @@ extern "C" {
     pub type TraceItemHibernatableWebSocketEventInfoMessage;
     #[wasm_bindgen(method, getter, js_name = "webSocketEventType")]
     pub fn web_socket_event_type(this: &TraceItemHibernatableWebSocketEventInfoMessage) -> String;
-    #[wasm_bindgen(method, getter, js_name = "webSocketEventType")]
-    pub fn web_socket_event_type_js_string(
-        this: &TraceItemHibernatableWebSocketEventInfoMessage,
-    ) -> JsString;
 }
 impl TraceItemHibernatableWebSocketEventInfoMessage {
     #[allow(clippy::new_without_default)]
@@ -11961,10 +11574,6 @@ extern "C" {
     pub type TraceItemHibernatableWebSocketEventInfoClose;
     #[wasm_bindgen(method, getter, js_name = "webSocketEventType")]
     pub fn web_socket_event_type(this: &TraceItemHibernatableWebSocketEventInfoClose) -> String;
-    #[wasm_bindgen(method, getter, js_name = "webSocketEventType")]
-    pub fn web_socket_event_type_js_string(
-        this: &TraceItemHibernatableWebSocketEventInfoClose,
-    ) -> JsString;
     #[wasm_bindgen(method, getter)]
     pub fn code(this: &TraceItemHibernatableWebSocketEventInfoClose) -> f64;
     #[wasm_bindgen(method, getter, js_name = "wasClean")]
@@ -11986,10 +11595,6 @@ extern "C" {
     pub type TraceItemHibernatableWebSocketEventInfoError;
     #[wasm_bindgen(method, getter, js_name = "webSocketEventType")]
     pub fn web_socket_event_type(this: &TraceItemHibernatableWebSocketEventInfoError) -> String;
-    #[wasm_bindgen(method, getter, js_name = "webSocketEventType")]
-    pub fn web_socket_event_type_js_string(
-        this: &TraceItemHibernatableWebSocketEventInfoError,
-    ) -> JsString;
 }
 impl TraceItemHibernatableWebSocketEventInfoError {
     #[allow(clippy::new_without_default)]
@@ -12009,8 +11614,6 @@ extern "C" {
     pub fn timestamp(this: &TraceLog) -> f64;
     #[wasm_bindgen(method, getter)]
     pub fn level(this: &TraceLog) -> String;
-    #[wasm_bindgen(method, getter, js_name = "level")]
-    pub fn level_js_string(this: &TraceLog) -> JsString;
     #[wasm_bindgen(method, getter)]
     pub fn message(this: &TraceLog) -> JsValue;
     #[wasm_bindgen(method, getter, js_name = "errorInfo")]
@@ -12032,20 +11635,14 @@ extern "C" {
     pub type TraceLogErrorInfo;
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &TraceLogErrorInfo) -> String;
-    #[wasm_bindgen(method, getter, js_name = "name")]
-    pub fn name_js_string(this: &TraceLogErrorInfo) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_name(this: &TraceLogErrorInfo, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn message(this: &TraceLogErrorInfo) -> String;
-    #[wasm_bindgen(method, getter, js_name = "message")]
-    pub fn message_js_string(this: &TraceLogErrorInfo) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_message(this: &TraceLogErrorInfo, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn stack(this: &TraceLogErrorInfo) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "stack")]
-    pub fn stack_js_string(this: &TraceLogErrorInfo) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_stack(this: &TraceLogErrorInfo, val: impl ::wasm_bindgen::JsStringLike);
 }
@@ -12092,16 +11689,10 @@ extern "C" {
     pub fn timestamp(this: &TraceException) -> f64;
     #[wasm_bindgen(method, getter)]
     pub fn message(this: &TraceException) -> String;
-    #[wasm_bindgen(method, getter, js_name = "message")]
-    pub fn message_js_string(this: &TraceException) -> JsString;
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &TraceException) -> String;
-    #[wasm_bindgen(method, getter, js_name = "name")]
-    pub fn name_js_string(this: &TraceException) -> JsString;
     #[wasm_bindgen(method, getter)]
     pub fn stack(this: &TraceException) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "stack")]
-    pub fn stack_js_string(this: &TraceException) -> Option<JsString>;
 }
 impl TraceException {
     #[allow(clippy::new_without_default)]
@@ -12121,8 +11712,6 @@ extern "C" {
     pub fn timestamp(this: &TraceDiagnosticChannelEvent) -> f64;
     #[wasm_bindgen(method, getter)]
     pub fn channel(this: &TraceDiagnosticChannelEvent) -> String;
-    #[wasm_bindgen(method, getter, js_name = "channel")]
-    pub fn channel_js_string(this: &TraceDiagnosticChannelEvent) -> JsString;
     #[wasm_bindgen(method, getter)]
     pub fn message(this: &TraceDiagnosticChannelEvent) -> JsValue;
 }
@@ -12166,21 +11755,11 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/origin)"]
     #[wasm_bindgen(method, getter)]
     pub fn origin(this: &URL) -> String;
-    #[doc = " The **`origin`** read-only property of the URL interface returns a string containing the Unicode serialization of the origin of the represented URL."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/origin)"]
-    #[wasm_bindgen(method, getter, js_name = "origin")]
-    pub fn origin_js_string(this: &URL) -> JsString;
     #[doc = " The **`href`** property of the URL interface is a string containing the whole URL."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/href)"]
     #[wasm_bindgen(method, getter)]
     pub fn href(this: &URL) -> String;
-    #[doc = " The **`href`** property of the URL interface is a string containing the whole URL."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/href)"]
-    #[wasm_bindgen(method, getter, js_name = "href")]
-    pub fn href_js_string(this: &URL) -> JsString;
     #[doc = " The **`href`** property of the URL interface is a string containing the whole URL."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/href)"]
@@ -12194,11 +11773,6 @@ extern "C" {
     #[doc = " The **`protocol`** property of the URL interface is a string containing the protocol or scheme of the URL, including the final \":\"."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/protocol)"]
-    #[wasm_bindgen(method, getter, js_name = "protocol")]
-    pub fn protocol_js_string(this: &URL) -> JsString;
-    #[doc = " The **`protocol`** property of the URL interface is a string containing the protocol or scheme of the URL, including the final \":\"."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/protocol)"]
     #[wasm_bindgen(method, setter)]
     pub fn set_protocol(this: &URL, val: impl ::wasm_bindgen::JsStringLike);
     #[doc = " The **`username`** property of the URL interface is a string containing the username component of the URL. If the URL does not have a username, this property contains an empty string, \"\"."]
@@ -12206,11 +11780,6 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/username)"]
     #[wasm_bindgen(method, getter)]
     pub fn username(this: &URL) -> String;
-    #[doc = " The **`username`** property of the URL interface is a string containing the username component of the URL. If the URL does not have a username, this property contains an empty string, \"\"."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/username)"]
-    #[wasm_bindgen(method, getter, js_name = "username")]
-    pub fn username_js_string(this: &URL) -> JsString;
     #[doc = " The **`username`** property of the URL interface is a string containing the username component of the URL. If the URL does not have a username, this property contains an empty string, \"\"."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/username)"]
@@ -12224,11 +11793,6 @@ extern "C" {
     #[doc = " The **`password`** property of the URL interface is a string containing the password component of the URL. If the URL does not have a password, this property contains an empty string, \"\"."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/password)"]
-    #[wasm_bindgen(method, getter, js_name = "password")]
-    pub fn password_js_string(this: &URL) -> JsString;
-    #[doc = " The **`password`** property of the URL interface is a string containing the password component of the URL. If the URL does not have a password, this property contains an empty string, \"\"."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/password)"]
     #[wasm_bindgen(method, setter)]
     pub fn set_password(this: &URL, val: impl ::wasm_bindgen::JsStringLike);
     #[doc = " The **`host`** property of the URL interface is a string containing the host, which is the hostname, and then, if the port of the URL is nonempty, a \":\", followed by the port of the URL. If the URL does not have a hostname, this property contains an empty string, \"\"."]
@@ -12236,11 +11800,6 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/host)"]
     #[wasm_bindgen(method, getter)]
     pub fn host(this: &URL) -> String;
-    #[doc = " The **`host`** property of the URL interface is a string containing the host, which is the hostname, and then, if the port of the URL is nonempty, a \":\", followed by the port of the URL. If the URL does not have a hostname, this property contains an empty string, \"\"."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/host)"]
-    #[wasm_bindgen(method, getter, js_name = "host")]
-    pub fn host_js_string(this: &URL) -> JsString;
     #[doc = " The **`host`** property of the URL interface is a string containing the host, which is the hostname, and then, if the port of the URL is nonempty, a \":\", followed by the port of the URL. If the URL does not have a hostname, this property contains an empty string, \"\"."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/host)"]
@@ -12254,11 +11813,6 @@ extern "C" {
     #[doc = " The **`hostname`** property of the URL interface is a string containing either the domain name or IP address of the URL. If the URL does not have a hostname, this property contains an empty string, \"\". IPv4 and IPv6 addresses are normalized, such as stripping leading zeros, and domain names are converted to IDN."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/hostname)"]
-    #[wasm_bindgen(method, getter, js_name = "hostname")]
-    pub fn hostname_js_string(this: &URL) -> JsString;
-    #[doc = " The **`hostname`** property of the URL interface is a string containing either the domain name or IP address of the URL. If the URL does not have a hostname, this property contains an empty string, \"\". IPv4 and IPv6 addresses are normalized, such as stripping leading zeros, and domain names are converted to IDN."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/hostname)"]
     #[wasm_bindgen(method, setter)]
     pub fn set_hostname(this: &URL, val: impl ::wasm_bindgen::JsStringLike);
     #[doc = " The **`port`** property of the URL interface is a string containing the port number of the URL. If the port is the default for the protocol (80 for ws: and http:, 443 for wss: and https:, and 21 for ftp:), this property contains an empty string, \"\"."]
@@ -12266,11 +11820,6 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/port)"]
     #[wasm_bindgen(method, getter)]
     pub fn port(this: &URL) -> String;
-    #[doc = " The **`port`** property of the URL interface is a string containing the port number of the URL. If the port is the default for the protocol (80 for ws: and http:, 443 for wss: and https:, and 21 for ftp:), this property contains an empty string, \"\"."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/port)"]
-    #[wasm_bindgen(method, getter, js_name = "port")]
-    pub fn port_js_string(this: &URL) -> JsString;
     #[doc = " The **`port`** property of the URL interface is a string containing the port number of the URL. If the port is the default for the protocol (80 for ws: and http:, 443 for wss: and https:, and 21 for ftp:), this property contains an empty string, \"\"."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/port)"]
@@ -12284,11 +11833,6 @@ extern "C" {
     #[doc = " The **`pathname`** property of the URL interface represents a location in a hierarchical structure. It is a string constructed from a list of path segments, each of which is prefixed by a / character."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/pathname)"]
-    #[wasm_bindgen(method, getter, js_name = "pathname")]
-    pub fn pathname_js_string(this: &URL) -> JsString;
-    #[doc = " The **`pathname`** property of the URL interface represents a location in a hierarchical structure. It is a string constructed from a list of path segments, each of which is prefixed by a / character."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/pathname)"]
     #[wasm_bindgen(method, setter)]
     pub fn set_pathname(this: &URL, val: impl ::wasm_bindgen::JsStringLike);
     #[doc = " The **`search`** property of the URL interface is a search string, also called a query string, that is a string containing a \"?\" followed by the parameters of the URL. If the URL does not have a search query, this property contains an empty string, \"\"."]
@@ -12299,11 +11843,6 @@ extern "C" {
     #[doc = " The **`search`** property of the URL interface is a search string, also called a query string, that is a string containing a \"?\" followed by the parameters of the URL. If the URL does not have a search query, this property contains an empty string, \"\"."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/search)"]
-    #[wasm_bindgen(method, getter, js_name = "search")]
-    pub fn search_js_string(this: &URL) -> JsString;
-    #[doc = " The **`search`** property of the URL interface is a search string, also called a query string, that is a string containing a \"?\" followed by the parameters of the URL. If the URL does not have a search query, this property contains an empty string, \"\"."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/search)"]
     #[wasm_bindgen(method, setter)]
     pub fn set_search(this: &URL, val: impl ::wasm_bindgen::JsStringLike);
     #[doc = " The **`hash`** property of the URL interface is a string containing a \"#\" followed by the fragment identifier of the URL. If the URL does not have a fragment identifier, this property contains an empty string, \"\"."]
@@ -12311,11 +11850,6 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/hash)"]
     #[wasm_bindgen(method, getter)]
     pub fn hash(this: &URL) -> String;
-    #[doc = " The **`hash`** property of the URL interface is a string containing a \"#\" followed by the fragment identifier of the URL. If the URL does not have a fragment identifier, this property contains an empty string, \"\"."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/hash)"]
-    #[wasm_bindgen(method, getter, js_name = "hash")]
-    pub fn hash_js_string(this: &URL) -> JsString;
     #[doc = " The **`hash`** property of the URL interface is a string containing a \"#\" followed by the fragment identifier of the URL. If the URL does not have a fragment identifier, this property contains an empty string, \"\"."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/hash)"]
@@ -12331,15 +11865,8 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/toJSON)"]
     #[wasm_bindgen(method, catch, js_name = "toJSON")]
     pub fn to_json(this: &URL) -> Result<String, crate::Error>;
-    #[doc = " The **`toJSON()`** method of the URL interface returns a string containing a serialized version of the URL, although in practice it seems to have the same effect as URL.toString()."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/toJSON)"]
-    #[wasm_bindgen(method, catch, js_name = "toJSON")]
-    pub fn to_json_js_string(this: &URL) -> Result<JsString, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "toString")]
     pub fn to_string(this: &URL) -> Result<String, crate::Error>;
-    #[wasm_bindgen(method, catch, js_name = "toString")]
-    pub fn to_string_js_string(this: &URL) -> Result<JsString, crate::Error>;
     #[doc = " The **`URL.canParse()`** static method of the URL interface returns a boolean indicating whether or not an absolute URL, or a relative URL combined with a base URL, are parsable and valid."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/canParse_static)"]
@@ -12375,17 +11902,7 @@ extern "C" {
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/createObjectURL_static)"]
     # [wasm_bindgen (static_method_of = URL , catch , js_name = "createObjectURL")]
-    pub fn create_object_url_js_string(object: &File) -> Result<JsString, crate::Error>;
-    #[doc = " The **`createObjectURL()`** static method of the URL interface creates a string containing a blob URL pointing to the object given in the parameter."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/createObjectURL_static)"]
-    # [wasm_bindgen (static_method_of = URL , catch , js_name = "createObjectURL")]
     pub fn create_object_url_with_blob(object: &Blob) -> Result<String, crate::Error>;
-    #[doc = " The **`createObjectURL()`** static method of the URL interface creates a string containing a blob URL pointing to the object given in the parameter."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/createObjectURL_static)"]
-    # [wasm_bindgen (static_method_of = URL , catch , js_name = "createObjectURL")]
-    pub fn create_object_url_with_blob_js_string(object: &Blob) -> Result<JsString, crate::Error>;
     #[doc = " The **`revokeObjectURL()`** static method of the URL interface releases an existing object URL which was previously created by calling URL.createObjectURL()."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URL/revokeObjectURL_static)"]
@@ -12448,14 +11965,6 @@ extern "C" {
         this: &URLSearchParams,
         name: impl ::wasm_bindgen::JsStringLike,
     ) -> Result<Option<String>, crate::Error>;
-    #[doc = " The **`get()`** method of the URLSearchParams interface returns the first value associated to the given search parameter."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URLSearchParams/get)"]
-    #[wasm_bindgen(method, catch, js_name = "get")]
-    pub fn get_js_string(
-        this: &URLSearchParams,
-        name: impl ::wasm_bindgen::JsStringLike,
-    ) -> Result<Option<JsString>, crate::Error>;
     #[doc = " The **`getAll()`** method of the URLSearchParams interface returns all the values associated with a given search parameter as an array."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URLSearchParams/getAll)"]
@@ -12464,14 +11973,6 @@ extern "C" {
         this: &URLSearchParams,
         name: impl ::wasm_bindgen::JsStringLike,
     ) -> Result<Vec<String>, crate::Error>;
-    #[doc = " The **`getAll()`** method of the URLSearchParams interface returns all the values associated with a given search parameter as an array."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URLSearchParams/getAll)"]
-    #[wasm_bindgen(method, catch, js_name = "getAll")]
-    pub fn get_all_js_string(
-        this: &URLSearchParams,
-        name: impl ::wasm_bindgen::JsStringLike,
-    ) -> Result<Array<JsString>, crate::Error>;
     #[doc = " The **`has()`** method of the URLSearchParams interface returns a boolean value that indicates whether the specified parameter is in the search parameters."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/URLSearchParams/has)"]
@@ -12524,8 +12025,6 @@ extern "C" {
     ) -> Result<(), crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "toString")]
     pub fn to_string(this: &URLSearchParams) -> Result<String, crate::Error>;
-    #[wasm_bindgen(method, catch, js_name = "toString")]
-    pub fn to_string_js_string(this: &URLSearchParams) -> Result<JsString, crate::Error>;
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -12549,11 +12048,6 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/CloseEvent/reason)"]
     #[wasm_bindgen(method, getter)]
     pub fn reason(this: &CloseEvent) -> String;
-    #[doc = " The **`reason`** read-only property of the CloseEvent interface returns the WebSocket connection close reason the server gave for closing the connection; that is, a concise human-readable prose explanation for the closure."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/CloseEvent/reason)"]
-    #[wasm_bindgen(method, getter, js_name = "reason")]
-    pub fn reason_js_string(this: &CloseEvent) -> JsString;
     #[doc = " The **`wasClean`** read-only property of the CloseEvent interface returns true if the connection closed cleanly."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/CloseEvent/wasClean)"]
@@ -12571,8 +12065,6 @@ extern "C" {
     pub fn set_code(this: &CloseEventInit, val: f64);
     #[wasm_bindgen(method, getter)]
     pub fn reason(this: &CloseEventInit) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "reason")]
-    pub fn reason_js_string(this: &CloseEventInit) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_reason(this: &CloseEventInit, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "wasClean")]
@@ -12746,11 +12238,6 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/url)"]
     #[wasm_bindgen(method, getter)]
     pub fn url(this: &WebSocket) -> Option<String>;
-    #[doc = " The **`WebSocket.url`** read-only property returns the absolute URL of the WebSocket as resolved by the constructor."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/url)"]
-    #[wasm_bindgen(method, getter, js_name = "url")]
-    pub fn url_js_string(this: &WebSocket) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_url(this: &WebSocket, val: &JsNullable<JsString>);
     #[doc = " The **`WebSocket.protocol`** read-only property returns the name of the sub-protocol the server selected; this will be one of the strings specified in the protocols parameter when creating the WebSocket object, or the empty string if no connection is established."]
@@ -12758,11 +12245,6 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/protocol)"]
     #[wasm_bindgen(method, getter)]
     pub fn protocol(this: &WebSocket) -> Option<String>;
-    #[doc = " The **`WebSocket.protocol`** read-only property returns the name of the sub-protocol the server selected; this will be one of the strings specified in the protocols parameter when creating the WebSocket object, or the empty string if no connection is established."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/protocol)"]
-    #[wasm_bindgen(method, getter, js_name = "protocol")]
-    pub fn protocol_js_string(this: &WebSocket) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_protocol(this: &WebSocket, val: &JsNullable<JsString>);
     #[doc = " The **`WebSocket.extensions`** read-only property returns the extensions selected by the server. This is currently only the empty string or a list of extensions as negotiated by the connection."]
@@ -12770,11 +12252,6 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/extensions)"]
     #[wasm_bindgen(method, getter)]
     pub fn extensions(this: &WebSocket) -> Option<String>;
-    #[doc = " The **`WebSocket.extensions`** read-only property returns the extensions selected by the server. This is currently only the empty string or a list of extensions as negotiated by the connection."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/extensions)"]
-    #[wasm_bindgen(method, getter, js_name = "extensions")]
-    pub fn extensions_js_string(this: &WebSocket) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_extensions(this: &WebSocket, val: &JsNullable<JsString>);
     #[doc = " The **`WebSocket.binaryType`** property controls the type of binary data being received over the WebSocket connection."]
@@ -12886,8 +12363,6 @@ extern "C" {
     pub fn raw<T>(this: &SqlStorageCursor<T>) -> Iterator;
     #[wasm_bindgen(method, getter, js_name = "columnNames")]
     pub fn column_names<T>(this: &SqlStorageCursor<T>) -> Vec<String>;
-    #[wasm_bindgen(method, getter, js_name = "columnNames")]
-    pub fn column_names_js_string<T>(this: &SqlStorageCursor<T>) -> Array<JsString>;
     #[wasm_bindgen(method, setter, js_name = "columnNames")]
     pub fn set_column_names<T>(
         this: &SqlStorageCursor<T>,
@@ -12987,8 +12462,6 @@ extern "C" {
     pub type SocketOptions;
     #[wasm_bindgen(method, getter, js_name = "secureTransport")]
     pub fn secure_transport(this: &SocketOptions) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "secureTransport")]
-    pub fn secure_transport_js_string(this: &SocketOptions) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "secureTransport")]
     pub fn set_secure_transport(this: &SocketOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "allowHalfOpen")]
@@ -13038,8 +12511,6 @@ extern "C" {
     pub type SocketAddress;
     #[wasm_bindgen(method, getter)]
     pub fn hostname(this: &SocketAddress) -> String;
-    #[wasm_bindgen(method, getter, js_name = "hostname")]
-    pub fn hostname_js_string(this: &SocketAddress) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_hostname(this: &SocketAddress, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
@@ -13062,8 +12533,6 @@ extern "C" {
     pub type TlsOptions;
     #[wasm_bindgen(method, getter, js_name = "expectedServerHostname")]
     pub fn expected_server_hostname(this: &TlsOptions) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "expectedServerHostname")]
-    pub fn expected_server_hostname_js_string(this: &TlsOptions) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "expectedServerHostname")]
     pub fn set_expected_server_hostname(this: &TlsOptions, val: impl ::wasm_bindgen::JsStringLike);
 }
@@ -13101,14 +12570,10 @@ extern "C" {
     pub type SocketInfo;
     #[wasm_bindgen(method, getter, js_name = "remoteAddress")]
     pub fn remote_address(this: &SocketInfo) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "remoteAddress")]
-    pub fn remote_address_js_string(this: &SocketInfo) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "remoteAddress")]
     pub fn set_remote_address(this: &SocketInfo, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "localAddress")]
     pub fn local_address(this: &SocketInfo) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "localAddress")]
-    pub fn local_address_js_string(this: &SocketInfo) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "localAddress")]
     pub fn set_local_address(this: &SocketInfo, val: impl ::wasm_bindgen::JsStringLike);
 }
@@ -13171,8 +12636,6 @@ extern "C" {
     pub type ContainerExecOptions;
     #[wasm_bindgen(method, getter)]
     pub fn cwd(this: &ContainerExecOptions) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "cwd")]
-    pub fn cwd_js_string(this: &ContainerExecOptions) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_cwd(this: &ContainerExecOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
@@ -13181,8 +12644,6 @@ extern "C" {
     pub fn set_env(this: &ContainerExecOptions, val: &Object<String>);
     #[wasm_bindgen(method, getter)]
     pub fn user(this: &ContainerExecOptions) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "user")]
-    pub fn user_js_string(this: &ContainerExecOptions) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_user(this: &ContainerExecOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
@@ -13476,8 +12937,6 @@ extern "C" {
     pub type ContainerDirectorySnapshot;
     #[wasm_bindgen(method, getter)]
     pub fn id(this: &ContainerDirectorySnapshot) -> String;
-    #[wasm_bindgen(method, getter, js_name = "id")]
-    pub fn id_js_string(this: &ContainerDirectorySnapshot) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_id(this: &ContainerDirectorySnapshot, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
@@ -13486,14 +12945,10 @@ extern "C" {
     pub fn set_size(this: &ContainerDirectorySnapshot, val: f64);
     #[wasm_bindgen(method, getter)]
     pub fn dir(this: &ContainerDirectorySnapshot) -> String;
-    #[wasm_bindgen(method, getter, js_name = "dir")]
-    pub fn dir_js_string(this: &ContainerDirectorySnapshot) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_dir(this: &ContainerDirectorySnapshot, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &ContainerDirectorySnapshot) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "name")]
-    pub fn name_js_string(this: &ContainerDirectorySnapshot) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_name(this: &ContainerDirectorySnapshot, val: impl ::wasm_bindgen::JsStringLike);
 }
@@ -13541,8 +12996,6 @@ extern "C" {
     pub type ContainerDirectorySnapshotOptions;
     #[wasm_bindgen(method, getter)]
     pub fn dir(this: &ContainerDirectorySnapshotOptions) -> String;
-    #[wasm_bindgen(method, getter, js_name = "dir")]
-    pub fn dir_js_string(this: &ContainerDirectorySnapshotOptions) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_dir(
         this: &ContainerDirectorySnapshotOptions,
@@ -13550,8 +13003,6 @@ extern "C" {
     );
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &ContainerDirectorySnapshotOptions) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "name")]
-    pub fn name_js_string(this: &ContainerDirectorySnapshotOptions) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_name(
         this: &ContainerDirectorySnapshotOptions,
@@ -13602,10 +13053,6 @@ extern "C" {
     );
     #[wasm_bindgen(method, getter, js_name = "mountPoint")]
     pub fn mount_point(this: &ContainerDirectorySnapshotRestoreParams) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "mountPoint")]
-    pub fn mount_point_js_string(
-        this: &ContainerDirectorySnapshotRestoreParams,
-    ) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "mountPoint")]
     pub fn set_mount_point(
         this: &ContainerDirectorySnapshotRestoreParams,
@@ -13651,8 +13098,6 @@ extern "C" {
     pub type ContainerSnapshot;
     #[wasm_bindgen(method, getter)]
     pub fn id(this: &ContainerSnapshot) -> String;
-    #[wasm_bindgen(method, getter, js_name = "id")]
-    pub fn id_js_string(this: &ContainerSnapshot) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_id(this: &ContainerSnapshot, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
@@ -13661,8 +13106,6 @@ extern "C" {
     pub fn set_size(this: &ContainerSnapshot, val: f64);
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &ContainerSnapshot) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "name")]
-    pub fn name_js_string(this: &ContainerSnapshot) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_name(this: &ContainerSnapshot, val: impl ::wasm_bindgen::JsStringLike);
 }
@@ -13701,8 +13144,6 @@ extern "C" {
     pub type ContainerSnapshotRestoreParams;
     #[wasm_bindgen(method, getter)]
     pub fn id(this: &ContainerSnapshotRestoreParams) -> String;
-    #[wasm_bindgen(method, getter, js_name = "id")]
-    pub fn id_js_string(this: &ContainerSnapshotRestoreParams) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_id(this: &ContainerSnapshotRestoreParams, val: impl ::wasm_bindgen::JsStringLike);
 }
@@ -13720,8 +13161,6 @@ extern "C" {
     pub type ContainerSnapshotOptions;
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &ContainerSnapshotOptions) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "name")]
-    pub fn name_js_string(this: &ContainerSnapshotOptions) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_name(this: &ContainerSnapshotOptions, val: impl ::wasm_bindgen::JsStringLike);
 }
@@ -13759,8 +13198,6 @@ extern "C" {
     pub type ContainerStartupOptions;
     #[wasm_bindgen(method, getter)]
     pub fn entrypoint(this: &ContainerStartupOptions) -> Option<Vec<String>>;
-    #[wasm_bindgen(method, getter, js_name = "entrypoint")]
-    pub fn entrypoint_js_string(this: &ContainerStartupOptions) -> Option<Array<JsString>>;
     #[wasm_bindgen(method, setter)]
     pub fn set_entrypoint(
         this: &ContainerStartupOptions,
@@ -13972,26 +13409,18 @@ extern "C" {
     pub type SyncKvListOptions;
     #[wasm_bindgen(method, getter)]
     pub fn start(this: &SyncKvListOptions) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "start")]
-    pub fn start_js_string(this: &SyncKvListOptions) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_start(this: &SyncKvListOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "startAfter")]
     pub fn start_after(this: &SyncKvListOptions) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "startAfter")]
-    pub fn start_after_js_string(this: &SyncKvListOptions) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "startAfter")]
     pub fn set_start_after(this: &SyncKvListOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn end(this: &SyncKvListOptions) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "end")]
-    pub fn end_js_string(this: &SyncKvListOptions) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_end(this: &SyncKvListOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn prefix(this: &SyncKvListOptions) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "prefix")]
-    pub fn prefix_js_string(this: &SyncKvListOptions) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_prefix(this: &SyncKvListOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
@@ -14432,21 +13861,11 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceEntry/name)"]
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &PerformanceEntry) -> String;
-    #[doc = " The read-only **`name`** property of the PerformanceEntry interface is a string representing the name for a performance entry. It acts as an identifier, but it does not have to be unique. The value depends on the subclass."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceEntry/name)"]
-    #[wasm_bindgen(method, getter, js_name = "name")]
-    pub fn name_js_string(this: &PerformanceEntry) -> JsString;
     #[doc = " The read-only **`entryType`** property returns a string representing the type of performance metric that this entry represents."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceEntry/entryType)"]
     #[wasm_bindgen(method, getter, js_name = "entryType")]
     pub fn entry_type(this: &PerformanceEntry) -> String;
-    #[doc = " The read-only **`entryType`** property returns a string representing the type of performance metric that this entry represents."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceEntry/entryType)"]
-    #[wasm_bindgen(method, getter, js_name = "entryType")]
-    pub fn entry_type_js_string(this: &PerformanceEntry) -> JsString;
     #[doc = " The read-only **`startTime`** property returns the first timestamp recorded for this PerformanceEntry. The meaning of this property depends on the value of this entry's entryType."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/PerformanceEntry/startTime)"]
@@ -14553,33 +13972,21 @@ extern "C" {
     #[doc = " The user's email address, if available from the identity provider."]
     #[wasm_bindgen(method, getter)]
     pub fn email(this: &CloudflareAccessIdentity) -> Option<String>;
-    #[doc = " The user's email address, if available from the identity provider."]
-    #[wasm_bindgen(method, getter, js_name = "email")]
-    pub fn email_js_string(this: &CloudflareAccessIdentity) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_email(this: &CloudflareAccessIdentity, val: impl ::wasm_bindgen::JsStringLike);
     #[doc = " The user's display name."]
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &CloudflareAccessIdentity) -> Option<String>;
-    #[doc = " The user's display name."]
-    #[wasm_bindgen(method, getter, js_name = "name")]
-    pub fn name_js_string(this: &CloudflareAccessIdentity) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_name(this: &CloudflareAccessIdentity, val: impl ::wasm_bindgen::JsStringLike);
     #[doc = " The user's unique identifier."]
     #[wasm_bindgen(method, getter)]
     pub fn user_uuid(this: &CloudflareAccessIdentity) -> Option<String>;
-    #[doc = " The user's unique identifier."]
-    #[wasm_bindgen(method, getter, js_name = "user_uuid")]
-    pub fn user_uuid_js_string(this: &CloudflareAccessIdentity) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_user_uuid(this: &CloudflareAccessIdentity, val: impl ::wasm_bindgen::JsStringLike);
     #[doc = " The Cloudflare account ID."]
     #[wasm_bindgen(method, getter)]
     pub fn account_id(this: &CloudflareAccessIdentity) -> Option<String>;
-    #[doc = " The Cloudflare account ID."]
-    #[wasm_bindgen(method, getter, js_name = "account_id")]
-    pub fn account_id_js_string(this: &CloudflareAccessIdentity) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_account_id(this: &CloudflareAccessIdentity, val: impl ::wasm_bindgen::JsStringLike);
     #[doc = " Login timestamp (Unix epoch seconds)."]
@@ -14590,17 +13997,11 @@ extern "C" {
     #[doc = " The user's IP address at authentication time."]
     #[wasm_bindgen(method, getter)]
     pub fn ip(this: &CloudflareAccessIdentity) -> Option<String>;
-    #[doc = " The user's IP address at authentication time."]
-    #[wasm_bindgen(method, getter, js_name = "ip")]
-    pub fn ip_js_string(this: &CloudflareAccessIdentity) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_ip(this: &CloudflareAccessIdentity, val: impl ::wasm_bindgen::JsStringLike);
     #[doc = " Authentication methods used (e.g., \"pwd\")."]
     #[wasm_bindgen(method, getter)]
     pub fn amr(this: &CloudflareAccessIdentity) -> Option<Vec<String>>;
-    #[doc = " Authentication methods used (e.g., \"pwd\")."]
-    #[wasm_bindgen(method, getter, js_name = "amr")]
-    pub fn amr_js_string(this: &CloudflareAccessIdentity) -> Option<Array<JsString>>;
     #[wasm_bindgen(method, setter)]
     pub fn set_amr(this: &CloudflareAccessIdentity, val: &[impl ::wasm_bindgen::JsStringLike]);
     #[doc = " Identity provider information."]
@@ -14726,14 +14127,6 @@ extern "C" {
     #[doc = " Only available for Enterprise customers."]
     #[wasm_bindgen(method, getter, js_name = "cacheKey")]
     pub fn cache_key(this: &RequestInitCfProperties) -> Option<String>;
-    #[doc = " A request's cache key is what determines if two requests are"]
-    #[doc = " \"the same\" for caching purposes. If a request has the same cache key"]
-    #[doc = " as some previous request, then we can serve the same cached response for"]
-    #[doc = " both. (e.g. 'some-key')"]
-    #[doc = ""]
-    #[doc = " Only available for Enterprise customers."]
-    #[wasm_bindgen(method, getter, js_name = "cacheKey")]
-    pub fn cache_key_js_string(this: &RequestInitCfProperties) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "cacheKey")]
     pub fn set_cache_key(this: &RequestInitCfProperties, val: impl ::wasm_bindgen::JsStringLike);
     #[doc = " This allows you to append additional Cache-Tag response headers"]
@@ -14744,14 +14137,6 @@ extern "C" {
     #[doc = " Only available for Enterprise customers."]
     #[wasm_bindgen(method, getter, js_name = "cacheTags")]
     pub fn cache_tags(this: &RequestInitCfProperties) -> Option<Vec<String>>;
-    #[doc = " This allows you to append additional Cache-Tag response headers"]
-    #[doc = " to the origin response without modifications to the origin server."]
-    #[doc = " This will allow for greater control over the Purge by Cache Tag feature"]
-    #[doc = " utilizing changes only in the Workers process."]
-    #[doc = ""]
-    #[doc = " Only available for Enterprise customers."]
-    #[wasm_bindgen(method, getter, js_name = "cacheTags")]
-    pub fn cache_tags_js_string(this: &RequestInitCfProperties) -> Option<Array<JsString>>;
     #[wasm_bindgen(method, setter, js_name = "cacheTags")]
     pub fn set_cache_tags(
         this: &RequestInitCfProperties,
@@ -14782,15 +14167,6 @@ extern "C" {
     #[doc = " Can be used together with `cacheTtlByStatus`."]
     #[wasm_bindgen(method, getter, js_name = "cacheControl")]
     pub fn cache_control(this: &RequestInitCfProperties) -> Option<String>;
-    #[doc = " Explicit Cache-Control header value to set on the response stored in cache."]
-    #[doc = " This gives full control over cache directives (e.g. 'public, max-age=3600, s-maxage=86400')."]
-    #[doc = ""]
-    #[doc = " Cannot be used together with `cacheTtl` or the `cache` request option (`no-store`/`no-cache`),"]
-    #[doc = " as these are mutually exclusive cache control mechanisms. Setting both will throw a TypeError."]
-    #[doc = ""]
-    #[doc = " Can be used together with `cacheTtlByStatus`."]
-    #[wasm_bindgen(method, getter, js_name = "cacheControl")]
-    pub fn cache_control_js_string(this: &RequestInitCfProperties) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "cacheControl")]
     pub fn set_cache_control(
         this: &RequestInitCfProperties,
@@ -14880,19 +14256,6 @@ extern "C" {
     #[doc = " to point to that CNAME record."]
     #[wasm_bindgen(method, getter, js_name = "resolveOverride")]
     pub fn resolve_override(this: &RequestInitCfProperties) -> Option<String>;
-    #[doc = " Redirects the request to an alternate origin server. You can use this,"]
-    #[doc = " for example, to implement load balancing across several origins."]
-    #[doc = " (e.g.us-east.example.com)"]
-    #[doc = ""]
-    #[doc = " Note - For security reasons, the hostname set in resolveOverride must"]
-    #[doc = " be proxied on the same Cloudflare zone of the incoming request."]
-    #[doc = " Otherwise, the setting is ignored. CNAME hosts are allowed, so to"]
-    #[doc = " resolve to a host under a different domain or a DNS only domain first"]
-    #[doc = " declare a CNAME record within your own zone’s DNS mapping to the"]
-    #[doc = " external hostname, set proxy on Cloudflare, then set resolveOverride"]
-    #[doc = " to point to that CNAME record."]
-    #[wasm_bindgen(method, getter, js_name = "resolveOverride")]
-    pub fn resolve_override_js_string(this: &RequestInitCfProperties) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "resolveOverride")]
     pub fn set_resolve_override(
         this: &RequestInitCfProperties,
@@ -15105,13 +14468,6 @@ extern "C" {
     #[doc = " Named `media_types` to match the serialized `cf.vary` configuration."]
     #[wasm_bindgen(method, getter)]
     pub fn media_types(this: &RequestInitCfPropertiesVaryAcceptHeader) -> Option<Vec<String>>;
-    #[doc = " Media types to keep when normalizing the `Accept` request header."]
-    #[doc = ""]
-    #[doc = " Named `media_types` to match the serialized `cf.vary` configuration."]
-    #[wasm_bindgen(method, getter, js_name = "media_types")]
-    pub fn media_types_js_string(
-        this: &RequestInitCfPropertiesVaryAcceptHeader,
-    ) -> Option<Array<JsString>>;
     #[wasm_bindgen(method, setter)]
     pub fn set_media_types(
         this: &RequestInitCfPropertiesVaryAcceptHeader,
@@ -15164,12 +14520,6 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn languages(this: &RequestInitCfPropertiesVaryAcceptLanguageHeader)
         -> Option<Vec<String>>;
-    #[doc = " Language tags to keep when normalizing the `Accept-Language` request"]
-    #[doc = " header."]
-    #[wasm_bindgen(method, getter, js_name = "languages")]
-    pub fn languages_js_string(
-        this: &RequestInitCfPropertiesVaryAcceptLanguageHeader,
-    ) -> Option<Array<JsString>>;
     #[wasm_bindgen(method, setter)]
     pub fn set_languages(
         this: &RequestInitCfPropertiesVaryAcceptLanguageHeader,
@@ -15364,11 +14714,6 @@ extern "C" {
     #[doc = " hsl(…), etc.)"]
     #[wasm_bindgen(method, getter)]
     pub fn background(this: &BasicImageTransformations) -> Option<String>;
-    #[doc = " Background color to add underneath the image. Applies only to images with"]
-    #[doc = " transparency (such as PNG). Accepts any CSS color (#RRGGBB, rgba(…),"]
-    #[doc = " hsl(…), etc.)"]
-    #[wasm_bindgen(method, getter, js_name = "background")]
-    pub fn background_js_string(this: &BasicImageTransformations) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_background(this: &BasicImageTransformations, val: impl ::wasm_bindgen::JsStringLike);
     #[doc = " Flips the images horizontally, vertically, or both. Flipping is applied before"]
@@ -15442,11 +14787,6 @@ extern "C" {
     #[doc = " background pixel as transparent."]
     #[wasm_bindgen(method, getter)]
     pub fn segment(this: &BasicImageTransformations) -> Option<String>;
-    #[doc = " Image segmentation using artificial intelligence models. Sets pixels not"]
-    #[doc = " within selected segment area to transparent e.g \"foreground\" sets every"]
-    #[doc = " background pixel as transparent."]
-    #[wasm_bindgen(method, getter, js_name = "segment")]
-    pub fn segment_js_string(this: &BasicImageTransformations) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_segment(this: &BasicImageTransformations, val: impl ::wasm_bindgen::JsStringLike);
     #[doc = " Controls the algorithm used when an image needs to be enlarged. This"]
@@ -15638,11 +14978,6 @@ extern "C" {
     #[doc = " overlays we recommend using PNG or WebP images."]
     #[wasm_bindgen(method, getter)]
     pub fn url(this: &RequestInitCfPropertiesImageDraw) -> String;
-    #[doc = " Absolute URL of the image file to use for the drawing. It can be any of"]
-    #[doc = " the supported file formats. For drawing of watermarks or non-rectangular"]
-    #[doc = " overlays we recommend using PNG or WebP images."]
-    #[wasm_bindgen(method, getter, js_name = "url")]
-    pub fn url_js_string(this: &RequestInitCfPropertiesImageDraw) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_url(this: &RequestInitCfPropertiesImageDraw, val: impl ::wasm_bindgen::JsStringLike);
     #[doc = " Floating-point number between 0 (transparent) and 1 (opaque)."]
@@ -15910,11 +15245,6 @@ extern "C" {
     #[doc = " the origin."]
     #[wasm_bindgen(method, getter, js_name = "origin-auth")]
     pub fn origin_auth(this: &RequestInitCfPropertiesImage) -> Option<String>;
-    #[doc = " Fetching image from authenticated origin. Setting this property will"]
-    #[doc = " pass authentication headers (Authorization, Cookie, etc.) through to"]
-    #[doc = " the origin."]
-    #[wasm_bindgen(method, getter, js_name = "origin-auth")]
-    pub fn origin_auth_js_string(this: &RequestInitCfPropertiesImage) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "origin-auth")]
     pub fn set_origin_auth(
         this: &RequestInitCfPropertiesImage,
@@ -15928,14 +15258,6 @@ extern "C" {
     #[doc = " images."]
     #[wasm_bindgen(method, getter)]
     pub fn compression(this: &RequestInitCfPropertiesImage) -> Option<String>;
-    #[doc = " Slightly reduces latency on a cache miss by selecting a"]
-    #[doc = " quickest-to-compress file format, at a cost of increased file size and"]
-    #[doc = " lower image quality. It will usually override the format option and choose"]
-    #[doc = " JPEG over WebP or AVIF. We do not recommend using this option, except in"]
-    #[doc = " unusual circumstances like resizing uncacheable dynamically-generated"]
-    #[doc = " images."]
-    #[wasm_bindgen(method, getter, js_name = "compression")]
-    pub fn compression_js_string(this: &RequestInitCfPropertiesImage) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_compression(
         this: &RequestInitCfPropertiesImage,
@@ -16246,13 +15568,6 @@ extern "C" {
     pub fn is_eu_country<HostMetadata>(
         this: &IncomingRequestCfProperties<HostMetadata>,
     ) -> Option<String>;
-    #[doc = " If present, this property indicates that the request originated in the EU"]
-    #[doc = ""]
-    #[doc = " @example \"1\""]
-    #[wasm_bindgen(method, getter, js_name = "isEUCountry")]
-    pub fn is_eu_country_js_string<HostMetadata>(
-        this: &IncomingRequestCfProperties<HostMetadata>,
-    ) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "isEUCountry")]
     pub fn set_is_eu_country<HostMetadata>(
         this: &IncomingRequestCfProperties<HostMetadata>,
@@ -16275,13 +15590,6 @@ extern "C" {
     #[doc = " @example \"Austin\""]
     #[wasm_bindgen(method, getter)]
     pub fn city<HostMetadata>(this: &IncomingRequestCfProperties<HostMetadata>) -> Option<String>;
-    #[doc = " The city the request originated from"]
-    #[doc = ""]
-    #[doc = " @example \"Austin\""]
-    #[wasm_bindgen(method, getter, js_name = "city")]
-    pub fn city_js_string<HostMetadata>(
-        this: &IncomingRequestCfProperties<HostMetadata>,
-    ) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_city<HostMetadata>(
         this: &IncomingRequestCfProperties<HostMetadata>,
@@ -16294,13 +15602,6 @@ extern "C" {
     pub fn postal_code<HostMetadata>(
         this: &IncomingRequestCfProperties<HostMetadata>,
     ) -> Option<String>;
-    #[doc = " Postal code of the incoming request"]
-    #[doc = ""]
-    #[doc = " @example \"78701\""]
-    #[wasm_bindgen(method, getter, js_name = "postalCode")]
-    pub fn postal_code_js_string<HostMetadata>(
-        this: &IncomingRequestCfProperties<HostMetadata>,
-    ) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "postalCode")]
     pub fn set_postal_code<HostMetadata>(
         this: &IncomingRequestCfProperties<HostMetadata>,
@@ -16313,13 +15614,6 @@ extern "C" {
     pub fn latitude<HostMetadata>(
         this: &IncomingRequestCfProperties<HostMetadata>,
     ) -> Option<String>;
-    #[doc = " Latitude of the incoming request"]
-    #[doc = ""]
-    #[doc = " @example \"30.27130\""]
-    #[wasm_bindgen(method, getter, js_name = "latitude")]
-    pub fn latitude_js_string<HostMetadata>(
-        this: &IncomingRequestCfProperties<HostMetadata>,
-    ) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_latitude<HostMetadata>(
         this: &IncomingRequestCfProperties<HostMetadata>,
@@ -16332,13 +15626,6 @@ extern "C" {
     pub fn longitude<HostMetadata>(
         this: &IncomingRequestCfProperties<HostMetadata>,
     ) -> Option<String>;
-    #[doc = " Longitude of the incoming request"]
-    #[doc = ""]
-    #[doc = " @example \"-97.74260\""]
-    #[wasm_bindgen(method, getter, js_name = "longitude")]
-    pub fn longitude_js_string<HostMetadata>(
-        this: &IncomingRequestCfProperties<HostMetadata>,
-    ) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_longitude<HostMetadata>(
         this: &IncomingRequestCfProperties<HostMetadata>,
@@ -16351,13 +15638,6 @@ extern "C" {
     pub fn timezone<HostMetadata>(
         this: &IncomingRequestCfProperties<HostMetadata>,
     ) -> Option<String>;
-    #[doc = " Timezone of the incoming request"]
-    #[doc = ""]
-    #[doc = " @example \"America/Chicago\""]
-    #[wasm_bindgen(method, getter, js_name = "timezone")]
-    pub fn timezone_js_string<HostMetadata>(
-        this: &IncomingRequestCfProperties<HostMetadata>,
-    ) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_timezone<HostMetadata>(
         this: &IncomingRequestCfProperties<HostMetadata>,
@@ -16370,14 +15650,6 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn region<HostMetadata>(this: &IncomingRequestCfProperties<HostMetadata>)
         -> Option<String>;
-    #[doc = " If known, the ISO 3166-2 name for the first level region associated with"]
-    #[doc = " the IP address of the incoming request"]
-    #[doc = ""]
-    #[doc = " @example \"Texas\""]
-    #[wasm_bindgen(method, getter, js_name = "region")]
-    pub fn region_js_string<HostMetadata>(
-        this: &IncomingRequestCfProperties<HostMetadata>,
-    ) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_region<HostMetadata>(
         this: &IncomingRequestCfProperties<HostMetadata>,
@@ -16391,14 +15663,6 @@ extern "C" {
     pub fn region_code<HostMetadata>(
         this: &IncomingRequestCfProperties<HostMetadata>,
     ) -> Option<String>;
-    #[doc = " If known, the ISO 3166-2 code for the first-level region associated with"]
-    #[doc = " the IP address of the incoming request"]
-    #[doc = ""]
-    #[doc = " @example \"TX\""]
-    #[wasm_bindgen(method, getter, js_name = "regionCode")]
-    pub fn region_code_js_string<HostMetadata>(
-        this: &IncomingRequestCfProperties<HostMetadata>,
-    ) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "regionCode")]
     pub fn set_region_code<HostMetadata>(
         this: &IncomingRequestCfProperties<HostMetadata>,
@@ -16411,13 +15675,6 @@ extern "C" {
     pub fn metro_code<HostMetadata>(
         this: &IncomingRequestCfProperties<HostMetadata>,
     ) -> Option<String>;
-    #[doc = " Metro code (DMA) of the incoming request"]
-    #[doc = ""]
-    #[doc = " @example \"635\""]
-    #[wasm_bindgen(method, getter, js_name = "metroCode")]
-    pub fn metro_code_js_string<HostMetadata>(
-        this: &IncomingRequestCfProperties<HostMetadata>,
-    ) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "metroCode")]
     pub fn set_metro_code<HostMetadata>(
         this: &IncomingRequestCfProperties<HostMetadata>,
@@ -18247,11 +17504,6 @@ extern "C" {
     #[doc = " @example \"Google Cloud\""]
     #[wasm_bindgen(method, getter, js_name = "asOrganization")]
     pub fn as_organization(this: &IncomingRequestCfPropertiesBase) -> Option<String>;
-    #[doc = " The organization which owns the ASN of the incoming request."]
-    #[doc = ""]
-    #[doc = " @example \"Google Cloud\""]
-    #[wasm_bindgen(method, getter, js_name = "asOrganization")]
-    pub fn as_organization_js_string(this: &IncomingRequestCfPropertiesBase) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "asOrganization")]
     pub fn set_as_organization(
         this: &IncomingRequestCfPropertiesBase,
@@ -18262,13 +17514,6 @@ extern "C" {
     #[doc = " @example \"gzip, deflate, br\""]
     #[wasm_bindgen(method, getter, js_name = "clientAcceptEncoding")]
     pub fn client_accept_encoding(this: &IncomingRequestCfPropertiesBase) -> Option<String>;
-    #[doc = " The original value of the `Accept-Encoding` header if Cloudflare modified it."]
-    #[doc = ""]
-    #[doc = " @example \"gzip, deflate, br\""]
-    #[wasm_bindgen(method, getter, js_name = "clientAcceptEncoding")]
-    pub fn client_accept_encoding_js_string(
-        this: &IncomingRequestCfPropertiesBase,
-    ) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "clientAcceptEncoding")]
     pub fn set_client_accept_encoding(
         this: &IncomingRequestCfPropertiesBase,
@@ -18287,12 +17532,6 @@ extern "C" {
     #[doc = " @example \"DFW\""]
     #[wasm_bindgen(method, getter)]
     pub fn colo(this: &IncomingRequestCfPropertiesBase) -> String;
-    #[doc = " The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[wasm_bindgen(method, getter, js_name = "colo")]
-    pub fn colo_js_string(this: &IncomingRequestCfPropertiesBase) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_colo(this: &IncomingRequestCfPropertiesBase, val: impl ::wasm_bindgen::JsStringLike);
     #[doc = " Represents the upstream's response to a"]
@@ -18311,11 +17550,6 @@ extern "C" {
     #[doc = " @example \"HTTP/2\""]
     #[wasm_bindgen(method, getter, js_name = "httpProtocol")]
     pub fn http_protocol(this: &IncomingRequestCfPropertiesBase) -> String;
-    #[doc = " The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[wasm_bindgen(method, getter, js_name = "httpProtocol")]
-    pub fn http_protocol_js_string(this: &IncomingRequestCfPropertiesBase) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "httpProtocol")]
     pub fn set_http_protocol(
         this: &IncomingRequestCfPropertiesBase,
@@ -18329,14 +17563,6 @@ extern "C" {
     #[doc = " @default \"\""]
     #[wasm_bindgen(method, getter, js_name = "requestPriority")]
     pub fn request_priority(this: &IncomingRequestCfPropertiesBase) -> String;
-    #[doc = " The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[wasm_bindgen(method, getter, js_name = "requestPriority")]
-    pub fn request_priority_js_string(this: &IncomingRequestCfPropertiesBase) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "requestPriority")]
     pub fn set_request_priority(
         this: &IncomingRequestCfPropertiesBase,
@@ -18348,12 +17574,6 @@ extern "C" {
     #[doc = " @example \"TLSv1.3\""]
     #[wasm_bindgen(method, getter, js_name = "tlsVersion")]
     pub fn tls_version(this: &IncomingRequestCfPropertiesBase) -> String;
-    #[doc = " The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[wasm_bindgen(method, getter, js_name = "tlsVersion")]
-    pub fn tls_version_js_string(this: &IncomingRequestCfPropertiesBase) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "tlsVersion")]
     pub fn set_tls_version(
         this: &IncomingRequestCfPropertiesBase,
@@ -18365,12 +17585,6 @@ extern "C" {
     #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
     #[wasm_bindgen(method, getter, js_name = "tlsCipher")]
     pub fn tls_cipher(this: &IncomingRequestCfPropertiesBase) -> String;
-    #[doc = " The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    #[wasm_bindgen(method, getter, js_name = "tlsCipher")]
-    pub fn tls_cipher_js_string(this: &IncomingRequestCfPropertiesBase) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "tlsCipher")]
     pub fn set_tls_cipher(
         this: &IncomingRequestCfPropertiesBase,
@@ -19272,13 +18486,6 @@ extern "C" {
     pub fn client_handshake(
         this: &IncomingRequestCfPropertiesExportedAuthenticatorMetadata,
     ) -> String;
-    #[doc = " The client's [`HELLO` message](https://www.rfc-editor.org/rfc/rfc5246#section-7.4.1.2), encoded in hexadecimal"]
-    #[doc = ""]
-    #[doc = " @example \"44372ba35fa1270921d318f34c12f155dc87b682cf36a790cfaa3ba8737a1b5d\""]
-    #[wasm_bindgen(method, getter, js_name = "clientHandshake")]
-    pub fn client_handshake_js_string(
-        this: &IncomingRequestCfPropertiesExportedAuthenticatorMetadata,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "clientHandshake")]
     pub fn set_client_handshake(
         this: &IncomingRequestCfPropertiesExportedAuthenticatorMetadata,
@@ -19291,13 +18498,6 @@ extern "C" {
     pub fn server_handshake(
         this: &IncomingRequestCfPropertiesExportedAuthenticatorMetadata,
     ) -> String;
-    #[doc = " The server's [`HELLO` message](https://www.rfc-editor.org/rfc/rfc5246#section-7.4.1.2), encoded in hexadecimal"]
-    #[doc = ""]
-    #[doc = " @example \"44372ba35fa1270921d318f34c12f155dc87b682cf36a790cfaa3ba8737a1b5d\""]
-    #[wasm_bindgen(method, getter, js_name = "serverHandshake")]
-    pub fn server_handshake_js_string(
-        this: &IncomingRequestCfPropertiesExportedAuthenticatorMetadata,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "serverHandshake")]
     pub fn set_server_handshake(
         this: &IncomingRequestCfPropertiesExportedAuthenticatorMetadata,
@@ -19310,13 +18510,6 @@ extern "C" {
     pub fn client_finished(
         this: &IncomingRequestCfPropertiesExportedAuthenticatorMetadata,
     ) -> String;
-    #[doc = " The client's [`FINISHED` message](https://www.rfc-editor.org/rfc/rfc5246#section-7.4.9), encoded in hexadecimal"]
-    #[doc = ""]
-    #[doc = " @example \"084ee802fe1348f688220e2a6040a05b2199a761f33cf753abb1b006792d3f8b\""]
-    #[wasm_bindgen(method, getter, js_name = "clientFinished")]
-    pub fn client_finished_js_string(
-        this: &IncomingRequestCfPropertiesExportedAuthenticatorMetadata,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "clientFinished")]
     pub fn set_client_finished(
         this: &IncomingRequestCfPropertiesExportedAuthenticatorMetadata,
@@ -19329,13 +18522,6 @@ extern "C" {
     pub fn server_finished(
         this: &IncomingRequestCfPropertiesExportedAuthenticatorMetadata,
     ) -> String;
-    #[doc = " The server's [`FINISHED` message](https://www.rfc-editor.org/rfc/rfc5246#section-7.4.9), encoded in hexadecimal"]
-    #[doc = ""]
-    #[doc = " @example \"084ee802fe1348f688220e2a6040a05b2199a761f33cf753abb1b006792d3f8b\""]
-    #[wasm_bindgen(method, getter, js_name = "serverFinished")]
-    pub fn server_finished_js_string(
-        this: &IncomingRequestCfPropertiesExportedAuthenticatorMetadata,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "serverFinished")]
     pub fn set_server_finished(
         this: &IncomingRequestCfPropertiesExportedAuthenticatorMetadata,
@@ -19402,13 +18588,6 @@ extern "C" {
     #[wasm_bindgen(method, getter, js_name = "isEUCountry")]
     pub fn is_eu_country(this: &IncomingRequestCfPropertiesGeographicInformation)
         -> Option<String>;
-    #[doc = " If present, this property indicates that the request originated in the EU"]
-    #[doc = ""]
-    #[doc = " @example \"1\""]
-    #[wasm_bindgen(method, getter, js_name = "isEUCountry")]
-    pub fn is_eu_country_js_string(
-        this: &IncomingRequestCfPropertiesGeographicInformation,
-    ) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "isEUCountry")]
     pub fn set_is_eu_country(
         this: &IncomingRequestCfPropertiesGeographicInformation,
@@ -19431,13 +18610,6 @@ extern "C" {
     #[doc = " @example \"Austin\""]
     #[wasm_bindgen(method, getter)]
     pub fn city(this: &IncomingRequestCfPropertiesGeographicInformation) -> Option<String>;
-    #[doc = " The city the request originated from"]
-    #[doc = ""]
-    #[doc = " @example \"Austin\""]
-    #[wasm_bindgen(method, getter, js_name = "city")]
-    pub fn city_js_string(
-        this: &IncomingRequestCfPropertiesGeographicInformation,
-    ) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_city(
         this: &IncomingRequestCfPropertiesGeographicInformation,
@@ -19448,13 +18620,6 @@ extern "C" {
     #[doc = " @example \"78701\""]
     #[wasm_bindgen(method, getter, js_name = "postalCode")]
     pub fn postal_code(this: &IncomingRequestCfPropertiesGeographicInformation) -> Option<String>;
-    #[doc = " Postal code of the incoming request"]
-    #[doc = ""]
-    #[doc = " @example \"78701\""]
-    #[wasm_bindgen(method, getter, js_name = "postalCode")]
-    pub fn postal_code_js_string(
-        this: &IncomingRequestCfPropertiesGeographicInformation,
-    ) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "postalCode")]
     pub fn set_postal_code(
         this: &IncomingRequestCfPropertiesGeographicInformation,
@@ -19465,13 +18630,6 @@ extern "C" {
     #[doc = " @example \"30.27130\""]
     #[wasm_bindgen(method, getter)]
     pub fn latitude(this: &IncomingRequestCfPropertiesGeographicInformation) -> Option<String>;
-    #[doc = " Latitude of the incoming request"]
-    #[doc = ""]
-    #[doc = " @example \"30.27130\""]
-    #[wasm_bindgen(method, getter, js_name = "latitude")]
-    pub fn latitude_js_string(
-        this: &IncomingRequestCfPropertiesGeographicInformation,
-    ) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_latitude(
         this: &IncomingRequestCfPropertiesGeographicInformation,
@@ -19482,13 +18640,6 @@ extern "C" {
     #[doc = " @example \"-97.74260\""]
     #[wasm_bindgen(method, getter)]
     pub fn longitude(this: &IncomingRequestCfPropertiesGeographicInformation) -> Option<String>;
-    #[doc = " Longitude of the incoming request"]
-    #[doc = ""]
-    #[doc = " @example \"-97.74260\""]
-    #[wasm_bindgen(method, getter, js_name = "longitude")]
-    pub fn longitude_js_string(
-        this: &IncomingRequestCfPropertiesGeographicInformation,
-    ) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_longitude(
         this: &IncomingRequestCfPropertiesGeographicInformation,
@@ -19499,13 +18650,6 @@ extern "C" {
     #[doc = " @example \"America/Chicago\""]
     #[wasm_bindgen(method, getter)]
     pub fn timezone(this: &IncomingRequestCfPropertiesGeographicInformation) -> Option<String>;
-    #[doc = " Timezone of the incoming request"]
-    #[doc = ""]
-    #[doc = " @example \"America/Chicago\""]
-    #[wasm_bindgen(method, getter, js_name = "timezone")]
-    pub fn timezone_js_string(
-        this: &IncomingRequestCfPropertiesGeographicInformation,
-    ) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_timezone(
         this: &IncomingRequestCfPropertiesGeographicInformation,
@@ -19517,14 +18661,6 @@ extern "C" {
     #[doc = " @example \"Texas\""]
     #[wasm_bindgen(method, getter)]
     pub fn region(this: &IncomingRequestCfPropertiesGeographicInformation) -> Option<String>;
-    #[doc = " If known, the ISO 3166-2 name for the first level region associated with"]
-    #[doc = " the IP address of the incoming request"]
-    #[doc = ""]
-    #[doc = " @example \"Texas\""]
-    #[wasm_bindgen(method, getter, js_name = "region")]
-    pub fn region_js_string(
-        this: &IncomingRequestCfPropertiesGeographicInformation,
-    ) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_region(
         this: &IncomingRequestCfPropertiesGeographicInformation,
@@ -19536,14 +18672,6 @@ extern "C" {
     #[doc = " @example \"TX\""]
     #[wasm_bindgen(method, getter, js_name = "regionCode")]
     pub fn region_code(this: &IncomingRequestCfPropertiesGeographicInformation) -> Option<String>;
-    #[doc = " If known, the ISO 3166-2 code for the first-level region associated with"]
-    #[doc = " the IP address of the incoming request"]
-    #[doc = ""]
-    #[doc = " @example \"TX\""]
-    #[wasm_bindgen(method, getter, js_name = "regionCode")]
-    pub fn region_code_js_string(
-        this: &IncomingRequestCfPropertiesGeographicInformation,
-    ) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "regionCode")]
     pub fn set_region_code(
         this: &IncomingRequestCfPropertiesGeographicInformation,
@@ -19554,13 +18682,6 @@ extern "C" {
     #[doc = " @example \"635\""]
     #[wasm_bindgen(method, getter, js_name = "metroCode")]
     pub fn metro_code(this: &IncomingRequestCfPropertiesGeographicInformation) -> Option<String>;
-    #[doc = " Metro code (DMA) of the incoming request"]
-    #[doc = ""]
-    #[doc = " @example \"635\""]
-    #[wasm_bindgen(method, getter, js_name = "metroCode")]
-    pub fn metro_code_js_string(
-        this: &IncomingRequestCfPropertiesGeographicInformation,
-    ) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "metroCode")]
     pub fn set_metro_code(
         this: &IncomingRequestCfPropertiesGeographicInformation,
@@ -19648,9 +18769,6 @@ extern "C" {
     #[doc = " Always `\"1\"`, indicating that the certificate was presented"]
     #[wasm_bindgen(method, getter, js_name = "certPresented")]
     pub fn cert_presented(this: &IncomingRequestCfPropertiesTLSClientAuth) -> String;
-    #[doc = " Always `\"1\"`, indicating that the certificate was presented"]
-    #[wasm_bindgen(method, getter, js_name = "certPresented")]
-    pub fn cert_presented_js_string(this: &IncomingRequestCfPropertiesTLSClientAuth) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certPresented")]
     pub fn set_cert_presented(
         this: &IncomingRequestCfPropertiesTLSClientAuth,
@@ -19680,11 +18798,6 @@ extern "C" {
     #[doc = " @example \"CN=cloudflareaccess.com, C=US, ST=Texas, L=Austin, O=Cloudflare\""]
     #[wasm_bindgen(method, getter, js_name = "certIssuerDN")]
     pub fn cert_issuer_dn(this: &IncomingRequestCfPropertiesTLSClientAuth) -> String;
-    #[doc = " The certificate issuer's [distinguished name](https://knowledge.digicert.com/generalinformation/INFO1745.html)"]
-    #[doc = ""]
-    #[doc = " @example \"CN=cloudflareaccess.com, C=US, ST=Texas, L=Austin, O=Cloudflare\""]
-    #[wasm_bindgen(method, getter, js_name = "certIssuerDN")]
-    pub fn cert_issuer_dn_js_string(this: &IncomingRequestCfPropertiesTLSClientAuth) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certIssuerDN")]
     pub fn set_cert_issuer_dn(
         this: &IncomingRequestCfPropertiesTLSClientAuth,
@@ -19695,11 +18808,6 @@ extern "C" {
     #[doc = " @example \"CN=*.cloudflareaccess.com, C=US, ST=Texas, L=Austin, O=Cloudflare\""]
     #[wasm_bindgen(method, getter, js_name = "certSubjectDN")]
     pub fn cert_subject_dn(this: &IncomingRequestCfPropertiesTLSClientAuth) -> String;
-    #[doc = " The certificate subject's [distinguished name](https://knowledge.digicert.com/generalinformation/INFO1745.html)"]
-    #[doc = ""]
-    #[doc = " @example \"CN=*.cloudflareaccess.com, C=US, ST=Texas, L=Austin, O=Cloudflare\""]
-    #[wasm_bindgen(method, getter, js_name = "certSubjectDN")]
-    pub fn cert_subject_dn_js_string(this: &IncomingRequestCfPropertiesTLSClientAuth) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certSubjectDN")]
     pub fn set_cert_subject_dn(
         this: &IncomingRequestCfPropertiesTLSClientAuth,
@@ -19710,13 +18818,6 @@ extern "C" {
     #[doc = " @example \"CN=cloudflareaccess.com, C=US, ST=Texas, L=Austin, O=Cloudflare\""]
     #[wasm_bindgen(method, getter, js_name = "certIssuerDNRFC2253")]
     pub fn cert_issuer_dnrfc2253(this: &IncomingRequestCfPropertiesTLSClientAuth) -> String;
-    #[doc = " The certificate issuer's [distinguished name](https://knowledge.digicert.com/generalinformation/INFO1745.html) ([RFC 2253](https://www.rfc-editor.org/rfc/rfc2253.html) formatted)"]
-    #[doc = ""]
-    #[doc = " @example \"CN=cloudflareaccess.com, C=US, ST=Texas, L=Austin, O=Cloudflare\""]
-    #[wasm_bindgen(method, getter, js_name = "certIssuerDNRFC2253")]
-    pub fn cert_issuer_dnrfc2253_js_string(
-        this: &IncomingRequestCfPropertiesTLSClientAuth,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certIssuerDNRFC2253")]
     pub fn set_cert_issuer_dnrfc2253(
         this: &IncomingRequestCfPropertiesTLSClientAuth,
@@ -19727,13 +18828,6 @@ extern "C" {
     #[doc = " @example \"CN=*.cloudflareaccess.com, C=US, ST=Texas, L=Austin, O=Cloudflare\""]
     #[wasm_bindgen(method, getter, js_name = "certSubjectDNRFC2253")]
     pub fn cert_subject_dnrfc2253(this: &IncomingRequestCfPropertiesTLSClientAuth) -> String;
-    #[doc = " The certificate subject's [distinguished name](https://knowledge.digicert.com/generalinformation/INFO1745.html) ([RFC 2253](https://www.rfc-editor.org/rfc/rfc2253.html) formatted)"]
-    #[doc = ""]
-    #[doc = " @example \"CN=*.cloudflareaccess.com, C=US, ST=Texas, L=Austin, O=Cloudflare\""]
-    #[wasm_bindgen(method, getter, js_name = "certSubjectDNRFC2253")]
-    pub fn cert_subject_dnrfc2253_js_string(
-        this: &IncomingRequestCfPropertiesTLSClientAuth,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certSubjectDNRFC2253")]
     pub fn set_cert_subject_dnrfc2253(
         this: &IncomingRequestCfPropertiesTLSClientAuth,
@@ -19742,11 +18836,6 @@ extern "C" {
     #[doc = " The certificate issuer's distinguished name (legacy policies)"]
     #[wasm_bindgen(method, getter, js_name = "certIssuerDNLegacy")]
     pub fn cert_issuer_dn_legacy(this: &IncomingRequestCfPropertiesTLSClientAuth) -> String;
-    #[doc = " The certificate issuer's distinguished name (legacy policies)"]
-    #[wasm_bindgen(method, getter, js_name = "certIssuerDNLegacy")]
-    pub fn cert_issuer_dn_legacy_js_string(
-        this: &IncomingRequestCfPropertiesTLSClientAuth,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certIssuerDNLegacy")]
     pub fn set_cert_issuer_dn_legacy(
         this: &IncomingRequestCfPropertiesTLSClientAuth,
@@ -19755,11 +18844,6 @@ extern "C" {
     #[doc = " The certificate subject's distinguished name (legacy policies)"]
     #[wasm_bindgen(method, getter, js_name = "certSubjectDNLegacy")]
     pub fn cert_subject_dn_legacy(this: &IncomingRequestCfPropertiesTLSClientAuth) -> String;
-    #[doc = " The certificate subject's distinguished name (legacy policies)"]
-    #[wasm_bindgen(method, getter, js_name = "certSubjectDNLegacy")]
-    pub fn cert_subject_dn_legacy_js_string(
-        this: &IncomingRequestCfPropertiesTLSClientAuth,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certSubjectDNLegacy")]
     pub fn set_cert_subject_dn_legacy(
         this: &IncomingRequestCfPropertiesTLSClientAuth,
@@ -19770,11 +18854,6 @@ extern "C" {
     #[doc = " @example \"00936EACBE07F201DF\""]
     #[wasm_bindgen(method, getter, js_name = "certSerial")]
     pub fn cert_serial(this: &IncomingRequestCfPropertiesTLSClientAuth) -> String;
-    #[doc = " The certificate's serial number"]
-    #[doc = ""]
-    #[doc = " @example \"00936EACBE07F201DF\""]
-    #[wasm_bindgen(method, getter, js_name = "certSerial")]
-    pub fn cert_serial_js_string(this: &IncomingRequestCfPropertiesTLSClientAuth) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certSerial")]
     pub fn set_cert_serial(
         this: &IncomingRequestCfPropertiesTLSClientAuth,
@@ -19785,13 +18864,6 @@ extern "C" {
     #[doc = " @example \"2489002934BDFEA34\""]
     #[wasm_bindgen(method, getter, js_name = "certIssuerSerial")]
     pub fn cert_issuer_serial(this: &IncomingRequestCfPropertiesTLSClientAuth) -> String;
-    #[doc = " The certificate issuer's serial number"]
-    #[doc = ""]
-    #[doc = " @example \"2489002934BDFEA34\""]
-    #[wasm_bindgen(method, getter, js_name = "certIssuerSerial")]
-    pub fn cert_issuer_serial_js_string(
-        this: &IncomingRequestCfPropertiesTLSClientAuth,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certIssuerSerial")]
     pub fn set_cert_issuer_serial(
         this: &IncomingRequestCfPropertiesTLSClientAuth,
@@ -19802,11 +18874,6 @@ extern "C" {
     #[doc = " @example \"BB:AF:7E:02:3D:FA:A6:F1:3C:84:8E:AD:EE:38:98:EC:D9:32:32:D4\""]
     #[wasm_bindgen(method, getter, js_name = "certSKI")]
     pub fn cert_ski(this: &IncomingRequestCfPropertiesTLSClientAuth) -> String;
-    #[doc = " The certificate's Subject Key Identifier"]
-    #[doc = ""]
-    #[doc = " @example \"BB:AF:7E:02:3D:FA:A6:F1:3C:84:8E:AD:EE:38:98:EC:D9:32:32:D4\""]
-    #[wasm_bindgen(method, getter, js_name = "certSKI")]
-    pub fn cert_ski_js_string(this: &IncomingRequestCfPropertiesTLSClientAuth) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certSKI")]
     pub fn set_cert_ski(
         this: &IncomingRequestCfPropertiesTLSClientAuth,
@@ -19817,11 +18884,6 @@ extern "C" {
     #[doc = " @example \"BB:AF:7E:02:3D:FA:A6:F1:3C:84:8E:AD:EE:38:98:EC:D9:32:32:D4\""]
     #[wasm_bindgen(method, getter, js_name = "certIssuerSKI")]
     pub fn cert_issuer_ski(this: &IncomingRequestCfPropertiesTLSClientAuth) -> String;
-    #[doc = " The certificate issuer's Subject Key Identifier"]
-    #[doc = ""]
-    #[doc = " @example \"BB:AF:7E:02:3D:FA:A6:F1:3C:84:8E:AD:EE:38:98:EC:D9:32:32:D4\""]
-    #[wasm_bindgen(method, getter, js_name = "certIssuerSKI")]
-    pub fn cert_issuer_ski_js_string(this: &IncomingRequestCfPropertiesTLSClientAuth) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certIssuerSKI")]
     pub fn set_cert_issuer_ski(
         this: &IncomingRequestCfPropertiesTLSClientAuth,
@@ -19832,13 +18894,6 @@ extern "C" {
     #[doc = " @example \"6b9109f323999e52259cda7373ff0b4d26bd232e\""]
     #[wasm_bindgen(method, getter, js_name = "certFingerprintSHA1")]
     pub fn cert_fingerprint_sha1(this: &IncomingRequestCfPropertiesTLSClientAuth) -> String;
-    #[doc = " The certificate's SHA-1 fingerprint"]
-    #[doc = ""]
-    #[doc = " @example \"6b9109f323999e52259cda7373ff0b4d26bd232e\""]
-    #[wasm_bindgen(method, getter, js_name = "certFingerprintSHA1")]
-    pub fn cert_fingerprint_sha1_js_string(
-        this: &IncomingRequestCfPropertiesTLSClientAuth,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certFingerprintSHA1")]
     pub fn set_cert_fingerprint_sha1(
         this: &IncomingRequestCfPropertiesTLSClientAuth,
@@ -19849,13 +18904,6 @@ extern "C" {
     #[doc = " @example \"acf77cf37b4156a2708e34c4eb755f9b5dbbe5ebb55adfec8f11493438d19e6ad3f157f81fa3b98278453d5652b0c1fd1d71e5695ae4d709803a4d3f39de9dea\""]
     #[wasm_bindgen(method, getter, js_name = "certFingerprintSHA256")]
     pub fn cert_fingerprint_sha256(this: &IncomingRequestCfPropertiesTLSClientAuth) -> String;
-    #[doc = " The certificate's SHA-256 fingerprint"]
-    #[doc = ""]
-    #[doc = " @example \"acf77cf37b4156a2708e34c4eb755f9b5dbbe5ebb55adfec8f11493438d19e6ad3f157f81fa3b98278453d5652b0c1fd1d71e5695ae4d709803a4d3f39de9dea\""]
-    #[wasm_bindgen(method, getter, js_name = "certFingerprintSHA256")]
-    pub fn cert_fingerprint_sha256_js_string(
-        this: &IncomingRequestCfPropertiesTLSClientAuth,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certFingerprintSHA256")]
     pub fn set_cert_fingerprint_sha256(
         this: &IncomingRequestCfPropertiesTLSClientAuth,
@@ -19866,11 +18914,6 @@ extern "C" {
     #[doc = " @example \"Dec 22 19:39:00 2018 GMT\""]
     #[wasm_bindgen(method, getter, js_name = "certNotBefore")]
     pub fn cert_not_before(this: &IncomingRequestCfPropertiesTLSClientAuth) -> String;
-    #[doc = " The effective starting date of the certificate"]
-    #[doc = ""]
-    #[doc = " @example \"Dec 22 19:39:00 2018 GMT\""]
-    #[wasm_bindgen(method, getter, js_name = "certNotBefore")]
-    pub fn cert_not_before_js_string(this: &IncomingRequestCfPropertiesTLSClientAuth) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certNotBefore")]
     pub fn set_cert_not_before(
         this: &IncomingRequestCfPropertiesTLSClientAuth,
@@ -19881,11 +18924,6 @@ extern "C" {
     #[doc = " @example \"Dec 22 19:39:00 2018 GMT\""]
     #[wasm_bindgen(method, getter, js_name = "certNotAfter")]
     pub fn cert_not_after(this: &IncomingRequestCfPropertiesTLSClientAuth) -> String;
-    #[doc = " The effective expiration date of the certificate"]
-    #[doc = ""]
-    #[doc = " @example \"Dec 22 19:39:00 2018 GMT\""]
-    #[wasm_bindgen(method, getter, js_name = "certNotAfter")]
-    pub fn cert_not_after_js_string(this: &IncomingRequestCfPropertiesTLSClientAuth) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certNotAfter")]
     pub fn set_cert_not_after(
         this: &IncomingRequestCfPropertiesTLSClientAuth,
@@ -19898,13 +18936,6 @@ extern "C" {
     #[doc = " Suitable for forwarding to an origin via the `Client-Cert` HTTP header."]
     #[wasm_bindgen(method, getter, js_name = "certRFC9440")]
     pub fn cert_rfc9440(this: &IncomingRequestCfPropertiesTLSClientAuth) -> String;
-    #[doc = " The client leaf certificate in [RFC 9440](https://www.rfc-editor.org/rfc/rfc9440)"]
-    #[doc = " format (`:base64-DER:`). Empty if no client certificate was presented or if"]
-    #[doc = " the leaf certificate exceeded 10 KB (see {@link certRFC9440TooLarge})."]
-    #[doc = ""]
-    #[doc = " Suitable for forwarding to an origin via the `Client-Cert` HTTP header."]
-    #[wasm_bindgen(method, getter, js_name = "certRFC9440")]
-    pub fn cert_rfc9440_js_string(this: &IncomingRequestCfPropertiesTLSClientAuth) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certRFC9440")]
     pub fn set_cert_rfc9440(
         this: &IncomingRequestCfPropertiesTLSClientAuth,
@@ -19923,15 +18954,6 @@ extern "C" {
     #[doc = " Suitable for forwarding to an origin via the `Client-Cert-Chain` HTTP header."]
     #[wasm_bindgen(method, getter, js_name = "certChainRFC9440")]
     pub fn cert_chain_rfc9440(this: &IncomingRequestCfPropertiesTLSClientAuth) -> String;
-    #[doc = " The intermediate certificate chain in [RFC 9440](https://www.rfc-editor.org/rfc/rfc9440)"]
-    #[doc = " format as a comma-separated list. Empty if no intermediates were sent or"]
-    #[doc = " if the chain exceeded 16 KB (see {@link certChainRFC9440TooLarge})."]
-    #[doc = ""]
-    #[doc = " Suitable for forwarding to an origin via the `Client-Cert-Chain` HTTP header."]
-    #[wasm_bindgen(method, getter, js_name = "certChainRFC9440")]
-    pub fn cert_chain_rfc9440_js_string(
-        this: &IncomingRequestCfPropertiesTLSClientAuth,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certChainRFC9440")]
     pub fn set_cert_chain_rfc9440(
         this: &IncomingRequestCfPropertiesTLSClientAuth,
@@ -20174,10 +19196,6 @@ extern "C" {
     pub type IncomingRequestCfPropertiesTLSClientAuthPlaceholder;
     #[wasm_bindgen(method, getter, js_name = "certPresented")]
     pub fn cert_presented(this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder) -> String;
-    #[wasm_bindgen(method, getter, js_name = "certPresented")]
-    pub fn cert_presented_js_string(
-        this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certPresented")]
     pub fn set_cert_presented(
         this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
@@ -20185,10 +19203,6 @@ extern "C" {
     );
     #[wasm_bindgen(method, getter, js_name = "certVerified")]
     pub fn cert_verified(this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder) -> String;
-    #[wasm_bindgen(method, getter, js_name = "certVerified")]
-    pub fn cert_verified_js_string(
-        this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certVerified")]
     pub fn set_cert_verified(
         this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
@@ -20196,10 +19210,6 @@ extern "C" {
     );
     #[wasm_bindgen(method, getter, js_name = "certRevoked")]
     pub fn cert_revoked(this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder) -> String;
-    #[wasm_bindgen(method, getter, js_name = "certRevoked")]
-    pub fn cert_revoked_js_string(
-        this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certRevoked")]
     pub fn set_cert_revoked(
         this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
@@ -20207,10 +19217,6 @@ extern "C" {
     );
     #[wasm_bindgen(method, getter, js_name = "certIssuerDN")]
     pub fn cert_issuer_dn(this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder) -> String;
-    #[wasm_bindgen(method, getter, js_name = "certIssuerDN")]
-    pub fn cert_issuer_dn_js_string(
-        this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certIssuerDN")]
     pub fn set_cert_issuer_dn(
         this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
@@ -20218,10 +19224,6 @@ extern "C" {
     );
     #[wasm_bindgen(method, getter, js_name = "certSubjectDN")]
     pub fn cert_subject_dn(this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder) -> String;
-    #[wasm_bindgen(method, getter, js_name = "certSubjectDN")]
-    pub fn cert_subject_dn_js_string(
-        this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certSubjectDN")]
     pub fn set_cert_subject_dn(
         this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
@@ -20231,10 +19233,6 @@ extern "C" {
     pub fn cert_issuer_dnrfc2253(
         this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
     ) -> String;
-    #[wasm_bindgen(method, getter, js_name = "certIssuerDNRFC2253")]
-    pub fn cert_issuer_dnrfc2253_js_string(
-        this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certIssuerDNRFC2253")]
     pub fn set_cert_issuer_dnrfc2253(
         this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
@@ -20244,10 +19242,6 @@ extern "C" {
     pub fn cert_subject_dnrfc2253(
         this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
     ) -> String;
-    #[wasm_bindgen(method, getter, js_name = "certSubjectDNRFC2253")]
-    pub fn cert_subject_dnrfc2253_js_string(
-        this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certSubjectDNRFC2253")]
     pub fn set_cert_subject_dnrfc2253(
         this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
@@ -20257,10 +19251,6 @@ extern "C" {
     pub fn cert_issuer_dn_legacy(
         this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
     ) -> String;
-    #[wasm_bindgen(method, getter, js_name = "certIssuerDNLegacy")]
-    pub fn cert_issuer_dn_legacy_js_string(
-        this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certIssuerDNLegacy")]
     pub fn set_cert_issuer_dn_legacy(
         this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
@@ -20270,10 +19260,6 @@ extern "C" {
     pub fn cert_subject_dn_legacy(
         this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
     ) -> String;
-    #[wasm_bindgen(method, getter, js_name = "certSubjectDNLegacy")]
-    pub fn cert_subject_dn_legacy_js_string(
-        this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certSubjectDNLegacy")]
     pub fn set_cert_subject_dn_legacy(
         this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
@@ -20281,10 +19267,6 @@ extern "C" {
     );
     #[wasm_bindgen(method, getter, js_name = "certSerial")]
     pub fn cert_serial(this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder) -> String;
-    #[wasm_bindgen(method, getter, js_name = "certSerial")]
-    pub fn cert_serial_js_string(
-        this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certSerial")]
     pub fn set_cert_serial(
         this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
@@ -20293,10 +19275,6 @@ extern "C" {
     #[wasm_bindgen(method, getter, js_name = "certIssuerSerial")]
     pub fn cert_issuer_serial(this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder)
         -> String;
-    #[wasm_bindgen(method, getter, js_name = "certIssuerSerial")]
-    pub fn cert_issuer_serial_js_string(
-        this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certIssuerSerial")]
     pub fn set_cert_issuer_serial(
         this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
@@ -20304,10 +19282,6 @@ extern "C" {
     );
     #[wasm_bindgen(method, getter, js_name = "certSKI")]
     pub fn cert_ski(this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder) -> String;
-    #[wasm_bindgen(method, getter, js_name = "certSKI")]
-    pub fn cert_ski_js_string(
-        this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certSKI")]
     pub fn set_cert_ski(
         this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
@@ -20315,10 +19289,6 @@ extern "C" {
     );
     #[wasm_bindgen(method, getter, js_name = "certIssuerSKI")]
     pub fn cert_issuer_ski(this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder) -> String;
-    #[wasm_bindgen(method, getter, js_name = "certIssuerSKI")]
-    pub fn cert_issuer_ski_js_string(
-        this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certIssuerSKI")]
     pub fn set_cert_issuer_ski(
         this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
@@ -20328,10 +19298,6 @@ extern "C" {
     pub fn cert_fingerprint_sha1(
         this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
     ) -> String;
-    #[wasm_bindgen(method, getter, js_name = "certFingerprintSHA1")]
-    pub fn cert_fingerprint_sha1_js_string(
-        this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certFingerprintSHA1")]
     pub fn set_cert_fingerprint_sha1(
         this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
@@ -20341,10 +19307,6 @@ extern "C" {
     pub fn cert_fingerprint_sha256(
         this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
     ) -> String;
-    #[wasm_bindgen(method, getter, js_name = "certFingerprintSHA256")]
-    pub fn cert_fingerprint_sha256_js_string(
-        this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certFingerprintSHA256")]
     pub fn set_cert_fingerprint_sha256(
         this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
@@ -20352,10 +19314,6 @@ extern "C" {
     );
     #[wasm_bindgen(method, getter, js_name = "certNotBefore")]
     pub fn cert_not_before(this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder) -> String;
-    #[wasm_bindgen(method, getter, js_name = "certNotBefore")]
-    pub fn cert_not_before_js_string(
-        this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certNotBefore")]
     pub fn set_cert_not_before(
         this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
@@ -20363,10 +19321,6 @@ extern "C" {
     );
     #[wasm_bindgen(method, getter, js_name = "certNotAfter")]
     pub fn cert_not_after(this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder) -> String;
-    #[wasm_bindgen(method, getter, js_name = "certNotAfter")]
-    pub fn cert_not_after_js_string(
-        this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certNotAfter")]
     pub fn set_cert_not_after(
         this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
@@ -20374,10 +19328,6 @@ extern "C" {
     );
     #[wasm_bindgen(method, getter, js_name = "certRFC9440")]
     pub fn cert_rfc9440(this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder) -> String;
-    #[wasm_bindgen(method, getter, js_name = "certRFC9440")]
-    pub fn cert_rfc9440_js_string(
-        this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certRFC9440")]
     pub fn set_cert_rfc9440(
         this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
@@ -20395,10 +19345,6 @@ extern "C" {
     #[wasm_bindgen(method, getter, js_name = "certChainRFC9440")]
     pub fn cert_chain_rfc9440(this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder)
         -> String;
-    #[wasm_bindgen(method, getter, js_name = "certChainRFC9440")]
-    pub fn cert_chain_rfc9440_js_string(
-        this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
-    ) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "certChainRFC9440")]
     pub fn set_cert_chain_rfc9440(
         this: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
@@ -20780,17 +19726,11 @@ extern "C" {
     #[doc = " The region of the database instance that executed the query."]
     #[wasm_bindgen(method, getter)]
     pub fn served_by_region(this: &D1Meta) -> Option<String>;
-    #[doc = " The region of the database instance that executed the query."]
-    #[wasm_bindgen(method, getter, js_name = "served_by_region")]
-    pub fn served_by_region_js_string(this: &D1Meta) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_served_by_region(this: &D1Meta, val: impl ::wasm_bindgen::JsStringLike);
     #[doc = " The three letters airport code of the colo that executed the query."]
     #[wasm_bindgen(method, getter)]
     pub fn served_by_colo(this: &D1Meta) -> Option<String>;
-    #[doc = " The three letters airport code of the colo that executed the query."]
-    #[wasm_bindgen(method, getter, js_name = "served_by_colo")]
-    pub fn served_by_colo_js_string(this: &D1Meta) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_served_by_colo(this: &D1Meta, val: impl ::wasm_bindgen::JsStringLike);
     #[doc = " True if-and-only-if the database instance that executed the query was the primary."]
@@ -21115,11 +20055,6 @@ extern "C" {
     #[doc = " Returns: The latest session bookmark across all executed queries on the session."]
     #[wasm_bindgen(method, js_name = "getBookmark")]
     pub fn get_bookmark(this: &D1DatabaseSession) -> Option<String>;
-    #[doc = "          If no query has been executed yet, `null` is returned."]
-    #[doc = ""]
-    #[doc = " Returns: The latest session bookmark across all executed queries on the session."]
-    #[wasm_bindgen(method, js_name = "getBookmark")]
-    pub fn get_bookmark_js_string(this: &D1DatabaseSession) -> Option<JsString>;
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -21248,9 +20183,6 @@ extern "C" {
     #[doc = " The Email Message ID"]
     #[wasm_bindgen(method, getter, js_name = "messageId")]
     pub fn message_id(this: &EmailSendResult) -> String;
-    #[doc = " The Email Message ID"]
-    #[wasm_bindgen(method, getter, js_name = "messageId")]
-    pub fn message_id_js_string(this: &EmailSendResult) -> JsString;
     #[wasm_bindgen(method, setter, js_name = "messageId")]
     pub fn set_message_id(this: &EmailSendResult, val: impl ::wasm_bindgen::JsStringLike);
 }
@@ -21386,20 +20318,14 @@ extern "C" {
     pub fn set_disposition(this: &EmailAttachment, val: DispositionKind);
     #[wasm_bindgen(method, getter, js_name = "contentId")]
     pub fn content_id(this: &EmailAttachment) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "contentId")]
-    pub fn content_id_js_string(this: &EmailAttachment) -> Option<JsString>;
     #[wasm_bindgen(method, setter, js_name = "contentId")]
     pub fn set_content_id(this: &EmailAttachment, val: Option<impl ::wasm_bindgen::JsStringLike>);
     #[wasm_bindgen(method, getter)]
     pub fn filename(this: &EmailAttachment) -> String;
-    #[wasm_bindgen(method, getter, js_name = "filename")]
-    pub fn filename_js_string(this: &EmailAttachment) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_filename(this: &EmailAttachment, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "type")]
     pub fn type_(this: &EmailAttachment) -> String;
-    #[wasm_bindgen(method, getter, js_name = "type")]
-    pub fn type__js_string(this: &EmailAttachment) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_type(this: &EmailAttachment, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
@@ -21572,14 +20498,10 @@ extern "C" {
     pub type EmailAddress;
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &EmailAddress) -> String;
-    #[wasm_bindgen(method, getter, js_name = "name")]
-    pub fn name_js_string(this: &EmailAddress) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_name(this: &EmailAddress, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn email(this: &EmailAddress) -> String;
-    #[wasm_bindgen(method, getter, js_name = "email")]
-    pub fn email_js_string(this: &EmailAddress) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_email(this: &EmailAddress, val: impl ::wasm_bindgen::JsStringLike);
 }
@@ -21696,8 +20618,6 @@ extern "C" {
     pub fn set_from_with_email_address(this: &EmailReplyMessageBuilder, val: &EmailAddress);
     #[wasm_bindgen(method, getter)]
     pub fn subject(this: &EmailReplyMessageBuilder) -> String;
-    #[wasm_bindgen(method, getter, js_name = "subject")]
-    pub fn subject_js_string(this: &EmailReplyMessageBuilder) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_subject(this: &EmailReplyMessageBuilder, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "replyTo")]
@@ -21712,14 +20632,10 @@ extern "C" {
     pub fn set_headers(this: &EmailReplyMessageBuilder, val: &Object<String>);
     #[wasm_bindgen(method, getter)]
     pub fn text(this: &EmailReplyMessageBuilder) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "text")]
-    pub fn text_js_string(this: &EmailReplyMessageBuilder) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_text(this: &EmailReplyMessageBuilder, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn html(this: &EmailReplyMessageBuilder) -> Option<String>;
-    #[wasm_bindgen(method, getter, js_name = "html")]
-    pub fn html_js_string(this: &EmailReplyMessageBuilder) -> Option<JsString>;
     #[wasm_bindgen(method, setter)]
     pub fn set_html(this: &EmailReplyMessageBuilder, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
@@ -21995,15 +20911,9 @@ pub mod cloudflare {
             #[doc = " Envelope From attribute of the email message."]
             #[wasm_bindgen(method, getter)]
             pub fn from(this: &EmailMessage) -> String;
-            #[doc = " Envelope From attribute of the email message."]
-            #[wasm_bindgen(method, getter, js_name = "from")]
-            pub fn from_js_string(this: &EmailMessage) -> JsString;
             #[doc = " Envelope To attribute of the email message."]
             #[wasm_bindgen(method, getter)]
             pub fn to(this: &EmailMessage) -> String;
-            #[doc = " Envelope To attribute of the email message."]
-            #[wasm_bindgen(method, getter, js_name = "to")]
-            pub fn to_js_string(this: &EmailMessage) -> JsString;
         }
     }
     #[allow(dead_code)]
@@ -22064,33 +20974,18 @@ extern "C" {
     #[doc = " Hyperdrive."]
     #[wasm_bindgen(method, getter, js_name = "connectionString")]
     pub fn connection_string(this: &Hyperdrive) -> String;
-    #[doc = " A valid DB connection string that can be passed straight into the typical"]
-    #[doc = " client library/driver/ORM. This will typically be the easiest way to use"]
-    #[doc = " Hyperdrive."]
-    #[wasm_bindgen(method, getter, js_name = "connectionString")]
-    pub fn connection_string_js_string(this: &Hyperdrive) -> JsString;
     #[wasm_bindgen(method, getter)]
     pub fn host(this: &Hyperdrive) -> String;
-    #[wasm_bindgen(method, getter, js_name = "host")]
-    pub fn host_js_string(this: &Hyperdrive) -> JsString;
     #[wasm_bindgen(method, getter)]
     pub fn ip(this: &Hyperdrive) -> String;
-    #[wasm_bindgen(method, getter, js_name = "ip")]
-    pub fn ip_js_string(this: &Hyperdrive) -> JsString;
     #[wasm_bindgen(method, getter)]
     pub fn port(this: &Hyperdrive) -> u16;
     #[wasm_bindgen(method, getter)]
     pub fn user(this: &Hyperdrive) -> String;
-    #[wasm_bindgen(method, getter, js_name = "user")]
-    pub fn user_js_string(this: &Hyperdrive) -> JsString;
     #[wasm_bindgen(method, getter)]
     pub fn password(this: &Hyperdrive) -> String;
-    #[wasm_bindgen(method, getter, js_name = "password")]
-    pub fn password_js_string(this: &Hyperdrive) -> JsString;
     #[wasm_bindgen(method, getter)]
     pub fn database(this: &Hyperdrive) -> String;
-    #[wasm_bindgen(method, getter, js_name = "database")]
-    pub fn database_js_string(this: &Hyperdrive) -> JsString;
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -22099,8 +20994,6 @@ extern "C" {
     pub type RateLimitOptions;
     #[wasm_bindgen(method, getter)]
     pub fn key(this: &RateLimitOptions) -> String;
-    #[wasm_bindgen(method, getter, js_name = "key")]
-    pub fn key_js_string(this: &RateLimitOptions) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_key(this: &RateLimitOptions, val: impl ::wasm_bindgen::JsStringLike);
 }
@@ -22188,10 +21081,6 @@ extern "C" {
     #[doc = " Get a secret from the Secrets Store, returning a string of the secret value"]
     #[doc = " if it exists, or throws an error if it does not exist"]
     #[wasm_bindgen(method, catch, js_name = "get")]
-    pub async fn get_js_string(this: &SecretsStoreSecret) -> Result<JsString, crate::Error>;
-    #[doc = " Get a secret from the Secrets Store, returning a string of the secret value"]
-    #[doc = " if it exists, or throws an error if it does not exist"]
-    #[wasm_bindgen(method, catch, js_name = "get")]
     pub fn get_promise(this: &SecretsStoreSecret) -> Result<Promise<String>, crate::Error>;
 }
 pub mod tail_stream {
@@ -22228,7 +21117,7 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &FetchEventInfo) -> String;
         #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type__js_string(this: &FetchEventInfo) -> JsString;
+        pub fn type_js_string(this: &FetchEventInfo) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn method(this: &FetchEventInfo) -> String;
         #[wasm_bindgen(method, getter, js_name = "method")]
@@ -22259,7 +21148,7 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &JsRpcEventInfo) -> String;
         #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type__js_string(this: &JsRpcEventInfo) -> JsString;
+        pub fn type_js_string(this: &JsRpcEventInfo) -> JsString;
     }
     impl JsRpcEventInfo {
         #[allow(clippy::new_without_default)]
@@ -22278,7 +21167,7 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &ScheduledEventInfo) -> String;
         #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type__js_string(this: &ScheduledEventInfo) -> JsString;
+        pub fn type_js_string(this: &ScheduledEventInfo) -> JsString;
         #[wasm_bindgen(method, getter, js_name = "scheduledTime")]
         pub fn scheduled_time(this: &ScheduledEventInfo) -> Date;
         #[wasm_bindgen(method, getter)]
@@ -22303,7 +21192,7 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &AlarmEventInfo) -> String;
         #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type__js_string(this: &AlarmEventInfo) -> JsString;
+        pub fn type_js_string(this: &AlarmEventInfo) -> JsString;
         #[wasm_bindgen(method, getter, js_name = "scheduledTime")]
         pub fn scheduled_time(this: &AlarmEventInfo) -> Date;
     }
@@ -22324,7 +21213,7 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &QueueEventInfo) -> String;
         #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type__js_string(this: &QueueEventInfo) -> JsString;
+        pub fn type_js_string(this: &QueueEventInfo) -> JsString;
         #[wasm_bindgen(method, getter, js_name = "queueName")]
         pub fn queue_name(this: &QueueEventInfo) -> String;
         #[wasm_bindgen(method, getter, js_name = "queueName")]
@@ -22349,7 +21238,7 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &EmailEventInfo) -> String;
         #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type__js_string(this: &EmailEventInfo) -> JsString;
+        pub fn type_js_string(this: &EmailEventInfo) -> JsString;
         #[wasm_bindgen(method, getter, js_name = "mailFrom")]
         pub fn mail_from(this: &EmailEventInfo) -> String;
         #[wasm_bindgen(method, getter, js_name = "mailFrom")]
@@ -22378,7 +21267,7 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &TraceEventInfo) -> String;
         #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type__js_string(this: &TraceEventInfo) -> JsString;
+        pub fn type_js_string(this: &TraceEventInfo) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn traces(this: &TraceEventInfo) -> Vec<JsNullable<JsString>>;
     }
@@ -22399,7 +21288,7 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &HibernatableWebSocketEventInfoMessage) -> String;
         #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type__js_string(this: &HibernatableWebSocketEventInfoMessage) -> JsString;
+        pub fn type_js_string(this: &HibernatableWebSocketEventInfoMessage) -> JsString;
     }
     impl HibernatableWebSocketEventInfoMessage {
         #[allow(clippy::new_without_default)]
@@ -22418,7 +21307,7 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &HibernatableWebSocketEventInfoError) -> String;
         #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type__js_string(this: &HibernatableWebSocketEventInfoError) -> JsString;
+        pub fn type_js_string(this: &HibernatableWebSocketEventInfoError) -> JsString;
     }
     impl HibernatableWebSocketEventInfoError {
         #[allow(clippy::new_without_default)]
@@ -22437,7 +21326,7 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &HibernatableWebSocketEventInfoClose) -> String;
         #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type__js_string(this: &HibernatableWebSocketEventInfoClose) -> JsString;
+        pub fn type_js_string(this: &HibernatableWebSocketEventInfoClose) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn code(this: &HibernatableWebSocketEventInfoClose) -> f64;
         #[wasm_bindgen(method, getter, js_name = "wasClean")]
@@ -22460,7 +21349,7 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &HibernatableWebSocketEventInfo) -> String;
         #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type__js_string(this: &HibernatableWebSocketEventInfo) -> JsString;
+        pub fn type_js_string(this: &HibernatableWebSocketEventInfo) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn info(this: &HibernatableWebSocketEventInfo) -> InfoKind;
     }
@@ -22481,7 +21370,7 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &CustomEventInfo) -> String;
         #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type__js_string(this: &CustomEventInfo) -> JsString;
+        pub fn type_js_string(this: &CustomEventInfo) -> JsString;
     }
     impl CustomEventInfo {
         #[allow(clippy::new_without_default)]
@@ -22500,7 +21389,7 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &FetchResponseInfo) -> String;
         #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type__js_string(this: &FetchResponseInfo) -> JsString;
+        pub fn type_js_string(this: &FetchResponseInfo) -> JsString;
         #[wasm_bindgen(method, getter, js_name = "statusCode")]
         pub fn status_code(this: &FetchResponseInfo) -> f64;
     }
@@ -22521,7 +21410,7 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &ConnectEventInfo) -> String;
         #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type__js_string(this: &ConnectEventInfo) -> JsString;
+        pub fn type_js_string(this: &ConnectEventInfo) -> JsString;
     }
     impl ConnectEventInfo {
         #[allow(clippy::new_without_default)]
@@ -22611,7 +21500,7 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &Onset) -> String;
         #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type__js_string(this: &Onset) -> JsString;
+        pub fn type_js_string(this: &Onset) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn attributes(this: &Onset) -> Vec<Attribute>;
         #[wasm_bindgen(method, getter, js_name = "spanId")]
@@ -22666,7 +21555,7 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &Outcome) -> String;
         #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type__js_string(this: &Outcome) -> JsString;
+        pub fn type_js_string(this: &Outcome) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn outcome(this: &Outcome) -> EventOutcome;
         #[wasm_bindgen(method, getter, js_name = "cpuTime")]
@@ -22691,7 +21580,7 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &SpanOpen) -> String;
         #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type__js_string(this: &SpanOpen) -> JsString;
+        pub fn type_js_string(this: &SpanOpen) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn name(this: &SpanOpen) -> String;
         #[wasm_bindgen(method, getter, js_name = "name")]
@@ -22720,7 +21609,7 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &SpanClose) -> String;
         #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type__js_string(this: &SpanClose) -> JsString;
+        pub fn type_js_string(this: &SpanClose) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn outcome(this: &SpanClose) -> EventOutcome;
     }
@@ -22741,7 +21630,7 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &DiagnosticChannelEvent) -> String;
         #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type__js_string(this: &DiagnosticChannelEvent) -> JsString;
+        pub fn type_js_string(this: &DiagnosticChannelEvent) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn channel(this: &DiagnosticChannelEvent) -> String;
         #[wasm_bindgen(method, getter, js_name = "channel")]
@@ -22766,7 +21655,7 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &Exception) -> String;
         #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type__js_string(this: &Exception) -> JsString;
+        pub fn type_js_string(this: &Exception) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn name(this: &Exception) -> String;
         #[wasm_bindgen(method, getter, js_name = "name")]
@@ -22828,7 +21717,7 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &Log) -> String;
         #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type__js_string(this: &Log) -> JsString;
+        pub fn type_js_string(this: &Log) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn level(this: &Log) -> LevelKind;
         #[wasm_bindgen(method, getter, js_name = "errorInfo")]
@@ -22872,7 +21761,7 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &StreamDiagnostic) -> String;
         #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type__js_string(this: &StreamDiagnostic) -> JsString;
+        pub fn type_js_string(this: &StreamDiagnostic) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn diagnostic(this: &StreamDiagnostic) -> DroppedEventsDiagnostic;
     }
@@ -22893,7 +21782,7 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &Return) -> String;
         #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type__js_string(this: &Return) -> JsString;
+        pub fn type_js_string(this: &Return) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn info(this: &Return) -> Option<FetchResponseInfo>;
     }
@@ -22935,7 +21824,7 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &Attributes) -> String;
         #[wasm_bindgen(method, getter, js_name = "type")]
-        pub fn type__js_string(this: &Attributes) -> JsString;
+        pub fn type_js_string(this: &Attributes) -> JsString;
         #[wasm_bindgen(method, getter)]
         pub fn info(this: &Attributes) -> Vec<Attribute>;
     }
@@ -23173,25 +22062,16 @@ extern "C" {
     #[doc = " The ID of the Worker Version using this binding"]
     #[wasm_bindgen(method, getter)]
     pub fn id(this: &WorkerVersionMetadata) -> String;
-    #[doc = " The ID of the Worker Version using this binding"]
-    #[wasm_bindgen(method, getter, js_name = "id")]
-    pub fn id_js_string(this: &WorkerVersionMetadata) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_id(this: &WorkerVersionMetadata, val: impl ::wasm_bindgen::JsStringLike);
     #[doc = " The tag of the Worker Version using this binding"]
     #[wasm_bindgen(method, getter)]
     pub fn tag(this: &WorkerVersionMetadata) -> String;
-    #[doc = " The tag of the Worker Version using this binding"]
-    #[wasm_bindgen(method, getter, js_name = "tag")]
-    pub fn tag_js_string(this: &WorkerVersionMetadata) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_tag(this: &WorkerVersionMetadata, val: impl ::wasm_bindgen::JsStringLike);
     #[doc = " The timestamp of when the Worker Version was uploaded"]
     #[wasm_bindgen(method, getter)]
     pub fn timestamp(this: &WorkerVersionMetadata) -> String;
-    #[doc = " The timestamp of when the Worker Version was uploaded"]
-    #[wasm_bindgen(method, getter, js_name = "timestamp")]
-    pub fn timestamp_js_string(this: &WorkerVersionMetadata) -> JsString;
     #[wasm_bindgen(method, setter)]
     pub fn set_timestamp(this: &WorkerVersionMetadata, val: impl ::wasm_bindgen::JsStringLike);
 }

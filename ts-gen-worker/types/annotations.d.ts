@@ -31,6 +31,7 @@ interface ReadableStream {
   getReader(): ReadableStreamDefaultReader;
 }
 
+/** {@string copy} */
 declare class Headers {
   /** @throws {TypeError} if `init` contains an invalid header name or value */
   constructor(init?: HeadersInit);
@@ -58,6 +59,7 @@ declare class Headers {
 // and outgoing shapes, which erases; a bare `Request` is the incoming one.
 type RequestInfo<CfHostMetadata = unknown, Cf = IncomingRequestCfProperties<CfHostMetadata>> =
   Request<CfHostMetadata, Cf> | string;
+/** {@string copy} */
 declare class Request<CfHostMetadata = unknown, Cf = IncomingRequestCfProperties<CfHostMetadata>> {
   /** @throws {TypeError} if `input` is not a valid URL or `init` is inconsistent with it */
   constructor(input: RequestInfo, init?: RequestInit);
@@ -65,6 +67,7 @@ declare class Request<CfHostMetadata = unknown, Cf = IncomingRequestCfProperties
   clone(): Request;
 }
 
+/** {@string copy} */
 declare class Response {
   /** @throws {TypeError} if `init.status` is out of range or a body is given for a null-body status */
   constructor(body?: BodyInit | null, init?: ResponseInit);
@@ -82,26 +85,33 @@ declare class Response {
   status: number;
 }
 
+/** {@string copy} */
 interface ResponseInit {
   /** @rust u16 */
   status?: number;
 }
 
+/** {@string copy} */
 interface WebSocket {
   /** @rust code: u16 */
   close(code?: number, reason?: string): void;
 }
 
+/** {@string copy} */
 declare class CloseEvent {
   /** @rust u16 */
   readonly code: number;
 }
 
+/** {@string copy} */
 declare class Blob {
   /** @rust usize */
   get size(): number;
+  /** {@string both} */
+  text(): Promise<string>;
 }
 
+/** {@string copy} */
 interface DurableObjectStorage {
   /** @rust usize */
   delete(keys: string[], options?: DurableObjectPutOptions): Promise<number>;
@@ -116,11 +126,13 @@ interface DurableObjectTransaction {
   getAlarm(options?: DurableObjectGetAlarmOptions): Promise<number | null>;
 }
 
+/** {@string copy} */
 interface DurableObjectListOptions {
   /** @rust usize */
   limit?: number;
 }
 
+/** {@string copy} */
 declare abstract class SqlStorageCursor {
   /** @rust usize */
   get rowsRead(): number;
@@ -146,6 +158,7 @@ interface D1ExecResult {
   count: number;
 }
 
+/** {@string copy} */
 interface D1Meta {
   /** @rust usize */
   rows_read: number;
@@ -157,16 +170,19 @@ interface D1Meta {
   last_row_id: number;
 }
 
+/** {@string copy} */
 interface R2MultipartUpload {
   /** @rust partNumber: u16 */
   uploadPart(partNumber: number, value: any, options?: R2UploadPartOptions): Promise<R2UploadedPart>;
 }
 
+/** {@string copy} */
 interface R2UploadedPart {
   /** @rust u16 */
   partNumber: number;
 }
 
+/** {@string copy} */
 interface R2ListOptions {
   /** @rust u32 */
   limit?: number;
@@ -187,16 +203,19 @@ interface QueueRetryOptions {
   delaySeconds?: number;
 }
 
+/** {@string copy} */
 interface SocketAddress {
   /** @rust u16 */
   port: number;
 }
 
+/** {@string copy} */
 interface Hyperdrive {
   /** @rust u16 */
   readonly port: number;
 }
 
+/** {@string copy} */
 interface IncomingRequestCfPropertiesBase {
   /** @rust u32 */
   asn?: number;
@@ -209,11 +228,13 @@ interface IncomingRequestCfPropertiesBotManagementBase {
   detectionIds: number[];
 }
 
+/** {@string copy} */
 interface RequestInitCfProperties {
   /** @rust i32 */
   cacheTtl?: number;
 }
 
+/** {@string copy} */
 interface BasicImageTransformations {
   /** @rust usize */
   width?: number;
@@ -223,6 +244,7 @@ interface BasicImageTransformations {
   blur?: number;
 }
 
+/** {@string copy} */
 interface RequestInitCfPropertiesImageDraw {
   /** @rust usize */
   top?: number;
@@ -234,16 +256,19 @@ interface RequestInitCfPropertiesImageDraw {
   right?: number;
 }
 
+/** {@string copy} */
 declare abstract class R2Object {
   /** @rust u64 */
   readonly size: number;
 }
 
+/** {@string copy} */
 interface KVNamespaceListKey<Metadata, Key extends string = string> {
   /** @rust u64 */
   expiration?: number;
 }
 
+/** {@string copy} */
 interface KVNamespaceListOptions {
   /** @rust u64 */
   limit?: number;
@@ -261,6 +286,7 @@ interface KVNamespacePutOptions {
   expirationTtl?: number;
 }
 
+/** {@string copy} */
 declare class File extends Blob {
   /** @rust u64 */
   get lastModified(): number;
@@ -275,6 +301,7 @@ declare abstract class D1Database {
   /** @throws {never} */
   withSession(constraintOrBookmark?: D1SessionBookmarkOrConstraint): D1DatabaseSession;
 }
+/** {@string copy} */
 declare abstract class D1DatabaseSession {
   /** @throws {never} */
   prepare(query: string): D1PreparedStatement;
@@ -323,9 +350,122 @@ declare class AbortController {
 }
 
 // Identity accessors over an already-validated id.
+/** {@string copy} */
 interface DurableObjectId {
   /** @throws {never} */
   toString(): string;
   /** @throws {never} */
   equals(other: DurableObjectId): boolean;
+}
+
+// `{@string copy}` makes a string return a `String` only, without the `JsString`
+// `_js_string` twin. It is the default for every declaration whose strings are
+// small (names, ids, keys, tags, header values, URLs, cf fields); the twin is kept
+// (`{@string both}`) only for bodies read from the platform, where handing the
+// `JsString` on without a UTF-8 copy matters. KV values keep both (no default).
+
+/** {@string copy} */ interface BlobOptions {}
+/** {@string copy} */ interface CachePurgeError {}
+/** {@string copy} */ interface CachePurgeOptions {}
+/** {@string copy} */ interface CloseEventInit {}
+/** {@string copy} */ interface CloudflareAccessContext {}
+/** {@string copy} */ interface CloudflareAccessIdentity {}
+/** {@string copy} */ interface ContainerDirectorySnapshot {}
+/** {@string copy} */ interface ContainerDirectorySnapshotOptions {}
+/** {@string copy} */ interface ContainerDirectorySnapshotRestoreParams {}
+/** {@string copy} */ interface ContainerExecOptions {}
+/** {@string copy} */ interface ContainerSnapshot {}
+/** {@string copy} */ interface ContainerSnapshotOptions {}
+/** {@string copy} */ interface ContainerSnapshotRestoreParams {}
+/** {@string copy} */ interface ContainerStartupOptions {}
+/** {@string copy} */ interface CryptoKeyAesKeyAlgorithm {}
+/** {@string copy} */ interface CryptoKeyArbitraryKeyAlgorithm {}
+/** {@string copy} */ interface CryptoKeyEllipticKeyAlgorithm {}
+/** {@string copy} */ interface CryptoKeyHmacKeyAlgorithm {}
+/** {@string copy} */ interface CryptoKeyKeyAlgorithm {}
+/** {@string copy} */ interface CryptoKeyRsaKeyAlgorithm {}
+/** {@string copy} */ interface CryptoKey {}
+/** {@string copy} */ interface Crypto {}
+/** {@string copy} */ interface DurableObjectState {}
+/** {@string copy} */ interface DurableObjectStub {}
+/** {@string copy} */ interface EmailAddress {}
+/** {@string copy} */ interface EmailAttachment {}
+/** {@string copy} */ interface EmailMessage {}
+/** {@string copy} */ interface EmailReplyMessageBuilder {}
+/** {@string copy} */ interface EmailSendResult {}
+/** {@string copy} */ interface ErrorEventErrorEventInit {}
+/** {@string copy} */ interface ErrorEvent {}
+/** {@string copy} */ interface Event {}
+/** {@string copy} */ interface FileOptions {}
+/** {@string copy} */ interface IncomingRequestCfPropertiesExportedAuthenticatorMetadata {}
+/** {@string copy} */ interface IncomingRequestCfPropertiesGeographicInformation {}
+/** {@string copy} */ interface IncomingRequestCfPropertiesTLSClientAuth {}
+/** {@string copy} */ interface IncomingRequestCfPropertiesTLSClientAuthPlaceholder {}
+/** {@string copy} */ interface JsonWebKey {}
+/** {@string copy} */ interface KVNamespaceGetWithMetadataResult {}
+/** {@string copy} */ interface KVNamespaceListResult {}
+/** {@string copy} */ interface MessageBatch {}
+/** {@string copy} */ interface MessageEvent {}
+/** {@string copy} */ interface Message {}
+/** {@string copy} */ interface PerformanceEntry {}
+/** {@string copy} */ interface R2Conditional {}
+/** {@string copy} */ interface R2HTTPMetadata {}
+/** {@string copy} */ interface R2MultipartOptions {}
+/** {@string copy} */ interface R2Objects {}
+/** {@string copy} */ interface R2PutOptions {}
+/** {@string copy} */ interface R2StringChecksums {}
+/** {@string copy} */ interface RateLimitOptions {}
+/** {@string copy} */ interface ReadableStreamGetReaderOptions {}
+/** {@string copy} */ interface RequestInitCfPropertiesImage {}
+/** {@string copy} */ interface RequestInitCfPropertiesVaryAcceptHeader {}
+/** {@string copy} */ interface RequestInitCfPropertiesVaryAcceptLanguageHeader {}
+/** {@string copy} */ interface RequestInit {}
+/** {@string copy} */ interface RsaOtherPrimesInfo {}
+/** {@string copy} */ interface ScheduledController {}
+/** {@string copy} */ interface ScriptVersion {}
+/** {@string copy} */ interface SecretsStoreSecret {}
+/** {@string copy} */ interface SocketInfo {}
+/** {@string copy} */ interface SocketOptions {}
+/** {@string copy} */ interface SubtleCryptoDeriveKeyAlgorithm {}
+/** {@string copy} */ interface SubtleCryptoEncryptAlgorithm {}
+/** {@string copy} */ interface SubtleCryptoGenerateKeyAlgorithm {}
+/** {@string copy} */ interface SubtleCryptoHashAlgorithm {}
+/** {@string copy} */ interface SubtleCryptoImportKeyAlgorithm {}
+/** {@string copy} */ interface SubtleCryptoSignAlgorithm {}
+/** {@string copy} */ interface SyncKvListOptions {}
+/** {@string copy} */ interface TailEvent {}
+/** {@string copy} */ interface TlsOptions {}
+/** {@string copy} */ interface TraceDiagnosticChannelEvent {}
+/** {@string copy} */ interface TraceException {}
+/** {@string copy} */ interface TraceItem {}
+/** {@string copy} */ interface TraceItemEmailEventInfo {}
+/** {@string copy} */ interface TraceItemFetchEventInfoRequest {}
+/** {@string copy} */ interface TraceItemHibernatableWebSocketEventInfoClose {}
+/** {@string copy} */ interface TraceItemHibernatableWebSocketEventInfoError {}
+/** {@string copy} */ interface TraceItemHibernatableWebSocketEventInfoMessage {}
+/** {@string copy} */ interface TraceItemJsRpcEventInfo {}
+/** {@string copy} */ interface TraceItemQueueEventInfo {}
+/** {@string copy} */ interface TraceItemScheduledEventInfo {}
+/** {@string copy} */ interface TraceItemTailEventInfoTailItem {}
+/** {@string copy} */ interface TraceLogErrorInfo {}
+/** {@string copy} */ interface TraceLog {}
+/** {@string copy} */ interface TracePreviewInfo {}
+/** {@string copy} */ interface Transformer {}
+/** {@string copy} */ interface UnderlyingByteSource {}
+/** {@string copy} */ interface UnderlyingSink {}
+/** {@string copy} */ interface UnderlyingSource {}
+/** {@string copy} */ interface URL {}
+/** {@string copy} */ interface URLSearchParams {}
+/** {@string copy} */ interface WebSocketRequestResponsePair {}
+/** {@string copy} */ interface WorkerVersionMetadata {}
+
+/** {@string copy} */
+interface Body {
+  /** {@string both} */
+  text(): Promise<string>;
+}
+/** {@string copy} */
+interface R2ObjectBody {
+  /** {@string both} */
+  text(): Promise<string>;
 }
