@@ -75,7 +75,9 @@ workers-rs-3 builds the whole prototype. `js_sys_unstable_apis` is on for wasm32
 | `6f85b11` | a dictionary argument whose fields are all literals is set by the binding: `raw_with_column_names{,_typed}()`, `get_reader_byob()`; a `{ x?: false }` arm folds into the omitted form | audit A1: D1 `raw`'s tuple return trusted the caller's `columnNames` | ts-gen mono PR (overloads) |
 | `7ec1b4c` | `Partial` getters return `Option`; field-literal wrappers call the typed setter instead of `Reflect::set`; `this` returns lower to the receiver (`Span::set_attribute`); names (`json_with_init`, `with_session_with_constraint`, `verify`/`measure` arms) | audit A2 | ts-gen mono PR (overloads, names) |
 | `e798487` | `ArrayBuffer \| ArrayBufferView` and `BufferSource` lower to `impl js_sys::BufferSourceLike` (`Option<…>` with `null`); one `_buffer_source` binding replaces the `_array_buffer` + `_typed_array` arms | audit A3; needs `3ef8cb93b` | ts-gen mono PR (types) |
-| `16402cd` | async members are one import returning `Promise<T>` (`T` the awaited form), with no `async fn` / `_promise` pair (293 twins → 0); the imports drop `catch` until wasm-bindgen rejects on a sync throw | design D1: one value that awaits and passes to JS | ts-gen mono PR (async) |
+| `16402cd` | async members are one import returning `Promise<T>` (`T` the awaited form), with no `async fn` / `_promise` pair (293 twins → 0) | design D1: one value that awaits and passes to JS | ts-gen mono PR (async) |
+| `6815c11` | `M[K]` over a concrete `M` binds once per key, with the key's literal set by the binding (`WebSocket::add_event_listener_message(&Function<fn(MessageEvent)>)`), declared on subclasses for the first parent's methods; overloads told apart by one literal are named by it | design D2: event listeners took `fn(JsValue)` and a cast | ts-gen mono PR (types) |
+| `16a19f9` | `Promise<T>` imports keep `catch`, so a synchronous throw is a rejection at `.await` | design D1; needs `627ff72ba` | ts-gen mono PR (async) |
 
 ## workers-rs (`ts-gen-worker`)
 
@@ -118,7 +120,8 @@ Each row of the tables above is one change. Landing them is a smaller set of PRs
 | ts-gen mono: generic-class arguments, `Partial`, `()` | `6115484`, `76b070a`, `d4d3303` | `56ac6f184` |
 | ts-gen mono: buffer-source arguments | `e798487` | `3ef8cb93b` |
 | wasm-bindgen: `catch` on `Promise<T>` returns | `627ff72ba` | — |
-| ts-gen mono: `Promise<T>` async returns | `16402cd` | `627ff72ba` |
+| ts-gen mono: per-key `M[K]` bindings | `6815c11` | — |
+| ts-gen mono: `Promise<T>` async returns | `16402cd`, `16a19f9` | `627ff72ba` |
 | ts-gen mono: generated `IntoIterator` | `d21202a` | `866b0d33d` |
 | serde-wasm-bindgen, wasm-streams: build under `js_sys_unstable_apis` | `ts-gen-worker/vendor-patches` | js-sys unstable |
 | workers-rs: inputs (`annotations.d.ts`, `env.d.ts`), ext, port, `MIGRATING.md` | workers-rs rows | all of the above |
