@@ -2626,102 +2626,124 @@ extern "C" {
     #[doc = " The **`encrypt()`** method of the SubtleCrypto interface encrypts data."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/encrypt)"]
+    #[doc = ""]
+    #[doc = " * `plainText` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch)]
     pub fn encrypt(
         this: &SubtleCrypto,
         algorithm: impl ::wasm_bindgen::JsStringLike,
         key: &CryptoKey,
-        plain_text: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "view")] plain_text: impl ::js_sys::BufferSourceLike,
     ) -> Promise<ArrayBuffer>;
     #[doc = " The **`encrypt()`** method of the SubtleCrypto interface encrypts data."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/encrypt)"]
+    #[doc = ""]
+    #[doc = " * `plainText` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "encrypt")]
     pub fn encrypt_with_algorithm(
         this: &SubtleCrypto,
         algorithm: &SubtleCryptoEncryptAlgorithm,
         key: &CryptoKey,
-        plain_text: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "view")] plain_text: impl ::js_sys::BufferSourceLike,
     ) -> Promise<ArrayBuffer>;
     #[doc = " The **`decrypt()`** method of the SubtleCrypto interface decrypts some encrypted data. It takes as arguments a key to decrypt with, some optional extra parameters, and the data to decrypt (also known as \"ciphertext\"). It returns a Promise which will be fulfilled with the decrypted data (also known as \"plaintext\")."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/decrypt)"]
+    #[doc = ""]
+    #[doc = " * `cipherText` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch)]
     pub fn decrypt(
         this: &SubtleCrypto,
         algorithm: impl ::wasm_bindgen::JsStringLike,
         key: &CryptoKey,
-        cipher_text: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "view")] cipher_text: impl ::js_sys::BufferSourceLike,
     ) -> Promise<ArrayBuffer>;
     #[doc = " The **`decrypt()`** method of the SubtleCrypto interface decrypts some encrypted data. It takes as arguments a key to decrypt with, some optional extra parameters, and the data to decrypt (also known as \"ciphertext\"). It returns a Promise which will be fulfilled with the decrypted data (also known as \"plaintext\")."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/decrypt)"]
+    #[doc = ""]
+    #[doc = " * `cipherText` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "decrypt")]
     pub fn decrypt_with_algorithm(
         this: &SubtleCrypto,
         algorithm: &SubtleCryptoEncryptAlgorithm,
         key: &CryptoKey,
-        cipher_text: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "view")] cipher_text: impl ::js_sys::BufferSourceLike,
     ) -> Promise<ArrayBuffer>;
     #[doc = " The **`sign()`** method of the SubtleCrypto interface generates a digital signature."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/sign)"]
+    #[doc = ""]
+    #[doc = " * `data` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch)]
     pub fn sign(
         this: &SubtleCrypto,
         algorithm: impl ::wasm_bindgen::JsStringLike,
         key: &CryptoKey,
-        data: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "view")] data: impl ::js_sys::BufferSourceLike,
     ) -> Promise<ArrayBuffer>;
     #[doc = " The **`sign()`** method of the SubtleCrypto interface generates a digital signature."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/sign)"]
+    #[doc = ""]
+    #[doc = " * `data` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "sign")]
     pub fn sign_with_algorithm(
         this: &SubtleCrypto,
         algorithm: &SubtleCryptoSignAlgorithm,
         key: &CryptoKey,
-        data: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "view")] data: impl ::js_sys::BufferSourceLike,
     ) -> Promise<ArrayBuffer>;
     #[doc = " The **`verify()`** method of the SubtleCrypto interface verifies a digital signature."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/verify)"]
+    #[doc = ""]
+    #[doc = " * `signature` - copied before the call returns, so a `&[u8]` passes as a view"]
+    #[doc = " * `data` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch)]
     pub fn verify(
         this: &SubtleCrypto,
         algorithm: impl ::wasm_bindgen::JsStringLike,
         key: &CryptoKey,
-        signature: impl ::js_sys::BufferSourceLike,
-        data: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "view")] signature: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "view")] data: impl ::js_sys::BufferSourceLike,
     ) -> Promise<bool>;
     #[doc = " The **`verify()`** method of the SubtleCrypto interface verifies a digital signature."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/verify)"]
+    #[doc = ""]
+    #[doc = " * `signature` - copied before the call returns, so a `&[u8]` passes as a view"]
+    #[doc = " * `data` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "verify")]
     pub fn verify_with_algorithm(
         this: &SubtleCrypto,
         algorithm: &SubtleCryptoSignAlgorithm,
         key: &CryptoKey,
-        signature: impl ::js_sys::BufferSourceLike,
-        data: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "view")] signature: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "view")] data: impl ::js_sys::BufferSourceLike,
     ) -> Promise<bool>;
     #[doc = " The **`digest()`** method of the SubtleCrypto interface generates a digest of the given data, using the specified hash function. A digest is a short fixed-length value derived from some variable-length input. Cryptographic digests should exhibit collision-resistance, meaning that it's hard to come up with two different inputs that have the same digest value."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/digest)"]
+    #[doc = ""]
+    #[doc = " * `data` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch)]
     pub fn digest(
         this: &SubtleCrypto,
         algorithm: impl ::wasm_bindgen::JsStringLike,
-        data: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "view")] data: impl ::js_sys::BufferSourceLike,
     ) -> Promise<ArrayBuffer>;
     #[doc = " The **`digest()`** method of the SubtleCrypto interface generates a digest of the given data, using the specified hash function. A digest is a short fixed-length value derived from some variable-length input. Cryptographic digests should exhibit collision-resistance, meaning that it's hard to come up with two different inputs that have the same digest value."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/digest)"]
+    #[doc = ""]
+    #[doc = " * `data` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "digest")]
     pub fn digest_with_algorithm(
         this: &SubtleCrypto,
         algorithm: &SubtleCryptoHashAlgorithm,
-        data: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "view")] data: impl ::js_sys::BufferSourceLike,
     ) -> Promise<ArrayBuffer>;
     #[doc = " The **`generateKey()`** method of the SubtleCrypto interface is used to generate a new key (for symmetric algorithms) or key pair (for public-key algorithms)."]
     #[doc = ""]
@@ -2832,11 +2854,13 @@ extern "C" {
     #[doc = " The **`importKey()`** method of the SubtleCrypto interface imports a key: that is, it takes as input a key in an external, portable format and gives you a CryptoKey object that you can use in the Web Crypto API."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/importKey)"]
+    #[doc = ""]
+    #[doc = " * `keyData` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "importKey")]
     pub fn import_key(
         this: &SubtleCrypto,
         format: impl ::wasm_bindgen::JsStringLike,
-        key_data: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "view")] key_data: impl ::js_sys::BufferSourceLike,
         algorithm: impl ::wasm_bindgen::JsStringLike,
         extractable: bool,
         key_usages: &[impl ::wasm_bindgen::JsStringLike],
@@ -2844,6 +2868,8 @@ extern "C" {
     #[doc = " The **`importKey()`** method of the SubtleCrypto interface imports a key: that is, it takes as input a key in an external, portable format and gives you a CryptoKey object that you can use in the Web Crypto API."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/importKey)"]
+    #[doc = ""]
+    #[doc = " * `keyData` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "importKey")]
     pub fn import_key_with_key_data(
         this: &SubtleCrypto,
@@ -2856,11 +2882,13 @@ extern "C" {
     #[doc = " The **`importKey()`** method of the SubtleCrypto interface imports a key: that is, it takes as input a key in an external, portable format and gives you a CryptoKey object that you can use in the Web Crypto API."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/importKey)"]
+    #[doc = ""]
+    #[doc = " * `keyData` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "importKey")]
     pub fn import_key_with_algorithm(
         this: &SubtleCrypto,
         format: impl ::wasm_bindgen::JsStringLike,
-        key_data: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "view")] key_data: impl ::js_sys::BufferSourceLike,
         algorithm: &SubtleCryptoImportKeyAlgorithm,
         extractable: bool,
         key_usages: &[impl ::wasm_bindgen::JsStringLike],
@@ -2868,6 +2896,8 @@ extern "C" {
     #[doc = " The **`importKey()`** method of the SubtleCrypto interface imports a key: that is, it takes as input a key in an external, portable format and gives you a CryptoKey object that you can use in the Web Crypto API."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/importKey)"]
+    #[doc = ""]
+    #[doc = " * `keyData` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "importKey")]
     pub fn import_key_with_key_data_and_algorithm(
         this: &SubtleCrypto,
@@ -2911,11 +2941,13 @@ extern "C" {
     #[doc = " The **`unwrapKey()`** method of the SubtleCrypto interface \"unwraps\" a key. This means that it takes as its input a key that has been exported and then encrypted (also called \"wrapped\"). It decrypts the key and then imports it, returning a CryptoKey object that can be used in the Web Crypto API."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/unwrapKey)"]
+    #[doc = ""]
+    #[doc = " * `wrappedKey` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "unwrapKey")]
     pub fn unwrap_key(
         this: &SubtleCrypto,
         format: impl ::wasm_bindgen::JsStringLike,
-        wrapped_key: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "view")] wrapped_key: impl ::js_sys::BufferSourceLike,
         unwrapping_key: &CryptoKey,
         unwrap_algorithm: impl ::wasm_bindgen::JsStringLike,
         unwrapped_key_algorithm: impl ::wasm_bindgen::JsStringLike,
@@ -2925,11 +2957,13 @@ extern "C" {
     #[doc = " The **`unwrapKey()`** method of the SubtleCrypto interface \"unwraps\" a key. This means that it takes as its input a key that has been exported and then encrypted (also called \"wrapped\"). It decrypts the key and then imports it, returning a CryptoKey object that can be used in the Web Crypto API."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/unwrapKey)"]
+    #[doc = ""]
+    #[doc = " * `wrappedKey` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "unwrapKey")]
     pub fn unwrap_key_with_unwrap_algorithm(
         this: &SubtleCrypto,
         format: impl ::wasm_bindgen::JsStringLike,
-        wrapped_key: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "view")] wrapped_key: impl ::js_sys::BufferSourceLike,
         unwrapping_key: &CryptoKey,
         unwrap_algorithm: &SubtleCryptoEncryptAlgorithm,
         unwrapped_key_algorithm: impl ::wasm_bindgen::JsStringLike,
@@ -2939,11 +2973,13 @@ extern "C" {
     #[doc = " The **`unwrapKey()`** method of the SubtleCrypto interface \"unwraps\" a key. This means that it takes as its input a key that has been exported and then encrypted (also called \"wrapped\"). It decrypts the key and then imports it, returning a CryptoKey object that can be used in the Web Crypto API."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/unwrapKey)"]
+    #[doc = ""]
+    #[doc = " * `wrappedKey` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "unwrapKey")]
     pub fn unwrap_key_with_unwrapped_key_algorithm(
         this: &SubtleCrypto,
         format: impl ::wasm_bindgen::JsStringLike,
-        wrapped_key: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "view")] wrapped_key: impl ::js_sys::BufferSourceLike,
         unwrapping_key: &CryptoKey,
         unwrap_algorithm: impl ::wasm_bindgen::JsStringLike,
         unwrapped_key_algorithm: &SubtleCryptoImportKeyAlgorithm,
@@ -2953,22 +2989,26 @@ extern "C" {
     #[doc = " The **`unwrapKey()`** method of the SubtleCrypto interface \"unwraps\" a key. This means that it takes as its input a key that has been exported and then encrypted (also called \"wrapped\"). It decrypts the key and then imports it, returning a CryptoKey object that can be used in the Web Crypto API."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/unwrapKey)"]
+    #[doc = ""]
+    #[doc = " * `wrappedKey` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "unwrapKey")]
     pub fn unwrap_key_with_unwrap_algorithm_and_unwrapped_key_algorithm(
         this: &SubtleCrypto,
         format: impl ::wasm_bindgen::JsStringLike,
-        wrapped_key: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "view")] wrapped_key: impl ::js_sys::BufferSourceLike,
         unwrapping_key: &CryptoKey,
         unwrap_algorithm: &SubtleCryptoEncryptAlgorithm,
         unwrapped_key_algorithm: &SubtleCryptoImportKeyAlgorithm,
         extractable: bool,
         key_usages: &[impl ::wasm_bindgen::JsStringLike],
     ) -> Promise<CryptoKey>;
+    #[doc = " * `a` - read before the call returns, so a `&[u8]` passes as a view"]
+    #[doc = " * `b` - read before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "timingSafeEqual")]
     pub fn timing_safe_equal(
         this: &SubtleCrypto,
-        a: impl ::js_sys::BufferSourceLike,
-        b: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "view")] a: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "view")] b: impl ::js_sys::BufferSourceLike,
     ) -> Result<bool, crate::Error>;
 }
 #[wasm_bindgen(experimental_generic_mono)]
@@ -3252,8 +3292,11 @@ extern "C" {
     pub fn set_name(this: &SubtleCryptoDeriveKeyAlgorithm, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn salt(this: &SubtleCryptoDeriveKeyAlgorithm) -> Option<SaltKind>;
-    #[wasm_bindgen(method, setter, slice = "copy")]
-    pub fn set_salt(this: &SubtleCryptoDeriveKeyAlgorithm, val: impl ::js_sys::BufferSourceLike);
+    #[wasm_bindgen(method, setter)]
+    pub fn set_salt(
+        this: &SubtleCryptoDeriveKeyAlgorithm,
+        #[wasm_bindgen(slice = "copy")] val: impl ::js_sys::BufferSourceLike,
+    );
     #[wasm_bindgen(method, getter)]
     pub fn iterations(this: &SubtleCryptoDeriveKeyAlgorithm) -> Option<f64>;
     #[wasm_bindgen(method, setter)]
@@ -3273,8 +3316,11 @@ extern "C" {
     pub fn set_public(this: &SubtleCryptoDeriveKeyAlgorithm, val: &CryptoKey);
     #[wasm_bindgen(method, getter)]
     pub fn info(this: &SubtleCryptoDeriveKeyAlgorithm) -> Option<SaltKind>;
-    #[wasm_bindgen(method, setter, slice = "copy")]
-    pub fn set_info(this: &SubtleCryptoDeriveKeyAlgorithm, val: impl ::js_sys::BufferSourceLike);
+    #[wasm_bindgen(method, setter)]
+    pub fn set_info(
+        this: &SubtleCryptoDeriveKeyAlgorithm,
+        #[wasm_bindgen(slice = "copy")] val: impl ::js_sys::BufferSourceLike,
+    );
 }
 impl SubtleCryptoDeriveKeyAlgorithm {
     pub fn new(name: impl ::wasm_bindgen::JsStringLike) -> SubtleCryptoDeriveKeyAlgorithm {
@@ -3336,14 +3382,17 @@ extern "C" {
     pub fn set_name(this: &SubtleCryptoEncryptAlgorithm, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn iv(this: &SubtleCryptoEncryptAlgorithm) -> Option<SaltKind>;
-    #[wasm_bindgen(method, setter, slice = "copy")]
-    pub fn set_iv(this: &SubtleCryptoEncryptAlgorithm, val: impl ::js_sys::BufferSourceLike);
+    #[wasm_bindgen(method, setter)]
+    pub fn set_iv(
+        this: &SubtleCryptoEncryptAlgorithm,
+        #[wasm_bindgen(slice = "copy")] val: impl ::js_sys::BufferSourceLike,
+    );
     #[wasm_bindgen(method, getter, js_name = "additionalData")]
     pub fn additional_data(this: &SubtleCryptoEncryptAlgorithm) -> Option<SaltKind>;
-    #[wasm_bindgen(method, setter, js_name = "additionalData", slice = "copy")]
+    #[wasm_bindgen(method, setter, js_name = "additionalData")]
     pub fn set_additional_data(
         this: &SubtleCryptoEncryptAlgorithm,
-        val: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "copy")] val: impl ::js_sys::BufferSourceLike,
     );
     #[wasm_bindgen(method, getter, js_name = "tagLength")]
     pub fn tag_length(this: &SubtleCryptoEncryptAlgorithm) -> Option<f64>;
@@ -3351,16 +3400,22 @@ extern "C" {
     pub fn set_tag_length(this: &SubtleCryptoEncryptAlgorithm, val: f64);
     #[wasm_bindgen(method, getter)]
     pub fn counter(this: &SubtleCryptoEncryptAlgorithm) -> Option<SaltKind>;
-    #[wasm_bindgen(method, setter, slice = "copy")]
-    pub fn set_counter(this: &SubtleCryptoEncryptAlgorithm, val: impl ::js_sys::BufferSourceLike);
+    #[wasm_bindgen(method, setter)]
+    pub fn set_counter(
+        this: &SubtleCryptoEncryptAlgorithm,
+        #[wasm_bindgen(slice = "copy")] val: impl ::js_sys::BufferSourceLike,
+    );
     #[wasm_bindgen(method, getter)]
     pub fn length(this: &SubtleCryptoEncryptAlgorithm) -> Option<f64>;
     #[wasm_bindgen(method, setter)]
     pub fn set_length(this: &SubtleCryptoEncryptAlgorithm, val: f64);
     #[wasm_bindgen(method, getter)]
     pub fn label(this: &SubtleCryptoEncryptAlgorithm) -> Option<SaltKind>;
-    #[wasm_bindgen(method, setter, slice = "copy")]
-    pub fn set_label(this: &SubtleCryptoEncryptAlgorithm, val: impl ::js_sys::BufferSourceLike);
+    #[wasm_bindgen(method, setter)]
+    pub fn set_label(
+        this: &SubtleCryptoEncryptAlgorithm,
+        #[wasm_bindgen(slice = "copy")] val: impl ::js_sys::BufferSourceLike,
+    );
 }
 impl SubtleCryptoEncryptAlgorithm {
     pub fn new(name: impl ::wasm_bindgen::JsStringLike) -> SubtleCryptoEncryptAlgorithm {
@@ -3439,10 +3494,10 @@ extern "C" {
     pub fn set_modulus_length(this: &SubtleCryptoGenerateKeyAlgorithm, val: f64);
     #[wasm_bindgen(method, getter, js_name = "publicExponent")]
     pub fn public_exponent(this: &SubtleCryptoGenerateKeyAlgorithm) -> Option<SaltKind>;
-    #[wasm_bindgen(method, setter, js_name = "publicExponent", slice = "copy")]
+    #[wasm_bindgen(method, setter, js_name = "publicExponent")]
     pub fn set_public_exponent(
         this: &SubtleCryptoGenerateKeyAlgorithm,
-        val: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "copy")] val: impl ::js_sys::BufferSourceLike,
     );
     #[wasm_bindgen(method, getter)]
     pub fn length(this: &SubtleCryptoGenerateKeyAlgorithm) -> Option<f64>;
@@ -3749,10 +3804,10 @@ extern "C" {
     pub fn set_modulus_length(this: &CryptoKeyRsaKeyAlgorithm, val: f64);
     #[wasm_bindgen(method, getter, js_name = "publicExponent")]
     pub fn public_exponent(this: &CryptoKeyRsaKeyAlgorithm) -> SaltKind;
-    #[wasm_bindgen(method, setter, js_name = "publicExponent", slice = "copy")]
+    #[wasm_bindgen(method, setter, js_name = "publicExponent")]
     pub fn set_public_exponent(
         this: &CryptoKeyRsaKeyAlgorithm,
-        val: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "copy")] val: impl ::js_sys::BufferSourceLike,
     );
     #[wasm_bindgen(method, getter)]
     pub fn hash(this: &CryptoKeyRsaKeyAlgorithm) -> Option<CryptoKeyKeyAlgorithm>;
@@ -4331,11 +4386,15 @@ extern "C" {
     # [wasm_bindgen (extends = Body , extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type Response;
+    #[doc = " * `body` - copied before the call returns, so a `&[u8]` passes as a view"]
+    #[doc = ""]
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch)]
     pub fn new() -> Result<Response, JsException>;
+    #[doc = " * `body` - copied before the call returns, so a `&[u8]` passes as a view"]
+    #[doc = ""]
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
@@ -4343,43 +4402,59 @@ extern "C" {
     pub fn new_with_readable_stream(
         body: &ReadableStream<Uint8Array>,
     ) -> Result<Response, JsException>;
+    #[doc = " * `body` - copied before the call returns, so a `&[u8]` passes as a view"]
+    #[doc = ""]
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
     pub fn new_with_str(body: impl ::wasm_bindgen::JsStringLike) -> Result<Response, JsException>;
+    #[doc = " * `body` - copied before the call returns, so a `&[u8]` passes as a view"]
+    #[doc = ""]
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
     pub fn new_with_buffer_source(
-        body: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "view")] body: impl ::js_sys::BufferSourceLike,
     ) -> Result<Response, JsException>;
+    #[doc = " * `body` - copied before the call returns, so a `&[u8]` passes as a view"]
+    #[doc = ""]
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
     pub fn new_with_blob(body: &Blob) -> Result<Response, JsException>;
+    #[doc = " * `body` - copied before the call returns, so a `&[u8]` passes as a view"]
+    #[doc = ""]
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
     pub fn new_with_url_search_params(body: &URLSearchParams) -> Result<Response, JsException>;
+    #[doc = " * `body` - copied before the call returns, so a `&[u8]` passes as a view"]
+    #[doc = ""]
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
     pub fn new_with_form_data(body: &FormData) -> Result<Response, JsException>;
+    #[doc = " * `body` - copied before the call returns, so a `&[u8]` passes as a view"]
+    #[doc = ""]
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
     pub fn new_with_slice(body: &[JsValue]) -> Result<Response, JsException>;
+    #[doc = " * `body` - copied before the call returns, so a `&[u8]` passes as a view"]
+    #[doc = ""]
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
     pub fn new_with_async_iterable(body: &JsValue) -> Result<Response, JsException>;
+    #[doc = " * `body` - copied before the call returns, so a `&[u8]` passes as a view"]
+    #[doc = ""]
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
@@ -4388,6 +4463,8 @@ extern "C" {
         body: &ReadableStream<Uint8Array>,
         init: &ResponseInit,
     ) -> Result<Response, JsException>;
+    #[doc = " * `body` - copied before the call returns, so a `&[u8]` passes as a view"]
+    #[doc = ""]
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
@@ -4396,14 +4473,18 @@ extern "C" {
         body: impl ::wasm_bindgen::JsStringLike,
         init: &ResponseInit,
     ) -> Result<Response, JsException>;
+    #[doc = " * `body` - copied before the call returns, so a `&[u8]` passes as a view"]
+    #[doc = ""]
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
     pub fn new_with_buffer_source_and_init(
-        body: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "view")] body: impl ::js_sys::BufferSourceLike,
         init: &ResponseInit,
     ) -> Result<Response, JsException>;
+    #[doc = " * `body` - copied before the call returns, so a `&[u8]` passes as a view"]
+    #[doc = ""]
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
@@ -4412,6 +4493,8 @@ extern "C" {
         body: &Blob,
         init: &ResponseInit,
     ) -> Result<Response, JsException>;
+    #[doc = " * `body` - copied before the call returns, so a `&[u8]` passes as a view"]
+    #[doc = ""]
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
@@ -4420,6 +4503,8 @@ extern "C" {
         body: &URLSearchParams,
         init: &ResponseInit,
     ) -> Result<Response, JsException>;
+    #[doc = " * `body` - copied before the call returns, so a `&[u8]` passes as a view"]
+    #[doc = ""]
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
@@ -4428,6 +4513,8 @@ extern "C" {
         body: &FormData,
         init: &ResponseInit,
     ) -> Result<Response, JsException>;
+    #[doc = " * `body` - copied before the call returns, so a `&[u8]` passes as a view"]
+    #[doc = ""]
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
@@ -4436,6 +4523,8 @@ extern "C" {
         body: &[JsValue],
         init: &ResponseInit,
     ) -> Result<Response, JsException>;
+    #[doc = " * `body` - copied before the call returns, so a `&[u8]` passes as a view"]
+    #[doc = ""]
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
@@ -4555,6 +4644,8 @@ extern "C" {
     pub fn set_type(this: &Response, val: TypeKind);
 }
 impl Response {
+    #[doc = " * `body` - copied before the call returns, so a `&[u8]` passes as a view"]
+    #[doc = ""]
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
@@ -4858,10 +4949,10 @@ extern "C" {
     pub fn set_body<Cf>(this: &RequestInit<Cf>, val: &ReadableStream<Uint8Array>);
     #[wasm_bindgen(method, setter, js_name = "body")]
     pub fn set_body_with_str<Cf>(this: &RequestInit<Cf>, val: impl ::wasm_bindgen::JsStringLike);
-    #[wasm_bindgen(method, setter, js_name = "body", slice = "copy")]
+    #[wasm_bindgen(method, setter, js_name = "body")]
     pub fn set_body_with_buffer_source<Cf>(
         this: &RequestInit<Cf>,
-        val: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "copy")] val: impl ::js_sys::BufferSourceLike,
     );
     #[wasm_bindgen(method, setter, js_name = "body")]
     pub fn set_body_with_blob<Cf>(this: &RequestInit<Cf>, val: &Blob);
@@ -5370,24 +5461,28 @@ extern "C" {
         this: &KVNamespace,
         options: &KVNamespaceListOptions,
     ) -> Promise<KVNamespaceListResult<Metadata>>;
+    #[doc = " * `value` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch)]
     pub fn put(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         value: impl ::wasm_bindgen::JsStringLike,
     ) -> Promise<()>;
+    #[doc = " * `value` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_buffer_source(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "view")] value: impl ::js_sys::BufferSourceLike,
     ) -> Promise<()>;
+    #[doc = " * `value` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_readable_stream(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &ReadableStream<impl Sized>,
     ) -> Promise<()>;
+    #[doc = " * `value` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_options(
         this: &KVNamespace,
@@ -5395,13 +5490,15 @@ extern "C" {
         value: impl ::wasm_bindgen::JsStringLike,
         options: &KVNamespacePutOptions,
     ) -> Promise<()>;
+    #[doc = " * `value` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_buffer_source_and_options(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "view")] value: impl ::js_sys::BufferSourceLike,
         options: &KVNamespacePutOptions,
     ) -> Promise<()>;
+    #[doc = " * `value` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_readable_stream_and_options(
         this: &KVNamespace,
@@ -6984,24 +7081,28 @@ extern "C" {
         key: impl ::wasm_bindgen::JsStringLike,
         options: &R2GetOptions,
     ) -> Promise<Option<R2ObjectBody>>;
+    #[doc = " * `value` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch)]
     pub fn put(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &ReadableStream<impl Sized>,
     ) -> Promise<Option<R2Object>>;
+    #[doc = " * `value` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_buffer_source(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "view")] value: impl ::js_sys::BufferSourceLike,
     ) -> Promise<Option<R2Object>>;
+    #[doc = " * `value` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_str(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         value: impl ::wasm_bindgen::JsStringLike,
     ) -> Promise<Option<R2Object>>;
+    #[doc = " * `value` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_blob(
         this: &R2Bucket,
@@ -7014,6 +7115,7 @@ extern "C" {
         key: impl ::wasm_bindgen::JsStringLike,
         value: &JsValue,
     ) -> Promise<Option<R2Object>>;
+    #[doc = " * `value` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_r2_bucket_put_options(
         this: &R2Bucket,
@@ -7021,13 +7123,15 @@ extern "C" {
         value: &ReadableStream<impl Sized>,
         options: &R2BucketPutOptions,
     ) -> Promise<Option<R2Object>>;
+    #[doc = " * `value` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_buffer_source_and_r2_bucket_put_options(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "view")] value: impl ::js_sys::BufferSourceLike,
         options: &R2BucketPutOptions,
     ) -> Promise<Option<R2Object>>;
+    #[doc = " * `value` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_str_and_r2_bucket_put_options(
         this: &R2Bucket,
@@ -7035,6 +7139,7 @@ extern "C" {
         value: impl ::wasm_bindgen::JsStringLike,
         options: &R2BucketPutOptions,
     ) -> Promise<Option<R2Object>>;
+    #[doc = " * `value` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_blob_and_r2_bucket_put_options(
         this: &R2Bucket,
@@ -7049,6 +7154,7 @@ extern "C" {
         value: &JsValue,
         options: &R2BucketPutOptions,
     ) -> Promise<Option<R2Object>>;
+    #[doc = " * `value` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_options(
         this: &R2Bucket,
@@ -7056,13 +7162,15 @@ extern "C" {
         value: &ReadableStream<impl Sized>,
         options: &R2PutOptions,
     ) -> Promise<R2Object>;
+    #[doc = " * `value` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_buffer_source_and_options(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "view")] value: impl ::js_sys::BufferSourceLike,
         options: &R2PutOptions,
     ) -> Promise<R2Object>;
+    #[doc = " * `value` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_str_and_options(
         this: &R2Bucket,
@@ -7070,6 +7178,7 @@ extern "C" {
         value: impl ::wasm_bindgen::JsStringLike,
         options: &R2PutOptions,
     ) -> Promise<R2Object>;
+    #[doc = " * `value` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_blob_and_options(
         this: &R2Bucket,
@@ -7114,12 +7223,14 @@ extern "C" {
     pub fn list_with_options(this: &R2Bucket, options: &R2ListOptions) -> Promise<R2Objects>;
 }
 impl R2Bucket {
+    #[doc = " * `value` - copied before the call returns, so a `&[u8]` passes as a view"]
     pub fn put_with_null(
         &self,
         key: impl ::wasm_bindgen::JsStringLike,
     ) -> Promise<Option<R2Object>> {
         self.put_with_null_js(key, &::wasm_bindgen::JsValue::NULL)
     }
+    #[doc = " * `value` - copied before the call returns, so a `&[u8]` passes as a view"]
     pub fn put_with_null_and_r2_bucket_put_options(
         &self,
         key: impl ::wasm_bindgen::JsStringLike,
@@ -7131,6 +7242,7 @@ impl R2Bucket {
             options,
         )
     }
+    #[doc = " * `value` - copied before the call returns, so a `&[u8]` passes as a view"]
     pub fn put_with_null_and_options(
         &self,
         key: impl ::wasm_bindgen::JsStringLike,
@@ -7314,30 +7426,35 @@ extern "C" {
     pub fn key(this: &R2MultipartUpload) -> String;
     #[wasm_bindgen(method, getter, js_name = "uploadId")]
     pub fn upload_id(this: &R2MultipartUpload) -> String;
+    #[doc = " * `value` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub fn upload_part(
         this: &R2MultipartUpload,
         part_number: u16,
         value: &ReadableStream<impl Sized>,
     ) -> Promise<R2UploadedPart>;
+    #[doc = " * `value` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub fn upload_part_with_buffer_source(
         this: &R2MultipartUpload,
         part_number: u16,
-        value: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "view")] value: impl ::js_sys::BufferSourceLike,
     ) -> Promise<R2UploadedPart>;
+    #[doc = " * `value` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub fn upload_part_with_str(
         this: &R2MultipartUpload,
         part_number: u16,
         value: impl ::wasm_bindgen::JsStringLike,
     ) -> Promise<R2UploadedPart>;
+    #[doc = " * `value` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub fn upload_part_with_blob(
         this: &R2MultipartUpload,
         part_number: u16,
         value: &Blob,
     ) -> Promise<R2UploadedPart>;
+    #[doc = " * `value` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub fn upload_part_with_options(
         this: &R2MultipartUpload,
@@ -7345,13 +7462,15 @@ extern "C" {
         value: &ReadableStream<impl Sized>,
         options: &R2UploadPartOptions,
     ) -> Promise<R2UploadedPart>;
+    #[doc = " * `value` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub fn upload_part_with_buffer_source_and_options(
         this: &R2MultipartUpload,
         part_number: u16,
-        value: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "view")] value: impl ::js_sys::BufferSourceLike,
         options: &R2UploadPartOptions,
     ) -> Promise<R2UploadedPart>;
+    #[doc = " * `value` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub fn upload_part_with_str_and_options(
         this: &R2MultipartUpload,
@@ -7359,6 +7478,7 @@ extern "C" {
         value: impl ::wasm_bindgen::JsStringLike,
         options: &R2UploadPartOptions,
     ) -> Promise<R2UploadedPart>;
+    #[doc = " * `value` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub fn upload_part_with_blob_and_options(
         this: &R2MultipartUpload,
@@ -7671,32 +7791,47 @@ extern "C" {
     pub fn set_custom_metadata(this: &R2PutOptions, val: &Object<String>);
     #[wasm_bindgen(method, getter)]
     pub fn md5(this: &R2PutOptions) -> Option<Md5Kind>;
-    #[wasm_bindgen(method, setter, slice = "copy")]
-    pub fn set_md5(this: &R2PutOptions, val: impl ::js_sys::BufferSourceLike);
+    #[wasm_bindgen(method, setter)]
+    pub fn set_md5(
+        this: &R2PutOptions,
+        #[wasm_bindgen(slice = "copy")] val: impl ::js_sys::BufferSourceLike,
+    );
     #[wasm_bindgen(method, setter, js_name = "md5")]
     pub fn set_md5_with_str(this: &R2PutOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn sha1(this: &R2PutOptions) -> Option<Md5Kind>;
-    #[wasm_bindgen(method, setter, slice = "copy")]
-    pub fn set_sha1(this: &R2PutOptions, val: impl ::js_sys::BufferSourceLike);
+    #[wasm_bindgen(method, setter)]
+    pub fn set_sha1(
+        this: &R2PutOptions,
+        #[wasm_bindgen(slice = "copy")] val: impl ::js_sys::BufferSourceLike,
+    );
     #[wasm_bindgen(method, setter, js_name = "sha1")]
     pub fn set_sha1_with_str(this: &R2PutOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn sha256(this: &R2PutOptions) -> Option<Md5Kind>;
-    #[wasm_bindgen(method, setter, slice = "copy")]
-    pub fn set_sha256(this: &R2PutOptions, val: impl ::js_sys::BufferSourceLike);
+    #[wasm_bindgen(method, setter)]
+    pub fn set_sha256(
+        this: &R2PutOptions,
+        #[wasm_bindgen(slice = "copy")] val: impl ::js_sys::BufferSourceLike,
+    );
     #[wasm_bindgen(method, setter, js_name = "sha256")]
     pub fn set_sha256_with_str(this: &R2PutOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn sha384(this: &R2PutOptions) -> Option<Md5Kind>;
-    #[wasm_bindgen(method, setter, slice = "copy")]
-    pub fn set_sha384(this: &R2PutOptions, val: impl ::js_sys::BufferSourceLike);
+    #[wasm_bindgen(method, setter)]
+    pub fn set_sha384(
+        this: &R2PutOptions,
+        #[wasm_bindgen(slice = "copy")] val: impl ::js_sys::BufferSourceLike,
+    );
     #[wasm_bindgen(method, setter, js_name = "sha384")]
     pub fn set_sha384_with_str(this: &R2PutOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn sha512(this: &R2PutOptions) -> Option<Md5Kind>;
-    #[wasm_bindgen(method, setter, slice = "copy")]
-    pub fn set_sha512(this: &R2PutOptions, val: impl ::js_sys::BufferSourceLike);
+    #[wasm_bindgen(method, setter)]
+    pub fn set_sha512(
+        this: &R2PutOptions,
+        #[wasm_bindgen(slice = "copy")] val: impl ::js_sys::BufferSourceLike,
+    );
     #[wasm_bindgen(method, setter, js_name = "sha512")]
     pub fn set_sha512_with_str(this: &R2PutOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "storageClass")]
@@ -8998,10 +9133,12 @@ extern "C" {
     #[doc = " The **`respondWithNewView()`** method of the ReadableStreamBYOBRequest interface specifies a new view that the consumer of the associated readable byte stream should write to instead of ReadableStreamBYOBRequest.view."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBRequest/respondWithNewView)"]
+    #[doc = ""]
+    #[doc = " * `view` - the buffer lent by the request's `view`, transferred back; a handle, not `&[u8]`"]
     #[wasm_bindgen(method, catch, js_name = "respondWithNewView")]
     pub fn respond_with_new_view(
         this: &ReadableStreamBYOBRequest,
-        view: impl ::js_sys::BufferSourceLike,
+        view: impl ::js_sys::BufferSourceLike + AsRef<::wasm_bindgen::JsValue>,
     ) -> Result<(), crate::Error>;
     #[wasm_bindgen(method, getter, js_name = "atLeast")]
     pub fn at_least(this: &ReadableStreamBYOBRequest) -> Option<f64>;
@@ -9069,7 +9206,7 @@ extern "C" {
     #[wasm_bindgen(method, catch)]
     pub fn enqueue(
         this: &ReadableByteStreamController,
-        chunk: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "copy")] chunk: impl ::js_sys::BufferSourceLike,
     ) -> Result<(), crate::Error>;
     #[doc = " The **`error()`** method of the ReadableByteStreamController interface causes any future interactions with the associated stream to error with the specified reason."]
     #[doc = ""]
@@ -10426,7 +10563,7 @@ extern "C" {
     #[wasm_bindgen(method, catch)]
     pub fn send(
         this: &WebSocket,
-        message: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "copy")] message: impl ::js_sys::BufferSourceLike,
     ) -> Result<(), crate::Error>;
     #[doc = " The **`WebSocket.send()`** method enqueues the specified data to be transmitted to the server over the WebSocket connection, increasing the value of bufferedAmount by the number of bytes needed to contain the data. If the data can't be sent (for example, because it needs to be buffered but the buffer is full), the socket is closed automatically. The browser will throw an exception if you call send() when the connection is in the CONNECTING state. If you call send() when the connection is in the CLOSING or CLOSED states, the browser will silently discard the data."]
     #[doc = ""]
@@ -10508,6 +10645,34 @@ extern "C" {
         handler: &EventListenerObject<CloseEvent>,
     ) -> Result<(), crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "addEventListener")]
+    fn add_event_listener_close_with_options_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &Function<fn(CloseEvent)>,
+        options: &EventTargetAddEventListenerOptions,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "addEventListener")]
+    fn add_event_listener_close_with_event_listener_object_and_options_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &EventListenerObject<CloseEvent>,
+        options: &EventTargetAddEventListenerOptions,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "addEventListener")]
+    fn add_event_listener_close_with_bool_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &Function<fn(CloseEvent)>,
+        options: bool,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "addEventListener")]
+    fn add_event_listener_close_with_event_listener_object_and_bool_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &EventListenerObject<CloseEvent>,
+        options: bool,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "addEventListener")]
     fn add_event_listener_message_js(
         this: &WebSocket,
         r#type: impl ::wasm_bindgen::JsStringLike,
@@ -10518,6 +10683,34 @@ extern "C" {
         this: &WebSocket,
         r#type: impl ::wasm_bindgen::JsStringLike,
         handler: &EventListenerObject<MessageEvent>,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "addEventListener")]
+    fn add_event_listener_message_with_options_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &Function<fn(MessageEvent)>,
+        options: &EventTargetAddEventListenerOptions,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "addEventListener")]
+    fn add_event_listener_message_with_event_listener_object_and_options_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &EventListenerObject<MessageEvent>,
+        options: &EventTargetAddEventListenerOptions,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "addEventListener")]
+    fn add_event_listener_message_with_bool_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &Function<fn(MessageEvent)>,
+        options: bool,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "addEventListener")]
+    fn add_event_listener_message_with_event_listener_object_and_bool_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &EventListenerObject<MessageEvent>,
+        options: bool,
     ) -> Result<(), crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "addEventListener")]
     fn add_event_listener_open_js(
@@ -10532,6 +10725,34 @@ extern "C" {
         handler: &EventListenerObject<Event>,
     ) -> Result<(), crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "addEventListener")]
+    fn add_event_listener_open_with_options_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &Function<fn(Event)>,
+        options: &EventTargetAddEventListenerOptions,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "addEventListener")]
+    fn add_event_listener_open_with_event_listener_object_and_options_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &EventListenerObject<Event>,
+        options: &EventTargetAddEventListenerOptions,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "addEventListener")]
+    fn add_event_listener_open_with_bool_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &Function<fn(Event)>,
+        options: bool,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "addEventListener")]
+    fn add_event_listener_open_with_event_listener_object_and_bool_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &EventListenerObject<Event>,
+        options: bool,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "addEventListener")]
     fn add_event_listener_error_js(
         this: &WebSocket,
         r#type: impl ::wasm_bindgen::JsStringLike,
@@ -10542,6 +10763,34 @@ extern "C" {
         this: &WebSocket,
         r#type: impl ::wasm_bindgen::JsStringLike,
         handler: &EventListenerObject<ErrorEvent>,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "addEventListener")]
+    fn add_event_listener_error_with_options_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &Function<fn(ErrorEvent)>,
+        options: &EventTargetAddEventListenerOptions,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "addEventListener")]
+    fn add_event_listener_error_with_event_listener_object_and_options_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &EventListenerObject<ErrorEvent>,
+        options: &EventTargetAddEventListenerOptions,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "addEventListener")]
+    fn add_event_listener_error_with_bool_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &Function<fn(ErrorEvent)>,
+        options: bool,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "addEventListener")]
+    fn add_event_listener_error_with_event_listener_object_and_bool_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &EventListenerObject<ErrorEvent>,
+        options: bool,
     ) -> Result<(), crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
     fn remove_event_listener_close_js(
@@ -10556,6 +10805,34 @@ extern "C" {
         handler: &EventListenerObject<CloseEvent>,
     ) -> Result<(), crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
+    fn remove_event_listener_close_with_options_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &Function<fn(CloseEvent)>,
+        options: &EventTargetEventListenerOptions,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
+    fn remove_event_listener_close_with_event_listener_object_and_options_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &EventListenerObject<CloseEvent>,
+        options: &EventTargetEventListenerOptions,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
+    fn remove_event_listener_close_with_bool_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &Function<fn(CloseEvent)>,
+        options: bool,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
+    fn remove_event_listener_close_with_event_listener_object_and_bool_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &EventListenerObject<CloseEvent>,
+        options: bool,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
     fn remove_event_listener_message_js(
         this: &WebSocket,
         r#type: impl ::wasm_bindgen::JsStringLike,
@@ -10566,6 +10843,34 @@ extern "C" {
         this: &WebSocket,
         r#type: impl ::wasm_bindgen::JsStringLike,
         handler: &EventListenerObject<MessageEvent>,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
+    fn remove_event_listener_message_with_options_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &Function<fn(MessageEvent)>,
+        options: &EventTargetEventListenerOptions,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
+    fn remove_event_listener_message_with_event_listener_object_and_options_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &EventListenerObject<MessageEvent>,
+        options: &EventTargetEventListenerOptions,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
+    fn remove_event_listener_message_with_bool_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &Function<fn(MessageEvent)>,
+        options: bool,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
+    fn remove_event_listener_message_with_event_listener_object_and_bool_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &EventListenerObject<MessageEvent>,
+        options: bool,
     ) -> Result<(), crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
     fn remove_event_listener_open_js(
@@ -10580,6 +10885,34 @@ extern "C" {
         handler: &EventListenerObject<Event>,
     ) -> Result<(), crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
+    fn remove_event_listener_open_with_options_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &Function<fn(Event)>,
+        options: &EventTargetEventListenerOptions,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
+    fn remove_event_listener_open_with_event_listener_object_and_options_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &EventListenerObject<Event>,
+        options: &EventTargetEventListenerOptions,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
+    fn remove_event_listener_open_with_bool_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &Function<fn(Event)>,
+        options: bool,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
+    fn remove_event_listener_open_with_event_listener_object_and_bool_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &EventListenerObject<Event>,
+        options: bool,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
     fn remove_event_listener_error_js(
         this: &WebSocket,
         r#type: impl ::wasm_bindgen::JsStringLike,
@@ -10590,6 +10923,34 @@ extern "C" {
         this: &WebSocket,
         r#type: impl ::wasm_bindgen::JsStringLike,
         handler: &EventListenerObject<ErrorEvent>,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
+    fn remove_event_listener_error_with_options_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &Function<fn(ErrorEvent)>,
+        options: &EventTargetEventListenerOptions,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
+    fn remove_event_listener_error_with_event_listener_object_and_options_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &EventListenerObject<ErrorEvent>,
+        options: &EventTargetEventListenerOptions,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
+    fn remove_event_listener_error_with_bool_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &Function<fn(ErrorEvent)>,
+        options: bool,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
+    fn remove_event_listener_error_with_event_listener_object_and_bool_js(
+        this: &WebSocket,
+        r#type: impl ::wasm_bindgen::JsStringLike,
+        handler: &EventListenerObject<ErrorEvent>,
+        options: bool,
     ) -> Result<(), crate::Error>;
 }
 impl WebSocket {
@@ -10614,6 +10975,50 @@ impl WebSocket {
     #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
+    pub fn add_event_listener_close_with_options(
+        &self,
+        handler: &Function<fn(CloseEvent)>,
+        options: &EventTargetAddEventListenerOptions,
+    ) -> Result<(), crate::Error> {
+        self.add_event_listener_close_with_options_js("close", handler, options)
+    }
+    #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
+    pub fn add_event_listener_close_with_event_listener_object_and_options(
+        &self,
+        handler: &EventListenerObject<CloseEvent>,
+        options: &EventTargetAddEventListenerOptions,
+    ) -> Result<(), crate::Error> {
+        self.add_event_listener_close_with_event_listener_object_and_options_js(
+            "close", handler, options,
+        )
+    }
+    #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
+    pub fn add_event_listener_close_with_bool(
+        &self,
+        handler: &Function<fn(CloseEvent)>,
+        options: bool,
+    ) -> Result<(), crate::Error> {
+        self.add_event_listener_close_with_bool_js("close", handler, options)
+    }
+    #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
+    pub fn add_event_listener_close_with_event_listener_object_and_bool(
+        &self,
+        handler: &EventListenerObject<CloseEvent>,
+        options: bool,
+    ) -> Result<(), crate::Error> {
+        self.add_event_listener_close_with_event_listener_object_and_bool_js(
+            "close", handler, options,
+        )
+    }
+    #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
     pub fn add_event_listener_message(
         &self,
         handler: &Function<fn(MessageEvent)>,
@@ -10628,6 +11033,50 @@ impl WebSocket {
         handler: &EventListenerObject<MessageEvent>,
     ) -> Result<(), crate::Error> {
         self.add_event_listener_message_with_event_listener_object_js("message", handler)
+    }
+    #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
+    pub fn add_event_listener_message_with_options(
+        &self,
+        handler: &Function<fn(MessageEvent)>,
+        options: &EventTargetAddEventListenerOptions,
+    ) -> Result<(), crate::Error> {
+        self.add_event_listener_message_with_options_js("message", handler, options)
+    }
+    #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
+    pub fn add_event_listener_message_with_event_listener_object_and_options(
+        &self,
+        handler: &EventListenerObject<MessageEvent>,
+        options: &EventTargetAddEventListenerOptions,
+    ) -> Result<(), crate::Error> {
+        self.add_event_listener_message_with_event_listener_object_and_options_js(
+            "message", handler, options,
+        )
+    }
+    #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
+    pub fn add_event_listener_message_with_bool(
+        &self,
+        handler: &Function<fn(MessageEvent)>,
+        options: bool,
+    ) -> Result<(), crate::Error> {
+        self.add_event_listener_message_with_bool_js("message", handler, options)
+    }
+    #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
+    pub fn add_event_listener_message_with_event_listener_object_and_bool(
+        &self,
+        handler: &EventListenerObject<MessageEvent>,
+        options: bool,
+    ) -> Result<(), crate::Error> {
+        self.add_event_listener_message_with_event_listener_object_and_bool_js(
+            "message", handler, options,
+        )
     }
     #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
     #[doc = ""]
@@ -10650,6 +11099,50 @@ impl WebSocket {
     #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
+    pub fn add_event_listener_open_with_options(
+        &self,
+        handler: &Function<fn(Event)>,
+        options: &EventTargetAddEventListenerOptions,
+    ) -> Result<(), crate::Error> {
+        self.add_event_listener_open_with_options_js("open", handler, options)
+    }
+    #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
+    pub fn add_event_listener_open_with_event_listener_object_and_options(
+        &self,
+        handler: &EventListenerObject<Event>,
+        options: &EventTargetAddEventListenerOptions,
+    ) -> Result<(), crate::Error> {
+        self.add_event_listener_open_with_event_listener_object_and_options_js(
+            "open", handler, options,
+        )
+    }
+    #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
+    pub fn add_event_listener_open_with_bool(
+        &self,
+        handler: &Function<fn(Event)>,
+        options: bool,
+    ) -> Result<(), crate::Error> {
+        self.add_event_listener_open_with_bool_js("open", handler, options)
+    }
+    #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
+    pub fn add_event_listener_open_with_event_listener_object_and_bool(
+        &self,
+        handler: &EventListenerObject<Event>,
+        options: bool,
+    ) -> Result<(), crate::Error> {
+        self.add_event_listener_open_with_event_listener_object_and_bool_js(
+            "open", handler, options,
+        )
+    }
+    #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
     pub fn add_event_listener_error(
         &self,
         handler: &Function<fn(ErrorEvent)>,
@@ -10664,6 +11157,50 @@ impl WebSocket {
         handler: &EventListenerObject<ErrorEvent>,
     ) -> Result<(), crate::Error> {
         self.add_event_listener_error_with_event_listener_object_js("error", handler)
+    }
+    #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
+    pub fn add_event_listener_error_with_options(
+        &self,
+        handler: &Function<fn(ErrorEvent)>,
+        options: &EventTargetAddEventListenerOptions,
+    ) -> Result<(), crate::Error> {
+        self.add_event_listener_error_with_options_js("error", handler, options)
+    }
+    #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
+    pub fn add_event_listener_error_with_event_listener_object_and_options(
+        &self,
+        handler: &EventListenerObject<ErrorEvent>,
+        options: &EventTargetAddEventListenerOptions,
+    ) -> Result<(), crate::Error> {
+        self.add_event_listener_error_with_event_listener_object_and_options_js(
+            "error", handler, options,
+        )
+    }
+    #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
+    pub fn add_event_listener_error_with_bool(
+        &self,
+        handler: &Function<fn(ErrorEvent)>,
+        options: bool,
+    ) -> Result<(), crate::Error> {
+        self.add_event_listener_error_with_bool_js("error", handler, options)
+    }
+    #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
+    pub fn add_event_listener_error_with_event_listener_object_and_bool(
+        &self,
+        handler: &EventListenerObject<ErrorEvent>,
+        options: bool,
+    ) -> Result<(), crate::Error> {
+        self.add_event_listener_error_with_event_listener_object_and_bool_js(
+            "error", handler, options,
+        )
     }
     #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target. The event listener to be removed is identified using a combination of the event type, the event listener function itself, and various optional options that may affect the matching process; see Matching event listeners for removal."]
     #[doc = ""]
@@ -10686,6 +11223,50 @@ impl WebSocket {
     #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target. The event listener to be removed is identified using a combination of the event type, the event listener function itself, and various optional options that may affect the matching process; see Matching event listeners for removal."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
+    pub fn remove_event_listener_close_with_options(
+        &self,
+        handler: &Function<fn(CloseEvent)>,
+        options: &EventTargetEventListenerOptions,
+    ) -> Result<(), crate::Error> {
+        self.remove_event_listener_close_with_options_js("close", handler, options)
+    }
+    #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target. The event listener to be removed is identified using a combination of the event type, the event listener function itself, and various optional options that may affect the matching process; see Matching event listeners for removal."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
+    pub fn remove_event_listener_close_with_event_listener_object_and_options(
+        &self,
+        handler: &EventListenerObject<CloseEvent>,
+        options: &EventTargetEventListenerOptions,
+    ) -> Result<(), crate::Error> {
+        self.remove_event_listener_close_with_event_listener_object_and_options_js(
+            "close", handler, options,
+        )
+    }
+    #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target. The event listener to be removed is identified using a combination of the event type, the event listener function itself, and various optional options that may affect the matching process; see Matching event listeners for removal."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
+    pub fn remove_event_listener_close_with_bool(
+        &self,
+        handler: &Function<fn(CloseEvent)>,
+        options: bool,
+    ) -> Result<(), crate::Error> {
+        self.remove_event_listener_close_with_bool_js("close", handler, options)
+    }
+    #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target. The event listener to be removed is identified using a combination of the event type, the event listener function itself, and various optional options that may affect the matching process; see Matching event listeners for removal."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
+    pub fn remove_event_listener_close_with_event_listener_object_and_bool(
+        &self,
+        handler: &EventListenerObject<CloseEvent>,
+        options: bool,
+    ) -> Result<(), crate::Error> {
+        self.remove_event_listener_close_with_event_listener_object_and_bool_js(
+            "close", handler, options,
+        )
+    }
+    #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target. The event listener to be removed is identified using a combination of the event type, the event listener function itself, and various optional options that may affect the matching process; see Matching event listeners for removal."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
     pub fn remove_event_listener_message(
         &self,
         handler: &Function<fn(MessageEvent)>,
@@ -10700,6 +11281,50 @@ impl WebSocket {
         handler: &EventListenerObject<MessageEvent>,
     ) -> Result<(), crate::Error> {
         self.remove_event_listener_message_with_event_listener_object_js("message", handler)
+    }
+    #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target. The event listener to be removed is identified using a combination of the event type, the event listener function itself, and various optional options that may affect the matching process; see Matching event listeners for removal."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
+    pub fn remove_event_listener_message_with_options(
+        &self,
+        handler: &Function<fn(MessageEvent)>,
+        options: &EventTargetEventListenerOptions,
+    ) -> Result<(), crate::Error> {
+        self.remove_event_listener_message_with_options_js("message", handler, options)
+    }
+    #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target. The event listener to be removed is identified using a combination of the event type, the event listener function itself, and various optional options that may affect the matching process; see Matching event listeners for removal."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
+    pub fn remove_event_listener_message_with_event_listener_object_and_options(
+        &self,
+        handler: &EventListenerObject<MessageEvent>,
+        options: &EventTargetEventListenerOptions,
+    ) -> Result<(), crate::Error> {
+        self.remove_event_listener_message_with_event_listener_object_and_options_js(
+            "message", handler, options,
+        )
+    }
+    #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target. The event listener to be removed is identified using a combination of the event type, the event listener function itself, and various optional options that may affect the matching process; see Matching event listeners for removal."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
+    pub fn remove_event_listener_message_with_bool(
+        &self,
+        handler: &Function<fn(MessageEvent)>,
+        options: bool,
+    ) -> Result<(), crate::Error> {
+        self.remove_event_listener_message_with_bool_js("message", handler, options)
+    }
+    #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target. The event listener to be removed is identified using a combination of the event type, the event listener function itself, and various optional options that may affect the matching process; see Matching event listeners for removal."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
+    pub fn remove_event_listener_message_with_event_listener_object_and_bool(
+        &self,
+        handler: &EventListenerObject<MessageEvent>,
+        options: bool,
+    ) -> Result<(), crate::Error> {
+        self.remove_event_listener_message_with_event_listener_object_and_bool_js(
+            "message", handler, options,
+        )
     }
     #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target. The event listener to be removed is identified using a combination of the event type, the event listener function itself, and various optional options that may affect the matching process; see Matching event listeners for removal."]
     #[doc = ""]
@@ -10722,6 +11347,50 @@ impl WebSocket {
     #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target. The event listener to be removed is identified using a combination of the event type, the event listener function itself, and various optional options that may affect the matching process; see Matching event listeners for removal."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
+    pub fn remove_event_listener_open_with_options(
+        &self,
+        handler: &Function<fn(Event)>,
+        options: &EventTargetEventListenerOptions,
+    ) -> Result<(), crate::Error> {
+        self.remove_event_listener_open_with_options_js("open", handler, options)
+    }
+    #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target. The event listener to be removed is identified using a combination of the event type, the event listener function itself, and various optional options that may affect the matching process; see Matching event listeners for removal."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
+    pub fn remove_event_listener_open_with_event_listener_object_and_options(
+        &self,
+        handler: &EventListenerObject<Event>,
+        options: &EventTargetEventListenerOptions,
+    ) -> Result<(), crate::Error> {
+        self.remove_event_listener_open_with_event_listener_object_and_options_js(
+            "open", handler, options,
+        )
+    }
+    #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target. The event listener to be removed is identified using a combination of the event type, the event listener function itself, and various optional options that may affect the matching process; see Matching event listeners for removal."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
+    pub fn remove_event_listener_open_with_bool(
+        &self,
+        handler: &Function<fn(Event)>,
+        options: bool,
+    ) -> Result<(), crate::Error> {
+        self.remove_event_listener_open_with_bool_js("open", handler, options)
+    }
+    #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target. The event listener to be removed is identified using a combination of the event type, the event listener function itself, and various optional options that may affect the matching process; see Matching event listeners for removal."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
+    pub fn remove_event_listener_open_with_event_listener_object_and_bool(
+        &self,
+        handler: &EventListenerObject<Event>,
+        options: bool,
+    ) -> Result<(), crate::Error> {
+        self.remove_event_listener_open_with_event_listener_object_and_bool_js(
+            "open", handler, options,
+        )
+    }
+    #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target. The event listener to be removed is identified using a combination of the event type, the event listener function itself, and various optional options that may affect the matching process; see Matching event listeners for removal."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
     pub fn remove_event_listener_error(
         &self,
         handler: &Function<fn(ErrorEvent)>,
@@ -10736,6 +11405,50 @@ impl WebSocket {
         handler: &EventListenerObject<ErrorEvent>,
     ) -> Result<(), crate::Error> {
         self.remove_event_listener_error_with_event_listener_object_js("error", handler)
+    }
+    #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target. The event listener to be removed is identified using a combination of the event type, the event listener function itself, and various optional options that may affect the matching process; see Matching event listeners for removal."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
+    pub fn remove_event_listener_error_with_options(
+        &self,
+        handler: &Function<fn(ErrorEvent)>,
+        options: &EventTargetEventListenerOptions,
+    ) -> Result<(), crate::Error> {
+        self.remove_event_listener_error_with_options_js("error", handler, options)
+    }
+    #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target. The event listener to be removed is identified using a combination of the event type, the event listener function itself, and various optional options that may affect the matching process; see Matching event listeners for removal."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
+    pub fn remove_event_listener_error_with_event_listener_object_and_options(
+        &self,
+        handler: &EventListenerObject<ErrorEvent>,
+        options: &EventTargetEventListenerOptions,
+    ) -> Result<(), crate::Error> {
+        self.remove_event_listener_error_with_event_listener_object_and_options_js(
+            "error", handler, options,
+        )
+    }
+    #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target. The event listener to be removed is identified using a combination of the event type, the event listener function itself, and various optional options that may affect the matching process; see Matching event listeners for removal."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
+    pub fn remove_event_listener_error_with_bool(
+        &self,
+        handler: &Function<fn(ErrorEvent)>,
+        options: bool,
+    ) -> Result<(), crate::Error> {
+        self.remove_event_listener_error_with_bool_js("error", handler, options)
+    }
+    #[doc = " The **`removeEventListener()`** method of the EventTarget interface removes an event listener previously registered with EventTarget.addEventListener() from the target. The event listener to be removed is identified using a combination of the event type, the event listener function itself, and various optional options that may affect the matching process; see Matching event listeners for removal."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
+    pub fn remove_event_listener_error_with_event_listener_object_and_bool(
+        &self,
+        handler: &EventListenerObject<ErrorEvent>,
+        options: bool,
+    ) -> Result<(), crate::Error> {
+        self.remove_event_listener_error_with_event_listener_object_and_bool_js(
+            "error", handler, options,
+        )
     }
 }
 #[wasm_bindgen(experimental_generic_mono)]
@@ -18456,21 +19169,13 @@ extern "C" {
     fn raw_with_column_names_js(
         this: &D1PreparedStatement,
         options: &D1PreparedStatementRawOptions,
-    ) -> Promise<ArrayTuple<(Array<String>, Array<Array>)>>;
+    ) -> Promise<Vec<JsValue>>;
     #[wasm_bindgen(method, catch, js_name = "raw")]
     pub fn raw_typed<T>(this: &D1PreparedStatement) -> Promise<Vec<T>>;
-    #[wasm_bindgen(method, catch, js_name = "raw")]
-    fn raw_with_column_names_typed_js<T>(
-        this: &D1PreparedStatement,
-        options: &D1PreparedStatementRawOptions,
-    ) -> Promise<ArrayTuple<(Array<String>, Array<T>)>>;
 }
 impl D1PreparedStatement {
-    pub fn raw_with_column_names(&self) -> Promise<ArrayTuple<(Array<String>, Array<Array>)>> {
+    pub fn raw_with_column_names(&self) -> Promise<Vec<JsValue>> {
         self.raw_with_column_names_js(&<D1PreparedStatementRawOptions>::new())
-    }
-    pub fn raw_with_column_names_typed<T>(&self) -> Promise<ArrayTuple<(Array<String>, Array<T>)>> {
-        self.raw_with_column_names_typed_js(&<D1PreparedStatementRawOptions>::new())
     }
 }
 #[wasm_bindgen(experimental_generic_mono)]
@@ -18491,43 +19196,6 @@ impl D1PreparedStatementRawOptions {
         let inner: D1PreparedStatementRawOptions = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_column_names(true);
         inner
-    }
-}
-#[wasm_bindgen(experimental_generic_mono)]
-extern "C" {
-    # [wasm_bindgen (extends = Object)]
-    #[derive(Debug, Clone, PartialEq, Eq)]
-    pub type D1PreparedStatementRawOptions2;
-    #[wasm_bindgen(method, getter, js_name = "columnNames")]
-    pub fn column_names(this: &D1PreparedStatementRawOptions2) -> Option<bool>;
-    #[wasm_bindgen(method, setter, js_name = "columnNames")]
-    pub fn set_column_names(this: &D1PreparedStatementRawOptions2, val: bool);
-}
-impl D1PreparedStatementRawOptions2 {
-    pub fn new() -> D1PreparedStatementRawOptions2 {
-        Self::builder().build()
-    }
-    pub fn builder() -> D1PreparedStatementRawOptions2Builder {
-        D1PreparedStatementRawOptions2Builder {
-            inner: JsCast::unchecked_into(js_sys::Object::new()),
-        }
-    }
-}
-pub struct D1PreparedStatementRawOptions2Builder {
-    inner: D1PreparedStatementRawOptions2,
-}
-impl D1PreparedStatementRawOptions2Builder {
-    pub fn column_names(self, val: bool) -> Self {
-        self.inner.set_column_names(val);
-        self
-    }
-    pub fn build(self) -> D1PreparedStatementRawOptions2 {
-        self.inner
-    }
-}
-impl From<D1PreparedStatementRawOptions2> for D1PreparedStatementRawOptions2Builder {
-    fn from(inner: D1PreparedStatementRawOptions2) -> Self {
-        Self { inner }
     }
 }
 #[wasm_bindgen(experimental_generic_mono)]
@@ -18643,10 +19311,10 @@ extern "C" {
     pub fn content(this: &EmailAttachment) -> ContentKind;
     #[wasm_bindgen(method, setter)]
     pub fn set_content(this: &EmailAttachment, val: impl ::wasm_bindgen::JsStringLike);
-    #[wasm_bindgen(method, setter, js_name = "content", slice = "copy")]
+    #[wasm_bindgen(method, setter, js_name = "content")]
     pub fn set_content_with_buffer_source(
         this: &EmailAttachment,
-        val: impl ::js_sys::BufferSourceLike,
+        #[wasm_bindgen(slice = "copy")] val: impl ::js_sys::BufferSourceLike,
     );
 }
 impl EmailAttachment {

@@ -69,7 +69,10 @@ declare class Request<CfHostMetadata = unknown, Cf = IncomingRequestCfProperties
 
 /** {@string copy} */
 declare class Response {
-  /** @throws {TypeError} if `init.status` is out of range or a body is given for a null-body status */
+  /**
+   * @param body {@slice view} copied before the call returns, so a `&[u8]` passes as a view
+   * @throws {TypeError} if `init.status` is out of range or a body is given for a null-body status
+   */
   constructor(body?: BodyInit | null, init?: ResponseInit);
   /**
    * @rust status: u16
@@ -179,7 +182,10 @@ interface D1Meta {
 
 /** {@string copy} */
 interface R2MultipartUpload {
-  /** @rust partNumber: u16 */
+  /**
+   * @rust partNumber: u16
+   * @param value {@slice view} copied before the call returns, so a `&[u8]` passes as a view
+   */
   uploadPart(partNumber: number, value: any, options?: R2UploadPartOptions): Promise<R2UploadedPart>;
 }
 
@@ -514,4 +520,48 @@ declare namespace TailStream {
   /** {@string copy} */ interface ScriptVersion {}
   /** {@string copy} */ interface TailEvent {}
   /** {@string copy} */ interface TracePreviewInfo {}
+}
+
+// A buffer-source argument copies a `&[u8]` into a fresh `Uint8Array`
+// unless tagged `{@slice view}`. The tag is only for callees that copy or
+// read the bytes before returning: the Fetch spec for `Response`, workerd's
+// KV and R2 `put`, and WebCrypto, which works synchronously. Transferring
+// callees (`ReadableByteStreamController.enqueue`) cannot take a view.
+interface KVNamespace {
+  /** @param value {@slice view} copied before the call returns, so a `&[u8]` passes as a view */
+  put(key: string, value: any, options?: KVNamespacePutOptions): Promise<void>;
+}
+interface R2Bucket {
+  /** @param value {@slice view} copied before the call returns, so a `&[u8]` passes as a view */
+  put(key: string, value: any, options?: R2PutOptions): Promise<R2Object>;
+}
+interface SubtleCrypto {
+  /** @param plainText {@slice view} copied before the call returns, so a `&[u8]` passes as a view */
+  encrypt(algorithm: any, key: CryptoKey, plainText: any): Promise<ArrayBuffer>;
+  /** @param cipherText {@slice view} copied before the call returns, so a `&[u8]` passes as a view */
+  decrypt(algorithm: any, key: CryptoKey, cipherText: any): Promise<ArrayBuffer>;
+  /** @param data {@slice view} copied before the call returns, so a `&[u8]` passes as a view */
+  sign(algorithm: any, key: CryptoKey, data: any): Promise<ArrayBuffer>;
+  /**
+   * @param signature {@slice view} copied before the call returns, so a `&[u8]` passes as a view
+   * @param data {@slice view} copied before the call returns, so a `&[u8]` passes as a view
+   */
+  verify(algorithm: any, key: CryptoKey, signature: any, data: any): Promise<boolean>;
+  /** @param data {@slice view} copied before the call returns, so a `&[u8]` passes as a view */
+  digest(algorithm: any, data: any): Promise<ArrayBuffer>;
+  /** @param keyData {@slice view} copied before the call returns, so a `&[u8]` passes as a view */
+  importKey(format: string, keyData: any, algorithm: any, extractable: boolean, keyUsages: string[]): Promise<CryptoKey>;
+  /** @param wrappedKey {@slice view} copied before the call returns, so a `&[u8]` passes as a view */
+  unwrapKey(format: string, wrappedKey: any, unwrappingKey: CryptoKey, unwrapAlgorithm: any, unwrappedKeyAlgorithm: any, extractable: boolean, keyUsages: string[]): Promise<CryptoKey>;
+  /**
+   * @param a {@slice view} read before the call returns, so a `&[u8]` passes as a view
+   * @param b {@slice view} read before the call returns, so a `&[u8]` passes as a view
+   */
+  timingSafeEqual(a: any, b: any): boolean;
+}
+
+// `{@slice handle}`: the callee needs the caller's own buffer.
+interface ReadableStreamBYOBRequest {
+  /** @param view {@slice handle} the buffer lent by the request's `view`, transferred back; a handle, not `&[u8]` */
+  respondWithNewView(view: any): void;
 }
