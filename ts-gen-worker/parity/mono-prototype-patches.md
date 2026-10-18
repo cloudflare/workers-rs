@@ -83,7 +83,7 @@ workers-rs-3 builds the whole prototype. `js_sys_unstable_apis` is on for wasm32
 | `3e9f8ee` | setters whose value is `impl BufferSourceLike` carry `slice = "copy"`; builders and factories store through them (15 setters) | a dictionary outlives the `&[u8]` borrow; needs `a8994870b` | ts-gen mono PR (types) |
 | `09de2f6` | buffer-source arguments copy a `&[u8]` unless `{@slice view}`; `{@slice handle}` takes handles only; `--annotate` carries `@param` `{@slice}` tags | audit B1: a view is only safe where the callee copies before returning | ts-gen mono PR (types) |
 | `5b20797` | `[A, ...B[]]` lowers to an array of the common element type (ungated) | audit B2: D1 `raw`'s header-and-rows tuple was typed as a 2-tuple | ts-gen |
-| `c98d196` | inline types reached only by an omitted argument are not emitted | audit B3: orphan `D1PreparedStatementRawOptions2` | ts-gen mono PR (overloads) |
+| `c98d196` | inline types reached only by an omitted argument are not emitted | audit B3: orphan `D1PreparedStatementRawOptions2` | ts-gen |
 | `a2e3344` | per-key listeners gain `_with_options` / `_with_bool` and the listener-object pairs (16 → 48 on `WebSocket`) | audit B4: `{ once }` / `{ signal }` needed the erased form | ts-gen mono PR (types) |
 | `e35a4b9` | buffer-source slice modes go on each argument, not the fn | a `{@slice view}` on one argument no longer depends on the others | ts-gen mono PR (types) |
 | `1d62eff` | async members return `Promise<T, E>` with `E` the `--fallible` error type (`crate::Error`) | audit B5: tails await to the crate's error again; needs `70c2c0e64` | ts-gen mono PR (async) |
