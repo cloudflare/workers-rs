@@ -33,14 +33,11 @@ pub async fn handle_user_id(req: Request, _env: Env, _data: SomeSharedData) -> R
         return Response::builder().from_json(&User {
             id: id.to_string(),
             timestamp: js_sys::Date::now() as u64,
-            date_from_int: js_sys::Date::new(&1_234_567_890.0.into())
-                .to_string()
-                .into(),
-            date_from_str: js_sys::Date::new(
-                &"Wed Jan 14 1980 23:56:07 GMT-0700 (Mountain Standard Time)".into(),
+            date_from_int: js_sys::Date::new_with_value(1_234_567_890.0).to_string(),
+            date_from_str: js_sys::Date::new_with_value(
+                "Wed Jan 14 1980 23:56:07 GMT-0700 (Mountain Standard Time)",
             )
-            .to_string()
-            .into(),
+            .to_string(),
         });
     }
 

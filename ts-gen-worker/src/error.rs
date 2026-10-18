@@ -86,12 +86,7 @@ impl core::fmt::Display for Error {
             Error::Js(error) => {
                 let value: &JsValue = error.as_ref();
                 match value.dyn_ref::<js_sys::Error>() {
-                    Some(e) => write!(
-                        f,
-                        "{}: {}",
-                        String::from(e.name()),
-                        String::from(e.message())
-                    ),
+                    Some(e) => write!(f, "{}: {}", e.name(), e.message()),
                     None => error.fmt(f),
                 }
             }

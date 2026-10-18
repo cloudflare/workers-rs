@@ -3,7 +3,6 @@
 //! accessors are a `From<DateInit>` conversion plus the `DateExt` extension trait.
 
 use js_sys::Date;
-use wasm_bindgen::JsValue;
 
 /// A point in time to construct a `Date` from.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -15,8 +14,8 @@ pub enum DateInit {
 impl From<DateInit> for Date {
     fn from(init: DateInit) -> Self {
         match init {
-            DateInit::Millis(n) => Date::new(&JsValue::from_f64(n as f64)),
-            DateInit::String(s) => Date::new(&JsValue::from_str(&s)),
+            DateInit::Millis(n) => Date::new_with_value(n as f64),
+            DateInit::String(s) => Date::new_with_value(s),
         }
     }
 }

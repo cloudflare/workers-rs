@@ -2,11 +2,9 @@ use super::ApiData;
 use crate::util::sleep;
 use crate::Env;
 use crate::SomeSharedData;
-use js_sys::JsNullable;
 use js_sys::Uint8Array;
 use serde::{Deserialize, Serialize};
 use ts_gen_worker::*;
-use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
 fn cf_summary(req: &Request) -> (String, String) {
@@ -63,7 +61,7 @@ pub async fn handle_xor(req: Request, _env: Env, _data: SomeSharedData) -> Resul
     let Some(body) = req.body() else {
         return Response::builder().error("missing body", 400);
     };
-    let transform = TransformStream::new()?;
+    let transform = TransformStream::new_typed()?;
     let writer = transform.writable().get_writer()?;
     let reader = body.get_reader()?;
     spawn_local(async move {
@@ -88,9 +86,9 @@ pub async fn handle_xor(req: Request, _env: Env, _data: SomeSharedData) -> Resul
         let _ = writer.close().await;
     });
 
-    Ok(Response::new_with_readable_stream(
-        &transform.readable().unchecked_into(),
-    )?)
+    Ok(Response::new_with_readable_stream(Some(
+        &transform.readable(),
+    ))?)
 }
 
 pub async fn handle_headers(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
@@ -98,7 +96,7 @@ pub async fn handle_headers(req: Request, _env: Env, _data: SomeSharedData) -> R
     headers.append("Hello", "World!")?;
 
     Ok(Response::new_with_str_and_init(
-        &JsNullable::wrap(("returned your headers to you.").into()),
+        Some("returned your headers to you."),
         &ResponseInit::builder().headers(&headers).build(),
     )?)
 }
@@ -179,7 +177,7 @@ pub async fn handle_status(req: Request, _env: Env, _data: SomeSharedData) -> Re
     if let Some(code) = code {
         return match code.parse::<u16>() {
             Ok(status) => Ok(Response::new_with_str_and_init(
-                &JsNullable::wrap(("You set the status code!").into()),
+                Some("You set the status code!"),
                 &ResponseInit::builder().status(status).build(),
             )?),
             Err(_e) => Response::builder().error("Failed to parse your status code.", 400),
@@ -207,11 +205,11 @@ pub async fn handle_redirect_307(
 
 pub async fn handle_now(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     let js_date = js_sys::Date::new_0();
-    Response::builder().ok(String::from(js_date.to_string()))
+    Response::builder().ok(js_date.to_string())
 }
 
 pub async fn handle_cloned(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
-    let resp = Response::new_with_str(&JsNullable::wrap(("Hello").into()))?;
+    let resp = Response::new_with_str(Some("Hello"))?;
     let resp1 = resp.clone()?;
 
     let left = resp.text().await?;
@@ -225,7 +223,7 @@ pub async fn handle_cloned_stream(
     _env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    let transform = TransformStream::new()?;
+    let transform = TransformStream::new_typed()?;
     let writer = transform.writable().get_writer()?;
     spawn_local(async move {
         for index in 0..10 {
@@ -238,7 +236,7 @@ pub async fn handle_cloned_stream(
         let _ = writer.close().await;
     });
 
-    let resp = Response::new_with_readable_stream(&transform.readable().unchecked_into())?;
+    let resp = Response::new_with_readable_stream(Some(&transform.readable()))?;
     let resp1 = resp.clone()?;
 
     let left = resp.text().await?;

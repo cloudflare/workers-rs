@@ -273,7 +273,7 @@ pub async fn handle(
                 "{} {} {} {}",
                 from_millis.as_millis(),
                 from_str.as_millis(),
-                String::from(from_millis.to_iso_string()),
+                from_millis.to_iso_string(),
                 now.as_millis() > from_millis.as_millis()
             ))
         }

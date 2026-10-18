@@ -85,7 +85,7 @@ where
             .method(req.method().as_str())
             .headers(&Headers::try_from(req.headers())?);
         if let Some(signal) = req.extensions_mut().remove::<AbortSignal>() {
-            init = init.signal(&js_sys::JsNullable::wrap(signal));
+            init = init.signal(&signal);
         }
         if let Some(cf) = req.extensions_mut().remove::<IncomingRequestCfProperties>() {
             init = init.cf(&cf);
@@ -126,7 +126,7 @@ where
             .status(res.status().as_u16())
             .headers(&Headers::try_from(res.headers())?);
         if let Some(ws) = res.extensions_mut().remove::<WebSocket>() {
-            init = init.web_socket(&js_sys::JsNullable::wrap(ws));
+            init = init.web_socket(&ws);
         }
         init.body(body_stream(res.into_body()))
     }

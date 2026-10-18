@@ -1,6 +1,5 @@
 use crate::util::{block_concurrency_while, sleep};
 use crate::Env;
-use js_sys::JsNullable;
 use js_sys::Uint8Array;
 use serde::Serialize;
 use std::cell::Cell;
@@ -342,7 +341,7 @@ pub async fn handle_basic_test(
         .fetch(&Request::new_with_str_and_init(
             "https://fake-host/hello",
             &RequestInit::builder()
-                .body_with_str(&JsNullable::wrap(("lol").into()))
+                .body_with_str("lol")
                 .method("POST")
                 .build(),
         )?)

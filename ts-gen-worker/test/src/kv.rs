@@ -1,6 +1,5 @@
 use super::SomeSharedData;
 use crate::Env;
-use js_sys::JsNullable;
 use serde::{Deserialize, Serialize};
 use ts_gen_worker::*;
 
@@ -110,11 +109,7 @@ pub async fn put_expiration(_req: Request, env: Env, _data: SomeSharedData) -> R
     kv_assert_eq!(val, "test")?;
 
     let list = store
-        .list_with_options(
-            &KVNamespaceListOptions::builder()
-                .prefix(&JsNullable::wrap("put_c".into()))
-                .build(),
-        )
+        .list_with_options(&KVNamespaceListOptions::builder().prefix("put_c").build())
         .await?;
     let key = list
         .keys()

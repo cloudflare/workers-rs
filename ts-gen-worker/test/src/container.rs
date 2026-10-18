@@ -4,7 +4,6 @@ use std::sync::{
 };
 
 use futures_util::StreamExt;
-use js_sys::JsNullable;
 use ts_gen_worker::*;
 use wasm_bindgen::{throw_str, UnwrapThrowExt};
 use wasm_bindgen_futures::spawn_local;
@@ -76,7 +75,7 @@ pub async fn handle_container(req: Request, env: Env, _data: SomeSharedData) -> 
                 "http://container.miniflare.mocks/echo",
                 &RequestInit::builder()
                     .method("POST")
-                    .body_with_str(&JsNullable::wrap((body).into()))
+                    .body_with_str(body)
                     .build(),
             )?;
             stub.fetch(&req).await
@@ -100,10 +99,7 @@ pub async fn handle_container(req: Request, env: Env, _data: SomeSharedData) -> 
             };
             ws.accept()?;
             spawn_local(redir_websocket(ws, server));
-            Response::builder()
-                .status(101)
-                .web_socket(&JsNullable::wrap(client))
-                .empty()
+            Response::builder().status(101).web_socket(&client).empty()
         }
         _ => Response::builder().error("Container method not allowed", 405),
     }

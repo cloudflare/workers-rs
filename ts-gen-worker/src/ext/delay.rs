@@ -5,7 +5,7 @@ use std::rc::Rc;
 use std::task::{Context, Poll};
 use std::time::Duration;
 
-use js_sys::{Function, JsNullable, Number};
+use js_sys::Function;
 use wasm_bindgen::prelude::*;
 
 use crate::{clear_timeout, set_timeout_with_function_and_ms_delay};
@@ -71,7 +71,7 @@ impl PinnedDrop for Delay {
             return;
         }
         if let Some(id) = this.timeout_id {
-            let _ = clear_timeout(&JsNullable::wrap(Number::from(*id)));
+            let _ = clear_timeout(Some(*id));
         }
     }
 }

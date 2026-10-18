@@ -21,7 +21,7 @@ pub async fn queue(message_batch: MessageBatch, _env: Env, _ctx: ExecutionContex
                 "Received queue message {:?}, with id {} and timestamp: {}",
                 body,
                 message.id(),
-                String::from(message.timestamp().to_string())
+                message.timestamp().to_string()
             )
             .into()])
         });

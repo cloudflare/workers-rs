@@ -1,4 +1,4 @@
-use js_sys::{JsNullable, Uint8Array};
+use js_sys::Uint8Array;
 use wasm_bindgen::JsCast;
 
 use crate::{
@@ -22,7 +22,7 @@ impl Response {
             .status(self.status())
             .headers(&self.headers());
         if let Some(ws) = self.web_socket() {
-            builder = builder.web_socket(&JsNullable::wrap(ws));
+            builder = builder.web_socket(&ws);
         }
         let cf = self.cf();
         if !cf.is_undefined() {
@@ -78,26 +78,20 @@ impl ResponseInitBuilder {
     /// A text body with `content-type: text/plain; charset=utf-8`.
     pub fn ok(self, body: impl AsRef<str>) -> Result<Response> {
         let init = self.with_content_type("text/plain; charset=utf-8")?;
-        Ok(Response::new_with_str_and_init(
-            &JsNullable::wrap(body.as_ref().into()),
-            &init,
-        )?)
+        Ok(Response::new_with_str_and_init(Some(body.as_ref()), &init)?)
     }
 
     /// A text body with `content-type: text/html; charset=utf-8`.
     pub fn from_html(self, html: impl AsRef<str>) -> Result<Response> {
         let init = self.with_content_type("text/html; charset=utf-8")?;
-        Ok(Response::new_with_str_and_init(
-            &JsNullable::wrap(html.as_ref().into()),
-            &init,
-        )?)
+        Ok(Response::new_with_str_and_init(Some(html.as_ref()), &init)?)
     }
 
     /// A body of raw bytes.
     pub fn from_bytes(self, bytes: impl AsRef<[u8]>) -> Result<Response> {
         let buffer = Uint8Array::from(bytes.as_ref()).buffer();
         Ok(Response::new_with_array_buffer_and_init(
-            &JsNullable::wrap(buffer),
+            Some(&buffer),
             &self.build(),
         )?)
     }
@@ -105,7 +99,7 @@ impl ResponseInitBuilder {
     /// A response with no body. Required for null-body statuses such as 204 and 304.
     pub fn empty(self) -> Result<Response> {
         Ok(Response::new_with_str_and_init(
-            &JsNullable::new(),
+            None::<&str>,
             &self.build(),
         )?)
     }
@@ -115,7 +109,7 @@ impl ResponseInitBuilder {
     pub fn body(self, body: Option<ReadableStream>) -> Result<Response> {
         match body {
             Some(stream) => Ok(Response::new_with_readable_stream_and_init(
-                &JsNullable::wrap(stream.unchecked_into()),
+                Some(stream.unchecked_ref()),
                 &self.build(),
             )?),
             None => self.empty(),
@@ -124,7 +118,7 @@ impl ResponseInitBuilder {
 
     /// The `101 Switching Protocols` response that hands `ws` to the client.
     pub fn from_websocket(self, ws: WebSocket) -> Result<Response> {
-        self.status(101).web_socket(&JsNullable::wrap(ws)).empty()
+        self.status(101).web_socket(&ws).empty()
     }
 
     /// A text body with an error status. `status` must be in `400..=599`.
@@ -135,7 +129,7 @@ impl ResponseInitBuilder {
             )));
         }
         Ok(Response::new_with_str_and_init(
-            &JsNullable::wrap(msg.as_ref().into()),
+            Some(msg.as_ref()),
             &self.status(status).build(),
         )?)
     }

@@ -1,5 +1,5 @@
 use crate::{Env, SomeSharedData};
-use js_sys::{JsNullable, Object, Reflect, Uint8Array};
+use js_sys::{Object, Reflect, Uint8Array};
 use std::{
     collections::HashMap,
     sync::atomic::{AtomicBool, Ordering},
@@ -110,11 +110,9 @@ pub async fn seed_bucket(bucket: &R2Bucket) -> Result<()> {
 
     SEEDED.store(true, Ordering::Release);
 
+    bucket.put_with_str("no-props", Some("text")).await?;
     bucket
-        .put_with_str("no-props", &JsNullable::wrap("text".into()))
-        .await?;
-    bucket
-        .put_with_str("no-props-no-body", &JsNullable::new())
+        .put_with_str("no-props-no-body", None::<&str>)
         .await?;
 
     put_full_properties("with-props", bucket).await?;
@@ -251,21 +249,12 @@ pub async fn put(_req: Request, env: Env, _data: SomeSharedData) -> Result<Respo
         let _ = writer.close().await;
     });
 
+    bucket.put_with_str("text", Some("text")).await?;
     bucket
-        .put_with_str("text", &JsNullable::wrap("text".into()))
+        .put_with_typed_array("bytes", Some(&Uint8Array::from(&[0u8; 32][..])))
         .await?;
-    bucket
-        .put_with_typed_array(
-            "bytes",
-            &JsNullable::wrap(Uint8Array::from(&[0u8; 32][..]).into()),
-        )
-        .await?;
-    bucket
-        .put_with_str("empty", &JsNullable::wrap("".into()))
-        .await?;
-    bucket
-        .put("stream", &JsNullable::wrap(fixed_stream.readable()))
-        .await?;
+    bucket.put_with_str("empty", Some("")).await?;
+    bucket.put("stream", Some(&fixed_stream.readable())).await?;
 
     let text_obj = bucket.get("text").await?.unwrap();
     assert_eq!(text_obj.text().await?, "text");
@@ -345,9 +334,7 @@ pub async fn put_multipart(_req: Request, env: Env, _data: SomeSharedData) -> Re
 pub async fn delete(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let bucket = env.delete_bucket();
 
-    bucket
-        .put_with_str("key", &JsNullable::wrap("".into()))
-        .await?;
+    bucket.put_with_str("key", Some("")).await?;
 
     let objects = bucket.list().await?;
     assert_eq!(objects.objects().len(), 1);
@@ -356,9 +343,7 @@ pub async fn delete(_req: Request, env: Env, _data: SomeSharedData) -> Result<Re
 
     let keys: Vec<String> = (0..1000).map(|i| format!("key_{i}")).collect();
     for key in &keys {
-        bucket
-            .put_with_str(key, &JsNullable::wrap("".into()))
-            .await?;
+        bucket.put_with_str(key, Some("")).await?;
     }
     let objects = bucket.list().await?;
     assert_eq!(objects.objects().len(), keys.len());
@@ -379,7 +364,7 @@ async fn put_full_properties(
     let object_with_props = bucket
         .put_with_str_and_r2_put_options(
             name,
-            &JsNullable::wrap("example".into()),
+            Some("example"),
             &R2PutOptions::builder()
                 .http_metadata(&http_metadata.to_js())
                 .custom_metadata(&record(&custom_metadata))

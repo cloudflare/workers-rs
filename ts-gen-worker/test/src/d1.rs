@@ -80,7 +80,7 @@ fn d1_cause(e: &Error) -> String {
     value
         .dyn_ref::<js_sys::Error>()
         .and_then(|e| e.cause().dyn_into::<js_sys::Error>().ok())
-        .map_or_else(|| "unknown error".into(), |cause| cause.message().into())
+        .map_or_else(|| "unknown error".into(), |cause| cause.message())
 }
 
 #[derive(Deserialize)]

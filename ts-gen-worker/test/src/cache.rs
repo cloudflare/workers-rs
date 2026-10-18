@@ -1,7 +1,7 @@
 use super::SomeSharedData;
 use crate::util::sleep;
 use crate::Env;
-use js_sys::{JsNullable, Uint8Array};
+use js_sys::Uint8Array;
 use ts_gen_worker::*;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
@@ -21,11 +21,7 @@ fn timestamp_response() -> Result<Response> {
     headers.set("cache-control", "s-maxage=10")?;
     headers.set("content-type", "application/json")?;
     Ok(Response::new_with_str_and_init(
-        &JsNullable::wrap(
-            serde_json::json!({ "timestamp": js_sys::Date::now() as u64 })
-                .to_string()
-                .into(),
-        ),
+        Some(serde_json::json!({ "timestamp": js_sys::Date::now() as u64 }).to_string()),
         &ResponseInit::builder().headers(&headers).build(),
     )?)
 }
@@ -122,7 +118,7 @@ pub async fn handle_cache_stream(
     } else {
         console.with(|c| c.log(&["Cache MISS!".into()]));
         let count = (js_sys::Math::random() * 10.0) as usize;
-        let transform = TransformStream::new()?;
+        let transform = TransformStream::new_typed()?;
         let writer = transform.writable().get_writer()?;
         spawn_local(async move {
             for _ in 0..count {
@@ -138,7 +134,7 @@ pub async fn handle_cache_stream(
         let headers = Headers::new()?;
         headers.set("cache-control", "s-maxage=10")?;
         let resp = Response::new_with_readable_stream_and_init(
-            transform.readable().unchecked_ref(),
+            Some(&transform.readable()),
             &ResponseInit::builder().headers(&headers).build(),
         )?;
         console.with(|c| c.log(&[format!("resp = {:?}", JsValue::from(&resp)).into()]));

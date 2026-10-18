@@ -5,7 +5,7 @@
 
 use std::collections::HashMap;
 
-use js_sys::{ArrayBuffer, JsNullable, Map, Promise, Uint8Array};
+use js_sys::{ArrayBuffer, Map, Promise, Uint8Array};
 use wasm_bindgen::convert::FromWasmAbi;
 use wasm_bindgen::{JsCast, JsValue};
 
@@ -353,7 +353,7 @@ impl KvPutBuilder {
     #[cfg(feature = "serde")]
     pub fn metadata<T: serde::Serialize>(self, metadata: T) -> Result<Self> {
         let value = metadata.serialize(&serde_wasm_bindgen::Serializer::json_compatible())?;
-        self.options.set_metadata(&value);
+        self.options.set_metadata(Some(&value));
         Ok(self)
     }
 
@@ -395,14 +395,12 @@ impl KvListBuilder {
 
     /// Continues a previous listing from its `cursor`.
     pub fn cursor(self, cursor: impl AsRef<str>) -> Self {
-        self.options
-            .set_cursor(&JsNullable::wrap(cursor.as_ref().into()));
+        self.options.set_cursor(Some(cursor.as_ref()));
         self
     }
 
     pub fn prefix(self, prefix: impl AsRef<str>) -> Self {
-        self.options
-            .set_prefix(&JsNullable::wrap(prefix.as_ref().into()));
+        self.options.set_prefix(Some(prefix.as_ref()));
         self
     }
 
