@@ -27,11 +27,8 @@ pub trait EnvExt {
 }
 
 fn lookup(env: &Object, name: &str) -> Result<JsValue> {
-    let value = js_sys::Reflect::get(env, &JsValue::from_str(name))?;
-    if value.is_undefined() {
-        return Err(Error::Rust(format!("Binding `{name}` is undefined.")));
-    }
-    Ok(value)
+    js_sys::Reflect::get(env, name)?
+        .ok_or_else(|| Error::Rust(format!("Binding `{name}` is undefined.")))
 }
 
 fn string(env: &Object, name: &str) -> Result<String> {

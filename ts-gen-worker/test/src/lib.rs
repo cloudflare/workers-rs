@@ -1,4 +1,4 @@
-use js_sys::{Array, JsNullable, JsString, Object, Promise, Reflect, Uint8Array};
+use js_sys::{Array, JsNullable, Object, Promise, Reflect, Uint8Array};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::sync::{
@@ -165,8 +165,8 @@ async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response
         }
         ("GET", ["json"]) => {
             let data = Object::new();
-            Reflect::set(&data, &"method".into(), &JsString::from(req.method()))?;
-            Reflect::set(&data, &"n".into(), &42.0.into())?;
+            Reflect::set(&data, "method", &req.method().into())?;
+            Reflect::set(&data, "n", &42.0.into())?;
             Ok(Response::json(&data)?)
         }
         ("GET", ["redirect"]) => Ok(Response::redirect_with_status(

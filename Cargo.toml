@@ -24,6 +24,7 @@ exclude = [
     "wasm-bindgen",
     "wasm-streams",
     "generated",
+    "ts-gen-worker/vendor-patches",
 ]
 resolver = "2"
 
@@ -132,3 +133,7 @@ wasm-bindgen-macro-support = { version = "0.2.129", path = "./wasm-bindgen/crate
 wasm-bindgen-shared = { version = "0.2.129", path = "./wasm-bindgen/crates/shared" }
 wasm-bindgen-test = { version = "0.3.79", path = "./wasm-bindgen/crates/test" }
 web-sys = { version = "0.3.106", path = './wasm-bindgen/crates/web-sys' }
+# `js_sys_unstable_apis` (enabled in `.cargo/config.toml`) changes js-sys
+# signatures these two crates call; the copies carry the minimal fixes.
+serde-wasm-bindgen = { path = "./ts-gen-worker/vendor-patches/serde-wasm-bindgen" }
+wasm-streams = { path = "./ts-gen-worker/vendor-patches/wasm-streams" }

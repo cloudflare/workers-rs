@@ -81,7 +81,7 @@ impl DurableObject for MyClass {
                     let mut keys = vec![];
 
                     for key in list.keys() {
-                        let key = String::from(key?);
+                        let key = key?;
                         if key != "count" {
                             keys.push(key);
                         }
@@ -92,30 +92,26 @@ impl DurableObject for MyClass {
                         vec!["anything", "array", "map"],
                         "Didn't list all of the keys: {keys:?}"
                     );
-                    let vals: js_sys::Map = storage
+                    let vals = storage
                         .get_with_keys(&keys)
                         .await
-                        .map_err(|e| Error::from(format!("{e:?} -- get_multiple")))?
-                        .unchecked_into();
+                        .map_err(|e| Error::from(format!("{e:?} -- get_multiple")))?;
+                    let val = |key| vals.get(key).unwrap_or_default();
                     assert_eq!(
-                        serde_wasm_bindgen::from_value::<Option<i32>>(vals.get(&"anything".into()))
+                        serde_wasm_bindgen::from_value::<Option<i32>>(val("anything"))
                             .map_err(|e| e.to_string())?,
                         Some(45),
                         "Didn't get the right Option<i32> using get_multiple"
                     );
                     assert_eq!(
-                        serde_wasm_bindgen::from_value::<[(String, i32); 2]>(
-                            vals.get(&"array".into())
-                        )
-                        .map_err(|e| e.to_string())?,
+                        serde_wasm_bindgen::from_value::<[(String, i32); 2]>(val("array"))
+                            .map_err(|e| e.to_string())?,
                         [("one".to_string(), 1), ("two".to_string(), 2)],
                         "Didn't get the right array using get_multiple"
                     );
                     assert_eq!(
-                        serde_wasm_bindgen::from_value::<HashMap<String, i32>>(
-                            vals.get(&"map".into())
-                        )
-                        .map_err(|e| e.to_string())?,
+                        serde_wasm_bindgen::from_value::<HashMap<String, i32>>(val("map"))
+                            .map_err(|e| e.to_string())?,
                         map,
                         "Didn't get the right HashMap<String, i32> using get_multiple"
                     );
@@ -177,7 +173,7 @@ impl DurableObject for MyClass {
                         let obj = js_sys::Object::new();
                         let value = Uint8Array::new_with_length(u32::try_from(BAR.len()).unwrap());
                         value.copy_from(BAR);
-                        js_sys::Reflect::set(&obj, &JsValue::from_str("foo"), &value.into())?;
+                        js_sys::Reflect::set(&obj, "foo", &value.into())?;
                         storage
                             .put_with_entries::<JsValue>(&obj.unchecked_into())
                             .await?;
@@ -337,8 +333,8 @@ pub async fn handle_basic_test(
         namespace.new_unique_id()?.name().is_none(),
         "Expected name property to be absent"
     );
-    let bad = js_sys::Reflect::get(&env, &"DFSDF_FAKE_BINDING".into())?;
-    assert!(bad.is_undefined(), "Invalid binding did not raise error");
+    let bad = js_sys::Reflect::get(&env, "DFSDF_FAKE_BINDING")?;
+    assert!(bad.is_none(), "Invalid binding did not raise error");
 
     let stub = namespace.get(&id)?;
     let res = stub

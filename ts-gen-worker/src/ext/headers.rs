@@ -16,14 +16,13 @@ impl IntoIterator for &Headers {
     }
 }
 
-pub struct HeadersIter(js_sys::IntoIter<js_sys::ArrayTuple<(js_sys::JsString, js_sys::JsString)>>);
+pub struct HeadersIter(js_sys::IntoIter<js_sys::ArrayTuple<(String, String)>>);
 
 impl Iterator for HeadersIter {
     type Item = (String, String);
 
     fn next(&mut self) -> Option<Self::Item> {
-        let (name, value) = self.0.next()?.ok()?.into_tuple();
-        Some((name.into(), value.into()))
+        Some(self.0.next()?.ok()?.into_tuple())
     }
 }
 

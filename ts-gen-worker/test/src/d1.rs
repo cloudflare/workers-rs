@@ -55,7 +55,7 @@ async fn first<T: DeserializeOwned>(
     col_name: Option<&str>,
 ) -> Result<Option<T>> {
     let value: JsValue = match col_name {
-        Some(col) => stmt.first_with_col_name::<JsValue, _>(col).await?,
+        Some(col) => stmt.first_with_col_name::<JsValue>(col).await?,
         None => stmt.first::<JsValue>().await?,
     }
     .into();
@@ -329,9 +329,9 @@ pub async fn deserialize_optional_none(
     _data: SomeSharedData,
 ) -> Result<Response> {
     let js_value = Object::new();
-    Reflect::set(&js_value, &JsValue::from_str("id"), &JsValue::from_f64(1.0)).unwrap();
-    Reflect::set(&js_value, &JsValue::from_str("name"), &JsValue::NULL).unwrap();
-    Reflect::set(&js_value, &JsValue::from_str("age"), &JsValue::NULL).unwrap();
+    Reflect::set(&js_value, "id", &JsValue::from_f64(1.0)).unwrap();
+    Reflect::set(&js_value, "name", &JsValue::NULL).unwrap();
+    Reflect::set(&js_value, "age", &JsValue::NULL).unwrap();
 
     let js_value: JsValue = js_value.into();
 

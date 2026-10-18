@@ -5,7 +5,8 @@
 
 use std::collections::HashMap;
 
-use js_sys::{ArrayBuffer, JsNullable, JsString, Map, Promise, Uint8Array};
+use js_sys::{ArrayBuffer, JsNullable, Map, Promise, Uint8Array};
+use wasm_bindgen::convert::FromWasmAbi;
 use wasm_bindgen::{JsCast, JsValue};
 
 use crate::{
@@ -102,8 +103,11 @@ impl ToRawKvValue for String {
 /// string, an `ArrayBuffer` or a stream depending on the requested `type`.
 type Entry = KVNamespaceGetWithMetadataResult<JsValue, JsValue>;
 
+#[cfg(feature = "serde")]
+type TextEntry = KVNamespaceGetWithMetadataResult<String, JsValue>;
+
 fn get_options(value_type: &str, cache_ttl: Option<u64>) -> KVNamespaceGetOptions<String> {
-    let builder = KVNamespaceGetOptions::builder(value_type.to_string());
+    let builder = KVNamespaceGetOptions::builder(&value_type.to_string());
     match cache_ttl {
         Some(ttl) => builder.cache_ttl(ttl),
         None => builder,
@@ -131,15 +135,19 @@ fn as_stream(value: Option<JsValue>) -> Option<ReadableStream> {
 }
 
 #[cfg(feature = "serde")]
-fn as_json<T: serde::de::DeserializeOwned>(value: Option<JsValue>) -> Result<Option<T>> {
-    match as_text(value) {
-        Some(text) => Ok(Some(serde_json::from_str(&text)?)),
-        None => Ok(None),
-    }
+fn parse_json<T: serde::de::DeserializeOwned>(text: Option<&str>) -> Result<Option<T>> {
+    Ok(text.map(serde_json::from_str).transpose()?)
 }
 
 #[cfg(feature = "serde")]
-fn metadata<M: serde::de::DeserializeOwned>(entry: &Entry) -> Result<Option<M>> {
+fn as_json<T: serde::de::DeserializeOwned>(value: Option<JsValue>) -> Result<Option<T>> {
+    parse_json(as_text(value).as_deref())
+}
+
+#[cfg(feature = "serde")]
+fn metadata<V, M: serde::de::DeserializeOwned>(
+    entry: &KVNamespaceGetWithMetadataResult<V, JsValue>,
+) -> Result<Option<M>> {
     match present(entry.metadata()) {
         Some(value) => Ok(Some(serde_wasm_bindgen::from_value(value)?)),
         None => Ok(None),
@@ -253,68 +261,49 @@ impl KvGetBulkBuilder {
         self
     }
 
-    async fn raw(&self, value_type: &str) -> Result<Map<JsString, JsValue>> {
-        let options = get_options(value_type, self.cache_ttl);
-        let map = self
-            .kv
+    async fn text_map(&self) -> Result<Map<String, Option<String>>> {
+        let options = get_options("text", self.cache_ttl);
+        self.kv
             .get_with_key_slice_and_options_kv_namespace_get_options(&self.keys, &options)
-            .await?;
-        Ok(map.unchecked_into())
+            .await
     }
 
     #[cfg(feature = "serde")]
-    async fn raw_with_metadata(&self, value_type: &str) -> Result<Map<JsString, JsValue>> {
-        let options = get_options(value_type, self.cache_ttl);
-        let map = self
-            .kv
+    async fn text_map_with_metadata(&self) -> Result<Map<String, TextEntry>> {
+        let options = get_options("text", self.cache_ttl);
+        self.kv
             .get_with_metadata_with_key_slice_and_options_kv_namespace_get_options(
                 &self.keys, &options,
             )
-            .await?;
-        Ok(map.unchecked_into())
+            .await
     }
 
-    fn collect<V>(
-        map: Map<JsString, JsValue>,
-        mut decode: impl FnMut(JsValue) -> Result<V>,
-    ) -> Result<HashMap<String, V>> {
-        let mut result = HashMap::new();
-        let mut failure = None;
-        map.for_each(&mut |entry, key| {
-            if failure.is_some() {
-                return;
-            }
-            match decode(entry) {
-                Ok(value) => {
-                    result.insert(String::from(key), value);
-                }
-                Err(e) => failure = Some(e),
-            }
-        });
-        match failure {
-            Some(e) => Err(e),
-            None => Ok(result),
-        }
+    fn collect<V: FromWasmAbi, T>(
+        map: Map<String, V>,
+        mut decode: impl FnMut(V) -> Result<T>,
+    ) -> Result<HashMap<String, T>> {
+        map.into_iter()
+            .map(|(key, value)| Ok((key, decode(value)?)))
+            .collect()
     }
 
     /// Every requested key, `None` where absent.
     pub async fn text(self) -> Result<HashMap<String, Option<String>>> {
-        Self::collect(self.raw("text").await?, |v| Ok(as_text(present(Some(v)))))
+        Self::collect(self.text_map().await?, Ok)
     }
 
     /// Every requested key parsed as JSON into `T`, `None` where absent.
     #[cfg(feature = "serde")]
     pub async fn json<T: serde::de::DeserializeOwned>(self) -> Result<HashMap<String, Option<T>>> {
-        Self::collect(self.raw("text").await?, |v| as_json(present(Some(v))))
+        Self::collect(self.text_map().await?, |v| parse_json(v.as_deref()))
     }
 
     #[cfg(feature = "serde")]
     pub async fn text_with_metadata<M: serde::de::DeserializeOwned>(
         self,
     ) -> Result<HashMap<String, (Option<String>, Option<M>)>> {
-        Self::collect(self.raw_with_metadata("text").await?, |entry| {
-            let entry: Entry = entry.unchecked_into();
-            Ok((as_text(present(entry.value())), metadata(&entry)?))
+        Self::collect(self.text_map_with_metadata().await?, |entry| {
+            Ok((entry.value(), metadata(&entry)?))
         })
     }
 
@@ -325,9 +314,8 @@ impl KvGetBulkBuilder {
     >(
         self,
     ) -> Result<HashMap<String, (Option<T>, Option<M>)>> {
-        Self::collect(self.raw_with_metadata("text").await?, |entry| {
-            let entry: Entry = entry.unchecked_into();
-            Ok((as_json(present(entry.value()))?, metadata(&entry)?))
+        Self::collect(self.text_map_with_metadata().await?, |entry| {
+            Ok((parse_json(entry.value().as_deref())?, metadata(&entry)?))
         })
     }
 }

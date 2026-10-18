@@ -34,7 +34,7 @@ impl PutRawTestObject {
         let obj = js_sys::Object::new();
         let value = Uint8Array::new_with_length(u32::try_from(BAR.len()).unwrap());
         value.copy_from(BAR);
-        js_sys::Reflect::set(&obj, &JsValue::from_str("foo"), &value.into())?;
+        js_sys::Reflect::set(&obj, "foo", &value.into())?;
         storage
             .put_with_entries::<JsValue>(&obj.unchecked_into())
             .await?;

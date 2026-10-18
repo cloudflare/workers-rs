@@ -136,8 +136,8 @@ pub async fn handle_is_secret(req: Request, env: Env, _data: SomeSharedData) -> 
             FormEntry::Field(name) => {
                 // `env.secret(&name)` looks a binding up by runtime name; the generated
                 // Env only has per-binding getters.
-                let val = js_sys::Reflect::get(&env, &name.into())?;
-                return Response::builder().ok(val.as_string().unwrap_or_default());
+                let val = js_sys::Reflect::get(&env, name)?;
+                return Response::builder().ok(val.and_then(|v| v.as_string()).unwrap_or_default());
             }
             FormEntry::File(_) => return Response::builder().error("Bad Request", 400),
         };

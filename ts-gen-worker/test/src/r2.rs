@@ -1,11 +1,10 @@
 use crate::{Env, SomeSharedData};
-use js_sys::{JsNullable, JsString, Object, Reflect, Uint8Array};
+use js_sys::{JsNullable, Object, Reflect, Uint8Array};
 use std::{
     collections::HashMap,
     sync::atomic::{AtomicBool, Ordering},
 };
 use ts_gen_worker::*;
-use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
 static SEEDED: AtomicBool = AtomicBool::new(false);
@@ -75,24 +74,17 @@ impl HttpMetadata {
 fn custom_metadata(object: &R2Object) -> HashMap<String, String> {
     object
         .custom_metadata()
-        .map(|record| {
-            Object::entries(record.unchecked_ref())
-                .iter()
-                .filter_map(|entry| {
-                    let entry: js_sys::Array = entry.unchecked_into();
-                    Some((entry.get(0).as_string()?, entry.get(1).as_string()?))
-                })
-                .collect()
-        })
+        .and_then(|record| Object::entries(&record).ok())
+        .map(|entries| entries.iter().map(|entry| entry.into_tuple()).collect())
         .unwrap_or_default()
 }
 
-fn record(map: &HashMap<String, String>) -> Object<JsString> {
-    let obj = Object::new();
+fn record(map: &HashMap<String, String>) -> Object<String> {
+    let obj = Object::new_typed();
     for (k, v) in map {
-        Reflect::set(&obj, &k.into(), &v.into()).unwrap();
+        Reflect::set(&obj, k, v).unwrap();
     }
-    obj.unchecked_into()
+    obj
 }
 
 /// `worker::Object::http_metadata()` compares equal to what was put, with the
@@ -253,7 +245,7 @@ pub async fn put(_req: Request, env: Env, _data: SomeSharedData) -> Result<Respo
     spawn_local(async move {
         for _ in 0..16 {
             if writer
-                .write_with_chunk(Uint8Array::from(&[0u8; 16][..]).into())
+                .write_with_chunk(&Uint8Array::from(&[0u8; 16][..]))
                 .await
                 .is_err()
             {

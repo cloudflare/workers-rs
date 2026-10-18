@@ -96,7 +96,7 @@ impl DurableObject for MacroCounter {
             return Response::builder().ok(format!("{after:?} {n:?} {missing:?}"));
         }
         let count = storage
-            .get::<JsValue, _>("count")
+            .get::<JsValue>("count")
             .await?
             .as_f64()
             .unwrap_or(0.0)
@@ -195,14 +195,12 @@ pub async fn handle(
             let keys = headers
                 .keys()
                 .into_iter()
-                .map(|k| String::from(k.unwrap()))
-                .collect::<Vec<_>>()
+                .collect::<std::result::Result<Vec<_>, _>>()?
                 .join(",");
             let values = headers
                 .values()
                 .into_iter()
-                .map(|k| String::from(k.unwrap()))
-                .collect::<Vec<_>>()
+                .collect::<std::result::Result<Vec<_>, _>>()?
                 .join(",");
             let all = headers.get_all("set-cookie")?.join("|");
             let x_a = headers.get_all("x-a").unwrap_err().to_string();

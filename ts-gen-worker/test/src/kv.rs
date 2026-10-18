@@ -2,8 +2,8 @@ use super::SomeSharedData;
 use crate::Env;
 use js_sys::JsNullable;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use ts_gen_worker::*;
-use wasm_bindgen::prelude::*;
 
 macro_rules! kv_assert_eq {
     ($left: expr, $right: expr) => {{
@@ -161,33 +161,26 @@ pub async fn put_metadata_struct(
     Response::builder().ok("passed")
 }
 
-async fn get_bulk_text(store: &KVNamespace, keys: &[&str]) -> Result<js_sys::Map> {
-    let keys: Vec<String> = keys.iter().map(|k| (*k).to_owned()).collect();
-    Ok(store.get_with_slice(&keys).await?.unchecked_into())
-}
-
 pub async fn get_bulk(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let store = test_store(&env).await;
     store.put("bulk_a", "value_a").await?;
     store.put("bulk_b", "value_b").await?;
 
-    let values = get_bulk_text(&store, &["bulk_a", "bulk_b", "bulk_missing"]).await?;
-    kv_assert_eq!(
-        values.get(&"bulk_a".into()).as_string(),
-        Some("value_a".to_string())
-    )?;
-    kv_assert_eq!(
-        values.get(&"bulk_b".into()).as_string(),
-        Some("value_b".to_string())
-    )?;
-    kv_assert_eq!(values.get(&"bulk_missing".into()).as_string(), None)?;
+    let values: HashMap<_, _> = store
+        .get_with_slice(&["bulk_a", "bulk_b", "bulk_missing"])
+        .await?
+        .into_iter()
+        .collect();
+    kv_assert_eq!(values["bulk_a"], Some("value_a".to_string()))?;
+    kv_assert_eq!(values["bulk_b"], Some("value_b".to_string()))?;
+    kv_assert_eq!(values["bulk_missing"], None)?;
 
     Response::builder().ok("passed")
 }
 
 pub async fn get_bulk_empty(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let store = test_store(&env).await;
-    let values = get_bulk_text(&store, &[]).await?;
+    let values = store.get_with_slice(&[] as &[&str]).await?;
     kv_assert_eq!(values.size(), 0)?;
 
     Response::builder().ok("passed")
@@ -196,9 +189,8 @@ pub async fn get_bulk_empty(_req: Request, env: Env, _data: SomeSharedData) -> R
 pub async fn get_bulk_limit(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let store = test_store(&env).await;
     let keys: Vec<String> = (0..101).map(|i| format!("key_{i}")).collect();
-    let key_refs: Vec<&str> = keys.iter().map(|s| s.as_str()).collect();
 
-    match get_bulk_text(&store, &key_refs).await {
+    match store.get_with_slice(&keys).await {
         Err(_) => Response::builder().ok("passed"),
         Ok(_) => Response::builder().error("expected error for >100 keys", 500),
     }

@@ -26,9 +26,7 @@ async fn read_exact(reader: &ReadableStreamDefaultReader, buf: &mut [u8]) -> Res
 }
 
 async fn write_all(writer: &WritableStreamDefaultWriter, data: &[u8]) -> Result<()> {
-    writer
-        .write_with_chunk(Uint8Array::from(data).into())
-        .await?;
+    writer.write_with_chunk(&Uint8Array::from(data)).await?;
     Ok(())
 }
 
@@ -58,7 +56,7 @@ async fn handle_udp(socket: Socket) -> Result<()> {
             break;
         }
         writer
-            .write_with_chunk(chunk.value().unwrap_or_default())
+            .write_with_chunk(&chunk.value().unwrap_or_default())
             .await?;
     }
     Ok(())
@@ -68,8 +66,8 @@ async fn handle_udp(socket: Socket) -> Result<()> {
 /// the socket's protocol as worker-build's shim does.
 #[event(connect)]
 async fn handle_connect(socket: Socket, _env: Env, _ctx: ExecutionContext) -> Result<()> {
-    let protocol = js_sys::Reflect::get(&socket, &"protocol".into())?;
-    if protocol.as_string().as_deref() == Some("udp") {
+    let protocol = js_sys::Reflect::get(&socket, "protocol")?;
+    if protocol.and_then(|p| p.as_string()).as_deref() == Some("udp") {
         handle_udp(socket).await
     } else {
         handle_tcp(socket).await

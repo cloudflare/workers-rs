@@ -65,7 +65,7 @@ pub async fn handle_xor(req: Request, _env: Env, _data: SomeSharedData) -> Resul
     let Some(body) = req.body() else {
         return Response::builder().error("missing body", 400);
     };
-    let transform: TransformStream<Uint8Array, Uint8Array> = TransformStream::new()?;
+    let transform = TransformStream::new()?;
     let writer = transform.writable().get_writer()?;
     let reader = body.get_reader()?;
     spawn_local(async move {
@@ -80,7 +80,7 @@ pub async fn handle_xor(req: Request, _env: Env, _data: SomeSharedData) -> Resul
             let mut buf = bytes.to_vec();
             buf.iter_mut().for_each(|x| *x ^= num);
             if writer
-                .write_with_chunk(Uint8Array::from(&buf[..]))
+                .write_with_chunk(&Uint8Array::from(&buf[..]))
                 .await
                 .is_err()
             {
@@ -227,13 +227,13 @@ pub async fn handle_cloned_stream(
     _env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    let transform: TransformStream<Uint8Array, Uint8Array> = TransformStream::new()?;
+    let transform = TransformStream::new()?;
     let writer = transform.writable().get_writer()?;
     spawn_local(async move {
         for index in 0..10 {
             sleep(100.0).await;
             let chunk = Uint8Array::from(index.to_string().as_bytes());
-            if writer.write_with_chunk(chunk).await.is_err() {
+            if writer.write_with_chunk(&chunk).await.is_err() {
                 return;
             }
         }
