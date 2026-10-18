@@ -568,8 +568,10 @@ interface ReadableStreamBYOBRequest {
 // `MessageEvent.data` is a message's text, or its binary payload as an
 // `ArrayBuffer` (`binaryType = "arraybuffer"`, the default before the
 // `websocket_standard_binary_type` compat date) or a `Blob` (after it).
+// A `MessagePort` message is any structured clone, so a trailing `any` gives the
+// enum a catch-all `JsValue` arm instead of a throw.
 /** {@string copy} */
 declare class MessageEvent {
   /** @retype */
-  readonly data: string | ArrayBuffer | Blob;
+  readonly data: string | ArrayBuffer | Blob | any;
 }

@@ -21134,6 +21134,7 @@ pub enum DataKind {
     String(String),
     ArrayBuffer(ArrayBuffer),
     Blob(Blob),
+    JsValue(JsValue),
 }
 #[wasm_bindgen(private)]
 pub enum MessageEventInitDataKind {

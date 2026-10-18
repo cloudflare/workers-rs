@@ -229,6 +229,15 @@ async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response
             text(&format!("{matched} {err}"), 200, "text/plain")
         }
         ("GET", ["error"]) => Err(Error::Rust("boom".to_string())),
+        ("GET", ["message-event-data"]) => {
+            let init = MessageEventInit::new_with_str("");
+            js_sys::Reflect::set(&init, "data", &JsValue::from(1))?;
+            let kind = match MessageEvent::new("message", &init)?.data() {
+                DataKind::JsValue(_) => "other",
+                _ => "string or binary",
+            };
+            text(kind, 200, "text/plain")
+        }
 
         ("GET", ["request"]) => request::handle_a_request(req, env, data),
         ("GET", ["analytics-engine"]) => {

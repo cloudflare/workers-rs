@@ -57,7 +57,7 @@ pub fn websocket_events(
 pub fn message_text(event: &MessageEvent) -> Option<String> {
     match event.data() {
         DataKind::String(text) => Some(text),
-        DataKind::ArrayBuffer(_) | DataKind::Blob(_) => None,
+        _ => None,
     }
 }
 

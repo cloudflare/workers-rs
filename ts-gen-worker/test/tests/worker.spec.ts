@@ -126,6 +126,10 @@ describe("ts-gen-worker", () => {
     expect(body).toBe("true TypeError: Invalid header name.");
   });
 
+  test("MessageEvent data outside string | ArrayBuffer | Blob", async () => {
+    expect(await (await get("/message-event-data")).text()).toBe("other");
+  });
+
   test("Err(Error::Rust) becomes a 500", async () => {
     const res = await get("/error");
     expect(res.status).toBe(500);

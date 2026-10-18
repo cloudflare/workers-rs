@@ -18,7 +18,7 @@ pub trait DurableObject: has_durable_object_attribute + Sized {
         unimplemented!("alarm() handler not implemented")
     }
 
-    /// A hibernated socket's message is text or an `ArrayBuffer`, never a `Blob`.
+    /// A hibernated socket's message is `String` or `ArrayBuffer`, never the other arms.
     #[allow(unused_variables)]
     async fn websocket_message(&self, ws: WebSocket, message: DataKind) -> Result<()> {
         unimplemented!("websocket_message() handler not implemented")

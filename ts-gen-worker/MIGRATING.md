@@ -10,9 +10,11 @@ wherever a name was free. The full row-by-row list is the migration table in
 [`parity/crate.md`](parity/crate.md); this guide covers the changes a typical worker meets.
 
 Every sync binding that can throw returns `Result`, so a few calls gain a `?`
-(`Headers::new()?`, `ctx.pass_through_on_exception()?`). Async members return a typed
-`Promise<T, Error>` that awaits to `Result<T, Error>` (`text().await?` is a `String`) and passes
-back to JS (`p.upcast()` where a `&Promise` is taken).
+(`Headers::new()?`, `res.clone()?`). Async methods return a typed `Promise<T, Error>` that
+awaits to `Result<T, Error>` (`text().await?` is a `String`) and passes back to JS
+(`p.upcast()` where a `&Promise` is taken). Promise-typed getters (`writer.ready()`,
+`socket.opened()`, `reader.closed()`) still return `Promise<T>`, which rejects with a `JsValue`, so a
+tail `.await` of one in a fn returning `Result` is `Ok(x.await?)`.
 
 The bindings are generated with mono generics on js-sys's unstable API
 (`--cfg js_sys_unstable_apis`, set in `.cargo/config.toml`), so js-sys collections behave
@@ -23,8 +25,10 @@ String arguments take `impl JsStringLike` (`&str`, `String`, `&String`), and str
 `&[impl JsStringLike]` (`&["a", "b"]`). An optional or nullable argument is either its own
 overload (`Response::new_with_null_and_init(&init)`) or a builder method left uncalled; only
 raw setters take `Option<…>`. Byte arguments take `impl BufferSourceLike`: `&[u8]`, `Vec<u8>` or
-any buffer handle (`bucket.put_with_buffer_source(k, &bytes[..])`, `.md5(&digest[..])`). A call
-argument passes `&[u8]` as a view, and a dictionary field stores a copy. Callbacks are `Function::from_fn(|event: MessageEvent| …)`, or `Function::once(|| …)` for
+any buffer handle (`bucket.put_with_buffer_source(k, &bytes[..])`, `.md5(&digest[..])`). A `&[u8]`
+is copied into a fresh `Uint8Array`, except where the callee copies or reads it before returning
+(`Response` bodies, KV and R2 `put`, R2 `upload_part`, SubtleCrypto), which take it as a view of wasm
+memory. Callbacks are `Function::from_fn(|event: MessageEvent| …)`, or `Function::once(|| …)` for
 a one-shot. String-enum
 options take the generated enum (`EncodeBodyKind::Manual`, `CacheKind::NoStore`,
 `BinaryTypeKind::Arraybuffer`), and arrays come back as `Vec<T>`. The JS globals are
@@ -76,7 +80,7 @@ async fn main(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response>
   deserialize each message with `message.body_into::<T>()?`.
 * `connect` has no `(udp)` form: one handler serves TCP and UDP and dispatches on the
   socket's protocol.
-* `ctx.wait_until(fut)` is `ctx.spawn(fut)?`; the generated `wait_until(&Promise)` keeps
+* `ctx.wait_until(fut)` is `ctx.spawn(fut)`; the generated `wait_until(&Promise)` keeps
   its JS shape.
 
 ## Request and Response
@@ -174,14 +178,15 @@ impl DurableObject for Counter {
 }
 ```
 
-`websocket_message` receives a `DataKind` (`String(s)` / `ArrayBuffer(buf)`; its `Blob` arm is
-for `MessageEvent::data` and never arrives here) instead of
+`websocket_message` receives a `DataKind` (`String(s)` / `ArrayBuffer(buf)`; its `Blob` and
+`JsValue` arms are for `MessageEvent::data` and never arrive here) instead of
 `WebSocketIncomingMessage`; `websocket_close`/`websocket_error` are unchanged. `WebSocket`
 is `PartialEq` and `Eq` by handle, as in `worker`, so a struct deriving `Eq` can hold one.
 `worker`'s `ws.events()` stream is a listener per event type:
 `ws.add_event_listener_message(&Function::from_fn(|e: MessageEvent| …))?`, and the same for
 `close` and `error`. `e.data()` is a `DataKind`: `String`, `ArrayBuffer`, or `Blob` under the
-`websocket_standard_binary_type` compat flag (the default from 2026-03-17) unless `binaryType` is set.
+`websocket_standard_binary_type` compat flag (the default from 2026-03-17) unless `binaryType` is set,
+and `JsValue` for anything else (a `MessagePort` message is any structured clone).
 `FormData::get` returns `Option<GetReturnKind>` (`File(f)` / `String(s)`).
 
 ```rust
