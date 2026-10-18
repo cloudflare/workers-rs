@@ -26,7 +26,6 @@ pub use delay::Delay;
 pub use env::EnvExt;
 pub use fetch::Fetch;
 pub use handler::{FromRequest, IntoResponse};
-pub use headers::HeadersIter;
 pub use http::Method;
 #[cfg(feature = "http")]
 pub use interop::{HttpRequest, HttpResponse};

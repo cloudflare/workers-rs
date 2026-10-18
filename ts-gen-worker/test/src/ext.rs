@@ -187,16 +187,8 @@ pub async fn handle(
                 .map(|(k, v)| format!("{k}={v}"))
                 .collect::<Vec<_>>()
                 .join(",");
-            let keys = headers
-                .keys()
-                .into_iter()
-                .collect::<std::result::Result<Vec<_>, _>>()?
-                .join(",");
-            let values = headers
-                .values()
-                .into_iter()
-                .collect::<std::result::Result<Vec<_>, _>>()?
-                .join(",");
+            let keys = headers.keys().into_iter().collect::<Vec<_>>().join(",");
+            let values = headers.values().into_iter().collect::<Vec<_>>().join(",");
             let all = headers.get_all("set-cookie")?.join("|");
             let x_a = headers.get_all("x-a").unwrap_err().to_string();
             Response::builder().ok(format!("{entries} / {keys} / {values} / {all} / {x_a}"))

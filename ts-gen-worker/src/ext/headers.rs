@@ -9,20 +9,10 @@ impl Default for Headers {
 
 impl IntoIterator for &Headers {
     type Item = (String, String);
-    type IntoIter = HeadersIter;
+    type IntoIter = js_sys::Entries<String, String>;
 
     fn into_iter(self) -> Self::IntoIter {
-        HeadersIter(self.entries().into_iter())
-    }
-}
-
-pub struct HeadersIter(js_sys::IntoIter<js_sys::ArrayTuple<(String, String)>>);
-
-impl Iterator for HeadersIter {
-    type Item = (String, String);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        Some(self.0.next()?.ok()?.into_tuple())
+        self.entries().into()
     }
 }
 

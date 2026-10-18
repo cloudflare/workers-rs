@@ -116,7 +116,7 @@ pub fn rows<T: DeserializeOwned>(
             Err(e) => return Some(Err(e)),
         };
         let value = result.value()?;
-        Some(serde_wasm_bindgen::from_value(value).map_err(|e| Error::from(e.to_string())))
+        Some(serde_wasm_bindgen::from_value(value).map_err(Error::from))
     })
 }
 
@@ -124,7 +124,7 @@ pub fn raw(
     cursor: &SqlStorageCursor,
 ) -> Result<impl Iterator<Item = Result<Vec<SqlStorageValue>>>> {
     Ok(cursor.raw().into_iter().map(|row| {
-        row?.unchecked_into::<js_sys::Array>()
+        row.unchecked_into::<js_sys::Array>()
             .iter()
             .map(SqlStorageValue::try_from)
             .collect::<Result<Vec<_>>>()

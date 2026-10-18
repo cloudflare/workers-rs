@@ -30,15 +30,15 @@ pub fn on_websocket_events(
     }));
     let on_message = {
         let handler = handler.clone();
-        Closure::<dyn FnMut(JsValue)>::new(move |event: JsValue| {
+        Function::from_fn(move |event: JsValue| {
             (handler.borrow_mut())(WebsocketEvent::Message(event.unchecked_into()));
         })
     };
-    let on_close = Closure::<dyn FnMut(JsValue)>::new(move |event: JsValue| {
+    let on_close = Function::from_fn(move |event: JsValue| {
         (handler.borrow_mut())(WebsocketEvent::Close(event.unchecked_into()));
     });
-    ws.add_event_listener("message", &Function::from_closure(on_message))?;
-    ws.add_event_listener("close", &Function::from_closure(on_close))?;
+    ws.add_event_listener("message", &on_message)?;
+    ws.add_event_listener("close", &on_close)?;
     Ok(())
 }
 

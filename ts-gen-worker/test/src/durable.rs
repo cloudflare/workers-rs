@@ -80,7 +80,6 @@ impl DurableObject for MyClass {
                     let mut keys = vec![];
 
                     for key in list.keys() {
-                        let key = key?;
                         if key != "count" {
                             keys.push(key);
                         }
