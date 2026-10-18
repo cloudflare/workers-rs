@@ -3,6 +3,8 @@
 #[allow(unused_imports)]
 use js_sys::*;
 #[allow(unused_imports)]
+use wasm_bindgen::convert::{FromWasmAbi, RefIntoWasmAbi, VectorRefIntoWasmAbi};
+#[allow(unused_imports)]
 use wasm_bindgen::prelude::*;
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -320,7 +322,7 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn exports<Props>(this: &ExecutionContext<Props>) -> JsValue;
     #[wasm_bindgen(method, getter)]
-    pub fn props<Props>(this: &ExecutionContext<Props>) -> Props;
+    pub fn props<Props: FromWasmAbi>(this: &ExecutionContext<Props>) -> Props;
     #[wasm_bindgen(method, getter)]
     pub fn cache<Props>(this: &ExecutionContext<Props>) -> Option<CacheContext>;
     #[wasm_bindgen(method, setter)]
@@ -959,7 +961,7 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn exports<Props>(this: &DurableObjectState<Props>) -> JsValue;
     #[wasm_bindgen(method, getter)]
-    pub fn props<Props>(this: &DurableObjectState<Props>) -> Props;
+    pub fn props<Props: FromWasmAbi>(this: &DurableObjectState<Props>) -> Props;
     #[wasm_bindgen(method, getter)]
     pub fn id<Props>(this: &DurableObjectState<Props>) -> DurableObjectId;
     #[wasm_bindgen(method, getter)]
@@ -1094,13 +1096,13 @@ extern "C" {
         options: &DurableObjectListOptions,
     ) -> Promise<Map<String, T>, crate::Error>;
     #[wasm_bindgen(method, catch)]
-    pub fn put<T>(
+    pub fn put<T: RefIntoWasmAbi>(
         this: &DurableObjectTransaction,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &T,
     ) -> Promise<(), crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
-    pub fn put_with_key_and_value_and_options<T>(
+    pub fn put_with_key_and_value_and_options<T: RefIntoWasmAbi>(
         this: &DurableObjectTransaction,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &T,
@@ -1231,13 +1233,13 @@ extern "C" {
         options: &DurableObjectListOptions,
     ) -> Promise<Map<String, T>, crate::Error>;
     #[wasm_bindgen(method, catch)]
-    pub fn put<T>(
+    pub fn put<T: RefIntoWasmAbi>(
         this: &DurableObjectStorage,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &T,
     ) -> Promise<(), crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
-    pub fn put_with_key_and_value_and_options<T>(
+    pub fn put_with_key_and_value_and_options<T: RefIntoWasmAbi>(
         this: &DurableObjectStorage,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &T,
@@ -1333,7 +1335,7 @@ extern "C" {
     #[wasm_bindgen(method, setter)]
     pub fn set_kv(this: &DurableObjectStorage, val: &SyncKvStorage);
     #[wasm_bindgen(method, catch, js_name = "transactionSync")]
-    pub fn transaction_sync<T>(
+    pub fn transaction_sync<T: FromWasmAbi>(
         this: &DurableObjectStorage,
         closure: &Function<fn() -> T>,
     ) -> Result<T, crate::Error>;
@@ -1967,7 +1969,7 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type EventListenerObject<EventType = Event>;
     #[wasm_bindgen(method, catch, js_name = "handleEvent")]
-    pub fn handle_event<EventType>(
+    pub fn handle_event<EventType: RefIntoWasmAbi>(
         this: &EventListenerObject<EventType>,
         event: &EventType,
     ) -> Result<(), crate::Error>;
@@ -2630,7 +2632,10 @@ extern "C" {
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Crypto/getRandomValues)"]
     #[wasm_bindgen(method, catch, js_name = "getRandomValues")]
-    pub fn get_random_values<T>(this: &Crypto, buffer: &T) -> Result<T, crate::Error>;
+    pub fn get_random_values<T: RefIntoWasmAbi + FromWasmAbi>(
+        this: &Crypto,
+        buffer: &T,
+    ) -> Result<T, crate::Error>;
     #[doc = " The **`randomUUID()`** method of the Crypto interface is used to generate a v4 UUID using a cryptographically secure random number generator."]
     #[doc = " Available only in secure contexts."]
     #[doc = ""]
@@ -4235,7 +4240,7 @@ extern "C" {
         callback: &Function<fn(JsValue, String, FormData)>,
     ) -> Result<(), crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "forEach")]
-    pub fn for_each_with_this_arg<This>(
+    pub fn for_each_with_this_arg<This: RefIntoWasmAbi>(
         this: &FormData,
         callback: &Function<fn(JsValue, String, FormData)>,
         this_arg: &This,
@@ -4358,7 +4363,7 @@ extern "C" {
         callback: &Function<fn(String, String, Headers)>,
     ) -> Result<(), crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "forEach")]
-    pub fn for_each_with_this_arg<This>(
+    pub fn for_each_with_this_arg<This: RefIntoWasmAbi>(
         this: &Headers,
         callback: &Function<fn(String, String, Headers)>,
         this_arg: &This,
@@ -4922,9 +4927,11 @@ extern "C" {
     #[wasm_bindgen(method, setter)]
     pub fn set_signal<CfHostMetadata, Cf>(this: &Request<CfHostMetadata, Cf>, val: &AbortSignal);
     #[wasm_bindgen(method, getter)]
-    pub fn cf<CfHostMetadata, Cf>(this: &Request<CfHostMetadata, Cf>) -> Option<Cf>;
+    pub fn cf<CfHostMetadata, Cf>(this: &Request<CfHostMetadata, Cf>) -> Option<Cf>
+    where
+        Option<Cf>: FromWasmAbi;
     #[wasm_bindgen(method, setter)]
-    pub fn set_cf<CfHostMetadata, Cf>(this: &Request<CfHostMetadata, Cf>, val: &Cf);
+    pub fn set_cf<CfHostMetadata, Cf: RefIntoWasmAbi>(this: &Request<CfHostMetadata, Cf>, val: &Cf);
     #[doc = " The **`integrity`** read-only property of the Request interface contains the subresource integrity value of the request."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/integrity)"]
@@ -4999,9 +5006,11 @@ extern "C" {
     #[wasm_bindgen(method, setter)]
     pub fn set_fetcher<Cf>(this: &RequestInit<Cf>, val: Option<&Fetcher>);
     #[wasm_bindgen(method, getter)]
-    pub fn cf<Cf>(this: &RequestInit<Cf>) -> Option<Cf>;
+    pub fn cf<Cf>(this: &RequestInit<Cf>) -> Option<Cf>
+    where
+        Option<Cf>: FromWasmAbi;
     #[wasm_bindgen(method, setter)]
-    pub fn set_cf<Cf>(this: &RequestInit<Cf>, val: &Cf);
+    pub fn set_cf<Cf: RefIntoWasmAbi>(this: &RequestInit<Cf>, val: &Cf);
     #[wasm_bindgen(method, getter)]
     pub fn cache<Cf>(this: &RequestInit<Cf>) -> Option<CacheKind>;
     #[wasm_bindgen(method, setter)]
@@ -5096,8 +5105,7 @@ impl<Cf> RequestInitBuilder<Cf> {
     }
     pub fn cf(self, val: &Cf) -> Self
     where
-        for<'__wbg> &'__wbg Cf:
-            ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+        Cf: RefIntoWasmAbi,
     {
         self.inner.set_cf(val);
         self
@@ -5201,9 +5209,14 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "expiration")]
     fn set_expiration_js<Metadata>(this: &KVNamespaceListKey<Metadata>, val: f64);
     #[wasm_bindgen(method, getter)]
-    pub fn metadata<Metadata>(this: &KVNamespaceListKey<Metadata>) -> Option<Metadata>;
+    pub fn metadata<Metadata>(this: &KVNamespaceListKey<Metadata>) -> Option<Metadata>
+    where
+        Option<Metadata>: FromWasmAbi;
     #[wasm_bindgen(method, setter)]
-    pub fn set_metadata<Metadata>(this: &KVNamespaceListKey<Metadata>, val: &Metadata);
+    pub fn set_metadata<Metadata: RefIntoWasmAbi>(
+        this: &KVNamespaceListKey<Metadata>,
+        val: &Metadata,
+    );
 }
 impl<Metadata> KVNamespaceListKey<Metadata> {
     pub fn expiration(&self) -> Option<u64> {
@@ -5233,8 +5246,7 @@ impl<Metadata> KVNamespaceListKeyBuilder<Metadata> {
     }
     pub fn metadata(self, val: &Metadata) -> Self
     where
-        for<'__wbg> &'__wbg Metadata:
-            ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+        Metadata: RefIntoWasmAbi,
     {
         self.inner.set_metadata(val);
         self
@@ -6204,9 +6216,11 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type KVNamespaceGetOptionsPartial<Type = JsValue>;
     #[wasm_bindgen(method, getter, js_name = "type")]
-    pub fn type_<Type>(this: &KVNamespaceGetOptionsPartial<Type>) -> Option<Type>;
+    pub fn type_<Type>(this: &KVNamespaceGetOptionsPartial<Type>) -> Option<Type>
+    where
+        Option<Type>: FromWasmAbi;
     #[wasm_bindgen(method, setter)]
-    pub fn set_type<Type>(this: &KVNamespaceGetOptionsPartial<Type>, val: &Type);
+    pub fn set_type<Type: RefIntoWasmAbi>(this: &KVNamespaceGetOptionsPartial<Type>, val: &Type);
     #[wasm_bindgen(method, getter, js_name = "cacheTtl")]
     fn cache_ttl_js<Type>(this: &KVNamespaceGetOptionsPartial<Type>) -> Option<f64>;
     #[wasm_bindgen(method, setter, js_name = "cacheTtl")]
@@ -6236,8 +6250,7 @@ pub struct KVNamespaceGetOptionsPartialBuilder<Type> {
 impl<Type> KVNamespaceGetOptionsPartialBuilder<Type> {
     pub fn type_(self, val: &Type) -> Self
     where
-        for<'__wbg> &'__wbg Type:
-            ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+        Type: RefIntoWasmAbi,
     {
         self.inner.set_type(val);
         self
@@ -6328,9 +6341,9 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type KVNamespaceGetOptions<Type = JsValue>;
     #[wasm_bindgen(method, getter, js_name = "type")]
-    pub fn type_<Type>(this: &KVNamespaceGetOptions<Type>) -> Type;
+    pub fn type_<Type: FromWasmAbi>(this: &KVNamespaceGetOptions<Type>) -> Type;
     #[wasm_bindgen(method, setter)]
-    pub fn set_type<Type>(this: &KVNamespaceGetOptions<Type>, val: &Type);
+    pub fn set_type<Type: RefIntoWasmAbi>(this: &KVNamespaceGetOptions<Type>, val: &Type);
     #[wasm_bindgen(method, getter, js_name = "cacheTtl")]
     fn cache_ttl_js<Type>(this: &KVNamespaceGetOptions<Type>) -> Option<f64>;
     #[wasm_bindgen(method, setter, js_name = "cacheTtl")]
@@ -6344,11 +6357,7 @@ impl<Type> KVNamespaceGetOptions<Type> {
         self.set_cache_ttl_js(val as f64)
     }
 }
-impl<Type> KVNamespaceGetOptions<Type>
-where
-    for<'__wbg> &'__wbg Type:
-        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
-{
+impl<Type: RefIntoWasmAbi> KVNamespaceGetOptions<Type> {
     pub fn new(r#type: &Type) -> KVNamespaceGetOptions<Type> {
         Self::builder(r#type).build()
     }
@@ -6450,18 +6459,22 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn value<Value, Metadata>(
         this: &KVNamespaceGetWithMetadataResult<Value, Metadata>,
-    ) -> Option<Value>;
+    ) -> Option<Value>
+    where
+        Option<Value>: FromWasmAbi;
     #[wasm_bindgen(method, setter)]
-    pub fn set_value<Value, Metadata>(
+    pub fn set_value<Value: RefIntoWasmAbi, Metadata>(
         this: &KVNamespaceGetWithMetadataResult<Value, Metadata>,
         val: Option<&Value>,
     );
     #[wasm_bindgen(method, getter)]
     pub fn metadata<Value, Metadata>(
         this: &KVNamespaceGetWithMetadataResult<Value, Metadata>,
-    ) -> Option<Metadata>;
+    ) -> Option<Metadata>
+    where
+        Option<Metadata>: FromWasmAbi;
     #[wasm_bindgen(method, setter)]
-    pub fn set_metadata<Value, Metadata>(
+    pub fn set_metadata<Value, Metadata: RefIntoWasmAbi>(
         this: &KVNamespaceGetWithMetadataResult<Value, Metadata>,
         val: Option<&Metadata>,
     );
@@ -6475,12 +6488,8 @@ extern "C" {
         val: Option<impl ::wasm_bindgen::JsStringLike>,
     );
 }
-impl<Value, Metadata> KVNamespaceGetWithMetadataResult<Value, Metadata>
-where
-    for<'__wbg> Option<&'__wbg Value>:
-        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
-    for<'__wbg> Option<&'__wbg Metadata>:
-        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+impl<Value: RefIntoWasmAbi, Metadata: RefIntoWasmAbi>
+    KVNamespaceGetWithMetadataResult<Value, Metadata>
 {
     pub fn new(
         value: Option<&Value>,
@@ -6511,12 +6520,12 @@ extern "C" {
     #[wasm_bindgen(method, catch)]
     pub fn metrics<Body>(this: &Queue<Body>) -> Promise<QueueMetrics, crate::Error>;
     #[wasm_bindgen(method, catch)]
-    pub fn send<Body>(
+    pub fn send<Body: RefIntoWasmAbi>(
         this: &Queue<Body>,
         message: &Body,
     ) -> Promise<QueueSendResponse, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "send")]
-    pub fn send_with_options<Body>(
+    pub fn send_with_options<Body: RefIntoWasmAbi>(
         this: &Queue<Body>,
         message: &Body,
         options: &QueueSendOptions,
@@ -6781,9 +6790,9 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type MessageSendRequest<Body = JsValue>;
     #[wasm_bindgen(method, getter)]
-    pub fn body<Body>(this: &MessageSendRequest<Body>) -> Body;
+    pub fn body<Body: FromWasmAbi>(this: &MessageSendRequest<Body>) -> Body;
     #[wasm_bindgen(method, setter)]
-    pub fn set_body<Body>(this: &MessageSendRequest<Body>, val: &Body);
+    pub fn set_body<Body: RefIntoWasmAbi>(this: &MessageSendRequest<Body>, val: &Body);
     #[wasm_bindgen(method, getter, js_name = "contentType")]
     pub fn content_type<Body>(this: &MessageSendRequest<Body>) -> Option<QueueContentType>;
     #[wasm_bindgen(method, setter, js_name = "contentType")]
@@ -6793,11 +6802,7 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "delaySeconds")]
     pub fn set_delay_seconds<Body>(this: &MessageSendRequest<Body>, val: f64);
 }
-impl<Body> MessageSendRequest<Body>
-where
-    for<'__wbg> &'__wbg Body:
-        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
-{
+impl<Body: RefIntoWasmAbi> MessageSendRequest<Body> {
     pub fn new(body: &Body) -> MessageSendRequest<Body> {
         Self::builder(body).build()
     }
@@ -6984,7 +6989,7 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn timestamp<Body>(this: &Message<Body>) -> Date;
     #[wasm_bindgen(method, getter)]
-    pub fn body<Body>(this: &Message<Body>) -> Body;
+    pub fn body<Body: FromWasmAbi>(this: &Message<Body>) -> Body;
     #[wasm_bindgen(method, getter)]
     pub fn attempts<Body>(this: &Message<Body>) -> f64;
     #[wasm_bindgen(method, catch)]
@@ -8896,15 +8901,13 @@ extern "C" {
     #[wasm_bindgen(method, setter)]
     pub fn set_done<R>(this: &ReadableStreamReadResult<R>, val: bool);
     #[wasm_bindgen(method, getter)]
-    pub fn value<R>(this: &ReadableStreamReadResult<R>) -> Option<R>;
+    pub fn value<R>(this: &ReadableStreamReadResult<R>) -> Option<R>
+    where
+        Option<R>: FromWasmAbi;
     #[wasm_bindgen(method, setter)]
-    pub fn set_value<R>(this: &ReadableStreamReadResult<R>, val: Option<&R>);
+    pub fn set_value<R: RefIntoWasmAbi>(this: &ReadableStreamReadResult<R>, val: Option<&R>);
 }
-impl<R> ReadableStreamReadResult<R>
-where
-    for<'__wbg> Option<&'__wbg R>:
-        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
-{
+impl<R: RefIntoWasmAbi> ReadableStreamReadResult<R> {
     #[doc = " ## Inlined fields"]
     #[doc = ""]
     #[doc = " * `done: false`"]
@@ -8935,8 +8938,7 @@ pub struct ReadableStreamReadResultBuilder<R> {
 impl<R> ReadableStreamReadResultBuilder<R> {
     pub fn value(self, val: &R) -> Self
     where
-        for<'__wbg> Option<&'__wbg R>:
-            ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+        R: RefIntoWasmAbi,
     {
         self.inner.set_value(Some(val));
         self
@@ -9129,7 +9131,7 @@ extern "C" {
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBReader/read)"]
     #[wasm_bindgen(method, catch)]
-    pub fn read<T>(
+    pub fn read<T: RefIntoWasmAbi>(
         this: &ReadableStreamBYOBReader,
         view: &T,
     ) -> Promise<ReadableStreamReadResult<T>, crate::Error>;
@@ -9139,7 +9141,7 @@ extern "C" {
     #[wasm_bindgen(method, catch, js_name = "releaseLock")]
     pub fn release_lock(this: &ReadableStreamBYOBReader) -> Result<(), crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "readAtLeast")]
-    pub fn read_at_least<T>(
+    pub fn read_at_least<T: RefIntoWasmAbi>(
         this: &ReadableStreamBYOBReader,
         min_elements: f64,
         view: &T,
@@ -9225,7 +9227,7 @@ extern "C" {
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamDefaultController/enqueue)"]
     #[wasm_bindgen(method, catch, js_name = "enqueue")]
-    pub fn enqueue_with_chunk<R>(
+    pub fn enqueue_with_chunk<R: RefIntoWasmAbi>(
         this: &ReadableStreamDefaultController<R>,
         chunk: &R,
     ) -> Result<(), crate::Error>;
@@ -9316,7 +9318,7 @@ extern "C" {
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/TransformStreamDefaultController/enqueue)"]
     #[wasm_bindgen(method, catch, js_name = "enqueue")]
-    pub fn enqueue_with_chunk<O>(
+    pub fn enqueue_with_chunk<O: RefIntoWasmAbi>(
         this: &TransformStreamDefaultController<O>,
         chunk: &O,
     ) -> Result<(), crate::Error>;
@@ -9478,7 +9480,7 @@ extern "C" {
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/write)"]
     #[wasm_bindgen(method, catch, js_name = "write")]
-    pub fn write_with_chunk<W>(
+    pub fn write_with_chunk<W: RefIntoWasmAbi>(
         this: &WritableStreamDefaultWriter<W>,
         chunk: &W,
     ) -> Promise<(), crate::Error>;
@@ -10446,7 +10448,7 @@ extern "C" {
         callback: &Function<fn(String, String, URLSearchParams)>,
     ) -> Result<(), crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "forEach")]
-    pub fn for_each_with_this_arg<This>(
+    pub fn for_each_with_this_arg<This: RefIntoWasmAbi>(
         this: &URLSearchParams,
         callback: &Function<fn(String, String, URLSearchParams)>,
         this_arg: &This,
@@ -11613,9 +11615,11 @@ extern "C" {
         this: &SqlStorageCursor<T>,
     ) -> Result<SqlStorageCursorNextReturn<T>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "toArray")]
-    pub fn to_array<T>(this: &SqlStorageCursor<T>) -> Result<Vec<T>, crate::Error>;
+    pub fn to_array<T>(this: &SqlStorageCursor<T>) -> Result<Vec<T>, crate::Error>
+    where
+        Vec<T>: FromWasmAbi;
     #[wasm_bindgen(method, catch)]
-    pub fn one<T>(this: &SqlStorageCursor<T>) -> Result<T, crate::Error>;
+    pub fn one<T: FromWasmAbi>(this: &SqlStorageCursor<T>) -> Result<T, crate::Error>;
     #[doc = " Allocates the row iterator; the query runs when it is advanced"]
     #[doc = " (`next` / `toArray` keep their failure mode)."]
     #[wasm_bindgen(method)]
@@ -11658,9 +11662,11 @@ extern "C" {
     #[wasm_bindgen(method, setter)]
     pub fn set_done<T>(this: &SqlStorageCursorNextReturn<T>, val: bool);
     #[wasm_bindgen(method, getter)]
-    pub fn value<T>(this: &SqlStorageCursorNextReturn<T>) -> Option<T>;
+    pub fn value<T>(this: &SqlStorageCursorNextReturn<T>) -> Option<T>
+    where
+        Option<T>: FromWasmAbi;
     #[wasm_bindgen(method, setter)]
-    pub fn set_value<T>(this: &SqlStorageCursorNextReturn<T>, val: Option<&T>);
+    pub fn set_value<T: RefIntoWasmAbi>(this: &SqlStorageCursorNextReturn<T>, val: Option<&T>);
 }
 impl<T> SqlStorageCursorNextReturn<T> {
     pub fn new() -> SqlStorageCursorNextReturn<T> {
@@ -11682,8 +11688,7 @@ impl<T> SqlStorageCursorNextReturnBuilder<T> {
     }
     pub fn value(self, val: &T) -> Self
     where
-        for<'__wbg> Option<&'__wbg T>:
-            ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+        T: RefIntoWasmAbi,
     {
         self.inner.set_value(Some(val));
         self
@@ -12583,7 +12588,9 @@ extern "C" {
     pub fn get<T>(
         this: &SyncKvStorage,
         key: impl ::wasm_bindgen::JsStringLike,
-    ) -> Result<Option<T>, crate::Error>;
+    ) -> Result<Option<T>, crate::Error>
+    where
+        Option<T>: FromWasmAbi;
     #[wasm_bindgen(method, catch)]
     pub fn list(this: &SyncKvStorage) -> Result<SyncKvStorageList<JsValue>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "list")]
@@ -12599,7 +12606,7 @@ extern "C" {
         options: &SyncKvListOptions,
     ) -> Result<SyncKvStorageList<T>, crate::Error>;
     #[wasm_bindgen(method, catch)]
-    pub fn put<T>(
+    pub fn put<T: RefIntoWasmAbi>(
         this: &SyncKvStorage,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &T,
@@ -13151,14 +13158,14 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type Tracing;
     #[wasm_bindgen(method, variadic, catch, js_name = "enterSpan")]
-    pub fn enter_span<T>(
+    pub fn enter_span<T: FromWasmAbi>(
         this: &Tracing,
         name: impl ::wasm_bindgen::JsStringLike,
         callback: &Function,
         args: &[JsValue],
     ) -> Result<T, crate::Error>;
     #[wasm_bindgen(method, variadic, catch, js_name = "startActiveSpan")]
-    pub fn start_active_span<T>(
+    pub fn start_active_span<T: FromWasmAbi>(
         this: &Tracing,
         name: impl ::wasm_bindgen::JsStringLike,
         callback: &Function,
@@ -14748,9 +14755,11 @@ extern "C" {
     #[wasm_bindgen(method, getter, js_name = "hostMetadata")]
     pub fn host_metadata<HostMetadata>(
         this: &IncomingRequestCfProperties<HostMetadata>,
-    ) -> Option<HostMetadata>;
+    ) -> Option<HostMetadata>
+    where
+        Option<HostMetadata>: FromWasmAbi;
     #[wasm_bindgen(method, setter, js_name = "hostMetadata")]
-    pub fn set_host_metadata<HostMetadata>(
+    pub fn set_host_metadata<HostMetadata: RefIntoWasmAbi>(
         this: &IncomingRequestCfProperties<HostMetadata>,
         val: &HostMetadata,
     );
@@ -16636,8 +16645,7 @@ impl<HostMetadata> IncomingRequestCfPropertiesBuilder<HostMetadata> {
     }
     pub fn host_metadata(self, val: &HostMetadata) -> Self
     where
-        for<'__wbg> &'__wbg HostMetadata:
-            ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+        HostMetadata: RefIntoWasmAbi,
     {
         self.inner.set_host_metadata(val);
         self
@@ -17569,9 +17577,11 @@ extern "C" {
     #[wasm_bindgen(method, getter, js_name = "hostMetadata")]
     pub fn host_metadata<HostMetadata>(
         this: &IncomingRequestCfPropertiesCloudflareForSaaSEnterprise<HostMetadata>,
-    ) -> Option<HostMetadata>;
+    ) -> Option<HostMetadata>
+    where
+        Option<HostMetadata>: FromWasmAbi;
     #[wasm_bindgen(method, setter, js_name = "hostMetadata")]
-    pub fn set_host_metadata<HostMetadata>(
+    pub fn set_host_metadata<HostMetadata: RefIntoWasmAbi>(
         this: &IncomingRequestCfPropertiesCloudflareForSaaSEnterprise<HostMetadata>,
         val: &HostMetadata,
     );
@@ -17593,8 +17603,7 @@ pub struct IncomingRequestCfPropertiesCloudflareForSaaSEnterpriseBuilder<HostMet
 impl<HostMetadata> IncomingRequestCfPropertiesCloudflareForSaaSEnterpriseBuilder<HostMetadata> {
     pub fn host_metadata(self, val: &HostMetadata) -> Self
     where
-        for<'__wbg> &'__wbg HostMetadata:
-            ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+        HostMetadata: RefIntoWasmAbi,
     {
         self.inner.set_host_metadata(val);
         self
@@ -19074,14 +19083,16 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type D1Result<T = JsValue>;
     #[wasm_bindgen(method, getter)]
-    pub fn results<T>(this: &D1Result<T>) -> Vec<T>;
+    pub fn results<T>(this: &D1Result<T>) -> Vec<T>
+    where
+        Vec<T>: FromWasmAbi;
     #[wasm_bindgen(method, setter)]
-    pub fn set_results<T>(this: &D1Result<T>, #[wasm_bindgen(slice = "array")] val: &[T]);
+    pub fn set_results<T: VectorRefIntoWasmAbi>(
+        this: &D1Result<T>,
+        #[wasm_bindgen(slice = "array")] val: &[T],
+    );
 }
-impl<T> D1Result<T>
-where
-    T: ::wasm_bindgen::convert::VectorRefIntoWasmAbi,
-{
+impl<T: VectorRefIntoWasmAbi> D1Result<T> {
     #[doc = " ## Inlined fields"]
     #[doc = ""]
     #[doc = " * `success: true`"]
@@ -20734,7 +20745,7 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter)]
         pub fn sequence<Event>(this: &TailEvent<Event>) -> f64;
         #[wasm_bindgen(method, getter)]
-        pub fn event<Event>(this: &TailEvent<Event>) -> Event;
+        pub fn event<Event: FromWasmAbi>(this: &TailEvent<Event>) -> Event;
     }
     impl<Event> TailEvent<Event> {
         #[allow(clippy::new_without_default)]
