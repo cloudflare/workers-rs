@@ -180,13 +180,29 @@ extern "C" {
 }
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(variadic, catch, js_name = "setTimeout")]
-    pub fn set_timeout(callback: &Function, args: &[JsValue]) -> Result<f64, crate::Error>;
+    #[wasm_bindgen(catch, js_name = "setTimeout")]
+    pub fn set_timeout(callback: &Function) -> Result<f64, crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(catch, js_name = "setTimeout")]
+    pub fn set_timeout_with_function_and_ms_delay(
+        callback: &Function,
+        ms_delay: f64,
+    ) -> Result<f64, crate::Error>;
 }
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(variadic, catch, js_name = "setTimeout")]
-    pub fn set_timeout_with_ms_delay(
+    pub fn set_timeout_with_function_and_args(
+        callback: &Function,
+        args: &[JsValue],
+    ) -> Result<f64, crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(variadic, catch, js_name = "setTimeout")]
+    pub fn set_timeout_with_function_and_ms_delay_and_args(
         callback: &Function,
         ms_delay: f64,
         args: &[JsValue],
@@ -9773,6 +9789,98 @@ impl<W: ::wasm_bindgen::JsGeneric> From<UnderlyingSink<W>> for UnderlyingSinkBui
 extern "C" {
     # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type UnderlyingByteSource;
+    #[wasm_bindgen(method, getter, js_name = "type")]
+    pub fn type_(this: &UnderlyingByteSource) -> String;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_type(this: &UnderlyingByteSource, val: &str);
+    #[wasm_bindgen(method, getter, js_name = "autoAllocateChunkSize")]
+    pub fn auto_allocate_chunk_size(this: &UnderlyingByteSource) -> Option<f64>;
+    #[wasm_bindgen(method, setter, js_name = "autoAllocateChunkSize")]
+    pub fn set_auto_allocate_chunk_size(this: &UnderlyingByteSource, val: f64);
+    #[wasm_bindgen(method, getter)]
+    pub fn start(
+        this: &UnderlyingByteSource,
+    ) -> Option<Function<fn(ReadableByteStreamController) -> JsOption<Promise<Undefined>>>>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_start(
+        this: &UnderlyingByteSource,
+        val: &Function<fn(ReadableByteStreamController) -> JsOption<Promise<Undefined>>>,
+    );
+    #[wasm_bindgen(method, getter)]
+    pub fn pull(
+        this: &UnderlyingByteSource,
+    ) -> Option<Function<fn(ReadableByteStreamController) -> JsOption<Promise<Undefined>>>>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_pull(
+        this: &UnderlyingByteSource,
+        val: &Function<fn(ReadableByteStreamController) -> JsOption<Promise<Undefined>>>,
+    );
+    #[wasm_bindgen(method, getter)]
+    pub fn cancel(
+        this: &UnderlyingByteSource,
+    ) -> Option<Function<fn(JsValue) -> JsOption<Promise<Undefined>>>>;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_cancel(
+        this: &UnderlyingByteSource,
+        val: &Function<fn(JsValue) -> JsOption<Promise<Undefined>>>,
+    );
+}
+impl UnderlyingByteSource {
+    #[doc = " ## Inlined fields"]
+    #[doc = ""]
+    #[doc = " * `type: \"bytes\"`"]
+    pub fn new() -> UnderlyingByteSource {
+        Self::builder().build()
+    }
+    #[doc = " ## Inlined fields"]
+    #[doc = ""]
+    #[doc = " * `type: \"bytes\"`"]
+    pub fn builder() -> UnderlyingByteSourceBuilder {
+        let inner: UnderlyingByteSource = JsCast::unchecked_into(js_sys::Object::new());
+        inner.set_type("bytes");
+        UnderlyingByteSourceBuilder { inner }
+    }
+}
+pub struct UnderlyingByteSourceBuilder {
+    inner: UnderlyingByteSource,
+}
+impl UnderlyingByteSourceBuilder {
+    pub fn auto_allocate_chunk_size(self, val: f64) -> Self {
+        self.inner.set_auto_allocate_chunk_size(val);
+        self
+    }
+    pub fn start(
+        self,
+        val: &Function<fn(ReadableByteStreamController) -> JsOption<Promise<Undefined>>>,
+    ) -> Self {
+        self.inner.set_start(val);
+        self
+    }
+    pub fn pull(
+        self,
+        val: &Function<fn(ReadableByteStreamController) -> JsOption<Promise<Undefined>>>,
+    ) -> Self {
+        self.inner.set_pull(val);
+        self
+    }
+    pub fn cancel(self, val: &Function<fn(JsValue) -> JsOption<Promise<Undefined>>>) -> Self {
+        self.inner.set_cancel(val);
+        self
+    }
+    pub fn build(self) -> UnderlyingByteSource {
+        self.inner
+    }
+}
+impl From<UnderlyingByteSource> for UnderlyingByteSourceBuilder {
+    fn from(inner: UnderlyingByteSource) -> Self {
+        Self { inner }
+    }
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
     pub type UnderlyingSource<R: ::wasm_bindgen::JsGeneric = JsValue>;
     #[wasm_bindgen(method, getter, js_name = "type")]
     pub fn type_<R: ::wasm_bindgen::JsGeneric>(this: &UnderlyingSource<R>) -> Option<String>;
@@ -10149,11 +10257,20 @@ extern "C" {
     #[wasm_bindgen(constructor, catch)]
     pub fn new() -> Result<ReadableStream, crate::Error>;
     #[wasm_bindgen(constructor, catch, js_name = "ReadableStream")]
+    pub fn new_with_underlying_byte_source(
+        underlying_source: &UnderlyingByteSource,
+    ) -> Result<ReadableStream, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "ReadableStream")]
+    pub fn new_with_underlying_byte_source_and_queuing_strategy(
+        underlying_source: &UnderlyingByteSource,
+        strategy: &QueuingStrategy<Uint8Array>,
+    ) -> Result<ReadableStream, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "ReadableStream")]
     pub fn new_with_underlying_source<R: ::wasm_bindgen::JsGeneric>(
         underlying_source: &UnderlyingSource<R>,
     ) -> Result<ReadableStream<R>, crate::Error>;
     #[wasm_bindgen(constructor, catch, js_name = "ReadableStream")]
-    pub fn new_with_underlying_source_and_strategy<R: ::wasm_bindgen::JsGeneric>(
+    pub fn new_with_underlying_source_and_queuing_strategy<R: ::wasm_bindgen::JsGeneric>(
         underlying_source: &UnderlyingSource<R>,
         strategy: &QueuingStrategy<R>,
     ) -> Result<ReadableStream<R>, crate::Error>;
@@ -10422,6 +10539,43 @@ impl ReadableStreamGetReaderOptions {
 extern "C" {
     # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type ReadableStreamBYOBRequest;
+    #[doc = " The **`view`** getter property of the ReadableStreamBYOBRequest interface returns the current view."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBRequest/view)"]
+    #[wasm_bindgen(method, getter)]
+    pub fn view(this: &ReadableStreamBYOBRequest) -> Option<Uint8Array>;
+    #[doc = " The **`respond()`** method of the ReadableStreamBYOBRequest interface is used to signal to the associated readable byte stream that the specified number of bytes were written into the ReadableStreamBYOBRequest.view."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBRequest/respond)"]
+    #[wasm_bindgen(method, catch)]
+    pub fn respond(
+        this: &ReadableStreamBYOBRequest,
+        bytes_written: f64,
+    ) -> Result<(), crate::Error>;
+    #[doc = " The **`respondWithNewView()`** method of the ReadableStreamBYOBRequest interface specifies a new view that the consumer of the associated readable byte stream should write to instead of ReadableStreamBYOBRequest.view."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBRequest/respondWithNewView)"]
+    #[wasm_bindgen(method, catch, js_name = "respondWithNewView")]
+    pub fn respond_with_new_view(
+        this: &ReadableStreamBYOBRequest,
+        view: &ArrayBuffer,
+    ) -> Result<(), crate::Error>;
+    #[doc = " The **`respondWithNewView()`** method of the ReadableStreamBYOBRequest interface specifies a new view that the consumer of the associated readable byte stream should write to instead of ReadableStreamBYOBRequest.view."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBRequest/respondWithNewView)"]
+    #[wasm_bindgen(method, catch, js_name = "respondWithNewView")]
+    pub fn respond_with_new_view_with_typed_array(
+        this: &ReadableStreamBYOBRequest,
+        view: &Object,
+    ) -> Result<(), crate::Error>;
+    #[wasm_bindgen(method, getter, js_name = "atLeast")]
+    pub fn at_least(this: &ReadableStreamBYOBRequest) -> Option<f64>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
     pub type ReadableStreamDefaultController<R: ::wasm_bindgen::JsGeneric = JsValue>;
     #[doc = " The **`desiredSize`** read-only property of the ReadableStreamDefaultController interface returns the desired size required to fill the stream's internal queue."]
     #[doc = ""]
@@ -10460,6 +10614,49 @@ extern "C" {
         this: &ReadableStreamDefaultController<R>,
         reason: &JsValue,
     ) -> Result<(), crate::Error>;
+}
+#[wasm_bindgen]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type ReadableByteStreamController;
+    #[doc = " The **`byobRequest`** read-only property of the ReadableByteStreamController interface returns the current BYOB request, or null if there are no pending requests."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableByteStreamController/byobRequest)"]
+    #[wasm_bindgen(method, getter, js_name = "byobRequest")]
+    pub fn byob_request(this: &ReadableByteStreamController) -> Option<ReadableStreamBYOBRequest>;
+    #[doc = " The **`desiredSize`** read-only property of the ReadableByteStreamController interface returns the number of bytes required to fill the stream's internal queue to its \"desired size\"."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableByteStreamController/desiredSize)"]
+    #[wasm_bindgen(method, getter, js_name = "desiredSize")]
+    pub fn desired_size(this: &ReadableByteStreamController) -> Option<f64>;
+    #[doc = " The **`close()`** method of the ReadableByteStreamController interface closes the associated stream."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableByteStreamController/close)"]
+    #[wasm_bindgen(method, catch)]
+    pub fn close(this: &ReadableByteStreamController) -> Result<(), crate::Error>;
+    #[doc = " The **`enqueue()`** method of the ReadableByteStreamController interface enqueues a given chunk on the associated readable byte stream (the chunk is transferred into the stream's internal queues)."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableByteStreamController/enqueue)"]
+    #[wasm_bindgen(method, catch)]
+    pub fn enqueue(
+        this: &ReadableByteStreamController,
+        chunk: &ArrayBuffer,
+    ) -> Result<(), crate::Error>;
+    #[doc = " The **`enqueue()`** method of the ReadableByteStreamController interface enqueues a given chunk on the associated readable byte stream (the chunk is transferred into the stream's internal queues)."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableByteStreamController/enqueue)"]
+    #[wasm_bindgen(method, catch, js_name = "enqueue")]
+    pub fn enqueue_with_typed_array(
+        this: &ReadableByteStreamController,
+        chunk: &Object,
+    ) -> Result<(), crate::Error>;
+    #[doc = " The **`error()`** method of the ReadableByteStreamController interface causes any future interactions with the associated stream to error with the specified reason."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableByteStreamController/error)"]
+    #[wasm_bindgen(method, catch)]
+    pub fn error(this: &ReadableByteStreamController, reason: &JsValue)
+        -> Result<(), crate::Error>;
 }
 #[wasm_bindgen]
 extern "C" {
@@ -19771,9 +19968,10 @@ extern "C" {
         this: &ForwardableEmailMessage,
         message: &cloudflare::email::EmailMessage,
     ) -> Result<Promise<EmailSendResult>, crate::Error>;
-    #[doc = " Reply to the sender of this email message with a new EmailMessage object."]
+    #[doc = " Reply to the sender of this email message with a message built from the given"]
+    #[doc = " fields. Threading headers (In-Reply-To/References) are set automatically."]
     #[doc = ""]
-    #[doc = " * `message` - The reply message."]
+    #[doc = " * `builder` - The reply message contents."]
     #[doc = ""]
     #[doc = " Returns: A promise that resolves when the email message is replied."]
     #[wasm_bindgen(method, catch, js_name = "reply")]
@@ -19781,9 +19979,10 @@ extern "C" {
         this: &ForwardableEmailMessage,
         builder: &EmailReplyMessageBuilder,
     ) -> Result<EmailSendResult, crate::Error>;
-    #[doc = " Reply to the sender of this email message with a new EmailMessage object."]
+    #[doc = " Reply to the sender of this email message with a message built from the given"]
+    #[doc = " fields. Threading headers (In-Reply-To/References) are set automatically."]
     #[doc = ""]
-    #[doc = " * `message` - The reply message."]
+    #[doc = " * `builder` - The reply message contents."]
     #[doc = ""]
     #[doc = " Returns: A promise that resolves when the email message is replied."]
     #[wasm_bindgen(method, catch, js_name = "reply")]
@@ -19833,7 +20032,6 @@ impl EmailAttachment {
         content: &str,
     ) -> EmailAttachment {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
-        // ts-gen regression: the branch factory passes the literal "inline" to the enum setter.
         inner.set_disposition(DispositionKind::Inline);
         inner.set_content_id(content_id);
         inner.set_filename(filename);
@@ -19851,7 +20049,6 @@ impl EmailAttachment {
         content: &ArrayBuffer,
     ) -> EmailAttachment {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
-        // ts-gen regression: the branch factory passes the literal "inline" to the enum setter.
         inner.set_disposition(DispositionKind::Inline);
         inner.set_content_id(content_id);
         inner.set_filename(filename);
@@ -19869,7 +20066,6 @@ impl EmailAttachment {
         content: &T,
     ) -> EmailAttachment {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
-        // ts-gen regression: the branch factory passes the literal "inline" to the enum setter.
         inner.set_disposition(DispositionKind::Inline);
         inner.set_content_id(content_id);
         inner.set_filename(filename);
@@ -19912,7 +20108,6 @@ impl EmailAttachment {
         content: &str,
     ) -> EmailAttachmentBuilder {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
-        // ts-gen regression: the branch factory passes the literal "attachment" to the enum setter.
         inner.set_disposition(DispositionKind::Attachment);
         inner.set_filename(filename);
         inner.set_type(r#type);
@@ -19928,7 +20123,6 @@ impl EmailAttachment {
         content: &ArrayBuffer,
     ) -> EmailAttachmentBuilder {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
-        // ts-gen regression: the branch factory passes the literal "attachment" to the enum setter.
         inner.set_disposition(DispositionKind::Attachment);
         inner.set_filename(filename);
         inner.set_type(r#type);
@@ -19944,7 +20138,6 @@ impl EmailAttachment {
         content: &T,
     ) -> EmailAttachmentBuilder {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
-        // ts-gen regression: the branch factory passes the literal "attachment" to the enum setter.
         inner.set_disposition(DispositionKind::Attachment);
         inner.set_filename(filename);
         inner.set_type(r#type);

@@ -197,7 +197,6 @@ impl EmailAttachment {
         content: &str,
     ) -> EmailAttachment {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
-        // ts-gen regression: the branch factory passes the literal "inline" to the enum setter.
         inner.set_disposition(DispositionKind::Inline);
         inner.set_content_id(content_id);
         inner.set_filename(filename);
@@ -215,7 +214,6 @@ impl EmailAttachment {
         content: &ArrayBuffer,
     ) -> EmailAttachment {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
-        // ts-gen regression: the branch factory passes the literal "inline" to the enum setter.
         inner.set_disposition(DispositionKind::Inline);
         inner.set_content_id(content_id);
         inner.set_filename(filename);
@@ -233,7 +231,6 @@ impl EmailAttachment {
         content: &T,
     ) -> EmailAttachment {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
-        // ts-gen regression: the branch factory passes the literal "inline" to the enum setter.
         inner.set_disposition(DispositionKind::Inline);
         inner.set_content_id(content_id);
         inner.set_filename(filename);
@@ -276,7 +273,6 @@ impl EmailAttachment {
         content: &str,
     ) -> EmailAttachmentBuilder {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
-        // ts-gen regression: the branch factory passes the literal "attachment" to the enum setter.
         inner.set_disposition(DispositionKind::Attachment);
         inner.set_filename(filename);
         inner.set_type(r#type);
@@ -292,7 +288,6 @@ impl EmailAttachment {
         content: &ArrayBuffer,
     ) -> EmailAttachmentBuilder {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
-        // ts-gen regression: the branch factory passes the literal "attachment" to the enum setter.
         inner.set_disposition(DispositionKind::Attachment);
         inner.set_filename(filename);
         inner.set_type(r#type);
@@ -308,7 +303,6 @@ impl EmailAttachment {
         content: &T,
     ) -> EmailAttachmentBuilder {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
-        // ts-gen regression: the branch factory passes the literal "attachment" to the enum setter.
         inner.set_disposition(DispositionKind::Attachment);
         inner.set_filename(filename);
         inner.set_type(r#type);
