@@ -14,7 +14,7 @@ use wasm_bindgen::JsValue;
 #[cfg(feature = "serde")]
 use crate::KVNamespaceGetWithMetadataResult;
 use crate::{
-    KVNamespace, KVNamespaceGetOptions, KVNamespaceListOptions, KVNamespaceListResult,
+    KVNamespace, KVNamespaceGetOptionsPartial, KVNamespaceListOptions, KVNamespaceListResult,
     KVNamespacePutOptions, ReadableStream, Result,
 };
 
@@ -111,8 +111,8 @@ impl ToRawKvValue for String {
 #[cfg(feature = "serde")]
 type TextEntry = KVNamespaceGetWithMetadataResult<String, JsValue>;
 
-fn get_options(value_type: &str, cache_ttl: Option<u64>) -> KVNamespaceGetOptions<String> {
-    let builder = KVNamespaceGetOptions::builder(&value_type.to_string());
+fn get_options(cache_ttl: Option<u64>) -> KVNamespaceGetOptionsPartial<String> {
+    let builder = KVNamespaceGetOptionsPartial::builder();
     match cache_ttl {
         Some(ttl) => builder.cache_ttl(ttl),
         None => builder,
@@ -151,12 +151,12 @@ impl KvGetBuilder {
         self
     }
 
-    fn options(&self, value_type: &str) -> KVNamespaceGetOptions<String> {
-        get_options(value_type, self.cache_ttl)
+    fn options(&self) -> KVNamespaceGetOptionsPartial<String> {
+        get_options(self.cache_ttl)
     }
 
     pub async fn text(self) -> Result<Option<String>> {
-        let options = self.options("text");
+        let options = self.options();
         self.kv.get_text_with_options(&self.key, &options).await
     }
 
@@ -167,7 +167,7 @@ impl KvGetBuilder {
     }
 
     pub async fn bytes(self) -> Result<Option<Vec<u8>>> {
-        let options = self.options("arrayBuffer");
+        let options = self.options();
         let buffer = self
             .kv
             .get_array_buffer_with_options(&self.key, &options)
@@ -176,7 +176,7 @@ impl KvGetBuilder {
     }
 
     pub async fn stream(self) -> Result<Option<ReadableStream>> {
-        let options = self.options("stream");
+        let options = self.options();
         self.kv.get_stream_with_options(&self.key, &options).await
     }
 
@@ -184,7 +184,7 @@ impl KvGetBuilder {
     pub async fn text_with_metadata<M: serde::de::DeserializeOwned>(
         self,
     ) -> Result<(Option<String>, Option<M>)> {
-        let options = self.options("text");
+        let options = self.options();
         let entry = self
             .kv
             .get_with_metadata_text_with_options(&self.key, &options)
@@ -207,7 +207,7 @@ impl KvGetBuilder {
     pub async fn bytes_with_metadata<M: serde::de::DeserializeOwned>(
         self,
     ) -> Result<(Option<Vec<u8>>, Option<M>)> {
-        let options = self.options("arrayBuffer");
+        let options = self.options();
         let entry = self
             .kv
             .get_with_metadata_array_buffer_with_options(&self.key, &options)
@@ -219,7 +219,7 @@ impl KvGetBuilder {
     pub async fn stream_with_metadata<M: serde::de::DeserializeOwned>(
         self,
     ) -> Result<(Option<ReadableStream>, Option<M>)> {
-        let options = self.options("stream");
+        let options = self.options();
         let entry = self
             .kv
             .get_with_metadata_stream_with_options(&self.key, &options)
@@ -244,7 +244,7 @@ impl KvGetBulkBuilder {
     }
 
     async fn text_map(&self) -> Result<Map<String, Option<String>>> {
-        let options = get_options("text", self.cache_ttl);
+        let options = get_options(self.cache_ttl);
         self.kv
             .get_text_with_slice_and_options(&self.keys, &options)
             .await
@@ -252,7 +252,7 @@ impl KvGetBulkBuilder {
 
     #[cfg(feature = "serde")]
     async fn text_map_with_metadata(&self) -> Result<Map<String, TextEntry>> {
-        let options = get_options("text", self.cache_ttl);
+        let options = get_options(self.cache_ttl);
         self.kv
             .get_with_metadata_text_with_slice_and_options(&self.keys, &options)
             .await

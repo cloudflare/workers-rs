@@ -791,7 +791,7 @@ extern "C" {
 extern "C" {
     # [wasm_bindgen (extends = Fetcher , extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
-    pub type DurableObjectStub<T = Undefined>;
+    pub type DurableObjectStub<T = ()>;
     #[wasm_bindgen(method, getter)]
     pub fn id<T>(this: &DurableObjectStub<T>) -> DurableObjectId;
     #[wasm_bindgen(method, getter)]
@@ -815,7 +815,7 @@ extern "C" {
 extern "C" {
     # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
-    pub type DurableObjectNamespace<T = Undefined>;
+    pub type DurableObjectNamespace<T = ()>;
     #[wasm_bindgen(method, catch, js_name = "newUniqueId")]
     pub fn new_unique_id<T>(
         this: &DurableObjectNamespace<T>,
@@ -996,7 +996,7 @@ impl From<DurableObjectNamespaceGetDurableObjectOptions>
 extern "C" {
     # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
-    pub type DurableObjectClass<_T = Undefined>;
+    pub type DurableObjectClass<_T = ()>;
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -2071,7 +2071,7 @@ extern "C" {
 extern "C" {
     # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
-    pub type FacetStartupOptions<T = Undefined>;
+    pub type FacetStartupOptions<T = ()>;
     #[wasm_bindgen(method, getter)]
     pub fn id<T>(this: &FacetStartupOptions<T>) -> Option<IdKind>;
     #[wasm_bindgen(method, setter)]
@@ -6371,11 +6371,7 @@ impl<Cf> RequestInit<Cf> {
         self.set_body_with_null_js(&::wasm_bindgen::JsValue::NULL)
     }
 }
-impl<Cf> RequestInit<Cf>
-where
-    for<'__wbg> &'__wbg Cf:
-        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
-{
+impl<Cf> RequestInit<Cf> {
     pub fn new() -> RequestInit<Cf> {
         Self::builder().build()
     }
@@ -6388,11 +6384,7 @@ where
 pub struct RequestInitBuilder<Cf> {
     inner: RequestInit<Cf>,
 }
-impl<Cf> RequestInitBuilder<Cf>
-where
-    for<'__wbg> &'__wbg Cf:
-        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
-{
+impl<Cf> RequestInitBuilder<Cf> {
     pub fn method(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
         self.inner.set_method(val);
         self
@@ -6456,7 +6448,11 @@ where
         self.inner.set_fetcher(Some(val));
         self
     }
-    pub fn cf(self, val: &Cf) -> Self {
+    pub fn cf(self, val: &Cf) -> Self
+    where
+        for<'__wbg> &'__wbg Cf:
+            ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+    {
         self.inner.set_cf(val);
         self
     }
@@ -6491,7 +6487,7 @@ pub type Service = JsValue;
 extern "C" {
     # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
-    pub type Fetcher<T = Undefined>;
+    pub type Fetcher<T = ()>;
     #[wasm_bindgen(method, catch)]
     pub async fn fetch<T>(
         this: &Fetcher<T>,
@@ -6607,11 +6603,7 @@ impl<Metadata> KVNamespaceListKey<Metadata> {
         self.set_expiration_js(val as f64)
     }
 }
-impl<Metadata> KVNamespaceListKey<Metadata>
-where
-    for<'__wbg> &'__wbg Metadata:
-        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
-{
+impl<Metadata> KVNamespaceListKey<Metadata> {
     pub fn new(name: impl ::wasm_bindgen::JsStringLike) -> KVNamespaceListKey<Metadata> {
         Self::builder(name).build()
     }
@@ -6624,16 +6616,16 @@ where
 pub struct KVNamespaceListKeyBuilder<Metadata> {
     inner: KVNamespaceListKey<Metadata>,
 }
-impl<Metadata> KVNamespaceListKeyBuilder<Metadata>
-where
-    for<'__wbg> &'__wbg Metadata:
-        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
-{
+impl<Metadata> KVNamespaceListKeyBuilder<Metadata> {
     pub fn expiration(self, val: u64) -> Self {
         self.inner.set_expiration(val);
         self
     }
-    pub fn metadata(self, val: &Metadata) -> Self {
+    pub fn metadata(self, val: &Metadata) -> Self
+    where
+        for<'__wbg> &'__wbg Metadata:
+            ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+    {
         self.inner.set_metadata(val);
         self
     }
@@ -6759,19 +6751,19 @@ extern "C" {
     pub async fn get_with_options(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
-        options: &KVNamespaceGetOptions<Undefined>,
+        options: &KVNamespaceGetOptionsPartial<()>,
     ) -> Result<Option<String>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
     pub async fn get_with_options_js_string(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
-        options: &KVNamespaceGetOptions<Undefined>,
+        options: &KVNamespaceGetOptionsPartial<()>,
     ) -> Result<Option<JsString>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
     pub fn get_with_options_promise(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
-        options: &KVNamespaceGetOptions<Undefined>,
+        options: &KVNamespaceGetOptionsPartial<()>,
     ) -> Result<Promise<Option<String>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
     async fn get_text_js(
@@ -6828,55 +6820,55 @@ extern "C" {
         r#type: impl ::wasm_bindgen::JsStringLike,
     ) -> Result<Promise<Option<ReadableStream>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
-    pub async fn get_text_with_options(
+    async fn get_text_with_options_js(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<Option<String>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
-    pub async fn get_text_with_options_js_string(
+    async fn get_text_with_options_js_string_js(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<Option<JsString>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
-    pub fn get_text_with_options_promise(
+    fn get_text_with_options_promise_js(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<Promise<Option<String>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
-    pub async fn get_json_with_options<ExpectedValue>(
+    async fn get_json_with_options_js<ExpectedValue>(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<Option<ExpectedValue>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
-    pub fn get_json_with_options_promise<ExpectedValue>(
+    fn get_json_with_options_promise_js<ExpectedValue>(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<Promise<Option<ExpectedValue>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
-    pub async fn get_array_buffer_with_options(
+    async fn get_array_buffer_with_options_js(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<Option<ArrayBuffer>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
-    pub fn get_array_buffer_with_options_promise(
+    fn get_array_buffer_with_options_promise_js(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<Promise<Option<ArrayBuffer>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
-    pub async fn get_stream_with_options(
+    async fn get_stream_with_options_js(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<Option<ReadableStream>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
-    pub fn get_stream_with_options_promise(
+    fn get_stream_with_options_promise_js(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &KVNamespaceGetOptions<String>,
@@ -6919,34 +6911,34 @@ extern "C" {
     pub async fn get_with_slice_and_options(
         this: &KVNamespace,
         key: &[impl ::wasm_bindgen::JsStringLike],
-        options: &KVNamespaceGetOptions<Undefined>,
+        options: &KVNamespaceGetOptionsPartial<()>,
     ) -> Result<Map<String, Option<String>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
     pub fn get_with_slice_and_options_promise(
         this: &KVNamespace,
         key: &[impl ::wasm_bindgen::JsStringLike],
-        options: &KVNamespaceGetOptions<Undefined>,
+        options: &KVNamespaceGetOptionsPartial<()>,
     ) -> Result<Promise<Map<String, Option<String>>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
-    pub async fn get_text_with_slice_and_options(
+    async fn get_text_with_slice_and_options_js(
         this: &KVNamespace,
         key: &[impl ::wasm_bindgen::JsStringLike],
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<Map<String, Option<String>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
-    pub fn get_text_with_slice_and_options_promise(
+    fn get_text_with_slice_and_options_promise_js(
         this: &KVNamespace,
         key: &[impl ::wasm_bindgen::JsStringLike],
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<Promise<Map<String, Option<String>>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
-    pub async fn get_json_with_slice_and_options(
+    async fn get_json_with_slice_and_options_js(
         this: &KVNamespace,
         key: &[impl ::wasm_bindgen::JsStringLike],
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<Map<String, JsValue>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
-    pub fn get_json_with_slice_and_options_promise(
+    fn get_json_with_slice_and_options_promise_js(
         this: &KVNamespace,
         key: &[impl ::wasm_bindgen::JsStringLike],
         options: &KVNamespaceGetOptions<String>,
@@ -6964,13 +6956,13 @@ extern "C" {
         r#type: impl ::wasm_bindgen::JsStringLike,
     ) -> Result<Promise<Map<String, Option<ExpectedValue>>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
-    pub async fn get_json_with_slice_and_options_typed<ExpectedValue>(
+    async fn get_json_with_slice_and_options_typed_js<ExpectedValue>(
         this: &KVNamespace,
         key: &[impl ::wasm_bindgen::JsStringLike],
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<Map<String, Option<ExpectedValue>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
-    pub fn get_json_with_slice_and_options_typed_promise<ExpectedValue>(
+    fn get_json_with_slice_and_options_typed_promise_js<ExpectedValue>(
         this: &KVNamespace,
         key: &[impl ::wasm_bindgen::JsStringLike],
         options: &KVNamespaceGetOptions<String>,
@@ -7132,19 +7124,19 @@ extern "C" {
     pub async fn get_with_metadata_with_options(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
-        options: &KVNamespaceGetOptions<Undefined>,
+        options: &KVNamespaceGetOptionsPartial<()>,
     ) -> Result<KVNamespaceGetWithMetadataResult<String, JsValue>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
     pub async fn get_with_metadata_with_options_js_string(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
-        options: &KVNamespaceGetOptions<Undefined>,
+        options: &KVNamespaceGetOptionsPartial<()>,
     ) -> Result<KVNamespaceGetWithMetadataResult<JsString, JsValue>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
     pub fn get_with_metadata_with_options_promise(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
-        options: &KVNamespaceGetOptions<Undefined>,
+        options: &KVNamespaceGetOptionsPartial<()>,
     ) -> Result<Promise<KVNamespaceGetWithMetadataResult<String, JsValue>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
     async fn get_with_metadata_text_js(
@@ -7201,55 +7193,55 @@ extern "C" {
         r#type: impl ::wasm_bindgen::JsStringLike,
     ) -> Result<Promise<KVNamespaceGetWithMetadataResult<ReadableStream, JsValue>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
-    pub async fn get_with_metadata_text_with_options(
+    async fn get_with_metadata_text_with_options_js(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<KVNamespaceGetWithMetadataResult<String, JsValue>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
-    pub async fn get_with_metadata_text_with_options_js_string(
+    async fn get_with_metadata_text_with_options_js_string_js(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<KVNamespaceGetWithMetadataResult<JsString, JsValue>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
-    pub fn get_with_metadata_text_with_options_promise(
+    fn get_with_metadata_text_with_options_promise_js(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<Promise<KVNamespaceGetWithMetadataResult<String, JsValue>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
-    pub async fn get_with_metadata_json_with_options(
+    async fn get_with_metadata_json_with_options_js(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<KVNamespaceGetWithMetadataResult<JsValue, JsValue>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
-    pub fn get_with_metadata_json_with_options_promise(
+    fn get_with_metadata_json_with_options_promise_js(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<Promise<KVNamespaceGetWithMetadataResult<JsValue, JsValue>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
-    pub async fn get_with_metadata_array_buffer_with_options(
+    async fn get_with_metadata_array_buffer_with_options_js(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<KVNamespaceGetWithMetadataResult<ArrayBuffer, JsValue>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
-    pub fn get_with_metadata_array_buffer_with_options_promise(
+    fn get_with_metadata_array_buffer_with_options_promise_js(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<Promise<KVNamespaceGetWithMetadataResult<ArrayBuffer, JsValue>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
-    pub async fn get_with_metadata_stream_with_options(
+    async fn get_with_metadata_stream_with_options_js(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<KVNamespaceGetWithMetadataResult<ReadableStream, JsValue>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
-    pub fn get_with_metadata_stream_with_options_promise(
+    fn get_with_metadata_stream_with_options_promise_js(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &KVNamespaceGetOptions<String>,
@@ -7295,34 +7287,34 @@ extern "C" {
     pub async fn get_with_metadata_with_slice_and_options(
         this: &KVNamespace,
         key: &[impl ::wasm_bindgen::JsStringLike],
-        options: &KVNamespaceGetOptions<Undefined>,
+        options: &KVNamespaceGetOptionsPartial<()>,
     ) -> Result<Map<String, KVNamespaceGetWithMetadataResult<String, JsValue>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
     pub fn get_with_metadata_with_slice_and_options_promise(
         this: &KVNamespace,
         key: &[impl ::wasm_bindgen::JsStringLike],
-        options: &KVNamespaceGetOptions<Undefined>,
+        options: &KVNamespaceGetOptionsPartial<()>,
     ) -> Result<Promise<Map<String, KVNamespaceGetWithMetadataResult<String, JsValue>>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
-    pub async fn get_with_metadata_text_with_slice_and_options(
+    async fn get_with_metadata_text_with_slice_and_options_js(
         this: &KVNamespace,
         key: &[impl ::wasm_bindgen::JsStringLike],
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<Map<String, KVNamespaceGetWithMetadataResult<String, JsValue>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
-    pub fn get_with_metadata_text_with_slice_and_options_promise(
+    fn get_with_metadata_text_with_slice_and_options_promise_js(
         this: &KVNamespace,
         key: &[impl ::wasm_bindgen::JsStringLike],
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<Promise<Map<String, KVNamespaceGetWithMetadataResult<String, JsValue>>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
-    pub async fn get_with_metadata_json_with_slice_and_options(
+    async fn get_with_metadata_json_with_slice_and_options_js(
         this: &KVNamespace,
         key: &[impl ::wasm_bindgen::JsStringLike],
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<Map<String, KVNamespaceGetWithMetadataResult<JsValue, JsValue>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
-    pub fn get_with_metadata_json_with_slice_and_options_promise(
+    fn get_with_metadata_json_with_slice_and_options_promise_js(
         this: &KVNamespace,
         key: &[impl ::wasm_bindgen::JsStringLike],
         options: &KVNamespaceGetOptions<String>,
@@ -7349,19 +7341,19 @@ extern "C" {
     pub async fn get_with_metadata_with_options_typed<Metadata>(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
-        options: &KVNamespaceGetOptions<Undefined>,
+        options: &KVNamespaceGetOptionsPartial<()>,
     ) -> Result<KVNamespaceGetWithMetadataResult<String, Metadata>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
     pub async fn get_with_metadata_with_options_typed_js_string<Metadata>(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
-        options: &KVNamespaceGetOptions<Undefined>,
+        options: &KVNamespaceGetOptionsPartial<()>,
     ) -> Result<KVNamespaceGetWithMetadataResult<JsString, Metadata>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
     pub fn get_with_metadata_with_options_typed_promise<Metadata>(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
-        options: &KVNamespaceGetOptions<Undefined>,
+        options: &KVNamespaceGetOptionsPartial<()>,
     ) -> Result<Promise<KVNamespaceGetWithMetadataResult<String, Metadata>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
     async fn get_with_metadata_text_typed_js<Metadata>(
@@ -7418,55 +7410,55 @@ extern "C" {
         r#type: impl ::wasm_bindgen::JsStringLike,
     ) -> Result<Promise<KVNamespaceGetWithMetadataResult<ReadableStream, Metadata>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
-    pub async fn get_with_metadata_text_with_options_typed<Metadata>(
+    async fn get_with_metadata_text_with_options_typed_js<Metadata>(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<KVNamespaceGetWithMetadataResult<String, Metadata>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
-    pub async fn get_with_metadata_text_with_options_typed_js_string<Metadata>(
+    async fn get_with_metadata_text_with_options_typed_js_string_js<Metadata>(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<KVNamespaceGetWithMetadataResult<JsString, Metadata>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
-    pub fn get_with_metadata_text_with_options_typed_promise<Metadata>(
+    fn get_with_metadata_text_with_options_typed_promise_js<Metadata>(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<Promise<KVNamespaceGetWithMetadataResult<String, Metadata>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
-    pub async fn get_with_metadata_json_with_options_typed<ExpectedValue, Metadata>(
+    async fn get_with_metadata_json_with_options_typed_js<ExpectedValue, Metadata>(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<KVNamespaceGetWithMetadataResult<ExpectedValue, Metadata>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
-    pub fn get_with_metadata_json_with_options_typed_promise<ExpectedValue, Metadata>(
+    fn get_with_metadata_json_with_options_typed_promise_js<ExpectedValue, Metadata>(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<Promise<KVNamespaceGetWithMetadataResult<ExpectedValue, Metadata>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
-    pub async fn get_with_metadata_array_buffer_with_options_typed<Metadata>(
+    async fn get_with_metadata_array_buffer_with_options_typed_js<Metadata>(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<KVNamespaceGetWithMetadataResult<ArrayBuffer, Metadata>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
-    pub fn get_with_metadata_array_buffer_with_options_typed_promise<Metadata>(
+    fn get_with_metadata_array_buffer_with_options_typed_promise_js<Metadata>(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<Promise<KVNamespaceGetWithMetadataResult<ArrayBuffer, Metadata>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
-    pub async fn get_with_metadata_stream_with_options_typed<Metadata>(
+    async fn get_with_metadata_stream_with_options_typed_js<Metadata>(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<KVNamespaceGetWithMetadataResult<ReadableStream, Metadata>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
-    pub fn get_with_metadata_stream_with_options_typed_promise<Metadata>(
+    fn get_with_metadata_stream_with_options_typed_promise_js<Metadata>(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         options: &KVNamespaceGetOptions<String>,
@@ -7518,25 +7510,25 @@ extern "C" {
     pub async fn get_with_metadata_with_slice_and_options_typed<Metadata>(
         this: &KVNamespace,
         key: &[impl ::wasm_bindgen::JsStringLike],
-        options: &KVNamespaceGetOptions<Undefined>,
+        options: &KVNamespaceGetOptionsPartial<()>,
     ) -> Result<Map<String, KVNamespaceGetWithMetadataResult<String, Metadata>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
     pub fn get_with_metadata_with_slice_and_options_typed_promise<Metadata>(
         this: &KVNamespace,
         key: &[impl ::wasm_bindgen::JsStringLike],
-        options: &KVNamespaceGetOptions<Undefined>,
+        options: &KVNamespaceGetOptionsPartial<()>,
     ) -> Result<
         Promise<Map<String, KVNamespaceGetWithMetadataResult<String, Metadata>>>,
         crate::Error,
     >;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
-    pub async fn get_with_metadata_text_with_slice_and_options_typed<Metadata>(
+    async fn get_with_metadata_text_with_slice_and_options_typed_js<Metadata>(
         this: &KVNamespace,
         key: &[impl ::wasm_bindgen::JsStringLike],
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<Map<String, KVNamespaceGetWithMetadataResult<String, Metadata>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
-    pub fn get_with_metadata_text_with_slice_and_options_typed_promise<Metadata>(
+    fn get_with_metadata_text_with_slice_and_options_typed_promise_js<Metadata>(
         this: &KVNamespace,
         key: &[impl ::wasm_bindgen::JsStringLike],
         options: &KVNamespaceGetOptions<String>,
@@ -7545,13 +7537,13 @@ extern "C" {
         crate::Error,
     >;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
-    pub async fn get_with_metadata_json_with_slice_and_options_typed<ExpectedValue, Metadata>(
+    async fn get_with_metadata_json_with_slice_and_options_typed_js<ExpectedValue, Metadata>(
         this: &KVNamespace,
         key: &[impl ::wasm_bindgen::JsStringLike],
         options: &KVNamespaceGetOptions<String>,
     ) -> Result<Map<String, KVNamespaceGetWithMetadataResult<ExpectedValue, Metadata>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
-    pub fn get_with_metadata_json_with_slice_and_options_typed_promise<ExpectedValue, Metadata>(
+    fn get_with_metadata_json_with_slice_and_options_typed_promise_js<ExpectedValue, Metadata>(
         this: &KVNamespace,
         key: &[impl ::wasm_bindgen::JsStringLike],
         options: &KVNamespaceGetOptions<String>,
@@ -7628,6 +7620,167 @@ impl KVNamespace {
     ) -> Result<Promise<Option<ReadableStream>>, crate::Error> {
         self.get_stream_promise_js(key, "stream")
     }
+    pub async fn get_text_with_options(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<Option<String>, crate::Error> {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("text"),
+        );
+        self.get_text_with_options_js(key, ::wasm_bindgen::JsCast::unchecked_ref(&options))
+            .await
+    }
+    pub async fn get_text_with_options_js_string(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<Option<JsString>, crate::Error> {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("text"),
+        );
+        self.get_text_with_options_js_string_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+        .await
+    }
+    pub fn get_text_with_options_promise(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<Promise<Option<String>>, crate::Error> {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("text"),
+        );
+        self.get_text_with_options_promise_js(key, ::wasm_bindgen::JsCast::unchecked_ref(&options))
+    }
+    pub async fn get_json_with_options<ExpectedValue>(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<Option<ExpectedValue>, crate::Error>
+    where
+        Option<ExpectedValue>: ::wasm_bindgen::convert::FromWasmAbi + 'static,
+    {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("json"),
+        );
+        self.get_json_with_options_js(key, ::wasm_bindgen::JsCast::unchecked_ref(&options))
+            .await
+    }
+    pub fn get_json_with_options_promise<ExpectedValue>(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<Promise<Option<ExpectedValue>>, crate::Error> {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("json"),
+        );
+        self.get_json_with_options_promise_js(key, ::wasm_bindgen::JsCast::unchecked_ref(&options))
+    }
+    pub async fn get_array_buffer_with_options(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<Option<ArrayBuffer>, crate::Error> {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("arrayBuffer"),
+        );
+        self.get_array_buffer_with_options_js(key, ::wasm_bindgen::JsCast::unchecked_ref(&options))
+            .await
+    }
+    pub fn get_array_buffer_with_options_promise(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<Promise<Option<ArrayBuffer>>, crate::Error> {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("arrayBuffer"),
+        );
+        self.get_array_buffer_with_options_promise_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+    }
+    pub async fn get_stream_with_options(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<Option<ReadableStream>, crate::Error> {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("stream"),
+        );
+        self.get_stream_with_options_js(key, ::wasm_bindgen::JsCast::unchecked_ref(&options))
+            .await
+    }
+    pub fn get_stream_with_options_promise(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<Promise<Option<ReadableStream>>, crate::Error> {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("stream"),
+        );
+        self.get_stream_with_options_promise_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+    }
     pub async fn get_text_with_slice(
         &self,
         key: &[impl ::wasm_bindgen::JsStringLike],
@@ -7652,6 +7805,84 @@ impl KVNamespace {
     ) -> Result<Promise<Map<String, JsValue>>, crate::Error> {
         self.get_json_with_slice_promise_js(key, "json")
     }
+    pub async fn get_text_with_slice_and_options(
+        &self,
+        key: &[impl ::wasm_bindgen::JsStringLike],
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<Map<String, Option<String>>, crate::Error> {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("text"),
+        );
+        self.get_text_with_slice_and_options_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+        .await
+    }
+    pub fn get_text_with_slice_and_options_promise(
+        &self,
+        key: &[impl ::wasm_bindgen::JsStringLike],
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<Promise<Map<String, Option<String>>>, crate::Error> {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("text"),
+        );
+        self.get_text_with_slice_and_options_promise_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+    }
+    pub async fn get_json_with_slice_and_options(
+        &self,
+        key: &[impl ::wasm_bindgen::JsStringLike],
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<Map<String, JsValue>, crate::Error> {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("json"),
+        );
+        self.get_json_with_slice_and_options_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+        .await
+    }
+    pub fn get_json_with_slice_and_options_promise(
+        &self,
+        key: &[impl ::wasm_bindgen::JsStringLike],
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<Promise<Map<String, JsValue>>, crate::Error> {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("json"),
+        );
+        self.get_json_with_slice_and_options_promise_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+    }
     pub async fn get_json_with_slice_typed<ExpectedValue>(
         &self,
         key: &[impl ::wasm_bindgen::JsStringLike],
@@ -7666,6 +7897,48 @@ impl KVNamespace {
         key: &[impl ::wasm_bindgen::JsStringLike],
     ) -> Result<Promise<Map<String, Option<ExpectedValue>>>, crate::Error> {
         self.get_json_with_slice_typed_promise_js(key, "json")
+    }
+    pub async fn get_json_with_slice_and_options_typed<ExpectedValue>(
+        &self,
+        key: &[impl ::wasm_bindgen::JsStringLike],
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<Map<String, Option<ExpectedValue>>, crate::Error>
+    where
+        Map<String, Option<ExpectedValue>>: ::wasm_bindgen::convert::FromWasmAbi + 'static,
+    {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("json"),
+        );
+        self.get_json_with_slice_and_options_typed_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+        .await
+    }
+    pub fn get_json_with_slice_and_options_typed_promise<ExpectedValue>(
+        &self,
+        key: &[impl ::wasm_bindgen::JsStringLike],
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<Promise<Map<String, Option<ExpectedValue>>>, crate::Error> {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("json"),
+        );
+        self.get_json_with_slice_and_options_typed_promise_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
     }
     pub async fn get_with_metadata_text(
         &self,
@@ -7723,6 +7996,183 @@ impl KVNamespace {
     {
         self.get_with_metadata_stream_promise_js(key, "stream")
     }
+    pub async fn get_with_metadata_text_with_options(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<KVNamespaceGetWithMetadataResult<String, JsValue>, crate::Error> {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("text"),
+        );
+        self.get_with_metadata_text_with_options_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+        .await
+    }
+    pub async fn get_with_metadata_text_with_options_js_string(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<KVNamespaceGetWithMetadataResult<JsString, JsValue>, crate::Error> {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("text"),
+        );
+        self.get_with_metadata_text_with_options_js_string_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+        .await
+    }
+    pub fn get_with_metadata_text_with_options_promise(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<Promise<KVNamespaceGetWithMetadataResult<String, JsValue>>, crate::Error> {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("text"),
+        );
+        self.get_with_metadata_text_with_options_promise_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+    }
+    pub async fn get_with_metadata_json_with_options(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<KVNamespaceGetWithMetadataResult<JsValue, JsValue>, crate::Error> {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("json"),
+        );
+        self.get_with_metadata_json_with_options_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+        .await
+    }
+    pub fn get_with_metadata_json_with_options_promise(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<Promise<KVNamespaceGetWithMetadataResult<JsValue, JsValue>>, crate::Error> {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("json"),
+        );
+        self.get_with_metadata_json_with_options_promise_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+    }
+    pub async fn get_with_metadata_array_buffer_with_options(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<KVNamespaceGetWithMetadataResult<ArrayBuffer, JsValue>, crate::Error> {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("arrayBuffer"),
+        );
+        self.get_with_metadata_array_buffer_with_options_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+        .await
+    }
+    pub fn get_with_metadata_array_buffer_with_options_promise(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<Promise<KVNamespaceGetWithMetadataResult<ArrayBuffer, JsValue>>, crate::Error> {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("arrayBuffer"),
+        );
+        self.get_with_metadata_array_buffer_with_options_promise_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+    }
+    pub async fn get_with_metadata_stream_with_options(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<KVNamespaceGetWithMetadataResult<ReadableStream, JsValue>, crate::Error> {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("stream"),
+        );
+        self.get_with_metadata_stream_with_options_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+        .await
+    }
+    pub fn get_with_metadata_stream_with_options_promise(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<Promise<KVNamespaceGetWithMetadataResult<ReadableStream, JsValue>>, crate::Error>
+    {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("stream"),
+        );
+        self.get_with_metadata_stream_with_options_promise_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+    }
     pub async fn get_with_metadata_text_with_slice(
         &self,
         key: &[impl ::wasm_bindgen::JsStringLike],
@@ -7750,6 +8200,88 @@ impl KVNamespace {
         crate::Error,
     > {
         self.get_with_metadata_json_with_slice_promise_js(key, "json")
+    }
+    pub async fn get_with_metadata_text_with_slice_and_options(
+        &self,
+        key: &[impl ::wasm_bindgen::JsStringLike],
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<Map<String, KVNamespaceGetWithMetadataResult<String, JsValue>>, crate::Error> {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("text"),
+        );
+        self.get_with_metadata_text_with_slice_and_options_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+        .await
+    }
+    pub fn get_with_metadata_text_with_slice_and_options_promise(
+        &self,
+        key: &[impl ::wasm_bindgen::JsStringLike],
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<Promise<Map<String, KVNamespaceGetWithMetadataResult<String, JsValue>>>, crate::Error>
+    {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("text"),
+        );
+        self.get_with_metadata_text_with_slice_and_options_promise_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+    }
+    pub async fn get_with_metadata_json_with_slice_and_options(
+        &self,
+        key: &[impl ::wasm_bindgen::JsStringLike],
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<Map<String, KVNamespaceGetWithMetadataResult<JsValue, JsValue>>, crate::Error> {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("json"),
+        );
+        self.get_with_metadata_json_with_slice_and_options_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+        .await
+    }
+    pub fn get_with_metadata_json_with_slice_and_options_promise(
+        &self,
+        key: &[impl ::wasm_bindgen::JsStringLike],
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<
+        Promise<Map<String, KVNamespaceGetWithMetadataResult<JsValue, JsValue>>>,
+        crate::Error,
+    > {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("json"),
+        );
+        self.get_with_metadata_json_with_slice_and_options_promise_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
     }
     pub async fn get_with_metadata_text_typed<Metadata>(
         &self,
@@ -7830,6 +8362,205 @@ impl KVNamespace {
     {
         self.get_with_metadata_stream_typed_promise_js(key, "stream")
     }
+    pub async fn get_with_metadata_text_with_options_typed<Metadata>(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<KVNamespaceGetWithMetadataResult<String, Metadata>, crate::Error>
+    where
+        KVNamespaceGetWithMetadataResult<String, Metadata>:
+            ::wasm_bindgen::convert::FromWasmAbi + 'static,
+    {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("text"),
+        );
+        self.get_with_metadata_text_with_options_typed_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+        .await
+    }
+    pub async fn get_with_metadata_text_with_options_typed_js_string<Metadata>(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<KVNamespaceGetWithMetadataResult<JsString, Metadata>, crate::Error>
+    where
+        KVNamespaceGetWithMetadataResult<JsString, Metadata>:
+            ::wasm_bindgen::convert::FromWasmAbi + 'static,
+    {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("text"),
+        );
+        self.get_with_metadata_text_with_options_typed_js_string_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+        .await
+    }
+    pub fn get_with_metadata_text_with_options_typed_promise<Metadata>(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<Promise<KVNamespaceGetWithMetadataResult<String, Metadata>>, crate::Error> {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("text"),
+        );
+        self.get_with_metadata_text_with_options_typed_promise_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+    }
+    pub async fn get_with_metadata_json_with_options_typed<ExpectedValue, Metadata>(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<KVNamespaceGetWithMetadataResult<ExpectedValue, Metadata>, crate::Error>
+    where
+        KVNamespaceGetWithMetadataResult<ExpectedValue, Metadata>:
+            ::wasm_bindgen::convert::FromWasmAbi + 'static,
+    {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("json"),
+        );
+        self.get_with_metadata_json_with_options_typed_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+        .await
+    }
+    pub fn get_with_metadata_json_with_options_typed_promise<ExpectedValue, Metadata>(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<Promise<KVNamespaceGetWithMetadataResult<ExpectedValue, Metadata>>, crate::Error>
+    {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("json"),
+        );
+        self.get_with_metadata_json_with_options_typed_promise_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+    }
+    pub async fn get_with_metadata_array_buffer_with_options_typed<Metadata>(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<KVNamespaceGetWithMetadataResult<ArrayBuffer, Metadata>, crate::Error>
+    where
+        KVNamespaceGetWithMetadataResult<ArrayBuffer, Metadata>:
+            ::wasm_bindgen::convert::FromWasmAbi + 'static,
+    {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("arrayBuffer"),
+        );
+        self.get_with_metadata_array_buffer_with_options_typed_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+        .await
+    }
+    pub fn get_with_metadata_array_buffer_with_options_typed_promise<Metadata>(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<Promise<KVNamespaceGetWithMetadataResult<ArrayBuffer, Metadata>>, crate::Error>
+    {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("arrayBuffer"),
+        );
+        self.get_with_metadata_array_buffer_with_options_typed_promise_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+    }
+    pub async fn get_with_metadata_stream_with_options_typed<Metadata>(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<KVNamespaceGetWithMetadataResult<ReadableStream, Metadata>, crate::Error>
+    where
+        KVNamespaceGetWithMetadataResult<ReadableStream, Metadata>:
+            ::wasm_bindgen::convert::FromWasmAbi + 'static,
+    {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("stream"),
+        );
+        self.get_with_metadata_stream_with_options_typed_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+        .await
+    }
+    pub fn get_with_metadata_stream_with_options_typed_promise<Metadata>(
+        &self,
+        key: impl ::wasm_bindgen::JsStringLike,
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<Promise<KVNamespaceGetWithMetadataResult<ReadableStream, Metadata>>, crate::Error>
+    {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("stream"),
+        );
+        self.get_with_metadata_stream_with_options_typed_promise_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+    }
     pub async fn get_with_metadata_text_with_slice_typed<Metadata>(
         &self,
         key: &[impl ::wasm_bindgen::JsStringLike],
@@ -7869,6 +8600,155 @@ impl KVNamespace {
         crate::Error,
     > {
         self.get_with_metadata_json_with_slice_typed_promise_js(key, "json")
+    }
+    pub async fn get_with_metadata_text_with_slice_and_options_typed<Metadata>(
+        &self,
+        key: &[impl ::wasm_bindgen::JsStringLike],
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<Map<String, KVNamespaceGetWithMetadataResult<String, Metadata>>, crate::Error>
+    where
+        Map<String, KVNamespaceGetWithMetadataResult<String, Metadata>>:
+            ::wasm_bindgen::convert::FromWasmAbi + 'static,
+    {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("text"),
+        );
+        self.get_with_metadata_text_with_slice_and_options_typed_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+        .await
+    }
+    pub fn get_with_metadata_text_with_slice_and_options_typed_promise<Metadata>(
+        &self,
+        key: &[impl ::wasm_bindgen::JsStringLike],
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<
+        Promise<Map<String, KVNamespaceGetWithMetadataResult<String, Metadata>>>,
+        crate::Error,
+    > {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("text"),
+        );
+        self.get_with_metadata_text_with_slice_and_options_typed_promise_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+    }
+    pub async fn get_with_metadata_json_with_slice_and_options_typed<ExpectedValue, Metadata>(
+        &self,
+        key: &[impl ::wasm_bindgen::JsStringLike],
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<Map<String, KVNamespaceGetWithMetadataResult<ExpectedValue, Metadata>>, crate::Error>
+    where
+        Map<String, KVNamespaceGetWithMetadataResult<ExpectedValue, Metadata>>:
+            ::wasm_bindgen::convert::FromWasmAbi + 'static,
+    {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("json"),
+        );
+        self.get_with_metadata_json_with_slice_and_options_typed_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+        .await
+    }
+    pub fn get_with_metadata_json_with_slice_and_options_typed_promise<ExpectedValue, Metadata>(
+        &self,
+        key: &[impl ::wasm_bindgen::JsStringLike],
+        options: &KVNamespaceGetOptionsPartial<String>,
+    ) -> Result<
+        Promise<Map<String, KVNamespaceGetWithMetadataResult<ExpectedValue, Metadata>>>,
+        crate::Error,
+    > {
+        let options: ::js_sys::Object = ::js_sys::Object::assign(
+            &::js_sys::Object::new(),
+            ::wasm_bindgen::JsCast::unchecked_ref(options),
+        );
+        let _ = ::js_sys::Reflect::set_str(
+            &options,
+            &::js_sys::JsString::from("type"),
+            &::wasm_bindgen::JsValue::from_str("json"),
+        );
+        self.get_with_metadata_json_with_slice_and_options_typed_promise_js(
+            key,
+            ::wasm_bindgen::JsCast::unchecked_ref(&options),
+        )
+    }
+}
+#[wasm_bindgen(experimental_generic_mono)]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type KVNamespaceGetOptionsPartial<Type = JsValue>;
+    #[wasm_bindgen(method, getter, js_name = "type")]
+    pub fn type_<Type>(this: &KVNamespaceGetOptionsPartial<Type>) -> Type;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_type<Type>(this: &KVNamespaceGetOptionsPartial<Type>, val: &Type);
+    #[wasm_bindgen(method, getter, js_name = "cacheTtl")]
+    fn cache_ttl_js<Type>(this: &KVNamespaceGetOptionsPartial<Type>) -> Option<f64>;
+    #[wasm_bindgen(method, setter, js_name = "cacheTtl")]
+    fn set_cache_ttl_js<Type>(this: &KVNamespaceGetOptionsPartial<Type>, val: f64);
+}
+impl<Type> KVNamespaceGetOptionsPartial<Type> {
+    pub fn cache_ttl(&self) -> Option<u64> {
+        self.cache_ttl_js().map(|v| v as u64)
+    }
+    pub fn set_cache_ttl(&self, val: u64) {
+        self.set_cache_ttl_js(val as f64)
+    }
+}
+impl<Type> KVNamespaceGetOptionsPartial<Type> {
+    pub fn new() -> KVNamespaceGetOptionsPartial<Type> {
+        Self::builder().build()
+    }
+    pub fn builder() -> KVNamespaceGetOptionsPartialBuilder<Type> {
+        KVNamespaceGetOptionsPartialBuilder {
+            inner: JsCast::unchecked_into(js_sys::Object::new()),
+        }
+    }
+}
+pub struct KVNamespaceGetOptionsPartialBuilder<Type> {
+    inner: KVNamespaceGetOptionsPartial<Type>,
+}
+impl<Type> KVNamespaceGetOptionsPartialBuilder<Type> {
+    pub fn type_(self, val: &Type) -> Self
+    where
+        for<'__wbg> &'__wbg Type:
+            ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+    {
+        self.inner.set_type(val);
+        self
+    }
+    pub fn cache_ttl(self, val: u64) -> Self {
+        self.inner.set_cache_ttl(val);
+        self
+    }
+    pub fn build(self) -> KVNamespaceGetOptionsPartial<Type> {
+        self.inner
+    }
+}
+impl<Type> From<KVNamespaceGetOptionsPartial<Type>> for KVNamespaceGetOptionsPartialBuilder<Type> {
+    fn from(inner: KVNamespaceGetOptionsPartial<Type>) -> Self {
+        Self { inner }
     }
 }
 #[wasm_bindgen(experimental_generic_mono)]
@@ -7977,11 +8857,7 @@ where
 pub struct KVNamespaceGetOptionsBuilder<Type> {
     inner: KVNamespaceGetOptions<Type>,
 }
-impl<Type> KVNamespaceGetOptionsBuilder<Type>
-where
-    for<'__wbg> &'__wbg Type:
-        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
-{
+impl<Type> KVNamespaceGetOptionsBuilder<Type> {
     pub fn cache_ttl(self, val: u64) -> Self {
         self.inner.set_cache_ttl(val);
         self
@@ -8455,11 +9331,7 @@ where
 pub struct MessageSendRequestBuilder<Body> {
     inner: MessageSendRequest<Body>,
 }
-impl<Body> MessageSendRequestBuilder<Body>
-where
-    for<'__wbg> &'__wbg Body:
-        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
-{
+impl<Body> MessageSendRequestBuilder<Body> {
     pub fn content_type(self, val: QueueContentType) -> Self {
         self.inner.set_content_type(val);
         self
@@ -10935,12 +11807,12 @@ where
 pub struct ReadableStreamReadResultBuilder<R> {
     inner: ReadableStreamReadResult<R>,
 }
-impl<R> ReadableStreamReadResultBuilder<R>
-where
-    for<'__wbg> Option<&'__wbg R>:
-        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
-{
-    pub fn value(self, val: &R) -> Self {
+impl<R> ReadableStreamReadResultBuilder<R> {
+    pub fn value(self, val: &R) -> Self
+    where
+        for<'__wbg> Option<&'__wbg R>:
+            ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+    {
         self.inner.set_value(Some(val));
         self
     }
@@ -12980,11 +13852,7 @@ extern "C" {
     #[wasm_bindgen(method, setter)]
     pub fn set_value<T>(this: &SqlStorageCursorNextReturn<T>, val: Option<&T>);
 }
-impl<T> SqlStorageCursorNextReturn<T>
-where
-    for<'__wbg> Option<&'__wbg T>:
-        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
-{
+impl<T> SqlStorageCursorNextReturn<T> {
     pub fn new() -> SqlStorageCursorNextReturn<T> {
         Self::builder().build()
     }
@@ -12997,16 +13865,16 @@ where
 pub struct SqlStorageCursorNextReturnBuilder<T> {
     inner: SqlStorageCursorNextReturn<T>,
 }
-impl<T> SqlStorageCursorNextReturnBuilder<T>
-where
-    for<'__wbg> Option<&'__wbg T>:
-        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
-{
+impl<T> SqlStorageCursorNextReturnBuilder<T> {
     pub fn done(self, val: bool) -> Self {
         self.inner.set_done(val);
         self
     }
-    pub fn value(self, val: &T) -> Self {
+    pub fn value(self, val: &T) -> Self
+    where
+        for<'__wbg> Option<&'__wbg T>:
+            ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+    {
         self.inner.set_value(Some(val));
         self
     }
@@ -16303,11 +17171,7 @@ extern "C" {
         val: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
     );
 }
-impl<HostMetadata> IncomingRequestCfProperties<HostMetadata>
-where
-    for<'__wbg> &'__wbg HostMetadata:
-        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
-{
+impl<HostMetadata> IncomingRequestCfProperties<HostMetadata> {
     #[doc = " ## Inlined fields"]
     #[doc = ""]
     #[doc = " * `edgeRequestKeepAliveStatus: 0` - Represents the upstream's response to a"]
@@ -17992,11 +18856,7 @@ where
 pub struct IncomingRequestCfPropertiesBuilder<HostMetadata> {
     inner: IncomingRequestCfProperties<HostMetadata>,
 }
-impl<HostMetadata> IncomingRequestCfPropertiesBuilder<HostMetadata>
-where
-    for<'__wbg> &'__wbg HostMetadata:
-        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
-{
+impl<HostMetadata> IncomingRequestCfPropertiesBuilder<HostMetadata> {
     pub fn asn(self, val: u32) -> Self {
         self.inner.set_asn(val);
         self
@@ -18020,7 +18880,11 @@ where
         self.inner.set_tls_exported_authenticator(val);
         self
     }
-    pub fn host_metadata(self, val: &HostMetadata) -> Self {
+    pub fn host_metadata(self, val: &HostMetadata) -> Self
+    where
+        for<'__wbg> &'__wbg HostMetadata:
+            ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+    {
         self.inner.set_host_metadata(val);
         self
     }
@@ -18958,11 +19822,7 @@ extern "C" {
         val: &HostMetadata,
     );
 }
-impl<HostMetadata> IncomingRequestCfPropertiesCloudflareForSaaSEnterprise<HostMetadata>
-where
-    for<'__wbg> &'__wbg HostMetadata:
-        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
-{
+impl<HostMetadata> IncomingRequestCfPropertiesCloudflareForSaaSEnterprise<HostMetadata> {
     pub fn new() -> IncomingRequestCfPropertiesCloudflareForSaaSEnterprise<HostMetadata> {
         Self::builder().build()
     }
@@ -18976,12 +19836,12 @@ where
 pub struct IncomingRequestCfPropertiesCloudflareForSaaSEnterpriseBuilder<HostMetadata> {
     inner: IncomingRequestCfPropertiesCloudflareForSaaSEnterprise<HostMetadata>,
 }
-impl<HostMetadata> IncomingRequestCfPropertiesCloudflareForSaaSEnterpriseBuilder<HostMetadata>
-where
-    for<'__wbg> &'__wbg HostMetadata:
-        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
-{
-    pub fn host_metadata(self, val: &HostMetadata) -> Self {
+impl<HostMetadata> IncomingRequestCfPropertiesCloudflareForSaaSEnterpriseBuilder<HostMetadata> {
+    pub fn host_metadata(self, val: &HostMetadata) -> Self
+    where
+        for<'__wbg> &'__wbg HostMetadata:
+            ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+    {
         self.inner.set_host_metadata(val);
         self
     }
@@ -20515,10 +21375,7 @@ where
 pub struct D1ResultBuilder<T> {
     inner: D1Result<T>,
 }
-impl<T> D1ResultBuilder<T>
-where
-    T: ::wasm_bindgen::convert::VectorRefIntoWasmAbi,
-{
+impl<T> D1ResultBuilder<T> {
     pub fn error(self, val: &Undefined) -> Self {
         self.inner.set_error(val);
         self
