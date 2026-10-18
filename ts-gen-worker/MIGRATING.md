@@ -13,8 +13,15 @@ Every sync binding that can throw returns `Result`, so a few calls gain a `?`
 (`Headers::new()?`, `ctx.pass_through_on_exception()?`). Awaited values come back as
 native types (`text().await?` is a `String`, `status()` is a `u16`).
 
-Arguments spell which empty the JS type admits: `x?: T` takes `Option<&T>`, `T | null`
-takes `&js_sys::JsNullable<T>` (`&JsNullable::wrap(v)` or `&JsNullable::new()`). String-enum
+The bindings are generated with mono generics on js-sys's unstable API
+(`--cfg js_sys_unstable_apis`, set in `.cargo/config.toml`), so js-sys collections behave
+like Rust collections: `Map::get("k")`, `for (k, v) in &headers`, `record.iter().collect()`,
+`promise.await`.
+
+String arguments take `impl JsStringLike` (`&str`, `String`, `&String`), and string lists take
+`&[impl JsStringLike]` (`&["a", "b"]`). An optional or nullable argument is either its own
+overload (`Response::new_with_null_and_init(&init)`) or a builder method left uncalled; only
+raw setters take `Option<…>`. Callbacks are `Function::from_fn(|event: JsValue| …)`. String-enum
 options take the generated enum (`EncodeBodyKind::Manual`, `CacheKind::NoStore`,
 `BinaryTypeKind::Arraybuffer`), and arrays come back as `Vec<T>`. The JS globals are
 lower-case statics: `console`, `caches`, `crypto`, `performance` (`caches.with(CacheStorage::default)`
@@ -90,7 +97,7 @@ Response::builder().status(201).header("x-a", "1")?.ok("hi")
 ```
 
 `with_headers(h)` is `.headers(&h)`, `with_cors(&c)?` is `.cors(&c)?`, `with_websocket(ws)`
-is `.web_socket(&JsNullable::wrap(ws))`, `with_encode_body(EncodeBody::Manual)` is
+is `.web_socket(&ws)`, `with_encode_body(EncodeBody::Manual)` is
 `.encode_body(EncodeBodyKind::Manual)`, `with_cf(v)?` is
 `.cf(&serde_wasm_bindgen::to_value(&v)?)`.
 
@@ -132,7 +139,7 @@ Request::new_with_init(url, &RequestInit::new().with_method(Method::Post).with_b
 Request::new_with_method(url, Method::Post)?
 Request::new_with_str_and_init(
     url,
-    &RequestInit::builder().method("POST").body_with_str(&JsNullable::wrap(b.into())).build(),
+    &RequestInit::builder().method("POST").body_with_str(b).build(),
 )?
 ```
 
@@ -146,7 +153,7 @@ Request::new_with_str_and_init(
 
 `Headers::new()?` or `Headers::default()`; `get`/`has`/`set`/`append`/`delete`/`get_all`
 as before; `for (k, v) in &headers` and `[(k, v)].into_iter().collect::<Headers>()` as
-before. `keys()`/`values()` are the generated JS iterators. `HeaderMap` converts both
+before. `keys()`/`values()` iterate as `String`. `HeaderMap` converts both
 ways under the `http` feature (`try_into()`: a value JS cannot hold is an error).
 
 ## Durable Objects
@@ -175,8 +182,9 @@ state.storage().get::<T>(k).await?                storage.get_into::<T>(k).await
 state.storage().put(k, v).await?                  storage.put_serialized(k, &v).await?
 ```
 
-The generated `storage.get::<JsValue>(k)` / `storage.put(k, &js_value)` take JS handles
-directly.
+The generated `storage.get::<T>(k)` returns `Option<T>` for a number, string or handle
+(`storage.get::<f64>("count")`), and `storage.put(k, &v)` takes `&f64`, `&String` or a handle.
+`storage.put_entries_serialized(&s)` stores a struct's fields as entries (`put_multiple`).
 
 ## KV
 
@@ -192,8 +200,10 @@ kv.put("k", &t)?.expiration_ttl(60).execute().await?
 kv.list().prefix(p).execute().await?        kv.list_builder().prefix(p).execute().await?
 ```
 
-`get_bulk`, `put_bytes`, `put_stream` keep their names; the generated bulk read underneath is
-`kv.get_with_slice(&keys)` with `keys: &[String]`. `list()` returns the generated
+`get_bulk`, `put_bytes`, `put_stream` keep their names. The generated reads underneath are
+typed per value type: `kv.get_text_with_options(k, &opts)`, `get_array_buffer_with_options`,
+`get_with_metadata_typed::<M>(k)`, and the bulk `kv.get_with_slice(&["a", "b"])`, which returns
+a `Map<String, Option<String>>`. `list()` returns the generated
 `KVNamespaceListResult` (`keys()` is a `Vec`, `list_complete()`, `cursor()`).
 
 ## Errors
