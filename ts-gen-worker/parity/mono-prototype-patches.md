@@ -28,6 +28,7 @@ workers-rs-3 builds the whole prototype. `js_sys_unstable_apis` is on for wasm32
 | `cb872c471` | `macro-support/src/codegen.rs`, `src/convert/impls.rs`, `cli-support/src/descriptor.rs` | mono `Option<&T>` arguments (`for<'a> Option<&'a T>: IntoWasmAbi`), `Option<&prim>: IntoWasmAbi`; `unraw()` for derived idents | `T \| null` → `Option<&T>` for generic args; `__wbg_slot_r#type` panic | generic-mono PR |
 | `56ac6f184` | `macro-support/src/codegen.rs`, `src/convert/slices.rs`, 2 reference files | `extends = Parent<A, B>` with concrete type arguments (parent conversions via `<Parent as JsCast>::unchecked_from_js`); `Vec<Option<T>>` returns for handles, `String`, `bool`, `char`, numbers | `IdentityTransformStream extends TransformStream<…, Uint8Array>`; `TraceEventInfo::traces -> Vec<Option<String>>` | wasm-bindgen |
 | `b503ab30f` | `macro-support/src/codegen.rs`, `src/convert/impls.rs`, `src/lib.rs` (`JsGeneric: WasmDescribe`) | `extends = Par<T, T>` naming the child's parameters; one blanket `IntoWasmAbi for &T` / `Option<&T>` over every `T: JsGeneric` | ts-gen keeps `Child<T>` arguments; drops the `for<'a> &'a T: IntoWasmAbi` clause on handle-bounded helpers (audit N7) | wasm-bindgen |
+| `627ff72ba` | `macro-support/src/{ast,parser,codegen}.rs`, `src/convert/traits.rs`, js-sys | `catch` on an import whose return is `Promise<..>` (not `Result`) returns a synchronous throw as a rejected promise (`FromCaughtException`, `Promise::reject_typed`) | design D1: a sync throw from a promise-returning member must surface at `.await`, not unwind through wasm | wasm-bindgen |
 
 ## js-sys (all under `js_sys_unstable_apis` unless noted)
 
@@ -116,7 +117,8 @@ Each row of the tables above is one change. Landing them is a smaller set of PRs
 | ts-gen mono: overloads and names | `9220a19`, `e4d3fde`, `8e09b3d`, `76caab3`, `1549ee7`, `6f85b11`, `7ec1b4c` | — |
 | ts-gen mono: generic-class arguments, `Partial`, `()` | `6115484`, `76b070a`, `d4d3303` | `56ac6f184` |
 | ts-gen mono: buffer-source arguments | `e798487` | `3ef8cb93b` |
-| ts-gen mono: `Promise<T>` async returns | `16402cd` | js-sys `Promise<T>: IntoFuture` |
+| wasm-bindgen: `catch` on `Promise<T>` returns | `627ff72ba` | — |
+| ts-gen mono: `Promise<T>` async returns | `16402cd` | `627ff72ba` |
 | ts-gen mono: generated `IntoIterator` | `d21202a` | `866b0d33d` |
 | serde-wasm-bindgen, wasm-streams: build under `js_sys_unstable_apis` | `ts-gen-worker/vendor-patches` | js-sys unstable |
 | workers-rs: inputs (`annotations.d.ts`, `env.d.ts`), ext, port, `MIGRATING.md` | workers-rs rows | all of the above |
