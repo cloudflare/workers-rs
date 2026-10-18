@@ -418,7 +418,6 @@ interface DurableObjectId {
 /** {@string copy} */ interface KVNamespaceGetWithMetadataResult {}
 /** {@string copy} */ interface KVNamespaceListResult {}
 /** {@string copy} */ interface MessageBatch {}
-/** {@string copy} */ interface MessageEvent {}
 /** {@string copy} */ interface Message {}
 /** {@string copy} */ interface PerformanceEntry {}
 /** {@string copy} */ interface R2Conditional {}
@@ -569,6 +568,7 @@ interface ReadableStreamBYOBRequest {
 // `MessageEvent.data` is a message's text, or its binary payload as an
 // `ArrayBuffer` (`binaryType = "arraybuffer"`, the default before the
 // `websocket_standard_binary_type` compat date) or a `Blob` (after it).
+/** {@string copy} */
 declare class MessageEvent {
   /** @retype */
   readonly data: string | ArrayBuffer | Blob;

@@ -4108,21 +4108,11 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/MessageEvent/origin)"]
     #[wasm_bindgen(method, getter)]
     pub fn origin(this: &MessageEvent) -> Option<String>;
-    #[doc = " The **`origin`** read-only property of the MessageEvent interface is a string representing the origin of the message emitter."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/MessageEvent/origin)"]
-    #[wasm_bindgen(method, getter, js_name = "origin")]
-    pub fn origin_js_string(this: &MessageEvent) -> Option<JsString>;
     #[doc = " The **`lastEventId`** read-only property of the MessageEvent interface is a string representing a unique ID for the event."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/MessageEvent/lastEventId)"]
     #[wasm_bindgen(method, getter, js_name = "lastEventId")]
     pub fn last_event_id(this: &MessageEvent) -> String;
-    #[doc = " The **`lastEventId`** read-only property of the MessageEvent interface is a string representing a unique ID for the event."]
-    #[doc = ""]
-    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/MessageEvent/lastEventId)"]
-    #[wasm_bindgen(method, getter, js_name = "lastEventId")]
-    pub fn last_event_id_js_string(this: &MessageEvent) -> JsString;
     #[doc = " The **`source`** read-only property of the MessageEvent interface is a MessageEventSource (which can be a WindowProxy, MessagePort, or ServiceWorker object) representing the message emitter."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/MessageEvent/source)"]
