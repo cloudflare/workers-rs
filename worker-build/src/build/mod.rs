@@ -49,7 +49,6 @@ pub struct Build {
     pub extra_options: Vec<String>,
     pub wasm_bindgen_version: Option<String>,
     pub panic_unwind: bool,
-    pub remove_name_section: bool,
     pub emscripten: bool,
     pub bin: Option<String>,
     pub emscripten_toolchain: Option<emscripten::Toolchain>,
@@ -164,10 +163,6 @@ pub struct BuildOptions {
     /// List of extra options to pass to `cargo build`
     pub extra_options: Vec<String>,
 
-    #[clap(long = "remove-name-section")]
-    /// Remove the Wasm `name` section in the wasm-opt pass, to reduce size
-    pub remove_name_section: bool,
-
     #[clap(long, hide = true)]
     /// Pass-through for --no-panic-recovery
     pub no_panic_recovery: bool,
@@ -194,12 +189,6 @@ type BuildStep = fn(&mut Build) -> Result<()>;
 impl Build {
     /// Construct a build command from the given options.
     pub fn try_from_opts(mut build_opts: BuildOptions) -> Result<Self> {
-        if build_opts.profile.profiling && build_opts.remove_name_section {
-            bail!(
-                "--remove-name-section cannot be used with --profiling, which exists to keep \
-                 Wasm names. Use --release --remove-name-section for a smaller release build."
-            );
-        }
         if let Some(path) = &build_opts.path {
             if path.to_string_lossy().starts_with("--") {
                 let path = build_opts.path.take().unwrap();
@@ -251,7 +240,6 @@ impl Build {
             extra_options: build_opts.extra_options,
             wasm_bindgen_version: None,
             panic_unwind: build_opts.panic_unwind,
-            remove_name_section: build_opts.remove_name_section,
             emscripten: build_opts.emscripten,
             bin: build_opts.bin,
             emscripten_toolchain: None,
@@ -596,33 +584,14 @@ impl Build {
     }
 
     fn step_run_wasm_opt(&mut self) -> Result<()> {
-        let mut args = match self
+        let args = match self
             .crate_data
             .configured_profile(self.profile.clone())
             .wasm_opt_args()
         {
-            Some(args) => args,
+            Some(args) => wasm_opt_args(args),
             None => return Ok(()),
         };
-        // Explicit feature set rather than --all-features so that new binaryen
-        // encodings (e.g. compact imports) are never emitted before workerd
-        // supports them. Covers rustc wasm32-unknown-unknown defaults plus the
-        // exception handling used by wasm-bindgen catch wrappers.
-        for feature in [
-            "mutable-globals",
-            "sign-ext",
-            "nontrapping-float-to-int",
-            "bulk-memory",
-            "multivalue",
-            "reference-types",
-            "exception-handling",
-        ] {
-            args.push(format!("--enable-{feature}"));
-        }
-        // Keep the Wasm names section
-        if !self.remove_name_section {
-            args.push("--debuginfo".into());
-        }
         info!("executing wasm-opt with {args:?}");
         wasm_opt_run(&self.out_dir, &args).map_err(|e| {
             anyhow!(
@@ -758,6 +727,30 @@ pub fn wasm_bindgen_build(
     Ok(())
 }
 
+/// Appends the arguments worker-build always passes to wasm-opt to the profile's `wasm-opt` args.
+fn wasm_opt_args(mut args: Vec<String>) -> Vec<String> {
+    // Explicit feature set rather than --all-features so that new binaryen
+    // encodings (e.g. compact imports) are never emitted before workerd
+    // supports them. Covers rustc wasm32-unknown-unknown defaults plus the
+    // exception handling used by wasm-bindgen catch wrappers.
+    for feature in [
+        "mutable-globals",
+        "sign-ext",
+        "nontrapping-float-to-int",
+        "bulk-memory",
+        "multivalue",
+        "reference-types",
+        "exception-handling",
+    ] {
+        args.push(format!("--enable-{feature}"));
+    }
+    // Keep the Wasm names section unless the profile strips debug info
+    if !args.iter().any(|arg| arg == "--strip-debug") {
+        args.push("--debuginfo".into());
+    }
+    args
+}
+
 /// Execute `wasm-opt` over wasm binaries found in `out_dir`, downloading if
 /// necessary into `cache`. Passes `args` to each invocation of `wasm-opt`.
 pub fn wasm_opt_run(out_dir: &Path, args: &[String]) -> Result<()> {
@@ -781,4 +774,28 @@ pub fn wasm_opt_run(out_dir: &Path, args: &[String]) -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod test {
+    use super::wasm_opt_args;
+
+    fn args(args: &[&str]) -> Vec<String> {
+        wasm_opt_args(args.iter().map(|arg| arg.to_string()).collect())
+    }
+
+    #[test]
+    fn test_wasm_opt_args_keep_names_by_default() {
+        // `wasm-opt = true` resolves to `-O`.
+        let args = args(&["-O"]);
+        assert_eq!(args.first().map(String::as_str), Some("-O"));
+        assert_eq!(args.last().map(String::as_str), Some("--debuginfo"));
+    }
+
+    #[test]
+    fn test_wasm_opt_args_strip_debug_drops_names() {
+        let args = args(&["-O", "--strip-debug"]);
+        assert!(!args.iter().any(|arg| arg == "--debuginfo"));
+        assert!(args.iter().any(|arg| arg == "--enable-reference-types"));
+    }
 }
