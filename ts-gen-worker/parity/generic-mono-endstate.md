@@ -10,7 +10,7 @@ from the #5167 compile matrix (`~/Projects/wasm-bindgen-5` `2497681c1`, stable j
 
 ## Verdict
 
-1. B builds as generated, with no stopgaps, and passes the suite (194/194, plain and `-http`). The port has none of: `JsString`, `String::from(<js>)`, `JsNullable`, `None::<…>`, `map_err(|e| e.to_string())`, `JsFuture::from` at call sites. `unchecked_*` casts went from 29 (A) to 4. Each of the 4 sits at an `any`-typed or erased boundary (§2).
+1. B builds as generated, with no stopgaps, and passes the suite (195/195, plain and `-http`; A has 194, plus the `MessageEvent` catch-all test). The port has none of: `JsString`, `String::from(<js>)`, `JsNullable`, `None::<…>`, `map_err(|e| e.to_string())`, `JsFuture::from` at call sites. `unchecked_*` casts went from 29 (A) to 4. Each of the 4 sits at an `any`-typed or erased boundary (§2).
 2. Everything phase 1 assumed is built, and the R audit's items are done except the ones in §6. Phase 2 also built Rust iteration, `Object<T>` as a map, typed KV reads, byte-stream bodies, one argument for buffer sources, one `Promise<T, crate::Error>` per async method, and shorter overload names.
 3. The cost in commits: 15 wasm-bindgen/js-sys commits and 34 ts-gen commits on top of phase 1. Under the cfg, js-sys is a different API in which collections behave like Rust collections. That API break, and the fallout in `worker`, serde-wasm-bindgen and wasm-streams, is the price of the containers. `worker` is not ported (§6).
 4. The cost in size and time: benchmark wasm +846 (+0.7%), test glue +9,486 (+5.4%) (phase 1: +12.7%), test imports +19 (phase 1: +16), 0 generic shims (phase 1: 177). `ts-gen-worker` compiles +5% debug and +6% release (§4).
