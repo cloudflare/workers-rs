@@ -69,6 +69,7 @@ workers-rs-3 builds the whole prototype. `js_sys_unstable_apis` is on for wasm32
 | `76b070a` | a `Partial<X>` parameter names a synthesized all-optional `XPartial` (`KVNamespaceGetOptionsPartial`); `undefined` type arguments and defaults are `()` (`DurableObjectStub<T = ()>`) | audit N5 | ts-gen mono PR (types) |
 | `e4d3fde` | literal type-argument bindings are wrappers that set the field the literal types (`get_text_with_options` sets `type: "text"`) | audit N2: the return type followed the method, the runtime result the caller's `type` | ts-gen mono PR (overloads) |
 | `333b9e8` | `extends` keeps the child's own parameters (`Child<T> extends Par<T, T>`); helpers over a `TypedArray`/handle-bounded `T` drop the `for<'a> &'a T: IntoWasmAbi` clause | audit N7; needs `b503ab30f` | ts-gen mono PR (bounds) |
+| `d4d3303` | optional properties typed only `never` or `undefined` get no accessors (D1's `error?: never`) | audit N5 tail: `Option<Undefined>` getters | ts-gen mono PR (types) |
 
 ## workers-rs (`ts-gen-worker`)
 
@@ -83,7 +84,7 @@ workers-rs-3 builds the whole prototype. `js_sys_unstable_apis` is on for wasm32
 | `8ab0eab` | `ts-gen-worker/{test,benchmark}/types/env.d.ts` | `readonly` + `{@string copy}` on `Env` | no setters or twins on bindings | workers-rs |
 | `2d6136e` | `ts-gen-worker/src/ext/serde.rs` | `DurableObjectStorage::put_entries_serialized` (a struct's fields as DO entries) | `put_with_entries::<JsValue>(&to_value(..)?.unchecked_into())` at call sites | workers-rs |
 | `faefa97` | `ts-gen-worker/types/annotations.d.ts` | `@retype` `Body::body`, `R2ObjectBody::body`, `Socket::{readable,writable}` to `Uint8Array` streams; `{@string copy}` on the TailStream namespace | upstream types them `ReadableStream` (`any` chunks); 64 twins | workers-rs (or workers-types) |
-| `636cfab`…`2be8dbd` | `ts-gen-worker/{src/ext,test/src,benchmark/src}` | port rewritten to each new surface | ideal idioms | workers-rs |
+| `636cfab`…`b7a75d3` | `ts-gen-worker/{src/ext,test/src,benchmark/src}` | port rewritten to each new surface | ideal idioms | workers-rs |
 
 Superseded local fixes (folded upstream, not in the final tree): wasm-bindgen `a3d285150`
 (raw-identifier slot names, now in `cb872c471`), ts-gen `3e42fce` (`ArrayBufferView` builder
@@ -107,7 +108,7 @@ Each row of the tables above is one change. Landing them is a smaller set of PRs
 | ts-gen mono: constructors and return-only parameters (`_typed`) | `2744756`, `789c1ca` | — |
 | ts-gen mono: nullable arguments | `17df4e9`, `64e785e` | `cb872c471` |
 | ts-gen mono: overloads and names | `9220a19`, `e4d3fde`, `8e09b3d`, `76caab3`, `1549ee7` | — |
-| ts-gen mono: generic-class arguments, `Partial`, `()` | `6115484`, `76b070a` | `56ac6f184` |
+| ts-gen mono: generic-class arguments, `Partial`, `()` | `6115484`, `76b070a`, `d4d3303` | `56ac6f184` |
 | ts-gen mono: generated `IntoIterator` | `d21202a` | `866b0d33d` |
 | serde-wasm-bindgen, wasm-streams: build under `js_sys_unstable_apis` | `ts-gen-worker/vendor-patches` | js-sys unstable |
-| workers-rs: inputs (`annotations.d.ts`, `env.d.ts`), ext, port | workers-rs rows | all of the above |
+| workers-rs: inputs (`annotations.d.ts`, `env.d.ts`), ext, port, `MIGRATING.md` | workers-rs rows | all of the above |

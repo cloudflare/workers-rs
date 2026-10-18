@@ -12,7 +12,7 @@ from the #5167 compile matrix (`~/Projects/wasm-bindgen-5` `2497681c1`, stable j
 
 1. B builds as generated, with no stopgaps, and passes the suite (194/194, plain and `-http`). The port has none of: `JsString`, `String::from(<js>)`, `JsNullable`, `None::<…>`, `map_err(|e| e.to_string())`, `JsFuture::from` at call sites. `unchecked_*` casts went from 29 (A) to 6. Each of the 6 sits at an `any`-typed or erased boundary (§2).
 2. Everything phase 1 assumed is built, and the R audit's items are done except the ones in §6. Phase 2 also built Rust iteration, `Object<T>` as a map, typed KV reads, byte-stream bodies and shorter overload names.
-3. The cost in commits: 11 wasm-bindgen/js-sys commits and 19 ts-gen commits on top of phase 1. Under the cfg, js-sys is a different API in which collections behave like Rust collections. That API break, and the fallout in `worker`, serde-wasm-bindgen and wasm-streams, is the price of the containers. `worker` is not ported (§6).
+3. The cost in commits: 11 wasm-bindgen/js-sys commits and 20 ts-gen commits on top of phase 1. Under the cfg, js-sys is a different API in which collections behave like Rust collections. That API break, and the fallout in `worker`, serde-wasm-bindgen and wasm-streams, is the price of the containers. `worker` is not ported (§6).
 4. The cost in size and time: benchmark wasm +1,380 (+1.1%), test glue +7,455 (+4.2%) (phase 1: +12.7%), test imports +15 (phase 1: +16), 0 generic shims (phase 1: 177). `ts-gen-worker` compiles +23% debug and +25% release (§4).
 5. Mono's own lead over C is unchanged from phase 1:
    - leaf type arguments on generated generics (`get::<f64>`, `get_with_metadata_typed::<f64>`, `first`);
@@ -503,7 +503,7 @@ generated `bindings.rs` and the test and benchmark `env.rs`, and skipping commen
 | `Closure::` | 4 | 4 | 2 |
 | `._0()` / `._1()` | 10 | 10 | 2 |
 | `Uint8Array::new(&…)` re-wraps | 5 | 5 | 0 |
-| lines | 7,444 | 7,386 | 7,222 |
+| lines | 7,444 | 7,386 | 7,221 |
 
 The 6 remaining casts:
 - the wasm-streams boundary (`web_sys::ReadableStream` → `ReadableStream<Uint8Array>`, `src/ext/streams.rs:164`);
@@ -520,8 +520,8 @@ binding is `block_concurrency_while_promise` (§6).
 
 `tools/api-diff` over the generated `bindings.rs` (item-keyed signatures):
 
-- **B vs A**: 1512 items changed, 278 removed, 491 added, 3265 unchanged. Most removed/added pairs are renames (overload suffixes, `_with_null` arms, KV typed reads).
-- **B vs B1**: 356 changed, 639 removed (376 of them `_js_string` twins), 481 added, 4431 unchanged.
+- **B vs A**: 1509 items changed, 292 removed, 491 added, 3254 unchanged. Most removed/added pairs are renames (overload suffixes, `_with_null` arms, KV typed reads).
+- **B vs B1**: 355 changed, 653 removed (376 of them `_js_string` twins), 481 added, 4418 unchanged.
 
 Type-level counts (doc and comment lines skipped):
 
@@ -555,7 +555,7 @@ Type-level counts (doc and comment lines skipped):
 | public fn names over 50 chars | 109 | 113 | 54 |
 | `IntoIterator for &T` | 0 | 0 | 5 |
 | `-> Option<JsValue>` | 0 | 0 | 8 |
-| lines | 18,366 | 19,548 | 20,126 |
+| lines | 18,366 | 19,548 | 20,082 |
 
 Every item that is **still worse in B than in A**:
 - **`&[String]` → `&[impl JsStringLike]`:** `&[]` needs `&[] as &[&str]`. Literal lists and `&Vec<String>` both work.
@@ -574,8 +574,8 @@ Every item that is **still worse in B than in A**:
 **Size.** Each state is built from its own commit with its own wasm-bindgen pin, on the same
 machine. The benchmark worker is a release build run through `wasm-opt -Oz` with
 `benchmark/build.sh`'s flags. The test worker is a debug build and covers the whole suite's
-surface. gz is `gzip -9`. A was re-measured for this report and reproduces phase 1's numbers
-exactly. B1 is phase 1's measurement.
+surface. gz is `gzip -9`. B was measured at `2be8dbd`. A was re-measured for this report and
+reproduces phase 1's numbers exactly. B1 is phase 1's measurement.
 
 | | A | B1 | B | B − A |
 |---|---:|---:|---:|---:|
