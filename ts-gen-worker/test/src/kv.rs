@@ -2,7 +2,6 @@ use super::SomeSharedData;
 use crate::Env;
 use js_sys::JsNullable;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use ts_gen_worker::*;
 
 macro_rules! kv_assert_eq {
@@ -166,14 +165,12 @@ pub async fn get_bulk(_req: Request, env: Env, _data: SomeSharedData) -> Result<
     store.put("bulk_a", "value_a").await?;
     store.put("bulk_b", "value_b").await?;
 
-    let values: HashMap<_, _> = store
+    let values = store
         .get_with_slice(&["bulk_a", "bulk_b", "bulk_missing"])
-        .await?
-        .into_iter()
-        .collect();
-    kv_assert_eq!(values["bulk_a"], Some("value_a".to_string()))?;
-    kv_assert_eq!(values["bulk_b"], Some("value_b".to_string()))?;
-    kv_assert_eq!(values["bulk_missing"], None)?;
+        .await?;
+    kv_assert_eq!(values.get("bulk_a"), Some(Some("value_a".to_string())))?;
+    kv_assert_eq!(values.get("bulk_b"), Some(Some("value_b".to_string())))?;
+    kv_assert_eq!(values.get("bulk_missing"), Some(None))?;
 
     Response::builder().ok("passed")
 }
