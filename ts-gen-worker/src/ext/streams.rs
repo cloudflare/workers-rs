@@ -86,10 +86,7 @@ impl ByteStream {
         let reader = self.reader.as_ref().expect("reader acquired above");
         let pending = match self.pending.as_mut() {
             Some(pending) => pending,
-            None => match reader.read_promise() {
-                Ok(promise) => self.pending.insert(JsFuture::from(promise)),
-                Err(e) => return Poll::Ready(Err(e)),
-            },
+            None => self.pending.insert(JsFuture::from(reader.read())),
         };
         let result = futures_util::ready!(Pin::new(pending).poll(cx));
         self.pending = None;

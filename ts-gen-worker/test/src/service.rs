@@ -9,7 +9,7 @@ pub async fn handle_remote_by_request(
     _data: SomeSharedData,
 ) -> Result<Response> {
     let fetcher = env.remote();
-    fetcher.fetch(&req).await
+    Ok(fetcher.fetch(&req).await?)
 }
 
 pub async fn handle_remote_by_path(
@@ -19,5 +19,5 @@ pub async fn handle_remote_by_path(
 ) -> Result<Response> {
     let fetcher = env.remote();
     let init = RequestInit::builder().method("POST").build();
-    fetcher.fetch_with_str_and_init(&req.url(), &init).await
+    Ok(fetcher.fetch_with_str_and_init(req.url(), &init).await?)
 }

@@ -263,6 +263,7 @@ pub async fn error(_req: Request, env: Env, _data: SomeSharedData) -> Result<Res
     let error = db
         .exec("THIS IS NOT VALID SQL")
         .await
+        .map_err(Error::from)
         .expect_err("did not get error");
 
     assert_eq!(

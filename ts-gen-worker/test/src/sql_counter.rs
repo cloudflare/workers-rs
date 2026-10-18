@@ -109,5 +109,5 @@ pub async fn handle_sql_counter(
 
     let namespace = env.sql_counter();
     let stub = namespace.get(&namespace.id_from_name(name)?)?;
-    stub.fetch_with_str(&full_path).await
+    Ok(stub.fetch_with_str(&full_path).await?)
 }

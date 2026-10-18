@@ -269,7 +269,7 @@ pub async fn handle_hello(
     let name = "my-durable-object";
     let id = namespace.id_from_name(name)?;
     let stub = namespace.get(&id)?;
-    stub.fetch_with_str("https://fake-host/hello").await
+    Ok(stub.fetch_with_str("https://fake-host/hello").await?)
 }
 
 pub async fn handle_ctor_name(
@@ -281,7 +281,7 @@ pub async fn handle_ctor_name(
     let name = "my-durable-object";
     let id = namespace.id_from_name(name)?;
     let stub = namespace.get(&id)?;
-    stub.fetch_with_str("https://fake-host/ctor-name").await
+    Ok(stub.fetch_with_str("https://fake-host/ctor-name").await?)
 }
 
 pub async fn handle_hello_unique(
@@ -292,7 +292,7 @@ pub async fn handle_hello_unique(
     let namespace = env.my_class();
     let id = namespace.new_unique_id()?;
     let stub = namespace.get(&id)?;
-    stub.fetch_with_str("https://fake-host/hello").await
+    Ok(stub.fetch_with_str("https://fake-host/hello").await?)
 }
 
 pub async fn handle_storage(
@@ -302,7 +302,7 @@ pub async fn handle_storage(
 ) -> Result<Response> {
     let namespace = env.my_class();
     let stub = namespace.get(&namespace.id_from_name("singleton")?)?;
-    stub.fetch_with_str("https://fake-host/storage").await
+    Ok(stub.fetch_with_str("https://fake-host/storage").await?)
 }
 
 pub async fn handle_basic_test(
@@ -384,8 +384,9 @@ pub async fn handle_block_concurrency(
 ) -> Result<Response> {
     let namespace = env.my_class();
     let stub = namespace.get(&namespace.id_from_name("block-concurrency")?)?;
-    stub.fetch_with_str("https://fake-host/block-concurrency")
-        .await
+    Ok(stub
+        .fetch_with_str("https://fake-host/block-concurrency")
+        .await?)
 }
 
 pub async fn handle_block_concurrency_reset_count(
@@ -395,8 +396,9 @@ pub async fn handle_block_concurrency_reset_count(
 ) -> Result<Response> {
     let namespace = env.my_class();
     let stub = namespace.get(&namespace.id_from_name("block-concurrency-reset")?)?;
-    stub.fetch_with_str("https://fake-host/block-concurrency-reset-count")
-        .await
+    Ok(stub
+        .fetch_with_str("https://fake-host/block-concurrency-reset-count")
+        .await?)
 }
 
 pub async fn handle_block_concurrency_reset_trigger(
@@ -406,8 +408,9 @@ pub async fn handle_block_concurrency_reset_trigger(
 ) -> Result<Response> {
     let namespace = env.my_class();
     let stub = namespace.get(&namespace.id_from_name("block-concurrency-reset")?)?;
-    stub.fetch_with_str("https://fake-host/block-concurrency-reset-trigger")
-        .await
+    Ok(stub
+        .fetch_with_str("https://fake-host/block-concurrency-reset-trigger")
+        .await?)
 }
 
 pub async fn handle_constructor_init(
@@ -417,7 +420,7 @@ pub async fn handle_constructor_init(
 ) -> Result<Response> {
     let namespace = env.my_class();
     let stub = namespace.get(&namespace.id_from_name("constructor-init")?)?;
-    stub.fetch_with_str("https://fake-host/limit").await
+    Ok(stub.fetch_with_str("https://fake-host/limit").await?)
 }
 
 pub async fn handle_block_concurrency_errors_as_values(
@@ -427,8 +430,9 @@ pub async fn handle_block_concurrency_errors_as_values(
 ) -> Result<Response> {
     let namespace = env.my_class();
     let stub = namespace.get(&namespace.id_from_name("block-concurrency-errors-as-values")?)?;
-    stub.fetch_with_str("https://fake-host/block-concurrency-errors-as-values")
-        .await
+    Ok(stub
+        .fetch_with_str("https://fake-host/block-concurrency-errors-as-values")
+        .await?)
 }
 
 pub async fn handle_get_by_name(
@@ -441,7 +445,7 @@ pub async fn handle_get_by_name(
 
     let stub = namespace.get_by_name(name)?;
 
-    stub.fetch_with_str("https://fake-host/hello").await
+    Ok(stub.fetch_with_str("https://fake-host/hello").await?)
 }
 
 pub async fn handle_get_by_name_with_location_hint(
@@ -459,5 +463,5 @@ pub async fn handle_get_by_name_with_location_hint(
             .build(),
     )?;
 
-    stub.fetch_with_str("https://fake-host/hello").await
+    Ok(stub.fetch_with_str("https://fake-host/hello").await?)
 }

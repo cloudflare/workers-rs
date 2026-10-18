@@ -49,5 +49,5 @@ pub async fn handle_alarm(_req: Request, env: Env, _data: SomeSharedData) -> Res
     // spec drives it; the route is kept for route parity only.
     let namespace: DurableObjectNamespace = env.get("ALARM")?;
     let stub = namespace.get(&namespace.id_from_name("alarm")?)?;
-    stub.fetch_with_str("https://fake-host/alarm").await
+    Ok(stub.fetch_with_str("https://fake-host/alarm").await?)
 }

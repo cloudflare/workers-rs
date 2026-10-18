@@ -94,7 +94,7 @@ fn counter_namespace(req: &Request, env: &Env) -> Result<DurableObjectNamespace>
 pub async fn handle_id(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let namespace = counter_namespace(&req, &env).expect("DAWJKHDAD");
     let stub = namespace.get(&namespace.id_from_name("A")?)?;
-    stub.fetch_with_str("https://fake-host/").await
+    Ok(stub.fetch_with_str("https://fake-host/").await?)
 }
 
 pub async fn handle_websocket(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {

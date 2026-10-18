@@ -54,7 +54,7 @@ pub async fn handle_cache_api_get(
         let cache = default_cache();
         let options = CacheQueryOptions::builder().ignore_method(true).build();
         if let Some(resp) = cache
-            .match_with_str_and_options(&format!("https://{key}"), &options)
+            .match_with_str_and_options(format!("https://{key}"), &options)
             .await?
         {
             return Ok(resp);
@@ -73,7 +73,7 @@ pub async fn handle_cache_api_put(
         let cache = default_cache();
         let resp = timestamp_response()?;
         cache
-            .put_with_str(&format!("https://{key}"), &resp.clone()?)
+            .put_with_str(format!("https://{key}"), &resp.clone()?)
             .await?;
         return Ok(resp);
     }
@@ -89,7 +89,7 @@ pub async fn handle_cache_api_delete(
         let cache = default_cache();
         let options = CacheQueryOptions::builder().ignore_method(true).build();
         let deleted = cache
-            .delete_with_str_and_options(&format!("https://{key}"), &options)
+            .delete_with_str_and_options(format!("https://{key}"), &options)
             .await?;
         // `worker::CacheDeletionOutcome` serializes as these two strings.
         let outcome = if deleted {

@@ -60,9 +60,9 @@ pub fn message_text(event: &MessageEvent) -> Option<String> {
 }
 
 /// `worker::State::block_concurrency_while`: runs a Rust future inside the
-/// input gate and hands its output back out. The gate is entered before this
-/// returns, via the sync `_promise` form, so a Durable Object constructor can
-/// call it and let the returned future run in the background.
+/// input gate and hands its output back out. The binding returns its `Promise`
+/// synchronously, so the gate is entered before this returns and a Durable
+/// Object constructor can let the returned future run in the background.
 pub fn block_concurrency_while<F, T>(
     state: &DurableObjectState,
     future: F,
@@ -82,9 +82,9 @@ where
             Ok(JsValue::NULL)
         })
     });
-    let gated = state.block_concurrency_while_promise(&callback);
+    let gated = state.block_concurrency_while(&callback);
     async move {
-        gated?.await?;
+        gated.await?;
         let value = output.borrow_mut().take();
         value.ok_or_else(|| "block_concurrency_while callback did not run".into())
     }

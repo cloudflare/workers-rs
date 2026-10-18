@@ -70,5 +70,5 @@ pub(crate) async fn handle_put_raw(
     let namespace = env.put_raw_test_object();
     let id = namespace.new_unique_id()?;
     let stub = namespace.get(&id)?;
-    stub.fetch(&req).await
+    Ok(stub.fetch(&req).await?)
 }

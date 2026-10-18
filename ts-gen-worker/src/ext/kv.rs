@@ -157,7 +157,7 @@ impl KvGetBuilder {
 
     pub async fn text(self) -> Result<Option<String>> {
         let options = self.options();
-        self.kv.get_text_with_options(&self.key, &options).await
+        Ok(self.kv.get_text_with_options(&self.key, &options).await?)
     }
 
     /// The value parsed as JSON into `T`.
@@ -177,7 +177,7 @@ impl KvGetBuilder {
 
     pub async fn stream(self) -> Result<Option<ReadableStream>> {
         let options = self.options();
-        self.kv.get_stream_with_options(&self.key, &options).await
+        Ok(self.kv.get_stream_with_options(&self.key, &options).await?)
     }
 
     #[cfg(feature = "serde")]
@@ -245,17 +245,19 @@ impl KvGetBulkBuilder {
 
     async fn text_map(&self) -> Result<Map<String, Option<String>>> {
         let options = get_options(self.cache_ttl);
-        self.kv
+        Ok(self
+            .kv
             .get_text_with_slice_and_options(&self.keys, &options)
-            .await
+            .await?)
     }
 
     #[cfg(feature = "serde")]
     async fn text_map_with_metadata(&self) -> Result<Map<String, TextEntry>> {
         let options = get_options(self.cache_ttl);
-        self.kv
+        Ok(self
+            .kv
             .get_with_metadata_text_with_slice_and_options(&self.keys, &options)
-            .await
+            .await?)
     }
 
     fn collect<V: FromWasmAbi, T>(
@@ -385,6 +387,6 @@ impl KvListBuilder {
     }
 
     pub async fn execute(self) -> Result<KVNamespaceListResult> {
-        self.kv.list_with_options(&self.options).await
+        Ok(self.kv.list_with_options(&self.options).await?)
     }
 }
