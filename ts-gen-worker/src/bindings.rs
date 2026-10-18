@@ -789,7 +789,7 @@ extern "C" {
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
-    # [wasm_bindgen (extends = Fetcher , extends = Object)]
+    # [wasm_bindgen (extends = Fetcher < T > , extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type DurableObjectStub<T = ()>;
     #[wasm_bindgen(method, getter)]
@@ -4642,10 +4642,7 @@ impl SubtleCryptoDeriveKeyAlgorithmBuilder {
         self.inner.set_salt(val);
         self
     }
-    pub fn salt_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self
-    where
-        for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
-    {
+    pub fn salt_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self {
         self.inner.set_salt_with_typed_array(val);
         self
     }
@@ -4669,10 +4666,7 @@ impl SubtleCryptoDeriveKeyAlgorithmBuilder {
         self.inner.set_info(val);
         self
     }
-    pub fn info_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self
-    where
-        for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
-    {
+    pub fn info_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self {
         self.inner.set_info_with_typed_array(val);
         self
     }
@@ -4757,10 +4751,7 @@ impl SubtleCryptoEncryptAlgorithmBuilder {
         self.inner.set_iv(val);
         self
     }
-    pub fn iv_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self
-    where
-        for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
-    {
+    pub fn iv_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self {
         self.inner.set_iv_with_typed_array(val);
         self
     }
@@ -4768,10 +4759,7 @@ impl SubtleCryptoEncryptAlgorithmBuilder {
         self.inner.set_additional_data(val);
         self
     }
-    pub fn additional_data_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self
-    where
-        for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
-    {
+    pub fn additional_data_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self {
         self.inner.set_additional_data_with_typed_array(val);
         self
     }
@@ -4783,10 +4771,7 @@ impl SubtleCryptoEncryptAlgorithmBuilder {
         self.inner.set_counter(val);
         self
     }
-    pub fn counter_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self
-    where
-        for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
-    {
+    pub fn counter_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self {
         self.inner.set_counter_with_typed_array(val);
         self
     }
@@ -4798,10 +4783,7 @@ impl SubtleCryptoEncryptAlgorithmBuilder {
         self.inner.set_label(val);
         self
     }
-    pub fn label_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self
-    where
-        for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
-    {
+    pub fn label_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self {
         self.inner.set_label_with_typed_array(val);
         self
     }
@@ -4895,10 +4877,7 @@ impl SubtleCryptoGenerateKeyAlgorithmBuilder {
         self.inner.set_public_exponent(val);
         self
     }
-    pub fn public_exponent_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self
-    where
-        for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
-    {
+    pub fn public_exponent_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self {
         self.inner.set_public_exponent_with_typed_array(val);
         self
     }
@@ -5187,10 +5166,7 @@ impl CryptoKeyRsaKeyAlgorithm {
         name: impl ::wasm_bindgen::JsStringLike,
         modulus_length: f64,
         public_exponent: &T,
-    ) -> CryptoKeyRsaKeyAlgorithm
-    where
-        for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
-    {
+    ) -> CryptoKeyRsaKeyAlgorithm {
         Self::builder_with_typed_array(name, modulus_length, public_exponent).build()
     }
     pub fn builder(
@@ -5208,10 +5184,7 @@ impl CryptoKeyRsaKeyAlgorithm {
         name: impl ::wasm_bindgen::JsStringLike,
         modulus_length: f64,
         public_exponent: &T,
-    ) -> CryptoKeyRsaKeyAlgorithmBuilder
-    where
-        for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
-    {
+    ) -> CryptoKeyRsaKeyAlgorithmBuilder {
         let inner: CryptoKeyRsaKeyAlgorithm = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_name(name);
         inner.set_modulus_length(modulus_length);
@@ -6413,10 +6386,7 @@ impl<Cf> RequestInitBuilder<Cf> {
         self.inner.set_body_with_array_buffer(val);
         self
     }
-    pub fn body_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self
-    where
-        for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
-    {
+    pub fn body_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self {
         self.inner.set_body_with_typed_array(val);
         self
     }
@@ -10130,10 +10100,7 @@ impl R2BucketPutOptionsBuilder {
         self.inner.set_md5(val);
         self
     }
-    pub fn md5_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self
-    where
-        for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
-    {
+    pub fn md5_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self {
         self.inner.set_md5_with_typed_array(val);
         self
     }
@@ -10145,10 +10112,7 @@ impl R2BucketPutOptionsBuilder {
         self.inner.set_sha1(val);
         self
     }
-    pub fn sha1_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self
-    where
-        for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
-    {
+    pub fn sha1_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self {
         self.inner.set_sha1_with_typed_array(val);
         self
     }
@@ -10160,10 +10124,7 @@ impl R2BucketPutOptionsBuilder {
         self.inner.set_sha256(val);
         self
     }
-    pub fn sha256_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self
-    where
-        for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
-    {
+    pub fn sha256_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self {
         self.inner.set_sha256_with_typed_array(val);
         self
     }
@@ -10175,10 +10136,7 @@ impl R2BucketPutOptionsBuilder {
         self.inner.set_sha384(val);
         self
     }
-    pub fn sha384_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self
-    where
-        for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
-    {
+    pub fn sha384_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self {
         self.inner.set_sha384_with_typed_array(val);
         self
     }
@@ -10190,10 +10148,7 @@ impl R2BucketPutOptionsBuilder {
         self.inner.set_sha512(val);
         self
     }
-    pub fn sha512_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self
-    where
-        for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
-    {
+    pub fn sha512_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self {
         self.inner.set_sha512_with_typed_array(val);
         self
     }
@@ -10770,10 +10725,7 @@ impl R2PutOptionsBuilder {
         self.inner.set_md5(val);
         self
     }
-    pub fn md5_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self
-    where
-        for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
-    {
+    pub fn md5_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self {
         self.inner.set_md5_with_typed_array(val);
         self
     }
@@ -10785,10 +10737,7 @@ impl R2PutOptionsBuilder {
         self.inner.set_sha1(val);
         self
     }
-    pub fn sha1_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self
-    where
-        for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
-    {
+    pub fn sha1_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self {
         self.inner.set_sha1_with_typed_array(val);
         self
     }
@@ -10800,10 +10749,7 @@ impl R2PutOptionsBuilder {
         self.inner.set_sha256(val);
         self
     }
-    pub fn sha256_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self
-    where
-        for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
-    {
+    pub fn sha256_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self {
         self.inner.set_sha256_with_typed_array(val);
         self
     }
@@ -10815,10 +10761,7 @@ impl R2PutOptionsBuilder {
         self.inner.set_sha384(val);
         self
     }
-    pub fn sha384_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self
-    where
-        for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
-    {
+    pub fn sha384_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self {
         self.inner.set_sha384_with_typed_array(val);
         self
     }
@@ -10830,10 +10773,7 @@ impl R2PutOptionsBuilder {
         self.inner.set_sha512(val);
         self
     }
-    pub fn sha512_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self
-    where
-        for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
-    {
+    pub fn sha512_with_typed_array<T: ::js_sys::TypedArray>(self, val: &T) -> Self {
         self.inner.set_sha512_with_typed_array(val);
         self
     }
@@ -16962,7 +16902,7 @@ impl From<RequestInitCfPropertiesR2> for RequestInitCfPropertiesR2Builder {
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
-    # [wasm_bindgen (extends = IncomingRequestCfPropertiesBase , extends = IncomingRequestCfPropertiesBotManagementEnterprise , extends = IncomingRequestCfPropertiesCloudflareForSaaSEnterprise , extends = IncomingRequestCfPropertiesGeographicInformation , extends = IncomingRequestCfPropertiesCloudflareAccessOrApiShield , extends = Object)]
+    # [wasm_bindgen (extends = IncomingRequestCfPropertiesBase , extends = IncomingRequestCfPropertiesBotManagementEnterprise , extends = IncomingRequestCfPropertiesCloudflareForSaaSEnterprise < HostMetadata > , extends = IncomingRequestCfPropertiesGeographicInformation , extends = IncomingRequestCfPropertiesCloudflareAccessOrApiShield , extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type IncomingRequestCfProperties<HostMetadata = JsValue>;
     #[doc = " Duplicate of `botManagement.score`."]
@@ -21891,10 +21831,7 @@ impl EmailAttachment {
         filename: impl ::wasm_bindgen::JsStringLike,
         r#type: impl ::wasm_bindgen::JsStringLike,
         content: &T,
-    ) -> EmailAttachment
-    where
-        for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
-    {
+    ) -> EmailAttachment {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_disposition(DispositionKind::Inline);
         inner.set_content_id(content_id);
@@ -21930,10 +21867,7 @@ impl EmailAttachment {
         filename: impl ::wasm_bindgen::JsStringLike,
         r#type: impl ::wasm_bindgen::JsStringLike,
         content: &T,
-    ) -> EmailAttachment
-    where
-        for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
-    {
+    ) -> EmailAttachment {
         Self::builder_attachment_with_typed_array(filename, r#type, content).build()
     }
     #[doc = " ## Inlined fields"]
@@ -21973,10 +21907,7 @@ impl EmailAttachment {
         filename: impl ::wasm_bindgen::JsStringLike,
         r#type: impl ::wasm_bindgen::JsStringLike,
         content: &T,
-    ) -> EmailAttachmentBuilder
-    where
-        for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
-    {
+    ) -> EmailAttachmentBuilder {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_disposition(DispositionKind::Attachment);
         inner.set_filename(filename);
