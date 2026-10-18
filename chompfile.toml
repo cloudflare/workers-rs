@@ -38,10 +38,6 @@ deps = ['install:ts-gen']
 # `ts_gen_worker::Error` but share the crate's `JsException` rather than
 # generating a second enum. The Env file references binding types from the
 # crate; ts-gen has no file-level `--external`, so each one is mapped by name.
-#
-# Under `--experimental-generic-mono` the generated bindings do not compile as
-# emitted; `mono-patch` applies the stopgap edits listed in
-# `ts-gen-worker/parity/generic-mono.md`, each marked `// ts-gen mono:`.
 run = '''ts-gen --experimental-generic-mono --input node_modules/@cloudflare/workers-types/index.d.ts \
   --output ts-gen-worker/src/bindings.rs \
   --fallible --error-type crate::Error --error-enum JsException \
@@ -69,7 +65,6 @@ run = '''ts-gen --experimental-generic-mono --input node_modules/@cloudflare/wor
   --export IncomingRequestCfProperties RequestInitCfProperties \
   --export crypto DigestStream console performance setTimeout clearTimeout \
   --export cloudflare:sockets
-cargo run -q --release --manifest-path ts-gen-worker/tools/Cargo.toml --bin mono-patch -- ts-gen-worker/src/bindings.rs
 rustfmt --edition 2021 ts-gen-worker/src/bindings.rs
 ts-gen --experimental-generic-mono --input ts-gen-worker/test/types/env.d.ts --output ts-gen-worker/test/src/env.rs \
   --fallible --error-type ts_gen_worker::Error \

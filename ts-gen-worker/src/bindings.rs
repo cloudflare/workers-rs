@@ -424,7 +424,6 @@ extern "C" {
         CfHostMetadata = JsValue,
         Props = JsValue,
     >;
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, getter)]
     pub fn fetch<
         Env: ::wasm_bindgen::JsGeneric,
@@ -442,7 +441,6 @@ extern "C" {
             ) -> JsValue,
         >,
     >;
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, setter)]
     pub fn set_fetch<
         Env: ::wasm_bindgen::JsGeneric,
@@ -459,7 +457,6 @@ extern "C" {
             ) -> JsValue,
         >,
     );
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, getter)]
     pub fn connect<
         Env: ::wasm_bindgen::JsGeneric,
@@ -469,7 +466,6 @@ extern "C" {
     >(
         this: &ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata, Props>,
     ) -> Option<Function<fn(Socket, Env, ExecutionContext<Props>) -> JsOption<Promise<Undefined>>>>;
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, setter)]
     pub fn set_connect<
         Env: ::wasm_bindgen::JsGeneric,
@@ -480,7 +476,6 @@ extern "C" {
         this: &ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata, Props>,
         val: &Function<fn(Socket, Env, ExecutionContext<Props>) -> JsOption<Promise<Undefined>>>,
     );
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, getter)]
     pub fn tail<
         Env: ::wasm_bindgen::JsGeneric,
@@ -494,7 +489,6 @@ extern "C" {
             fn(Array<TraceItem>, Env, ExecutionContext<Props>) -> JsOption<Promise<Undefined>>,
         >,
     >;
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, setter)]
     pub fn set_tail<
         Env: ::wasm_bindgen::JsGeneric,
@@ -507,7 +501,6 @@ extern "C" {
             fn(Array<TraceItem>, Env, ExecutionContext<Props>) -> JsOption<Promise<Undefined>>,
         >,
     );
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, getter)]
     pub fn trace<
         Env: ::wasm_bindgen::JsGeneric,
@@ -521,7 +514,6 @@ extern "C" {
             fn(Array<TraceItem>, Env, ExecutionContext<Props>) -> JsOption<Promise<Undefined>>,
         >,
     >;
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, setter)]
     pub fn set_trace<
         Env: ::wasm_bindgen::JsGeneric,
@@ -534,7 +526,6 @@ extern "C" {
             fn(Array<TraceItem>, Env, ExecutionContext<Props>) -> JsOption<Promise<Undefined>>,
         >,
     );
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, getter, js_name = "tailStream")]
     pub fn tail_stream<
         Env: ::wasm_bindgen::JsGeneric,
@@ -548,7 +539,6 @@ extern "C" {
             fn(tail_stream::TailEvent<tail_stream::Onset>, Env, ExecutionContext<Props>) -> JsValue,
         >,
     >;
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, setter, js_name = "tailStream")]
     pub fn set_tail_stream<
         Env: ::wasm_bindgen::JsGeneric,
@@ -561,7 +551,6 @@ extern "C" {
             fn(tail_stream::TailEvent<tail_stream::Onset>, Env, ExecutionContext<Props>) -> JsValue,
         >,
     );
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, getter)]
     pub fn scheduled<
         Env: ::wasm_bindgen::JsGeneric,
@@ -575,7 +564,6 @@ extern "C" {
             fn(ScheduledController, Env, ExecutionContext<Props>) -> JsOption<Promise<Undefined>>,
         >,
     >;
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, setter)]
     pub fn set_scheduled<
         Env: ::wasm_bindgen::JsGeneric,
@@ -588,7 +576,6 @@ extern "C" {
             fn(ScheduledController, Env, ExecutionContext<Props>) -> JsOption<Promise<Undefined>>,
         >,
     );
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, getter)]
     pub fn test<
         Env: ::wasm_bindgen::JsGeneric,
@@ -600,7 +587,6 @@ extern "C" {
     ) -> Option<
         Function<fn(TestController, Env, ExecutionContext<Props>) -> JsOption<Promise<Undefined>>>,
     >;
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, setter)]
     pub fn set_test<
         Env: ::wasm_bindgen::JsGeneric,
@@ -613,7 +599,6 @@ extern "C" {
             fn(TestController, Env, ExecutionContext<Props>) -> JsOption<Promise<Undefined>>,
         >,
     );
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, getter)]
     pub fn email<
         Env: ::wasm_bindgen::JsGeneric,
@@ -631,7 +616,6 @@ extern "C" {
             ) -> JsOption<Promise<Undefined>>,
         >,
     >;
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, setter)]
     pub fn set_email<
         Env: ::wasm_bindgen::JsGeneric,
@@ -648,7 +632,6 @@ extern "C" {
             ) -> JsOption<Promise<Undefined>>,
         >,
     );
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, getter)]
     pub fn queue<
         Env: ::wasm_bindgen::JsGeneric,
@@ -666,7 +649,6 @@ extern "C" {
             ) -> JsOption<Promise<Undefined>>,
         >,
     >;
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, setter)]
     pub fn set_queue<
         Env: ::wasm_bindgen::JsGeneric,
@@ -684,7 +666,6 @@ extern "C" {
         >,
     );
 }
-// ts-gen mono: bounds the generated methods need (generic-mono.md #1, #2)
 impl<
         Env: ::wasm_bindgen::JsGeneric,
         QueueHandlerMessage: ::wasm_bindgen::JsGeneric,
@@ -692,10 +673,37 @@ impl<
         Props: ::wasm_bindgen::JsGeneric,
     > ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata, Props>
 where
-    for<'__wbg> &'__wbg Env: ::wasm_bindgen::convert::IntoWasmAbi,
-    for<'__wbg> &'__wbg QueueHandlerMessage: ::wasm_bindgen::convert::IntoWasmAbi,
-    for<'__wbg> &'__wbg CfHostMetadata: ::wasm_bindgen::convert::IntoWasmAbi,
-    for<'__wbg> &'__wbg Props: ::wasm_bindgen::convert::IntoWasmAbi,
+    for<'__wbg> &'__wbg Function<
+        fn(
+            Request<CfHostMetadata, IncomingRequestCfProperties<CfHostMetadata>>,
+            Env,
+            ExecutionContext<Props>,
+        ) -> JsValue,
+    >: ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+    for<'__wbg> &'__wbg Function<fn(Socket, Env, ExecutionContext<Props>) -> JsOption<Promise<Undefined>>>:
+        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+    for<'__wbg> &'__wbg Function<
+        fn(Array<TraceItem>, Env, ExecutionContext<Props>) -> JsOption<Promise<Undefined>>,
+    >: ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+    for<'__wbg> &'__wbg Function<
+        fn(tail_stream::TailEvent<tail_stream::Onset>, Env, ExecutionContext<Props>) -> JsValue,
+    >: ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+    for<'__wbg> &'__wbg Function<
+        fn(ScheduledController, Env, ExecutionContext<Props>) -> JsOption<Promise<Undefined>>,
+    >: ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+    for<'__wbg> &'__wbg Function<
+        fn(TestController, Env, ExecutionContext<Props>) -> JsOption<Promise<Undefined>>,
+    >: ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+    for<'__wbg> &'__wbg Function<
+        fn(ForwardableEmailMessage, Env, ExecutionContext<Props>) -> JsOption<Promise<Undefined>>,
+    >: ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+    for<'__wbg> &'__wbg Function<
+        fn(
+            MessageBatch<QueueHandlerMessage>,
+            Env,
+            ExecutionContext<Props>,
+        ) -> JsOption<Promise<Undefined>>,
+    >: ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
 {
     pub fn new() -> ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata, Props> {
         Self::builder().build()
@@ -709,7 +717,6 @@ where
 pub struct ExportedHandlerBuilder<Env, QueueHandlerMessage, CfHostMetadata, Props> {
     inner: ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata, Props>,
 }
-// ts-gen mono: bounds the generated methods need (generic-mono.md #1, #2)
 impl<
         Env: ::wasm_bindgen::JsGeneric,
         QueueHandlerMessage: ::wasm_bindgen::JsGeneric,
@@ -717,10 +724,37 @@ impl<
         Props: ::wasm_bindgen::JsGeneric,
     > ExportedHandlerBuilder<Env, QueueHandlerMessage, CfHostMetadata, Props>
 where
-    for<'__wbg> &'__wbg Env: ::wasm_bindgen::convert::IntoWasmAbi,
-    for<'__wbg> &'__wbg QueueHandlerMessage: ::wasm_bindgen::convert::IntoWasmAbi,
-    for<'__wbg> &'__wbg CfHostMetadata: ::wasm_bindgen::convert::IntoWasmAbi,
-    for<'__wbg> &'__wbg Props: ::wasm_bindgen::convert::IntoWasmAbi,
+    for<'__wbg> &'__wbg Function<
+        fn(
+            Request<CfHostMetadata, IncomingRequestCfProperties<CfHostMetadata>>,
+            Env,
+            ExecutionContext<Props>,
+        ) -> JsValue,
+    >: ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+    for<'__wbg> &'__wbg Function<fn(Socket, Env, ExecutionContext<Props>) -> JsOption<Promise<Undefined>>>:
+        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+    for<'__wbg> &'__wbg Function<
+        fn(Array<TraceItem>, Env, ExecutionContext<Props>) -> JsOption<Promise<Undefined>>,
+    >: ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+    for<'__wbg> &'__wbg Function<
+        fn(tail_stream::TailEvent<tail_stream::Onset>, Env, ExecutionContext<Props>) -> JsValue,
+    >: ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+    for<'__wbg> &'__wbg Function<
+        fn(ScheduledController, Env, ExecutionContext<Props>) -> JsOption<Promise<Undefined>>,
+    >: ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+    for<'__wbg> &'__wbg Function<
+        fn(TestController, Env, ExecutionContext<Props>) -> JsOption<Promise<Undefined>>,
+    >: ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+    for<'__wbg> &'__wbg Function<
+        fn(ForwardableEmailMessage, Env, ExecutionContext<Props>) -> JsOption<Promise<Undefined>>,
+    >: ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+    for<'__wbg> &'__wbg Function<
+        fn(
+            MessageBatch<QueueHandlerMessage>,
+            Env,
+            ExecutionContext<Props>,
+        ) -> JsOption<Promise<Undefined>>,
+    >: ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
 {
     pub fn fetch(
         self,
@@ -1787,7 +1821,6 @@ extern "C" {
     pub fn kv(this: &DurableObjectStorage) -> SyncKvStorage;
     #[wasm_bindgen(method, setter)]
     pub fn set_kv(this: &DurableObjectStorage, val: &SyncKvStorage);
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, catch, js_name = "transactionSync")]
     pub fn transaction_sync<T: ::wasm_bindgen::JsGeneric>(
         this: &DurableObjectStorage,
@@ -2181,7 +2214,8 @@ extern "C" {
 }
 impl<T> FacetStartupOptions<T>
 where
-    for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
+    for<'__wbg> &'__wbg DurableObjectClass<T>:
+        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
 {
     pub fn new(class: &DurableObjectClass<T>) -> FacetStartupOptions<T> {
         Self::builder(class).build()
@@ -2197,7 +2231,8 @@ pub struct FacetStartupOptionsBuilder<T> {
 }
 impl<T> FacetStartupOptionsBuilder<T>
 where
-    for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
+    for<'__wbg> &'__wbg DurableObjectClass<T>:
+        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
 {
     pub fn id(self, val: &DurableObjectId) -> Self {
         self.inner.set_id(val);
@@ -2475,6 +2510,8 @@ extern "C" {
     pub type EventTarget<EventMap = Object<Event>>;
     #[wasm_bindgen(constructor, catch)]
     pub fn new() -> Result<EventTarget, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "EventTarget")]
+    pub fn new_typed<EventMap>() -> Result<EventTarget<EventMap>, crate::Error>;
     #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
@@ -6194,12 +6231,33 @@ extern "C" {
     #[doc = ""]
     #[doc = " * `TypeError` — if `input` is not a valid URL or `init` is inconsistent with it"]
     #[wasm_bindgen(constructor, catch, js_name = "Request")]
+    pub fn new_typed<CfHostMetadata, Cf>(
+        input: &Request<JsValue, IncomingRequestCfProperties<JsValue>>,
+    ) -> Result<Request<CfHostMetadata, Cf>, JsException>;
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `input` is not a valid URL or `init` is inconsistent with it"]
+    #[wasm_bindgen(constructor, catch, js_name = "Request")]
     pub fn new_with_str(input: impl ::wasm_bindgen::JsStringLike) -> Result<Request, JsException>;
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `input` is not a valid URL or `init` is inconsistent with it"]
     #[wasm_bindgen(constructor, catch, js_name = "Request")]
+    pub fn new_with_str_typed<CfHostMetadata, Cf>(
+        input: impl ::wasm_bindgen::JsStringLike,
+    ) -> Result<Request<CfHostMetadata, Cf>, JsException>;
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `input` is not a valid URL or `init` is inconsistent with it"]
+    #[wasm_bindgen(constructor, catch, js_name = "Request")]
     pub fn new_with_url(input: &URL) -> Result<Request, JsException>;
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `input` is not a valid URL or `init` is inconsistent with it"]
+    #[wasm_bindgen(constructor, catch, js_name = "Request")]
+    pub fn new_with_url_typed<CfHostMetadata, Cf>(
+        input: &URL,
+    ) -> Result<Request<CfHostMetadata, Cf>, JsException>;
     #[doc = " ## Errors"]
     #[doc = ""]
     #[doc = " * `TypeError` — if `input` is not a valid URL or `init` is inconsistent with it"]
@@ -6212,6 +6270,14 @@ extern "C" {
     #[doc = ""]
     #[doc = " * `TypeError` — if `input` is not a valid URL or `init` is inconsistent with it"]
     #[wasm_bindgen(constructor, catch, js_name = "Request")]
+    pub fn new_with_request_and_init_typed<CfHostMetadata, Cf>(
+        input: &Request<JsValue, IncomingRequestCfProperties<JsValue>>,
+        init: &RequestInit<Cf>,
+    ) -> Result<Request<CfHostMetadata, Cf>, JsException>;
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `input` is not a valid URL or `init` is inconsistent with it"]
+    #[wasm_bindgen(constructor, catch, js_name = "Request")]
     pub fn new_with_str_and_init<Cf>(
         input: impl ::wasm_bindgen::JsStringLike,
         init: &RequestInit<Cf>,
@@ -6220,10 +6286,26 @@ extern "C" {
     #[doc = ""]
     #[doc = " * `TypeError` — if `input` is not a valid URL or `init` is inconsistent with it"]
     #[wasm_bindgen(constructor, catch, js_name = "Request")]
+    pub fn new_with_str_and_init_typed<CfHostMetadata, Cf>(
+        input: impl ::wasm_bindgen::JsStringLike,
+        init: &RequestInit<Cf>,
+    ) -> Result<Request<CfHostMetadata, Cf>, JsException>;
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `input` is not a valid URL or `init` is inconsistent with it"]
+    #[wasm_bindgen(constructor, catch, js_name = "Request")]
     pub fn new_with_url_and_init<Cf>(
         input: &URL,
         init: &RequestInit<Cf>,
     ) -> Result<Request<JsValue, Cf>, JsException>;
+    #[doc = " ## Errors"]
+    #[doc = ""]
+    #[doc = " * `TypeError` — if `input` is not a valid URL or `init` is inconsistent with it"]
+    #[wasm_bindgen(constructor, catch, js_name = "Request")]
+    pub fn new_with_url_and_init_typed<CfHostMetadata, Cf>(
+        input: &URL,
+        init: &RequestInit<Cf>,
+    ) -> Result<Request<CfHostMetadata, Cf>, JsException>;
     #[doc = " The **`clone()`** method of the Request interface creates a copy of the current Request object."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/clone)"]
@@ -6384,7 +6466,8 @@ extern "C" {
 }
 impl<Cf> RequestInit<Cf>
 where
-    for<'__wbg> &'__wbg Cf: ::wasm_bindgen::convert::IntoWasmAbi,
+    for<'__wbg> &'__wbg Cf:
+        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
 {
     pub fn new() -> RequestInit<Cf> {
         Self::builder().build()
@@ -6400,7 +6483,8 @@ pub struct RequestInitBuilder<Cf> {
 }
 impl<Cf> RequestInitBuilder<Cf>
 where
-    for<'__wbg> &'__wbg Cf: ::wasm_bindgen::convert::IntoWasmAbi,
+    for<'__wbg> &'__wbg Cf:
+        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
 {
     pub fn method(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
         self.inner.set_method(val);
@@ -6611,7 +6695,8 @@ impl<Metadata> KVNamespaceListKey<Metadata> {
 }
 impl<Metadata> KVNamespaceListKey<Metadata>
 where
-    for<'__wbg> &'__wbg Metadata: ::wasm_bindgen::convert::IntoWasmAbi,
+    for<'__wbg> &'__wbg Metadata:
+        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
 {
     pub fn new(name: impl ::wasm_bindgen::JsStringLike) -> KVNamespaceListKey<Metadata> {
         Self::builder(name).build()
@@ -6627,7 +6712,8 @@ pub struct KVNamespaceListKeyBuilder<Metadata> {
 }
 impl<Metadata> KVNamespaceListKeyBuilder<Metadata>
 where
-    for<'__wbg> &'__wbg Metadata: ::wasm_bindgen::convert::IntoWasmAbi,
+    for<'__wbg> &'__wbg Metadata:
+        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
 {
     pub fn expiration(self, val: u64) -> Self {
         self.inner.set_expiration(val);
@@ -6681,7 +6767,7 @@ extern "C" {
 }
 impl<Metadata> KVNamespaceListResult<Metadata>
 where
-    for<'__wbg> &'__wbg Metadata: ::wasm_bindgen::convert::IntoWasmAbi,
+    KVNamespaceListKey<Metadata>: ::wasm_bindgen::convert::VectorRefIntoWasmAbi,
 {
     #[doc = " ## Inlined fields"]
     #[doc = ""]
@@ -6726,7 +6812,7 @@ pub struct KVNamespaceListResultBuilder<Metadata> {
 }
 impl<Metadata> KVNamespaceListResultBuilder<Metadata>
 where
-    for<'__wbg> &'__wbg Metadata: ::wasm_bindgen::convert::IntoWasmAbi,
+    KVNamespaceListKey<Metadata>: ::wasm_bindgen::convert::VectorRefIntoWasmAbi,
 {
     pub fn cursor(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
         self.inner.set_cursor(val);
@@ -7225,8 +7311,7 @@ impl KVNamespace {
     ) -> Result<Promise<Option<String>>, crate::Error> {
         self.get_text_promise_js(key, "text")
     }
-    // ts-gen mono: `'static` on the inline wrapper's type parameters (generic-mono.md #5)
-    pub async fn get_json<ExpectedValue: 'static + ::wasm_bindgen::convert::OptionFromWasmAbi>(
+    pub async fn get_json<ExpectedValue>(
         &self,
         key: impl ::wasm_bindgen::JsStringLike,
     ) -> Result<Option<ExpectedValue>, crate::Error>
@@ -7235,8 +7320,7 @@ impl KVNamespace {
     {
         self.get_json_js(key, "json").await
     }
-    // ts-gen mono: `'static` on the inline wrapper's type parameters (generic-mono.md #5)
-    pub fn get_json_promise<ExpectedValue: 'static + ::wasm_bindgen::convert::OptionFromWasmAbi>(
+    pub fn get_json_promise<ExpectedValue>(
         &self,
         key: impl ::wasm_bindgen::JsStringLike,
     ) -> Result<Promise<Option<ExpectedValue>>, crate::Error>
@@ -7464,7 +7548,8 @@ impl<Type> KVNamespaceGetOptions<Type> {
 }
 impl<Type> KVNamespaceGetOptions<Type>
 where
-    for<'__wbg> &'__wbg Type: ::wasm_bindgen::convert::IntoWasmAbi,
+    for<'__wbg> &'__wbg Type:
+        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
 {
     pub fn new(r#type: &Type) -> KVNamespaceGetOptions<Type> {
         Self::builder(r#type).build()
@@ -7480,7 +7565,8 @@ pub struct KVNamespaceGetOptionsBuilder<Type> {
 }
 impl<Type> KVNamespaceGetOptionsBuilder<Type>
 where
-    for<'__wbg> &'__wbg Type: ::wasm_bindgen::convert::IntoWasmAbi,
+    for<'__wbg> &'__wbg Type:
+        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
 {
     pub fn cache_ttl(self, val: u64) -> Self {
         self.inner.set_cache_ttl(val);
@@ -7597,8 +7683,10 @@ extern "C" {
 }
 impl<Value, Metadata> KVNamespaceGetWithMetadataResult<Value, Metadata>
 where
-    for<'__wbg> &'__wbg Value: ::wasm_bindgen::convert::IntoWasmAbi,
-    for<'__wbg> &'__wbg Metadata: ::wasm_bindgen::convert::IntoWasmAbi,
+    JsNullable<Value>:
+        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+    JsNullable<Metadata>:
+        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
 {
     pub fn new(
         value: JsNullable<Value>,
@@ -7938,7 +8026,8 @@ extern "C" {
 }
 impl<Body> MessageSendRequest<Body>
 where
-    for<'__wbg> &'__wbg Body: ::wasm_bindgen::convert::IntoWasmAbi,
+    for<'__wbg> &'__wbg Body:
+        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
 {
     pub fn new(body: &Body) -> MessageSendRequest<Body> {
         Self::builder(body).build()
@@ -7954,7 +8043,8 @@ pub struct MessageSendRequestBuilder<Body> {
 }
 impl<Body> MessageSendRequestBuilder<Body>
 where
-    for<'__wbg> &'__wbg Body: ::wasm_bindgen::convert::IntoWasmAbi,
+    for<'__wbg> &'__wbg Body:
+        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
 {
     pub fn content_type(self, val: QueueContentType) -> Self {
         self.inner.set_content_type(val);
@@ -9785,22 +9875,20 @@ extern "C" {
         this: &QueuingStrategy<T>,
         val: impl ::js_sys::JsBigIntOrNumberLike,
     );
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, getter)]
     pub fn size<T: ::wasm_bindgen::JsGeneric>(
         this: &QueuingStrategy<T>,
     ) -> Option<Function<fn(T) -> JsValue>>;
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, setter)]
     pub fn set_size<T: ::wasm_bindgen::JsGeneric>(
         this: &QueuingStrategy<T>,
         val: &Function<fn(T) -> JsValue>,
     );
 }
-// ts-gen mono: bounds the generated methods need (generic-mono.md #1, #2)
 impl<T: ::wasm_bindgen::JsGeneric> QueuingStrategy<T>
 where
-    for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
+    for<'__wbg> &'__wbg Function<fn(T) -> JsValue>:
+        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
 {
     pub fn new() -> QueuingStrategy<T> {
         Self::builder().build()
@@ -9814,10 +9902,10 @@ where
 pub struct QueuingStrategyBuilder<T> {
     inner: QueuingStrategy<T>,
 }
-// ts-gen mono: bounds the generated methods need (generic-mono.md #1, #2)
 impl<T: ::wasm_bindgen::JsGeneric> QueuingStrategyBuilder<T>
 where
-    for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
+    for<'__wbg> &'__wbg Function<fn(T) -> JsValue>:
+        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
 {
     pub fn high_water_mark(self, val: impl ::js_sys::JsBigIntOrNumberLike) -> Self {
         self.inner.set_high_water_mark(val);
@@ -9854,12 +9942,10 @@ extern "C" {
         this: &UnderlyingSink<W>,
         val: &Function<fn(WritableStreamDefaultController) -> JsOption<Promise<Undefined>>>,
     );
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, getter)]
     pub fn write<W: ::wasm_bindgen::JsGeneric>(
         this: &UnderlyingSink<W>,
     ) -> Option<Function<fn(W, WritableStreamDefaultController) -> JsOption<Promise<Undefined>>>>;
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, setter)]
     pub fn set_write<W: ::wasm_bindgen::JsGeneric>(
         this: &UnderlyingSink<W>,
@@ -9884,10 +9970,10 @@ extern "C" {
         val: &Function<fn() -> JsOption<Promise<Undefined>>>,
     );
 }
-// ts-gen mono: bounds the generated methods need (generic-mono.md #1, #2)
 impl<W: ::wasm_bindgen::JsGeneric> UnderlyingSink<W>
 where
-    for<'__wbg> &'__wbg W: ::wasm_bindgen::convert::IntoWasmAbi,
+    for<'__wbg> &'__wbg Function<fn(W, WritableStreamDefaultController) -> JsOption<Promise<Undefined>>>:
+        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
 {
     pub fn new() -> UnderlyingSink<W> {
         Self::builder().build()
@@ -9901,10 +9987,10 @@ where
 pub struct UnderlyingSinkBuilder<W> {
     inner: UnderlyingSink<W>,
 }
-// ts-gen mono: bounds the generated methods need (generic-mono.md #1, #2)
 impl<W: ::wasm_bindgen::JsGeneric> UnderlyingSinkBuilder<W>
 where
-    for<'__wbg> &'__wbg W: ::wasm_bindgen::convert::IntoWasmAbi,
+    for<'__wbg> &'__wbg Function<fn(W, WritableStreamDefaultController) -> JsOption<Promise<Undefined>>>:
+        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
 {
     pub fn type_(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
         self.inner.set_type(val);
@@ -10042,23 +10128,19 @@ extern "C" {
     pub fn type_<R>(this: &UnderlyingSource<R>) -> Option<String>;
     #[wasm_bindgen(method, setter)]
     pub fn set_type<R>(this: &UnderlyingSource<R>, val: Option<impl ::wasm_bindgen::JsStringLike>);
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, getter)]
     pub fn start<R: ::wasm_bindgen::JsGeneric>(
         this: &UnderlyingSource<R>,
     ) -> Option<Function<fn(ReadableStreamDefaultController<R>) -> JsOption<Promise<Undefined>>>>;
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, setter)]
     pub fn set_start<R: ::wasm_bindgen::JsGeneric>(
         this: &UnderlyingSource<R>,
         val: &Function<fn(ReadableStreamDefaultController<R>) -> JsOption<Promise<Undefined>>>,
     );
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, getter)]
     pub fn pull<R: ::wasm_bindgen::JsGeneric>(
         this: &UnderlyingSource<R>,
     ) -> Option<Function<fn(ReadableStreamDefaultController<R>) -> JsOption<Promise<Undefined>>>>;
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, setter)]
     pub fn set_pull<R: ::wasm_bindgen::JsGeneric>(
         this: &UnderlyingSource<R>,
@@ -10081,10 +10163,10 @@ extern "C" {
         val: impl ::js_sys::JsBigIntOrNumberLike,
     );
 }
-// ts-gen mono: bounds the generated methods need (generic-mono.md #1, #2)
 impl<R: ::wasm_bindgen::JsGeneric> UnderlyingSource<R>
 where
-    for<'__wbg> &'__wbg R: ::wasm_bindgen::convert::IntoWasmAbi,
+    for<'__wbg> &'__wbg Function<fn(ReadableStreamDefaultController<R>) -> JsOption<Promise<Undefined>>>:
+        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
 {
     pub fn new() -> UnderlyingSource<R> {
         Self::builder().build()
@@ -10098,10 +10180,10 @@ where
 pub struct UnderlyingSourceBuilder<R> {
     inner: UnderlyingSource<R>,
 }
-// ts-gen mono: bounds the generated methods need (generic-mono.md #1, #2)
 impl<R: ::wasm_bindgen::JsGeneric> UnderlyingSourceBuilder<R>
 where
-    for<'__wbg> &'__wbg R: ::wasm_bindgen::convert::IntoWasmAbi,
+    for<'__wbg> &'__wbg Function<fn(ReadableStreamDefaultController<R>) -> JsOption<Promise<Undefined>>>:
+        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
 {
     pub fn type_(self, val: Option<impl ::wasm_bindgen::JsStringLike>) -> Self {
         self.inner.set_type(val);
@@ -10157,34 +10239,28 @@ extern "C" {
         this: &Transformer<I, O>,
         val: impl ::wasm_bindgen::JsStringLike,
     );
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, getter)]
     pub fn start<I, O: ::wasm_bindgen::JsGeneric>(
         this: &Transformer<I, O>,
     ) -> Option<Function<fn(TransformStreamDefaultController<O>) -> JsOption<Promise<Undefined>>>>;
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, setter)]
     pub fn set_start<I, O: ::wasm_bindgen::JsGeneric>(
         this: &Transformer<I, O>,
         val: &Function<fn(TransformStreamDefaultController<O>) -> JsOption<Promise<Undefined>>>,
     );
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, getter)]
     pub fn transform<I: ::wasm_bindgen::JsGeneric, O: ::wasm_bindgen::JsGeneric>(
         this: &Transformer<I, O>,
     ) -> Option<Function<fn(I, TransformStreamDefaultController<O>) -> JsOption<Promise<Undefined>>>>;
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, setter)]
     pub fn set_transform<I: ::wasm_bindgen::JsGeneric, O: ::wasm_bindgen::JsGeneric>(
         this: &Transformer<I, O>,
         val: &Function<fn(I, TransformStreamDefaultController<O>) -> JsOption<Promise<Undefined>>>,
     );
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, getter)]
     pub fn flush<I, O: ::wasm_bindgen::JsGeneric>(
         this: &Transformer<I, O>,
     ) -> Option<Function<fn(TransformStreamDefaultController<O>) -> JsOption<Promise<Undefined>>>>;
-    // ts-gen mono: `JsGeneric` on type parameters inside `Function<…>` (generic-mono.md #1)
     #[wasm_bindgen(method, setter)]
     pub fn set_flush<I, O: ::wasm_bindgen::JsGeneric>(
         this: &Transformer<I, O>,
@@ -10204,11 +10280,12 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "expectedLength")]
     pub fn set_expected_length<I, O>(this: &Transformer<I, O>, val: f64);
 }
-// ts-gen mono: bounds the generated methods need (generic-mono.md #1, #2)
 impl<I: ::wasm_bindgen::JsGeneric, O: ::wasm_bindgen::JsGeneric> Transformer<I, O>
 where
-    for<'__wbg> &'__wbg I: ::wasm_bindgen::convert::IntoWasmAbi,
-    for<'__wbg> &'__wbg O: ::wasm_bindgen::convert::IntoWasmAbi,
+    for<'__wbg> &'__wbg Function<fn(TransformStreamDefaultController<O>) -> JsOption<Promise<Undefined>>>:
+        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+    for<'__wbg> &'__wbg Function<fn(I, TransformStreamDefaultController<O>) -> JsOption<Promise<Undefined>>>:
+        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
 {
     pub fn new() -> Transformer<I, O> {
         Self::builder().build()
@@ -10222,11 +10299,12 @@ where
 pub struct TransformerBuilder<I, O> {
     inner: Transformer<I, O>,
 }
-// ts-gen mono: bounds the generated methods need (generic-mono.md #1, #2)
 impl<I: ::wasm_bindgen::JsGeneric, O: ::wasm_bindgen::JsGeneric> TransformerBuilder<I, O>
 where
-    for<'__wbg> &'__wbg I: ::wasm_bindgen::convert::IntoWasmAbi,
-    for<'__wbg> &'__wbg O: ::wasm_bindgen::convert::IntoWasmAbi,
+    for<'__wbg> &'__wbg Function<fn(TransformStreamDefaultController<O>) -> JsOption<Promise<Undefined>>>:
+        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+    for<'__wbg> &'__wbg Function<fn(I, TransformStreamDefaultController<O>) -> JsOption<Promise<Undefined>>>:
+        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
 {
     pub fn readable_type(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
         self.inner.set_readable_type(val);
@@ -10364,10 +10442,9 @@ extern "C" {
     #[wasm_bindgen(method, setter)]
     pub fn set_value<R>(this: &ReadableStreamReadResult<R>, val: Option<R>);
 }
-// ts-gen mono: bounds the generated methods need (generic-mono.md #1, #2)
-impl<R: ::wasm_bindgen::convert::OptionIntoWasmAbi> ReadableStreamReadResult<R>
+impl<R> ReadableStreamReadResult<R>
 where
-    for<'__wbg> &'__wbg R: ::wasm_bindgen::convert::IntoWasmAbi,
+    Option<R>: ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
 {
     #[doc = " ## Inlined fields"]
     #[doc = ""]
@@ -10396,10 +10473,9 @@ where
 pub struct ReadableStreamReadResultBuilder<R> {
     inner: ReadableStreamReadResult<R>,
 }
-// ts-gen mono: bounds the generated methods need (generic-mono.md #1, #2)
-impl<R: ::wasm_bindgen::convert::OptionIntoWasmAbi> ReadableStreamReadResultBuilder<R>
+impl<R> ReadableStreamReadResultBuilder<R>
 where
-    for<'__wbg> &'__wbg R: ::wasm_bindgen::convert::IntoWasmAbi,
+    Option<R>: ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
 {
     pub fn value(self, val: Option<R>) -> Self {
         self.inner.set_value(val);
@@ -10422,14 +10498,16 @@ extern "C" {
     #[wasm_bindgen(constructor, catch)]
     pub fn new() -> Result<ReadableStream, crate::Error>;
     #[wasm_bindgen(constructor, catch, js_name = "ReadableStream")]
+    pub fn new_typed<R>() -> Result<ReadableStream<R>, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "ReadableStream")]
     pub fn new_with_underlying_byte_source(
         underlying_source: &UnderlyingByteSource,
-    ) -> Result<ReadableStream, crate::Error>;
+    ) -> Result<ReadableStream<Uint8Array>, crate::Error>;
     #[wasm_bindgen(constructor, catch, js_name = "ReadableStream")]
     pub fn new_with_underlying_byte_source_and_queuing_strategy(
         underlying_source: &UnderlyingByteSource,
         strategy: &QueuingStrategy<Uint8Array>,
-    ) -> Result<ReadableStream, crate::Error>;
+    ) -> Result<ReadableStream<Uint8Array>, crate::Error>;
     #[wasm_bindgen(constructor, catch, js_name = "ReadableStream")]
     pub fn new_with_underlying_source<R>(
         underlying_source: &UnderlyingSource<R>,
@@ -10566,6 +10644,10 @@ extern "C" {
     pub type ReadableStreamDefaultReader<R = JsValue>;
     #[wasm_bindgen(constructor, catch)]
     pub fn new(stream: &ReadableStream) -> Result<ReadableStreamDefaultReader, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "ReadableStreamDefaultReader")]
+    pub fn new_typed<R>(
+        stream: &ReadableStream,
+    ) -> Result<ReadableStreamDefaultReader<R>, crate::Error>;
     #[wasm_bindgen(method, getter)]
     pub fn closed<R>(this: &ReadableStreamDefaultReader<R>) -> Promise<Undefined>;
     #[wasm_bindgen(method, catch)]
@@ -10885,8 +10967,10 @@ extern "C" {
 }
 impl<R, W> ReadableWritablePair<R, W>
 where
-    for<'__wbg> &'__wbg R: ::wasm_bindgen::convert::IntoWasmAbi,
-    for<'__wbg> &'__wbg W: ::wasm_bindgen::convert::IntoWasmAbi,
+    for<'__wbg> &'__wbg ReadableStream<R>:
+        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
+    for<'__wbg> &'__wbg WritableStream<W>:
+        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
 {
     #[doc = " * `writable` - Provides a convenient, chainable way of piping this readable stream through a transform stream (or any other { writable, readable } pair). It simply pipes the stream into the writable side of the supplied pair, and returns the readable side for further use."]
     #[doc = ""]
@@ -10909,14 +10993,25 @@ extern "C" {
     #[wasm_bindgen(constructor, catch)]
     pub fn new() -> Result<WritableStream, crate::Error>;
     #[wasm_bindgen(constructor, catch, js_name = "WritableStream")]
+    pub fn new_typed<W>() -> Result<WritableStream<W>, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "WritableStream")]
     pub fn new_with_underlying_sink(
         underlying_sink: &UnderlyingSink,
     ) -> Result<WritableStream, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "WritableStream")]
+    pub fn new_with_underlying_sink_typed<W>(
+        underlying_sink: &UnderlyingSink,
+    ) -> Result<WritableStream<W>, crate::Error>;
     #[wasm_bindgen(constructor, catch, js_name = "WritableStream")]
     pub fn new_with_underlying_sink_and_queuing_strategy(
         underlying_sink: &UnderlyingSink,
         queuing_strategy: &QueuingStrategy,
     ) -> Result<WritableStream, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "WritableStream")]
+    pub fn new_with_underlying_sink_and_queuing_strategy_typed<W>(
+        underlying_sink: &UnderlyingSink,
+        queuing_strategy: &QueuingStrategy,
+    ) -> Result<WritableStream<W>, crate::Error>;
     #[doc = " The **`locked`** read-only property of the WritableStream interface returns a boolean indicating whether the WritableStream is locked to a writer."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStream/locked)"]
@@ -10973,6 +11068,10 @@ extern "C" {
     pub type WritableStreamDefaultWriter<W = JsValue>;
     #[wasm_bindgen(constructor, catch)]
     pub fn new(stream: &WritableStream) -> Result<WritableStreamDefaultWriter, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "WritableStreamDefaultWriter")]
+    pub fn new_typed<W>(
+        stream: &WritableStream,
+    ) -> Result<WritableStreamDefaultWriter<W>, crate::Error>;
     #[doc = " The **`closed`** read-only property of the WritableStreamDefaultWriter interface returns a Promise that fulfills if the stream becomes closed, or rejects if the stream errors or the writer's lock is released."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/closed)"]
@@ -11069,6 +11168,8 @@ extern "C" {
     pub type TransformStream<I = JsValue, O = JsValue>;
     #[wasm_bindgen(constructor, catch)]
     pub fn new() -> Result<TransformStream, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "TransformStream")]
+    pub fn new_typed<I, O>() -> Result<TransformStream<I, O>, crate::Error>;
     #[wasm_bindgen(constructor, catch, js_name = "TransformStream")]
     pub fn new_with_transformer<I, O>(
         transformer: &Transformer<I, O>,
@@ -12387,10 +12488,9 @@ extern "C" {
     #[wasm_bindgen(method, setter)]
     pub fn set_value<T>(this: &SqlStorageCursorNextReturn<T>, val: Option<T>);
 }
-// ts-gen mono: bounds the generated methods need (generic-mono.md #1, #2)
-impl<T: ::wasm_bindgen::convert::OptionIntoWasmAbi> SqlStorageCursorNextReturn<T>
+impl<T> SqlStorageCursorNextReturn<T>
 where
-    for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
+    Option<T>: ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
 {
     pub fn new() -> SqlStorageCursorNextReturn<T> {
         Self::builder().build()
@@ -12404,10 +12504,9 @@ where
 pub struct SqlStorageCursorNextReturnBuilder<T> {
     inner: SqlStorageCursorNextReturn<T>,
 }
-// ts-gen mono: bounds the generated methods need (generic-mono.md #1, #2)
-impl<T: ::wasm_bindgen::convert::OptionIntoWasmAbi> SqlStorageCursorNextReturnBuilder<T>
+impl<T> SqlStorageCursorNextReturnBuilder<T>
 where
-    for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
+    Option<T>: ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
 {
     pub fn done(self, val: bool) -> Self {
         self.inner.set_done(val);
@@ -15711,7 +15810,8 @@ extern "C" {
 }
 impl<HostMetadata> IncomingRequestCfProperties<HostMetadata>
 where
-    for<'__wbg> &'__wbg HostMetadata: ::wasm_bindgen::convert::IntoWasmAbi,
+    for<'__wbg> &'__wbg HostMetadata:
+        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
 {
     #[doc = " ## Inlined fields"]
     #[doc = ""]
@@ -17399,7 +17499,8 @@ pub struct IncomingRequestCfPropertiesBuilder<HostMetadata> {
 }
 impl<HostMetadata> IncomingRequestCfPropertiesBuilder<HostMetadata>
 where
-    for<'__wbg> &'__wbg HostMetadata: ::wasm_bindgen::convert::IntoWasmAbi,
+    for<'__wbg> &'__wbg HostMetadata:
+        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
 {
     pub fn asn(self, val: u32) -> Self {
         self.inner.set_asn(val);
@@ -18364,7 +18465,8 @@ extern "C" {
 }
 impl<HostMetadata> IncomingRequestCfPropertiesCloudflareForSaaSEnterprise<HostMetadata>
 where
-    for<'__wbg> &'__wbg HostMetadata: ::wasm_bindgen::convert::IntoWasmAbi,
+    for<'__wbg> &'__wbg HostMetadata:
+        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
 {
     pub fn new() -> IncomingRequestCfPropertiesCloudflareForSaaSEnterprise<HostMetadata> {
         Self::builder().build()
@@ -18381,7 +18483,8 @@ pub struct IncomingRequestCfPropertiesCloudflareForSaaSEnterpriseBuilder<HostMet
 }
 impl<HostMetadata> IncomingRequestCfPropertiesCloudflareForSaaSEnterpriseBuilder<HostMetadata>
 where
-    for<'__wbg> &'__wbg HostMetadata: ::wasm_bindgen::convert::IntoWasmAbi,
+    for<'__wbg> &'__wbg HostMetadata:
+        ::wasm_bindgen::convert::IntoWasmAbi + ::wasm_bindgen::describe::WasmDescribe,
 {
     pub fn host_metadata(self, val: &HostMetadata) -> Self {
         self.inner.set_host_metadata(val);
@@ -19893,10 +19996,9 @@ extern "C" {
     #[wasm_bindgen(method, setter)]
     pub fn set_results<T>(this: &D1Result<T>, #[wasm_bindgen(slice = "array")] val: &[T]);
 }
-// ts-gen mono: bounds the generated methods need (generic-mono.md #1, #2)
-impl<T: ::wasm_bindgen::convert::VectorRefIntoWasmAbi> D1Result<T>
+impl<T> D1Result<T>
 where
-    for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
+    T: ::wasm_bindgen::convert::VectorRefIntoWasmAbi,
 {
     #[doc = " ## Inlined fields"]
     #[doc = ""]
@@ -19918,10 +20020,9 @@ where
 pub struct D1ResultBuilder<T> {
     inner: D1Result<T>,
 }
-// ts-gen mono: bounds the generated methods need (generic-mono.md #1, #2)
-impl<T: ::wasm_bindgen::convert::VectorRefIntoWasmAbi> D1ResultBuilder<T>
+impl<T> D1ResultBuilder<T>
 where
-    for<'__wbg> &'__wbg T: ::wasm_bindgen::convert::IntoWasmAbi,
+    T: ::wasm_bindgen::convert::VectorRefIntoWasmAbi,
 {
     pub fn error(self, val: &Undefined) -> Self {
         self.inner.set_error(val);

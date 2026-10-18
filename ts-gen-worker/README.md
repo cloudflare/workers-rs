@@ -108,9 +108,10 @@ and `WebSocket` travel in the `http` extensions. The feature also adds
 - `chomp build:ts-gen-worker:types` regenerates `src/bindings.rs` from
   workers-types (edit the `--export` roots in `chompfile.toml` to widen the
   surface, `types/annotations.d.ts` to tag members) and `test/src/env.rs`
-  from `test/types/env.d.ts`. It generates with `--experimental-generic-mono`
-  and then runs `tools/`'s `mono-patch`, whose marked stopgap edits make the
-  mono output compile (see `parity/generic-mono.md`).
+  from `test/types/env.d.ts`, with `--experimental-generic-mono`. The build
+  enables `js_sys_unstable_apis` (`.cargo/config.toml`), whose js-sys
+  signatures need the patched `serde-wasm-bindgen` and `wasm-streams` copies
+  in `vendor-patches/`.
 - `chomp test:ts-gen-worker` builds the test worker and runs its vitest suite
   under miniflare; `chomp test:ts-gen-worker-http` runs it with the handler
   over the `http` types. `test/` is the `worker` crate's suite ported to the
