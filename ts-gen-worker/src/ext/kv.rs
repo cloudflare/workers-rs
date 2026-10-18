@@ -5,13 +5,16 @@
 
 use std::collections::HashMap;
 
-use js_sys::{ArrayBuffer, Map, Promise, Uint8Array};
+use js_sys::{ArrayBuffer, Map, Uint8Array};
 use wasm_bindgen::convert::FromWasmAbi;
-use wasm_bindgen::{JsCast, JsValue};
+#[cfg(feature = "serde")]
+use wasm_bindgen::JsValue;
 
+#[cfg(feature = "serde")]
+use crate::KVNamespaceGetWithMetadataResult;
 use crate::{
-    KVNamespace, KVNamespaceGetOptions, KVNamespaceGetWithMetadataResult, KVNamespaceListOptions,
-    KVNamespaceListResult, KVNamespacePutOptions, ReadableStream, Result,
+    KVNamespace, KVNamespaceGetOptions, KVNamespaceListOptions, KVNamespaceListResult,
+    KVNamespacePutOptions, ReadableStream, Result,
 };
 
 impl KVNamespace {
@@ -99,10 +102,6 @@ impl ToRawKvValue for String {
     }
 }
 
-/// The `getWithMetadata` entry with its value type erased: the same call returns a
-/// string, an `ArrayBuffer` or a stream depending on the requested `type`.
-type Entry = KVNamespaceGetWithMetadataResult<JsValue, JsValue>;
-
 #[cfg(feature = "serde")]
 type TextEntry = KVNamespaceGetWithMetadataResult<String, JsValue>;
 
@@ -115,23 +114,8 @@ fn get_options(value_type: &str, cache_ttl: Option<u64>) -> KVNamespaceGetOption
     .build()
 }
 
-/// KV reports a missing key as `null`, which `Option<JsValue>` getters keep as `Some`.
-fn present(value: Option<JsValue>) -> Option<JsValue> {
-    value.filter(|v| !v.is_null())
-}
-
-fn as_text(value: Option<JsValue>) -> Option<String> {
-    value.and_then(|v| v.as_string())
-}
-
-fn as_bytes(value: Option<JsValue>) -> Option<Vec<u8>> {
-    value
-        .and_then(|v| v.dyn_into::<ArrayBuffer>().ok())
-        .map(|buffer| Uint8Array::new(&buffer).to_vec())
-}
-
-fn as_stream(value: Option<JsValue>) -> Option<ReadableStream> {
-    value.map(JsCast::unchecked_into)
+fn to_bytes(buffer: ArrayBuffer) -> Vec<u8> {
+    Uint8Array::new(&buffer).to_vec()
 }
 
 #[cfg(feature = "serde")]
@@ -139,16 +123,12 @@ fn parse_json<T: serde::de::DeserializeOwned>(text: Option<&str>) -> Result<Opti
     Ok(text.map(serde_json::from_str).transpose()?)
 }
 
-#[cfg(feature = "serde")]
-fn as_json<T: serde::de::DeserializeOwned>(value: Option<JsValue>) -> Result<Option<T>> {
-    parse_json(as_text(value).as_deref())
-}
-
+/// KV reports absent metadata as `null`, which an `Option<JsValue>` getter keeps as `Some`.
 #[cfg(feature = "serde")]
 fn metadata<V, M: serde::de::DeserializeOwned>(
     entry: &KVNamespaceGetWithMetadataResult<V, JsValue>,
 ) -> Result<Option<M>> {
-    match present(entry.metadata()) {
+    match entry.metadata().filter(|v| !v.is_null()) {
         Some(value) => Ok(Some(serde_wasm_bindgen::from_value(value)?)),
         None => Ok(None),
     }
@@ -169,53 +149,45 @@ impl KvGetBuilder {
         self
     }
 
-    /// The awaited `get` lowers to `Option<String>`, which would coerce an `ArrayBuffer` or
-    /// stream result through the string path, so the promise is awaited as a `JsValue`.
-    async fn raw(&self, value_type: &str) -> Result<Option<JsValue>> {
-        let options = get_options(value_type, self.cache_ttl);
-        let promise: Promise<JsValue> = self
-            .kv
-            .get_with_key_str_and_options_kv_namespace_get_options_promise(&self.key, &options)?
-            .unchecked_into();
-        Ok(present(Some(promise.await?)))
-    }
-
-    #[cfg(feature = "serde")]
-    async fn raw_with_metadata(&self, value_type: &str) -> Result<Entry> {
-        let options = get_options(value_type, self.cache_ttl);
-        let entry = self
-            .kv
-            .get_with_metadata_with_key_str_and_options_kv_namespace_get_options(
-                &self.key, &options,
-            )
-            .await?;
-        Ok(entry.unchecked_into())
+    fn options(&self, value_type: &str) -> KVNamespaceGetOptions<String> {
+        get_options(value_type, self.cache_ttl)
     }
 
     pub async fn text(self) -> Result<Option<String>> {
-        Ok(as_text(self.raw("text").await?))
+        let options = self.options("text");
+        self.kv.get_text_with_options(&self.key, &options).await
     }
 
     /// The value parsed as JSON into `T`.
     #[cfg(feature = "serde")]
     pub async fn json<T: serde::de::DeserializeOwned>(self) -> Result<Option<T>> {
-        as_json(self.raw("text").await?)
+        parse_json(self.text().await?.as_deref())
     }
 
     pub async fn bytes(self) -> Result<Option<Vec<u8>>> {
-        Ok(as_bytes(self.raw("arrayBuffer").await?))
+        let options = self.options("arrayBuffer");
+        let buffer = self
+            .kv
+            .get_array_buffer_with_options(&self.key, &options)
+            .await?;
+        Ok(buffer.map(to_bytes))
     }
 
     pub async fn stream(self) -> Result<Option<ReadableStream>> {
-        Ok(as_stream(self.raw("stream").await?))
+        let options = self.options("stream");
+        self.kv.get_stream_with_options(&self.key, &options).await
     }
 
     #[cfg(feature = "serde")]
     pub async fn text_with_metadata<M: serde::de::DeserializeOwned>(
         self,
     ) -> Result<(Option<String>, Option<M>)> {
-        let entry = self.raw_with_metadata("text").await?;
-        Ok((as_text(present(entry.value())), metadata(&entry)?))
+        let options = self.options("text");
+        let entry = self
+            .kv
+            .get_with_metadata_text_with_options(&self.key, &options)
+            .await?;
+        Ok((entry.value(), metadata(&entry)?))
     }
 
     #[cfg(feature = "serde")]
@@ -225,24 +197,32 @@ impl KvGetBuilder {
     >(
         self,
     ) -> Result<(Option<T>, Option<M>)> {
-        let entry = self.raw_with_metadata("text").await?;
-        Ok((as_json(present(entry.value()))?, metadata(&entry)?))
+        let (text, meta) = self.text_with_metadata().await?;
+        Ok((parse_json(text.as_deref())?, meta))
     }
 
     #[cfg(feature = "serde")]
     pub async fn bytes_with_metadata<M: serde::de::DeserializeOwned>(
         self,
     ) -> Result<(Option<Vec<u8>>, Option<M>)> {
-        let entry = self.raw_with_metadata("arrayBuffer").await?;
-        Ok((as_bytes(present(entry.value())), metadata(&entry)?))
+        let options = self.options("arrayBuffer");
+        let entry = self
+            .kv
+            .get_with_metadata_array_buffer_with_options(&self.key, &options)
+            .await?;
+        Ok((entry.value().map(to_bytes), metadata(&entry)?))
     }
 
     #[cfg(feature = "serde")]
     pub async fn stream_with_metadata<M: serde::de::DeserializeOwned>(
         self,
     ) -> Result<(Option<ReadableStream>, Option<M>)> {
-        let entry = self.raw_with_metadata("stream").await?;
-        Ok((as_stream(present(entry.value())), metadata(&entry)?))
+        let options = self.options("stream");
+        let entry = self
+            .kv
+            .get_with_metadata_stream_with_options(&self.key, &options)
+            .await?;
+        Ok((entry.value(), metadata(&entry)?))
     }
 }
 
@@ -264,7 +244,7 @@ impl KvGetBulkBuilder {
     async fn text_map(&self) -> Result<Map<String, Option<String>>> {
         let options = get_options("text", self.cache_ttl);
         self.kv
-            .get_with_key_slice_and_options_kv_namespace_get_options(&self.keys, &options)
+            .get_text_with_slice_and_options(&self.keys, &options)
             .await
     }
 
@@ -272,9 +252,7 @@ impl KvGetBulkBuilder {
     async fn text_map_with_metadata(&self) -> Result<Map<String, TextEntry>> {
         let options = get_options("text", self.cache_ttl);
         self.kv
-            .get_with_metadata_with_key_slice_and_options_kv_namespace_get_options(
-                &self.keys, &options,
-            )
+            .get_with_metadata_text_with_slice_and_options(&self.keys, &options)
             .await
     }
 
