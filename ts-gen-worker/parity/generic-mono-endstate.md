@@ -112,7 +112,7 @@ Response::new_with_array_buffer_and_init(Some(&out.buffer()), &init)?
   - buffer handles (`&ArrayBuffer`, typed arrays, `&DataView`) pass as themselves;
   - `Vec<u8>` passes as a copy;
   - `&[u8]`, the form the port uses (`&bytes[..]`), is copied into a fresh `Uint8Array` by default. That is always safe, including for the 15 dictionary setters that store their value (`R2PutOptions::md5`, crypto `iv`/`salt`, `RequestInit` body, attachment content). `test/src/r2.rs:349-356` zeroes the digest after `.md5(&hash[..])`, and R2 still verifies it.
-- `{@slice view}` in `annotations.d.ts` makes a `&[u8]` argument a view into wasm memory, valid only for the call. It is set only on callees that copy or read the bytes before returning: `Response`'s body (Fetch spec), KV and R2 `put` and `uploadPart` (workerd copies), and WebCrypto, which works synchronously (29 view arguments, 17 copies).
+- `{@slice view}` in `annotations.d.ts` makes a `&[u8]` argument a view into wasm memory, valid only for the call. It is set only on callees that copy or read the bytes before returning: `Response`'s body (Fetch spec), KV and R2 `put` and `uploadPart` (workerd copies), and WebCrypto, which works synchronously (29 view arguments, 16 copies).
 - `{@slice handle}` takes buffer handles only, for `ReadableStreamBYOBRequest::respond_with_new_view`, which must hand back the request's own buffer. `ReadableByteStreamController::enqueue` transfers its chunk, so it keeps the copy.
 - `Body::body()` is `Option<ReadableStream<Uint8Array>>` through an `@retype` in `annotations.d.ts`. Upstream types it as `ReadableStream`, with `any` chunks.
 - C could adopt the same arm lowering, since it is ts-gen, not mono.
@@ -695,13 +695,14 @@ What is left in rustdoc:
 | port `.set_x(Some(…))` | 3 | 0 |
 | port `.is_null()` | 5 | 3 |
 
-The 37 output-only types lose 99 setters, 18 constructors and 17 builders. The remaining
-`Option<&…>` arguments are optional (`bits?:`, `cf?: any`). The port's `.is_null()` calls left are on
+The 37 output-only types lose 100 setters, 18 constructors and 17 builders; the written nullable
+fields add 10 hidden `null` setters (688 − 100 + 10 = 598). The remaining `Option<&…>` arguments are
+`| undefined` positions (`File(bits: X[] | undefined, …)`, `Response.cf: any | undefined`). The port's `.is_null()` calls left are on
 `any` values (a SQL cell, two D1 test assertions).
 
 Every item that is **still worse in B than in A**:
 - **`&[String]` → `&[impl JsStringLike]`:** `&[]` needs `&[] as &[&str]`. Literal lists and `&Vec<String>` both work.
-- **`Option<&str>` → `Option<impl JsStringLike>` (4, from 15 before the null model):** only optional (`undefined`) positions keep it: `EmailAttachment`'s `contentId` (its raw setter and both `new_inline` constructors) and `UnderlyingSource::set_type`. `None` there needs `None::<&str>`. No nullable position takes `Option`: each has a `_with_null` form.
+- **`Option<&str>` → `Option<impl JsStringLike>` (4, from 15 before the null model):** two raw `| undefined` setters keep it by design (`EmailAttachment::set_content_id`, `UnderlyingSource::set_type`), and the two `new_inline*` factories by a ts-gen bug (E4, §6). `None` there needs `None::<&str>`. No nullable position takes `Option`: each has a `_with_null` form.
 - **Generic user code over a binding** restates the binding's declared bound: `T: RefIntoWasmAbi` for a `&T` argument, `T: FromWasmAbi` for a return, `Option<T>: FromWasmAbi` / `Vec<T>: FromWasmAbi` for those returns. All are first-order (phase 1 had 66 `for<'a>` clauses, phase 2 before #5385 had 12). A needed `T: JsGeneric`, which still covers a `&T` argument (`JsGeneric: RefIntoWasmAbi`).
 - **Surface size.** The added items are:
   - `_typed` twins (51), for constructors and nested return-only parameters;
@@ -805,9 +806,9 @@ along with the same ecosystem break.
 
 ## 6. Remaining gaps
 
-Not built, by owner. Every audit item not listed here is done.
+Not built, by owner (T ts-gen, J wasm-bindgen/js-sys, W workers-rs). Tags (E1, C2, …) are R's audit items; every audit item not listed here is done.
 
-**Ecosystem (workers-rs).**
+**Ecosystem (workers-rs; needs design, outside the prototype).**
 - `worker` and `worker-sys` are not ported to `js_sys_unstable_apis`, so the repo's 145-test `chomp test` stays excluded. B's js-sys changes behaviour, not just types:
   - iterators rethrow instead of yielding `Result`;
   - `Reflect::get` / `Array::get` return `Option`;
@@ -817,20 +818,39 @@ Not built, by owner. Every audit item not listed here is done.
   Shipping B means porting `worker` (and depending on patched serde-wasm-bindgen and wasm-streams), or stabilising these js-sys APIs first.
 - Every patch is prototype quality. `mono-prototype-patches.md` groups them by upstream PR.
 
-**ts-gen.**
+**ts-gen + `annotations.d.ts` (T + W).**
+- About 31 setters on properties workerd makes read-only throw a `TypeError` when called (E1): `Response` 10,
+  `Request` 11, `WebSocket` 7 (three of them `_with_null` forms), `WebSocketPair` 2, `SqlStorageCursor::set_column_names`.
+  workers-types drops `readonly` on JSG instance properties, and ts-gen treats a class property as written. Fix:
+  mark them `readonly` in `annotations.d.ts` (W), with `--annotate` layering the modifier (T). Upstream
+  workers-types is the real home.
+
+**ts-gen (T).**
+- Output-only misses parents and intersection members (E2). `D1Response`, the parent of output-only `D1Result`,
+  keeps `new(meta)`, `set_success` and `set_meta`, reachable on any `D1Result` through `Deref`. `D1Meta` keeps a
+  dead write side, since `meta: D1Meta & Record<…>` lowers to `JsValue`; typing it as `D1Meta` needs an
+  intersection rule.
+- A union of slice elements with no Rust form is erased (E3): `AnalyticsEngineDataPoint.{indexes,blobs}` take
+  `&[JsValue]`, so the port writes `.blobs(&[req.method().into(), …])`, and `File::new`'s `bits` is the same.
+  Expanding an element union like an argument union (`&[impl JsStringLike]`) would remove the last `.into()`s.
+- Shape-shared union enums are named after their first site (C3): R2's `ssec_key()` returns
+  `MessageEventInitDataKind` (D3, §7).
 - `[A, ...B[]]` lowers to an erased array: D1 `raw_with_column_names()` returns `Vec<JsValue>`, the column names followed by the rows. A and B1 typed it as a fixed 2-tuple, which was wrong. A typed head/rest form needs a js-sys type.
 - `IncomingRequestCfProperties` has numbered builders, from crossing a dictionary-union field with the type's other unions. Only mocks build an incoming `cf`.
-- `FormData::get_all()` stays `Vec<JsValue>`: a `Vec<T>` return needs a handle `T`, not a union enum.
-- `EmailAttachment::new_inline(content_id: Option<…>)`: the `inline` variant requires `contentId`, but the merged
-  field is `string | undefined`, so the variant constructor takes `Option`.
+- `EmailAttachment::new_inline(content_id: Option<…>)` (E4): the `inline` variant requires `contentId`, but the
+  branch factory takes the merged field's `string | undefined`, so it takes `Option`.
 - Eight Promise-typed getters (`writer.ready()`, `socket.opened()`, the readers' and writers' `closed()`) return
-  `Promise<T>`, which rejects with `JsValue`, so a tail `.await` of one is `Ok(x.await?)`. B5 typed methods only.
+  `Promise<T>`, which rejects with `JsValue`, so a tail `.await` of one is `Ok(x.await?)` (C2). B5 typed methods only.
 
-**wasm-bindgen / js-sys.**
+**ts-gen + wasm-bindgen (T + J).**
+- `FormData::get_all()` stays `Vec<JsValue>` (C4): a `Vec<T>` return needs a handle `T`, and a union enum is not one.
+
+**wasm-bindgen / js-sys (J).**
 - Array callback methods other than `for_each` (`map`, `filter`, …) stay erased. Rust iteration covers them.
 
 **By design (no action).**
-- `&[] as &[&str]`. `None::<&str>` on optional raw setters (4 arguments, all `undefined` positions).
+- `&[] as &[&str]`. `None::<&str>` on the two raw `| undefined` setters (`EmailAttachment::set_content_id`,
+  `UnderlyingSource::set_type`). The other two `Option<impl JsStringLike>` arguments are the `new_inline*` factories (E4).
 - `any` values stay `JsValue` (SQL values, attachments, `Error::cause`).
 - `void | Promise<void>` callback returns are `Option<Promise<()>>`. That is correct, but a hand-built handler closure returns `None`/`Some(p)`; the macros hide it.
 - Mono's compile-time cost (§4).

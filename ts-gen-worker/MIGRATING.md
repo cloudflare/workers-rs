@@ -26,7 +26,7 @@ String arguments take `impl JsStringLike` (`&str`, `String`, `&String`), and str
 value bare and sends `null` through its own `_with_null` form (`clear_timeout(id)` /
 `clear_timeout_with_null()`, `Response::new_with_null_and_init(&init)`, `.prefix(p)` /
 `.prefix_with_null()`). An optional one is an overload or builder method left uncalled; only an
-optional raw setter takes `Option<…>`. Reads fold `null` and `undefined` into `None`, `JsValue`
+argument or setter whose type admits `undefined` takes `Option<…>`. Reads fold `null` and `undefined` into `None`, `JsValue`
 included (`ws.deserialize_attachment()?` is an `Option<JsValue>`). Types that are only ever read
 (`KVNamespaceListResult`, `R2Objects`, Queue metrics) have getters only: no `new`, setters or
 builder. Byte arguments take `impl BufferSourceLike`: `&[u8]`, `Vec<u8>` or
