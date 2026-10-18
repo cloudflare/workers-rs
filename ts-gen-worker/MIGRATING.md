@@ -10,8 +10,10 @@ wherever a name was free. The full row-by-row list is the migration table in
 [`parity/crate.md`](parity/crate.md); this guide covers the changes a typical worker meets.
 
 Every sync binding that can throw returns `Result`, so a few calls gain a `?`
-(`Headers::new()?`, `ctx.pass_through_on_exception()?`). Awaited values come back as
-native types (`text().await?` is a `String`, `status()` is a `u16`).
+(`Headers::new()?`, `ctx.pass_through_on_exception()?`). Async members return a typed
+`Promise<T>` that awaits to the native type (`text().await?` is a `String`) and passes back to JS
+as is. It rejects with a `JsValue`, so a tail `x.await` in a fn returning `Result` is
+`Ok(x.await?)`.
 
 The bindings are generated with mono generics on js-sys's unstable API
 (`--cfg js_sys_unstable_apis`, set in `.cargo/config.toml`), so js-sys collections behave
@@ -21,7 +23,11 @@ like Rust collections: `Map::get("k")`, `for (k, v) in &headers`, `record.iter()
 String arguments take `impl JsStringLike` (`&str`, `String`, `&String`), and string lists take
 `&[impl JsStringLike]` (`&["a", "b"]`). An optional or nullable argument is either its own
 overload (`Response::new_with_null_and_init(&init)`) or a builder method left uncalled; only
-raw setters take `Option<…>`. Callbacks are `Function::from_fn(|event: JsValue| …)`. String-enum
+raw setters take `Option<…>`. Byte arguments take `impl BufferSourceLike`: `&[u8]`, `Vec<u8>` or
+any buffer handle. In a dictionary field (`R2PutOptions::builder().md5(..)`) pass an owned
+`Uint8Array` or `Vec<u8>`, since `&[u8]` is a view into wasm memory and the dictionary outlives the
+borrow. Callbacks are `Function::from_fn(|event: JsValue| …)`, or `Function::once(|| …)` for a
+one-shot. String-enum
 options take the generated enum (`EncodeBodyKind::Manual`, `CacheKind::NoStore`,
 `BinaryTypeKind::Arraybuffer`), and arrays come back as `Vec<T>`. The JS globals are
 lower-case statics: `console`, `caches`, `crypto`, `performance` (`caches.with(CacheStorage::default)`

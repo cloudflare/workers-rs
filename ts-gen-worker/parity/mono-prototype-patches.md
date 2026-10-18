@@ -74,6 +74,7 @@ workers-rs-3 builds the whole prototype. `js_sys_unstable_apis` is on for wasm32
 | `6f85b11` | a dictionary argument whose fields are all literals is set by the binding: `raw_with_column_names{,_typed}()`, `get_reader_byob()`; a `{ x?: false }` arm folds into the omitted form | audit A1: D1 `raw`'s tuple return trusted the caller's `columnNames` | ts-gen mono PR (overloads) |
 | `7ec1b4c` | `Partial` getters return `Option`; field-literal wrappers call the typed setter instead of `Reflect::set`; `this` returns lower to the receiver (`Span::set_attribute`); names (`json_with_init`, `with_session_with_constraint`, `verify`/`measure` arms) | audit A2 | ts-gen mono PR (overloads, names) |
 | `e798487` | `ArrayBuffer \| ArrayBufferView` and `BufferSource` lower to `impl js_sys::BufferSourceLike` (`Option<…>` with `null`); one `_buffer_source` binding replaces the `_array_buffer` + `_typed_array` arms | audit A3; needs `3ef8cb93b` | ts-gen mono PR (types) |
+| `16402cd` | async members are one import returning `Promise<T>` (`T` the awaited form), with no `async fn` / `_promise` pair (293 twins → 0); the imports drop `catch` until wasm-bindgen rejects on a sync throw | design D1: one value that awaits and passes to JS | ts-gen mono PR (async) |
 
 ## workers-rs (`ts-gen-worker`)
 
@@ -115,6 +116,7 @@ Each row of the tables above is one change. Landing them is a smaller set of PRs
 | ts-gen mono: overloads and names | `9220a19`, `e4d3fde`, `8e09b3d`, `76caab3`, `1549ee7`, `6f85b11`, `7ec1b4c` | — |
 | ts-gen mono: generic-class arguments, `Partial`, `()` | `6115484`, `76b070a`, `d4d3303` | `56ac6f184` |
 | ts-gen mono: buffer-source arguments | `e798487` | `3ef8cb93b` |
+| ts-gen mono: `Promise<T>` async returns | `16402cd` | js-sys `Promise<T>: IntoFuture` |
 | ts-gen mono: generated `IntoIterator` | `d21202a` | `866b0d33d` |
 | serde-wasm-bindgen, wasm-streams: build under `js_sys_unstable_apis` | `ts-gen-worker/vendor-patches` | js-sys unstable |
 | workers-rs: inputs (`annotations.d.ts`, `env.d.ts`), ext, port, `MIGRATING.md` | workers-rs rows | all of the above |
