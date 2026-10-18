@@ -95,8 +95,11 @@ fn build_structured(name: &str) -> Option<EmailMessageBuilder> {
         "structured-with-attachment" => {
             let payload = b"hello attachment";
             let bytes = Uint8Array::from(&payload[..]);
-            let attachment =
-                EmailAttachment::new_attachment_with_typed_array("hello.txt", "text/plain", &bytes);
+            let attachment = EmailAttachment::new_attachment_with_buffer_source(
+                "hello.txt",
+                "text/plain",
+                &bytes,
+            );
             EmailMessageBuilder::builder(SENDER, subject)
                 .to(RECIPIENT)
                 .text("structured email with an attachment")

@@ -75,14 +75,14 @@ where
     use std::rc::Rc;
     let output: Rc<RefCell<Option<T>>> = Rc::new(RefCell::new(None));
     let slot = output.clone();
-    let callback = Closure::once(move || {
+    let callback = Function::once(move || {
         wasm_bindgen_futures::future_to_promise(async move {
             let value = future.await?;
             *slot.borrow_mut() = Some(value);
             Ok(JsValue::NULL)
         })
     });
-    let gated = state.block_concurrency_while_promise::<JsValue>(&Function::from_closure(callback));
+    let gated = state.block_concurrency_while_promise(&callback);
     async move {
         gated?.await?;
         let value = output.borrow_mut().take();

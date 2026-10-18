@@ -1,4 +1,4 @@
-use js_sys::{ArrayBuffer, Object, Promise};
+use js_sys::{Object, Promise};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::sync::{
@@ -145,8 +145,8 @@ async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response
             let sum: u32 = bytes.iter().map(|b| *b as u32).sum();
             let headers = Headers::new()?;
             headers.set("x-sum", sum.to_string())?;
-            Ok(Response::new_with_array_buffer_and_init(
-                &ArrayBuffer::from(bytes),
+            Ok(Response::new_with_buffer_source_and_init(
+                &bytes[..],
                 &ResponseInit::builder().headers(&headers).build(),
             )?)
         }

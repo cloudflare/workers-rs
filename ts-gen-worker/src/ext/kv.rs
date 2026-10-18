@@ -347,7 +347,7 @@ impl KvPutBuilder {
         match value {
             KvPutValue::Text(text) => kv.put_with_options(&key, &text, &options).await?,
             KvPutValue::Bytes(buffer) => {
-                kv.put_with_array_buffer_and_options(&key, &buffer, &options)
+                kv.put_with_buffer_source_and_options(&key, &buffer, &options)
                     .await?
             }
             KvPutValue::Stream(stream) => {

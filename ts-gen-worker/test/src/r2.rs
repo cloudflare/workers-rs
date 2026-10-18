@@ -240,7 +240,7 @@ pub async fn put(_req: Request, env: Env, _data: SomeSharedData) -> Result<Respo
 
     bucket.put_with_str("text", "text").await?;
     bucket
-        .put_with_typed_array("bytes", &Uint8Array::from(&[0u8; 32][..]))
+        .put_with_buffer_source("bytes", &[0u8; 32][..])
         .await?;
     bucket.put_with_str("empty", "").await?;
     bucket.put("stream", &fixed_stream.readable()).await?;
@@ -286,10 +286,7 @@ pub async fn put_multipart(_req: Request, env: Env, _data: SomeSharedData) -> Re
         let chunk = vec![u8::try_from(chunk_index).unwrap(); chunk_size];
         uploaded_parts.push(
             upload
-                .upload_part_with_typed_array(
-                    u16::try_from(chunk_index).unwrap(),
-                    &Uint8Array::from(&chunk[..]),
-                )
+                .upload_part_with_buffer_source(u16::try_from(chunk_index).unwrap(), &chunk[..])
                 .await?,
         );
     }
@@ -357,7 +354,7 @@ async fn put_full_properties(
             &R2PutOptions::builder()
                 .http_metadata(&http_metadata.to_js())
                 .custom_metadata(&custom_metadata.iter().collect())
-                .md5_with_typed_array(&Uint8Array::from(&md5_hash[..]))
+                .md5(Uint8Array::from(&md5_hash[..]))
                 .build(),
         )
         .await?;

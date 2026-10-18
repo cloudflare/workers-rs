@@ -18,7 +18,7 @@ impl DurableObject for AutoResponseObject {
             "/set" => {
                 let pair = WebSocketRequestResponsePair::new("ping", "pong")?;
                 self.state
-                    .set_web_socket_auto_response_with_maybe_req_resp(&pair)?;
+                    .set_web_socket_auto_response_with_req_resp(&pair)?;
                 Response::builder().ok("ok")
             }
             "/get" => {
