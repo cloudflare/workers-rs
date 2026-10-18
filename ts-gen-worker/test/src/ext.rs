@@ -458,9 +458,9 @@ pub async fn handle(
         }
 
         ("GET", ["from-websocket"]) => {
-            let pair = WebSocketPair::new()?;
-            pair._1().accept()?;
-            let res = Response::builder().from_websocket(pair._0())?;
+            let (client, server) = WebSocketPair::new()?.into();
+            server.accept()?;
+            let res = Response::builder().from_websocket(client)?;
             Response::builder().ok(format!("{} {}", res.status(), res.web_socket().is_some()))
         }
 

@@ -3,7 +3,6 @@ use crate::SomeSharedData;
 use js_sys::Uint8Array;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use ts_gen_worker::*;
-use wasm_bindgen_futures::JsFuture;
 
 /// Connections handled by this Wasm instance; resets if the instance is reinitialized.
 static CONNECTIONS: AtomicUsize = AtomicUsize::new(0);
@@ -81,7 +80,7 @@ pub async fn handle_socket_failed(
 ) -> Result<Response> {
     let socket = connect("127.0.0.1:25000")?;
 
-    match JsFuture::from(socket.opened()).await {
+    match socket.opened().await {
         Ok(_) => Err("Socket should have failed to open.".into()),
         Err(e) => Response::builder().ok(format!("{e:?}")),
     }
@@ -94,7 +93,7 @@ pub async fn handle_socket_read(
 ) -> Result<Response> {
     let socket = connect("127.0.0.1:8080")?;
 
-    JsFuture::from(socket.opened()).await?;
+    socket.opened().await?;
 
     let writer = socket.writable().get_writer()?;
     write_all(&writer, b"ping").await?;
@@ -109,7 +108,7 @@ pub async fn handle_socket_read(
     reader.release_lock()?;
     socket.close().await?;
 
-    JsFuture::from(socket.closed()).await?;
+    socket.closed().await?;
 
     Response::builder().ok("success")
 }

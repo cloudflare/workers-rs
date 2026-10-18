@@ -1,4 +1,5 @@
+/** {@string copy} */
 interface Env {
-  KV: KVNamespace;
-  SERVICE: Fetcher;
+  readonly KV: KVNamespace;
+  readonly SERVICE: Fetcher;
 }

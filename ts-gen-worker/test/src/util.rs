@@ -7,7 +7,6 @@ use std::time::Duration;
 use js_sys::Function;
 use ts_gen_worker::*;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::JsFuture;
 
 pub async fn sleep(ms: f64) {
     Delay::from(Duration::from_millis(ms as u64)).await;
@@ -85,7 +84,7 @@ where
     });
     let gated = state.block_concurrency_while_promise::<JsValue>(&Function::from_closure(callback));
     async move {
-        JsFuture::from(gated?).await?;
+        gated?.await?;
         let value = output.borrow_mut().take();
         value.ok_or_else(|| "block_concurrency_while callback did not run".into())
     }

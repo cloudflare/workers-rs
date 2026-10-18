@@ -1,4 +1,4 @@
-use js_sys::{Array, Object, Promise, Reflect, Uint8Array};
+use js_sys::{Object, Promise, Reflect, Uint8Array};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::sync::{
@@ -65,9 +65,7 @@ static DATA_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\d{4}-\d{2}-
 
 #[event(start)]
 pub fn start() {
-    std::panic::set_hook(Box::new(|info| {
-        console.with(|c| c.error(&[info.to_string().into()]))
-    }));
+    std::panic::set_hook(Box::new(|info| console_error!("{info}")));
     GLOBAL_STATE.store(true, Ordering::SeqCst);
 }
 
@@ -196,7 +194,7 @@ async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response
         }
         ("GET", ["log"]) => {
             console.with(|c| c.log(&[JsValue::from("hello"), 1.0.into()]));
-            console.with(|c| c.warn(&Array::of1(&"warned".into()).to_vec()));
+            console.with(|c| c.warn(&["warned".into()]));
             Ok(Response::new_with_str(Some("logged"))?)
         }
         ("GET", ["stream"]) => {
@@ -454,7 +452,7 @@ async fn handle_close_event(_req: Request, env: Env, _data: SomeSharedData) -> R
 
 async fn catchall(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     let path = req.path();
-    console.with(|c| c.log(&[format!("[or_else_any_method_async] caught: {}", path).into()]));
+    console_log!("[or_else_any_method_async] caught: {}", path);
 
     let (builder, body) = fetch_with_str("https://github.com/404").await?.into_parts();
     builder.status(404).body(body)

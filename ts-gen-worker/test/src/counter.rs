@@ -35,12 +35,11 @@ impl DurableObject for Counter {
         }
 
         if req.path().eq("/ws") {
-            let pair = WebSocketPair::new()?;
-            let server = pair._1();
+            let (client, server) = WebSocketPair::new()?.into();
             self.state.accept_web_socket(&server)?;
             server.serialize_attachment(&"hello".into())?;
 
-            return Response::builder().from_websocket(pair._0());
+            return Response::builder().from_websocket(client);
         }
 
         self.unstored_count.set(self.unstored_count.get() + 1);
@@ -99,8 +98,7 @@ pub async fn handle_id(req: Request, env: Env, _data: SomeSharedData) -> Result<
 }
 
 pub async fn handle_websocket(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
-    let pair = WebSocketPair::new()?;
-    let (client, server) = (pair._0(), pair._1());
+    let (client, server) = WebSocketPair::new()?.into();
     server.accept()?;
 
     let namespace = counter_namespace(&req, &env).expect("failed to get namespace");

@@ -81,8 +81,7 @@ pub async fn handle_container(req: Request, env: Env, _data: SomeSharedData) -> 
             stub.fetch(&req).await
         }
         "GET" => {
-            let pair = WebSocketPair::new()?;
-            let (client, server) = (pair._0(), pair._1());
+            let (client, server) = WebSocketPair::new()?.into();
             server.accept()?;
             let headers = Headers::new()?;
             headers.set("upgrade", "websocket")?;

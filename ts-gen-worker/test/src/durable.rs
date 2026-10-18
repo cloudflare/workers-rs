@@ -97,20 +97,17 @@ impl DurableObject for MyClass {
                         .map_err(|e| Error::from(format!("{e:?} -- get_multiple")))?;
                     let val = |key| vals.get(key).unwrap_or_default();
                     assert_eq!(
-                        serde_wasm_bindgen::from_value::<Option<i32>>(val("anything"))
-                            .map_err(|e| e.to_string())?,
+                        serde_wasm_bindgen::from_value::<Option<i32>>(val("anything"))?,
                         Some(45),
                         "Didn't get the right Option<i32> using get_multiple"
                     );
                     assert_eq!(
-                        serde_wasm_bindgen::from_value::<[(String, i32); 2]>(val("array"))
-                            .map_err(|e| e.to_string())?,
+                        serde_wasm_bindgen::from_value::<[(String, i32); 2]>(val("array"))?,
                         [("one".to_string(), 1), ("two".to_string(), 2)],
                         "Didn't get the right array using get_multiple"
                     );
                     assert_eq!(
-                        serde_wasm_bindgen::from_value::<HashMap<String, i32>>(val("map"))
-                            .map_err(|e| e.to_string())?,
+                        serde_wasm_bindgen::from_value::<HashMap<String, i32>>(val("map"))?,
                         map,
                         "Didn't get the right HashMap<String, i32> using get_multiple"
                     );
@@ -140,8 +137,7 @@ impl DurableObject for MyClass {
                             &serde_wasm_bindgen::to_value(&Stuff {
                                 thing: "Hello there".to_string(),
                                 other: 56,
-                            })
-                            .map_err(|e| e.to_string())?
+                            })?
                             .unchecked_into(),
                         )
                         .await?;
@@ -323,13 +319,13 @@ pub async fn handle_basic_test(
 ) -> Result<Response> {
     let namespace: DurableObjectNamespace = env.my_class();
     let id = namespace.id_from_name("A")?;
-    assert_eq!(id.name(), Some("A".into()), "Missing name");
+    assert_eq!(id.name().as_deref(), Some("A"), "Missing name");
     assert!(
         namespace.new_unique_id()?.name().is_none(),
         "Expected name property to be absent"
     );
-    let bad = js_sys::Reflect::get(&env, "DFSDF_FAKE_BINDING")?;
-    assert!(bad.is_none(), "Invalid binding did not raise error");
+    let bad = env.get::<JsValue>("DFSDF_FAKE_BINDING");
+    assert!(bad.is_err(), "Invalid binding did not raise error");
 
     let stub = namespace.get(&id)?;
     let res = stub

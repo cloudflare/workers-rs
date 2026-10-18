@@ -103,7 +103,7 @@ pub fn to_array<T: DeserializeOwned>(cursor: &SqlStorageCursor) -> Result<Vec<T>
     cursor
         .to_array()?
         .into_iter()
-        .map(|row| Ok(serde_wasm_bindgen::from_value(row).map_err(|e| e.to_string())?))
+        .map(|row| Ok(serde_wasm_bindgen::from_value(row)?))
         .collect()
 }
 

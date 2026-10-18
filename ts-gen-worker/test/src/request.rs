@@ -132,8 +132,7 @@ pub async fn handle_object_var(_req: Request, env: Env, _: SomeSharedData) -> Re
         foo: i32,
         bar: String,
     }
-    let obj: Obj = serde_wasm_bindgen::from_value(env.some_object_variable().into())
-        .map_err(|e| e.to_string())?;
+    let obj: Obj = serde_wasm_bindgen::from_value(env.some_object_variable().into())?;
     Response::builder().from_json(&obj)
 }
 
@@ -155,7 +154,7 @@ pub async fn handle_api_data(req: Request, _env: Env, _data: SomeSharedData) -> 
     console
         .with(|c| c.log(&[format!("todo = (title {}) (id {})", todo.title, todo.user_id).into()]));
 
-    Response::builder().from_bytes(&serde_json::to_vec(&todo).map_err(|e| e.to_string())?)
+    Response::builder().from_bytes(&serde_json::to_vec(&todo)?)
 }
 
 pub async fn handle_nonsense_repeat(

@@ -15,8 +15,8 @@ fn query<T: Serialize>(db: &D1Database, sql: &str, args: &[&T]) -> Result<D1Prep
     let serializer = serde_wasm_bindgen::Serializer::new().serialize_missing_as_null(true);
     let bindings = args
         .iter()
-        .map(|arg| arg.serialize(&serializer).map_err(|e| e.to_string()))
-        .collect::<std::result::Result<Vec<JsValue>, String>>()?;
+        .map(|arg| arg.serialize(&serializer))
+        .collect::<std::result::Result<Vec<_>, _>>()?;
     prepared.bind(&bindings)
 }
 
@@ -45,7 +45,7 @@ fn results<T: DeserializeOwned>(result: &D1Result) -> Result<Vec<T>> {
     result
         .results()
         .into_iter()
-        .map(|row| Ok(serde_wasm_bindgen::from_value(row).map_err(|e| e.to_string())?))
+        .map(|row| Ok(serde_wasm_bindgen::from_value(row)?))
         .collect()
 }
 
@@ -54,12 +54,11 @@ async fn first<T: DeserializeOwned>(
     stmt: &D1PreparedStatement,
     col_name: Option<&str>,
 ) -> Result<Option<T>> {
-    let value: JsValue = match col_name {
-        Some(col) => stmt.first_with_col_name::<JsValue>(col).await?,
-        None => stmt.first::<JsValue>().await?,
-    }
-    .into();
-    Ok(serde_wasm_bindgen::from_value(value).map_err(|e| e.to_string())?)
+    let value = match col_name {
+        Some(col) => stmt.first_with_col_name(col).await?,
+        None => stmt.first().await?,
+    };
+    Ok(value.map(serde_wasm_bindgen::from_value).transpose()?)
 }
 
 /// `worker::D1PreparedStatement::raw::<T>()`.
@@ -67,7 +66,7 @@ async fn raw<T: DeserializeOwned>(stmt: &D1PreparedStatement) -> Result<Vec<Vec<
     stmt.raw()
         .await?
         .into_iter()
-        .map(|row| Ok(serde_wasm_bindgen::from_value(row.into()).map_err(|e| e.to_string())?))
+        .map(|row| Ok(serde_wasm_bindgen::from_value(row.into())?))
         .collect()
 }
 

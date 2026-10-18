@@ -39,7 +39,7 @@ impl DurableObject for AlarmObject {
             .storage()
             .put_serialized("alarmed", &true)
             .await?;
-        console.with(|c| c.log(&["Alarm has been triggered!".into()]));
+        console_log!("Alarm has been triggered!");
         Ok(())
     }
 }
@@ -47,9 +47,7 @@ impl DurableObject for AlarmObject {
 pub async fn handle_alarm(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     // GAP: `ALARM` is bound in wrangler.toml but not in the suite's mf.ts, and no
     // spec drives it; the route is kept for route parity only.
-    let namespace: DurableObjectNamespace = js_sys::Reflect::get(&env, "ALARM")?
-        .unwrap_or_default()
-        .unchecked_into();
+    let namespace: DurableObjectNamespace = env.get("ALARM")?;
     let stub = namespace.get(&namespace.id_from_name("alarm")?)?;
     stub.fetch_with_str("https://fake-host/alarm").await
 }

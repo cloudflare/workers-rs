@@ -64,7 +64,7 @@ impl HttpMetadata {
             builder = builder.cache_control(v);
         }
         if let Some(v) = self.cache_expiry {
-            builder = builder.cache_expiry(&js_sys::Date::new(&v.into()));
+            builder = builder.cache_expiry(&js_sys::Date::new_with_value(v));
         }
         builder.build()
     }

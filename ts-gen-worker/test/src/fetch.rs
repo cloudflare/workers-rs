@@ -28,8 +28,7 @@ pub async fn handle_fetch_json(
             .await?
             .json::<JsValue>()
             .await?,
-    )
-    .map_err(|e| e.to_string())?;
+    )?;
     Response::builder().ok(format!(
         "API Returned user: {} with title: {} and completed: {}",
         data.user_id, data.title, data.completed
@@ -48,7 +47,7 @@ pub async fn handle_proxy_request(
         .skip(1)
         .collect::<Vec<_>>()
         .join("/");
-    console.with(|c| c.log(&[url.clone().into()]));
+    console_log!("{url}");
     fetch_with_str(&url).await
 }
 
@@ -169,8 +168,7 @@ pub async fn handle_cloned_response_attributes(
     }
     let cf = serde_wasm_bindgen::to_value(&TestCf {
         foo: "bar".to_owned(),
-    })
-    .map_err(|e| e.to_string())?;
+    })?;
     let resp = Response::new_with_str_and_init(
         Some(""),
         &ResponseInit::builder()
@@ -182,8 +180,8 @@ pub async fn handle_cloned_response_attributes(
 
     let resp1 = resp.clone()?;
 
-    let cf: TestCf = serde_wasm_bindgen::from_value(resp.cf()).map_err(|e| e.to_string())?;
-    let cf1: TestCf = serde_wasm_bindgen::from_value(resp1.cf()).map_err(|e| e.to_string())?;
+    let cf: TestCf = serde_wasm_bindgen::from_value(resp.cf())?;
+    let cf1: TestCf = serde_wasm_bindgen::from_value(resp1.cf())?;
 
     assert_eq!(cf, cf1);
 

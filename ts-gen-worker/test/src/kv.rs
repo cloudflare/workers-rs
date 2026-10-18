@@ -140,14 +140,13 @@ pub async fn put_metadata_struct(
             "put_d",
             "test",
             &KVNamespacePutOptions::builder()
-                .metadata(&serde_wasm_bindgen::to_value(&put_meta).map_err(|e| e.to_string())?)
+                .metadata(&serde_wasm_bindgen::to_value(&put_meta)?)
                 .build(),
         )
         .await?;
 
     let result = store.get_with_metadata("put_d").await?;
-    let meta: TestStruct = serde_wasm_bindgen::from_value(result.metadata().unwrap_or_default())
-        .map_err(|e| e.to_string())?;
+    let meta: TestStruct = serde_wasm_bindgen::from_value(result.metadata().unwrap_or_default())?;
 
     kv_assert_eq!(result.value().unwrap(), "test")?;
     kv_assert_eq!(meta, put_meta)?;

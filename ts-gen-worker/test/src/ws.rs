@@ -6,8 +6,7 @@ use ts_gen_worker::*;
 use wasm_bindgen_futures::spawn_local;
 
 pub async fn handle_websocket(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
-    let pair = WebSocketPair::new()?;
-    let (client, server) = (pair._0(), pair._1());
+    let (client, server) = WebSocketPair::new()?.into();
     server.accept()?;
 
     let some_namespace_kv = env.some_namespace();

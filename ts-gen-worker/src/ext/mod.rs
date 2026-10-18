@@ -18,6 +18,7 @@ mod response;
 #[cfg(feature = "serde")]
 mod serde;
 mod streams;
+mod websocket;
 
 pub use cors::Cors;
 pub use date::{DateExt, DateInit};

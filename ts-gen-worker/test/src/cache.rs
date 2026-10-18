@@ -3,7 +3,6 @@ use crate::util::sleep;
 use crate::Env;
 use js_sys::Uint8Array;
 use ts_gen_worker::*;
-use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::spawn_local;
 
 fn key(req: &Request) -> Result<Option<String>> {
@@ -31,15 +30,15 @@ pub async fn handle_cache_example(
     _env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    console.with(|c| c.log(&[format!("url: {}", req.url()).into()]));
+    console_log!("url: {}", req.url());
     let cache = default_cache();
     let key = req.url();
     let options = CacheQueryOptions::builder().ignore_method(true).build();
     if let Some(resp) = cache.match_with_str_and_options(&key, &options).await? {
-        console.with(|c| c.log(&["Cache HIT!".into()]));
+        console_log!("Cache HIT!");
         Ok(resp)
     } else {
-        console.with(|c| c.log(&["Cache MISS!".into()]));
+        console_log!("Cache MISS!");
         let resp = timestamp_response()?;
         cache.put_with_str(&key, &resp.clone()?).await?;
         Ok(resp)
@@ -108,15 +107,15 @@ pub async fn handle_cache_stream(
     _env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    console.with(|c| c.log(&[format!("url: {}", req.url()).into()]));
+    console_log!("url: {}", req.url());
     let cache = default_cache();
     let key = req.url();
     let options = CacheQueryOptions::builder().ignore_method(true).build();
     if let Some(resp) = cache.match_with_str_and_options(&key, &options).await? {
-        console.with(|c| c.log(&["Cache HIT!".into()]));
+        console_log!("Cache HIT!");
         Ok(resp)
     } else {
-        console.with(|c| c.log(&["Cache MISS!".into()]));
+        console_log!("Cache MISS!");
         let count = (js_sys::Math::random() * 10.0) as usize;
         let transform = TransformStream::new_typed()?;
         let writer = transform.writable().get_writer()?;
@@ -137,7 +136,7 @@ pub async fn handle_cache_stream(
             Some(&transform.readable()),
             &ResponseInit::builder().headers(&headers).build(),
         )?;
-        console.with(|c| c.log(&[format!("resp = {:?}", JsValue::from(&resp)).into()]));
+        console_log!("resp = {resp:?}");
         cache.put_with_str(&key, &resp.clone()?).await?;
         Ok(resp)
     }

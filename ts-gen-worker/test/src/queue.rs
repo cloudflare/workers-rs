@@ -16,15 +16,12 @@ pub async fn queue(message_batch: MessageBatch, _env: Env, _ctx: ExecutionContex
     let mut guard = GLOBAL_QUEUE_STATE.lock().unwrap();
     for message in message_batch.messages() {
         let body: QueueBody = message.body_into()?;
-        console.with(|c| {
-            c.log(&[format!(
-                "Received queue message {:?}, with id {} and timestamp: {}",
-                body,
-                message.id(),
-                message.timestamp().to_string()
-            )
-            .into()])
-        });
+        console_log!(
+            "Received queue message {:?}, with id {} and timestamp: {}",
+            body,
+            message.id(),
+            message.timestamp().to_string()
+        );
         guard.push(body);
     }
     Ok(())
@@ -45,8 +42,7 @@ pub async fn handle_queue_send(req: Request, env: Env, _data: SomeSharedData) ->
     let body = serde_wasm_bindgen::to_value(&QueueBody {
         id,
         id_string: id.to_string(),
-    })
-    .map_err(|e| e.to_string())?;
+    })?;
     match my_queue.send(&body).await {
         Ok(_) => Response::builder().ok("Message sent"),
         Err(err) => {
@@ -68,7 +64,7 @@ pub async fn handle_batch_send(req: Request, env: Env, _: SomeSharedData) -> Res
 
     let batch = js_sys::Array::new();
     for message in &messages {
-        let body = serde_wasm_bindgen::to_value(message).map_err(|e| e.to_string())?;
+        let body = serde_wasm_bindgen::to_value(message)?;
         batch.push(&MessageSendRequest::new(&body));
     }
 

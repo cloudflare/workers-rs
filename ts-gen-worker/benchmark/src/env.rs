@@ -15,18 +15,15 @@ extern "C" {
     pub type Env;
     #[wasm_bindgen(method, getter, js_name = "KV")]
     pub fn kv(this: &Env) -> KVNamespace;
-    #[wasm_bindgen(method, setter, js_name = "KV")]
-    pub fn set_kv(this: &Env, val: &KVNamespace);
     #[wasm_bindgen(method, getter, js_name = "SERVICE")]
     pub fn service(this: &Env) -> Fetcher;
-    #[wasm_bindgen(method, setter, js_name = "SERVICE")]
-    pub fn set_service(this: &Env, val: &Fetcher);
 }
 impl Env {
-    pub fn new(kv: &KVNamespace, service: &Fetcher) -> Env {
-        let inner: Env = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_kv(kv);
-        inner.set_service(service);
-        inner
+    #[allow(clippy::new_without_default)]
+    pub fn new() -> Env {
+        #[allow(unused_unsafe)]
+        unsafe {
+            JsValue::from(js_sys::Object::new()).unchecked_into()
+        }
     }
 }

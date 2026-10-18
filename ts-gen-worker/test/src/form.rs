@@ -88,7 +88,7 @@ pub async fn handle_formdata_file_size(
                 let hash = hasher.finalize();
                 let key = hex::encode(&hash[..]);
 
-                let val = serde_json::to_string(&record).map_err(|e| e.to_string())?;
+                let val = serde_json::to_string(&record)?;
                 kv.put(&key, &val).await?;
 
                 let keys: Vec<serde_json::Value> = kv
@@ -119,7 +119,7 @@ pub async fn handle_formdata_file_size_hash(
         let kv = env.file_sizes();
         return match kv.get(hash).await? {
             Some(val) => {
-                let val: FileSize = serde_json::from_str(&val).map_err(|e| e.to_string())?;
+                let val: FileSize = serde_json::from_str(&val)?;
                 Response::builder().from_json(&val)
             }
             None => Response::builder().error("Not Found", 404),
@@ -134,10 +134,7 @@ pub async fn handle_is_secret(req: Request, env: Env, _data: SomeSharedData) -> 
     if let Some(secret) = FormEntry::from_js(form.get("secret")) {
         match secret {
             FormEntry::Field(name) => {
-                // `env.secret(&name)` looks a binding up by runtime name; the generated
-                // Env only has per-binding getters.
-                let val = js_sys::Reflect::get(&env, name)?;
-                return Response::builder().ok(val.and_then(|v| v.as_string()).unwrap_or_default());
+                return Response::builder().ok(env.secret(&name).unwrap_or_default());
             }
             FormEntry::File(_) => return Response::builder().error("Bad Request", 400),
         };
