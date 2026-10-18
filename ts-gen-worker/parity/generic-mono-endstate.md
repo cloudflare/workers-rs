@@ -3,32 +3,31 @@
 A = non-mono today (`a4cbe97` bindings, `104579e` port). B = the phase-2 prototype: mono +
 `js_sys_unstable_apis` + js-sys made fully mono + the ts-gen and wasm-bindgen fixes, built on
 `proto/mono` in workers-rs-3 (ts-gen and wasm-bindgen `proto/mono`, all local; every patch is in
-`mono-prototype-patches.md`). B1 = phase 1 (`2aa55cc` port on ts-gen `87882e1`, wasm-bindgen
-`4fe6881c0`), kept as a column where it shows what phase 2 added. C = non-mono + wasm-bindgen#5167
-+ a `JsStr<'a>` either type behind `impl JsStringLike` + tagged enums for primitive unions:
-**design, not built**, written by hand from the #5167 compile matrix (`~/Projects/wasm-bindgen-5`
-`2497681c1`, stable js-sys).
+`mono-prototype-patches.md`). B1 = phase 1 (`2aa55cc` port), kept as a column where it shows what
+phase 2 added. C = non-mono + wasm-bindgen#5167 + a `JsStr<'a>` either type behind
+`impl JsStringLike` + tagged enums for primitive unions: **design, not built**, written by hand
+from the #5167 compile matrix (`~/Projects/wasm-bindgen-5` `2497681c1`, stable js-sys).
 
 ## Verdict
 
-1. B builds with no stopgaps and passes the suite (194/194, plain and `-http`). Its port has no `JsString`, `String::from(<js>)`, `JsNullable`, `None::<…>` or `Promise::<…>`. Its `unchecked_*` casts fell from 28 (A) to 12, and those sit at `any`-typed or erased boundaries.
-2. Everything phase 1 assumed is now built. That covers `T | null` arguments, typed constructors, `Map<_, Option<_>>::get`, `Borrow<Q>` keys, typed `Promise::new`, one import per wire format, and callbacks with Rust leaves. Rust iteration and `Object<T>` as a record came on top.
-3. It took 9 wasm-bindgen/js-sys commits and 9 ts-gen commits over phase 1. Under the cfg, js-sys becomes a different API: collections behave like Rust collections. That break, and the `worker`/serde-wasm-bindgen/wasm-streams fallout, is the price of the containers.
-4. Costs: COSTS_LINE
-5. Mono's own lead over C is unchanged from phase 1: leaf type arguments on generated generics (`get::<f64>`, `first`), primitive unions as one function, and callbacks with Rust leaves. Most other gains are ts-gen lowering or unstable js-sys, which a non-mono build could also adopt.
+1. B builds as generated, with no stopgaps, and passes the suite (194/194, plain and `-http`). The port has none of: `JsString`, `String::from(<js>)`, `JsNullable`, `None::<…>`, `map_err(|e| e.to_string())`, `JsFuture::from` at call sites. `unchecked_*` casts went from 29 (A) to 6. Each of the 6 sits at an `any`-typed or erased boundary (§2).
+2. Everything phase 1 assumed is built, and the R audit's items are done except the ones in §6. Phase 2 also built Rust iteration, `Object<T>` as a map, typed KV reads, byte-stream bodies and shorter overload names.
+3. The cost in commits: 10 wasm-bindgen/js-sys commits and 15 ts-gen commits on top of phase 1. Under the cfg, js-sys is a different API in which collections behave like Rust collections. That API break, and the fallout in `worker`, serde-wasm-bindgen and wasm-streams, is the price of the containers. `worker` is not ported (§6).
+4. The cost in size and time: benchmark wasm +1,380 (+1.1%), test glue +6,006 (+3.4%) (phase 1: +12.7%), test imports +11 (phase 1: +16), 0 generic shims (phase 1: 177). `ts-gen-worker` compiles +34% debug and +25% release (§4).
+5. Mono's own lead over C is unchanged from phase 1:
+   - leaf type arguments on generated generics (`get::<f64>`, `get_with_metadata_typed::<f64>`, `first`);
+   - primitive unions as one function;
+   - callbacks with Rust leaves.
 
-**Not built** (remaining gaps, §6): KV's typed-options overloads; `Body::body()` typed as a byte
-stream; one rule for return-only type parameters; overload names; `{@string}` inside `declare
-namespace`; `worker`/`worker-sys` under `js_sys_unstable_apis`, so the 145-test `chomp test` is
-still excluded.
+   Most other gains are ts-gen lowering or unstable js-sys, which a non-mono build could also adopt (§5).
 
 ## 1. End-state examples
 
-Each A block cites its source at `104579e` (paths under `ts-gen-worker/`; `bindings.rs` lines are
-`a4cbe97`). B blocks are the committed prototype port unless marked *signature only*. C blocks are
-hand-written.
+A blocks cite their source at `104579e`, with paths under `ts-gen-worker/` and `bindings.rs` lines
+at `a4cbe97`. B blocks are the committed prototype port unless marked *signature only*. C blocks
+are hand-written.
 
-### Headers (set / get / entries)
+### Headers (set / get / iterate)
 
 ```rust
 // A: src/ext/cors.rs:62, src/ext/headers.rs:19-26, test/src/ext.rs:195-200
@@ -39,12 +38,9 @@ Some((name.into(), value.into()))
 let keys = headers.keys().into_iter().map(|k| String::from(k.unwrap())).collect::<Vec<_>>().join(",");
 ```
 ```rust
-// B: src/ext/cors.rs:62, src/ext/headers.rs:10-17, test/src/ext.rs:191
+// B: src/ext/cors.rs:62, test/src/ext.rs:185-190; IntoIterator generated from [Symbol.iterator]
 headers.set("Access-Control-Max-Age", max_age.to_string())?;            // impl JsStringLike
-impl IntoIterator for &Headers {
-    type IntoIter = js_sys::Entries<String, String>;                    // yields (String, String)
-    fn into_iter(self) -> Self::IntoIter { self.entries().into() }
-}
+for (name, value) in &headers { /* … */ }                                // (String, String)
 let keys = headers.keys().into_iter().collect::<Vec<_>>().join(",");     // Iterator<String> yields String
 ```
 ```rust
@@ -54,9 +50,9 @@ pub struct HeadersIter(IntoIter<ArrayTuple<(String, String)>>);         // Strin
 Some(self.0.next()?.ok()?.into_tuple())
 let keys = headers.keys().into_iter().collect::<Result<Vec<String>, _>>()?.join(",");
 ```
-B gains `String` items with no `Result` per item: a throwing `next()` rethrows, and `try_iter()`
-keeps the protocol's `Result`. The hand-written iterator type is gone. `Headers::get` and friends
-return `String` only (`{@string copy}`). C keeps the `Result` items and the wrapper.
+- B has no hand-written iterator. ts-gen emits `IntoIterator for &Headers` (also for `FormData`, `URLSearchParams` and `SqlStorageCursor<T>`) from the declaration's `[Symbol.iterator]()`.
+- Items are `String`, with no per-item `Result`: a throwing `next()` rethrows, and `try_iter()` keeps the protocol's `Result` where it matters (`test/src/sql.rs:111`).
+- `Headers::get` and similar return `String` only (`{@string copy}`).
 
 ### Request / Response, init builder, `cf`
 
@@ -70,19 +66,19 @@ Ok(Request::new_with_str_and_init(&uri, &init.build())?)
 let cf: Option<IncomingRequestCfProperties> = req.cf().map(JsCast::unchecked_into);
 ```
 ```rust
-// B: src/ext/interop.rs:84-97, test/src/request.rs:13
+// B: src/ext/interop.rs:84-97, test/src/request.rs:11
 init = init.signal(&signal);                                             // builder takes the bare value
 init = init.cf(&cf);
-init = init.body(body.unchecked_ref());                                  // &ReadableStream<Uint8Array>
+init = init.body(&body);                                                 // body: ReadableStream<Uint8Array>
 Ok(Request::new_with_str_and_init(&uri, &init.build())?)
 let cf = req.cf();                                                       // Option<IncomingRequestCfProperties>
 ```
 ```rust
-// C: A's form, with `.signal(&signal)` if ts-gen's bare builder values are adopted (not mono-specific).
+// C: A's form, plus `.signal(&signal)` if ts-gen's bare builder values are adopted (not mono-specific).
 ```
-B drops the nullable wrapper on every builder value. The `cf` cast was already unnecessary in A
-once `--annotate` set the `Cf` default. One cast remains: `body` is the `http` crate's stream,
-which wasm-streams hands over as `web_sys::ReadableStream`.
+- B drops the nullable wrapper on every builder value.
+- The body cast is gone because `readable_stream_from` and `ByteStream` both speak `ReadableStream<Uint8Array>`.
+- `Response::cf()` is `Option<JsValue>`, the optional-`any` rule, so the `is_undefined()` checks went too.
 
 ### Body from string / bytes / stream
 
@@ -94,11 +90,11 @@ Response::new_with_str_and_init(&JsNullable::new(), &init)?             // empty
 Response::new_with_readable_stream_and_init(&JsNullable::wrap(stream.unchecked_into()), &init)?
 ```
 ```rust
-// B: test/src/lib.rs:148-151, 157, src/ext/response.rs:99-112
-Response::new_with_array_buffer_and_init(&out.buffer(), &init)?
+// B: test/src/lib.rs:142-158, src/ext/response.rs:97-110
+Response::new_with_array_buffer_and_init(&ArrayBuffer::from(bytes), &init)?
 Response::new_with_str(format!("{a}|{b}"))?                              // body: impl JsStringLike
 Response::new_with_null_and_init(&init)?                                 // the union's null arm
-Response::new_with_readable_stream_and_init(stream.unchecked_ref(), &init)?
+Response::new_with_readable_stream_and_init(&stream, &init)?             // stream: ReadableStream<Uint8Array>
 ```
 ```rust
 // C (design): `string | null` as Option<impl JsStringLike>, a nullable handle as Option<&T>
@@ -106,45 +102,49 @@ Response::new_with_str(Some(format!("{a}|{b}")))?
 Response::new_with_str_and_init(None::<&str>, &init)?
 Response::new_with_array_buffer_and_init(Some(&out.buffer()), &init)?
 ```
-An expanded `BodyInit | null` takes each arm bare and emits the `null` arm as its own wrapper, so
-neither `Some(…)` nor `None::<&str>` appears. All 44 `JsNullable::wrap/new` are gone. The
-remaining cast is `Body::body()`: upstream types it `ReadableStream` (`any` chunks) while every
-`BodyInit` slot wants `ReadableStream<Uint8Array>` (§6). C could adopt the same arm lowering:
-it is ts-gen, not mono.
+- An expanded `BodyInit | null` takes each arm bare and emits the `null` arm as its own wrapper, so neither `Some(…)` nor `None::<&str>` appears. All 44 `JsNullable::wrap/new` are gone.
+- `Body::body()` is `Option<ReadableStream<Uint8Array>>` through an `@retype` in `annotations.d.ts`. Upstream types it as `ReadableStream`, with `any` chunks.
+- C could adopt the same arm lowering, since it is ts-gen, not mono.
 
-### KV (get, metadata, bulk get → `Map`, put options, list)
+### KV (get, typed reads, metadata, bulk get → `Map`, put options, list)
 
 ```rust
-// A: test/src/kv.rs:164-176, 181, src/ext/kv.rs:106, test/src/kv.rs:116, 154-158
-let keys: Vec<String> = keys.iter().map(|k| (*k).to_owned()).collect();     // key: &[String]
+// A: src/ext/kv.rs:166-184, test/src/kv.rs:86-90, 164-181, 116
+let promise: Promise<JsValue> = self.kv
+    .get_with_key_str_and_options_kv_namespace_get_options_promise(&self.key, &options)?
+    .unchecked_into();                                                       // get(k, {type}) collapses to text
+let entry: Entry = entry.unchecked_into();                                   // getWithMetadata the same
+kv_assert_eq!(result.metadata().unwrap().as_f64().unwrap() as usize, 100)?;  // Metadata erased to JsValue
+let keys: Vec<String> = keys.iter().map(|k| (*k).to_owned()).collect();      // key: &[String]
 Ok(store.get_with_slice(&keys).await?.unchecked_into())                      // Map<JsString, JsNullable<JsString>>
 kv_assert_eq!(values.get(&"bulk_a".into()).as_string(), Some("value_a".to_string()))?;
-KVNamespaceGetOptions::builder(&JsString::from(value_type))
 KVNamespaceListOptions::builder().prefix(&JsNullable::wrap("put_c".into()))
-let result = store.get_with_metadata("put_d").await?;                        // <JsString, JsValue>
 ```
 ```rust
-// B: test/src/kv.rs:167-174, 180, 112, src/ext/kv.rs:109
+// B: src/ext/kv.rs:158-176, test/src/kv.rs:88-90, 163-174, 112
+self.kv.get_text_with_options(&self.key, &options).await                      // Option<String>
+self.kv.get_array_buffer_with_options(&self.key, &options).await?.map(Vec::from)
+let result = store.get_with_metadata_typed::<f64>("put_b").await?;           // nested return-only param
+kv_assert_eq!(result.metadata(), Some(100.0))?;
 let values = store.get_with_slice(&["bulk_a", "bulk_b", "bulk_missing"]).await?; // Map<String, Option<String>>
 kv_assert_eq!(values.get("bulk_a"), Some(Some("value_a".to_string())))?;        // Borrow<str> key
 kv_assert_eq!(values.get("bulk_missing"), Some(None))?;
 let values = store.get_with_slice(&[] as &[&str]).await?;                        // element type needed
 KVNamespaceListOptions::builder().prefix("put_c")
-KVNamespaceGetOptions::builder(&value_type.to_string())                          // `&str` would infer T = str
 ```
 ```rust
 // C
 let values = store.get_with_slice(&["bulk_a", "bulk_b", "bulk_missing"]).await?;
 kv_assert_eq!(values.get(&"bulk_a".to_string()), Some("value_a".to_string()))?;  // stable get -> V; key exactly &String
 KVNamespaceListOptions::builder().prefix(Some("put_c"))
+// typed reads: the same per-literal bindings could be emitted (ts-gen); `get_with_metadata::<f64>` cannot.
 ```
-B reads the bulk result like a `HashMap<String, Option<String>>`: `get` takes a borrowed key and
-returns `Option<V>`, so a missing entry and a `null` value stay distinct (`None` vs `Some(None)`),
-without a nested-option ABI (`has` + an unchecked read). Phase 1 had to iterate. Still wrong in B:
-`&[]` needs its element type, and KV's `get(key, { type })` overloads collapse to one text-typed
-form, which forces two casts in `src/ext/kv.rs` (§6).
+- KV's `get(key, "text" | { type: "text" })` overloads are bindings of their own (`get_text_with_options`, `get_json_with_options::<T>`, `get_array_buffer_with_options`, `get_stream_with_options`, the same for `getWithMetadata`), so `src/ext/kv.rs` has no casts.
+- `getWithMetadata<Metadata>` has a `_typed::<M>` twin, because `Metadata` is a return-only parameter nested in the result. The plain form keeps `JsValue`.
+- The bulk result reads like a `HashMap<String, Option<String>>`. `get` takes a borrowed key and returns `Option<V>`, so a missing entry (`None`) and a `null` value (`Some(None)`) stay distinct.
+- Still wrong in B: `&[]` needs its element type. Also, the typed reads trust the caller to set `options.type` to match the method (§6).
 
-### R2 (put / get / list, `delimited_prefixes`, custom metadata)
+### R2 (put / get / list, custom metadata)
 
 ```rust
 // A: test/src/r2.rs:75-96, 175
@@ -163,7 +163,7 @@ bucket.put_with_str("no-props-no-body", &JsNullable::new()).await?;
 R2ListOptions::builder().include(&["customMetadata".to_string()])            // &[String]
 ```
 ```rust
-// B: test/src/r2.rs:74-79, 113, 154, 360
+// B: test/src/r2.rs:74-79, 105, 154, 359
 object.custom_metadata().map(|record| record.iter().collect()).unwrap_or_default() // (String, String)
     .custom_metadata(&custom_metadata.iter().collect())                    // HashMap -> Object<String>
 bucket.put_with_null("no-props-no-body").await?;
@@ -177,14 +177,14 @@ object.custom_metadata()
     .unwrap_or_default()
 fn record(map: &HashMap<String, String>) -> Object<String> { /* Reflect::set loop, stable &JsValue keys */ }
 ```
-`Record<string, string>` is now a Rust map in both directions: `iter()` yields `(String, T)` and
-`collect()` builds one from any `(key, value)` pairs, so both helpers are gone. C still leaks
-`JsString` where js-sys's stable signature fixes the key type.
+- `Record<string, string>` is a Rust map in both directions: `iter()` yields `(String, T)`, and `collect()` builds one from any `(key, value)` pairs. Both helpers are gone.
+- `FixedLengthStream` derefs to `TransformStream<JsValue, Uint8Array>`, so its `readable()` passes to `put` with no cast.
+- C still leaks `JsString` where js-sys's stable signature fixes the key type.
 
-### D1 (bind mixed values, `first` by column, `all` / `raw`)
+### D1 (bind mixed values, `first` by column, `all` / `raw`, `dump`)
 
 ```rust
-// A: test/src/d1.rs:16-20, 38-40, 57-61, bindings.rs:19788
+// A: test/src/d1.rs:16-20, 57-61, 262
 let bindings = args.iter().map(|arg| arg.serialize(&serializer).map_err(|e| e.to_string()))
     .collect::<Result<Vec<JsValue>, String>>()?;
 let value: JsValue = match col_name {
@@ -192,48 +192,49 @@ let value: JsValue = match col_name {
     None => stmt.first::<JsValue>().await?,
 }.into();
 Ok(serde_wasm_bindgen::from_value(value)?)
-// raw_with_d1_prepared_statement_options -> ArrayTuple<(Array<JsString>, Array<Array>)>
+let bytes = Uint8Array::new(&db.dump().await?.into()).to_vec();
 ```
 ```rust
-// B: test/src/d1.rs:16-19, 57-61; bindings.rs raw signature
+// B: test/src/d1.rs:16-19, 57-61, 260
 let bindings = args.iter().map(|arg| arg.serialize(&serializer)).collect::<Result<Vec<_>, _>>()?;
 let value = match col_name {
     Some(col) => stmt.first_with_col_name(col).await?,                      // Option<T>, T = JsValue inferred
     None => stmt.first().await?,
 };
 Ok(value.map(serde_wasm_bindgen::from_value).transpose()?)
+let bytes = db.dump().await?.to_vec();                                      // ArrayBuffer -> Vec<u8>
 let n: Option<f64> = stmt.first_with_col_name("n").await?;                    // signature only
-// raw_with_d1_prepared_statement_options -> ArrayTuple<(Array<String>, Array<Array>)>
 ```
 ```rust
 // C
 Some(col) => stmt.first_with_col_name::<JsValue>(col).await?,                // JsNullable<T>
 // first_with_col_name::<f64>("n") does not compile: T inside JsNullable<T> is structural.
 ```
-`first` returns `Option<T>`, so `T` is inferred from its use and the turbofish goes; a leaf `T`
-works. C cannot reach a leaf `T` inside the nullable carrier.
+- `first` returns `Option<T>`, so `T` is inferred from use and the turbofish goes. A leaf `T` works. `all_typed::<T>`, `raw_typed::<T>` and `run_typed::<T>` cover D1's nested return-only parameters.
+- C cannot reach a leaf `T` inside the nullable carrier.
 
 ### Durable Object storage (get / put / list → `Map`, bulk get, put entries)
 
 ```rust
-// A: test/src/ext.rs:98-104, test/src/durable.rs:83-99, 168-178
+// A: test/src/ext.rs:98-104, test/src/durable.rs:83-99, 134-178
 let count = storage.get::<JsValue>("count").await?.as_f64().unwrap_or(0.0) + 1.0; // JsOption<T>
 storage.put("count", &JsValue::from(count)).await?;
 for key in list.keys() { let key = String::from(key?); /* … */ }             // Map<JsString, JsValue>
 let vals: js_sys::Map = storage.get_with_keys(&keys).await?.unchecked_into();
 storage.delete_with_keys(&["thing".to_string(), "other".to_string()]).await?;
+storage.put_with_entries::<JsValue>(&serde_wasm_bindgen::to_value(&stuff)?.unchecked_into()).await?;
 let obj = js_sys::Object::new();
 js_sys::Reflect::set(&obj, &JsValue::from_str("foo"), &value.into())?;
-storage.put_with_entries::<JsValue>(&obj.unchecked_into()).await?;
 ```
 ```rust
-// B: test/src/ext.rs:98-99, test/src/durable.rs:82-96, 161-165
+// B: test/src/ext.rs:98-99, test/src/durable.rs:82-97, 133-162
 let count = storage.get::<f64>("count").await?.unwrap_or(0.0) + 1.0;       // Option<T>
 storage.put("count", &count).await?;
 for key in list.keys() { if key != "count" { keys.push(key); } }             // keys() yields String
 let vals = storage.get_with_keys(&keys).await?;                              // Map<String, JsValue>
 let val = |key| vals.get(key).unwrap_or_default();                           // Borrow<str>
 storage.delete_with_keys(&["thing", "other"]).await?;
+storage.put_entries_serialized(&stuff).await?;                               // ext, beside put_serialized
 let entries = js_sys::Object::from_iter([("foo", Uint8Array::from(BAR))]);
 storage.put_with_entries(&entries).await?;
 ```
@@ -245,8 +246,8 @@ for key in list.keys() { let key = key?; /* … */ }
 let val = |key: &str| vals.get(&key.to_string());                            // stable get -> V
 js_sys::Reflect::set(&obj, &"foo".into(), &value)?;
 ```
-B's strongest area, as in phase 1: `get::<f64>` and `put(&f64)` need mono. Phase 2 adds the
-`Result`-free key iteration and records built by `from_iter`.
+- This is B's strongest area, as in phase 1: `get::<f64>` and `put(&f64)` need mono.
+- Phase 2 adds `Result`-free key iteration, records built by `from_iter`, and `get_with_keys_typed::<T>` for a uniform value type.
 
 ### WebSocket hibernation (tags, `get_web_sockets(tag)`, `get_tags`), `WebSocketPair`
 
@@ -259,17 +260,17 @@ let server = pair._1();
 return Response::builder().from_websocket(pair._0());
 ```
 ```rust
-// B: test/src/counter.rs:38-43; tag APIs signature only
+// B: test/src/counter.rs:38-42; tag APIs signature only
 state.accept_web_socket_with_tags(&server, &["room"])?;                     // &[impl JsStringLike]
 let tags = state.get_tags(&ws)?;                                            // Vec<String>, no twin
-let (client, server) = WebSocketPair::new()?.into();                        // ext From impl
+let (client, server) = WebSocketPair::new()?.into();                        // src/ext/websocket.rs
 return Response::builder().from_websocket(client);
 ```
 ```rust
 // C: B's tag call sites (list either type); the pair is ext code in any design.
 ```
-B and C both accept literal tag lists. `{@string copy}` removed the `get_tags_js_string` twin.
-`WebSocketPair`'s `0`/`1` keys lower to `_0()`/`_1()`; a one-line ext `From` gives the tuple.
+- B and C both accept literal tag lists.
+- `WebSocketPair` lowers its `0`/`1` keys to `_0()`/`_1()`. A one-line ext `From` impl gives the tuple.
 
 ### WebSocket send / close / message data / event listeners
 
@@ -282,7 +283,7 @@ ws.add_event_listener("message", &Function::from_closure(on_message))?;
 event.data().as_string()                                                     // data: any -> JsValue
 ```
 ```rust
-// B: test/src/counter.rs:63, test/src/container.rs:117-128, test/src/util.rs:31-41
+// B: test/src/counter.rs:66, test/src/container.rs:128, test/src/util.rs:31-41
 ws.send_with_str(format!("{count}"))?;                                       // impl JsStringLike
 dst.close_with_code_and_reason(reason.code(), reason.reason())?;
 let on_message = Function::from_fn(move |event: JsValue| { /* event.unchecked_into() */ });
@@ -292,23 +293,20 @@ event.data().as_string()
 ```rust
 // C: B's send/close call sites; callbacks stay erased (`Function<fn(JsValue) -> Undefined>`).
 ```
-In phase 1, `send_with_str(&s)` and `send_with_str(s)` were two imports. Now `&str`, `String` and
-`&String` share one import, borrowed in JS and dropped in Rust after the call, so B's import
-count matches A's. Callbacks take Rust leaves with `void` as `()`, so a unit closure fits
-`Function::from_fn`. The event itself is still `JsValue`: `addEventListener<K>`'s
-`(e: Map[K]) => …` is an indexed access type, so one cast per listener stays.
+- `&str`, `String` and `&String` share one import, borrowed in JS and dropped in Rust after the call. Phase 1 had one import per Rust type.
+- Callbacks take Rust leaves, with `void` as `()`, so a unit closure fits `Function::from_fn`.
+- The event is still `JsValue`. `addEventListener<K>`'s `(e: Map[K]) => …` is an indexed access type, so one cast per listener stays.
 
-### Queues (send / sendBatch, message body)
+### Queues (send / sendBatch)
 
 ```rust
-// A: test/src/queue.rs:45-50, 69-75
-my_queue.send(&body).await?;                                                 // message: &Body
+// A: test/src/queue.rs:69-75
 let batch = js_sys::Array::new();
 for message in &messages { batch.push(&MessageSendRequest::new(&serde_wasm_bindgen::to_value(message)?)); }
 my_queue.send_batch(&batch).await?;                                          // messages: &JsValue
 ```
 ```rust
-// B: test/src/queue.rs:65-69
+// B: test/src/queue.rs:65-74
 let batch = messages.iter()
     .map(|message| Ok(MessageSendRequest::new(&serde_wasm_bindgen::to_value(message)?)))
     .collect::<Result<Vec<_>>>()?;
@@ -317,36 +315,33 @@ my_queue.send_batch(&batch).await?;                                          // 
 ```rust
 // C: A's form; `Iterable<T>` could lower to `&[T]` there too (ts-gen, not mono).
 ```
-`Iterable<T>` arguments lower like `T[]`, so the batch is a `Vec`.
 
-### Streams (`TransformStream`, writer)
+### Streams (`TransformStream`, writer, reader)
 
 ```rust
-// A: test/src/cache.rs:125-141, test/src/request.rs:66-92
+// A: test/src/cache.rs:125-141, test/src/request.rs:66-92, test/src/socket.rs:19
 let transform = TransformStream::new()?;                                     // TransformStream<JsValue, JsValue>
 writer.write_with_chunk(&Uint8Array::from(data)).await?;
 Response::new_with_readable_stream_and_init(transform.readable().unchecked_ref(), &init)?
-Response::new_with_readable_stream(&transform.readable().unchecked_into())?
+let bytes = Uint8Array::new(&chunk.value().unwrap_or_default()).to_vec();   // chunk: JsValue
 ```
 ```rust
-// B: test/src/cache.rs:120-137, test/src/request.rs:64-89
+// B: test/src/cache.rs:120-137, test/src/request.rs:64-88, test/src/socket.rs:19
 let transform = TransformStream::new_typed()?;                               // <Uint8Array, Uint8Array> inferred
 writer.write_with_chunk(&chunk).await?;                                      // chunk: &Uint8Array fixes I
 Response::new_with_readable_stream_and_init(&transform.readable(), &init)?   // fixes O
-Response::new_with_readable_stream(&transform.readable())?
+let bytes = chunk.value().unwrap_or_default().to_vec();                     // Socket streams: @retype Uint8Array
 ```
 ```rust
 // C: A's form; the constructor binds no class parameter.
 ```
-`new()` keeps A's defaults (the `HashMap::new` shape). `new_typed()` binds every class parameter
-and infers them from use, so the casts go. Byte-source constructors return
-`ReadableStream<Uint8Array>` as the TS declares.
+- `new()` keeps A's defaults, the `HashMap::new` shape. `new_typed()` binds every class parameter and infers them from use.
+- Bare `ReadableStream` arguments take any instantiation (`&ReadableStream<impl Sized>`), so a typed stream passes to KV/R2 `put` without `.upcast()`.
 
 ### Cache
 
 ```rust
 // A: test/src/cache.rs:40-48
-let key = req.url();
 if let Some(resp) = cache.match_with_str_and_options(&key, &options).await? { /* … */ }
 cache.put_with_str(&key, &resp.clone()?).await?;
 console.with(|c| c.log(&["Cache HIT!".into()]));
@@ -357,27 +352,25 @@ console.with(|c| c.log(&["Cache HIT!".into()]));
 ```rust
 // C: identical.
 ```
-No difference at the bindings. `Request::url` is `String` only (`{@string copy}`).
 
 ### Email (attachments, optional strings)
 
 ```rust
-// A: test/src/send_email.rs:96-103, 133-137; bindings.rs:20152
-EmailAttachment::new_attachment_with_typed_array("hello.txt", "text/plain", &bytes);
+// A: test/src/send_email.rs:133-137; bindings.rs:20152
 EmailMessage::new_with_str(from, to, &scenario.raw())?
 EmailAttachment::builder(/* … */).content_id(None)                           // val: Option<&str>
 ```
 ```rust
-// B: test/src/send_email.rs:99, 136; content_id is signature only
+// B: test/src/send_email.rs:136; content_id is signature only
 EmailMessage::new_with_str(from, to, scenario.raw())?
 EmailAttachment::builder(/* … */).content_id("logo")                         // bare; omit the call for none
 ```
 ```rust
 // C: Option<impl JsStringLike> needs None::<&str>; a concrete Option<JsStr<'_>> needs Some("logo".into()).
 ```
-Phase 1 regressed here (`content_id(None::<&str>)`). Builder methods now take an optional field's
-value bare, so there is no `None` to spell. 16 `Option<impl JsStringLike>` arguments remain on raw
-setters (`set_content_id(None)` clears a field) and on required nullable dictionary fields.
+Phase 1 regressed here with `content_id(None::<&str>)`. Builder methods now take an optional
+field's value bare, so there is no `None` to spell. The raw setters keep `Option`, so `None` there
+still needs `None::<&str>` (§3).
 
 ### Tracing span attributes (primitive union)
 
@@ -398,13 +391,11 @@ span.set_attribute("route", "/api")?;
 // C: value: impl Into<BooleanOrNumberOrString<'_>>, a tagged enum
 span.set_attribute("retries", 3.0)?;
 ```
-Unchanged from phase 1. With one import per wire format, each Rust type now costs one shim per
-ABI shape rather than one per type.
 
 ### Env vars and secrets
 
 ```rust
-// A: src/ext/env.rs:29-41, test/src/alarm.rs:50-51, test/src/form.rs:139-140
+// A: test/src/alarm.rs:50-51, test/src/form.rs:139-140
 let namespace: DurableObjectNamespace = js_sys::Reflect::get(&env, &"ALARM".into())?.unchecked_into();
 let val = js_sys::Reflect::get(&env, &name.into())?;
 val.as_string().unwrap_or_default()
@@ -418,102 +409,200 @@ env.some_secret()                                                           // S
 ```rust
 // C: identical to B (EnvExt is ext code).
 ```
-The `Reflect` detours were port debt, not binding gaps: `EnvExt` already covered them. The
-generated `Env` has no setters and no string twins.
+The `Reflect` detours were port debt rather than binding gaps. The generated `Env` has no
+setters and no string twins.
 
-### FormData / URLSearchParams
+### FormData
 
 ```rust
-// A: test/src/form.rs:17-22, 35, 39-47
+// A, B: test/src/form.rs:17-22 (identical)
 fn from_js(value: JsValue) -> Option<FormEntry> {                            // get: File | string | null -> JsValue
     if let Some(s) = value.as_string() { Some(FormEntry::Field(s)) }
     else { value.dyn_into::<File>().ok().map(FormEntry::File) }
 }
 ```
-```rust
-// B: identical (test/src/form.rs:16-22). `forEach` callbacks are now
-// Function<fn(JsValue, String, FormData)> (signature only).
-```
-```rust
-// C: identical; `File | string` stays erased.
-```
-A handle-or-string union needs a ts-gen enum in any mode.
+A handle-or-string union needs a ts-gen enum in any mode. B's `for (name, value) in &form`
+yields `(String, JsValue)`.
 
-### js-sys built-ins (`Error`, `Date`, `Promise`)
+### js-sys built-ins (`Error`, `Date`, `JSON`, promises, bytes)
 
 ```rust
-// A: src/error.rs:89-94, test/src/user.rs:36-43, test/src/util.rs:11-16, test/src/socket.rs:97
+// A: src/error.rs:89-94, test/src/user.rs:36-43, test/src/util.rs:11-16, test/src/ext.rs:416
 write!(f, "{}: {}", String::from(e.name()), String::from(e.message()))
 js_sys::Date::new(&1_234_567_890.0.into()).to_string().into()
 let promise = Promise::new(&mut |resolve: Function, _| { let _ = set_timeout_with_function_and_ms_delay(&resolve, ms); });
 let _ = JsFuture::from(promise).await;
-JsFuture::from(socket.opened()).await?;
+let cf: String = js_sys::JSON::stringify(&res.cf())?.into();
 ```
 ```rust
-// B: src/error.rs:89, test/src/user.rs:36, test/src/util.rs:10-12, test/src/socket.rs:96
+// B: src/error.rs:89, test/src/user.rs:36, test/src/util.rs:12, test/src/ext.rs:416
 Some(e) => write!(f, "{}: {}", e.name(), e.message()),                      // String
 js_sys::Date::new_with_value(1_234_567_890.0).to_string()
 Delay::from(Duration::from_millis(ms as u64)).await;                        // the crate's timer
-socket.opened().await?;                                                     // Promise<T>: IntoFuture
+let cf = js_sys::JSON::stringify(&res.cf().unwrap_or_default())?.unwrap_or_default(); // Option<String>
 ```
 ```rust
 // C: A's form (stable js-sys).
 ```
-Small-string returns of js-sys built-ins are `String`. `Promise::new` is typed
-(`Function<fn(T)>` resolver); the port no longer needs it.
+`Promise<T>` awaits directly, `Promise::new` has a typed resolver, and `ArrayBuffer` converts to
+and from bytes (`buf.to_vec()`, `ArrayBuffer::from(&bytes[..])`).
 
 ## 2. Port tally, A vs B
 
 Regex counts over `git show <rev>:` of `ts-gen-worker/{src,test/src,benchmark/src}`, excluding the
-generated `bindings.rs` and `env.rs` and skipping comment lines.
+generated `bindings.rs` and the test and benchmark `env.rs`, and skipping comment lines.
 
-TALLY_TABLE
+| pattern | A `104579e` | B1 `2aa55cc` | B |
+|---|---:|---:|---:|
+| `JsString` (any mention) | 12 | 0 | 0 |
+| `JsString::from` | 2 | 0 | 0 |
+| `String::from(<js>)` | 12 | 6 | 0 |
+| `.as_string()` | 14 | 9 | 7 |
+| `unchecked_into` / `unchecked_ref` | 29 | 19 | 6 |
+| `dyn_into` / `dyn_ref` | 7 | 7 | 6 |
+| turbofish `::<JsValue` | 9 | 7 | 3 |
+| all turbofish `::<` | 92 | 91 | 86 |
+| `let x: T =` annotations | 85 | 80 | 75 |
+| `None::<…>` | 0 | 0 | 0 |
+| `&[] as &[…]` | 0 | 1 | 1 |
+| `JsValue::from` / `from_str` / `from_f64` | 29 | 22 | 21 |
+| `JsNullable::wrap` / `new` | 44 | 44 | 0 |
+| `Promise::<…>` | 0 | 1 | 0 |
+| `Reflect::` | 13 | 13 | 2 |
+| `map_err(\|e\| e.to_string())` | 21 | 21 | 0 |
+| `console.with(…)` | 19 | 19 | 7 |
+| `JsFuture::from` | 6 | 6 | 1 |
+| `Closure::` | 4 | 4 | 2 |
+| `._0()` / `._1()` | 10 | 10 | 2 |
+| `Uint8Array::new(&…)` re-wraps | 5 | 5 | 0 |
+| lines | 7,444 | 7,386 | 7,222 |
+
+The 6 remaining casts:
+- the wasm-streams boundary (`web_sys::ReadableStream` → `ReadableStream<Uint8Array>`, `src/ext/streams.rs:164`);
+- `EnvExt::get`, which is unchecked on purpose;
+- `HeadersInit` read back from a `ResponseInit` (`src/ext/response.rs:37`);
+- a serialized struct passed as an entries object (`src/ext/serde.rs:64`);
+- the two event-map listeners (`test/src/util.rs:34,38`).
+
+The `.as_string()` / `dyn_*` calls are on `any` values: `MessageEvent::data`, attachments,
+FormData `File | string`, SQL values and `Error::cause`. The one `::<JsValue>` left on a
+binding is `block_concurrency_while_promise` (§6).
 
 ## 3. API diff
 
-Type-level counts in the generated `bindings.rs` (doc and comment lines skipped):
+`tools/api-diff` over the generated `bindings.rs` (item-keyed signatures):
 
-BINDINGS_TABLE
+- **B vs A**: 1520 items changed, 278 removed, 433 added, 3257 unchanged. Most removed/added pairs are renames (overload suffixes, `_with_null` arms, KV typed reads).
+- **B vs B1**: 329 changed, 639 removed (376 of them `_js_string` twins), 423 added, 4458 unchanged.
+
+Type-level counts (doc and comment lines skipped):
+
+| pattern | A `a4cbe97` | B1 `2aa55cc` | B |
+|---|---:|---:|---:|
+| `JsString` (word) | 175 | 422 | 19 |
+| `_js_string` twins | 0 | 383 | 15 |
+| `Map<JsString, …>` | 44 | 0 | 0 |
+| `Array<JsString>` | 3 | 18 | 0 |
+| `Promise<JsString>` | 8 | 0 | 0 |
+| `Object<JsString>` | 28 | 0 | 0 |
+| `Iterator<JsString>` | 6 | 0 | 0 |
+| `JsNullable<JsString>` | 39 | 24 | 0 |
+| `JsNullable<…>` | 136 | 91 | 0 |
+| `JsOption<…>` | 110 | 95 | 0 |
+| `Function<fn(…JsString…)>` | 8 | 8 | 0 |
+| `Function<fn(…)>` | 101 | 101 | 113 |
+| `-> Undefined` | 17 | 17 | 0 |
+| `Promise<Undefined>` | 163 | 162 | 0 |
+| `Promise<()>` | 0 | 0 | 162 |
+| `Boolean` / `Number` | 32 | 8 | 0 |
+| `impl JsStringLike` | 0 | 1,268 | 1,395 |
+| `Option<impl JsStringLike>` | 0 | 7 | 16 |
+| `&[impl JsStringLike]` | 0 | 117 | 151 |
+| `impl js_sys::Js…Like` (primitive unions) | 0 | 13 | 13 |
+| `Option<&str>` / `&[String]` | 124 | 0 | 0 |
+| `: JsGeneric` bounds | 666 | 75 | 0 |
+| `for<'a>` where-clauses | 0 | 66 | 41 |
+| `_typed` fns | 0 | 0 | 53 |
+| `_with_null` fns | 0 | 0 | 16 |
+| public fn names over 50 chars | 109 | 113 | 54 |
+| `IntoIterator for &T` | 0 | 0 | 5 |
+| `-> Option<JsValue>` | 0 | 0 | 8 |
+| lines | 18,366 | 19,548 | 19,338 |
 
 Every item that is **still worse in B than in A**:
-- **`&[String]` → `&[impl JsStringLike]` (117):** `&[]` needs `&[] as &[&str]`. Literal lists and `&Vec<String>` both work.
-- **`Option<&str>` → `Option<impl JsStringLike>` (16):** only on raw setters and required nullable fields. `None` there needs `None::<&str>`; builders and expanded unions no longer have it.
-- **Generic user code over a helper** must restate the helper's `for<'a> &'a T: IntoWasmAbi` bounds (41 where-clauses, down from 66), where A needed `T: JsGeneric`.
-- **`_js_string` twins (+70):** 64 sit in `declare namespace TailStream`, which `--annotate` cannot reach. The other 6 are deliberate (`text()`, KV values).
-- **Surface outside `bindings.rs` (unstable js-sys):** `Reflect::get` → `Result<Option<T>>`, `Array::get` → `Option<T>`, and iterators that rethrow instead of yielding `Result` (`try_iter()` keeps the protocol). Code written against stable js-sys does not compile under the cfg (`worker`, `worker-sys`, serde-wasm-bindgen, wasm-streams).
+- **`&[String]` → `&[impl JsStringLike]`:** `&[]` needs `&[] as &[&str]`. Literal lists and `&Vec<String>` both work.
+- **`Option<&str>` → `Option<impl JsStringLike>` (16):** this remains on raw setters and on required nullable dictionary fields. `None` there needs `None::<&str>`. Builders and expanded unions no longer have it.
+- **Generic user code over a helper** must restate a `for<'a> &'a T: IntoWasmAbi` bound when the helper's `T` is unbounded (41 where-clauses, down from phase 1's 66). A needed `T: JsGeneric`.
+- **Surface size.** The added items are:
+  - `_typed` twins (53), for constructors and nested return-only parameters;
+  - `_with_null` arms (18);
+  - KV typed reads.
+
+  Twins are down to 15, all intended (`text()` and KV values).
+- **Surface outside `bindings.rs` (unstable js-sys):** `Reflect::get` → `Result<Option<T>>`, `Array::get` → `Option<T>`, `JSON::stringify` → `Option<String>`, and iterators that rethrow instead of yielding `Result`. Code written against stable js-sys does not compile under the cfg (`worker`, `worker-sys`, serde-wasm-bindgen, wasm-streams).
 
 ## 4. Costs
 
-COSTS_SECTION
+**Size.** Each state is built from its own commit with its own wasm-bindgen pin, on the same
+machine. The benchmark worker is a release build run through `wasm-opt -Oz` with
+`benchmark/build.sh`'s flags. The test worker is a debug build and covers the whole suite's
+surface. gz is `gzip -9`. A was re-measured for this report and reproduces phase 1's numbers
+exactly. B1 is phase 1's measurement.
+
+| | A | B1 | B | B − A |
+|---|---:|---:|---:|---:|
+| benchmark `index_bg.wasm` | 120,645 (51,600 gz) | 121,251 (51,735 gz) | 122,025 (52,002 gz) | +1,380 (+1.1%), +402 gz |
+| benchmark `index.js` | 33,871 (6,371 gz) | 35,165 (6,449 gz) | 34,745 (6,296 gz) | +874 (+2.6%), -75 gz |
+| benchmark wasm imports | 77 | 77 | 78 | +1 |
+| test worker glue | 175,754 | 198,024 | 181,760 | +6,006 (+3.4%) |
+| test worker wasm imports | 472 | 488 | 483 | +11 |
+| test worker generic shims (`// generic import`) | 0 | 177 | 0 | +0 |
+| test worker `finally` blocks (owned-string frees) | 10 | 14 | 6 | -4 |
+
+**Compile time** of the `ts-gen-worker` crate from clean (`cargo clean -p ts-gen-worker`, deps
+warm, wasm32). The table gives the second of two runs, with A and B measured back to back. B1 is
+phase 1's measurement.
+
+| | A | B1 | B | B − A |
+|---|---:|---:|---:|---:|
+| debug | 14.4 s | 17.6 s | 19.3 s | +5.0 s (+34%) |
+| release | 11.5 s | 13.9 s | 14.5 s | +2.9 s (+25%) |
+| test crate alone on top (debug) | 4.2 s | 4.3 s | 4.3 s | +0.2 s |
+
+COSTS_NOTES
 
 ## 5. "Fleshed out" checklist
 
-Every change B needed, all built (see `mono-prototype-patches.md` for commits and files):
+Every change B needed, all built (commits and files in `mono-prototype-patches.md`):
 
-| change | where | phase |
-|---|---|---|
-| `js_sys_unstable_apis` for wasm32; serde-wasm-bindgen and wasm-streams patched copies | workers-rs | 1 |
-| native leaves inside js-sys containers; `&T` generic arguments; constructor defaults; awaited `Option<T>` | ts-gen | 1 |
-| feedback 8: argument-position `impl Trait` keeps declared generic arity | wasm-bindgen macro | 1 |
-| `ArrayTuple`/`Object::entries` Rust-typed | js-sys | 1 |
-| one import per wire format (`&str`/`String`/`&String`, handles by value or reference); no `// generic import` comments; `?Sized` mono params; `&Option<T>`, `Option<&T>` arguments | wasm-bindgen macro + CLI | 2 |
-| `Map` by `Borrow<Q>`, `Map::get` for every `V` (`Option<Option<V>>` without a nested ABI) | js-sys | 2 |
-| `Function<fn(A..) -> R>` with any ABI `A`/`R`, `()` for void; `Function::from_fn`; typed `Promise::new`; `From<Closure>` | js-sys | 2 |
-| `String` returns from built-ins; `Date::new_with_value` | js-sys | 2 |
-| iterators yield `T`; `Entries<K, V>`; Map/Set/Object as Rust collections (`iter`, `FromIterator`, `Extend`) | js-sys | 2 |
-| stopgaps #1–#5 replaced by ts-gen fixes (`mono-patch` deleted) | ts-gen | 2 |
-| `{@string copy\|ref\|both}`; twin naming | ts-gen + `annotations.d.ts` | 2 |
-| `_typed` constructor twins; concrete construct-signature returns | ts-gen | 2 |
-| `T \| null` arguments: bare union arms + `_with_null` arm; `Option<…>` elsewhere; bare builder values | ts-gen | 2 |
-| callbacks with Rust leaves, `void` → `()`, `Promise<()>` | ts-gen | 2 |
-| `Iterable<T>` → slices; native alias leaves; optional `any` → `Option<JsValue>` | ts-gen | 2 |
+| change | where | phase | mono-specific |
+|---|---|---|---|
+| `js_sys_unstable_apis` for wasm32; serde-wasm-bindgen and wasm-streams patched copies | workers-rs | 1 | no |
+| native leaves inside js-sys containers; `&T` generic arguments; awaited `Option<T>` | ts-gen | 1 | yes |
+| argument-position `impl Trait` keeps declared generic arity | wasm-bindgen macro | 1 | yes |
+| one import per wire format; no `// generic import` comments; `?Sized` mono params; `&Option<T>`, `Option<&T>` args | wasm-bindgen macro + CLI | 2 | yes (mono's own cost) |
+| `extends = Parent<A, B>`; `Vec<Option<T>>` returns; blanket `&T` ABI for handles | wasm-bindgen | 2 | partly |
+| `Map` by `Borrow<Q>`, `Map::get` for every `V` | js-sys | 2 | no |
+| `Function<fn(A..) -> R>` with any ABI `A`/`R`, `()` for void; `Function::from_fn`; typed `Promise::new` | js-sys | 2 | yes |
+| `String` returns from built-ins (`Error`, `Date`, `JSON`, `Intl`); `Date::new_with_value`; `ArrayBuffer` bytes | js-sys | 2 | no |
+| iterators yield `T`; `Entries<K, V>`; Map/Set/Object as Rust collections | js-sys | 2 | no |
+| stopgaps #1–#5 replaced by ts-gen fixes (`mono-patch` deleted) | ts-gen | 2 | yes |
+| `{@string copy\|ref\|both}`; `@retype`; side namespaces | ts-gen + `annotations.d.ts` | 2 | no |
+| `_typed` twins (constructors, nested return-only params); concrete construct returns | ts-gen | 2 | yes |
+| `T \| null` args: bare arms + `_with_null` arm; bare builder values | ts-gen | 2 | no |
+| callbacks with Rust leaves, `Promise<()>` | ts-gen | 2 | yes |
+| `Iterable<T>` → slices; alias leaves; optional `any` → `Option<JsValue>`; generated `IntoIterator` | ts-gen | 2 | no |
+| per-literal overload bindings (KV typed reads); shorter overload and inline-type names | ts-gen | 2 | no |
+| bare generic-class arguments take any instantiation | ts-gen | 2 | yes |
 
-C would need instead (none built): #5167 with the root `&T` slot leak fixed; `JsStr<'a>` and a
-sealed `JsStringLike::as_js_str` plus a list either type; tagged enums with `From` impls for the
-13 primitive unions; hand-written `IntoJsGeneric`/`FromJsGeneric` for every user type used as a
-type argument. Most of B's ts-gen lowering (nullable arms, bare builder values, `Iterable` slices,
-constructor twins, `{@string}`) is not mono-specific and would carry over. The js-sys collection
-behaviour would too, with the same ecosystem break.
+C would need instead (none built):
+- #5167 with the root `&T` slot leak fixed;
+- `JsStr<'a>` and a sealed `JsStringLike::as_js_str`, plus a list either type;
+- tagged enums with `From` impls for the 13 primitive unions;
+- hand-written `IntoJsGeneric`/`FromJsGeneric` for every user type used as a type argument.
+
+Every "no" row carries over to C as is. The js-sys collection behaviour would carry over too,
+along with the same ecosystem break.
 
 ## 6. Remaining gaps
 

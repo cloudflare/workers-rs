@@ -27,6 +27,7 @@ workers-rs-3 builds the whole prototype. `js_sys_unstable_apis` is on for wasm32
 | `160741bcf` | same | `impl IntoWasmAbi for &Option<T>`; CLI reads `REF OPTIONAL T` as `OPTIONAL REF T` | `Map<_, Option<_>>::set(&k, &Some(v))` | wasm-bindgen |
 | `cb872c471` | `macro-support/src/codegen.rs`, `src/convert/impls.rs`, `cli-support/src/descriptor.rs` | mono `Option<&T>` arguments (`for<'a> Option<&'a T>: IntoWasmAbi`), `Option<&prim>: IntoWasmAbi`; `unraw()` for derived idents | `T \| null` → `Option<&T>` for generic args; `__wbg_slot_r#type` panic | generic-mono PR |
 | `56ac6f184` | `macro-support/src/codegen.rs`, `src/convert/slices.rs`, 2 reference files | `extends = Parent<A, B>` with concrete type arguments (parent conversions via `<Parent as JsCast>::unchecked_from_js`); `Vec<Option<T>>` returns for handles, `String`, `bool`, `char`, numbers | `IdentityTransformStream extends TransformStream<…, Uint8Array>`; `TraceEventInfo::traces -> Vec<Option<String>>` | wasm-bindgen |
+| `b503ab30f` | `macro-support/src/codegen.rs`, `src/convert/impls.rs`, `src/lib.rs` (`JsGeneric: WasmDescribe`) | `extends = Par<T, T>` naming the child's parameters; one blanket `IntoWasmAbi for &T` / `Option<&T>` over every `T: JsGeneric` | ts-gen keeps `Child<T>` arguments; drops the `for<'a> &'a T: IntoWasmAbi` clause on handle-bounded helpers (audit N7) | wasm-bindgen |
 
 ## js-sys (all under `js_sys_unstable_apis` unless noted)
 
@@ -38,8 +39,9 @@ workers-rs-3 builds the whole prototype. `js_sys_unstable_apis` is on for wasm32
 | `9d903011a` | small-string returns are `String` (`Error::{name,message}`, `Date::to_*string`, `Number::to_fixed`, `RegExp::{source,flags}`, `Function::name`); `Date::new_with_value(impl JsNumberOrStringLike)` | port's `String::from(js)` and `Date::new(&JsValue::from_f64(..))` | js-sys unstable |
 | `366274d92` | `Iterator<T>` iterates as `T` (throw → `throw_val`; `try_iter` keeps the protocol's `Result`); `Entries<K, V>`; Map/Set `iter`/`IntoIterator`/`FromIterator`/`Extend`; Set lookups by `Borrow<Q>`; `Object::keys` → `Array<String>`; `JsStream<T: FromWasmAbi>` | Rust-collection behaviour; audit #3 (`HeadersIter`, `collect::<Result<…>>`) | js-sys unstable |
 | `429a22215` | `From<ScopedClosure<'static, C>> for Function<F>` | `Closure` → typed `Function` without a cast | js-sys |
-| `008fba104` | `JSON::stringify*` → `Result<Option<String>, JsValue>` (`None` for `undefined`); 28 `Intl` string returns are `String` | audit #7 | js-sys unstable |
 | `866b0d33d` | `Object<T>` as a record: `iter()`, `IntoIterator for &Object<T>`, `FromIterator`/`Extend<(K: PropertyKey, V: Borrow<T>)>`; `IntoIterator for &Array<T>` (both cfgs) | R2 custom-metadata helpers, `Reflect::set` loops | js-sys unstable |
+| `008fba104` | `JSON::stringify*` → `Result<Option<String>, JsValue>` (`None` for `undefined`); 28 `Intl` string returns are `String` | audit #7 | js-sys unstable |
+| `b503ab30f` | `ArrayBuffer::to_vec`, `From<&[u8]>`/`From<Vec<u8>>` for `ArrayBuffer`, `From<ArrayBuffer> for Vec<u8>` | `Uint8Array` round trips for bytes (audit N3) | js-sys unstable |
 
 ## ts-gen
 
@@ -60,6 +62,10 @@ workers-rs-3 builds the whole prototype. `js_sys_unstable_apis` is on for wasm32
 | `d21202a` | `IntoIterator for &T` from `[Symbol.iterator]()` (`Headers`, `FormData`, `URLSearchParams`, `SqlStorageCursor<T>`) | audit #3 follow-on | ts-gen mono PR (iteration) |
 | `8e09b3d` | overload suffixes imply the primary arm and name dictionary arms by parameter (`fetch_with_init`, `set_timeout_with_ms_delay`, `put_with_options`); names over 50 chars 97 → 40 | audit #11 | ts-gen mono PR (names) |
 | `76caab3` | inline parameter types named `<Parent><Method><Param>` under mono (`R2BucketGetOptions`, not `R2BucketOptions2`) | audit #11 | ts-gen mono PR (names) |
+| `789c1ca` | `_typed::<T>` twins for methods whose nested return-only type parameters erase (`getWithMetadata<Metadata>`, `list<Metadata>`, D1 `all`/`raw`/`run`/`batch`, DO `get` by keys) | audit #8 (master's decision: whole-return `T` keeps the generic; nested gets a twin) | ts-gen mono PR (return-only params) |
+| `890f23a` | returned lists read nullable elements as `Option` (`Vec<Option<String>>`) | audit #10(b); needs `56ac6f184` | ts-gen mono PR (leaves) |
+| `6115484` | a bare generic-class argument at its `any` defaults takes any instantiation (`&ReadableStream<impl Sized>`); `_typed` reader/writer constructors unify with the stream; `extends` keeps concrete arguments | audit N1, #2(a) | ts-gen mono PR (generic args) |
+| `1549ee7` | dictionary suffixes independent of overload order (R2 `get_with_options`); no trailing `null` arm duplicating `new()` | audit N4(c) | ts-gen mono PR (names) |
 
 ## workers-rs (`ts-gen-worker`)
 
