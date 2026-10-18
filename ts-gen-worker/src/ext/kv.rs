@@ -6,7 +6,7 @@
 use std::collections::HashMap;
 
 use js_sys::{ArrayBuffer, Map, Uint8Array};
-use wasm_bindgen::convert::FromWasmAbi;
+use wasm_bindgen::convert::{FromWasmAbi, Upcast};
 use wasm_bindgen::JsStringLike;
 #[cfg(feature = "serde")]
 use wasm_bindgen::JsValue;
@@ -48,8 +48,13 @@ impl KVNamespace {
         self.put_value(key, KvPutValue::Bytes(Uint8Array::from(value).buffer()))
     }
 
-    pub fn put_stream(&self, key: &str, value: ReadableStream) -> KvPutBuilder {
-        self.put_value(key, KvPutValue::Stream(value))
+    /// A write of the stream's chunks; any chunk type (a byte stream, `Body::body()`)
+    /// is accepted.
+    pub fn put_stream<R>(&self, key: &str, value: ReadableStream<R>) -> KvPutBuilder
+    where
+        ReadableStream<R>: Upcast<ReadableStream>,
+    {
+        self.put_value(key, KvPutValue::Stream(value.upcast_into()))
     }
 
     fn put_value(&self, key: &str, value: KvPutValue) -> KvPutBuilder {

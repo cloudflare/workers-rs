@@ -5328,7 +5328,7 @@ impl From<CryptoKeyArbitraryKeyAlgorithm> for CryptoKeyArbitraryKeyAlgorithmBuil
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
-    # [wasm_bindgen (extends = WritableStream , extends = Object)]
+    # [wasm_bindgen (extends = WritableStream < JsValue > , extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type DigestStream;
     #[wasm_bindgen(constructor, catch)]
@@ -7057,13 +7057,13 @@ extern "C" {
     pub async fn put_with_readable_stream(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: &ReadableStream,
+        value: &ReadableStream<impl Sized>,
     ) -> Result<(), crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_readable_stream_promise(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: &ReadableStream,
+        value: &ReadableStream<impl Sized>,
     ) -> Result<Promise<()>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub async fn put_with_options(
@@ -7111,14 +7111,14 @@ extern "C" {
     pub async fn put_with_readable_stream_and_options(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: &ReadableStream,
+        value: &ReadableStream<impl Sized>,
         options: &KVNamespacePutOptions,
     ) -> Result<(), crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_readable_stream_and_options_promise(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: &ReadableStream,
+        value: &ReadableStream<impl Sized>,
         options: &KVNamespacePutOptions,
     ) -> Result<Promise<()>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
@@ -8805,13 +8805,13 @@ extern "C" {
     pub async fn put(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: &ReadableStream,
+        value: &ReadableStream<impl Sized>,
     ) -> Result<Option<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: &ReadableStream,
+        value: &ReadableStream<impl Sized>,
     ) -> Result<Promise<Option<R2Object>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub async fn put_with_array_buffer(
@@ -8877,14 +8877,14 @@ extern "C" {
     pub async fn put_with_options(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: &ReadableStream,
+        value: &ReadableStream<impl Sized>,
         options: &R2BucketPutOptions,
     ) -> Result<Option<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_options_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: &ReadableStream,
+        value: &ReadableStream<impl Sized>,
         options: &R2BucketPutOptions,
     ) -> Result<Promise<Option<R2Object>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
@@ -8961,14 +8961,14 @@ extern "C" {
     pub async fn put_with_readable_stream_and_r2_put_options(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: &ReadableStream,
+        value: &ReadableStream<impl Sized>,
         options: &R2PutOptions,
     ) -> Result<R2Object, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
     pub fn put_with_readable_stream_and_r2_put_options_promise(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
-        value: &ReadableStream,
+        value: &ReadableStream<impl Sized>,
         options: &R2PutOptions,
     ) -> Result<Promise<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
@@ -9367,13 +9367,13 @@ extern "C" {
     pub async fn upload_part(
         this: &R2MultipartUpload,
         part_number: u16,
-        value: &ReadableStream,
+        value: &ReadableStream<impl Sized>,
     ) -> Result<R2UploadedPart, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub fn upload_part_promise(
         this: &R2MultipartUpload,
         part_number: u16,
-        value: &ReadableStream,
+        value: &ReadableStream<impl Sized>,
     ) -> Result<Promise<R2UploadedPart>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub async fn upload_part_with_array_buffer(
@@ -9427,14 +9427,14 @@ extern "C" {
     pub async fn upload_part_with_options(
         this: &R2MultipartUpload,
         part_number: u16,
-        value: &ReadableStream,
+        value: &ReadableStream<impl Sized>,
         options: &R2UploadPartOptions,
     ) -> Result<R2UploadedPart, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
     pub fn upload_part_with_options_promise(
         this: &R2MultipartUpload,
         part_number: u16,
-        value: &ReadableStream,
+        value: &ReadableStream<impl Sized>,
         options: &R2UploadPartOptions,
     ) -> Result<Promise<R2UploadedPart>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
@@ -11110,10 +11110,12 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type ReadableStreamDefaultReader<R = JsValue>;
     #[wasm_bindgen(constructor, catch)]
-    pub fn new(stream: &ReadableStream) -> Result<ReadableStreamDefaultReader, crate::Error>;
+    pub fn new(
+        stream: &ReadableStream<impl Sized>,
+    ) -> Result<ReadableStreamDefaultReader, crate::Error>;
     #[wasm_bindgen(constructor, catch, js_name = "ReadableStreamDefaultReader")]
     pub fn new_typed<R>(
-        stream: &ReadableStream,
+        stream: &ReadableStream<R>,
     ) -> Result<ReadableStreamDefaultReader<R>, crate::Error>;
     #[wasm_bindgen(method, getter)]
     pub fn closed<R>(this: &ReadableStreamDefaultReader<R>) -> Promise<()>;
@@ -11159,7 +11161,9 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type ReadableStreamBYOBReader;
     #[wasm_bindgen(constructor, catch)]
-    pub fn new(stream: &ReadableStream) -> Result<ReadableStreamBYOBReader, crate::Error>;
+    pub fn new(
+        stream: &ReadableStream<impl Sized>,
+    ) -> Result<ReadableStreamBYOBReader, crate::Error>;
     #[wasm_bindgen(method, getter)]
     pub fn closed(this: &ReadableStreamBYOBReader) -> Promise<()>;
     #[wasm_bindgen(method, catch)]
@@ -11455,21 +11459,21 @@ extern "C" {
     pub fn new_typed<W>() -> Result<WritableStream<W>, crate::Error>;
     #[wasm_bindgen(constructor, catch, js_name = "WritableStream")]
     pub fn new_with_underlying_sink(
-        underlying_sink: &UnderlyingSink,
+        underlying_sink: &UnderlyingSink<impl Sized>,
     ) -> Result<WritableStream, crate::Error>;
     #[wasm_bindgen(constructor, catch, js_name = "WritableStream")]
     pub fn new_with_underlying_sink_typed<W>(
-        underlying_sink: &UnderlyingSink,
+        underlying_sink: &UnderlyingSink<W>,
     ) -> Result<WritableStream<W>, crate::Error>;
     #[wasm_bindgen(constructor, catch, js_name = "WritableStream")]
     pub fn new_with_underlying_sink_and_queuing_strategy(
-        underlying_sink: &UnderlyingSink,
-        queuing_strategy: &QueuingStrategy,
+        underlying_sink: &UnderlyingSink<impl Sized>,
+        queuing_strategy: &QueuingStrategy<impl Sized>,
     ) -> Result<WritableStream, crate::Error>;
     #[wasm_bindgen(constructor, catch, js_name = "WritableStream")]
     pub fn new_with_underlying_sink_and_queuing_strategy_typed<W>(
-        underlying_sink: &UnderlyingSink,
-        queuing_strategy: &QueuingStrategy,
+        underlying_sink: &UnderlyingSink<W>,
+        queuing_strategy: &QueuingStrategy<impl Sized>,
     ) -> Result<WritableStream<W>, crate::Error>;
     #[doc = " The **`locked`** read-only property of the WritableStream interface returns a boolean indicating whether the WritableStream is locked to a writer."]
     #[doc = ""]
@@ -11526,10 +11530,12 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type WritableStreamDefaultWriter<W = JsValue>;
     #[wasm_bindgen(constructor, catch)]
-    pub fn new(stream: &WritableStream) -> Result<WritableStreamDefaultWriter, crate::Error>;
+    pub fn new(
+        stream: &WritableStream<impl Sized>,
+    ) -> Result<WritableStreamDefaultWriter, crate::Error>;
     #[wasm_bindgen(constructor, catch, js_name = "WritableStreamDefaultWriter")]
     pub fn new_typed<W>(
-        stream: &WritableStream,
+        stream: &WritableStream<W>,
     ) -> Result<WritableStreamDefaultWriter<W>, crate::Error>;
     #[doc = " The **`closed`** read-only property of the WritableStreamDefaultWriter interface returns a Promise that fulfills if the stream becomes closed, or rejects if the stream errors or the writer's lock is released."]
     #[doc = ""]
@@ -11672,7 +11678,7 @@ extern "C" {
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
-    # [wasm_bindgen (extends = TransformStream , extends = Object)]
+    # [wasm_bindgen (extends = TransformStream < JsValue , Uint8Array > , extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type IdentityTransformStream;
     #[wasm_bindgen(constructor, catch)]
@@ -12715,7 +12721,7 @@ impl WebSocketEventMap {
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
-    # [wasm_bindgen (extends = EventTarget , extends = Object)]
+    # [wasm_bindgen (extends = EventTarget < WebSocketEventMap > , extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type WebSocket;
     #[wasm_bindgen(constructor, catch)]
@@ -13250,7 +13256,7 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn stdin(this: &ContainerExecOptions) -> Option<StdinKind>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_stdin(this: &ContainerExecOptions, val: &ReadableStream);
+    pub fn set_stdin(this: &ContainerExecOptions, val: &ReadableStream<impl Sized>);
     #[wasm_bindgen(method, setter, js_name = "stdin")]
     pub fn set_stdin_with_stdin_kind(this: &ContainerExecOptions, val: StdinKind);
     #[wasm_bindgen(method, getter)]
@@ -13300,7 +13306,7 @@ impl ContainerExecOptionsBuilder {
         self.inner.set_pty_with_val(val);
         self
     }
-    pub fn stdin(self, val: &ReadableStream) -> Self {
+    pub fn stdin(self, val: &ReadableStream<impl Sized>) -> Self {
         self.inner.set_stdin(val);
         self
     }
@@ -21535,7 +21541,7 @@ pub mod cloudflare {
             pub fn new(
                 from: impl ::wasm_bindgen::JsStringLike,
                 to: impl ::wasm_bindgen::JsStringLike,
-                raw: &super::super::ReadableStream,
+                raw: &super::super::ReadableStream<impl Sized>,
             ) -> Result<EmailMessage, crate::Error>;
             #[wasm_bindgen(constructor, catch, js_name = "EmailMessage")]
             pub fn new_with_str(
