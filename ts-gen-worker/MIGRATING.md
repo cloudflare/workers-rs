@@ -174,12 +174,15 @@ impl DurableObject for Counter {
 }
 ```
 
-`websocket_message` receives a `DataKind` (`String(s)` / `ArrayBuffer(buf)`) instead of
+`websocket_message` receives a `DataKind` (`String(s)` / `ArrayBuffer(buf)`; its `Blob` arm is
+for `MessageEvent::data` and never arrives here) instead of
 `WebSocketIncomingMessage`; `websocket_close`/`websocket_error` are unchanged. `WebSocket`
 is `PartialEq` and `Eq` by handle, as in `worker`, so a struct deriving `Eq` can hold one.
 `worker`'s `ws.events()` stream is a listener per event type:
 `ws.add_event_listener_message(&Function::from_fn(|e: MessageEvent| …))?`, and the same for
-`close` and `error`.
+`close` and `error`. `e.data()` is a `DataKind`: `String`, `ArrayBuffer`, or `Blob` under the
+`websocket_standard_binary_type` compat flag (the default from 2026-03-17) unless `binaryType` is set.
+`FormData::get` returns `Option<GetReturnKind>` (`File(f)` / `String(s)`).
 
 ```rust
 // worker                                         // ts-gen-worker

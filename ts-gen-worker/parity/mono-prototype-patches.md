@@ -87,6 +87,7 @@ workers-rs-3 builds the whole prototype. `js_sys_unstable_apis` is on for wasm32
 | `a2e3344` | per-key listeners gain `_with_options` / `_with_bool` and the listener-object pairs (16 → 48 on `WebSocket`) | audit B4: `{ once }` / `{ signal }` needed the erased form | ts-gen mono PR (types) |
 | `e35a4b9` | buffer-source slice modes go on each argument, not the fn | a `{@slice view}` on one argument no longer depends on the others | ts-gen mono PR (types) |
 | `1d62eff` | async members return `Promise<T, E>` with `E` the `--fallible` error type (`crate::Error`) | audit B5: tails await to the crate's error again; needs `70c2c0e64` | ts-gen mono PR (async) |
+| `4883281` | a nullable handle-or-primitive union return is `Option` of its generated enum (`FormData::get` → `Option<GetReturnKind>`) | design D3: `File \| string \| null` was `JsValue` | ts-gen mono PR (types) |
 
 ## workers-rs (`ts-gen-worker`)
 
@@ -134,6 +135,7 @@ Each row of the tables above is one change. Landing them is a smaller set of PRs
 | wasm-bindgen: `catch` on `Promise<T>` returns | `627ff72ba` | — |
 | ts-gen mono: per-key `M[K]` bindings | `6815c11`, `a2e3344` | — |
 | ts-gen: rest tuples, orphan inline types | `5b20797`, `c98d196` | — |
+| ts-gen mono: nullable union-enum returns | `4883281` | — |
 | ts-gen mono: `Promise<T, E>` async returns | `16402cd`, `16a19f9`, `1d62eff` | `627ff72ba`, `70c2c0e64` |
 | ts-gen mono: generated `IntoIterator` | `d21202a` | `866b0d33d` |
 | serde-wasm-bindgen, wasm-streams: build under `js_sys_unstable_apis` | `ts-gen-worker/vendor-patches` | js-sys unstable |
