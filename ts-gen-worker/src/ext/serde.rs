@@ -2,7 +2,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 
 use js_sys::Object;
-use wasm_bindgen::{JsCast, JsValue};
+use wasm_bindgen::JsCast;
 
 use crate::{DurableObjectStorage, Message, Request, Response, ResponseInitBuilder, Result};
 
@@ -47,7 +47,7 @@ impl DurableObjectStorage {
     /// `storage.get(key)` deserialized; `None` when the key is absent. Values go through
     /// `serde_wasm_bindgen` both ways, so a `put_serialized` value round-trips.
     pub async fn get_into<T: DeserializeOwned>(&self, key: &str) -> Result<Option<T>> {
-        let value = self.get::<JsValue>(key).await?;
+        let value = self.get(key).await?;
         Ok(value.map(serde_wasm_bindgen::from_value).transpose()?)
     }
 

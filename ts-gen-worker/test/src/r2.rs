@@ -223,7 +223,7 @@ pub async fn put(_req: Request, env: Env, _data: SomeSharedData) -> Result<Respo
     let bucket = env.put_bucket();
 
     // R2 requires a fixed-length stream for streamed bodies.
-    let fixed_stream = FixedLengthStream::new(16.0 * 16.0)?;
+    let fixed_stream = FixedLengthStream::new(256)?;
     let writer = fixed_stream.writable().get_writer()?;
     spawn_local(async move {
         for _ in 0..16 {
