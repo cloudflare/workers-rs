@@ -54,9 +54,11 @@ pub fn websocket_events(
 }
 
 /// `MessageEvent::data` as text, mirroring `worker::MessageEvent::text()`.
-/// Upstream types `data` as `any`.
 pub fn message_text(event: &MessageEvent) -> Option<String> {
-    event.data().as_string()
+    match event.data() {
+        DataKind::String(text) => Some(text),
+        DataKind::ArrayBuffer(_) | DataKind::Blob(_) => None,
+    }
 }
 
 /// `worker::State::block_concurrency_while`: runs a Rust future inside the

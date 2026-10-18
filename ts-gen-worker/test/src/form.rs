@@ -6,11 +6,20 @@ use serde::{Deserialize, Serialize};
 use ts_gen_worker::*;
 use wasm_bindgen::prelude::*;
 
-/// `worker::FormEntry`: `FormData.get()` returns `File | string | null`, which the
-/// bindings erase to `JsValue`.
+/// `worker::FormEntry`: `FormData.getAll()` returns `(File | string)[]`, which the
+/// bindings erase to `Vec<JsValue>`; `get()` is `Option<GetReturnKind>`.
 enum FormEntry {
     Field(String),
     File(File),
+}
+
+impl From<GetReturnKind> for FormEntry {
+    fn from(value: GetReturnKind) -> Self {
+        match value {
+            GetReturnKind::String(s) => Self::Field(s),
+            GetReturnKind::File(f) => Self::File(f),
+        }
+    }
 }
 
 impl FormEntry {
@@ -49,7 +58,7 @@ pub async fn handle_formdata_name(
         return Response::builder().from_json(&serde_json::json!({ "names": names }));
     }
 
-    if let Some(value) = FormEntry::from_js(form.get(NAME)) {
+    if let Some(value) = form.get(NAME).map(FormEntry::from) {
         match value {
             FormEntry::Field(v) => Response::builder().from_json(&serde_json::json!({ NAME: v })),
             FormEntry::File(_) => bad_request,
@@ -72,7 +81,7 @@ pub async fn handle_formdata_file_size(
 ) -> Result<Response> {
     let form = req.form_data().await?;
 
-    if let Some(entry) = FormEntry::from_js(form.get("file")) {
+    if let Some(entry) = form.get("file").map(FormEntry::from) {
         return match entry {
             FormEntry::File(file) => {
                 let kv: KVNamespace = env.file_sizes();
@@ -131,7 +140,7 @@ pub async fn handle_formdata_file_size_hash(
 
 pub async fn handle_is_secret(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let form = req.form_data().await?;
-    if let Some(secret) = FormEntry::from_js(form.get("secret")) {
+    if let Some(secret) = form.get("secret").map(FormEntry::from) {
         match secret {
             FormEntry::Field(name) => {
                 return Response::builder().ok(env.secret(&name).unwrap_or_default());

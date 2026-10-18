@@ -4102,17 +4102,27 @@ extern "C" {
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/MessageEvent/data)"]
     #[wasm_bindgen(method, getter)]
-    pub fn data(this: &MessageEvent) -> JsValue;
+    pub fn data(this: &MessageEvent) -> DataKind;
     #[doc = " The **`origin`** read-only property of the MessageEvent interface is a string representing the origin of the message emitter."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/MessageEvent/origin)"]
     #[wasm_bindgen(method, getter)]
     pub fn origin(this: &MessageEvent) -> Option<String>;
+    #[doc = " The **`origin`** read-only property of the MessageEvent interface is a string representing the origin of the message emitter."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/MessageEvent/origin)"]
+    #[wasm_bindgen(method, getter, js_name = "origin")]
+    pub fn origin_js_string(this: &MessageEvent) -> Option<JsString>;
     #[doc = " The **`lastEventId`** read-only property of the MessageEvent interface is a string representing a unique ID for the event."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/MessageEvent/lastEventId)"]
     #[wasm_bindgen(method, getter, js_name = "lastEventId")]
     pub fn last_event_id(this: &MessageEvent) -> String;
+    #[doc = " The **`lastEventId`** read-only property of the MessageEvent interface is a string representing a unique ID for the event."]
+    #[doc = ""]
+    #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/MessageEvent/lastEventId)"]
+    #[wasm_bindgen(method, getter, js_name = "lastEventId")]
+    pub fn last_event_id_js_string(this: &MessageEvent) -> JsString;
     #[doc = " The **`source`** read-only property of the MessageEvent interface is a MessageEventSource (which can be a WindowProxy, MessagePort, or ServiceWorker object) representing the message emitter."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/MessageEvent/source)"]
@@ -4130,7 +4140,7 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type MessageEventInit;
     #[wasm_bindgen(method, getter)]
-    pub fn data(this: &MessageEventInit) -> DataKind;
+    pub fn data(this: &MessageEventInit) -> MessageEventInitDataKind;
     #[wasm_bindgen(method, setter)]
     pub fn set_data(this: &MessageEventInit, val: &ArrayBuffer);
     #[wasm_bindgen(method, setter, js_name = "data")]
@@ -4188,7 +4198,7 @@ extern "C" {
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/get)"]
     #[wasm_bindgen(method)]
-    pub fn get(this: &FormData, name: impl ::wasm_bindgen::JsStringLike) -> JsValue;
+    pub fn get(this: &FormData, name: impl ::wasm_bindgen::JsStringLike) -> Option<GetReturnKind>;
     #[doc = " The **`getAll()`** method of the FormData interface returns all the values associated with a given key from within a FormData object."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/getAll)"]
@@ -7762,7 +7772,7 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "range")]
     pub fn set_range_with_headers(this: &R2GetOptions, val: &Headers);
     #[wasm_bindgen(method, getter, js_name = "ssecKey")]
-    pub fn ssec_key(this: &R2GetOptions) -> Option<DataKind>;
+    pub fn ssec_key(this: &R2GetOptions) -> Option<MessageEventInitDataKind>;
     #[wasm_bindgen(method, setter, js_name = "ssecKey")]
     pub fn set_ssec_key(this: &R2GetOptions, val: &ArrayBuffer);
     #[wasm_bindgen(method, setter, js_name = "ssecKey")]
@@ -7886,7 +7896,7 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "storageClass")]
     pub fn set_storage_class(this: &R2PutOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "ssecKey")]
-    pub fn ssec_key(this: &R2PutOptions) -> Option<DataKind>;
+    pub fn ssec_key(this: &R2PutOptions) -> Option<MessageEventInitDataKind>;
     #[wasm_bindgen(method, setter, js_name = "ssecKey")]
     pub fn set_ssec_key(this: &R2PutOptions, val: &ArrayBuffer);
     #[wasm_bindgen(method, setter, js_name = "ssecKey")]
@@ -8007,7 +8017,7 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "storageClass")]
     pub fn set_storage_class(this: &R2MultipartOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "ssecKey")]
-    pub fn ssec_key(this: &R2MultipartOptions) -> Option<DataKind>;
+    pub fn ssec_key(this: &R2MultipartOptions) -> Option<MessageEventInitDataKind>;
     #[wasm_bindgen(method, setter, js_name = "ssecKey")]
     pub fn set_ssec_key(this: &R2MultipartOptions, val: &ArrayBuffer);
     #[wasm_bindgen(method, setter, js_name = "ssecKey")]
@@ -8315,7 +8325,7 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type R2UploadPartOptions;
     #[wasm_bindgen(method, getter, js_name = "ssecKey")]
-    pub fn ssec_key(this: &R2UploadPartOptions) -> Option<DataKind>;
+    pub fn ssec_key(this: &R2UploadPartOptions) -> Option<MessageEventInitDataKind>;
     #[wasm_bindgen(method, setter, js_name = "ssecKey")]
     pub fn set_ssec_key(this: &R2UploadPartOptions, val: &ArrayBuffer);
     #[wasm_bindgen(method, setter, js_name = "ssecKey")]
@@ -21131,7 +21141,18 @@ pub enum BytesWrittenKind {
 }
 #[wasm_bindgen(private)]
 pub enum DataKind {
+    String(String),
     ArrayBuffer(ArrayBuffer),
+    Blob(Blob),
+}
+#[wasm_bindgen(private)]
+pub enum MessageEventInitDataKind {
+    ArrayBuffer(ArrayBuffer),
+    String(String),
+}
+#[wasm_bindgen(private)]
+pub enum GetReturnKind {
+    File(File),
     String(String),
 }
 #[wasm_bindgen(private)]

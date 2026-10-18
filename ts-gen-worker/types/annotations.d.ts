@@ -565,3 +565,11 @@ interface ReadableStreamBYOBRequest {
   /** @param view {@slice handle} the buffer lent by the request's `view`, transferred back; a handle, not `&[u8]` */
   respondWithNewView(view: any): void;
 }
+
+// `MessageEvent.data` is a message's text, or its binary payload as an
+// `ArrayBuffer` (`binaryType = "arraybuffer"`, the default before the
+// `websocket_standard_binary_type` compat date) or a `Blob` (after it).
+declare class MessageEvent {
+  /** @retype */
+  readonly data: string | ArrayBuffer | Blob;
+}
