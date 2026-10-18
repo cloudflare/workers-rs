@@ -5,7 +5,7 @@
 
 use std::collections::HashMap;
 
-use js_sys::{ArrayBuffer, Map};
+use js_sys::{ArrayBuffer, JsNullable, Map};
 use wasm_bindgen::convert::{FromWasmAbi, Upcast};
 use wasm_bindgen::JsStringLike;
 #[cfg(feature = "serde")]
@@ -125,15 +125,14 @@ fn parse_json<T: serde::de::DeserializeOwned>(text: Option<&str>) -> Result<Opti
     Ok(text.map(serde_json::from_str).transpose()?)
 }
 
-/// KV reports absent metadata as `null`, which an `Option<JsValue>` getter keeps as `Some`.
 #[cfg(feature = "serde")]
 fn metadata<V, M: serde::de::DeserializeOwned>(
     entry: &KVNamespaceGetWithMetadataResult<V, JsValue>,
 ) -> Result<Option<M>> {
-    match entry.metadata().filter(|v| !v.is_null()) {
-        Some(value) => Ok(Some(serde_wasm_bindgen::from_value(value)?)),
-        None => Ok(None),
-    }
+    Ok(entry
+        .metadata()
+        .map(serde_wasm_bindgen::from_value)
+        .transpose()?)
 }
 
 #[derive(Debug, Clone)]
@@ -243,7 +242,7 @@ impl KvGetBulkBuilder {
         self
     }
 
-    async fn text_map(&self) -> Result<Map<String, Option<String>>> {
+    async fn text_map(&self) -> Result<Map<String, JsNullable<String>>> {
         let options = get_options(self.cache_ttl);
         self.kv
             .get_text_with_slice_and_options(&self.keys, &options)
@@ -269,13 +268,15 @@ impl KvGetBulkBuilder {
 
     /// Every requested key, `None` where absent.
     pub async fn text(self) -> Result<HashMap<String, Option<String>>> {
-        Self::collect(self.text_map().await?, Ok)
+        Self::collect(self.text_map().await?, |v| Ok(v.into_option()))
     }
 
     /// Every requested key parsed as JSON into `T`, `None` where absent.
     #[cfg(feature = "serde")]
     pub async fn json<T: serde::de::DeserializeOwned>(self) -> Result<HashMap<String, Option<T>>> {
-        Self::collect(self.text_map().await?, |v| parse_json(v.as_deref()))
+        Self::collect(self.text_map().await?, |v| {
+            parse_json(v.into_option().as_deref())
+        })
     }
 
     #[cfg(feature = "serde")]
@@ -333,7 +334,7 @@ impl KvPutBuilder {
     #[cfg(feature = "serde")]
     pub fn metadata<T: serde::Serialize>(self, metadata: T) -> Result<Self> {
         let value = metadata.serialize(&serde_wasm_bindgen::Serializer::json_compatible())?;
-        self.options.set_metadata(Some(&value));
+        self.options.set_metadata(&value);
         Ok(self)
     }
 
@@ -375,12 +376,12 @@ impl KvListBuilder {
 
     /// Continues a previous listing from its `cursor`.
     pub fn cursor(self, cursor: impl JsStringLike) -> Self {
-        self.options.set_cursor(Some(cursor));
+        self.options.set_cursor(cursor);
         self
     }
 
     pub fn prefix(self, prefix: impl JsStringLike) -> Self {
-        self.options.set_prefix(Some(prefix));
+        self.options.set_prefix(prefix);
         self
     }
 

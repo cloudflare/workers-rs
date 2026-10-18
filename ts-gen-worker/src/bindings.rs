@@ -3,7 +3,7 @@
 #[allow(unused_imports)]
 use js_sys::*;
 #[allow(unused_imports)]
-use wasm_bindgen::convert::{FromWasmAbi, RefIntoWasmAbi, VectorRefIntoWasmAbi};
+use wasm_bindgen::convert::{FromWasmAbi, RefIntoWasmAbi};
 #[allow(unused_imports)]
 use wasm_bindgen::prelude::*;
 #[wasm_bindgen(experimental_generic_mono)]
@@ -228,7 +228,15 @@ extern "C" {
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
     #[wasm_bindgen(catch, js_name = "clearTimeout")]
-    pub fn clear_timeout(timeout_id: Option<f64>) -> Result<(), crate::Error>;
+    pub fn clear_timeout(timeout_id: f64) -> Result<(), crate::Error>;
+}
+#[wasm_bindgen(experimental_generic_mono)]
+extern "C" {
+    #[wasm_bindgen(catch, js_name = "clearTimeout")]
+    fn clear_timeout_with_null_js(timeout_id: &JsValue) -> Result<(), crate::Error>;
+}
+pub fn clear_timeout_with_null() -> Result<(), crate::Error> {
+    clear_timeout_with_null_js(&::wasm_bindgen::JsValue::NULL)
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -624,20 +632,8 @@ extern "C" {
     pub type CachePurgeError;
     #[wasm_bindgen(method, getter)]
     pub fn code(this: &CachePurgeError) -> f64;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_code(this: &CachePurgeError, val: f64);
     #[wasm_bindgen(method, getter)]
     pub fn message(this: &CachePurgeError) -> String;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_message(this: &CachePurgeError, val: impl ::wasm_bindgen::JsStringLike);
-}
-impl CachePurgeError {
-    pub fn new(code: f64, message: impl ::wasm_bindgen::JsStringLike) -> CachePurgeError {
-        let inner: CachePurgeError = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_code(code);
-        inner.set_message(message);
-        inner
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -646,20 +642,8 @@ extern "C" {
     pub type CachePurgeResult;
     #[wasm_bindgen(method, getter)]
     pub fn success(this: &CachePurgeResult) -> bool;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_success(this: &CachePurgeResult, val: bool);
     #[wasm_bindgen(method, getter)]
     pub fn errors(this: &CachePurgeResult) -> Vec<CachePurgeError>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_errors(this: &CachePurgeResult, val: &[CachePurgeError]);
-}
-impl CachePurgeResult {
-    pub fn new(success: bool, errors: &[CachePurgeError]) -> CachePurgeResult {
-        let inner: CachePurgeResult = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_success(success);
-        inner.set_errors(errors);
-        inner
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -2267,9 +2251,9 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn reason(this: &AbortSignal) -> JsValue;
     #[wasm_bindgen(method, getter)]
-    pub fn onabort(this: &AbortSignal) -> JsValue;
+    pub fn onabort(this: &AbortSignal) -> Option<JsValue>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_onabort(this: &AbortSignal, val: Option<&JsValue>);
+    pub fn set_onabort(this: &AbortSignal, val: &JsValue);
     #[doc = " The **`throwIfAborted()`** method throws the signal's abort reason if the signal has been aborted; otherwise it does nothing."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/AbortSignal/throwIfAborted)"]
@@ -2868,7 +2852,7 @@ extern "C" {
         this: &SubtleCrypto,
         algorithm: impl ::wasm_bindgen::JsStringLike,
         base_key: &CryptoKey,
-        length: Option<f64>,
+        length: f64,
     ) -> Promise<ArrayBuffer, crate::Error>;
     #[doc = " The **`deriveBits()`** method of the SubtleCrypto interface can be used to derive an array of bits from a base key."]
     #[doc = ""]
@@ -2878,7 +2862,7 @@ extern "C" {
         this: &SubtleCrypto,
         algorithm: &SubtleCryptoDeriveKeyAlgorithm,
         base_key: &CryptoKey,
-        length: Option<f64>,
+        length: f64,
     ) -> Promise<ArrayBuffer, crate::Error>;
     #[doc = " The **`importKey()`** method of the SubtleCrypto interface imports a key: that is, it takes as input a key in an external, portable format and gives you a CryptoKey object that you can use in the Web Crypto API."]
     #[doc = ""]
@@ -3073,20 +3057,8 @@ extern "C" {
     pub type CryptoKeyPair;
     #[wasm_bindgen(method, getter, js_name = "publicKey")]
     pub fn public_key(this: &CryptoKeyPair) -> CryptoKey;
-    #[wasm_bindgen(method, setter, js_name = "publicKey")]
-    pub fn set_public_key(this: &CryptoKeyPair, val: &CryptoKey);
     #[wasm_bindgen(method, getter, js_name = "privateKey")]
     pub fn private_key(this: &CryptoKeyPair) -> CryptoKey;
-    #[wasm_bindgen(method, setter, js_name = "privateKey")]
-    pub fn set_private_key(this: &CryptoKeyPair, val: &CryptoKey);
-}
-impl CryptoKeyPair {
-    pub fn new(public_key: &CryptoKey, private_key: &CryptoKey) -> CryptoKeyPair {
-        let inner: CryptoKeyPair = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_public_key(public_key);
-        inner.set_private_key(private_key);
-        inner
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -3755,15 +3727,6 @@ extern "C" {
     pub type CryptoKeyKeyAlgorithm;
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &CryptoKeyKeyAlgorithm) -> String;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_name(this: &CryptoKeyKeyAlgorithm, val: impl ::wasm_bindgen::JsStringLike);
-}
-impl CryptoKeyKeyAlgorithm {
-    pub fn new(name: impl ::wasm_bindgen::JsStringLike) -> CryptoKeyKeyAlgorithm {
-        let inner: CryptoKeyKeyAlgorithm = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_name(name);
-        inner
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -3772,20 +3735,8 @@ extern "C" {
     pub type CryptoKeyAesKeyAlgorithm;
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &CryptoKeyAesKeyAlgorithm) -> String;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_name(this: &CryptoKeyAesKeyAlgorithm, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn length(this: &CryptoKeyAesKeyAlgorithm) -> f64;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_length(this: &CryptoKeyAesKeyAlgorithm, val: f64);
-}
-impl CryptoKeyAesKeyAlgorithm {
-    pub fn new(name: impl ::wasm_bindgen::JsStringLike, length: f64) -> CryptoKeyAesKeyAlgorithm {
-        let inner: CryptoKeyAesKeyAlgorithm = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_name(name);
-        inner.set_length(length);
-        inner
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -3794,29 +3745,10 @@ extern "C" {
     pub type CryptoKeyHmacKeyAlgorithm;
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &CryptoKeyHmacKeyAlgorithm) -> String;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_name(this: &CryptoKeyHmacKeyAlgorithm, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn hash(this: &CryptoKeyHmacKeyAlgorithm) -> CryptoKeyKeyAlgorithm;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_hash(this: &CryptoKeyHmacKeyAlgorithm, val: &CryptoKeyKeyAlgorithm);
     #[wasm_bindgen(method, getter)]
     pub fn length(this: &CryptoKeyHmacKeyAlgorithm) -> f64;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_length(this: &CryptoKeyHmacKeyAlgorithm, val: f64);
-}
-impl CryptoKeyHmacKeyAlgorithm {
-    pub fn new(
-        name: impl ::wasm_bindgen::JsStringLike,
-        hash: &CryptoKeyKeyAlgorithm,
-        length: f64,
-    ) -> CryptoKeyHmacKeyAlgorithm {
-        let inner: CryptoKeyHmacKeyAlgorithm = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_name(name);
-        inner.set_hash(hash);
-        inner.set_length(length);
-        inner
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -3825,60 +3757,12 @@ extern "C" {
     pub type CryptoKeyRsaKeyAlgorithm;
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &CryptoKeyRsaKeyAlgorithm) -> String;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_name(this: &CryptoKeyRsaKeyAlgorithm, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "modulusLength")]
     pub fn modulus_length(this: &CryptoKeyRsaKeyAlgorithm) -> f64;
-    #[wasm_bindgen(method, setter, js_name = "modulusLength")]
-    pub fn set_modulus_length(this: &CryptoKeyRsaKeyAlgorithm, val: f64);
     #[wasm_bindgen(method, getter, js_name = "publicExponent")]
     pub fn public_exponent(this: &CryptoKeyRsaKeyAlgorithm) -> SaltKind;
-    #[wasm_bindgen(method, setter, js_name = "publicExponent")]
-    pub fn set_public_exponent(
-        this: &CryptoKeyRsaKeyAlgorithm,
-        #[wasm_bindgen(slice = "copy")] val: impl ::js_sys::BufferSourceLike,
-    );
     #[wasm_bindgen(method, getter)]
     pub fn hash(this: &CryptoKeyRsaKeyAlgorithm) -> Option<CryptoKeyKeyAlgorithm>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_hash(this: &CryptoKeyRsaKeyAlgorithm, val: &CryptoKeyKeyAlgorithm);
-}
-impl CryptoKeyRsaKeyAlgorithm {
-    pub fn new(
-        name: impl ::wasm_bindgen::JsStringLike,
-        modulus_length: f64,
-        public_exponent: impl ::js_sys::BufferSourceLike,
-    ) -> CryptoKeyRsaKeyAlgorithm {
-        Self::builder(name, modulus_length, public_exponent).build()
-    }
-    pub fn builder(
-        name: impl ::wasm_bindgen::JsStringLike,
-        modulus_length: f64,
-        public_exponent: impl ::js_sys::BufferSourceLike,
-    ) -> CryptoKeyRsaKeyAlgorithmBuilder {
-        let inner: CryptoKeyRsaKeyAlgorithm = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_name(name);
-        inner.set_modulus_length(modulus_length);
-        inner.set_public_exponent(public_exponent);
-        CryptoKeyRsaKeyAlgorithmBuilder { inner }
-    }
-}
-pub struct CryptoKeyRsaKeyAlgorithmBuilder {
-    inner: CryptoKeyRsaKeyAlgorithm,
-}
-impl CryptoKeyRsaKeyAlgorithmBuilder {
-    pub fn hash(self, val: &CryptoKeyKeyAlgorithm) -> Self {
-        self.inner.set_hash(val);
-        self
-    }
-    pub fn build(self) -> CryptoKeyRsaKeyAlgorithm {
-        self.inner
-    }
-}
-impl From<CryptoKeyRsaKeyAlgorithm> for CryptoKeyRsaKeyAlgorithmBuilder {
-    fn from(inner: CryptoKeyRsaKeyAlgorithm) -> Self {
-        Self { inner }
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -3887,26 +3771,8 @@ extern "C" {
     pub type CryptoKeyEllipticKeyAlgorithm;
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &CryptoKeyEllipticKeyAlgorithm) -> String;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_name(this: &CryptoKeyEllipticKeyAlgorithm, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "namedCurve")]
     pub fn named_curve(this: &CryptoKeyEllipticKeyAlgorithm) -> String;
-    #[wasm_bindgen(method, setter, js_name = "namedCurve")]
-    pub fn set_named_curve(
-        this: &CryptoKeyEllipticKeyAlgorithm,
-        val: impl ::wasm_bindgen::JsStringLike,
-    );
-}
-impl CryptoKeyEllipticKeyAlgorithm {
-    pub fn new(
-        name: impl ::wasm_bindgen::JsStringLike,
-        named_curve: impl ::wasm_bindgen::JsStringLike,
-    ) -> CryptoKeyEllipticKeyAlgorithm {
-        let inner: CryptoKeyEllipticKeyAlgorithm = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_name(name);
-        inner.set_named_curve(named_curve);
-        inner
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -3915,60 +3781,12 @@ extern "C" {
     pub type CryptoKeyArbitraryKeyAlgorithm;
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &CryptoKeyArbitraryKeyAlgorithm) -> String;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_name(this: &CryptoKeyArbitraryKeyAlgorithm, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn hash(this: &CryptoKeyArbitraryKeyAlgorithm) -> Option<CryptoKeyKeyAlgorithm>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_hash(this: &CryptoKeyArbitraryKeyAlgorithm, val: &CryptoKeyKeyAlgorithm);
     #[wasm_bindgen(method, getter, js_name = "namedCurve")]
     pub fn named_curve(this: &CryptoKeyArbitraryKeyAlgorithm) -> Option<String>;
-    #[wasm_bindgen(method, setter, js_name = "namedCurve")]
-    pub fn set_named_curve(
-        this: &CryptoKeyArbitraryKeyAlgorithm,
-        val: impl ::wasm_bindgen::JsStringLike,
-    );
     #[wasm_bindgen(method, getter)]
     pub fn length(this: &CryptoKeyArbitraryKeyAlgorithm) -> Option<f64>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_length(this: &CryptoKeyArbitraryKeyAlgorithm, val: f64);
-}
-impl CryptoKeyArbitraryKeyAlgorithm {
-    pub fn new(name: impl ::wasm_bindgen::JsStringLike) -> CryptoKeyArbitraryKeyAlgorithm {
-        Self::builder(name).build()
-    }
-    pub fn builder(
-        name: impl ::wasm_bindgen::JsStringLike,
-    ) -> CryptoKeyArbitraryKeyAlgorithmBuilder {
-        let inner: CryptoKeyArbitraryKeyAlgorithm = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_name(name);
-        CryptoKeyArbitraryKeyAlgorithmBuilder { inner }
-    }
-}
-pub struct CryptoKeyArbitraryKeyAlgorithmBuilder {
-    inner: CryptoKeyArbitraryKeyAlgorithm,
-}
-impl CryptoKeyArbitraryKeyAlgorithmBuilder {
-    pub fn hash(self, val: &CryptoKeyKeyAlgorithm) -> Self {
-        self.inner.set_hash(val);
-        self
-    }
-    pub fn named_curve(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
-        self.inner.set_named_curve(val);
-        self
-    }
-    pub fn length(self, val: f64) -> Self {
-        self.inner.set_length(val);
-        self
-    }
-    pub fn build(self) -> CryptoKeyArbitraryKeyAlgorithm {
-        self.inner
-    }
-}
-impl From<CryptoKeyArbitraryKeyAlgorithm> for CryptoKeyArbitraryKeyAlgorithmBuilder {
-    fn from(inner: CryptoKeyArbitraryKeyAlgorithm) -> Self {
-        Self { inner }
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -4659,7 +4477,9 @@ extern "C" {
     #[wasm_bindgen(method, getter, js_name = "webSocket")]
     pub fn web_socket(this: &Response) -> Option<WebSocket>;
     #[wasm_bindgen(method, setter, js_name = "webSocket")]
-    pub fn set_web_socket(this: &Response, val: Option<&WebSocket>);
+    pub fn set_web_socket(this: &Response, val: &WebSocket);
+    #[wasm_bindgen(method, setter, js_name = "webSocket")]
+    fn set_web_socket_with_null_js(this: &Response, val: &JsValue);
     #[wasm_bindgen(method, getter)]
     pub fn cf(this: &Response) -> Option<JsValue>;
     #[wasm_bindgen(method, setter)]
@@ -4680,6 +4500,9 @@ impl Response {
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     pub fn new_with_null_and_init(init: &ResponseInit) -> Result<Response, JsException> {
         Self::new_with_null_and_init_js(&::wasm_bindgen::JsValue::NULL, init)
+    }
+    pub fn set_web_socket_with_null(&self) {
+        self.set_web_socket_with_null_js(&::wasm_bindgen::JsValue::NULL)
     }
 }
 #[wasm_bindgen(experimental_generic_mono)]
@@ -4710,11 +4533,18 @@ extern "C" {
     #[wasm_bindgen(method, getter, js_name = "webSocket")]
     pub fn web_socket(this: &ResponseInit) -> Option<WebSocket>;
     #[wasm_bindgen(method, setter, js_name = "webSocket")]
-    pub fn set_web_socket(this: &ResponseInit, val: Option<&WebSocket>);
+    pub fn set_web_socket(this: &ResponseInit, val: &WebSocket);
+    #[wasm_bindgen(method, setter, js_name = "webSocket")]
+    fn set_web_socket_with_null_js(this: &ResponseInit, val: &JsValue);
     #[wasm_bindgen(method, getter, js_name = "encodeBody")]
     pub fn encode_body(this: &ResponseInit) -> Option<EncodeBodyKind>;
     #[wasm_bindgen(method, setter, js_name = "encodeBody")]
     pub fn set_encode_body(this: &ResponseInit, val: EncodeBodyKind);
+}
+impl ResponseInit {
+    pub fn set_web_socket_with_null(&self) {
+        self.set_web_socket_with_null_js(&::wasm_bindgen::JsValue::NULL)
+    }
 }
 impl ResponseInit {
     pub fn new() -> ResponseInit {
@@ -4755,7 +4585,11 @@ impl ResponseInitBuilder {
         self
     }
     pub fn web_socket(self, val: &WebSocket) -> Self {
-        self.inner.set_web_socket(Some(val));
+        self.inner.set_web_socket(val);
+        self
+    }
+    pub fn web_socket_with_null(self) -> Self {
+        self.inner.set_web_socket_with_null();
         self
     }
     pub fn encode_body(self, val: EncodeBodyKind) -> Self {
@@ -4915,9 +4749,11 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn fetcher<CfHostMetadata, Cf>(this: &Request<CfHostMetadata, Cf>) -> Option<Fetcher>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_fetcher<CfHostMetadata, Cf>(
+    pub fn set_fetcher<CfHostMetadata, Cf>(this: &Request<CfHostMetadata, Cf>, val: &Fetcher);
+    #[wasm_bindgen(method, setter, js_name = "fetcher")]
+    fn set_fetcher_with_null_js<CfHostMetadata, Cf>(
         this: &Request<CfHostMetadata, Cf>,
-        val: Option<&Fetcher>,
+        val: &JsValue,
     );
     #[doc = " The read-only **`signal`** property of the Request interface returns the AbortSignal associated with the request."]
     #[doc = ""]
@@ -4957,6 +4793,11 @@ extern "C" {
     #[wasm_bindgen(method, setter)]
     pub fn set_cache<CfHostMetadata, Cf>(this: &Request<CfHostMetadata, Cf>, val: CacheKind);
 }
+impl<CfHostMetadata, Cf> Request<CfHostMetadata, Cf> {
+    pub fn set_fetcher_with_null(&self) {
+        self.set_fetcher_with_null_js(&::wasm_bindgen::JsValue::NULL)
+    }
+}
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -4975,7 +4816,7 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "headers")]
     pub fn set_headers_with_record<Cf>(this: &RequestInit<Cf>, val: &Object<String>);
     #[wasm_bindgen(method, getter)]
-    pub fn body<Cf>(this: &RequestInit<Cf>) -> JsValue;
+    pub fn body<Cf>(this: &RequestInit<Cf>) -> Option<JsValue>;
     #[wasm_bindgen(method, setter)]
     pub fn set_body<Cf>(this: &RequestInit<Cf>, val: &ReadableStream<Uint8Array>);
     #[wasm_bindgen(method, setter, js_name = "body")]
@@ -5004,7 +4845,9 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn fetcher<Cf>(this: &RequestInit<Cf>) -> Option<Fetcher>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_fetcher<Cf>(this: &RequestInit<Cf>, val: Option<&Fetcher>);
+    pub fn set_fetcher<Cf>(this: &RequestInit<Cf>, val: &Fetcher);
+    #[wasm_bindgen(method, setter, js_name = "fetcher")]
+    fn set_fetcher_with_null_js<Cf>(this: &RequestInit<Cf>, val: &JsValue);
     #[wasm_bindgen(method, getter)]
     pub fn cf<Cf>(this: &RequestInit<Cf>) -> Option<Cf>
     where
@@ -5022,7 +4865,9 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn signal<Cf>(this: &RequestInit<Cf>) -> Option<AbortSignal>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_signal<Cf>(this: &RequestInit<Cf>, val: Option<&AbortSignal>);
+    pub fn set_signal<Cf>(this: &RequestInit<Cf>, val: &AbortSignal);
+    #[wasm_bindgen(method, setter, js_name = "signal")]
+    fn set_signal_with_null_js<Cf>(this: &RequestInit<Cf>, val: &JsValue);
     #[wasm_bindgen(method, getter, js_name = "encodeResponseBody")]
     pub fn encode_response_body<Cf>(this: &RequestInit<Cf>) -> Option<EncodeBodyKind>;
     #[wasm_bindgen(method, setter, js_name = "encodeResponseBody")]
@@ -5031,6 +4876,12 @@ extern "C" {
 impl<Cf> RequestInit<Cf> {
     pub fn set_body_with_null(&self) {
         self.set_body_with_null_js(&::wasm_bindgen::JsValue::NULL)
+    }
+    pub fn set_fetcher_with_null(&self) {
+        self.set_fetcher_with_null_js(&::wasm_bindgen::JsValue::NULL)
+    }
+    pub fn set_signal_with_null(&self) {
+        self.set_signal_with_null_js(&::wasm_bindgen::JsValue::NULL)
     }
 }
 impl<Cf> RequestInit<Cf> {
@@ -5095,12 +4946,20 @@ impl<Cf> RequestInitBuilder<Cf> {
         self.inner.set_body_with_async_iterable(val);
         self
     }
+    pub fn body_with_null(self) -> Self {
+        self.inner.set_body_with_null();
+        self
+    }
     pub fn redirect(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
         self.inner.set_redirect(val);
         self
     }
     pub fn fetcher(self, val: &Fetcher) -> Self {
-        self.inner.set_fetcher(Some(val));
+        self.inner.set_fetcher(val);
+        self
+    }
+    pub fn fetcher_with_null(self) -> Self {
+        self.inner.set_fetcher_with_null();
         self
     }
     pub fn cf(self, val: &Cf) -> Self
@@ -5119,7 +4978,11 @@ impl<Cf> RequestInitBuilder<Cf> {
         self
     }
     pub fn signal(self, val: &AbortSignal) -> Self {
-        self.inner.set_signal(Some(val));
+        self.inner.set_signal(val);
+        self
+    }
+    pub fn signal_with_null(self) -> Self {
+        self.inner.set_signal_with_null();
         self
     }
     pub fn encode_response_body(self, val: EncodeBodyKind) -> Self {
@@ -5199,65 +5062,16 @@ extern "C" {
     pub type KVNamespaceListKey<Metadata = JsValue>;
     #[wasm_bindgen(method, getter)]
     pub fn name<Metadata>(this: &KVNamespaceListKey<Metadata>) -> String;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_name<Metadata>(
-        this: &KVNamespaceListKey<Metadata>,
-        val: impl ::wasm_bindgen::JsStringLike,
-    );
     #[wasm_bindgen(method, getter, js_name = "expiration")]
     fn expiration_js<Metadata>(this: &KVNamespaceListKey<Metadata>) -> Option<f64>;
-    #[wasm_bindgen(method, setter, js_name = "expiration")]
-    fn set_expiration_js<Metadata>(this: &KVNamespaceListKey<Metadata>, val: f64);
     #[wasm_bindgen(method, getter)]
     pub fn metadata<Metadata>(this: &KVNamespaceListKey<Metadata>) -> Option<Metadata>
     where
         Option<Metadata>: FromWasmAbi;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_metadata<Metadata: RefIntoWasmAbi>(
-        this: &KVNamespaceListKey<Metadata>,
-        val: &Metadata,
-    );
 }
 impl<Metadata> KVNamespaceListKey<Metadata> {
     pub fn expiration(&self) -> Option<u64> {
         self.expiration_js().map(|v| v as u64)
-    }
-    pub fn set_expiration(&self, val: u64) {
-        self.set_expiration_js(val as f64)
-    }
-}
-impl<Metadata> KVNamespaceListKey<Metadata> {
-    pub fn new(name: impl ::wasm_bindgen::JsStringLike) -> KVNamespaceListKey<Metadata> {
-        Self::builder(name).build()
-    }
-    pub fn builder(name: impl ::wasm_bindgen::JsStringLike) -> KVNamespaceListKeyBuilder<Metadata> {
-        let inner: KVNamespaceListKey<Metadata> = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_name(name);
-        KVNamespaceListKeyBuilder { inner }
-    }
-}
-pub struct KVNamespaceListKeyBuilder<Metadata> {
-    inner: KVNamespaceListKey<Metadata>,
-}
-impl<Metadata> KVNamespaceListKeyBuilder<Metadata> {
-    pub fn expiration(self, val: u64) -> Self {
-        self.inner.set_expiration(val);
-        self
-    }
-    pub fn metadata(self, val: &Metadata) -> Self
-    where
-        Metadata: RefIntoWasmAbi,
-    {
-        self.inner.set_metadata(val);
-        self
-    }
-    pub fn build(self) -> KVNamespaceListKey<Metadata> {
-        self.inner
-    }
-}
-impl<Metadata> From<KVNamespaceListKey<Metadata>> for KVNamespaceListKeyBuilder<Metadata> {
-    fn from(inner: KVNamespaceListKey<Metadata>) -> Self {
-        Self { inner }
     }
 }
 #[wasm_bindgen(experimental_generic_mono)]
@@ -5267,87 +5081,14 @@ extern "C" {
     pub type KVNamespaceListResult<Metadata = JsValue>;
     #[wasm_bindgen(method, getter)]
     pub fn list_complete<Metadata>(this: &KVNamespaceListResult<Metadata>) -> bool;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_list_complete<Metadata>(this: &KVNamespaceListResult<Metadata>, val: bool);
     #[wasm_bindgen(method, getter)]
     pub fn keys<Metadata>(
         this: &KVNamespaceListResult<Metadata>,
     ) -> Vec<KVNamespaceListKey<Metadata>>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_keys<Metadata>(
-        this: &KVNamespaceListResult<Metadata>,
-        val: &[KVNamespaceListKey<Metadata>],
-    );
     #[wasm_bindgen(method, getter)]
     pub fn cursor<Metadata>(this: &KVNamespaceListResult<Metadata>) -> Option<String>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_cursor<Metadata>(
-        this: &KVNamespaceListResult<Metadata>,
-        val: impl ::wasm_bindgen::JsStringLike,
-    );
     #[wasm_bindgen(method, getter, js_name = "cacheStatus")]
     pub fn cache_status<Metadata>(this: &KVNamespaceListResult<Metadata>) -> Option<String>;
-    #[wasm_bindgen(method, setter, js_name = "cacheStatus")]
-    pub fn set_cache_status<Metadata>(
-        this: &KVNamespaceListResult<Metadata>,
-        val: Option<impl ::wasm_bindgen::JsStringLike>,
-    );
-}
-impl<Metadata> KVNamespaceListResult<Metadata> {
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `list_complete: false`"]
-    pub fn new_false(
-        keys: &[KVNamespaceListKey<Metadata>],
-        cursor: impl ::wasm_bindgen::JsStringLike,
-        cache_status: Option<impl ::wasm_bindgen::JsStringLike>,
-    ) -> KVNamespaceListResult<Metadata> {
-        let inner: KVNamespaceListResult<Metadata> = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_list_complete(false);
-        inner.set_keys(keys);
-        inner.set_cursor(cursor);
-        inner.set_cache_status(cache_status);
-        inner
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `list_complete: true`"]
-    pub fn new_true(
-        keys: &[KVNamespaceListKey<Metadata>],
-        cache_status: Option<impl ::wasm_bindgen::JsStringLike>,
-    ) -> KVNamespaceListResult<Metadata> {
-        Self::builder_true(keys, cache_status).build()
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `list_complete: true`"]
-    pub fn builder_true(
-        keys: &[KVNamespaceListKey<Metadata>],
-        cache_status: Option<impl ::wasm_bindgen::JsStringLike>,
-    ) -> KVNamespaceListResultBuilder<Metadata> {
-        let inner: KVNamespaceListResult<Metadata> = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_list_complete(true);
-        inner.set_keys(keys);
-        inner.set_cache_status(cache_status);
-        KVNamespaceListResultBuilder { inner }
-    }
-}
-pub struct KVNamespaceListResultBuilder<Metadata> {
-    inner: KVNamespaceListResult<Metadata>,
-}
-impl<Metadata> KVNamespaceListResultBuilder<Metadata> {
-    pub fn cursor(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
-        self.inner.set_cursor(val);
-        self
-    }
-    pub fn build(self) -> KVNamespaceListResult<Metadata> {
-        self.inner
-    }
-}
-impl<Metadata> From<KVNamespaceListResult<Metadata>> for KVNamespaceListResultBuilder<Metadata> {
-    fn from(inner: KVNamespaceListResult<Metadata>) -> Self {
-        Self { inner }
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -5441,7 +5182,7 @@ extern "C" {
         this: &KVNamespace,
         key: &[impl ::wasm_bindgen::JsStringLike],
         r#type: impl ::wasm_bindgen::JsStringLike,
-    ) -> Promise<Map<String, Option<String>>, crate::Error>;
+    ) -> Promise<Map<String, JsNullable<String>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
     fn get_json_with_slice_js(
         this: &KVNamespace,
@@ -5452,19 +5193,19 @@ extern "C" {
     pub fn get_with_slice(
         this: &KVNamespace,
         key: &[impl ::wasm_bindgen::JsStringLike],
-    ) -> Promise<Map<String, Option<String>>, crate::Error>;
+    ) -> Promise<Map<String, JsNullable<String>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
     pub fn get_with_slice_and_options(
         this: &KVNamespace,
         key: &[impl ::wasm_bindgen::JsStringLike],
         options: &KVNamespaceGetOptionsPartial<()>,
-    ) -> Promise<Map<String, Option<String>>, crate::Error>;
+    ) -> Promise<Map<String, JsNullable<String>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
     fn get_text_with_slice_and_options_js(
         this: &KVNamespace,
         key: &[impl ::wasm_bindgen::JsStringLike],
         options: &KVNamespaceGetOptions<String>,
-    ) -> Promise<Map<String, Option<String>>, crate::Error>;
+    ) -> Promise<Map<String, JsNullable<String>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
     fn get_json_with_slice_and_options_js(
         this: &KVNamespace,
@@ -5476,13 +5217,13 @@ extern "C" {
         this: &KVNamespace,
         key: &[impl ::wasm_bindgen::JsStringLike],
         r#type: impl ::wasm_bindgen::JsStringLike,
-    ) -> Promise<Map<String, Option<ExpectedValue>>, crate::Error>;
+    ) -> Promise<Map<String, JsNullable<ExpectedValue>>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "get")]
     fn get_json_with_slice_and_options_typed_js<ExpectedValue>(
         this: &KVNamespace,
         key: &[impl ::wasm_bindgen::JsStringLike],
         options: &KVNamespaceGetOptions<String>,
-    ) -> Promise<Map<String, Option<ExpectedValue>>, crate::Error>;
+    ) -> Promise<Map<String, JsNullable<ExpectedValue>>, crate::Error>;
     #[wasm_bindgen(method, catch)]
     pub fn list(this: &KVNamespace) -> Promise<KVNamespaceListResult<JsValue>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "list")]
@@ -5883,7 +5624,7 @@ impl KVNamespace {
     pub fn get_text_with_slice(
         &self,
         key: &[impl ::wasm_bindgen::JsStringLike],
-    ) -> Promise<Map<String, Option<String>>, crate::Error> {
+    ) -> Promise<Map<String, JsNullable<String>>, crate::Error> {
         self.get_text_with_slice_js(key, "text")
     }
     pub fn get_json_with_slice(
@@ -5896,7 +5637,7 @@ impl KVNamespace {
         &self,
         key: &[impl ::wasm_bindgen::JsStringLike],
         options: &KVNamespaceGetOptionsPartial<String>,
-    ) -> Promise<Map<String, Option<String>>, crate::Error> {
+    ) -> Promise<Map<String, JsNullable<String>>, crate::Error> {
         let options: KVNamespaceGetOptions<String> =
             ::wasm_bindgen::JsCast::unchecked_into(::js_sys::Object::assign(
                 &::js_sys::Object::new(),
@@ -5921,14 +5662,14 @@ impl KVNamespace {
     pub fn get_json_with_slice_typed<ExpectedValue>(
         &self,
         key: &[impl ::wasm_bindgen::JsStringLike],
-    ) -> Promise<Map<String, Option<ExpectedValue>>, crate::Error> {
+    ) -> Promise<Map<String, JsNullable<ExpectedValue>>, crate::Error> {
         self.get_json_with_slice_typed_js(key, "json")
     }
     pub fn get_json_with_slice_and_options_typed<ExpectedValue>(
         &self,
         key: &[impl ::wasm_bindgen::JsStringLike],
         options: &KVNamespaceGetOptionsPartial<String>,
-    ) -> Promise<Map<String, Option<ExpectedValue>>, crate::Error> {
+    ) -> Promise<Map<String, JsNullable<ExpectedValue>>, crate::Error> {
         let options: KVNamespaceGetOptions<String> =
             ::wasm_bindgen::JsCast::unchecked_into(::js_sys::Object::assign(
                 &::js_sys::Object::new(),
@@ -6280,17 +6021,15 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn prefix(this: &KVNamespaceListOptions) -> Option<String>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_prefix(
-        this: &KVNamespaceListOptions,
-        val: Option<impl ::wasm_bindgen::JsStringLike>,
-    );
+    pub fn set_prefix(this: &KVNamespaceListOptions, val: impl ::wasm_bindgen::JsStringLike);
+    #[wasm_bindgen(method, setter, js_name = "prefix")]
+    fn set_prefix_with_null_js(this: &KVNamespaceListOptions, val: &JsValue);
     #[wasm_bindgen(method, getter)]
     pub fn cursor(this: &KVNamespaceListOptions) -> Option<String>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_cursor(
-        this: &KVNamespaceListOptions,
-        val: Option<impl ::wasm_bindgen::JsStringLike>,
-    );
+    pub fn set_cursor(this: &KVNamespaceListOptions, val: impl ::wasm_bindgen::JsStringLike);
+    #[wasm_bindgen(method, setter, js_name = "cursor")]
+    fn set_cursor_with_null_js(this: &KVNamespaceListOptions, val: &JsValue);
 }
 impl KVNamespaceListOptions {
     pub fn limit(&self) -> Option<u64> {
@@ -6298,6 +6037,12 @@ impl KVNamespaceListOptions {
     }
     pub fn set_limit(&self, val: u64) {
         self.set_limit_js(val as f64)
+    }
+    pub fn set_prefix_with_null(&self) {
+        self.set_prefix_with_null_js(&::wasm_bindgen::JsValue::NULL)
+    }
+    pub fn set_cursor_with_null(&self) {
+        self.set_cursor_with_null_js(&::wasm_bindgen::JsValue::NULL)
     }
 }
 impl KVNamespaceListOptions {
@@ -6319,11 +6064,19 @@ impl KVNamespaceListOptionsBuilder {
         self
     }
     pub fn prefix(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
-        self.inner.set_prefix(Some(val));
+        self.inner.set_prefix(val);
+        self
+    }
+    pub fn prefix_with_null(self) -> Self {
+        self.inner.set_prefix_with_null();
         self
     }
     pub fn cursor(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
-        self.inner.set_cursor(Some(val));
+        self.inner.set_cursor(val);
+        self
+    }
+    pub fn cursor_with_null(self) -> Self {
+        self.inner.set_cursor_with_null();
         self
     }
     pub fn build(self) -> KVNamespaceListOptions {
@@ -6398,9 +6151,9 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "expirationTtl")]
     fn set_expiration_ttl_js(this: &KVNamespacePutOptions, val: f64);
     #[wasm_bindgen(method, getter)]
-    pub fn metadata(this: &KVNamespacePutOptions) -> JsValue;
+    pub fn metadata(this: &KVNamespacePutOptions) -> Option<JsValue>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_metadata(this: &KVNamespacePutOptions, val: Option<&JsValue>);
+    pub fn set_metadata(this: &KVNamespacePutOptions, val: &JsValue);
 }
 impl KVNamespacePutOptions {
     pub fn expiration(&self) -> Option<u64> {
@@ -6439,7 +6192,7 @@ impl KVNamespacePutOptionsBuilder {
         self
     }
     pub fn metadata(self, val: &JsValue) -> Self {
-        self.inner.set_metadata(Some(val));
+        self.inner.set_metadata(val);
         self
     }
     pub fn build(self) -> KVNamespacePutOptions {
@@ -6462,47 +6215,16 @@ extern "C" {
     ) -> Option<Value>
     where
         Option<Value>: FromWasmAbi;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_value<Value: RefIntoWasmAbi, Metadata>(
-        this: &KVNamespaceGetWithMetadataResult<Value, Metadata>,
-        val: Option<&Value>,
-    );
     #[wasm_bindgen(method, getter)]
     pub fn metadata<Value, Metadata>(
         this: &KVNamespaceGetWithMetadataResult<Value, Metadata>,
     ) -> Option<Metadata>
     where
         Option<Metadata>: FromWasmAbi;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_metadata<Value, Metadata: RefIntoWasmAbi>(
-        this: &KVNamespaceGetWithMetadataResult<Value, Metadata>,
-        val: Option<&Metadata>,
-    );
     #[wasm_bindgen(method, getter, js_name = "cacheStatus")]
     pub fn cache_status<Value, Metadata>(
         this: &KVNamespaceGetWithMetadataResult<Value, Metadata>,
     ) -> Option<String>;
-    #[wasm_bindgen(method, setter, js_name = "cacheStatus")]
-    pub fn set_cache_status<Value, Metadata>(
-        this: &KVNamespaceGetWithMetadataResult<Value, Metadata>,
-        val: Option<impl ::wasm_bindgen::JsStringLike>,
-    );
-}
-impl<Value: RefIntoWasmAbi, Metadata: RefIntoWasmAbi>
-    KVNamespaceGetWithMetadataResult<Value, Metadata>
-{
-    pub fn new(
-        value: Option<&Value>,
-        metadata: Option<&Metadata>,
-        cache_status: Option<impl ::wasm_bindgen::JsStringLike>,
-    ) -> KVNamespaceGetWithMetadataResult<Value, Metadata> {
-        let inner: KVNamespaceGetWithMetadataResult<Value, Metadata> =
-            JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_value(value);
-        inner.set_metadata(metadata);
-        inner.set_cache_status(cache_status);
-        inner
-    }
 }
 #[wasm_bindgen(private)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -6549,44 +6271,10 @@ extern "C" {
     pub type QueueSendMetrics;
     #[wasm_bindgen(method, getter, js_name = "backlogCount")]
     pub fn backlog_count(this: &QueueSendMetrics) -> f64;
-    #[wasm_bindgen(method, setter, js_name = "backlogCount")]
-    pub fn set_backlog_count(this: &QueueSendMetrics, val: f64);
     #[wasm_bindgen(method, getter, js_name = "backlogBytes")]
     pub fn backlog_bytes(this: &QueueSendMetrics) -> f64;
-    #[wasm_bindgen(method, setter, js_name = "backlogBytes")]
-    pub fn set_backlog_bytes(this: &QueueSendMetrics, val: f64);
     #[wasm_bindgen(method, getter, js_name = "oldestMessageTimestamp")]
     pub fn oldest_message_timestamp(this: &QueueSendMetrics) -> Option<Date>;
-    #[wasm_bindgen(method, setter, js_name = "oldestMessageTimestamp")]
-    pub fn set_oldest_message_timestamp(this: &QueueSendMetrics, val: &Date);
-}
-impl QueueSendMetrics {
-    pub fn new(backlog_count: f64, backlog_bytes: f64) -> QueueSendMetrics {
-        Self::builder(backlog_count, backlog_bytes).build()
-    }
-    pub fn builder(backlog_count: f64, backlog_bytes: f64) -> QueueSendMetricsBuilder {
-        let inner: QueueSendMetrics = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_backlog_count(backlog_count);
-        inner.set_backlog_bytes(backlog_bytes);
-        QueueSendMetricsBuilder { inner }
-    }
-}
-pub struct QueueSendMetricsBuilder {
-    inner: QueueSendMetrics,
-}
-impl QueueSendMetricsBuilder {
-    pub fn oldest_message_timestamp(self, val: &Date) -> Self {
-        self.inner.set_oldest_message_timestamp(val);
-        self
-    }
-    pub fn build(self) -> QueueSendMetrics {
-        self.inner
-    }
-}
-impl From<QueueSendMetrics> for QueueSendMetricsBuilder {
-    fn from(inner: QueueSendMetrics) -> Self {
-        Self { inner }
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -6595,15 +6283,6 @@ extern "C" {
     pub type QueueSendMetadata;
     #[wasm_bindgen(method, getter)]
     pub fn metrics(this: &QueueSendMetadata) -> QueueSendMetrics;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_metrics(this: &QueueSendMetadata, val: &QueueSendMetrics);
-}
-impl QueueSendMetadata {
-    pub fn new(metrics: &QueueSendMetrics) -> QueueSendMetadata {
-        let inner: QueueSendMetadata = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_metrics(metrics);
-        inner
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -6612,15 +6291,6 @@ extern "C" {
     pub type QueueSendResponse;
     #[wasm_bindgen(method, getter)]
     pub fn metadata(this: &QueueSendResponse) -> QueueSendMetadata;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_metadata(this: &QueueSendResponse, val: &QueueSendMetadata);
-}
-impl QueueSendResponse {
-    pub fn new(metadata: &QueueSendMetadata) -> QueueSendResponse {
-        let inner: QueueSendResponse = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_metadata(metadata);
-        inner
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -6629,44 +6299,10 @@ extern "C" {
     pub type QueueSendBatchMetrics;
     #[wasm_bindgen(method, getter, js_name = "backlogCount")]
     pub fn backlog_count(this: &QueueSendBatchMetrics) -> f64;
-    #[wasm_bindgen(method, setter, js_name = "backlogCount")]
-    pub fn set_backlog_count(this: &QueueSendBatchMetrics, val: f64);
     #[wasm_bindgen(method, getter, js_name = "backlogBytes")]
     pub fn backlog_bytes(this: &QueueSendBatchMetrics) -> f64;
-    #[wasm_bindgen(method, setter, js_name = "backlogBytes")]
-    pub fn set_backlog_bytes(this: &QueueSendBatchMetrics, val: f64);
     #[wasm_bindgen(method, getter, js_name = "oldestMessageTimestamp")]
     pub fn oldest_message_timestamp(this: &QueueSendBatchMetrics) -> Option<Date>;
-    #[wasm_bindgen(method, setter, js_name = "oldestMessageTimestamp")]
-    pub fn set_oldest_message_timestamp(this: &QueueSendBatchMetrics, val: &Date);
-}
-impl QueueSendBatchMetrics {
-    pub fn new(backlog_count: f64, backlog_bytes: f64) -> QueueSendBatchMetrics {
-        Self::builder(backlog_count, backlog_bytes).build()
-    }
-    pub fn builder(backlog_count: f64, backlog_bytes: f64) -> QueueSendBatchMetricsBuilder {
-        let inner: QueueSendBatchMetrics = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_backlog_count(backlog_count);
-        inner.set_backlog_bytes(backlog_bytes);
-        QueueSendBatchMetricsBuilder { inner }
-    }
-}
-pub struct QueueSendBatchMetricsBuilder {
-    inner: QueueSendBatchMetrics,
-}
-impl QueueSendBatchMetricsBuilder {
-    pub fn oldest_message_timestamp(self, val: &Date) -> Self {
-        self.inner.set_oldest_message_timestamp(val);
-        self
-    }
-    pub fn build(self) -> QueueSendBatchMetrics {
-        self.inner
-    }
-}
-impl From<QueueSendBatchMetrics> for QueueSendBatchMetricsBuilder {
-    fn from(inner: QueueSendBatchMetrics) -> Self {
-        Self { inner }
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -6675,15 +6311,6 @@ extern "C" {
     pub type QueueSendBatchMetadata;
     #[wasm_bindgen(method, getter)]
     pub fn metrics(this: &QueueSendBatchMetadata) -> QueueSendBatchMetrics;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_metrics(this: &QueueSendBatchMetadata, val: &QueueSendBatchMetrics);
-}
-impl QueueSendBatchMetadata {
-    pub fn new(metrics: &QueueSendBatchMetrics) -> QueueSendBatchMetadata {
-        let inner: QueueSendBatchMetadata = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_metrics(metrics);
-        inner
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -6692,15 +6319,6 @@ extern "C" {
     pub type QueueSendBatchResponse;
     #[wasm_bindgen(method, getter)]
     pub fn metadata(this: &QueueSendBatchResponse) -> QueueSendBatchMetadata;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_metadata(this: &QueueSendBatchResponse, val: &QueueSendBatchMetadata);
-}
-impl QueueSendBatchResponse {
-    pub fn new(metadata: &QueueSendBatchMetadata) -> QueueSendBatchResponse {
-        let inner: QueueSendBatchResponse = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_metadata(metadata);
-        inner
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -6840,44 +6458,10 @@ extern "C" {
     pub type QueueMetrics;
     #[wasm_bindgen(method, getter, js_name = "backlogCount")]
     pub fn backlog_count(this: &QueueMetrics) -> f64;
-    #[wasm_bindgen(method, setter, js_name = "backlogCount")]
-    pub fn set_backlog_count(this: &QueueMetrics, val: f64);
     #[wasm_bindgen(method, getter, js_name = "backlogBytes")]
     pub fn backlog_bytes(this: &QueueMetrics) -> f64;
-    #[wasm_bindgen(method, setter, js_name = "backlogBytes")]
-    pub fn set_backlog_bytes(this: &QueueMetrics, val: f64);
     #[wasm_bindgen(method, getter, js_name = "oldestMessageTimestamp")]
     pub fn oldest_message_timestamp(this: &QueueMetrics) -> Option<Date>;
-    #[wasm_bindgen(method, setter, js_name = "oldestMessageTimestamp")]
-    pub fn set_oldest_message_timestamp(this: &QueueMetrics, val: &Date);
-}
-impl QueueMetrics {
-    pub fn new(backlog_count: f64, backlog_bytes: f64) -> QueueMetrics {
-        Self::builder(backlog_count, backlog_bytes).build()
-    }
-    pub fn builder(backlog_count: f64, backlog_bytes: f64) -> QueueMetricsBuilder {
-        let inner: QueueMetrics = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_backlog_count(backlog_count);
-        inner.set_backlog_bytes(backlog_bytes);
-        QueueMetricsBuilder { inner }
-    }
-}
-pub struct QueueMetricsBuilder {
-    inner: QueueMetrics,
-}
-impl QueueMetricsBuilder {
-    pub fn oldest_message_timestamp(self, val: &Date) -> Self {
-        self.inner.set_oldest_message_timestamp(val);
-        self
-    }
-    pub fn build(self) -> QueueMetrics {
-        self.inner
-    }
-}
-impl From<QueueMetrics> for QueueMetricsBuilder {
-    fn from(inner: QueueMetrics) -> Self {
-        Self { inner }
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -6886,44 +6470,10 @@ extern "C" {
     pub type MessageBatchMetrics;
     #[wasm_bindgen(method, getter, js_name = "backlogCount")]
     pub fn backlog_count(this: &MessageBatchMetrics) -> f64;
-    #[wasm_bindgen(method, setter, js_name = "backlogCount")]
-    pub fn set_backlog_count(this: &MessageBatchMetrics, val: f64);
     #[wasm_bindgen(method, getter, js_name = "backlogBytes")]
     pub fn backlog_bytes(this: &MessageBatchMetrics) -> f64;
-    #[wasm_bindgen(method, setter, js_name = "backlogBytes")]
-    pub fn set_backlog_bytes(this: &MessageBatchMetrics, val: f64);
     #[wasm_bindgen(method, getter, js_name = "oldestMessageTimestamp")]
     pub fn oldest_message_timestamp(this: &MessageBatchMetrics) -> Option<Date>;
-    #[wasm_bindgen(method, setter, js_name = "oldestMessageTimestamp")]
-    pub fn set_oldest_message_timestamp(this: &MessageBatchMetrics, val: &Date);
-}
-impl MessageBatchMetrics {
-    pub fn new(backlog_count: f64, backlog_bytes: f64) -> MessageBatchMetrics {
-        Self::builder(backlog_count, backlog_bytes).build()
-    }
-    pub fn builder(backlog_count: f64, backlog_bytes: f64) -> MessageBatchMetricsBuilder {
-        let inner: MessageBatchMetrics = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_backlog_count(backlog_count);
-        inner.set_backlog_bytes(backlog_bytes);
-        MessageBatchMetricsBuilder { inner }
-    }
-}
-pub struct MessageBatchMetricsBuilder {
-    inner: MessageBatchMetrics,
-}
-impl MessageBatchMetricsBuilder {
-    pub fn oldest_message_timestamp(self, val: &Date) -> Self {
-        self.inner.set_oldest_message_timestamp(val);
-        self
-    }
-    pub fn build(self) -> MessageBatchMetrics {
-        self.inner
-    }
-}
-impl From<MessageBatchMetrics> for MessageBatchMetricsBuilder {
-    fn from(inner: MessageBatchMetrics) -> Self {
-        Self { inner }
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -6932,15 +6482,6 @@ extern "C" {
     pub type MessageBatchMetadata;
     #[wasm_bindgen(method, getter)]
     pub fn metrics(this: &MessageBatchMetadata) -> MessageBatchMetrics;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_metrics(this: &MessageBatchMetadata, val: &MessageBatchMetrics);
-}
-impl MessageBatchMetadata {
-    pub fn new(metrics: &MessageBatchMetrics) -> MessageBatchMetadata {
-        let inner: MessageBatchMetadata = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_metrics(metrics);
-        inner
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -8090,67 +7631,14 @@ extern "C" {
     pub type R2StringChecksums;
     #[wasm_bindgen(method, getter)]
     pub fn md5(this: &R2StringChecksums) -> Option<String>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_md5(this: &R2StringChecksums, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn sha1(this: &R2StringChecksums) -> Option<String>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_sha1(this: &R2StringChecksums, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn sha256(this: &R2StringChecksums) -> Option<String>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_sha256(this: &R2StringChecksums, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn sha384(this: &R2StringChecksums) -> Option<String>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_sha384(this: &R2StringChecksums, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn sha512(this: &R2StringChecksums) -> Option<String>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_sha512(this: &R2StringChecksums, val: impl ::wasm_bindgen::JsStringLike);
-}
-impl R2StringChecksums {
-    pub fn new() -> R2StringChecksums {
-        Self::builder().build()
-    }
-    pub fn builder() -> R2StringChecksumsBuilder {
-        R2StringChecksumsBuilder {
-            inner: JsCast::unchecked_into(js_sys::Object::new()),
-        }
-    }
-}
-pub struct R2StringChecksumsBuilder {
-    inner: R2StringChecksums,
-}
-impl R2StringChecksumsBuilder {
-    pub fn md5(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
-        self.inner.set_md5(val);
-        self
-    }
-    pub fn sha1(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
-        self.inner.set_sha1(val);
-        self
-    }
-    pub fn sha256(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
-        self.inner.set_sha256(val);
-        self
-    }
-    pub fn sha384(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
-        self.inner.set_sha384(val);
-        self
-    }
-    pub fn sha512(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
-        self.inner.set_sha512(val);
-        self
-    }
-    pub fn build(self) -> R2StringChecksums {
-        self.inner
-    }
-}
-impl From<R2StringChecksums> for R2StringChecksumsBuilder {
-    fn from(inner: R2StringChecksums) -> Self {
-        Self { inner }
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -8236,83 +7724,12 @@ extern "C" {
     pub type R2Objects;
     #[wasm_bindgen(method, getter)]
     pub fn truncated(this: &R2Objects) -> bool;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_truncated(this: &R2Objects, val: bool);
     #[wasm_bindgen(method, getter)]
     pub fn cursor(this: &R2Objects) -> Option<String>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_cursor(this: &R2Objects, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn objects(this: &R2Objects) -> Vec<R2Object>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_objects(this: &R2Objects, val: &[R2Object]);
     #[wasm_bindgen(method, getter, js_name = "delimitedPrefixes")]
     pub fn delimited_prefixes(this: &R2Objects) -> Vec<String>;
-    #[wasm_bindgen(method, setter, js_name = "delimitedPrefixes")]
-    pub fn set_delimited_prefixes(this: &R2Objects, val: &[impl ::wasm_bindgen::JsStringLike]);
-}
-impl R2Objects {
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `truncated: true`"]
-    pub fn new_true(
-        objects: &[R2Object],
-        delimited_prefixes: &[impl ::wasm_bindgen::JsStringLike],
-    ) -> R2Objects {
-        Self::builder_true(objects, delimited_prefixes).build()
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `truncated: false`"]
-    pub fn new_false(
-        objects: &[R2Object],
-        delimited_prefixes: &[impl ::wasm_bindgen::JsStringLike],
-    ) -> R2Objects {
-        Self::builder_false(objects, delimited_prefixes).build()
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `truncated: true`"]
-    pub fn builder_true(
-        objects: &[R2Object],
-        delimited_prefixes: &[impl ::wasm_bindgen::JsStringLike],
-    ) -> R2ObjectsBuilder {
-        let inner: R2Objects = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_truncated(true);
-        inner.set_objects(objects);
-        inner.set_delimited_prefixes(delimited_prefixes);
-        R2ObjectsBuilder { inner }
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `truncated: false`"]
-    pub fn builder_false(
-        objects: &[R2Object],
-        delimited_prefixes: &[impl ::wasm_bindgen::JsStringLike],
-    ) -> R2ObjectsBuilder {
-        let inner: R2Objects = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_truncated(false);
-        inner.set_objects(objects);
-        inner.set_delimited_prefixes(delimited_prefixes);
-        R2ObjectsBuilder { inner }
-    }
-}
-pub struct R2ObjectsBuilder {
-    inner: R2Objects,
-}
-impl R2ObjectsBuilder {
-    pub fn cursor(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
-        self.inner.set_cursor(val);
-        self
-    }
-    pub fn build(self) -> R2Objects {
-        self.inner
-    }
-}
-impl From<R2Objects> for R2ObjectsBuilder {
-    fn from(inner: R2Objects) -> Self {
-        Self { inner }
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -8898,59 +8315,10 @@ extern "C" {
     pub type ReadableStreamReadResult<R = JsValue>;
     #[wasm_bindgen(method, getter)]
     pub fn done<R>(this: &ReadableStreamReadResult<R>) -> bool;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_done<R>(this: &ReadableStreamReadResult<R>, val: bool);
     #[wasm_bindgen(method, getter)]
     pub fn value<R>(this: &ReadableStreamReadResult<R>) -> Option<R>
     where
         Option<R>: FromWasmAbi;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_value<R: RefIntoWasmAbi>(this: &ReadableStreamReadResult<R>, val: Option<&R>);
-}
-impl<R: RefIntoWasmAbi> ReadableStreamReadResult<R> {
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `done: false`"]
-    pub fn new_false(value: Option<&R>) -> ReadableStreamReadResult<R> {
-        let inner: ReadableStreamReadResult<R> = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_done(false);
-        inner.set_value(value);
-        inner
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `done: true`"]
-    pub fn new_true() -> ReadableStreamReadResult<R> {
-        Self::builder_true().build()
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `done: true`"]
-    pub fn builder_true() -> ReadableStreamReadResultBuilder<R> {
-        let inner: ReadableStreamReadResult<R> = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_done(true);
-        ReadableStreamReadResultBuilder { inner }
-    }
-}
-pub struct ReadableStreamReadResultBuilder<R> {
-    inner: ReadableStreamReadResult<R>,
-}
-impl<R> ReadableStreamReadResultBuilder<R> {
-    pub fn value(self, val: &R) -> Self
-    where
-        R: RefIntoWasmAbi,
-    {
-        self.inner.set_value(Some(val));
-        self
-    }
-    pub fn build(self) -> ReadableStreamReadResult<R> {
-        self.inner
-    }
-}
-impl<R> From<ReadableStreamReadResult<R>> for ReadableStreamReadResultBuilder<R> {
-    fn from(inner: ReadableStreamReadResult<R>) -> Self {
-        Self { inner }
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -9640,29 +9008,10 @@ extern "C" {
     pub type TracePreviewInfo;
     #[wasm_bindgen(method, getter)]
     pub fn id(this: &TracePreviewInfo) -> String;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_id(this: &TracePreviewInfo, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn slug(this: &TracePreviewInfo) -> String;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_slug(this: &TracePreviewInfo, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &TracePreviewInfo) -> String;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_name(this: &TracePreviewInfo, val: impl ::wasm_bindgen::JsStringLike);
-}
-impl TracePreviewInfo {
-    pub fn new(
-        id: impl ::wasm_bindgen::JsStringLike,
-        slug: impl ::wasm_bindgen::JsStringLike,
-        name: impl ::wasm_bindgen::JsStringLike,
-    ) -> TracePreviewInfo {
-        let inner: TracePreviewInfo = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_id(id);
-        inner.set_slug(slug);
-        inner.set_name(name);
-        inner
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -9671,51 +9020,10 @@ extern "C" {
     pub type ScriptVersion;
     #[wasm_bindgen(method, getter)]
     pub fn id(this: &ScriptVersion) -> Option<String>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_id(this: &ScriptVersion, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn tag(this: &ScriptVersion) -> Option<String>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_tag(this: &ScriptVersion, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn message(this: &ScriptVersion) -> Option<String>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_message(this: &ScriptVersion, val: impl ::wasm_bindgen::JsStringLike);
-}
-impl ScriptVersion {
-    pub fn new() -> ScriptVersion {
-        Self::builder().build()
-    }
-    pub fn builder() -> ScriptVersionBuilder {
-        ScriptVersionBuilder {
-            inner: JsCast::unchecked_into(js_sys::Object::new()),
-        }
-    }
-}
-pub struct ScriptVersionBuilder {
-    inner: ScriptVersion,
-}
-impl ScriptVersionBuilder {
-    pub fn id(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
-        self.inner.set_id(val);
-        self
-    }
-    pub fn tag(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
-        self.inner.set_tag(val);
-        self
-    }
-    pub fn message(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
-        self.inner.set_message(val);
-        self
-    }
-    pub fn build(self) -> ScriptVersion {
-        self.inner
-    }
-}
-impl From<ScriptVersion> for ScriptVersionBuilder {
-    fn from(inner: ScriptVersion) -> Self {
-        Self { inner }
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -9776,15 +9084,6 @@ extern "C" {
     #[wasm_bindgen(method, getter, js_name = "scheduledTime")]
     pub fn scheduled_time(this: &TraceItemAlarmEventInfo) -> Date;
 }
-impl TraceItemAlarmEventInfo {
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> TraceItemAlarmEventInfo {
-        #[allow(unused_unsafe)]
-        unsafe {
-            JsValue::from(js_sys::Object::new()).unchecked_into()
-        }
-    }
-}
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -9807,15 +9106,6 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn cron(this: &TraceItemScheduledEventInfo) -> String;
 }
-impl TraceItemScheduledEventInfo {
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> TraceItemScheduledEventInfo {
-        #[allow(unused_unsafe)]
-        unsafe {
-            JsValue::from(js_sys::Object::new()).unchecked_into()
-        }
-    }
-}
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -9825,15 +9115,6 @@ extern "C" {
     pub fn queue(this: &TraceItemQueueEventInfo) -> String;
     #[wasm_bindgen(method, getter, js_name = "batchSize")]
     pub fn batch_size(this: &TraceItemQueueEventInfo) -> f64;
-}
-impl TraceItemQueueEventInfo {
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> TraceItemQueueEventInfo {
-        #[allow(unused_unsafe)]
-        unsafe {
-            JsValue::from(js_sys::Object::new()).unchecked_into()
-        }
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -9847,15 +9128,6 @@ extern "C" {
     #[wasm_bindgen(method, getter, js_name = "rawSize")]
     pub fn raw_size(this: &TraceItemEmailEventInfo) -> f64;
 }
-impl TraceItemEmailEventInfo {
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> TraceItemEmailEventInfo {
-        #[allow(unused_unsafe)]
-        unsafe {
-            JsValue::from(js_sys::Object::new()).unchecked_into()
-        }
-    }
-}
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -9864,15 +9136,6 @@ extern "C" {
     #[wasm_bindgen(method, getter, js_name = "consumedEvents")]
     pub fn consumed_events(this: &TraceItemTailEventInfo) -> Vec<TraceItemTailEventInfoTailItem>;
 }
-impl TraceItemTailEventInfo {
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> TraceItemTailEventInfo {
-        #[allow(unused_unsafe)]
-        unsafe {
-            JsValue::from(js_sys::Object::new()).unchecked_into()
-        }
-    }
-}
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -9880,15 +9143,6 @@ extern "C" {
     pub type TraceItemTailEventInfoTailItem;
     #[wasm_bindgen(method, getter, js_name = "scriptName")]
     pub fn script_name(this: &TraceItemTailEventInfoTailItem) -> Option<String>;
-}
-impl TraceItemTailEventInfoTailItem {
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> TraceItemTailEventInfoTailItem {
-        #[allow(unused_unsafe)]
-        unsafe {
-            JsValue::from(js_sys::Object::new()).unchecked_into()
-        }
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -9899,15 +9153,6 @@ extern "C" {
     pub fn response(this: &TraceItemFetchEventInfo) -> Option<TraceItemFetchEventInfoResponse>;
     #[wasm_bindgen(method, getter)]
     pub fn request(this: &TraceItemFetchEventInfo) -> TraceItemFetchEventInfoRequest;
-}
-impl TraceItemFetchEventInfo {
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> TraceItemFetchEventInfo {
-        #[allow(unused_unsafe)]
-        unsafe {
-            JsValue::from(js_sys::Object::new()).unchecked_into()
-        }
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -9935,15 +9180,6 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn status(this: &TraceItemFetchEventInfoResponse) -> f64;
 }
-impl TraceItemFetchEventInfoResponse {
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> TraceItemFetchEventInfoResponse {
-        #[allow(unused_unsafe)]
-        unsafe {
-            JsValue::from(js_sys::Object::new()).unchecked_into()
-        }
-    }
-}
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -9951,15 +9187,6 @@ extern "C" {
     pub type TraceItemJsRpcEventInfo;
     #[wasm_bindgen(method, getter, js_name = "rpcMethod")]
     pub fn rpc_method(this: &TraceItemJsRpcEventInfo) -> String;
-}
-impl TraceItemJsRpcEventInfo {
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> TraceItemJsRpcEventInfo {
-        #[allow(unused_unsafe)]
-        unsafe {
-            JsValue::from(js_sys::Object::new()).unchecked_into()
-        }
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -9971,15 +9198,6 @@ extern "C" {
         this: &TraceItemHibernatableWebSocketEventInfo,
     ) -> GetWebSocketEventKind;
 }
-impl TraceItemHibernatableWebSocketEventInfo {
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> TraceItemHibernatableWebSocketEventInfo {
-        #[allow(unused_unsafe)]
-        unsafe {
-            JsValue::from(js_sys::Object::new()).unchecked_into()
-        }
-    }
-}
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -9987,15 +9205,6 @@ extern "C" {
     pub type TraceItemHibernatableWebSocketEventInfoMessage;
     #[wasm_bindgen(method, getter, js_name = "webSocketEventType")]
     pub fn web_socket_event_type(this: &TraceItemHibernatableWebSocketEventInfoMessage) -> String;
-}
-impl TraceItemHibernatableWebSocketEventInfoMessage {
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> TraceItemHibernatableWebSocketEventInfoMessage {
-        #[allow(unused_unsafe)]
-        unsafe {
-            JsValue::from(js_sys::Object::new()).unchecked_into()
-        }
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -10009,15 +9218,6 @@ extern "C" {
     #[wasm_bindgen(method, getter, js_name = "wasClean")]
     pub fn was_clean(this: &TraceItemHibernatableWebSocketEventInfoClose) -> bool;
 }
-impl TraceItemHibernatableWebSocketEventInfoClose {
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> TraceItemHibernatableWebSocketEventInfoClose {
-        #[allow(unused_unsafe)]
-        unsafe {
-            JsValue::from(js_sys::Object::new()).unchecked_into()
-        }
-    }
-}
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -10025,15 +9225,6 @@ extern "C" {
     pub type TraceItemHibernatableWebSocketEventInfoError;
     #[wasm_bindgen(method, getter, js_name = "webSocketEventType")]
     pub fn web_socket_event_type(this: &TraceItemHibernatableWebSocketEventInfoError) -> String;
-}
-impl TraceItemHibernatableWebSocketEventInfoError {
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> TraceItemHibernatableWebSocketEventInfoError {
-        #[allow(unused_unsafe)]
-        unsafe {
-            JsValue::from(js_sys::Object::new()).unchecked_into()
-        }
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -10049,15 +9240,6 @@ extern "C" {
     #[wasm_bindgen(method, getter, js_name = "errorInfo")]
     pub fn error_info(this: &TraceLog) -> Option<Vec<Option<TraceLogErrorInfo>>>;
 }
-impl TraceLog {
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> TraceLog {
-        #[allow(unused_unsafe)]
-        unsafe {
-            JsValue::from(js_sys::Object::new()).unchecked_into()
-        }
-    }
-}
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -10065,50 +9247,10 @@ extern "C" {
     pub type TraceLogErrorInfo;
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &TraceLogErrorInfo) -> String;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_name(this: &TraceLogErrorInfo, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn message(this: &TraceLogErrorInfo) -> String;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_message(this: &TraceLogErrorInfo, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn stack(this: &TraceLogErrorInfo) -> Option<String>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_stack(this: &TraceLogErrorInfo, val: impl ::wasm_bindgen::JsStringLike);
-}
-impl TraceLogErrorInfo {
-    pub fn new(
-        name: impl ::wasm_bindgen::JsStringLike,
-        message: impl ::wasm_bindgen::JsStringLike,
-    ) -> TraceLogErrorInfo {
-        Self::builder(name, message).build()
-    }
-    pub fn builder(
-        name: impl ::wasm_bindgen::JsStringLike,
-        message: impl ::wasm_bindgen::JsStringLike,
-    ) -> TraceLogErrorInfoBuilder {
-        let inner: TraceLogErrorInfo = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_name(name);
-        inner.set_message(message);
-        TraceLogErrorInfoBuilder { inner }
-    }
-}
-pub struct TraceLogErrorInfoBuilder {
-    inner: TraceLogErrorInfo,
-}
-impl TraceLogErrorInfoBuilder {
-    pub fn stack(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
-        self.inner.set_stack(val);
-        self
-    }
-    pub fn build(self) -> TraceLogErrorInfo {
-        self.inner
-    }
-}
-impl From<TraceLogErrorInfo> for TraceLogErrorInfoBuilder {
-    fn from(inner: TraceLogErrorInfo) -> Self {
-        Self { inner }
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -10124,15 +9266,6 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn stack(this: &TraceException) -> Option<String>;
 }
-impl TraceException {
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> TraceException {
-        #[allow(unused_unsafe)]
-        unsafe {
-            JsValue::from(js_sys::Object::new()).unchecked_into()
-        }
-    }
-}
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
     # [wasm_bindgen (extends = Object)]
@@ -10144,15 +9277,6 @@ extern "C" {
     pub fn channel(this: &TraceDiagnosticChannelEvent) -> String;
     #[wasm_bindgen(method, getter)]
     pub fn message(this: &TraceDiagnosticChannelEvent) -> JsValue;
-}
-impl TraceDiagnosticChannelEvent {
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> TraceDiagnosticChannelEvent {
-        #[allow(unused_unsafe)]
-        unsafe {
-            JsValue::from(js_sys::Object::new()).unchecked_into()
-        }
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -10662,7 +9786,7 @@ extern "C" {
     pub fn serialize_attachment(this: &WebSocket, attachment: &JsValue)
         -> Result<(), crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "deserializeAttachment")]
-    pub fn deserialize_attachment(this: &WebSocket) -> Result<JsValue, crate::Error>;
+    pub fn deserialize_attachment(this: &WebSocket) -> Result<Option<JsValue>, crate::Error>;
     #[doc = " The **`WebSocket.readyState`** read-only property returns the current state of the WebSocket connection."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/readyState)"]
@@ -10676,21 +9800,27 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn url(this: &WebSocket) -> Option<String>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_url(this: &WebSocket, val: Option<impl ::wasm_bindgen::JsStringLike>);
+    pub fn set_url(this: &WebSocket, val: impl ::wasm_bindgen::JsStringLike);
+    #[wasm_bindgen(method, setter, js_name = "url")]
+    fn set_url_with_null_js(this: &WebSocket, val: &JsValue);
     #[doc = " The **`WebSocket.protocol`** read-only property returns the name of the sub-protocol the server selected; this will be one of the strings specified in the protocols parameter when creating the WebSocket object, or the empty string if no connection is established."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/protocol)"]
     #[wasm_bindgen(method, getter)]
     pub fn protocol(this: &WebSocket) -> Option<String>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_protocol(this: &WebSocket, val: Option<impl ::wasm_bindgen::JsStringLike>);
+    pub fn set_protocol(this: &WebSocket, val: impl ::wasm_bindgen::JsStringLike);
+    #[wasm_bindgen(method, setter, js_name = "protocol")]
+    fn set_protocol_with_null_js(this: &WebSocket, val: &JsValue);
     #[doc = " The **`WebSocket.extensions`** read-only property returns the extensions selected by the server. This is currently only the empty string or a list of extensions as negotiated by the connection."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/extensions)"]
     #[wasm_bindgen(method, getter)]
     pub fn extensions(this: &WebSocket) -> Option<String>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_extensions(this: &WebSocket, val: Option<impl ::wasm_bindgen::JsStringLike>);
+    pub fn set_extensions(this: &WebSocket, val: impl ::wasm_bindgen::JsStringLike);
+    #[wasm_bindgen(method, setter, js_name = "extensions")]
+    fn set_extensions_with_null_js(this: &WebSocket, val: &JsValue);
     #[doc = " The **`WebSocket.binaryType`** property controls the type of binary data being received over the WebSocket connection."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/binaryType)"]
@@ -11020,6 +10150,15 @@ extern "C" {
     ) -> Result<(), crate::Error>;
 }
 impl WebSocket {
+    pub fn set_url_with_null(&self) {
+        self.set_url_with_null_js(&::wasm_bindgen::JsValue::NULL)
+    }
+    pub fn set_protocol_with_null(&self) {
+        self.set_protocol_with_null_js(&::wasm_bindgen::JsValue::NULL)
+    }
+    pub fn set_extensions_with_null(&self) {
+        self.set_extensions_with_null_js(&::wasm_bindgen::JsValue::NULL)
+    }
     #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
@@ -11659,48 +10798,10 @@ extern "C" {
     pub type SqlStorageCursorNextReturn<T = JsValue>;
     #[wasm_bindgen(method, getter)]
     pub fn done<T>(this: &SqlStorageCursorNextReturn<T>) -> Option<bool>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_done<T>(this: &SqlStorageCursorNextReturn<T>, val: bool);
     #[wasm_bindgen(method, getter)]
     pub fn value<T>(this: &SqlStorageCursorNextReturn<T>) -> Option<T>
     where
         Option<T>: FromWasmAbi;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_value<T: RefIntoWasmAbi>(this: &SqlStorageCursorNextReturn<T>, val: Option<&T>);
-}
-impl<T> SqlStorageCursorNextReturn<T> {
-    pub fn new() -> SqlStorageCursorNextReturn<T> {
-        Self::builder().build()
-    }
-    pub fn builder() -> SqlStorageCursorNextReturnBuilder<T> {
-        SqlStorageCursorNextReturnBuilder {
-            inner: JsCast::unchecked_into(js_sys::Object::new()),
-        }
-    }
-}
-pub struct SqlStorageCursorNextReturnBuilder<T> {
-    inner: SqlStorageCursorNextReturn<T>,
-}
-impl<T> SqlStorageCursorNextReturnBuilder<T> {
-    pub fn done(self, val: bool) -> Self {
-        self.inner.set_done(val);
-        self
-    }
-    pub fn value(self, val: &T) -> Self
-    where
-        T: RefIntoWasmAbi,
-    {
-        self.inner.set_value(Some(val));
-        self
-    }
-    pub fn build(self) -> SqlStorageCursorNextReturn<T> {
-        self.inner
-    }
-}
-impl<T> From<SqlStorageCursorNextReturn<T>> for SqlStorageCursorNextReturnBuilder<T> {
-    fn from(inner: SqlStorageCursorNextReturn<T>) -> Self {
-        Self { inner }
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -11844,43 +10945,8 @@ extern "C" {
     pub type SocketInfo;
     #[wasm_bindgen(method, getter, js_name = "remoteAddress")]
     pub fn remote_address(this: &SocketInfo) -> Option<String>;
-    #[wasm_bindgen(method, setter, js_name = "remoteAddress")]
-    pub fn set_remote_address(this: &SocketInfo, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "localAddress")]
     pub fn local_address(this: &SocketInfo) -> Option<String>;
-    #[wasm_bindgen(method, setter, js_name = "localAddress")]
-    pub fn set_local_address(this: &SocketInfo, val: impl ::wasm_bindgen::JsStringLike);
-}
-impl SocketInfo {
-    pub fn new() -> SocketInfo {
-        Self::builder().build()
-    }
-    pub fn builder() -> SocketInfoBuilder {
-        SocketInfoBuilder {
-            inner: JsCast::unchecked_into(js_sys::Object::new()),
-        }
-    }
-}
-pub struct SocketInfoBuilder {
-    inner: SocketInfo,
-}
-impl SocketInfoBuilder {
-    pub fn remote_address(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
-        self.inner.set_remote_address(val);
-        self
-    }
-    pub fn local_address(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
-        self.inner.set_local_address(val);
-        self
-    }
-    pub fn build(self) -> SocketInfo {
-        self.inner
-    }
-}
-impl From<SocketInfo> for SocketInfoBuilder {
-    fn from(inner: SocketInfo) -> Self {
-        Self { inner }
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -11893,15 +10959,6 @@ extern "C" {
     pub fn stderr(this: &ExecOutput) -> ArrayBuffer;
     #[wasm_bindgen(method, getter, js_name = "exitCode")]
     pub fn exit_code(this: &ExecOutput) -> f64;
-}
-impl ExecOutput {
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> ExecOutput {
-        #[allow(unused_unsafe)]
-        unsafe {
-            JsValue::from(js_sys::Object::new()).unchecked_into()
-        }
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -12315,44 +11372,10 @@ extern "C" {
     pub type ContainerSnapshot;
     #[wasm_bindgen(method, getter)]
     pub fn id(this: &ContainerSnapshot) -> String;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_id(this: &ContainerSnapshot, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
     pub fn size(this: &ContainerSnapshot) -> f64;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_size(this: &ContainerSnapshot, val: f64);
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &ContainerSnapshot) -> Option<String>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_name(this: &ContainerSnapshot, val: impl ::wasm_bindgen::JsStringLike);
-}
-impl ContainerSnapshot {
-    pub fn new(id: impl ::wasm_bindgen::JsStringLike, size: f64) -> ContainerSnapshot {
-        Self::builder(id, size).build()
-    }
-    pub fn builder(id: impl ::wasm_bindgen::JsStringLike, size: f64) -> ContainerSnapshotBuilder {
-        let inner: ContainerSnapshot = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_id(id);
-        inner.set_size(size);
-        ContainerSnapshotBuilder { inner }
-    }
-}
-pub struct ContainerSnapshotBuilder {
-    inner: ContainerSnapshot,
-}
-impl ContainerSnapshotBuilder {
-    pub fn name(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
-        self.inner.set_name(val);
-        self
-    }
-    pub fn build(self) -> ContainerSnapshot {
-        self.inner
-    }
-}
-impl From<ContainerSnapshot> for ContainerSnapshotBuilder {
-    fn from(inner: ContainerSnapshot) -> Self {
-        Self { inner }
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -12538,9 +11561,9 @@ extern "C" {
     #[wasm_bindgen(method, catch)]
     pub fn start(this: &MessagePort) -> Result<(), crate::Error>;
     #[wasm_bindgen(method, getter)]
-    pub fn onmessage(this: &MessagePort) -> JsValue;
+    pub fn onmessage(this: &MessagePort) -> Option<JsValue>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_onmessage(this: &MessagePort, val: Option<&JsValue>);
+    pub fn set_onmessage(this: &MessagePort, val: &JsValue);
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -12874,25 +11897,10 @@ extern "C" {
     pub type PerformanceEventLoopUtilization;
     #[wasm_bindgen(method, getter)]
     pub fn idle(this: &PerformanceEventLoopUtilization) -> f64;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_idle(this: &PerformanceEventLoopUtilization, val: f64);
     #[wasm_bindgen(method, getter)]
     pub fn active(this: &PerformanceEventLoopUtilization) -> f64;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_active(this: &PerformanceEventLoopUtilization, val: f64);
     #[wasm_bindgen(method, getter)]
     pub fn utilization(this: &PerformanceEventLoopUtilization) -> f64;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_utilization(this: &PerformanceEventLoopUtilization, val: f64);
-}
-impl PerformanceEventLoopUtilization {
-    pub fn new(idle: f64, active: f64, utilization: f64) -> PerformanceEventLoopUtilization {
-        let inner: PerformanceEventLoopUtilization = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_idle(idle);
-        inner.set_active(active);
-        inner.set_utilization(utilization);
-        inner
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -12925,25 +11933,10 @@ extern "C" {
     pub type UvMetricsInfo;
     #[wasm_bindgen(method, getter, js_name = "loopCount")]
     pub fn loop_count(this: &UvMetricsInfo) -> f64;
-    #[wasm_bindgen(method, setter, js_name = "loopCount")]
-    pub fn set_loop_count(this: &UvMetricsInfo, val: f64);
     #[wasm_bindgen(method, getter)]
     pub fn events(this: &UvMetricsInfo) -> f64;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_events(this: &UvMetricsInfo, val: f64);
     #[wasm_bindgen(method, getter, js_name = "eventsWaiting")]
     pub fn events_waiting(this: &UvMetricsInfo) -> f64;
-    #[wasm_bindgen(method, setter, js_name = "eventsWaiting")]
-    pub fn set_events_waiting(this: &UvMetricsInfo, val: f64);
-}
-impl UvMetricsInfo {
-    pub fn new(loop_count: f64, events: f64, events_waiting: f64) -> UvMetricsInfo {
-        let inner: UvMetricsInfo = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_loop_count(loop_count);
-        inner.set_events(events);
-        inner.set_events_waiting(events_waiting);
-        inner
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -13207,143 +12200,42 @@ extern "C" {
     #[doc = " The user's email address, if available from the identity provider."]
     #[wasm_bindgen(method, getter)]
     pub fn email(this: &CloudflareAccessIdentity) -> Option<String>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_email(this: &CloudflareAccessIdentity, val: impl ::wasm_bindgen::JsStringLike);
     #[doc = " The user's display name."]
     #[wasm_bindgen(method, getter)]
     pub fn name(this: &CloudflareAccessIdentity) -> Option<String>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_name(this: &CloudflareAccessIdentity, val: impl ::wasm_bindgen::JsStringLike);
     #[doc = " The user's unique identifier."]
     #[wasm_bindgen(method, getter)]
     pub fn user_uuid(this: &CloudflareAccessIdentity) -> Option<String>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_user_uuid(this: &CloudflareAccessIdentity, val: impl ::wasm_bindgen::JsStringLike);
     #[doc = " The Cloudflare account ID."]
     #[wasm_bindgen(method, getter)]
     pub fn account_id(this: &CloudflareAccessIdentity) -> Option<String>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_account_id(this: &CloudflareAccessIdentity, val: impl ::wasm_bindgen::JsStringLike);
     #[doc = " Login timestamp (Unix epoch seconds)."]
     #[wasm_bindgen(method, getter)]
     pub fn iat(this: &CloudflareAccessIdentity) -> Option<f64>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_iat(this: &CloudflareAccessIdentity, val: f64);
     #[doc = " The user's IP address at authentication time."]
     #[wasm_bindgen(method, getter)]
     pub fn ip(this: &CloudflareAccessIdentity) -> Option<String>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_ip(this: &CloudflareAccessIdentity, val: impl ::wasm_bindgen::JsStringLike);
     #[doc = " Authentication methods used (e.g., \"pwd\")."]
     #[wasm_bindgen(method, getter)]
     pub fn amr(this: &CloudflareAccessIdentity) -> Option<Vec<String>>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_amr(this: &CloudflareAccessIdentity, val: &[impl ::wasm_bindgen::JsStringLike]);
     #[doc = " Identity provider information."]
     #[wasm_bindgen(method, getter)]
     pub fn idp(this: &CloudflareAccessIdentity) -> Option<Object>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_idp(this: &CloudflareAccessIdentity, val: &Object);
     #[doc = " Geographic information about where the user authenticated."]
     #[wasm_bindgen(method, getter)]
     pub fn geo(this: &CloudflareAccessIdentity) -> Option<Object>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_geo(this: &CloudflareAccessIdentity, val: &Object);
     #[doc = " Group memberships from the identity provider."]
     #[wasm_bindgen(method, getter)]
     pub fn groups(this: &CloudflareAccessIdentity) -> Option<Vec<Object>>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_groups(this: &CloudflareAccessIdentity, val: &[Object]);
     #[doc = " Device posture check results, keyed by check ID."]
     #[wasm_bindgen(method, getter, js_name = "devicePosture")]
     pub fn device_posture(this: &CloudflareAccessIdentity) -> Option<Object>;
-    #[wasm_bindgen(method, setter, js_name = "devicePosture")]
-    pub fn set_device_posture(this: &CloudflareAccessIdentity, val: &Object);
     #[doc = " True if the user connected via Cloudflare WARP."]
     #[wasm_bindgen(method, getter)]
     pub fn is_warp(this: &CloudflareAccessIdentity) -> Option<bool>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_is_warp(this: &CloudflareAccessIdentity, val: bool);
     #[doc = " True if the user is authenticated via Cloudflare Gateway."]
     #[wasm_bindgen(method, getter)]
     pub fn is_gateway(this: &CloudflareAccessIdentity) -> Option<bool>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_is_gateway(this: &CloudflareAccessIdentity, val: bool);
-}
-impl CloudflareAccessIdentity {
-    pub fn new() -> CloudflareAccessIdentity {
-        Self::builder().build()
-    }
-    pub fn builder() -> CloudflareAccessIdentityBuilder {
-        CloudflareAccessIdentityBuilder {
-            inner: JsCast::unchecked_into(js_sys::Object::new()),
-        }
-    }
-}
-pub struct CloudflareAccessIdentityBuilder {
-    inner: CloudflareAccessIdentity,
-}
-impl CloudflareAccessIdentityBuilder {
-    pub fn email(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
-        self.inner.set_email(val);
-        self
-    }
-    pub fn name(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
-        self.inner.set_name(val);
-        self
-    }
-    pub fn user_uuid(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
-        self.inner.set_user_uuid(val);
-        self
-    }
-    pub fn account_id(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
-        self.inner.set_account_id(val);
-        self
-    }
-    pub fn iat(self, val: f64) -> Self {
-        self.inner.set_iat(val);
-        self
-    }
-    pub fn ip(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
-        self.inner.set_ip(val);
-        self
-    }
-    pub fn amr(self, val: &[impl ::wasm_bindgen::JsStringLike]) -> Self {
-        self.inner.set_amr(val);
-        self
-    }
-    pub fn idp(self, val: &Object) -> Self {
-        self.inner.set_idp(val);
-        self
-    }
-    pub fn geo(self, val: &Object) -> Self {
-        self.inner.set_geo(val);
-        self
-    }
-    pub fn groups(self, val: &[Object]) -> Self {
-        self.inner.set_groups(val);
-        self
-    }
-    pub fn device_posture(self, val: &Object) -> Self {
-        self.inner.set_device_posture(val);
-        self
-    }
-    pub fn is_warp(self, val: bool) -> Self {
-        self.inner.set_is_warp(val);
-        self
-    }
-    pub fn is_gateway(self, val: bool) -> Self {
-        self.inner.set_is_gateway(val);
-        self
-    }
-    pub fn build(self) -> CloudflareAccessIdentity {
-        self.inner
-    }
-}
-impl From<CloudflareAccessIdentity> for CloudflareAccessIdentityBuilder {
-    fn from(inner: CloudflareAccessIdentity) -> Self {
-        Self { inner }
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -19086,23 +17978,6 @@ extern "C" {
     pub fn results<T>(this: &D1Result<T>) -> Vec<T>
     where
         Vec<T>: FromWasmAbi;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_results<T: VectorRefIntoWasmAbi>(
-        this: &D1Result<T>,
-        #[wasm_bindgen(slice = "array")] val: &[T],
-    );
-}
-impl<T: VectorRefIntoWasmAbi> D1Result<T> {
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `success: true`"]
-    pub fn new(meta: &JsValue, results: &[T]) -> D1Result<T> {
-        let inner: D1Result<T> = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_success(true);
-        inner.set_meta(meta);
-        inner.set_results(results);
-        inner
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -19111,20 +17986,8 @@ extern "C" {
     pub type D1ExecResult;
     #[wasm_bindgen(method, getter)]
     pub fn count(this: &D1ExecResult) -> u32;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_count(this: &D1ExecResult, val: u32);
     #[wasm_bindgen(method, getter)]
     pub fn duration(this: &D1ExecResult) -> f64;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_duration(this: &D1ExecResult, val: f64);
-}
-impl D1ExecResult {
-    pub fn new(count: u32, duration: f64) -> D1ExecResult {
-        let inner: D1ExecResult = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_count(count);
-        inner.set_duration(duration);
-        inner
-    }
 }
 #[wasm_bindgen(private)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -19284,16 +18147,6 @@ extern "C" {
     #[doc = " The Email Message ID"]
     #[wasm_bindgen(method, getter, js_name = "messageId")]
     pub fn message_id(this: &EmailSendResult) -> String;
-    #[wasm_bindgen(method, setter, js_name = "messageId")]
-    pub fn set_message_id(this: &EmailSendResult, val: impl ::wasm_bindgen::JsStringLike);
-}
-impl EmailSendResult {
-    #[doc = " * `message_id` - The Email Message ID"]
-    pub fn new(message_id: impl ::wasm_bindgen::JsStringLike) -> EmailSendResult {
-        let inner: EmailSendResult = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_message_id(message_id);
-        inner
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -20007,15 +18860,6 @@ extern "C" {
     pub type RateLimitOutcome;
     #[wasm_bindgen(method, getter)]
     pub fn success(this: &RateLimitOutcome) -> bool;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_success(this: &RateLimitOutcome, val: bool);
-}
-impl RateLimitOutcome {
-    pub fn new(success: bool) -> RateLimitOutcome {
-        let inner: RateLimitOutcome = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_success(success);
-        inner
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -20079,15 +18923,6 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter)]
         pub fn value(this: &Header) -> String;
     }
-    impl Header {
-        #[allow(clippy::new_without_default)]
-        pub fn new() -> Header {
-            #[allow(unused_unsafe)]
-            unsafe {
-                JsValue::from(js_sys::Object::new()).unchecked_into()
-            }
-        }
-    }
     #[wasm_bindgen(experimental_generic_mono)]
     extern "C" {
         # [wasm_bindgen (extends = Object , js_namespace = "TailStream")]
@@ -20104,15 +18939,6 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter)]
         pub fn headers(this: &FetchEventInfo) -> Vec<Header>;
     }
-    impl FetchEventInfo {
-        #[allow(clippy::new_without_default)]
-        pub fn new() -> FetchEventInfo {
-            #[allow(unused_unsafe)]
-            unsafe {
-                JsValue::from(js_sys::Object::new()).unchecked_into()
-            }
-        }
-    }
     #[wasm_bindgen(experimental_generic_mono)]
     extern "C" {
         # [wasm_bindgen (extends = Object , js_namespace = "TailStream")]
@@ -20120,15 +18946,6 @@ pub mod tail_stream {
         pub type JsRpcEventInfo;
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &JsRpcEventInfo) -> String;
-    }
-    impl JsRpcEventInfo {
-        #[allow(clippy::new_without_default)]
-        pub fn new() -> JsRpcEventInfo {
-            #[allow(unused_unsafe)]
-            unsafe {
-                JsValue::from(js_sys::Object::new()).unchecked_into()
-            }
-        }
     }
     #[wasm_bindgen(experimental_generic_mono)]
     extern "C" {
@@ -20142,15 +18959,6 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter)]
         pub fn cron(this: &ScheduledEventInfo) -> String;
     }
-    impl ScheduledEventInfo {
-        #[allow(clippy::new_without_default)]
-        pub fn new() -> ScheduledEventInfo {
-            #[allow(unused_unsafe)]
-            unsafe {
-                JsValue::from(js_sys::Object::new()).unchecked_into()
-            }
-        }
-    }
     #[wasm_bindgen(experimental_generic_mono)]
     extern "C" {
         # [wasm_bindgen (extends = Object , js_namespace = "TailStream")]
@@ -20160,15 +18968,6 @@ pub mod tail_stream {
         pub fn type_(this: &AlarmEventInfo) -> String;
         #[wasm_bindgen(method, getter, js_name = "scheduledTime")]
         pub fn scheduled_time(this: &AlarmEventInfo) -> Date;
-    }
-    impl AlarmEventInfo {
-        #[allow(clippy::new_without_default)]
-        pub fn new() -> AlarmEventInfo {
-            #[allow(unused_unsafe)]
-            unsafe {
-                JsValue::from(js_sys::Object::new()).unchecked_into()
-            }
-        }
     }
     #[wasm_bindgen(experimental_generic_mono)]
     extern "C" {
@@ -20181,15 +18980,6 @@ pub mod tail_stream {
         pub fn queue_name(this: &QueueEventInfo) -> String;
         #[wasm_bindgen(method, getter, js_name = "batchSize")]
         pub fn batch_size(this: &QueueEventInfo) -> f64;
-    }
-    impl QueueEventInfo {
-        #[allow(clippy::new_without_default)]
-        pub fn new() -> QueueEventInfo {
-            #[allow(unused_unsafe)]
-            unsafe {
-                JsValue::from(js_sys::Object::new()).unchecked_into()
-            }
-        }
     }
     #[wasm_bindgen(experimental_generic_mono)]
     extern "C" {
@@ -20205,15 +18995,6 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter, js_name = "rawSize")]
         pub fn raw_size(this: &EmailEventInfo) -> f64;
     }
-    impl EmailEventInfo {
-        #[allow(clippy::new_without_default)]
-        pub fn new() -> EmailEventInfo {
-            #[allow(unused_unsafe)]
-            unsafe {
-                JsValue::from(js_sys::Object::new()).unchecked_into()
-            }
-        }
-    }
     #[wasm_bindgen(experimental_generic_mono)]
     extern "C" {
         # [wasm_bindgen (extends = Object , js_namespace = "TailStream")]
@@ -20224,15 +19005,6 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter)]
         pub fn traces(this: &TraceEventInfo) -> Vec<Option<String>>;
     }
-    impl TraceEventInfo {
-        #[allow(clippy::new_without_default)]
-        pub fn new() -> TraceEventInfo {
-            #[allow(unused_unsafe)]
-            unsafe {
-                JsValue::from(js_sys::Object::new()).unchecked_into()
-            }
-        }
-    }
     #[wasm_bindgen(experimental_generic_mono)]
     extern "C" {
         # [wasm_bindgen (extends = Object , js_namespace = "TailStream")]
@@ -20241,15 +19013,6 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &HibernatableWebSocketEventInfoMessage) -> String;
     }
-    impl HibernatableWebSocketEventInfoMessage {
-        #[allow(clippy::new_without_default)]
-        pub fn new() -> HibernatableWebSocketEventInfoMessage {
-            #[allow(unused_unsafe)]
-            unsafe {
-                JsValue::from(js_sys::Object::new()).unchecked_into()
-            }
-        }
-    }
     #[wasm_bindgen(experimental_generic_mono)]
     extern "C" {
         # [wasm_bindgen (extends = Object , js_namespace = "TailStream")]
@@ -20257,15 +19020,6 @@ pub mod tail_stream {
         pub type HibernatableWebSocketEventInfoError;
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &HibernatableWebSocketEventInfoError) -> String;
-    }
-    impl HibernatableWebSocketEventInfoError {
-        #[allow(clippy::new_without_default)]
-        pub fn new() -> HibernatableWebSocketEventInfoError {
-            #[allow(unused_unsafe)]
-            unsafe {
-                JsValue::from(js_sys::Object::new()).unchecked_into()
-            }
-        }
     }
     #[wasm_bindgen(experimental_generic_mono)]
     extern "C" {
@@ -20279,15 +19033,6 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter, js_name = "wasClean")]
         pub fn was_clean(this: &HibernatableWebSocketEventInfoClose) -> bool;
     }
-    impl HibernatableWebSocketEventInfoClose {
-        #[allow(clippy::new_without_default)]
-        pub fn new() -> HibernatableWebSocketEventInfoClose {
-            #[allow(unused_unsafe)]
-            unsafe {
-                JsValue::from(js_sys::Object::new()).unchecked_into()
-            }
-        }
-    }
     #[wasm_bindgen(experimental_generic_mono)]
     extern "C" {
         # [wasm_bindgen (extends = Object , js_namespace = "TailStream")]
@@ -20298,15 +19043,6 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter)]
         pub fn info(this: &HibernatableWebSocketEventInfo) -> InfoKind;
     }
-    impl HibernatableWebSocketEventInfo {
-        #[allow(clippy::new_without_default)]
-        pub fn new() -> HibernatableWebSocketEventInfo {
-            #[allow(unused_unsafe)]
-            unsafe {
-                JsValue::from(js_sys::Object::new()).unchecked_into()
-            }
-        }
-    }
     #[wasm_bindgen(experimental_generic_mono)]
     extern "C" {
         # [wasm_bindgen (extends = Object , js_namespace = "TailStream")]
@@ -20314,15 +19050,6 @@ pub mod tail_stream {
         pub type CustomEventInfo;
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &CustomEventInfo) -> String;
-    }
-    impl CustomEventInfo {
-        #[allow(clippy::new_without_default)]
-        pub fn new() -> CustomEventInfo {
-            #[allow(unused_unsafe)]
-            unsafe {
-                JsValue::from(js_sys::Object::new()).unchecked_into()
-            }
-        }
     }
     #[wasm_bindgen(experimental_generic_mono)]
     extern "C" {
@@ -20334,15 +19061,6 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter, js_name = "statusCode")]
         pub fn status_code(this: &FetchResponseInfo) -> f64;
     }
-    impl FetchResponseInfo {
-        #[allow(clippy::new_without_default)]
-        pub fn new() -> FetchResponseInfo {
-            #[allow(unused_unsafe)]
-            unsafe {
-                JsValue::from(js_sys::Object::new()).unchecked_into()
-            }
-        }
-    }
     #[wasm_bindgen(experimental_generic_mono)]
     extern "C" {
         # [wasm_bindgen (extends = Object , js_namespace = "TailStream")]
@@ -20350,15 +19068,6 @@ pub mod tail_stream {
         pub type ConnectEventInfo;
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &ConnectEventInfo) -> String;
-    }
-    impl ConnectEventInfo {
-        #[allow(clippy::new_without_default)]
-        pub fn new() -> ConnectEventInfo {
-            #[allow(unused_unsafe)]
-            unsafe {
-                JsValue::from(js_sys::Object::new()).unchecked_into()
-            }
-        }
     }
     #[wasm_bindgen(private, js_namespace = "TailStream")]
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -20389,15 +19098,6 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter)]
         pub fn message(this: &ScriptVersion) -> Option<String>;
     }
-    impl ScriptVersion {
-        #[allow(clippy::new_without_default)]
-        pub fn new() -> ScriptVersion {
-            #[allow(unused_unsafe)]
-            unsafe {
-                JsValue::from(js_sys::Object::new()).unchecked_into()
-            }
-        }
-    }
     #[wasm_bindgen(experimental_generic_mono)]
     extern "C" {
         # [wasm_bindgen (extends = Object , js_namespace = "TailStream")]
@@ -20409,15 +19109,6 @@ pub mod tail_stream {
         pub fn slug(this: &TracePreviewInfo) -> String;
         #[wasm_bindgen(method, getter)]
         pub fn name(this: &TracePreviewInfo) -> String;
-    }
-    impl TracePreviewInfo {
-        #[allow(clippy::new_without_default)]
-        pub fn new() -> TracePreviewInfo {
-            #[allow(unused_unsafe)]
-            unsafe {
-                JsValue::from(js_sys::Object::new()).unchecked_into()
-            }
-        }
     }
     #[wasm_bindgen(experimental_generic_mono)]
     extern "C" {
@@ -20579,15 +19270,6 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter)]
         pub fn stack(this: &TailStreamErrorInfo) -> Option<String>;
     }
-    impl TailStreamErrorInfo {
-        #[allow(clippy::new_without_default)]
-        pub fn new() -> TailStreamErrorInfo {
-            #[allow(unused_unsafe)]
-            unsafe {
-                JsValue::from(js_sys::Object::new()).unchecked_into()
-            }
-        }
-    }
     #[wasm_bindgen(experimental_generic_mono)]
     extern "C" {
         # [wasm_bindgen (extends = Object , js_namespace = "TailStream")]
@@ -20622,15 +19304,6 @@ pub mod tail_stream {
         pub fn diagnostics_type(this: &DroppedEventsDiagnostic) -> String;
         #[wasm_bindgen(method, getter)]
         pub fn count(this: &DroppedEventsDiagnostic) -> f64;
-    }
-    impl DroppedEventsDiagnostic {
-        #[allow(clippy::new_without_default)]
-        pub fn new() -> DroppedEventsDiagnostic {
-            #[allow(unused_unsafe)]
-            unsafe {
-                JsValue::from(js_sys::Object::new()).unchecked_into()
-            }
-        }
     }
     #[wasm_bindgen(experimental_generic_mono)]
     extern "C" {
@@ -20680,15 +19353,6 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter)]
         pub fn value(this: &Attribute) -> ValueKind;
     }
-    impl Attribute {
-        #[allow(clippy::new_without_default)]
-        pub fn new() -> Attribute {
-            #[allow(unused_unsafe)]
-            unsafe {
-                JsValue::from(js_sys::Object::new()).unchecked_into()
-            }
-        }
-    }
     #[wasm_bindgen(experimental_generic_mono)]
     extern "C" {
         # [wasm_bindgen (extends = Object , js_namespace = "TailStream")]
@@ -20721,15 +19385,6 @@ pub mod tail_stream {
         pub fn span_id(this: &SpanContext) -> Option<String>;
         #[wasm_bindgen(method, getter, js_name = "traceFlags")]
         pub fn trace_flags(this: &SpanContext) -> Option<f64>;
-    }
-    impl SpanContext {
-        #[allow(clippy::new_without_default)]
-        pub fn new() -> SpanContext {
-            #[allow(unused_unsafe)]
-            unsafe {
-                JsValue::from(js_sys::Object::new()).unchecked_into()
-            }
-        }
     }
     #[wasm_bindgen(experimental_generic_mono)]
     extern "C" {

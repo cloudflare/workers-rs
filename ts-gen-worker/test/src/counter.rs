@@ -58,7 +58,7 @@ impl DurableObject for Counter {
     async fn websocket_message(&self, ws: WebSocket, _message: DataKind) -> Result<()> {
         let _attach: String = ws
             .deserialize_attachment()?
-            .as_string()
+            .and_then(|v| v.as_string())
             .expect("websockets should have an attachment");
         let mut count: usize = self.state.storage().get_into("count").await?.unwrap_or(0);
         count += 10;

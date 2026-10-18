@@ -34,8 +34,8 @@ impl Response {
 /// `headers` may hold any `HeadersInit`; `new Headers(init)` normalizes all forms.
 fn headers_of(init: &ResponseInit) -> Result<Headers> {
     Ok(match init.headers() {
-        Some(value) if !value.is_null() => Headers::new_with_headers(value.unchecked_ref())?,
-        _ => Headers::default(),
+        Some(value) => Headers::new_with_headers(value.unchecked_ref())?,
+        None => Headers::default(),
     })
 }
 

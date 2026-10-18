@@ -162,9 +162,11 @@ pub async fn get_bulk(_req: Request, env: Env, _data: SomeSharedData) -> Result<
     let values = store
         .get_with_slice(&["bulk_a", "bulk_b", "bulk_missing"])
         .await?;
-    kv_assert_eq!(values.get("bulk_a"), Some(Some("value_a".to_string())))?;
-    kv_assert_eq!(values.get("bulk_b"), Some(Some("value_b".to_string())))?;
-    kv_assert_eq!(values.get("bulk_missing"), Some(None))?;
+    let text = |key: &str| values.get(key).and_then(|v| v.into_option());
+    kv_assert_eq!(text("bulk_a"), Some("value_a".to_string()))?;
+    kv_assert_eq!(text("bulk_b"), Some("value_b".to_string()))?;
+    kv_assert_eq!(values.has("bulk_missing"), true)?;
+    kv_assert_eq!(text("bulk_missing"), None)?;
 
     Response::builder().ok("passed")
 }

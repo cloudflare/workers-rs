@@ -71,7 +71,7 @@ impl PinnedDrop for Delay {
             return;
         }
         if let Some(id) = this.timeout_id {
-            let _ = clear_timeout(Some(*id));
+            let _ = clear_timeout(*id);
         }
     }
 }
