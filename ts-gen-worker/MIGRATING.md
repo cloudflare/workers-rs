@@ -22,9 +22,14 @@ like Rust collections: `Map::get("k")`, `for (k, v) in &headers`, `record.iter()
 `promise.await`.
 
 String arguments take `impl JsStringLike` (`&str`, `String`, `&String`), and string lists take
-`&[impl JsStringLike]` (`&["a", "b"]`). An optional or nullable argument is either its own
-overload (`Response::new_with_null_and_init(&init)`) or a builder method left uncalled; only
-raw setters take `Option<…>`. Byte arguments take `impl BufferSourceLike`: `&[u8]`, `Vec<u8>` or
+`&[impl JsStringLike]` (`&["a", "b"]`). A nullable argument, setter or builder value takes the
+value bare and sends `null` through its own `_with_null` form (`clear_timeout(id)` /
+`clear_timeout_with_null()`, `Response::new_with_null_and_init(&init)`, `.prefix(p)` /
+`.prefix_with_null()`). An optional one is an overload or builder method left uncalled; only an
+optional raw setter takes `Option<…>`. Reads fold `null` and `undefined` into `None`, `JsValue`
+included (`ws.deserialize_attachment()?` is an `Option<JsValue>`). Types that are only ever read
+(`KVNamespaceListResult`, `R2Objects`, Queue metrics) have getters only: no `new`, setters or
+builder. Byte arguments take `impl BufferSourceLike`: `&[u8]`, `Vec<u8>` or
 any buffer handle (`bucket.put_with_buffer_source(k, &bytes[..])`, `.md5(&digest[..])`). A `&[u8]`
 is copied into a fresh `Uint8Array`, except where the callee copies or reads it before returning
 (`Response` bodies, KV and R2 `put`, R2 `upload_part`, SubtleCrypto), which take it as a view of wasm
@@ -218,7 +223,8 @@ kv.list().prefix(p).execute().await?        kv.list_builder().prefix(p).execute(
 `get_bulk`, `put_bytes`, `put_stream` keep their names. The generated reads underneath are
 typed per value type: `kv.get_text_with_options(k, &opts)`, `get_array_buffer_with_options`,
 `get_with_metadata_typed::<M>(k)`, and the bulk `kv.get_with_slice(&["a", "b"])`, which returns
-a `Map<String, Option<String>>`. `list()` returns the generated
+a `Map<String, JsNullable<String>>`: `values.get("a")` is `None` for a missing key and `Some(v)` with
+`v.is_null()` for a `null` value, and `.and_then(|v| v.into_option())` folds both. `list()` returns the generated
 `KVNamespaceListResult` (`keys()` is a `Vec`, `list_complete()`, `cursor()`).
 
 ## Errors
