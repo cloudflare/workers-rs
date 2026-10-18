@@ -7,15 +7,6 @@ impl Default for Headers {
     }
 }
 
-impl IntoIterator for &Headers {
-    type Item = (String, String);
-    type IntoIter = js_sys::Entries<String, String>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.entries().into()
-    }
-}
-
 impl<K: AsRef<str>, V: AsRef<str>> FromIterator<(K, V)> for Headers {
     fn from_iter<I: IntoIterator<Item = (K, V)>>(iter: I) -> Self {
         let headers = Headers::default();

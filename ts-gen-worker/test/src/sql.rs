@@ -107,17 +107,12 @@ pub fn to_array<T: DeserializeOwned>(cursor: &SqlStorageCursor) -> Result<Vec<T>
         .collect()
 }
 
-pub fn rows<T: DeserializeOwned>(
-    cursor: &SqlStorageCursor,
-) -> impl Iterator<Item = Result<T>> + '_ {
-    std::iter::from_fn(move || {
-        let result = match cursor.next() {
-            Ok(result) => result,
-            Err(e) => return Some(Err(e)),
-        };
-        let value = result.value()?;
-        Some(serde_wasm_bindgen::from_value(value).map_err(Error::from))
-    })
+/// `try_iter` keeps a throwing cursor as an `Err` item rather than rethrowing.
+pub fn rows<T: DeserializeOwned>(cursor: &SqlStorageCursor) -> impl Iterator<Item = Result<T>> {
+    cursor
+        .iterator()
+        .into_try_iter()
+        .map(|row| Ok(serde_wasm_bindgen::from_value(row?)?))
 }
 
 pub fn raw(

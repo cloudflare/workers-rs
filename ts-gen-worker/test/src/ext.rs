@@ -413,7 +413,7 @@ pub async fn handle(
             let res = builder.status(404).header("x-rewritten", "1")?.body(body)?;
             let (builder, body) = Response::builder().status(204).empty()?.into_parts();
             let empty = builder.body(body)?;
-            let cf: String = js_sys::JSON::stringify(&res.cf().unwrap_or_default())?.into();
+            let cf = js_sys::JSON::stringify(&res.cf().unwrap_or_default())?.unwrap_or_default();
             Response::builder().ok(format!(
                 "{} {} {} {} {cf} | {} {}",
                 res.status(),
