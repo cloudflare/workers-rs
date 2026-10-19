@@ -4437,60 +4437,40 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/status)"]
     #[wasm_bindgen(method, getter)]
     pub fn status(this: &Response) -> u16;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_status(this: &Response, val: u16);
     #[doc = " The **`statusText`** read-only property of the Response interface contains the status message corresponding to the HTTP status code in Response.status."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/statusText)"]
     #[wasm_bindgen(method, getter, js_name = "statusText")]
     pub fn status_text(this: &Response) -> String;
-    #[wasm_bindgen(method, setter, js_name = "statusText")]
-    pub fn set_status_text(this: &Response, val: impl ::wasm_bindgen::JsStringLike);
     #[doc = " The **`headers`** read-only property of the Response interface contains the Headers object associated with the response."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/headers)"]
     #[wasm_bindgen(method, getter)]
     pub fn headers(this: &Response) -> Headers;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_headers(this: &Response, val: &Headers);
     #[doc = " The **`ok`** read-only property of the Response interface contains a Boolean stating whether the response was successful (status in the range 200-299) or not."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/ok)"]
     #[wasm_bindgen(method, getter)]
     pub fn ok(this: &Response) -> bool;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_ok(this: &Response, val: bool);
     #[doc = " The **`redirected`** read-only property of the Response interface indicates whether or not the response is the result of a request you made which was redirected."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/redirected)"]
     #[wasm_bindgen(method, getter)]
     pub fn redirected(this: &Response) -> bool;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_redirected(this: &Response, val: bool);
     #[doc = " The **`url`** read-only property of the Response interface contains the URL of the response. The value of the url property will be the final URL obtained after any redirects."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/url)"]
     #[wasm_bindgen(method, getter)]
     pub fn url(this: &Response) -> String;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_url(this: &Response, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "webSocket")]
     pub fn web_socket(this: &Response) -> Option<WebSocket>;
-    #[wasm_bindgen(method, setter, js_name = "webSocket")]
-    pub fn set_web_socket(this: &Response, val: &WebSocket);
-    #[wasm_bindgen(method, setter, js_name = "webSocket")]
-    fn set_web_socket_with_null_js(this: &Response, val: &JsValue);
     #[wasm_bindgen(method, getter)]
     pub fn cf(this: &Response) -> Option<JsValue>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_cf(this: &Response, val: Option<&JsValue>);
     #[doc = " The **`type`** read-only property of the Response interface contains the type of the response. The type determines whether scripts are able to access the response body and headers."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Response/type)"]
     #[wasm_bindgen(method, getter, js_name = "type")]
     pub fn type_(this: &Response) -> TypeKind;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_type(this: &Response, val: TypeKind);
 }
 impl Response {
     #[doc = " * `body` - copied before the call returns, so a `&[u8]` passes as a view"]
@@ -4500,9 +4480,6 @@ impl Response {
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     pub fn new_with_null_and_init(init: &ResponseInit) -> Result<Response, JsException> {
         Self::new_with_null_and_init_js(&::wasm_bindgen::JsValue::NULL, init)
-    }
-    pub fn set_web_socket_with_null(&self) {
-        self.set_web_socket_with_null_js(&::wasm_bindgen::JsValue::NULL)
     }
 }
 #[wasm_bindgen(experimental_generic_mono)]
@@ -4714,89 +4691,47 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/method)"]
     #[wasm_bindgen(method, getter)]
     pub fn method<CfHostMetadata, Cf>(this: &Request<CfHostMetadata, Cf>) -> String;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_method<CfHostMetadata, Cf>(
-        this: &Request<CfHostMetadata, Cf>,
-        val: impl ::wasm_bindgen::JsStringLike,
-    );
     #[doc = " The **`url`** read-only property of the Request interface contains the URL of the request."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/url)"]
     #[wasm_bindgen(method, getter)]
     pub fn url<CfHostMetadata, Cf>(this: &Request<CfHostMetadata, Cf>) -> String;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_url<CfHostMetadata, Cf>(
-        this: &Request<CfHostMetadata, Cf>,
-        val: impl ::wasm_bindgen::JsStringLike,
-    );
     #[doc = " The **`headers`** read-only property of the Request interface contains the Headers object associated with the request."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/headers)"]
     #[wasm_bindgen(method, getter)]
     pub fn headers<CfHostMetadata, Cf>(this: &Request<CfHostMetadata, Cf>) -> Headers;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_headers<CfHostMetadata, Cf>(this: &Request<CfHostMetadata, Cf>, val: &Headers);
     #[doc = " The **`redirect`** read-only property of the Request interface contains the mode for how redirects are handled."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/redirect)"]
     #[wasm_bindgen(method, getter)]
     pub fn redirect<CfHostMetadata, Cf>(this: &Request<CfHostMetadata, Cf>) -> String;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_redirect<CfHostMetadata, Cf>(
-        this: &Request<CfHostMetadata, Cf>,
-        val: impl ::wasm_bindgen::JsStringLike,
-    );
     #[wasm_bindgen(method, getter)]
     pub fn fetcher<CfHostMetadata, Cf>(this: &Request<CfHostMetadata, Cf>) -> Option<Fetcher>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_fetcher<CfHostMetadata, Cf>(this: &Request<CfHostMetadata, Cf>, val: &Fetcher);
-    #[wasm_bindgen(method, setter, js_name = "fetcher")]
-    fn set_fetcher_with_null_js<CfHostMetadata, Cf>(
-        this: &Request<CfHostMetadata, Cf>,
-        val: &JsValue,
-    );
     #[doc = " The read-only **`signal`** property of the Request interface returns the AbortSignal associated with the request."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/signal)"]
     #[wasm_bindgen(method, getter)]
     pub fn signal<CfHostMetadata, Cf>(this: &Request<CfHostMetadata, Cf>) -> AbortSignal;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_signal<CfHostMetadata, Cf>(this: &Request<CfHostMetadata, Cf>, val: &AbortSignal);
     #[wasm_bindgen(method, getter)]
     pub fn cf<CfHostMetadata, Cf>(this: &Request<CfHostMetadata, Cf>) -> Option<Cf>
     where
         Option<Cf>: FromWasmAbi;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_cf<CfHostMetadata, Cf: RefIntoWasmAbi>(this: &Request<CfHostMetadata, Cf>, val: &Cf);
     #[doc = " The **`integrity`** read-only property of the Request interface contains the subresource integrity value of the request."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/integrity)"]
     #[wasm_bindgen(method, getter)]
     pub fn integrity<CfHostMetadata, Cf>(this: &Request<CfHostMetadata, Cf>) -> String;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_integrity<CfHostMetadata, Cf>(
-        this: &Request<CfHostMetadata, Cf>,
-        val: impl ::wasm_bindgen::JsStringLike,
-    );
     #[doc = " The **`keepalive`** read-only property of the Request interface contains the request's keepalive setting (true or false), which indicates whether the browser will keep the associated request alive if the page that initiated it is unloaded before the request is complete."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/keepalive)"]
     #[wasm_bindgen(method, getter)]
     pub fn keepalive<CfHostMetadata, Cf>(this: &Request<CfHostMetadata, Cf>) -> bool;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_keepalive<CfHostMetadata, Cf>(this: &Request<CfHostMetadata, Cf>, val: bool);
     #[doc = " The **`cache`** read-only property of the Request interface contains the cache mode of the request. It controls how the request will interact with the browser's HTTP cache."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Request/cache)"]
     #[wasm_bindgen(method, getter)]
     pub fn cache<CfHostMetadata, Cf>(this: &Request<CfHostMetadata, Cf>) -> Option<CacheKind>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_cache<CfHostMetadata, Cf>(this: &Request<CfHostMetadata, Cf>, val: CacheKind);
-}
-impl<CfHostMetadata, Cf> Request<CfHostMetadata, Cf> {
-    pub fn set_fetcher_with_null(&self) {
-        self.set_fetcher_with_null_js(&::wasm_bindgen::JsValue::NULL)
-    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -9792,35 +9727,21 @@ extern "C" {
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/readyState)"]
     #[wasm_bindgen(method, getter, js_name = "readyState")]
     pub fn ready_state(this: &WebSocket) -> f64;
-    #[wasm_bindgen(method, setter, js_name = "readyState")]
-    pub fn set_ready_state(this: &WebSocket, val: f64);
     #[doc = " The **`WebSocket.url`** read-only property returns the absolute URL of the WebSocket as resolved by the constructor."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/url)"]
     #[wasm_bindgen(method, getter)]
     pub fn url(this: &WebSocket) -> Option<String>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_url(this: &WebSocket, val: impl ::wasm_bindgen::JsStringLike);
-    #[wasm_bindgen(method, setter, js_name = "url")]
-    fn set_url_with_null_js(this: &WebSocket, val: &JsValue);
     #[doc = " The **`WebSocket.protocol`** read-only property returns the name of the sub-protocol the server selected; this will be one of the strings specified in the protocols parameter when creating the WebSocket object, or the empty string if no connection is established."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/protocol)"]
     #[wasm_bindgen(method, getter)]
     pub fn protocol(this: &WebSocket) -> Option<String>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_protocol(this: &WebSocket, val: impl ::wasm_bindgen::JsStringLike);
-    #[wasm_bindgen(method, setter, js_name = "protocol")]
-    fn set_protocol_with_null_js(this: &WebSocket, val: &JsValue);
     #[doc = " The **`WebSocket.extensions`** read-only property returns the extensions selected by the server. This is currently only the empty string or a list of extensions as negotiated by the connection."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/extensions)"]
     #[wasm_bindgen(method, getter)]
     pub fn extensions(this: &WebSocket) -> Option<String>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_extensions(this: &WebSocket, val: impl ::wasm_bindgen::JsStringLike);
-    #[wasm_bindgen(method, setter, js_name = "extensions")]
-    fn set_extensions_with_null_js(this: &WebSocket, val: &JsValue);
     #[doc = " The **`WebSocket.binaryType`** property controls the type of binary data being received over the WebSocket connection."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WebSocket/binaryType)"]
@@ -10150,15 +10071,6 @@ extern "C" {
     ) -> Result<(), crate::Error>;
 }
 impl WebSocket {
-    pub fn set_url_with_null(&self) {
-        self.set_url_with_null_js(&::wasm_bindgen::JsValue::NULL)
-    }
-    pub fn set_protocol_with_null(&self) {
-        self.set_protocol_with_null_js(&::wasm_bindgen::JsValue::NULL)
-    }
-    pub fn set_extensions_with_null(&self) {
-        self.set_extensions_with_null_js(&::wasm_bindgen::JsValue::NULL)
-    }
     #[doc = " The **`addEventListener()`** method of the EventTarget interface sets up a function that will be called whenever the specified event is delivered to the target."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
@@ -10707,12 +10619,8 @@ extern "C" {
     pub fn new() -> Result<WebSocketPair, crate::Error>;
     #[wasm_bindgen(method, getter, js_name = "0")]
     pub fn _0(this: &WebSocketPair) -> WebSocket;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_0(this: &WebSocketPair, val: &WebSocket);
     #[wasm_bindgen(method, getter, js_name = "1")]
     pub fn _1(this: &WebSocketPair) -> WebSocket;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_1(this: &WebSocketPair, val: &WebSocket);
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -10769,11 +10677,6 @@ extern "C" {
     pub fn raw_typed<T, U>(this: &SqlStorageCursor<T>) -> Iterator<U>;
     #[wasm_bindgen(method, getter, js_name = "columnNames")]
     pub fn column_names<T>(this: &SqlStorageCursor<T>) -> Vec<String>;
-    #[wasm_bindgen(method, setter, js_name = "columnNames")]
-    pub fn set_column_names<T>(
-        this: &SqlStorageCursor<T>,
-        val: &[impl ::wasm_bindgen::JsStringLike],
-    );
     #[wasm_bindgen(method, getter, js_name = "rowsRead")]
     pub fn rows_read<T>(this: &SqlStorageCursor<T>) -> usize;
     #[wasm_bindgen(method, getter, js_name = "rowsWritten")]
