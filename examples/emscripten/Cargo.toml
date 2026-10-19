@@ -13,3 +13,11 @@ worker = { path = "../../worker" }
 
 [profile.release]
 opt-level = "s"
+
+[patch.crates-io]
+js-sys = { path = "../../wasm-bindgen/crates/js-sys" }
+wasm-bindgen = { path = "../../wasm-bindgen" }
+wasm-bindgen-futures = { path = "../../wasm-bindgen/crates/futures" }
+wasm-bindgen-macro-support = { path = "../../wasm-bindgen/crates/macro-support" }
+wasm-bindgen-shared = { path = "../../wasm-bindgen/crates/shared" }
+web-sys = { path = "../../wasm-bindgen/crates/web-sys" }
