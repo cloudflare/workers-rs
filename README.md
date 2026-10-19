@@ -216,6 +216,38 @@ For more information about how to configure these bindings, see:
 - https://developers.cloudflare.com/workers/learning/using-durable-objects#configuring-durable-object-bindings
 - https://developers.cloudflare.com/workers/runtime-apis/bindings/version-metadata/
 
+## Workers Cache
+
+Use `Context::cache()` to invalidate responses stored by
+[Workers Cache](https://developers.cloudflare.com/workers/cache/). This is separate
+from `worker::Cache`, which wraps the Service Worker Cache API (`caches.default`).
+
+```rust
+use worker::{CachePurgeOptions, Context, Result};
+
+async fn invalidate_posts(ctx: &Context) -> Result<()> {
+    if let Some(cache) = ctx.cache() {
+        let result = cache.purge(CachePurgeOptions::tags(["blog-posts"])).await?;
+        if !result.success {
+            worker::console_error!("Cache purge failed: {:?}", result.errors);
+        }
+    }
+    Ok(())
+}
+```
+
+`CachePurgeOptions::path_prefixes(["/blog/"])` invalidates by request path, and
+`CachePurgeOptions::everything()` invalidates all responses for the calling
+entrypoint. Set both `tags` and `path_prefixes` to purge their union in one call;
+neither can be combined with `purge_everything`.
+
+Code without an execution context can use
+`worker::cache().purge(CachePurgeOptions::everything()).await?`. This imports the
+`cache` export from `cloudflare:workers` and requires a runtime that provides it.
+`Context::cache()` returns `None` when the execution context does not expose
+Workers Cache. Purges are scoped to the calling Worker entrypoint, and JavaScript
+exceptions or rejected promises are returned as `Err`.
+
 ## Durable Objects
 
 ### Define a Durable Object in Rust
