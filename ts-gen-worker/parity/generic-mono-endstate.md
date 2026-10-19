@@ -11,7 +11,7 @@ from the wasm-bindgen#5167 compile matrix (wasm-bindgen `2497681c1`, stable js-s
 ## Verdict
 
 1. B builds as generated, with no hand patches to the bindings, and passes the suite (195/195, plain and `-http`; A has 194, plus the `MessageEvent` catch-all test). The port has none of: `JsString`, `String::from(<js>)`, `JsNullable::wrap`/`new`, `None::<…>`, `.set_x(Some(…))`, `map_err(|e| e.to_string())`, `JsFuture::from` at call sites. `unchecked_*` casts went from 29 (A) to 4. Each of the 4 sits at an `any`-typed or erased boundary (§2).
-2. Everything phase 1 assumed is built, and every review finding is done except the ones in §6. Phase 2 also built Rust iteration, `Object<T>` as a map, typed KV reads, byte-stream bodies, one argument for buffer sources, one `Promise<T, crate::Error>` per async method, shorter overload names, a null model (writes keep `null` exact, reads fold it into `Option`, §7), and signatures whose bounds are the declaration's (no `WasmDescribe` or `for<'__wbg>` in rustdoc, §3).
+2. Everything phase 1 assumed is built, and every review finding is done except the ones in §6. Phase 2 also built Rust iteration, `Object<T>` as a map, typed KV reads, byte-stream bodies, one argument for buffer sources, one `Promise<T, crate::Error>` per async method and Promise-typed getter, shorter overload names, a null model (writes keep `null` exact, reads fold it into `Option`, §7), and signatures whose bounds are the declaration's (no `WasmDescribe` or `for<'__wbg>` in rustdoc, §3).
 3. The cost in commits: 21 wasm-bindgen/js-sys commits (three are wasm-bindgen#5385) and 38 ts-gen commits on top of phase 1. Under the cfg, js-sys is a different API in which collections behave like Rust collections. That API break, and the fallout in `worker`, serde-wasm-bindgen and wasm-streams, is the price of the containers. `worker` is not ported (§6).
 4. The cost in size and time: benchmark wasm +633 (+0.5%), test glue +9,369 (+5.3%) (phase 1: +12.7%), test imports +20 (phase 1: +16), 0 generic shims (phase 1: 177). `ts-gen-worker` compiles +5% debug and +6% release (§4).
 5. Mono's own lead over C is unchanged from phase 1:
@@ -544,8 +544,8 @@ entries, SQL values and `Error::cause`. No `::<JsValue>` is left on a binding:
 
 `tools/api-diff` over the generated `bindings.rs` (item-keyed signatures):
 
-- **B vs A**: 1270 items changed, 1020 removed, 456 added, 2765 unchanged. Most removed/added pairs are renames (overload suffixes, `_with_null` arms, KV typed reads).
-- **B vs B1**: 508 changed, 1381 removed (376 of them `_js_string` twins), 446 added, 3537 unchanged.
+- **B vs A**: 1272 items changed, 1020 removed, 456 added, 2763 unchanged. Most removed/added pairs are renames (overload suffixes, `_with_null` arms, KV typed reads).
+- **B vs B1**: 511 changed, 1381 removed (376 of them `_js_string` twins), 446 added, 3534 unchanged.
 
 Type-level counts (doc and comment lines skipped):
 
@@ -566,8 +566,8 @@ Type-level counts (doc and comment lines skipped):
 | `Function<fn(…)>` | 101 | 101 | 159 |
 | `-> Undefined` | 17 | 17 | 0 |
 | `Promise<Undefined>` | 163 | 162 | 0 |
-| `Promise<()>` (callbacks, getters) | 0 | 0 | 100 |
-| `Promise<(), crate::Error>` (methods) | 0 | 0 | 60 |
+| `Promise<()>` (callbacks, getters) | 0 | 0 | 95 |
+| `Promise<(), crate::Error>` (methods) | 0 | 0 | 65 |
 | `Boolean` / `Number` | 32 | 8 | 0 |
 | `impl JsStringLike` | 0 | 1,268 | 1,077 |
 | `Option<impl JsStringLike>` | 0 | 7 | 2 |
@@ -785,7 +785,7 @@ Every change B needed, all built (commits and files in `mono-prototype-patches.m
 | `_typed` twins (constructors, nested return-only params); concrete construct returns | ts-gen | 2 | yes |
 | null model: a written `T \| null` (argument, setter, builder, field) is the bare value plus a `_with_null` form; output-only types are read-only; reads fold `null` into `Option`; nullable type arguments are `JsNullable<T>` | ts-gen + js-sys (`JsNullable<T>` for any ABI `T`) | 2 | partly |
 | callbacks with Rust leaves, `Promise<()>` | ts-gen | 2 | yes |
-| async methods return `Promise<T, crate::Error>`, with no `async fn` / `_promise` pair | ts-gen | 2 | partly |
+| async methods and Promise-typed getters return `Promise<T, crate::Error>`, with no `async fn` / `_promise` pair | ts-gen | 2 | partly |
 | bounds are the declaration's: inline `T: RefIntoWasmAbi` / `T: FromWasmAbi`, first-order `Option<T>: FromWasmAbi`, nothing on `impl …Like` or concrete types | wasm-bindgen (#5385, per-type `RefIntoWasmAbi`) + ts-gen | 2 | yes |
 | `Iterable<T>` → slices; alias leaves; optional `any` → `Option<JsValue>`; generated `IntoIterator` | ts-gen | 2 | no |
 | per-literal overload bindings (KV typed reads); literal-only dictionaries set by the binding (`raw_with_column_names`, `get_reader_byob`); shorter overload and inline-type names | ts-gen | 2 | no |
@@ -826,8 +826,6 @@ Not built, by owner. Every review finding not listed here is done.
   `MessageEventInitDataKind` (§7).
 - `[A, ...B[]]` lowers to an erased array: D1 `raw_with_column_names()` returns `Vec<JsValue>`, the column names followed by the rows. A and B1 typed it as a fixed 2-tuple, which was wrong. A typed head/rest form needs a js-sys type.
 - `IncomingRequestCfProperties` has numbered builders, from crossing a dictionary-union field with the type's other unions. Only mocks build an incoming `cf`.
-- Eight Promise-typed getters (`writer.ready()`, `socket.opened()`, the readers' and writers' `closed()`) return
-  `Promise<T>`, which rejects with `JsValue`, so a tail `.await` of one is `Ok(x.await?)`. Only methods were given the crate's error type.
 
 **ts-gen + wasm-bindgen.**
 - `FormData::get_all()` stays `Vec<JsValue>`: a `Vec<T>` return needs a handle `T`, and a union enum is not one.
@@ -852,7 +850,7 @@ ts-gen or `annotations.d.ts`.
   nested in the return (`getWithMetadata<Metadata>`, `list<Metadata>`), the default form erases it and a
   `_typed::<T>` twin binds it, the same suffix constructors use. Keeping the generic everywhere was rejected:
   Rust fns have no default type parameters, so `kv.list().await?` would need a turbofish with metadata unused.
-- **Async methods return `Promise<T, crate::Error>`.** Each async method is one binding returning a
+- **Async methods return `Promise<T, crate::Error>`.** Each async method (and Promise-typed getter) is one binding returning a
   typed promise, with `T` the awaited form (`Promise<Option<String>, crate::Error>`, `Promise<(), crate::Error>`).
   There is no `async fn` / `_promise` pair: the 293 `_promise` twins are gone and public fns went from 3,628 to
   3,335. js-sys's `Promise<T, E = JsValue>` is `IntoFuture<Output = Result<T, E>>` with `E` erased for the ABI.

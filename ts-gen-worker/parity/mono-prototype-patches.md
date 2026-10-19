@@ -51,6 +51,7 @@ builds the whole prototype. `js_sys_unstable_apis` is on for wasm32; `worker`,
 | `b503ab30f` | `ArrayBuffer::to_vec`, `From<&[u8]>`/`From<Vec<u8>>` for `ArrayBuffer`, `From<ArrayBuffer> for Vec<u8>` | `Uint8Array` round trips for bytes | js-sys unstable |
 | `3ef8cb93b` | sealed `BufferSourceLike` for `&[u8]` (wasm-memory view), `Vec<u8>` (copy), `ArrayBuffer`, `DataView` and every typed array, owned and `&`; `Function::once(f)` inferred like `from_fn` | one argument for `ArrayBuffer \| ArrayBufferView`; no `block_concurrency_while` turbofish | js-sys unstable |
 | `70c2c0e64` | `Promise<T, E = JsValue>`: `IntoFuture<Output = Result<T, E>>` for `E: From<JsValue>`, `E` erased for the ABI; `upcast()` changes `E`; `JsFuture<T, E>` | async members can await to the crate's error type | js-sys unstable |
+| `a649d0b7c` | `ArrayHeadRest<H = JsValue, T = JsValue>`, TS `[H, ...T[]]`: `head() -> H`, `rest() -> Array<T>` (a `slice(1)` copy), `into_parts()` / `Into<(H, Array<T>)>` | D1 `raw({ columnNames: true })` returns column names then rows; with no head/rest type it was `Vec<JsValue>` | js-sys unstable |
 
 ## ts-gen
 
@@ -100,6 +101,7 @@ builds the whole prototype. `js_sys_unstable_apis` is on for wasm32; `worker`,
 | `0ac319e` | `--annotate`: a side property declared `readonly` (or a lone `get x()`) drops the input's setter, with its `_with_null` form | workers-types drops `readonly` on JSG instance properties, so 31 setters threw a `TypeError` | ts-gen "annotate: retype + namespaces" PR |
 | `de02e61` | output-only reaches a parent reached only through output-only children (`D1Response`) and the named member of an open-record intersection, which also types the field (`meta: D1Meta & Record<string, unknown>` → `meta() -> D1Meta`) | `D1Result` exposed `set_meta`/`set_success` through `Deref`; `D1Meta` had a dead write side and `meta()` was `JsValue` | ts-gen mono PR (null model) |
 | `2b9d924` | a discriminated-union branch factory takes a field its branch requires bare (`EmailAttachment::new_inline(content_id: impl JsStringLike, …)`), not the merged `string \| undefined` | the `inline` branch requires `contentId`, yet took `Option` and `None::<&str>` | ts-gen (branch factories) |
+| `da264ef` | Promise-typed getters return `Promise<T, E>` like methods (`socket.opened()`, `closed()`, `writer.ready()`, `digest()`, `exit_code()`) | a tail `.await` of one rejected with `JsValue` | ts-gen mono PR (`Promise<T, E>`) |
 
 ## workers-rs (`ts-gen-worker`)
 
@@ -136,6 +138,7 @@ Each row of the tables above is one change. Landing them is a smaller set of PRs
 | js-sys unstable: `Function<fn(A..) -> R>`, `from_fn`, `once`, typed `Promise::new` | `83af8baa2`, part of `3ef8cb93b` (+ `429a22215`, stable) | — |
 | js-sys unstable: `BufferSourceLike` | part of `3ef8cb93b` | — |
 | js-sys unstable: `Promise<T, E>` | `70c2c0e64` | — |
+| js-sys unstable: `ArrayHeadRest<H, T>` | `a649d0b7c` | — |
 | wasm-bindgen: slice modes on generic mono arguments | `a8994870b` | — |
 | js-sys unstable: `String` returns, `Date::new_with_value`, `ArrayBuffer` bytes | `9d903011a`, `008fba104`, part of `b503ab30f` | — |
 | ts-gen: string return modes | `cdf4f12` | — |
@@ -154,7 +157,7 @@ Each row of the tables above is one change. Landing them is a smaller set of PRs
 | ts-gen mono: per-key `M[K]` bindings | `6815c11`, `a2e3344` | — |
 | ts-gen: rest tuples, orphan inline types | `5b20797`, `c98d196` | — |
 | ts-gen mono: nullable union-enum returns | `4883281` | — |
-| ts-gen mono: `Promise<T, E>` async returns | `16402cd`, `16a19f9`, `1d62eff` | `627ff72ba`, `70c2c0e64` |
+| ts-gen mono: `Promise<T, E>` async returns | `16402cd`, `16a19f9`, `1d62eff`, `da264ef` | `627ff72ba`, `70c2c0e64` |
 | ts-gen mono: generated `IntoIterator` | `d21202a` | `866b0d33d` |
 | ts-gen mono: explicit ABI bounds | `1fb83ab` | wasm-bindgen#5385 |
 | ts-gen: branch factories take required fields bare | `2b9d924` | — |

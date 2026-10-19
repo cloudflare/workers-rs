@@ -10,11 +10,9 @@ wherever a name was free. The full row-by-row list is the migration table in
 [`parity/crate.md`](parity/crate.md); this guide covers the changes a typical worker meets.
 
 Every sync binding that can throw returns `Result`, so a few calls gain a `?`
-(`Headers::new()?`, `res.clone()?`). Async methods return a typed `Promise<T, Error>` that
-awaits to `Result<T, Error>` (`text().await?` is a `String`) and passes back to JS
-(`p.upcast()` where a `&Promise` is taken). Promise-typed getters (`writer.ready()`,
-`socket.opened()`, `reader.closed()`) still return `Promise<T>`, which rejects with a `JsValue`, so a
-tail `.await` of one in a fn returning `Result` is `Ok(x.await?)`.
+(`Headers::new()?`, `res.clone()?`). Async methods and Promise-typed getters (`writer.ready()`,
+`socket.opened()`) return a typed `Promise<T, Error>` that awaits to `Result<T, Error>`
+(`text().await?` is a `String`) and passes back to JS (`p.upcast()` where a `&Promise` is taken).
 
 The bindings are generated with mono generics on js-sys's unstable API
 (`--cfg js_sys_unstable_apis`, set in `.cargo/config.toml`), so js-sys collections behave
