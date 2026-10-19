@@ -18040,14 +18040,14 @@ impl EmailAttachment {
     #[doc = ""]
     #[doc = " * `disposition: \"inline\"`"]
     pub fn new_inline(
-        content_id: Option<impl ::wasm_bindgen::JsStringLike>,
+        content_id: impl ::wasm_bindgen::JsStringLike,
         filename: impl ::wasm_bindgen::JsStringLike,
         r#type: impl ::wasm_bindgen::JsStringLike,
         content: impl ::wasm_bindgen::JsStringLike,
     ) -> EmailAttachment {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_disposition(DispositionKind::Inline);
-        inner.set_content_id(content_id);
+        inner.set_content_id(Some(content_id));
         inner.set_filename(filename);
         inner.set_type(r#type);
         inner.set_content(content);
@@ -18057,14 +18057,14 @@ impl EmailAttachment {
     #[doc = ""]
     #[doc = " * `disposition: \"inline\"`"]
     pub fn new_inline_with_buffer_source(
-        content_id: Option<impl ::wasm_bindgen::JsStringLike>,
+        content_id: impl ::wasm_bindgen::JsStringLike,
         filename: impl ::wasm_bindgen::JsStringLike,
         r#type: impl ::wasm_bindgen::JsStringLike,
         content: impl ::js_sys::BufferSourceLike,
     ) -> EmailAttachment {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_disposition(DispositionKind::Inline);
-        inner.set_content_id(content_id);
+        inner.set_content_id(Some(content_id));
         inner.set_filename(filename);
         inner.set_type(r#type);
         inner.set_content_with_buffer_source(content);
