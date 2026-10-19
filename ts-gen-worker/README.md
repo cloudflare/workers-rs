@@ -43,7 +43,9 @@ keep their parameters with defaults, so the bare names work everywhere.
 
 Build with `cargo build --target wasm32-unknown-unknown` and
 `wasm-bindgen --target module --force-enable-abort-handler`; the output's
-default export is the worker. The flag lets the glue notice a trap (a panic
+default export is the worker. The bindings use js-sys's unstable API, so the
+build needs `--cfg js_sys_unstable_apis` (`.cargo/config.toml` rustflags for
+`wasm32-unknown-unknown`, or `RUSTFLAGS`). The flag lets the glue notice a trap (a panic
 under `panic=abort`, `unreachable`, out of memory) and reinstantiate the
 module before the next call, so one failed request does not poison the
 isolate. `#[durable_object]` classes carry
@@ -51,9 +53,9 @@ isolate. `#[durable_object]` classes carry
 constructed before the trap is rebuilt from its `(state, env)` on its next
 call instead of being rejected as stale. The attribute is wasm-bindgen PR
 [#5375](https://github.com/wasm-bindgen/wasm-bindgen/pull/5375), unreleased:
-the workspace builds from the `wasm-bindgen/` submodule at that PR through
-`[patch.crates-io]`, and `ts-gen-worker` cannot publish before wasm-bindgen
-0.2.130 ships.
+the workspace builds from the `wasm-bindgen/` submodule, which carries it and
+the generic-mono changes in `parity/mono-prototype-patches.md`, through
+`[patch.crates-io]`, and `ts-gen-worker` cannot publish before those ship.
 
 ## Errors
 
@@ -84,7 +86,7 @@ mapping is: `Response::ok(..)` → `Response::builder().ok(..)` (and `error`,
 `empty`, `from_json`, `from_html`, `from_bytes`, `from_stream` likewise, after any
 `status(..)` / `headers(..)` on the builder), `req.json()` → `req.json_into()`,
 `ctx.wait_until(fut)` → `ctx.spawn(fut)`, `req.method()` → `req.method().parse::<Method>()`.
-See `MIGRATING.md` for the guide and `PARITY.md` for the full table.
+See `MIGRATING.md` for the guide.
 
 ## `http` feature
 
@@ -108,11 +110,14 @@ and `WebSocket` travel in the `http` extensions. The feature also adds
 - `chomp build:ts-gen-worker:types` regenerates `src/bindings.rs` from
   workers-types (edit the `--export` roots in `chompfile.toml` to widen the
   surface, `types/annotations.d.ts` to tag members) and `test/src/env.rs`
-  from `test/types/env.d.ts`, with `--experimental-generic-mono`. The build
-  enables `js_sys_unstable_apis` (`.cargo/config.toml`), whose js-sys
-  signatures need the patched `serde-wasm-bindgen` and `wasm-streams` copies
-  in `vendor-patches/`.
+  from `test/types/env.d.ts`, with `--experimental-generic-mono`.
+- The ts-gen-worker build tasks set `--cfg js_sys_unstable_apis` through
+  `RUSTFLAGS` and build into `target/mono`, so the rest of the workspace
+  (`worker`) builds without it. Without the cfg the crates are empty on the
+  host and a compile error on wasm32. Under it, `serde-wasm-bindgen` and
+  `wasm-streams` build from the patched copies in `vendor-patches/`.
+  `chomp lint:ts-gen-worker` runs clippy on the four crates with the cfg.
 - `chomp test:ts-gen-worker` builds the test worker and runs its vitest suite
   under miniflare; `chomp test:ts-gen-worker-http` runs it with the handler
   over the `http` types. `test/` is the `worker` crate's suite ported to the
-  generated API (see `parity/test-port.md`).
+  generated API.

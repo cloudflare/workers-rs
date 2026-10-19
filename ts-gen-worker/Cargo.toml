@@ -31,3 +31,6 @@ default = ["serde"]
 serde = ["dep:serde", "dep:serde_json", "dep:serde_urlencoded", "dep:serde-wasm-bindgen"]
 url = ["dep:url"]
 http = ["dep:http", "dep:http-body", "dep:bytes"]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(js_sys_unstable_apis)"] }

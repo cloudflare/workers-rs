@@ -5,6 +5,13 @@
 //! `src/bindings.rs` is generated; `chomp build:ts-gen-worker:types` regenerates it
 //! from `node_modules/@cloudflare/workers-types/index.d.ts` with the `--export`
 //! roots listed in `chompfile.toml`.
+//!
+//! The bindings need js-sys's unstable API (`--cfg js_sys_unstable_apis`). Without it the
+//! crate is empty on the host, so workspace-wide host checks skip it, and an error on wasm32.
+#![cfg(any(js_sys_unstable_apis, target_arch = "wasm32"))]
+
+#[cfg(not(js_sys_unstable_apis))]
+compile_error!("ts-gen-worker needs `--cfg js_sys_unstable_apis` in RUSTFLAGS (see README.md)");
 
 #[allow(clippy::all)]
 mod bindings;

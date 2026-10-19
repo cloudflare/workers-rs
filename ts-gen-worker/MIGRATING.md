@@ -6,17 +6,16 @@ Rust names: `webSocket` is `web_socket()`, a `ResponseInit` is built with the ge
 `new_with_str_and_init`, and so on. What `worker` added on top of the platform (the
 `#[event]` macros, `Result`, serde, `Method`, `Router`, `ByteStream`, Durable Object
 classes) is still there as `impl` blocks on the generated types with the same shapes
-wherever a name was free. The full row-by-row list is the migration table in
-[`parity/crate.md`](parity/crate.md); this guide covers the changes a typical worker meets.
+wherever a name was free. This guide covers the changes a typical worker meets.
 
 Every sync binding that can throw returns `Result`, so a few calls gain a `?`
 (`Headers::new()?`, `res.clone()?`). Async methods and Promise-typed getters (`writer.ready()`,
 `socket.opened()`) return a typed `Promise<T, Error>` that awaits to `Result<T, Error>`
 (`text().await?` is a `String`) and passes back to JS (`p.upcast()` where a `&Promise` is taken).
 
-The bindings are generated with mono generics on js-sys's unstable API
-(`--cfg js_sys_unstable_apis`, set in `.cargo/config.toml`), so js-sys collections behave
-like Rust collections: `Map::get("k")`, `for (k, v) in &headers`, `record.iter().collect()`,
+The bindings are generated with mono generics on js-sys's unstable API, so an app builds with
+`--cfg js_sys_unstable_apis` (in its `.cargo/config.toml` rustflags or `RUSTFLAGS`), and js-sys
+collections behave like Rust collections: `Map::get("k")`, `for (k, v) in &headers`, `record.iter().collect()`,
 `promise.await`.
 
 String arguments take `impl JsStringLike` (`&str`, `String`, `&String`), and string lists take

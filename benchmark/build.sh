@@ -28,10 +28,12 @@ rm -rf benchmark/build-noshim
 oz benchmark/build-noshim/index_bg.wasm
 cp benchmark/noshim.js benchmark/build-noshim/entry.js
 
-# ts-gen-worker, built as ts-gen-worker/test is.
-cargo build --release --target wasm32-unknown-unknown -p ts-gen-worker-benchmark
+# ts-gen-worker, built as ts-gen-worker/test is (chompfile.toml: js-sys's unstable API, own
+# target dir).
+RUSTFLAGS='--cfg getrandom_backend="wasm_js" --cfg js_sys_unstable_apis' CARGO_TARGET_DIR=target/mono \
+  cargo build --release --target wasm32-unknown-unknown -p ts-gen-worker-benchmark
 rm -rf ts-gen-worker/benchmark/build
 "$WB" --target module --out-name index --force-enable-abort-handler \
   --out-dir ts-gen-worker/benchmark/build \
-  target/wasm32-unknown-unknown/release/ts_gen_worker_benchmark.wasm
+  target/mono/wasm32-unknown-unknown/release/ts_gen_worker_benchmark.wasm
 oz ts-gen-worker/benchmark/build/index_bg.wasm

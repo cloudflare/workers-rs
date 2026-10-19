@@ -1,3 +1,5 @@
+#![cfg(any(js_sys_unstable_apis, target_arch = "wasm32"))]
+
 use js_sys::{Object, Promise};
 use regex::Regex;
 use serde::{Deserialize, Serialize};

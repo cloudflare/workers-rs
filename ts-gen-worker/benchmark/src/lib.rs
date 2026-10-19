@@ -1,3 +1,5 @@
+#![cfg(any(js_sys_unstable_apis, target_arch = "wasm32"))]
+
 use serde::{Deserialize, Serialize};
 use ts_gen_worker::*;
 

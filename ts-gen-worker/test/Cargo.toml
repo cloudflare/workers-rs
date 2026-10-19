@@ -31,3 +31,6 @@ wasm-bindgen-futures.workspace = true
 # Switches the fetch export to the `http` handler signature; the conversions are always built.
 [features]
 http = []
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(js_sys_unstable_apis)"] }

@@ -235,6 +235,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.91.0
         with:
           targets: wasm32-unknown-unknown
+          components: clippy
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/checkout@v4
         with:
@@ -259,6 +260,9 @@ jobs:
         run: |
           chomp build:ts-gen-worker:types
           git diff --exit-code -- ts-gen-worker
+
+      - name: Check for idiomatic code
+        run: chomp lint:ts-gen-worker
 
       - name: Run tests
         run: chomp test:ts-gen-worker
