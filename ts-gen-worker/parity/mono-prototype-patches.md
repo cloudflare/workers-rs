@@ -96,6 +96,7 @@ builds the whole prototype. `js_sys_unstable_apis` is on for wasm32; `worker`,
 | `448388f` | a written `T \| null` (argument, setter, builder value, required field) is an ordinary union arm: the bare value plus a `_with_null` form (`clear_timeout_with_null()`, `set_prefix_with_null()`, `.prefix_with_null()`); an optional trailing `null` arm stays omitted; `any \| null` is `&JsValue` | null model: `None` sent `undefined` where TS said `null` (ts-gen#51) | ts-gen mono PR (null model) |
 | `31d57a6` | a type only ever read (return, getter, awaited value) has no write side: no constructor, setters or builder (37 types, e.g. `KVNamespaceListResult`, `R2Objects`, Queue metrics) | null model: output-only dictionaries had setters nobody can use | ts-gen mono PR (null model) |
 | `010f6f6` | a nullable type argument is `JsNullable<T>` with the native leaf (`Map<String, JsNullable<String>>`), `T \| undefined` is `Option<T>`; reads of `any \| null` are `Option<JsValue>`; returned `Vec<T \| null>` stays `Vec<Option<T>>` | null model: `Map<String, Option<String>>` sent and read `null` as `undefined` | ts-gen mono PR (null model) |
+| `0ac319e` | `--annotate`: a side property declared `readonly` (or a lone `get x()`) drops the input's setter, with its `_with_null` form | workers-types drops `readonly` on JSG instance properties, so 31 setters threw a `TypeError` | ts-gen "annotate: retype + namespaces" PR |
 
 ## workers-rs (`ts-gen-worker`)
 
@@ -113,6 +114,7 @@ builds the whole prototype. `js_sys_unstable_apis` is on for wasm32; `worker`,
 | `faefa97` | `ts-gen-worker/types/annotations.d.ts` | `@retype` `Body::body`, `R2ObjectBody::body`, `Socket::{readable,writable}` to `Uint8Array` streams; `{@string copy}` on the TailStream namespace | upstream types them `ReadableStream` (`any` chunks); 64 twins | workers-rs (or workers-types) |
 | `b901d43`, `74bc9bf` | `ts-gen-worker/types/annotations.d.ts` | `@retype` `MessageEvent.data` to `string \| ArrayBuffer \| Blob \| any`: a `DataKind` enum whose `JsValue` arm catches a `MessagePort` structured clone | `data` was `any`; `Blob` from the 2026-03-17 compat date, and an unmatched union value throws in the getter | workers-rs |
 | `527c0e0` | `ts-gen-worker/{src/ext,test/src}` | null-model port: setters and builders take the value bare (`set_prefix(p)`, `set_metadata(&v)`, `clear_timeout(id)`); KV bulk reads `JsNullable<String>` (`into_option()`); the KV metadata `null` filter and the `ResponseInit` headers `null` guard removed | `Option<JsValue>` reads always folded `null`, so both were dead code | workers-rs |
+| `cdf58ab` | `ts-gen-worker/types/annotations.d.ts` | `readonly` on the properties workerd defines without a setter: `Request` (10), `Response` (9), `WebSocket` `readyState`/`url`/`protocol`/`extensions`, `WebSocketPair` `0`/`1`, `SqlStorageCursor.columnNames` | their setters threw a `TypeError`; `binaryType` stays writable | workers-rs (upstream: workers-types) |
 | `636cfab`…HEAD | `ts-gen-worker/{src/ext,test/src,benchmark/src}` | port rewritten to each new surface | ideal idioms | workers-rs |
 
 Superseded local fixes (folded upstream, not in the final tree): wasm-bindgen `a3d285150`
@@ -134,7 +136,7 @@ Each row of the tables above is one change. Landing them is a smaller set of PRs
 | wasm-bindgen: slice modes on generic mono arguments | `a8994870b` | — |
 | js-sys unstable: `String` returns, `Date::new_with_value`, `ArrayBuffer` bytes | `9d903011a`, `008fba104`, part of `b503ab30f` | — |
 | ts-gen: string return modes | `cdf4f12` | — |
-| ts-gen: `--annotate` `@retype` + namespaces | `121bae9` | — |
+| ts-gen: `--annotate` `@retype` + namespaces, `readonly` | `121bae9`, `0ac319e` | — |
 | ts-gen mono: leaves (containers, awaited `Option`, `Iterable` slices, aliases, nullable list elements) | `f69a59d`, `ea1db10`, `ccd963b`, `890f23a` | `56ac6f184` |
 | ts-gen mono: bounds and callbacks | `62843fb`, `1ed2145`, `333b9e8` | `83af8baa2`, `cb872c471`, `b503ab30f` |
 | ts-gen mono: constructors and return-only parameters (`_typed`) | `2744756`, `789c1ca` | — |

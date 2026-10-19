@@ -29,7 +29,8 @@ value bare and sends `null` through its own `_with_null` form (`clear_timeout(id
 argument or setter whose type admits `undefined` takes `Option<…>`. Reads fold `null` and `undefined` into `None`, `JsValue`
 included (`ws.deserialize_attachment()?` is an `Option<JsValue>`). Types that are only ever read
 (`KVNamespaceListResult`, `R2Objects`, Queue metrics) have getters only: no `new`, setters or
-builder. Byte arguments take `impl BufferSourceLike`: `&[u8]`, `Vec<u8>` or
+builder. So do the properties workerd makes read-only (`res.status()`, `req.url()`,
+`ws.ready_state()`): there is no `set_status`. Byte arguments take `impl BufferSourceLike`: `&[u8]`, `Vec<u8>` or
 any buffer handle (`bucket.put_with_buffer_source(k, &bytes[..])`, `.md5(&digest[..])`). A `&[u8]`
 is copied into a fresh `Uint8Array`, except where the callee copies or reads it before returning
 (`Response` bodies, KV and R2 `put`, R2 `upload_part`, SubtleCrypto), which take it as a view of wasm

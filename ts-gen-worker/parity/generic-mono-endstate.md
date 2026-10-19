@@ -544,8 +544,8 @@ entries, SQL values and `Error::cause`. No `::<JsValue>` is left on a binding:
 
 `tools/api-diff` over the generated `bindings.rs` (item-keyed signatures):
 
-- **B vs A**: 1290 items changed, 965 removed, 467 added, 2800 unchanged. Most removed/added pairs are renames (overload suffixes, `_with_null` arms, KV typed reads).
-- **B vs B1**: 512 changed, 1326 removed (376 of them `_js_string` twins), 457 added, 3588 unchanged.
+- **B vs A**: 1273 items changed, 991 removed, 456 added, 2791 unchanged. Most removed/added pairs are renames (overload suffixes, `_with_null` arms, KV typed reads).
+- **B vs B1**: 506 changed, 1352 removed (376 of them `_js_string` twins), 446 added, 3568 unchanged.
 
 Type-level counts (doc and comment lines skipped):
 
@@ -569,18 +569,18 @@ Type-level counts (doc and comment lines skipped):
 | `Promise<()>` (callbacks, getters) | 0 | 0 | 100 |
 | `Promise<(), crate::Error>` (methods) | 0 | 0 | 60 |
 | `Boolean` / `Number` | 32 | 8 | 0 |
-| `impl JsStringLike` | 0 | 1,268 | 1,091 |
+| `impl JsStringLike` | 0 | 1,268 | 1,081 |
 | `Option<impl JsStringLike>` | 0 | 7 | 4 |
-| `Option<&…>` arguments | 10 | 3 | 3 |
-| setters | 705 | 701 | 598 |
+| `Option<&…>` arguments | 10 | 3 | 2 |
+| setters | 705 | 701 | 567 |
 | dictionary builders | 110 | 110 | 91 |
-| `&[impl JsStringLike]` | 0 | 117 | 83 |
+| `&[impl JsStringLike]` | 0 | 117 | 82 |
 | `impl js_sys::Js…Like` (primitive unions) | 0 | 13 | 12 |
 | `Option<&str>` / `&[String]` | 124 | 0 | 0 |
 | `: JsGeneric` bounds | 666 | 75 | 0 |
 | `for<'a>` where-clauses | 0 | 66 | 0 |
 | `_typed` fns | 0 | 0 | 51 |
-| `_with_null` fns (public) | 0 | 0 | 22 |
+| `_with_null` fns (public) | 0 | 0 | 17 |
 | public fn names over 50 chars | 109 | 113 | 50 |
 | `IntoIterator for &T` | 0 | 0 | 5 |
 | `-> Option<JsValue>` | 0 | 0 | 12 |
@@ -589,7 +589,7 @@ Type-level counts (doc and comment lines skipped):
 | `_promise` twins | 277 | 276 | 0 |
 | `async fn`s | 277 | 292 | 0 |
 | `KVNamespace` get/put/list/delete fns | 70 | 78 | 73 |
-| lines | 18,366 | 19,548 | 16,445 |
+| lines | 18,366 | 19,548 | 16,348 |
 
 **Rustdoc signatures.** With wasm-bindgen#5385 the mono macro adds no ABI bounds to the public wrapper, so
 the declaration's bounds are the whole contract, and ts-gen states exactly those (`1fb83ab`):
@@ -781,7 +781,7 @@ Every change B needed, all built (commits and files in `mono-prototype-patches.m
 | `String` returns from built-ins (`Error`, `Date`, `JSON`, `Intl`); `Date::new_with_value`; `ArrayBuffer` bytes | js-sys | 2 | no |
 | iterators yield `T`; `Entries<K, V>`; Map/Set/Object as Rust collections | js-sys | 2 | no |
 | phase 1's five hand-applied `mono-patch` stopgaps replaced by ts-gen fixes | ts-gen | 2 | yes |
-| `{@string copy\|ref\|both}`; `@retype`; side namespaces | ts-gen + `annotations.d.ts` | 2 | no |
+| `{@string copy\|ref\|both}`; `@retype`; side namespaces; a side `readonly` drops the setter (31 properties workerd defines without one) | ts-gen + `annotations.d.ts` | 2 | no |
 | `_typed` twins (constructors, nested return-only params); concrete construct returns | ts-gen | 2 | yes |
 | null model: a written `T \| null` (argument, setter, builder, field) is the bare value plus a `_with_null` form; output-only types are read-only; reads fold `null` into `Option`; nullable type arguments are `JsNullable<T>` | ts-gen + js-sys (`JsNullable<T>` for any ABI `T`) | 2 | partly |
 | callbacks with Rust leaves, `Promise<()>` | ts-gen | 2 | yes |
@@ -817,13 +817,6 @@ Not built, by owner. Every review finding not listed here is done.
 
   Shipping B means porting `worker` (and depending on patched serde-wasm-bindgen and wasm-streams), or stabilising these js-sys APIs first.
 - Every patch is prototype quality. `mono-prototype-patches.md` groups them by upstream PR.
-
-**ts-gen + `annotations.d.ts`.**
-- About 31 setters on properties workerd makes read-only throw a `TypeError` when called: `Response` 10,
-  `Request` 11, `WebSocket` 7 (three of them `_with_null` forms), `WebSocketPair` 2, `SqlStorageCursor::set_column_names`.
-  workers-types drops `readonly` on JSG instance properties, and ts-gen treats a class property as written. Fix:
-  mark them `readonly` in `annotations.d.ts`, with `--annotate` layering the modifier. Upstream
-  workers-types is the real home.
 
 **ts-gen.**
 - Output-only misses parents and intersection members. `D1Response`, the parent of output-only `D1Result`,
