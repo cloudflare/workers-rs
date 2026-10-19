@@ -74,7 +74,7 @@ impl HttpBody for Body {
             stream
                 .poll_next_unpin(cx)
                 .map_ok(|buf| {
-                    let bytes = Bytes::copy_from_slice(&js_sys::Uint8Array::from(buf).to_vec());
+                    let bytes = Bytes::from(js_sys::Uint8Array::from(buf).to_vec());
                     Frame::data(bytes)
                 })
                 .map_err(Error::Internal)

@@ -175,7 +175,10 @@ impl Response {
 
     /// Access this response's body encoded as JSON.
     pub async fn json<B: DeserializeOwned>(&mut self) -> Result<B> {
-        serde_json::from_str(&self.text().await?).map_err(Error::from)
+        if let ResponseBody::Body(bytes) = &self.body {
+            return serde_json::from_slice(bytes).map_err(Error::from);
+        }
+        serde_json::from_slice(&self.bytes().await?).map_err(Error::from)
     }
 
     /// Access this response's body encoded as raw bytes.
@@ -302,6 +305,15 @@ impl Response {
     pub fn cloned(&mut self) -> Result<Self> {
         if self.init.websocket.is_some() {
             return Err(Error::RustError("WebSockets cannot be cloned".into()));
+        }
+
+        // Only stream bodies need the JS `Response.clone()` to tee the stream;
+        // fixed and empty bodies can be duplicated on the Rust side.
+        if !matches!(self.body, ResponseBody::Stream(_)) {
+            return Ok(Self {
+                body: self.body.clone(),
+                init: self.init.clone(),
+            });
         }
 
         let edge = web_sys::Response::from(&*self);
