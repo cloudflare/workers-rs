@@ -1,6 +1,0 @@
-name = "{{project-name}}"
-main = "build/index.js"
-compatibility_date = "{{ "now" | date: "%Y-%m-%d" }}"
-
-[build]
-command = "cargo install -q \"worker-build@^0.8\" && worker-build --release{% if panic_unwind %} --panic-unwind{% endif %}"
