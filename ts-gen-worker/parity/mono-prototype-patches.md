@@ -34,6 +34,7 @@ builds the whole prototype. `js_sys_unstable_apis` is on for wasm32; `worker`,
 | `f71ef2432` | `src/convert/{traits,impls}.rs`, `macro-support/src/{codegen,generics}.rs`, js-sys | `RefIntoWasmAbi` (first cut, a blanket over `&T: IntoWasmAbi`), so a `&T` argument is bounded `T: RefIntoWasmAbi` instead of an HRTB; simple `P: Bounds` render inline on the wrapper and on the hoisted `impl` header; js-sys declares its bounds explicitly | aesthetic signatures: `new_with_str_and_init(input: impl JsStringLike, init: &RequestInit<Cf>) -> Result<Request<JsValue, Cf>, JsException>` with no `where` | fold into wasm-bindgen#5385 |
 | `5314b95a1` | `src/convert/{traits,impls}.rs`, `macro-support/src/codegen.rs`, js-sys | per-type `RefIntoWasmAbi`, mirroring `RefFromWasmAbi` (own `Abi`, `ref_into_abi`, and an `Option<&Self>` ABI): the macro implements it per imported type beside the restored upstream `IntoWasmAbi for &Foo<..>`, wasm-bindgen for `JsValue`, `JsError`, strings and primitives; a mono `&T` / `Option<&T>` argument lowers through `T::ref_into_abi`. The `&T` and `&Option<T>` blankets are gone; js-sys has no HRTB left | no blanket impls. Of the prototype's earlier blankets, two structural `Option<T>` impls stay, `RefIntoWasmAbi for Option<T>` and `VectorFromWasmAbi for Option<T: JsGeneric>`, because a per-type impl for `Option<Foo>` breaks the orphan rule | fold into wasm-bindgen#5385 |
 | `2a5ab7eb0` | `src/sys.rs`, js-sys tests | mono `JsNullable<T>` for any ABI `T` (native leaves: `JsNullable<String>`, `JsNullable<f64>`, `JsNullable<bool>`): reads `into_option()`, `is_null()`, `Option::from`; writes `JsNullable::wrap`, `JsNullable::new()`, `Some(v).into()`; `Debug`, `PartialEq` (`===`). Per-type impls, no blanket. `Option<JsValue>` returns needed no change: they already fold `null` | null model: a nullable type argument (KV bulk get's `Map<String, string \| null>`) keeps `null` distinct | wasm-bindgen (with the generic-mono PR) |
+| `04859735b` | `macro-support/src/codegen.rs`, `src/convert/slices.rs`, js-sys | a dynamic-union enum works as a `Vec` element in both directions (per-enum `WasmDescribeVector`, `VectorFromWasmAbi`, `VectorIntoWasmAbi`, each element dispatched like a single value); `BufferSourceLike: VectorRefIntoWasmAbi`, so `&[impl BufferSourceLike]` is a written slice whose `&[u8]` / `Vec<u8>` elements cross as `Uint8Array` copies | `FormData::get_all` and buffer lists (`File` bits) stayed `JsValue` | wasm-bindgen (with the generic-mono PR) |
 
 ## js-sys (all under `js_sys_unstable_apis` unless noted)
 
@@ -98,6 +99,7 @@ builds the whole prototype. `js_sys_unstable_apis` is on for wasm32; `worker`,
 | `010f6f6` | a nullable type argument is `JsNullable<T>` with the native leaf (`Map<String, JsNullable<String>>`), `T \| undefined` is `Option<T>`; reads of `any \| null` are `Option<JsValue>`; returned `Vec<T \| null>` stays `Vec<Option<T>>` | null model: `Map<String, Option<String>>` sent and read `null` as `undefined` | ts-gen mono PR (null model) |
 | `0ac319e` | `--annotate`: a side property declared `readonly` (or a lone `get x()`) drops the input's setter, with its `_with_null` form | workers-types drops `readonly` on JSG instance properties, so 31 setters threw a `TypeError` | ts-gen "annotate: retype + namespaces" PR |
 | `de02e61` | output-only reaches a parent reached only through output-only children (`D1Response`) and the named member of an open-record intersection, which also types the field (`meta: D1Meta & Record<string, unknown>` → `meta() -> D1Meta`) | `D1Result` exposed `set_meta`/`set_success` through `Deref`; `D1Meta` had a dead write side and `meta()` was `JsValue` | ts-gen mono PR (null model) |
+| `2b9d924` | a discriminated-union branch factory takes a field its branch requires bare (`EmailAttachment::new_inline(content_id: impl JsStringLike, …)`), not the merged `string \| undefined` | the `inline` branch requires `contentId`, yet took `Option` and `None::<&str>` | ts-gen (branch factories) |
 
 ## workers-rs (`ts-gen-worker`)
 
@@ -148,12 +150,14 @@ Each row of the tables above is one change. Landing them is a smaller set of PRs
 | wasm-bindgen: `catch` on `Promise<T>` returns | `627ff72ba` | — |
 | wasm-bindgen#5385: explicit mono ABI bounds, plus per-type `RefIntoWasmAbi` | `923147656`, `35190dcd9`, `20e32eb42`, `f71ef2432`, `5314b95a1` | — |
 | wasm-bindgen: mono `JsNullable<T>` for any ABI `T` | `2a5ab7eb0` | generic-mono PR |
+| wasm-bindgen: `Vec` of dynamic unions, `&[impl BufferSourceLike]` | `04859735b` | generic-mono PR |
 | ts-gen mono: per-key `M[K]` bindings | `6815c11`, `a2e3344` | — |
 | ts-gen: rest tuples, orphan inline types | `5b20797`, `c98d196` | — |
 | ts-gen mono: nullable union-enum returns | `4883281` | — |
 | ts-gen mono: `Promise<T, E>` async returns | `16402cd`, `16a19f9`, `1d62eff` | `627ff72ba`, `70c2c0e64` |
 | ts-gen mono: generated `IntoIterator` | `d21202a` | `866b0d33d` |
 | ts-gen mono: explicit ABI bounds | `1fb83ab` | wasm-bindgen#5385 |
+| ts-gen: branch factories take required fields bare | `2b9d924` | — |
 | ts-gen mono: null model (null arms, output-only types, `JsNullable<T>` type arguments) | `448388f`, `31d57a6`, `010f6f6`, `de02e61` | `2a5ab7eb0` |
 | serde-wasm-bindgen, wasm-streams: build under `js_sys_unstable_apis` | `ts-gen-worker/vendor-patches` | js-sys unstable |
 | workers-rs: inputs (`annotations.d.ts`, `env.d.ts`), ext, port, `MIGRATING.md` | workers-rs rows | all of the above |

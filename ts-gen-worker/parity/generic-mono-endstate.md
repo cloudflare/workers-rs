@@ -545,7 +545,7 @@ entries, SQL values and `Error::cause`. No `::<JsValue>` is left on a binding:
 `tools/api-diff` over the generated `bindings.rs` (item-keyed signatures):
 
 - **B vs A**: 1270 items changed, 1020 removed, 456 added, 2765 unchanged. Most removed/added pairs are renames (overload suffixes, `_with_null` arms, KV typed reads).
-- **B vs B1**: 507 changed, 1381 removed (376 of them `_js_string` twins), 446 added, 3538 unchanged.
+- **B vs B1**: 508 changed, 1381 removed (376 of them `_js_string` twins), 446 added, 3537 unchanged.
 
 Type-level counts (doc and comment lines skipped):
 
@@ -570,7 +570,7 @@ Type-level counts (doc and comment lines skipped):
 | `Promise<(), crate::Error>` (methods) | 0 | 0 | 60 |
 | `Boolean` / `Number` | 32 | 8 | 0 |
 | `impl JsStringLike` | 0 | 1,268 | 1,077 |
-| `Option<impl JsStringLike>` | 0 | 7 | 4 |
+| `Option<impl JsStringLike>` | 0 | 7 | 2 |
 | `Option<&…>` arguments | 10 | 3 | 2 |
 | setters | 705 | 701 | 553 |
 | dictionary builders | 110 | 110 | 90 |
@@ -702,7 +702,7 @@ fields add 10 hidden `null` setters (688 − 100 + 10 = 598). The remaining `Opt
 
 Every item that is **still worse in B than in A**:
 - **`&[String]` → `&[impl JsStringLike]`:** `&[]` needs `&[] as &[&str]`. Literal lists and `&Vec<String>` both work.
-- **`Option<&str>` → `Option<impl JsStringLike>` (4, from 15 before the null model):** two raw `| undefined` setters keep it by design (`EmailAttachment::set_content_id`, `UnderlyingSource::set_type`), and the two `new_inline*` factories by a ts-gen bug (§6). `None` there needs `None::<&str>`. No nullable position takes `Option`: each has a `_with_null` form.
+- **`Option<&str>` → `Option<impl JsStringLike>` (2, from 15 before the null model):** only two raw `| undefined` setters keep it, by design (`EmailAttachment::set_content_id`, `UnderlyingSource::set_type`). `None` there needs `None::<&str>`. No nullable position takes `Option`: each has a `_with_null` form.
 - **Generic user code over a binding** restates the binding's declared bound: `T: RefIntoWasmAbi` for a `&T` argument, `T: FromWasmAbi` for a return, `Option<T>: FromWasmAbi` / `Vec<T>: FromWasmAbi` for those returns. All are first-order (phase 1 had 66 `for<'a>` clauses, phase 2 before #5385 had 12). A needed `T: JsGeneric`, which still covers a `&T` argument (`JsGeneric: RefIntoWasmAbi`).
 - **Surface size.** The added items are:
   - `_typed` twins (51), for constructors and nested return-only parameters;
@@ -826,8 +826,6 @@ Not built, by owner. Every review finding not listed here is done.
   `MessageEventInitDataKind` (§7).
 - `[A, ...B[]]` lowers to an erased array: D1 `raw_with_column_names()` returns `Vec<JsValue>`, the column names followed by the rows. A and B1 typed it as a fixed 2-tuple, which was wrong. A typed head/rest form needs a js-sys type.
 - `IncomingRequestCfProperties` has numbered builders, from crossing a dictionary-union field with the type's other unions. Only mocks build an incoming `cf`.
-- `EmailAttachment::new_inline(content_id: Option<…>)`: the `inline` variant requires `contentId`, but the
-  branch factory takes the merged field's `string | undefined`, so it takes `Option`.
 - Eight Promise-typed getters (`writer.ready()`, `socket.opened()`, the readers' and writers' `closed()`) return
   `Promise<T>`, which rejects with `JsValue`, so a tail `.await` of one is `Ok(x.await?)`. Only methods were given the crate's error type.
 
@@ -839,7 +837,7 @@ Not built, by owner. Every review finding not listed here is done.
 
 **By design (no action).**
 - `&[] as &[&str]`. `None::<&str>` on the two raw `| undefined` setters (`EmailAttachment::set_content_id`,
-  `UnderlyingSource::set_type`). The other two `Option<impl JsStringLike>` arguments are the `new_inline*` factories (ts-gen, above).
+  `UnderlyingSource::set_type`).
 - `any` values stay `JsValue` (SQL values, attachments, `Error::cause`).
 - `void | Promise<void>` callback returns are `Option<Promise<()>>`. That is correct, but a hand-built handler closure returns `None`/`Some(p)`; the macros hide it.
 - Mono's compile-time cost (§4).
