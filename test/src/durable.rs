@@ -11,7 +11,7 @@ use worker::{
     durable_object,
     js_sys::{self, Uint8Array},
     wasm_bindgen::JsValue,
-    Delay, Env, Method, ObjectNamespace, Request, RequestInit, Response, Result, State,
+    Delay, Env, GetOptions, Method, ObjectNamespace, Request, RequestInit, Response, Result, State,
 };
 
 #[durable_object]
@@ -198,6 +198,37 @@ impl DurableObject for MyClass {
                     storage.put("count", count).await?;
                     Response::ok(self.number.get().to_string())
                 }
+                "/get-options" => {
+                    // get_with_options / get_multiple_with_options round-trip stored values
+                    // with DurableObjectGetOptions set; the last field is the wire shape the
+                    // runtime receives (camelCase keys).
+                    let storage = self.state.storage();
+                    storage.put("opt_one", 1).await?;
+                    storage.put("opt_two", "two").await?;
+                    let opts = GetOptions {
+                        allow_concurrency: Some(true),
+                        no_cache: Some(true),
+                    };
+                    let one: Option<i32> =
+                        storage.get_with_options("opt_one", opts.clone()).await?;
+                    let missing: Option<i32> = storage
+                        .get_with_options("opt_missing", opts.clone())
+                        .await?;
+                    let default: Option<i32> = storage
+                        .get_with_options("opt_one", GetOptions::default())
+                        .await?;
+                    let many = storage
+                        .get_multiple_with_options(vec!["opt_one", "opt_two"], opts.clone())
+                        .await?;
+                    let two: String = serde_wasm_bindgen::from_value(many.get(&"opt_two".into()))?;
+                    let wire = js_sys::JSON::stringify(&serde_wasm_bindgen::to_value(&opts)?)?;
+                    storage.delete_multiple(vec!["opt_one", "opt_two"]).await?;
+                    Response::ok(format!(
+                        "{one:?}:{missing:?}:{default:?}:{}:{two}:{}",
+                        many.size(),
+                        String::from(wire)
+                    ))
+                }
                 "/transaction" => {
                     Response::error("transactional storage API is still unstable", 501)
                 }
@@ -340,6 +371,17 @@ pub async fn handle_storage(
     let namespace = env.durable_object("MY_CLASS")?;
     let stub = namespace.id_from_name("singleton")?.get_stub()?;
     stub.fetch_with_str("https://fake-host/storage").await
+}
+
+#[worker::send]
+pub async fn handle_get_options(
+    _req: Request,
+    env: Env,
+    _data: crate::SomeSharedData,
+) -> Result<Response> {
+    let namespace = env.durable_object("MY_CLASS")?;
+    let stub = namespace.id_from_name("get-options")?.get_stub()?;
+    stub.fetch_with_str("https://fake-host/get-options").await
 }
 
 #[worker::send]
