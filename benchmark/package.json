@@ -5,7 +5,7 @@
   "description": "Performance benchmark suite for workers-rs",
   "private": true,
   "scripts": {
-    "build": "WASM_BINDGEN_BIN=../wasm-bindgen/target/debug/wasm-bindgen ../target/debug/worker-build --release",
+    "build": "./build.sh",
     "bench": "node --run build && node run.js"
   }
 }
