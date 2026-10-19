@@ -7,11 +7,11 @@ deps = ['install:ts-gen']
 # can't infer; everything else (`ReadableStream`, `Headers`, `Event`, …)
 # resolves through ts-gen's built-in web_sys defaults.
 #
-# `--export cloudflare:email` lifts the module's declarations to global
-# scope so consumers see `worker::EmailMessage` directly (rather than
-# `worker::bindings::email::email::EmailMessage`). The file `--export`
-# is required alongside because once any `--export` is specified the
-# implicit "every input is its own export" default is disabled.
+# `--export cloudflare:email` emits the module as `cloudflare::email`;
+# `worker/src/email.rs` re-exports its `EmailMessage` so consumers keep
+# `worker::EmailMessage`. The file `--export` is required alongside because
+# once any `--export` is specified the implicit "every input is its own
+# export" default is disabled.
 run = '''ts-gen --input types/email.d.ts --output worker/src/bindings/email.rs \
   --errors-as-error \
   --export types/email.d.ts \
@@ -24,6 +24,120 @@ name = 'install:ts-gen'
 # ts-gen pulls in oxc which needs a newer rustc than the workspace's pinned 1.91;
 # build with the user's stable toolchain instead so it ignores rust-toolchain.toml.
 run = 'cargo +stable install --path ts-gen'
+
+[[task]]
+name = 'build:ts-gen-worker:types'
+deps = ['install:ts-gen']
+# The universe is the upstream workers-types file; `--export <Name>` roots
+# select the surface `worker` needs and everything it references, and
+# `--annotate` layers the `@throws` tags upstream lacks.
+#
+# Every sync binding is a single `Result` under its own name (`--fallible`);
+# untyped failures land in the crate's `Error`, `@throws`-typed ones in the
+# generated `JsException` enum. App `Env` bindings use the same policy against
+# `ts_gen_worker::Error` but share the crate's `JsException` rather than
+# generating a second enum. The Env file references binding types from the
+# crate; ts-gen has no file-level `--external`, so each one is mapped by name.
+run = '''ts-gen --experimental-generic-mono --input node_modules/@cloudflare/workers-types/index.d.ts \
+  --output ts-gen-worker/src/bindings.rs \
+  --fallible --error-type crate::Error --error-enum JsException \
+  --annotate ts-gen-worker/types/annotations.d.ts \
+  --export Request RequestInit Response ResponseInit Headers fetch \
+  --export ReadableStream ReadableStreamDefaultReader ReadableStreamBYOBReader \
+  --export WritableStream WritableStreamDefaultWriter TransformStream \
+  --export FixedLengthStream IdentityTransformStream \
+  --export FormData File Blob URLSearchParams URL \
+  --export AbortController AbortSignal \
+  --export caches Cache CacheStorage \
+  --export WebSocket WebSocketPair WebSocketRequestResponsePair \
+  --export MessageEvent CloseEvent ErrorEvent Event EventTarget \
+  --export ScheduledController ExecutionContext MessageBatch Message ExtendableEvent \
+  --export EmailMessage ForwardableEmailMessage EmailEvent SendEmail \
+  --export DurableObjectNamespace DurableObjectId DurableObjectStub DurableObjectState \
+  --export DurableObjectStorage DurableObjectTransaction SqlStorage SqlStorageCursor Container \
+  --export KVNamespace \
+  --export D1Database D1DatabaseSession D1PreparedStatement D1Result D1ExecResult \
+  --export R2Bucket R2Object R2ObjectBody R2Objects R2HTTPMetadata R2MultipartUpload \
+  --export R2UploadedPart R2Range R2Checksums \
+  --export Queue Fetcher Service DispatchNamespace \
+  --export Socket SocketOptions Hyperdrive AnalyticsEngineDataset RateLimit \
+  --export SecretsStoreSecret WorkerVersionMetadata \
+  --export IncomingRequestCfProperties RequestInitCfProperties \
+  --export crypto DigestStream console performance setTimeout clearTimeout \
+  --export cloudflare:sockets
+rustfmt --edition 2021 ts-gen-worker/src/bindings.rs
+ts-gen --experimental-generic-mono --input ts-gen-worker/test/types/env.d.ts --output ts-gen-worker/test/src/env.rs \
+  --fallible --error-type ts_gen_worker::Error \
+  --external "KVNamespace=::ts_gen_worker::KVNamespace" \
+  --external "Queue=::ts_gen_worker::Queue" \
+  --external "Fetcher=::ts_gen_worker::Fetcher" \
+  --external "DurableObjectNamespace=::ts_gen_worker::DurableObjectNamespace" \
+  --external "SecretsStoreSecret=::ts_gen_worker::SecretsStoreSecret" \
+  --external "AnalyticsEngineDataset=::ts_gen_worker::AnalyticsEngineDataset" \
+  --external "RateLimit=::ts_gen_worker::RateLimit" \
+  --external "SendEmail=::ts_gen_worker::SendEmail" \
+  --external "D1Database=::ts_gen_worker::D1Database" \
+  --external "R2Bucket=::ts_gen_worker::R2Bucket"
+ts-gen --experimental-generic-mono --input ts-gen-worker/benchmark/types/env.d.ts --output ts-gen-worker/benchmark/src/env.rs \
+  --fallible --error-type ts_gen_worker::Error \
+  --external "KVNamespace=::ts_gen_worker::KVNamespace" \
+  --external "Fetcher=::ts_gen_worker::Fetcher"'''
+
+# ts-gen-worker builds against js-sys's unstable API and wasm-bindgen's generic sequences
+# (`Vec<Option<T>>` returns), which only its crates opt into.
+# `RUSTFLAGS` replaces `.cargo/config.toml`'s rustflags (hence `getrandom_backend` again), and
+# a target dir of its own keeps js-sys from rebuilding when the rest of the workspace builds.
+[[task]]
+name = 'build:ts-gen-worker'
+deps = ['build:wasm-bindgen']
+env.RUSTFLAGS = '--cfg getrandom_backend="wasm_js" --cfg js_sys_unstable_apis --cfg wasm_bindgen_unstable_generic_vec'
+env.CARGO_TARGET_DIR = 'target/mono'
+run = '''cargo build -p ts-gen-worker-test --target wasm32-unknown-unknown
+wasm-bindgen/target/debug/wasm-bindgen --target module --out-name index --force-enable-abort-handler \
+  --out-dir ts-gen-worker/test/build target/mono/wasm32-unknown-unknown/debug/ts_gen_worker_test.wasm'''
+
+[[task]]
+name = 'test:ts-gen-worker'
+deps = ['build:ts-gen-worker']
+cwd = 'ts-gen-worker/test'
+env.NODE_OPTIONS = '--experimental-vm-modules'
+run = 'npx vitest run --root .'
+
+# The same suite with the fetch handler over `http::Request`/`http::Response`.
+[[task]]
+name = 'build:ts-gen-worker-http'
+deps = ['build:wasm-bindgen']
+env.RUSTFLAGS = '--cfg getrandom_backend="wasm_js" --cfg js_sys_unstable_apis --cfg wasm_bindgen_unstable_generic_vec'
+env.CARGO_TARGET_DIR = 'target/mono'
+run = '''cargo build -p ts-gen-worker-test --features http --target wasm32-unknown-unknown
+wasm-bindgen/target/debug/wasm-bindgen --target module --out-name index --force-enable-abort-handler \
+  --out-dir ts-gen-worker/test/build target/mono/wasm32-unknown-unknown/debug/ts_gen_worker_test.wasm'''
+
+[[task]]
+name = 'test:ts-gen-worker-http'
+deps = ['build:ts-gen-worker-http']
+cwd = 'ts-gen-worker/test'
+env.NODE_OPTIONS = '--experimental-vm-modules'
+run = 'npx vitest run --root .'
+
+[[task]]
+name = 'lint:ts-gen-worker'
+env.RUSTFLAGS = '--cfg getrandom_backend="wasm_js" --cfg js_sys_unstable_apis --cfg wasm_bindgen_unstable_generic_vec'
+env.CARGO_TARGET_DIR = 'target/mono'
+run = '''cargo clippy --target wasm32-unknown-unknown --all-targets -p ts-gen-worker -p ts-gen-worker-macros \
+  -p ts-gen-worker-test -p ts-gen-worker-benchmark -- -D warnings'''
+
+# The plain JS, `worker` and `ts-gen-worker` benchmark workers (see benchmark/README.md).
+[[task]]
+name = 'build:bench'
+deps = ['build']
+run = 'benchmark/build.sh'
+
+[[task]]
+name = 'bench'
+deps = ['build:bench']
+cwd = 'benchmark'
+run = 'node run.js'
 
 [[task]]
 name = 'build:wasm-bindgen'
