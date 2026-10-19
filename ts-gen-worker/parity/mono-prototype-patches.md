@@ -100,9 +100,13 @@ builds the whole prototype. `js_sys_unstable_apis` is on for wasm32; `worker`,
 | `010f6f6` | a nullable type argument is `JsNullable<T>` with the native leaf (`Map<String, JsNullable<String>>`), `T \| undefined` is `Option<T>`; reads of `any \| null` are `Option<JsValue>`; returned `Vec<T \| null>` stays `Vec<Option<T>>` | null model: `Map<String, Option<String>>` sent and read `null` as `undefined` | ts-gen mono PR (null model) |
 | `0ac319e` | `--annotate`: a side property declared `readonly` (or a lone `get x()`) drops the input's setter, with its `_with_null` form | workers-types drops `readonly` on JSG instance properties, so 31 setters threw a `TypeError` | ts-gen "annotate: retype + namespaces" PR |
 | `de02e61` | output-only reaches a parent reached only through output-only children (`D1Response`) and the named member of an open-record intersection, which also types the field (`meta: D1Meta & Record<string, unknown>` → `meta() -> D1Meta`) | `D1Result` exposed `set_meta`/`set_success` through `Deref`; `D1Meta` had a dead write side and `meta()` was `JsValue` | ts-gen mono PR (null model) |
-| `2b9d924` | a discriminated-union branch factory takes a field its branch requires bare (`EmailAttachment::new_inline(content_id: impl JsStringLike, …)`), not the merged `string \| undefined` | the `inline` branch requires `contentId`, yet took `Option` and `None::<&str>` | ts-gen (branch factories) |
+| `2b9d924` | a discriminated-union branch factory takes a field its branch requires bare (`EmailAttachment::new_inline(content_id: impl JsStringLike, …)`), not the merged `string \| undefined` | the `inline` branch requires `contentId`, yet took `Option` and `None::<&str>` | ts-gen mono PR (factories) |
 | `da264ef` | Promise-typed getters return `Promise<T, E>` like methods (`socket.opened()`, `closed()`, `writer.ready()`, `digest()`, `exit_code()`) | a tail `.await` of one rejected with `JsValue` | ts-gen mono PR (async) |
 | `120c5e8` | a union enum is shared only by sites of one JS name, and named from it (`ssec_key() -> Option<SsecKeyKind>`, `sha1() -> Option<Sha1Kind>`, SubtleCrypto `iv()` → `IvKind`); a name already taken is qualified by its class (`HibernatableWebSocketEventInfoInfoKind`) | shape-shared enums took the first site's name: R2's `ssec_key()` returned `MessageEventInitDataKind` | ts-gen mono PR (types) |
+| `81a20bf` | lists of unions keep their element types: a returned `(A \| B)[]` is `Vec<…Kind>` (`FormData::get_all -> Vec<GetAllReturnKind>`, `R2ListOptions::include -> Option<Vec<IncludeKind>>`); a written one expands per element arm, named for the element (`indexes_with_str_slice`, `Blob::new_with_buffer_source_slice`, `to_with_email_address_slice`), then `_with_js_value_slice(&[JsValue])`; `Array<BufferSource>` is `&[impl BufferSourceLike]` | `get_all` and written union lists were `JsValue`; needs `04859735b` | ts-gen mono PR (leaves) |
+| `9464827` | a generic iterable's `IntoIterator` bounds the item (`impl<'a, T: FromWasmAbi> IntoIterator for &'a SqlStorageCursor<T>`); a method type parameter constrained to typed arrays is `T: TypedArray + …` (`Crypto::get_random_values`, BYOB `read`/`read_at_least`) | the impl delegated through `where Iterator<T>: IntoIterator`, and the TS `extends` constraint was dropped | ts-gen mono PR (bounds) |
+| `710872f` | `[H, ...T[]]` with `H` and `T` different is `ArrayHeadRest<H', T'>` (D1 `raw_with_column_names()`, `raw_with_column_names_typed::<T>()`); a common element type stays a list; non-mono WAT comments print the declared tuple (ungated, `.rs` output unchanged) | D1 `raw`'s column names and rows were one `Vec<JsValue>`; needs `a649d0b7c` | ts-gen mono PR (leaves) |
+| `3d3e592` | a required field offering several literals within one shape is a factory argument, typed as its setter (`IncomingRequestCfProperties::new(.., edge_request_keep_alive_status: f64, ..)`, `IncomingRequestCfPropertiesTLSClientAuth::new(.., cert_revoked: CertRevokedKind, ..)`); 48 factories → 7 | each literal was a numbered factory (`new_0`…`new_5`, `builder_0`…`builder_5`) | ts-gen mono PR (factories) |
 
 ## workers-rs (`ts-gen-worker`)
 
@@ -144,8 +148,8 @@ Each row of the tables above is one change. Landing them is a smaller set of PRs
 | js-sys unstable: `String` returns, `Date::new_with_value`, `ArrayBuffer` bytes | `9d903011a`, `008fba104`, part of `b503ab30f` | — |
 | ts-gen: string return modes | `cdf4f12` | — |
 | ts-gen: `--annotate` `@retype` + namespaces, `readonly` | `121bae9`, `0ac319e` | — |
-| ts-gen mono: leaves (containers, awaited `Option`, `Iterable` slices, aliases, nullable list elements) | `f69a59d`, `ea1db10`, `ccd963b`, `890f23a` | `56ac6f184` |
-| ts-gen mono: bounds and callbacks | `62843fb`, `1ed2145`, `333b9e8` | `83af8baa2`, `cb872c471`, `b503ab30f` |
+| ts-gen mono: leaves (containers, awaited `Option`, `Iterable` slices, aliases, nullable list elements, lists of unions, head-and-rest tuples) | `f69a59d`, `ea1db10`, `ccd963b`, `890f23a`, `81a20bf`, `710872f` | `56ac6f184`, `04859735b`, `a649d0b7c` |
+| ts-gen mono: bounds and callbacks | `62843fb`, `1ed2145`, `333b9e8`, `9464827` | `83af8baa2`, `cb872c471`, `b503ab30f` |
 | ts-gen mono: constructors and return-only parameters (`_typed`) | `2744756`, `789c1ca` | — |
 | ts-gen mono: nullable arguments | `17df4e9`, `64e785e` | `cb872c471` |
 | ts-gen mono: overloads and names | `9220a19`, `e4d3fde`, `8e09b3d`, `76caab3`, `1549ee7`, `6f85b11`, `7ec1b4c` | — |
@@ -161,7 +165,7 @@ Each row of the tables above is one change. Landing them is a smaller set of PRs
 | ts-gen mono: `Promise<T, E>` async returns | `16402cd`, `16a19f9`, `1d62eff`, `da264ef` | `627ff72ba`, `70c2c0e64` |
 | ts-gen mono: generated `IntoIterator` | `d21202a` | `866b0d33d` |
 | ts-gen mono: explicit ABI bounds | `1fb83ab` | wasm-bindgen#5385 |
-| ts-gen: branch factories take required fields bare | `2b9d924` | — |
+| ts-gen mono: factories (a branch's required field bare, a field's literal choice as an argument) | `2b9d924`, `3d3e592` | — |
 | ts-gen mono: null model (null arms, output-only types, `JsNullable<T>` type arguments) | `448388f`, `31d57a6`, `010f6f6`, `de02e61` | `2a5ab7eb0` |
 | serde-wasm-bindgen, wasm-streams: build under `js_sys_unstable_apis` | `ts-gen-worker/vendor-patches` | js-sys unstable |
 | workers-rs: inputs (`annotations.d.ts`, `env.d.ts`), ext, port, `MIGRATING.md` | workers-rs rows | all of the above |

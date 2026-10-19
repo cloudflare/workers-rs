@@ -20,7 +20,9 @@ like Rust collections: `Map::get("k")`, `for (k, v) in &headers`, `record.iter()
 `promise.await`.
 
 String arguments take `impl JsStringLike` (`&str`, `String`, `&String`), and string lists take
-`&[impl JsStringLike]` (`&["a", "b"]`). A nullable argument, setter or builder value takes the
+`&[impl JsStringLike]` (`&["a", "b"]`). A list of a union has one form per element type
+(`.indexes_with_str_slice(&["a"])`, `Blob::new_with_buffer_source_slice(&[&bytes[..]])`) and
+`_with_js_value_slice(&[JsValue])` for a mixed list. A nullable argument, setter or builder value takes the
 value bare and sends `null` through its own `_with_null` form (`clear_timeout(id)` /
 `clear_timeout_with_null()`, `Response::new_with_null_and_init(&init)`, `.prefix(p)` /
 `.prefix_with_null()`). An optional one is an overload or builder method left uncalled; only an
@@ -191,7 +193,8 @@ is `PartialEq` and `Eq` by handle, as in `worker`, so a struct deriving `Eq` can
 `close` and `error`. `e.data()` is a `DataKind`: `String`, `ArrayBuffer`, or `Blob` under the
 `websocket_standard_binary_type` compat flag (the default from 2026-03-17) unless `binaryType` is set,
 and `JsValue` for anything else (a `MessagePort` message is any structured clone).
-`FormData::get` returns `Option<GetReturnKind>` (`File(f)` / `String(s)`).
+`FormData::get` returns `Option<GetReturnKind>` (`File(f)` / `String(s)`), and `get_all` a
+`Vec<GetAllReturnKind>`.
 
 ```rust
 // worker                                         // ts-gen-worker
