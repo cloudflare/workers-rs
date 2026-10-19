@@ -544,8 +544,8 @@ entries, SQL values and `Error::cause`. No `::<JsValue>` is left on a binding:
 
 `tools/api-diff` over the generated `bindings.rs` (item-keyed signatures):
 
-- **B vs A**: 1272 items changed, 1020 removed, 456 added, 2763 unchanged. Most removed/added pairs are renames (overload suffixes, `_with_null` arms, KV typed reads).
-- **B vs B1**: 511 changed, 1381 removed (376 of them `_js_string` twins), 446 added, 3534 unchanged.
+- **B vs A**: 1292 items changed, 1023 removed, 512 added, 2740 unchanged. Most removed/added pairs are renames (overload suffixes, `_with_null` arms, KV typed reads).
+- **B vs B1**: 535 changed, 1384 removed (376 of them `_js_string` twins), 502 added, 3507 unchanged.
 
 Type-level counts (doc and comment lines skipped):
 
@@ -589,7 +589,7 @@ Type-level counts (doc and comment lines skipped):
 | `_promise` twins | 277 | 276 | 0 |
 | `async fn`s | 277 | 292 | 0 |
 | `KVNamespace` get/put/list/delete fns | 70 | 78 | 73 |
-| lines | 18,366 | 19,548 | 16,235 |
+| lines | 18,366 | 19,548 | 16,324 |
 
 **Rustdoc signatures.** With wasm-bindgen#5385 the mono macro adds no ABI bounds to the public wrapper, so
 the declaration's bounds are the whole contract, and ts-gen states exactly those (`1fb83ab`):
@@ -822,8 +822,6 @@ Not built, by owner. Every review finding not listed here is done.
 - A union of slice elements with no Rust form is erased: `AnalyticsEngineDataPoint.{indexes,blobs}` take
   `&[JsValue]`, so the port writes `.blobs(&[req.method().into(), …])`, and `File::new`'s `bits` is the same.
   Expanding an element union like an argument union (`&[impl JsStringLike]`) would remove the last `.into()`s.
-- Shape-shared union enums are named after their first site: R2's `ssec_key()` returns
-  `MessageEventInitDataKind` (§7).
 - `[A, ...B[]]` lowers to an erased array: D1 `raw_with_column_names()` returns `Vec<JsValue>`, the column names followed by the rows. A and B1 typed it as a fixed 2-tuple, which was wrong. A typed head/rest form needs a js-sys type.
 - `IncomingRequestCfProperties` has numbered builders, from crossing a dictionary-union field with the type's other unions. Only mocks build an incoming `cf`.
 
@@ -901,7 +899,8 @@ ts-gen or `annotations.d.ts`.
   throws `invalid dynamic union value` inside the getter, where Rust cannot catch it
   (`test/tests/worker.spec.ts` "MessageEvent data outside …"). The enum takes the bare name `DataKind`, which the
   Durable Object `websocket_message` handler shares, so that handler sees `Blob` and `JsValue` arms that
-  hibernation never delivers. The two-arm shape is now `MessageEventInitDataKind` (event construction, R2 `ssecKey`).
+  hibernation never delivers. A union enum is shared only by sites of one JS name, so event construction's two-arm shape is
+  `MessageEventInitDataKind` and R2's `ssecKey` has its own `SsecKeyKind`.
 - **Optional properties typed only `never` or `undefined` have no accessors.** This removes
   `D1Result::error()`, which `worker` exposes as `Option<String>`.
 

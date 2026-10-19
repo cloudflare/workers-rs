@@ -101,7 +101,8 @@ builds the whole prototype. `js_sys_unstable_apis` is on for wasm32; `worker`,
 | `0ac319e` | `--annotate`: a side property declared `readonly` (or a lone `get x()`) drops the input's setter, with its `_with_null` form | workers-types drops `readonly` on JSG instance properties, so 31 setters threw a `TypeError` | ts-gen "annotate: retype + namespaces" PR |
 | `de02e61` | output-only reaches a parent reached only through output-only children (`D1Response`) and the named member of an open-record intersection, which also types the field (`meta: D1Meta & Record<string, unknown>` → `meta() -> D1Meta`) | `D1Result` exposed `set_meta`/`set_success` through `Deref`; `D1Meta` had a dead write side and `meta()` was `JsValue` | ts-gen mono PR (null model) |
 | `2b9d924` | a discriminated-union branch factory takes a field its branch requires bare (`EmailAttachment::new_inline(content_id: impl JsStringLike, …)`), not the merged `string \| undefined` | the `inline` branch requires `contentId`, yet took `Option` and `None::<&str>` | ts-gen (branch factories) |
-| `da264ef` | Promise-typed getters return `Promise<T, E>` like methods (`socket.opened()`, `closed()`, `writer.ready()`, `digest()`, `exit_code()`) | a tail `.await` of one rejected with `JsValue` | ts-gen mono PR (`Promise<T, E>`) |
+| `da264ef` | Promise-typed getters return `Promise<T, E>` like methods (`socket.opened()`, `closed()`, `writer.ready()`, `digest()`, `exit_code()`) | a tail `.await` of one rejected with `JsValue` | ts-gen mono PR (async) |
+| `120c5e8` | a union enum is shared only by sites of one JS name, and named from it (`ssec_key() -> Option<SsecKeyKind>`, `sha1() -> Option<Sha1Kind>`, SubtleCrypto `iv()` → `IvKind`); a name already taken is qualified by its class (`HibernatableWebSocketEventInfoInfoKind`) | shape-shared enums took the first site's name: R2's `ssec_key()` returned `MessageEventInitDataKind` | ts-gen mono PR (types) |
 
 ## workers-rs (`ts-gen-worker`)
 
@@ -156,7 +157,7 @@ Each row of the tables above is one change. Landing them is a smaller set of PRs
 | wasm-bindgen: `Vec` of dynamic unions, `&[impl BufferSourceLike]` | `04859735b` | generic-mono PR |
 | ts-gen mono: per-key `M[K]` bindings | `6815c11`, `a2e3344` | — |
 | ts-gen: rest tuples, orphan inline types | `5b20797`, `c98d196` | — |
-| ts-gen mono: nullable union-enum returns | `4883281` | — |
+| ts-gen mono: nullable union-enum returns, per-name enums | `4883281`, `120c5e8` | — |
 | ts-gen mono: `Promise<T, E>` async returns | `16402cd`, `16a19f9`, `1d62eff`, `da264ef` | `627ff72ba`, `70c2c0e64` |
 | ts-gen mono: generated `IntoIterator` | `d21202a` | `866b0d33d` |
 | ts-gen mono: explicit ABI bounds | `1fb83ab` | wasm-bindgen#5385 |
