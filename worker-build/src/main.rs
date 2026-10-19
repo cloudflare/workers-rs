@@ -123,7 +123,7 @@ pub fn main() -> Result<()> {
         fs::write(&shim_path, shim)
             .with_context(|| format!("Failed to write {}", shim_path.display()))?;
 
-        add_export_wrappers(&staging_dir, emscripten)?;
+        let has_workflows = add_export_wrappers(&staging_dir, emscripten)?;
 
         update_package_json(&staging_dir)?;
 
@@ -134,7 +134,9 @@ pub fn main() -> Result<()> {
 
         remove_unused_files(&staging_dir)?;
 
-        create_wrapper_alias(&staging_dir, false)?;
+        if !has_workflows {
+            create_wrapper_alias(&staging_dir, false)?;
+        }
     } else {
         main_legacy::process(&staging_dir)?;
         create_wrapper_alias(&staging_dir, true)?;
@@ -169,7 +171,7 @@ fn generate_handlers_from_content(content: &str) -> String {
             if let Some(bracket_pos) = rest.find("(") {
                 let func_name = rest[..bracket_pos].trim();
                 // strip the exported function (we re-wrap all handlers)
-                if !SYSTEM_FNS.contains(&func_name) {
+                if !SYSTEM_FNS.contains(&func_name) && !func_name.starts_with("__wf_") {
                     func_names.push(func_name);
                 }
             }
@@ -178,7 +180,7 @@ fn generate_handlers_from_content(content: &str) -> String {
                 let rest = &rest[as_pos + 4..];
                 if let Some(brace_pos) = rest.find("}") {
                     let func_name = rest[..brace_pos].trim();
-                    if !SYSTEM_FNS.contains(&func_name) {
+                    if !SYSTEM_FNS.contains(&func_name) && !func_name.starts_with("__wf_") {
                         func_names.push(func_name);
                     }
                 }
@@ -304,18 +306,27 @@ fn export_decls(content: &str) -> impl Iterator<Item = &str> {
     })
 }
 
-fn add_export_wrappers(out_dir: &Path, plain: bool) -> Result<()> {
+/// Returns true if workflow classes were detected and a wrapper was generated
+fn add_export_wrappers(out_dir: &Path, plain: bool) -> Result<bool> {
     let index_path = output_path(out_dir, "index.js");
     let content = fs::read_to_string(&index_path)
         .with_context(|| format!("Failed to read {}", index_path.display()))?;
 
     let mut class_names = Vec::new();
+    let mut workflow_classes = Vec::new();
     for line in export_decls(&content) {
         // Emscripten output declares classes as `export var Name = class Name {`.
         if let Some(rest) = line.strip_prefix("export class ") {
             if let Some(brace_pos) = rest.find("{") {
-                let class_name = rest[..brace_pos].trim();
-                class_names.push(class_name.to_string());
+                class_names.push(rest[..brace_pos].trim().to_string());
+            }
+        } else if let Some(rest) = line.strip_prefix("export function __wf_") {
+            if let Some(paren_pos) = rest.find('(') {
+                workflow_classes.push(rest[..paren_pos].trim().to_string());
+            }
+        } else if let Some(rest) = line.strip_prefix("export { __wf_") {
+            if let Some(as_pos) = rest.find(" as ") {
+                workflow_classes.push(rest[..as_pos].trim().to_string());
             }
         } else if let Some(rest) = line.strip_prefix("export var ") {
             if let Some((class_name, def)) = rest.split_once("=") {
@@ -329,8 +340,12 @@ fn add_export_wrappers(out_dir: &Path, plain: bool) -> Result<()> {
     let shim_path = output_path(out_dir, "shim.js");
     let mut output = fs::read_to_string(&shim_path)
         .with_context(|| format!("Failed to read {}", shim_path.display()))?;
-    for class_name in class_names {
-        if plain {
+    for class_name in &class_names {
+        if workflow_classes.contains(class_name) {
+            output.push_str(&format!(
+                "export const {class_name} = exports.{class_name};\n"
+            ));
+        } else if plain {
             // The runtime only exposes RPC on classes deriving from DurableObject.
             output.push_str(&format!(
                 "Object.setPrototypeOf(exports.{class_name}.prototype, DurableObject.prototype);\n\
@@ -345,6 +360,49 @@ fn add_export_wrappers(out_dir: &Path, plain: bool) -> Result<()> {
     }
     fs::write(&shim_path, output)
         .with_context(|| format!("Failed to write {}", shim_path.display()))?;
+
+    // Workflows need a JS wrapper that extends WorkflowEntrypoint from cloudflare:workers
+    let has_workflows = !workflow_classes.is_empty();
+    if has_workflows {
+        generate_workflow_wrapper(out_dir, &workflow_classes)?;
+    }
+
+    Ok(has_workflows)
+}
+
+fn generate_workflow_wrapper(out_dir: &Path, workflow_classes: &[String]) -> Result<()> {
+    let mut wrapper = String::from(
+        r#"import { WorkflowEntrypoint } from "cloudflare:workers";
+import * as wasm from "../index.js";
+export * from "../index.js";
+export { default } from "../index.js";
+
+"#,
+    );
+
+    for class_name in workflow_classes {
+        wrapper.push_str(&format!(
+            r#"export class {class_name} extends WorkflowEntrypoint {{
+  constructor(ctx, env) {{
+    super(ctx, env);
+    this.inner = new wasm.{class_name}(ctx, env);
+  }}
+  async run(event, step) {{
+    return await this.inner.run(event, step);
+  }}
+}}
+
+"#
+        ));
+    }
+
+    let worker_dir = output_path(out_dir, "worker");
+    fs::create_dir_all(&worker_dir)
+        .with_context(|| format!("Failed to create directory {}", worker_dir.display()))?;
+    let shim_path = output_path(out_dir, "worker/shim.mjs");
+    fs::write(&shim_path, wrapper)
+        .with_context(|| format!("Failed to write {}", shim_path.display()))?;
+
     Ok(())
 }
 
@@ -415,9 +473,7 @@ fn wasm_coredump(out_dir: &Path) -> Result<()> {
 
 fn create_wrapper_alias(out_dir: &Path, legacy: bool) -> Result<()> {
     let msg = if !legacy {
-        "// Use index.js directly, this file provided for backwards compat
-// with former shim.mjs only.
-"
+        "// Use index.js directly, this file provided for backwards compat\n// with former shim.mjs only.\n"
     } else {
         ""
     };
