@@ -584,31 +584,14 @@ impl Build {
     }
 
     fn step_run_wasm_opt(&mut self) -> Result<()> {
-        let mut args = match self
+        let args = match self
             .crate_data
             .configured_profile(self.profile.clone())
             .wasm_opt_args()
         {
-            Some(args) => args,
+            Some(args) => wasm_opt_args(args),
             None => return Ok(()),
         };
-        // Explicit feature set rather than --all-features so that new binaryen
-        // encodings (e.g. compact imports) are never emitted before workerd
-        // supports them. Covers rustc wasm32-unknown-unknown defaults plus the
-        // exception handling used by wasm-bindgen catch wrappers.
-        for feature in [
-            "mutable-globals",
-            "sign-ext",
-            "nontrapping-float-to-int",
-            "bulk-memory",
-            "multivalue",
-            "reference-types",
-            "exception-handling",
-        ] {
-            args.push(format!("--enable-{feature}"));
-        }
-        // Keep the Wasm names section
-        args.push("--debuginfo".into());
         info!("executing wasm-opt with {args:?}");
         wasm_opt_run(&self.out_dir, &args).map_err(|e| {
             anyhow!(
@@ -744,6 +727,26 @@ pub fn wasm_bindgen_build(
     Ok(())
 }
 
+/// Appends the wasm features worker-build always enables to the profile's `wasm-opt` args.
+fn wasm_opt_args(mut args: Vec<String>) -> Vec<String> {
+    // Explicit feature set rather than --all-features so that new binaryen
+    // encodings (e.g. compact imports) are never emitted before workerd
+    // supports them. Covers rustc wasm32-unknown-unknown defaults plus the
+    // exception handling used by wasm-bindgen catch wrappers.
+    for feature in [
+        "mutable-globals",
+        "sign-ext",
+        "nontrapping-float-to-int",
+        "bulk-memory",
+        "multivalue",
+        "reference-types",
+        "exception-handling",
+    ] {
+        args.push(format!("--enable-{feature}"));
+    }
+    args
+}
+
 /// Execute `wasm-opt` over wasm binaries found in `out_dir`, downloading if
 /// necessary into `cache`. Passes `args` to each invocation of `wasm-opt`.
 pub fn wasm_opt_run(out_dir: &Path, args: &[String]) -> Result<()> {
@@ -767,4 +770,36 @@ pub fn wasm_opt_run(out_dir: &Path, args: &[String]) -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod test {
+    use super::{manifest::CargoWasmPackProfile, wasm_opt_args};
+
+    /// The args wasm-opt runs with for a profile's `wasm-opt` setting.
+    fn args(profile: &str) -> Option<Vec<String>> {
+        toml::from_str::<CargoWasmPackProfile>(profile)
+            .unwrap()
+            .wasm_opt_args()
+            .map(wasm_opt_args)
+    }
+
+    #[test]
+    fn test_wasm_opt_args_enabled_keeps_names() {
+        let args = args("wasm-opt = true").unwrap();
+        assert_eq!(&args[..2], ["-O", "--debuginfo"]);
+        assert!(args[2..].iter().all(|arg| arg.starts_with("--enable-")));
+    }
+
+    #[test]
+    fn test_wasm_opt_args_explicit_args_used_as_written() {
+        let args = args(r#"wasm-opt = ["-O"]"#).unwrap();
+        assert_eq!(args[0], "-O");
+        assert!(args[1..].iter().all(|arg| arg.starts_with("--enable-")));
+    }
+
+    #[test]
+    fn test_wasm_opt_args_disabled() {
+        assert_eq!(args("wasm-opt = false"), None);
+    }
 }
