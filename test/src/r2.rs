@@ -142,6 +142,33 @@ pub async fn get(_req: Request, env: Env, _data: SomeSharedData) -> Result<Respo
 }
 
 #[worker::send]
+pub async fn list_without_include(
+    _req: Request,
+    env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
+    let bucket = env.bucket("SEEDED_BUCKET")?;
+    seed_bucket(&bucket).await?;
+
+    // No `include`: since the `r2_list_honor_include` compatibility flag (2022-08-04) the runtime
+    // omits `httpMetadata` and `customMetadata` from listed objects. Reading them must not panic.
+    let objects = bucket.list().execute().await?;
+    let object = objects
+        .objects()
+        .into_iter()
+        .find(|obj| obj.key() == "with-props")
+        .expect("seeded object");
+
+    let http_metadata = object.http_metadata();
+    let custom_metadata = object.custom_metadata()?;
+
+    Response::ok(format!(
+        "content_type={:?} custom={:?}",
+        http_metadata.content_type, custom_metadata
+    ))
+}
+
+#[worker::send]
 pub async fn put(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let bucket = env.bucket("PUT_BUCKET")?;
 
