@@ -213,6 +213,9 @@ macro_rules! add_routes (
     add_route!($obj, get, "/r2/list", r2::list);
     add_route!($obj, get,"/r2/get-empty", r2::get_empty);
     add_route!($obj, get, "/r2/get", r2::get);
+    add_route!($obj, get, "/r2/get-range/offset-length", r2::get_range_offset_length);
+    add_route!($obj, get, "/r2/get-range/suffix", r2::get_range_suffix);
+    add_route!($obj, get, "/r2/get-range/none", r2::get_range_none);
     add_route!($obj, put,  "/r2/put", r2::put);
     add_route!($obj, put,  "/r2/put-properties", r2::put_properties);
     add_route!($obj, put,  "/r2/put-multipart", r2::put_multipart);
