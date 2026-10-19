@@ -6,13 +6,14 @@ All three branches are named `proto/mono`:
 
 | repo | branch tip | base |
 |---|---|---|
-| workers-rs | `proto/mono` | phase 1 `gbedford/tgw-mono-endstate` `2f32d52` |
+| workers-rs | `proto/mono` | phase 1 `2f32d52` |
 | ts-gen | `proto/mono` | phase 1's layer stack `0c813f2`…`0ec2bd9` + ts-gen#122 (`6e22f0c`…`6d1dd4f`) |
 | wasm-bindgen | `proto/mono` | phase 1's submodule pin (wasm-bindgen#5390 + #5375) `ea363f37e` |
 
 The workers-rs submodules point at the ts-gen and wasm-bindgen tips, so workers-rs `proto/mono`
-builds the whole prototype. `js_sys_unstable_apis` is on for wasm32; `worker`,
-`worker-sys`, `test/` and `examples/` are left out of the build (`-p` only).
+builds the whole prototype. `js_sys_unstable_apis` is set only for the ts-gen-worker builds
+(`chompfile.toml`), so `worker` and the rest of the workspace build without it, against the same
+wasm-bindgen.
 
 ## wasm-bindgen (macro, CLI, ABI)
 
@@ -23,7 +24,7 @@ builds the whole prototype. `js_sys_unstable_apis` is on for wasm32; `worker`,
 | `160741bcf` | same | CLI erases `NamedExternref` names before grouping mono imports | handle types that differ only in TS name share a shim | generic-mono PR |
 | `160741bcf` | same | `// generic import` comments only under `--keep-debug` | 13 KB of debug-only glue in release builds | generic-mono PR |
 | `160741bcf` | same | `?Sized` mono type parameters | `Map::get(&Q) where K: Borrow<Q>` | generic-mono PR |
-| `160741bcf` | same | direct bounds on a synthesized `impl Trait` param stay on the outer wrapper | `4fe6881c0` dropped them (`impl Clone` imports failed) | fold into the feedback-8 PR |
+| `160741bcf` | same | direct bounds on a synthesized `impl Trait` param stay on the outer wrapper | `4fe6881c0` dropped them (`impl Clone` imports failed) | fold into the generic-mono PR (with `4fe6881c0`) |
 | `160741bcf` | same | `impl IntoWasmAbi for &Option<T>`; CLI reads `REF OPTIONAL T` as `OPTIONAL REF T` | `Map<_, Option<_>>::set(&k, &Some(v))` | wasm-bindgen (the `&Option<T>` blanket was replaced by `RefIntoWasmAbi for Option<T>` in `5314b95a1`) |
 | `cb872c471` | `macro-support/src/codegen.rs`, `src/convert/impls.rs`, `cli-support/src/descriptor.rs` | mono `Option<&T>` arguments (`for<'a> Option<&'a T>: IntoWasmAbi`), `Option<&prim>: IntoWasmAbi`; `unraw()` for derived idents | `T \| null` → `Option<&T>` for generic args; `__wbg_slot_r#type` panic | generic-mono PR |
 | `56ac6f184` | `macro-support/src/codegen.rs`, `src/convert/slices.rs`, 2 reference files | `extends = Parent<A, B>` with concrete type arguments (parent conversions via `<Parent as JsCast>::unchecked_from_js`); `Vec<Option<T>>` returns for handles, `String`, `bool`, `char`, numbers | `IdentityTransformStream extends TransformStream<…, Uint8Array>`; `TraceEventInfo::traces -> Vec<Option<String>>` | wasm-bindgen |
@@ -57,12 +58,12 @@ builds the whole prototype. `js_sys_unstable_apis` is on for wasm32; `worker`,
 
 | commit | what | why | upstream |
 |---|---|---|---|
-| `f69a59d` | native leaves in js-sys containers (`Map<String, _>`, `Array<String>`, `Promise<String>`, `Set`, iterators, `Record`'s `Object`, tuples) in arguments, returns and fields; type-parameter arguments lent (`&T`); constructors bind only the class parameters their arguments mention | ideal end state (containers, pattern 6, pattern 7) | ts-gen mono PR |
+| `f69a59d` | native leaves in js-sys containers (`Map<String, _>`, `Array<String>`, `Promise<String>`, `Set`, iterators, `Record`'s `Object`, tuples) in arguments, returns and fields; type-parameter arguments lent (`&T`); constructors bind only the class parameters their arguments mention | containers had JS leaves (`Map<JsString, _>`, `Array<JsString>`), generic arguments were taken by value, and constructors bound parameters nothing fixed | ts-gen mono PR |
 | `ea1db10` | an awaited mono `T \| undefined` is `Option<T>` | `storage.get::<f64>(k)` → `Option<f64>` | ts-gen mono PR |
-| `8a53f8c` | re-bless D1's two mono fixtures | rebase drift | folds into `f69a59d` |
+| `8a53f8c` | re-bless two mono fixtures after the rebase | rebase drift | folds into `f69a59d` |
 | `cdf4f12` | `{@string copy\|ref\|both}` (member doc, `@returns`, declaration default, `--annotate`); twin named before keyword escaping (`type_js_string`) | a string return reads as `String`; the `JsString` twin only where asked for | ts-gen "string return modes" PR |
 | `62843fb` | helper impl bounds from setter shapes (`&T`, `Option<T>`, `&[T]`) | replaces phase 1's hand-applied `mono-patch` #1/#2 | ts-gen mono PR (bounds) |
-| `2744756` | `_typed` constructor twins bind every class parameter; concrete construct-signature returns (`ReadableStream<Uint8Array>` for a byte source) | ideal end state (constructors) | ts-gen mono PR (constructors) |
+| `2744756` | `_typed` constructor twins bind every class parameter; concrete construct-signature returns (`ReadableStream<Uint8Array>` for a byte source) | a typed instance from a zero-argument constructor needed a cast | ts-gen mono PR (constructors) |
 | `17df4e9` | `T \| null` arguments → `Option<impl JsStringLike>` / `Option<f64>` / `Option<&T>`; builder methods take an optional nullable value bare (`.signal(&s)`, `.prefix("p")`); an `ArrayBufferView` builder value upcasts into the setter | 42 `JsNullable::wrap` in the port | ts-gen mono PR (nullable args); superseded for writes by the null model (`448388f`), which keeps ts-gen#51's no-coercion rule |
 | `1ed2145` | callbacks take native leaves, `void` is `()`, `void \| Promise<void>` is `Option<Promise<()>>`, `Promise<Undefined>` → `Promise<()>`; `() => Promise<T>` keeps `T`; helper bounds only on bare type-parameter mentions | callbacks were typed over erased leaves; needs `83af8baa2` + `cb872c471` | ts-gen mono PR (bounds) |
 | `64e785e` | an expanded null-admitting union takes bare arms plus a `_with_null` arm (`Response::new_with_null_and_init(&init)`, `R2Bucket::put_with_null(k)`) | no `Some(..)` on every body | ts-gen mono PR (nullable args) |
@@ -112,7 +113,7 @@ builds the whole prototype. `js_sys_unstable_apis` is on for wasm32; `worker`,
 
 | commit | files | what | why | upstream |
 |---|---|---|---|---|
-| `14be4c3` | `.cargo/config.toml` | `--cfg js_sys_unstable_apis` for wasm32 | the mono js-sys APIs live behind the cfg | workers-rs; drop once stable |
+| `14be4c3`, `dcaf190` | `chompfile.toml`, `benchmark/build.sh`, the three crate roots | `--cfg js_sys_unstable_apis` for the ts-gen-worker builds only (`RUSTFLAGS`, own `target/mono`); without it the crates are empty on the host and a `compile_error!` on wasm32 | the mono js-sys APIs live behind the cfg, which `worker` does not build under | workers-rs; drop once stable |
 | `14be4c3` | `ts-gen-worker/vendor-patches/serde-wasm-bindgen`, `Cargo.toml` `[patch.crates-io]` | `get_unchecked`, `set_ref`, `Object::entries_typed`, `Array::from_iterable` (19 lines) | 0.6.5 has 6 errors under the cfg | serde-wasm-bindgen (cfg-gated) |
 | `14be4c3` | `ts-gen-worker/vendor-patches/wasm-streams` | `catch_map`, `get_unchecked` (10 lines) | 0.7.0 has 4 errors under the cfg | wasm-streams |
 | `df2ad74` | `ts-gen-worker/types/annotations.d.ts` | `{@string copy}` declaration defaults on 122 declarations, `{@string both}` on `Body`/`Blob`/`R2ObjectBody` `text()`; KV values keep both | small strings `String` only; twins where a body may go back to JS (386 → 73 twins in `bindings.rs`) | workers-rs |
@@ -127,7 +128,7 @@ builds the whole prototype. `js_sys_unstable_apis` is on for wasm32; `worker`,
 | `cdf58ab` | `ts-gen-worker/types/annotations.d.ts` | `readonly` on the properties workerd defines without a setter: `Request` (10), `Response` (9), `WebSocket` `readyState`/`url`/`protocol`/`extensions`, `WebSocketPair` `0`/`1`, `SqlStorageCursor.columnNames` | their setters threw a `TypeError`; `binaryType` stays writable | workers-rs (upstream: workers-types) |
 | `636cfab`…HEAD | `ts-gen-worker/{src/ext,test/src,benchmark/src}` | port rewritten to each new surface | ideal idioms | workers-rs |
 
-Superseded local fixes (folded upstream, not in the final tree): wasm-bindgen `a3d285150`
+Superseded fixes (folded into later commits, not in the final tree): wasm-bindgen `a3d285150`
 (raw-identifier slot names, now in `cb872c471`), ts-gen `3e42fce` (`ArrayBufferView` builder
 upcast, now in `17df4e9`).
 

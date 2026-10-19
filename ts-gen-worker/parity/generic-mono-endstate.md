@@ -11,8 +11,8 @@ from the wasm-bindgen#5167 compile matrix (wasm-bindgen `2497681c1`, stable js-s
 ## Verdict
 
 1. B builds as generated, with no hand patches to the bindings, and passes the suite (195/195, plain and `-http`; A has 194, plus the `MessageEvent` catch-all test). The port has none of: `JsString`, `String::from(<js>)`, `JsNullable::wrap`/`new`, `None::<…>`, `.set_x(Some(…))`, `map_err(|e| e.to_string())`, `JsFuture::from` at call sites. `unchecked_*` casts went from 29 (A) to 4. Each of the 4 sits at an `any`-typed or erased boundary (§2).
-2. Everything phase 1 assumed is built, and every review finding is done except the ones in §6. Phase 2 also built Rust iteration, `Object<T>` as a map, typed KV reads, byte-stream bodies, one argument for buffer sources, one `Promise<T, crate::Error>` per async method and Promise-typed getter, shorter overload names, typed lists of unions, a head-and-rest tuple type, a null model (writes keep `null` exact, reads fold it into `Option`, §7), and signatures whose bounds are the declaration's (no `WasmDescribe` or `for<'__wbg>` in rustdoc, §3).
-3. The cost in commits: 23 wasm-bindgen/js-sys commits (three are wasm-bindgen#5385) and 48 ts-gen commits on top of phase 1. Under the cfg, js-sys is a different API in which collections behave like Rust collections. That API break, and the fallout in `worker`, serde-wasm-bindgen and wasm-streams, is the price of the containers. `worker` is not ported (§6).
+2. Everything phase 1 assumed but did not build is built, and every gap found while building B is closed except those in §6. Phase 2 also built Rust iteration, `Object<T>` as a map, typed KV reads, byte-stream bodies, one argument for buffer sources, one `Promise<T, crate::Error>` per async method and Promise-typed getter, shorter overload names, typed lists of unions, a head-and-rest tuple type, a null model (writes keep `null` exact, reads fold it into `Option`, §7), and signatures whose bounds are the declaration's (no `WasmDescribe` or `for<'__wbg>` in rustdoc, §3).
+3. The cost in commits: 23 wasm-bindgen/js-sys commits (three are wasm-bindgen#5385) and 48 ts-gen commits on top of phase 1. Under the cfg, js-sys is a different API in which collections behave like Rust collections. That API break, and the fallout in `worker`, serde-wasm-bindgen and wasm-streams, is the price of the containers. `worker` is not ported; the cfg is scoped to the ts-gen-worker builds (§6).
 4. The cost in size and time: benchmark wasm +633 (+0.5%), test glue +10,182 (+5.8%) (phase 1: +12.7%), test imports +21 (phase 1: +16), 0 generic shims (phase 1: 177). `ts-gen-worker` compiled +5% debug and +6% release in a back-to-back pair before the final bound changes; the final tree, timed alone, is +7% / +12% (§4).
 5. Mono's own lead over C is unchanged from phase 1:
    - leaf type arguments on generated generics (`get::<f64>`, `get_with_metadata_typed::<f64>`, `first`);
@@ -562,7 +562,7 @@ generated `bindings.rs` and the test and benchmark `env.rs`, and skipping commen
 | `Closure::` | 4 | 4 | 1 |
 | `._0()` / `._1()` | 10 | 10 | 2 |
 | `Uint8Array::new(&…)` re-wraps | 5 | 5 | 0 |
-| lines | 7,444 | 7,386 | 7,221 |
+| lines | 7,444 | 7,386 | 7,229 |
 
 The 4 remaining casts:
 - the wasm-streams boundary (`web_sys::ReadableStream` → `ReadableStream<Uint8Array>`, `src/ext/streams.rs:161`);
@@ -783,7 +783,7 @@ measurement.
 | test crate alone on top (debug) | 4.1 s | 4.3 s | 4.1 s | +0.0 s |
 
 What moved since phase 1 (B1 → B):
-- **Generic shims 177 → 0, glue +22,270 B → +10,182 B over A.** J's wire-format grouping makes `&str`, `String`, `&String` and `JsString` one import, and handles one import whether passed by value or by reference. The `// generic import` comments are gone without `--keep-debug`. Owned strings cross borrowed, so the `finally` frees went from 14 to 6 (A has 10).
+- **Generic shims 177 → 0, glue +22,270 B → +10,182 B over A.** wasm-bindgen's wire-format grouping makes `&str`, `String`, `&String` and `JsString` one import, and handles one import whether passed by value or by reference. The `// generic import` comments are gone without `--keep-debug`. Owned strings cross borrowed, so the `finally` frees went from 14 to 6 (A has 10).
 - **Twins 383 → 15.** `{@string copy}` on small strings means less surface. The output does not depend on it, because unused twins never reach the binary.
 - **Compile time +23–25% → +5–6% over A** (at `b901d43`). One `Promise<T, crate::Error>` return per async member removed every `async fn` wrapper and `_promise` twin, and one `impl BufferSourceLike` argument the buffer arm pairs. `bindings.rs` is now 18,240 lines, against A's 22,148 and B1's 23,740.
 
@@ -802,7 +802,7 @@ What B still costs over A:
   - string lists as UTF-8 slices (`blobs_with_str_slice`) beside the `JsValue`-slice form;
   - awaited wire formats (`()`, `Option<f64>`, `Option<ArrayBuffer>`, …): 6 more closure casts;
   - the port's wider API use: per-type KV reads, `get_with_metadata_typed::<f64>`, generated `[Symbol.iterator]`, `Object::from_iter`/`collect` (`Reflect.set` by string key), three `Function::from_fn` closures.
-- **Compile time** in the bindings crate was +5% debug and +6% release at `b901d43`, though `bindings.rs` is smaller than A's. That is the mono macro's larger expansion per generic binding. The test crate on top is flat. An earlier back-to-back pair under more load came out −9% / +1%, so that delta is near this machine's noise. The final tree, timed alone in a later session (not back to back with A), takes 15.2 s debug and 12.4 s release: +7% and +12% against A's pair. Since `b901d43` the macro implements `RefIntoWasmAbi` and the upstream `IntoWasmAbi for &Foo` for each of the 299 imported types.
+- **Compile time** in the bindings crate was +5% debug and +6% release at `b901d43`, though `bindings.rs` is smaller than A's. That is the mono macro's larger expansion per generic binding. The test crate on top is flat. An earlier back-to-back pair under more load came out −9% / +1%, so that delta is near this machine's noise. The final tree, timed alone later (not back to back with A), takes 15.2 s debug and 12.4 s release: +7% and +12% against A's pair. Since `b901d43` the macro implements `RefIntoWasmAbi` and the upstream `IntoWasmAbi for &Foo` for each of the 299 imported types.
 
 ## 5. "Fleshed out" checklist
 
@@ -810,7 +810,7 @@ Every change B needed, all built (commits and files in `mono-prototype-patches.m
 
 | change | where | phase | mono-specific |
 |---|---|---|---|
-| `js_sys_unstable_apis` for wasm32; serde-wasm-bindgen and wasm-streams patched copies | workers-rs | 1 | no |
+| `js_sys_unstable_apis` for the ts-gen-worker builds only; serde-wasm-bindgen and wasm-streams patched copies | workers-rs | 1 | no |
 | native leaves inside js-sys containers; `&T` generic arguments; awaited `Option<T>` | ts-gen | 1 | yes |
 | argument-position `impl Trait` keeps declared generic arity | wasm-bindgen macro | 1 | yes |
 | one import per wire format; no `// generic import` comments; `?Sized` mono params; `&Option<T>`, `Option<&T>` args | wasm-bindgen macro + CLI | 2 | yes (mono's own cost) |
@@ -851,10 +851,10 @@ along with the same ecosystem break.
 
 ## 6. Remaining gaps
 
-Not built, by owner. Every review finding not listed here is done.
+Not built, by owner.
 
 **Ecosystem (workers-rs; needs design, outside the prototype).**
-- `worker` and `worker-sys` are not ported to `js_sys_unstable_apis`, so the repo's 145-test `chomp test` stays excluded. B's js-sys changes behaviour, not just types:
+- `worker` and `worker-sys` are not ported to `js_sys_unstable_apis`. The cfg is scoped to the ts-gen-worker builds (`RUSTFLAGS` and their own `target/mono` in `chompfile.toml`; without it the crates are empty on the host), so `worker` and the rest of the workspace build and test without it, against the same wasm-bindgen submodule (`worker`'s suite passes 145/145). A cfg applies to a whole build, so one app cannot use both crates. B's js-sys changes behaviour, not just types:
   - iterators rethrow instead of yielding `Result`;
   - `Reflect::get` / `Array::get` return `Option`;
   - `JSON::stringify` returns `Option<String>`;
