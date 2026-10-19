@@ -3316,7 +3316,7 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "$public")]
     pub fn set_public(this: &SubtleCryptoDeriveKeyAlgorithm, val: &CryptoKey);
     #[wasm_bindgen(method, getter)]
-    pub fn info(this: &SubtleCryptoDeriveKeyAlgorithm) -> Option<SaltKind>;
+    pub fn info(this: &SubtleCryptoDeriveKeyAlgorithm) -> Option<InfoKind>;
     #[wasm_bindgen(method, setter)]
     pub fn set_info(
         this: &SubtleCryptoDeriveKeyAlgorithm,
@@ -3382,14 +3382,14 @@ extern "C" {
     #[wasm_bindgen(method, setter)]
     pub fn set_name(this: &SubtleCryptoEncryptAlgorithm, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
-    pub fn iv(this: &SubtleCryptoEncryptAlgorithm) -> Option<SaltKind>;
+    pub fn iv(this: &SubtleCryptoEncryptAlgorithm) -> Option<IvKind>;
     #[wasm_bindgen(method, setter)]
     pub fn set_iv(
         this: &SubtleCryptoEncryptAlgorithm,
         #[wasm_bindgen(slice = "copy")] val: impl ::js_sys::BufferSourceLike,
     );
     #[wasm_bindgen(method, getter, js_name = "additionalData")]
-    pub fn additional_data(this: &SubtleCryptoEncryptAlgorithm) -> Option<SaltKind>;
+    pub fn additional_data(this: &SubtleCryptoEncryptAlgorithm) -> Option<AdditionalDataKind>;
     #[wasm_bindgen(method, setter, js_name = "additionalData")]
     pub fn set_additional_data(
         this: &SubtleCryptoEncryptAlgorithm,
@@ -3400,7 +3400,7 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "tagLength")]
     pub fn set_tag_length(this: &SubtleCryptoEncryptAlgorithm, val: f64);
     #[wasm_bindgen(method, getter)]
-    pub fn counter(this: &SubtleCryptoEncryptAlgorithm) -> Option<SaltKind>;
+    pub fn counter(this: &SubtleCryptoEncryptAlgorithm) -> Option<CounterKind>;
     #[wasm_bindgen(method, setter)]
     pub fn set_counter(
         this: &SubtleCryptoEncryptAlgorithm,
@@ -3411,7 +3411,7 @@ extern "C" {
     #[wasm_bindgen(method, setter)]
     pub fn set_length(this: &SubtleCryptoEncryptAlgorithm, val: f64);
     #[wasm_bindgen(method, getter)]
-    pub fn label(this: &SubtleCryptoEncryptAlgorithm) -> Option<SaltKind>;
+    pub fn label(this: &SubtleCryptoEncryptAlgorithm) -> Option<LabelKind>;
     #[wasm_bindgen(method, setter)]
     pub fn set_label(
         this: &SubtleCryptoEncryptAlgorithm,
@@ -3494,7 +3494,7 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "modulusLength")]
     pub fn set_modulus_length(this: &SubtleCryptoGenerateKeyAlgorithm, val: f64);
     #[wasm_bindgen(method, getter, js_name = "publicExponent")]
-    pub fn public_exponent(this: &SubtleCryptoGenerateKeyAlgorithm) -> Option<SaltKind>;
+    pub fn public_exponent(this: &SubtleCryptoGenerateKeyAlgorithm) -> Option<PublicExponentKind>;
     #[wasm_bindgen(method, setter, js_name = "publicExponent")]
     pub fn set_public_exponent(
         this: &SubtleCryptoGenerateKeyAlgorithm,
@@ -3760,7 +3760,7 @@ extern "C" {
     #[wasm_bindgen(method, getter, js_name = "modulusLength")]
     pub fn modulus_length(this: &CryptoKeyRsaKeyAlgorithm) -> f64;
     #[wasm_bindgen(method, getter, js_name = "publicExponent")]
-    pub fn public_exponent(this: &CryptoKeyRsaKeyAlgorithm) -> SaltKind;
+    pub fn public_exponent(this: &CryptoKeyRsaKeyAlgorithm) -> PublicExponentKind;
     #[wasm_bindgen(method, getter)]
     pub fn hash(this: &CryptoKeyRsaKeyAlgorithm) -> Option<CryptoKeyKeyAlgorithm>;
 }
@@ -4804,9 +4804,9 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "signal")]
     fn set_signal_with_null_js<Cf>(this: &RequestInit<Cf>, val: &JsValue);
     #[wasm_bindgen(method, getter, js_name = "encodeResponseBody")]
-    pub fn encode_response_body<Cf>(this: &RequestInit<Cf>) -> Option<EncodeBodyKind>;
+    pub fn encode_response_body<Cf>(this: &RequestInit<Cf>) -> Option<EncodeResponseBodyKind>;
     #[wasm_bindgen(method, setter, js_name = "encodeResponseBody")]
-    pub fn set_encode_response_body<Cf>(this: &RequestInit<Cf>, val: EncodeBodyKind);
+    pub fn set_encode_response_body<Cf>(this: &RequestInit<Cf>, val: EncodeResponseBodyKind);
 }
 impl<Cf> RequestInit<Cf> {
     pub fn set_body_with_null(&self) {
@@ -4920,7 +4920,7 @@ impl<Cf> RequestInitBuilder<Cf> {
         self.inner.set_signal_with_null();
         self
     }
-    pub fn encode_response_body(self, val: EncodeBodyKind) -> Self {
+    pub fn encode_response_body(self, val: EncodeResponseBodyKind) -> Self {
         self.inner.set_encode_response_body(val);
         self
     }
@@ -7243,7 +7243,7 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "range")]
     pub fn set_range_with_headers(this: &R2GetOptions, val: &Headers);
     #[wasm_bindgen(method, getter, js_name = "ssecKey")]
-    pub fn ssec_key(this: &R2GetOptions) -> Option<MessageEventInitDataKind>;
+    pub fn ssec_key(this: &R2GetOptions) -> Option<SsecKeyKind>;
     #[wasm_bindgen(method, setter, js_name = "ssecKey")]
     pub fn set_ssec_key(this: &R2GetOptions, val: &ArrayBuffer);
     #[wasm_bindgen(method, setter, js_name = "ssecKey")]
@@ -7327,7 +7327,7 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "md5")]
     pub fn set_md5_with_str(this: &R2PutOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
-    pub fn sha1(this: &R2PutOptions) -> Option<Md5Kind>;
+    pub fn sha1(this: &R2PutOptions) -> Option<Sha1Kind>;
     #[wasm_bindgen(method, setter)]
     pub fn set_sha1(
         this: &R2PutOptions,
@@ -7336,7 +7336,7 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "sha1")]
     pub fn set_sha1_with_str(this: &R2PutOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
-    pub fn sha256(this: &R2PutOptions) -> Option<Md5Kind>;
+    pub fn sha256(this: &R2PutOptions) -> Option<Sha256Kind>;
     #[wasm_bindgen(method, setter)]
     pub fn set_sha256(
         this: &R2PutOptions,
@@ -7345,7 +7345,7 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "sha256")]
     pub fn set_sha256_with_str(this: &R2PutOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
-    pub fn sha384(this: &R2PutOptions) -> Option<Md5Kind>;
+    pub fn sha384(this: &R2PutOptions) -> Option<Sha384Kind>;
     #[wasm_bindgen(method, setter)]
     pub fn set_sha384(
         this: &R2PutOptions,
@@ -7354,7 +7354,7 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "sha384")]
     pub fn set_sha384_with_str(this: &R2PutOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
-    pub fn sha512(this: &R2PutOptions) -> Option<Md5Kind>;
+    pub fn sha512(this: &R2PutOptions) -> Option<Sha512Kind>;
     #[wasm_bindgen(method, setter)]
     pub fn set_sha512(
         this: &R2PutOptions,
@@ -7367,7 +7367,7 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "storageClass")]
     pub fn set_storage_class(this: &R2PutOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "ssecKey")]
-    pub fn ssec_key(this: &R2PutOptions) -> Option<MessageEventInitDataKind>;
+    pub fn ssec_key(this: &R2PutOptions) -> Option<SsecKeyKind>;
     #[wasm_bindgen(method, setter, js_name = "ssecKey")]
     pub fn set_ssec_key(this: &R2PutOptions, val: &ArrayBuffer);
     #[wasm_bindgen(method, setter, js_name = "ssecKey")]
@@ -7488,7 +7488,7 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "storageClass")]
     pub fn set_storage_class(this: &R2MultipartOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "ssecKey")]
-    pub fn ssec_key(this: &R2MultipartOptions) -> Option<MessageEventInitDataKind>;
+    pub fn ssec_key(this: &R2MultipartOptions) -> Option<SsecKeyKind>;
     #[wasm_bindgen(method, setter, js_name = "ssecKey")]
     pub fn set_ssec_key(this: &R2MultipartOptions, val: &ArrayBuffer);
     #[wasm_bindgen(method, setter, js_name = "ssecKey")]
@@ -7672,7 +7672,7 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type R2UploadPartOptions;
     #[wasm_bindgen(method, getter, js_name = "ssecKey")]
-    pub fn ssec_key(this: &R2UploadPartOptions) -> Option<MessageEventInitDataKind>;
+    pub fn ssec_key(this: &R2UploadPartOptions) -> Option<SsecKeyKind>;
     #[wasm_bindgen(method, setter, js_name = "ssecKey")]
     pub fn set_ssec_key(this: &R2UploadPartOptions, val: &ArrayBuffer);
     #[wasm_bindgen(method, setter, js_name = "ssecKey")]
@@ -7730,7 +7730,7 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type QueuingStrategy<T = JsValue>;
     #[wasm_bindgen(method, getter, js_name = "highWaterMark")]
-    pub fn high_water_mark<T>(this: &QueuingStrategy<T>) -> Option<BytesWrittenKind>;
+    pub fn high_water_mark<T>(this: &QueuingStrategy<T>) -> Option<HighWaterMarkKind>;
     #[wasm_bindgen(method, setter, js_name = "highWaterMark")]
     pub fn set_high_water_mark<T>(
         this: &QueuingStrategy<T>,
@@ -7991,7 +7991,7 @@ extern "C" {
         val: &Function<fn(JsValue) -> Option<Promise<()>>>,
     );
     #[wasm_bindgen(method, getter, js_name = "expectedLength")]
-    pub fn expected_length<R>(this: &UnderlyingSource<R>) -> Option<BytesWrittenKind>;
+    pub fn expected_length<R>(this: &UnderlyingSource<R>) -> Option<ExpectedLengthKind>;
     #[wasm_bindgen(method, setter, js_name = "expectedLength")]
     pub fn set_expected_length<R>(
         this: &UnderlyingSource<R>,
@@ -8863,7 +8863,7 @@ extern "C" {
     #[wasm_bindgen(method, getter, js_name = "highWaterMark")]
     pub fn high_water_mark(
         this: &IdentityTransformStreamQueuingStrategy,
-    ) -> Option<BytesWrittenKind>;
+    ) -> Option<HighWaterMarkKind>;
     #[wasm_bindgen(method, setter, js_name = "highWaterMark")]
     pub fn set_high_water_mark(
         this: &IdentityTransformStreamQueuingStrategy,
@@ -10747,7 +10747,7 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "allowHalfOpen")]
     pub fn set_allow_half_open(this: &SocketOptions, val: bool);
     #[wasm_bindgen(method, getter, js_name = "highWaterMark")]
-    pub fn high_water_mark(this: &SocketOptions) -> Option<BytesWrittenKind>;
+    pub fn high_water_mark(this: &SocketOptions) -> Option<HighWaterMarkKind>;
     #[wasm_bindgen(method, setter, js_name = "highWaterMark")]
     pub fn set_high_water_mark(this: &SocketOptions, val: impl ::js_sys::JsBigIntOrNumberLike);
 }
@@ -18177,7 +18177,7 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "to")]
     pub fn set_to_with_slice(this: &EmailDestinations, val: &[JsValue]);
     #[wasm_bindgen(method, getter)]
-    pub fn cc(this: &EmailDestinations) -> Option<ToKind>;
+    pub fn cc(this: &EmailDestinations) -> Option<CcKind>;
     #[wasm_bindgen(method, setter)]
     pub fn set_cc(this: &EmailDestinations, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, setter, js_name = "cc")]
@@ -18185,7 +18185,7 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "cc")]
     pub fn set_cc_with_slice(this: &EmailDestinations, val: &[JsValue]);
     #[wasm_bindgen(method, getter)]
-    pub fn bcc(this: &EmailDestinations) -> Option<ToKind>;
+    pub fn bcc(this: &EmailDestinations) -> Option<BccKind>;
     #[wasm_bindgen(method, setter)]
     pub fn set_bcc(this: &EmailDestinations, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, setter, js_name = "bcc")]
@@ -18268,7 +18268,7 @@ extern "C" {
     #[wasm_bindgen(method, setter)]
     pub fn set_subject(this: &EmailReplyMessageBuilder, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter, js_name = "replyTo")]
-    pub fn reply_to(this: &EmailReplyMessageBuilder) -> Option<FromKind>;
+    pub fn reply_to(this: &EmailReplyMessageBuilder) -> Option<ReplyToKind>;
     #[wasm_bindgen(method, setter, js_name = "replyTo")]
     pub fn set_reply_to(this: &EmailReplyMessageBuilder, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, setter, js_name = "replyTo")]
@@ -18373,7 +18373,7 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "to")]
     pub fn set_to_with_slice(this: &EmailMessageBuilder, val: &[JsValue]);
     #[wasm_bindgen(method, getter)]
-    pub fn cc(this: &EmailMessageBuilder) -> Option<ToKind>;
+    pub fn cc(this: &EmailMessageBuilder) -> Option<CcKind>;
     #[wasm_bindgen(method, setter)]
     pub fn set_cc(this: &EmailMessageBuilder, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, setter, js_name = "cc")]
@@ -18381,7 +18381,7 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "cc")]
     pub fn set_cc_with_slice(this: &EmailMessageBuilder, val: &[JsValue]);
     #[wasm_bindgen(method, getter)]
-    pub fn bcc(this: &EmailMessageBuilder) -> Option<ToKind>;
+    pub fn bcc(this: &EmailMessageBuilder) -> Option<BccKind>;
     #[wasm_bindgen(method, setter)]
     pub fn set_bcc(this: &EmailMessageBuilder, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, setter, js_name = "bcc")]
@@ -18828,7 +18828,9 @@ pub mod tail_stream {
         #[wasm_bindgen(method, getter, js_name = "type")]
         pub fn type_(this: &HibernatableWebSocketEventInfo) -> String;
         #[wasm_bindgen(method, getter)]
-        pub fn info(this: &HibernatableWebSocketEventInfo) -> InfoKind;
+        pub fn info(
+            this: &HibernatableWebSocketEventInfo,
+        ) -> HibernatableWebSocketEventInfoInfoKind;
     }
     #[wasm_bindgen(experimental_generic_mono)]
     extern "C" {
@@ -19578,6 +19580,36 @@ pub enum HashKind {
     SubtleCryptoHashAlgorithm(SubtleCryptoHashAlgorithm),
 }
 #[wasm_bindgen(private)]
+pub enum InfoKind {
+    ArrayBuffer(ArrayBuffer),
+    Uint8Array(Uint8Array),
+}
+#[wasm_bindgen(private)]
+pub enum IvKind {
+    ArrayBuffer(ArrayBuffer),
+    Uint8Array(Uint8Array),
+}
+#[wasm_bindgen(private)]
+pub enum AdditionalDataKind {
+    ArrayBuffer(ArrayBuffer),
+    Uint8Array(Uint8Array),
+}
+#[wasm_bindgen(private)]
+pub enum CounterKind {
+    ArrayBuffer(ArrayBuffer),
+    Uint8Array(Uint8Array),
+}
+#[wasm_bindgen(private)]
+pub enum LabelKind {
+    ArrayBuffer(ArrayBuffer),
+    Uint8Array(Uint8Array),
+}
+#[wasm_bindgen(private)]
+pub enum PublicExponentKind {
+    ArrayBuffer(ArrayBuffer),
+    Uint8Array(Uint8Array),
+}
+#[wasm_bindgen(private)]
 pub enum BytesWrittenKind {
     F64(f64),
     BigInt(BigInt),
@@ -19615,6 +19647,11 @@ pub enum CacheKind {
     NoCache = "no-cache",
 }
 #[wasm_bindgen(private)]
+pub enum EncodeResponseBodyKind {
+    Automatic = "automatic",
+    Manual = "manual",
+}
+#[wasm_bindgen(private)]
 pub enum OnlyIfKind {
     R2Conditional(R2Conditional),
     Headers(Headers),
@@ -19625,6 +19662,11 @@ pub enum RangeKind {
     Headers(Headers),
 }
 #[wasm_bindgen(private)]
+pub enum SsecKeyKind {
+    ArrayBuffer(ArrayBuffer),
+    String(String),
+}
+#[wasm_bindgen(private)]
 pub enum HttpMetadataKind {
     R2HttpMetadata(R2HTTPMetadata),
     Headers(Headers),
@@ -19633,6 +19675,36 @@ pub enum HttpMetadataKind {
 pub enum Md5Kind {
     JsValue(JsValue),
     String(String),
+}
+#[wasm_bindgen(private)]
+pub enum Sha1Kind {
+    JsValue(JsValue),
+    String(String),
+}
+#[wasm_bindgen(private)]
+pub enum Sha256Kind {
+    JsValue(JsValue),
+    String(String),
+}
+#[wasm_bindgen(private)]
+pub enum Sha384Kind {
+    JsValue(JsValue),
+    String(String),
+}
+#[wasm_bindgen(private)]
+pub enum Sha512Kind {
+    JsValue(JsValue),
+    String(String),
+}
+#[wasm_bindgen(private)]
+pub enum HighWaterMarkKind {
+    F64(f64),
+    BigInt(BigInt),
+}
+#[wasm_bindgen(private)]
+pub enum ExpectedLengthKind {
+    F64(f64),
+    BigInt(BigInt),
 }
 #[wasm_bindgen(private)]
 pub enum EventKind {
@@ -19822,12 +19894,29 @@ pub enum ToKind {
     VecOfJsValue(Vec<JsValue>),
 }
 #[wasm_bindgen(private)]
+pub enum CcKind {
+    String(String),
+    EmailAddress(EmailAddress),
+    VecOfJsValue(Vec<JsValue>),
+}
+#[wasm_bindgen(private)]
+pub enum BccKind {
+    String(String),
+    EmailAddress(EmailAddress),
+    VecOfJsValue(Vec<JsValue>),
+}
+#[wasm_bindgen(private)]
 pub enum FromKind {
     String(String),
     EmailAddress(EmailAddress),
 }
 #[wasm_bindgen(private)]
-pub enum InfoKind {
+pub enum ReplyToKind {
+    String(String),
+    EmailAddress(EmailAddress),
+}
+#[wasm_bindgen(private)]
+pub enum HibernatableWebSocketEventInfoInfoKind {
     HibernatableWebSocketEventInfoClose(tail_stream::HibernatableWebSocketEventInfoClose),
     HibernatableWebSocketEventInfoError(tail_stream::HibernatableWebSocketEventInfoError),
     HibernatableWebSocketEventInfoMessage(tail_stream::HibernatableWebSocketEventInfoMessage),
