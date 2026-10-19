@@ -17713,138 +17713,37 @@ extern "C" {
     pub type D1Meta;
     #[wasm_bindgen(method, getter)]
     pub fn duration(this: &D1Meta) -> f64;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_duration(this: &D1Meta, val: f64);
     #[wasm_bindgen(method, getter)]
     pub fn size_after(this: &D1Meta) -> f64;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_size_after(this: &D1Meta, val: f64);
     #[wasm_bindgen(method, getter)]
     pub fn rows_read(this: &D1Meta) -> usize;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_rows_read(this: &D1Meta, val: usize);
     #[wasm_bindgen(method, getter)]
     pub fn rows_written(this: &D1Meta) -> usize;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_rows_written(this: &D1Meta, val: usize);
     #[wasm_bindgen(method, getter, js_name = "last_row_id")]
     fn last_row_id_js(this: &D1Meta) -> f64;
-    #[wasm_bindgen(method, setter, js_name = "last_row_id")]
-    fn set_last_row_id_js(this: &D1Meta, val: f64);
     #[wasm_bindgen(method, getter)]
     pub fn changed_db(this: &D1Meta) -> bool;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_changed_db(this: &D1Meta, val: bool);
     #[wasm_bindgen(method, getter)]
     pub fn changes(this: &D1Meta) -> usize;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_changes(this: &D1Meta, val: usize);
     #[doc = " The region of the database instance that executed the query."]
     #[wasm_bindgen(method, getter)]
     pub fn served_by_region(this: &D1Meta) -> Option<String>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_served_by_region(this: &D1Meta, val: impl ::wasm_bindgen::JsStringLike);
     #[doc = " The three letters airport code of the colo that executed the query."]
     #[wasm_bindgen(method, getter)]
     pub fn served_by_colo(this: &D1Meta) -> Option<String>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_served_by_colo(this: &D1Meta, val: impl ::wasm_bindgen::JsStringLike);
     #[doc = " True if-and-only-if the database instance that executed the query was the primary."]
     #[wasm_bindgen(method, getter)]
     pub fn served_by_primary(this: &D1Meta) -> Option<bool>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_served_by_primary(this: &D1Meta, val: bool);
     #[wasm_bindgen(method, getter)]
     pub fn timings(this: &D1Meta) -> Option<Object>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_timings(this: &D1Meta, val: &Object);
     #[doc = " Number of total attempts to execute the query, due to automatic retries."]
     #[doc = " Note: All other fields in the response like `timings` only apply to the last attempt."]
     #[wasm_bindgen(method, getter)]
     pub fn total_attempts(this: &D1Meta) -> Option<f64>;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_total_attempts(this: &D1Meta, val: f64);
 }
 impl D1Meta {
     pub fn last_row_id(&self) -> i64 {
         self.last_row_id_js() as i64
-    }
-    pub fn set_last_row_id(&self, val: i64) {
-        self.set_last_row_id_js(val as f64)
-    }
-}
-impl D1Meta {
-    pub fn new(
-        duration: f64,
-        size_after: f64,
-        rows_read: usize,
-        rows_written: usize,
-        last_row_id: i64,
-        changed_db: bool,
-        changes: usize,
-    ) -> D1Meta {
-        Self::builder(
-            duration,
-            size_after,
-            rows_read,
-            rows_written,
-            last_row_id,
-            changed_db,
-            changes,
-        )
-        .build()
-    }
-    pub fn builder(
-        duration: f64,
-        size_after: f64,
-        rows_read: usize,
-        rows_written: usize,
-        last_row_id: i64,
-        changed_db: bool,
-        changes: usize,
-    ) -> D1MetaBuilder {
-        let inner: D1Meta = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_duration(duration);
-        inner.set_size_after(size_after);
-        inner.set_rows_read(rows_read);
-        inner.set_rows_written(rows_written);
-        inner.set_last_row_id(last_row_id);
-        inner.set_changed_db(changed_db);
-        inner.set_changes(changes);
-        D1MetaBuilder { inner }
-    }
-}
-pub struct D1MetaBuilder {
-    inner: D1Meta,
-}
-impl D1MetaBuilder {
-    pub fn served_by_region(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
-        self.inner.set_served_by_region(val);
-        self
-    }
-    pub fn served_by_colo(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
-        self.inner.set_served_by_colo(val);
-        self
-    }
-    pub fn served_by_primary(self, val: bool) -> Self {
-        self.inner.set_served_by_primary(val);
-        self
-    }
-    pub fn timings(self, val: &Object) -> Self {
-        self.inner.set_timings(val);
-        self
-    }
-    pub fn total_attempts(self, val: f64) -> Self {
-        self.inner.set_total_attempts(val);
-        self
-    }
-    pub fn build(self) -> D1Meta {
-        self.inner
-    }
-}
-impl From<D1Meta> for D1MetaBuilder {
-    fn from(inner: D1Meta) -> Self {
-        Self { inner }
     }
 }
 #[wasm_bindgen(experimental_generic_mono)]
@@ -17854,23 +17753,8 @@ extern "C" {
     pub type D1Response;
     #[wasm_bindgen(method, getter)]
     pub fn success(this: &D1Response) -> bool;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_success(this: &D1Response, val: bool);
     #[wasm_bindgen(method, getter)]
-    pub fn meta(this: &D1Response) -> JsValue;
-    #[wasm_bindgen(method, setter)]
-    pub fn set_meta(this: &D1Response, val: &JsValue);
-}
-impl D1Response {
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `success: true`"]
-    pub fn new(meta: &JsValue) -> D1Response {
-        let inner: D1Response = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_success(true);
-        inner.set_meta(meta);
-        inner
-    }
+    pub fn meta(this: &D1Response) -> D1Meta;
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
