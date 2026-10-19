@@ -10,7 +10,7 @@ says where it should land.
 |---|---|---|
 | workers-rs | this branch | `main` |
 | ts-gen | `gbedford/mono-prototype`, tip `3d3e592` | ts-gen#122 and the ts-gen PRs it stacks on |
-| wasm-bindgen | `gbedford/mono-prototype`, tip `a649d0b7c` | wasm-bindgen#5390 with #5375 on top |
+| wasm-bindgen | `gbedford/mono-prototype`, tip `f5d74b11f` | wasm-bindgen#5390 with #5375 on top |
 
 ts-gen and wasm-bindgen commits are cited by subject, with an id (`tgN`, `wbN`, numbered in
 branch order; a ts-gen fixture re-bless has no row) that the PR grouping below uses. The

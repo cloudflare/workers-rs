@@ -3,7 +3,7 @@
 A = the non-mono `ts-gen-worker` today (bindings at `a4cbe97`, port at `104579e`). B = this branch:
 mono generics + `js_sys_unstable_apis` + js-sys made fully mono + the ts-gen and wasm-bindgen fixes,
 with ts-gen and wasm-bindgen pinned as submodules at the tips of their `gbedford/mono-prototype` branches
-(ts-gen `3d3e592`, wasm-bindgen `a649d0b7c`). Every patch is listed
+(ts-gen `3d3e592`, wasm-bindgen `f5d74b11f`). Every patch is listed
 in `mono-prototype-patches.md`. B1 = phase 1, an earlier mono build (`2aa55cc` port), kept as a column
 where it shows what phase 2 (B) added. C = non-mono + wasm-bindgen#5167 + a `JsStr<'a>` either type
 behind `impl JsStringLike` + tagged enums for primitive unions: **design, not built**, written by hand

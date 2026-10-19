@@ -1,5 +1,5 @@
-//! Routes under `/ext/*` exercising the `#[event]` macros and the `impl` layer
-//! (`parity/crate.md`). The suite's own `fetch` export is `respond_with_errors`, so the
+//! Routes under `/ext/*` exercising the `#[event]` macros and the `impl` layer.
+//! The suite's own `fetch` export is `respond_with_errors`, so the
 //! default error policy is only exercised through `__macro::error_response`.
 
 use std::cell::RefCell;

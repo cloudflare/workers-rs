@@ -1,6 +1,5 @@
 //! Rust-side ergonomics the ported suite needs that the generated bindings do
-//! not provide. Each helper mirrors a `worker` API and is a parity gap; see
-//! `parity/test-port.md`.
+//! not provide. Each helper mirrors a `worker` API.
 
 use std::time::Duration;
 
