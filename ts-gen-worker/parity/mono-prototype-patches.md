@@ -97,6 +97,7 @@ builds the whole prototype. `js_sys_unstable_apis` is on for wasm32; `worker`,
 | `31d57a6` | a type only ever read (return, getter, awaited value) has no write side: no constructor, setters or builder (37 types, e.g. `KVNamespaceListResult`, `R2Objects`, Queue metrics) | null model: output-only dictionaries had setters nobody can use | ts-gen mono PR (null model) |
 | `010f6f6` | a nullable type argument is `JsNullable<T>` with the native leaf (`Map<String, JsNullable<String>>`), `T \| undefined` is `Option<T>`; reads of `any \| null` are `Option<JsValue>`; returned `Vec<T \| null>` stays `Vec<Option<T>>` | null model: `Map<String, Option<String>>` sent and read `null` as `undefined` | ts-gen mono PR (null model) |
 | `0ac319e` | `--annotate`: a side property declared `readonly` (or a lone `get x()`) drops the input's setter, with its `_with_null` form | workers-types drops `readonly` on JSG instance properties, so 31 setters threw a `TypeError` | ts-gen "annotate: retype + namespaces" PR |
+| `de02e61` | output-only reaches a parent reached only through output-only children (`D1Response`) and the named member of an open-record intersection, which also types the field (`meta: D1Meta & Record<string, unknown>` → `meta() -> D1Meta`) | `D1Result` exposed `set_meta`/`set_success` through `Deref`; `D1Meta` had a dead write side and `meta()` was `JsValue` | ts-gen mono PR (null model) |
 
 ## workers-rs (`ts-gen-worker`)
 
@@ -153,6 +154,6 @@ Each row of the tables above is one change. Landing them is a smaller set of PRs
 | ts-gen mono: `Promise<T, E>` async returns | `16402cd`, `16a19f9`, `1d62eff` | `627ff72ba`, `70c2c0e64` |
 | ts-gen mono: generated `IntoIterator` | `d21202a` | `866b0d33d` |
 | ts-gen mono: explicit ABI bounds | `1fb83ab` | wasm-bindgen#5385 |
-| ts-gen mono: null model (null arms, output-only types, `JsNullable<T>` type arguments) | `448388f`, `31d57a6`, `010f6f6` | `2a5ab7eb0` |
+| ts-gen mono: null model (null arms, output-only types, `JsNullable<T>` type arguments) | `448388f`, `31d57a6`, `010f6f6`, `de02e61` | `2a5ab7eb0` |
 | serde-wasm-bindgen, wasm-streams: build under `js_sys_unstable_apis` | `ts-gen-worker/vendor-patches` | js-sys unstable |
 | workers-rs: inputs (`annotations.d.ts`, `env.d.ts`), ext, port, `MIGRATING.md` | workers-rs rows | all of the above |

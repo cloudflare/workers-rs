@@ -544,8 +544,8 @@ entries, SQL values and `Error::cause`. No `::<JsValue>` is left on a binding:
 
 `tools/api-diff` over the generated `bindings.rs` (item-keyed signatures):
 
-- **B vs A**: 1273 items changed, 991 removed, 456 added, 2791 unchanged. Most removed/added pairs are renames (overload suffixes, `_with_null` arms, KV typed reads).
-- **B vs B1**: 506 changed, 1352 removed (376 of them `_js_string` twins), 446 added, 3568 unchanged.
+- **B vs A**: 1270 items changed, 1020 removed, 456 added, 2765 unchanged. Most removed/added pairs are renames (overload suffixes, `_with_null` arms, KV typed reads).
+- **B vs B1**: 507 changed, 1381 removed (376 of them `_js_string` twins), 446 added, 3538 unchanged.
 
 Type-level counts (doc and comment lines skipped):
 
@@ -569,11 +569,11 @@ Type-level counts (doc and comment lines skipped):
 | `Promise<()>` (callbacks, getters) | 0 | 0 | 100 |
 | `Promise<(), crate::Error>` (methods) | 0 | 0 | 60 |
 | `Boolean` / `Number` | 32 | 8 | 0 |
-| `impl JsStringLike` | 0 | 1,268 | 1,081 |
+| `impl JsStringLike` | 0 | 1,268 | 1,077 |
 | `Option<impl JsStringLike>` | 0 | 7 | 4 |
 | `Option<&…>` arguments | 10 | 3 | 2 |
-| setters | 705 | 701 | 567 |
-| dictionary builders | 110 | 110 | 91 |
+| setters | 705 | 701 | 553 |
+| dictionary builders | 110 | 110 | 90 |
 | `&[impl JsStringLike]` | 0 | 117 | 82 |
 | `impl js_sys::Js…Like` (primitive unions) | 0 | 13 | 12 |
 | `Option<&str>` / `&[String]` | 124 | 0 | 0 |
@@ -589,7 +589,7 @@ Type-level counts (doc and comment lines skipped):
 | `_promise` twins | 277 | 276 | 0 |
 | `async fn`s | 277 | 292 | 0 |
 | `KVNamespace` get/put/list/delete fns | 70 | 78 | 73 |
-| lines | 18,366 | 19,548 | 16,348 |
+| lines | 18,366 | 19,548 | 16,235 |
 
 **Rustdoc signatures.** With wasm-bindgen#5385 the mono macro adds no ABI bounds to the public wrapper, so
 the declaration's bounds are the whole contract, and ts-gen states exactly those (`1fb83ab`):
@@ -819,10 +819,6 @@ Not built, by owner. Every review finding not listed here is done.
 - Every patch is prototype quality. `mono-prototype-patches.md` groups them by upstream PR.
 
 **ts-gen.**
-- Output-only misses parents and intersection members. `D1Response`, the parent of output-only `D1Result`,
-  keeps `new(meta)`, `set_success` and `set_meta`, reachable on any `D1Result` through `Deref`. `D1Meta` keeps a
-  dead write side, since `meta: D1Meta & Record<…>` lowers to `JsValue`; typing it as `D1Meta` needs an
-  intersection rule.
 - A union of slice elements with no Rust form is erased: `AnalyticsEngineDataPoint.{indexes,blobs}` take
   `&[JsValue]`, so the port writes `.blobs(&[req.method().into(), …])`, and `File::new`'s `bits` is the same.
   Expanding an element union like an argument union (`&[impl JsStringLike]`) would remove the last `.into()`s.
@@ -884,7 +880,7 @@ ts-gen or `annotations.d.ts`.
   | argument, setter, builder value, required field `T \| null` | the bare value plus a `_with_null` form: `clear_timeout(id)` / `clear_timeout_with_null()`, `set_prefix(p)` / `set_prefix_with_null()`, `.prefix(p)` / `.prefix_with_null()`, `Response::new_with_null_and_init(&init)` |
   | `any \| null` argument | `&JsValue` (`JsValue::NULL` is a value) |
   | optional `x?: T` | unchanged: `Option<T>` or an omitted overload |
-  | output-only types | getters only (37 types: KV list result and key, `KVNamespaceGetWithMetadataResult`, Queue metrics, `R2Objects`, `SocketInfo`, …) |
+  | output-only types | getters only (KV list result and key, `KVNamespaceGetWithMetadataResult`, Queue metrics, `R2Objects`, `SocketInfo`, …), including a parent reached only through output-only children (`D1Response`) and the named member of an open-record intersection (`meta: D1Meta & Record<…>` is `meta() -> D1Meta`) |
   | return, getter, awaited value, callback argument | `Option<T>`, `JsValue` included: `null` and `undefined` are both `None` (`deserialize_attachment()` → `Result<Option<JsValue>, Error>`) |
   | type argument `T \| null` | `JsNullable<T>` (KV bulk get `Map<String, JsNullable<String>>`) |
   | type argument `T \| undefined` | `Option<T>` |
