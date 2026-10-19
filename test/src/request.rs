@@ -218,6 +218,33 @@ pub async fn handle_cloned_stream(
     Response::ok((left == right).to_string())
 }
 
+/// Races a short `Delay` against a long one and drops the loser. Exercises the `Delay`
+/// drop path (`clearTimeout` with the handle `setTimeout` returned) under both timer
+/// implementations, numeric ids and Node.js `Timeout` objects. What this guards is the
+/// Rust-side binding type: under the type-checked glue of `--dev` builds, declaring the
+/// handle as a number panics as soon as `setTimeout` returns an object. The runtime itself
+/// accepts any value in `clearTimeout`, so cancellation is not observable from here.
+#[worker::send]
+pub async fn handle_delay_race(
+    _req: Request,
+    _env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
+    let short = Delay::from(Duration::from_millis(50));
+    let long = Delay::from(Duration::from_millis(300));
+
+    // `Delay` is `Unpin`, so `select` takes it by value and hands the loser back owned.
+    let winner = match futures_util::future::select(short, long).await {
+        futures_util::future::Either::Left((_, long)) => {
+            drop(long);
+            "short"
+        }
+        futures_util::future::Either::Right(_) => "long",
+    };
+
+    Response::ok(winner)
+}
+
 pub async fn handle_custom_response_body(
     _req: Request,
     _env: Env,
