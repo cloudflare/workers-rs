@@ -26,7 +26,7 @@
     "test": "cd test && NO_MINIFY=1 WASM_BINDGEN_BIN=../wasm-bindgen/target/debug/wasm-bindgen ../target/debug/worker-build --dev && WORKERD_ALL_AUTOGATES=1 NODE_OPTIONS='--experimental-vm-modules' npx vitest run",
     "test-http": "cd test && NO_MINIFY=1 WASM_BINDGEN_BIN=../wasm-bindgen/target/debug/wasm-bindgen ../target/debug/worker-build --release --features http && WORKERD_ALL_AUTOGATES=1 NODE_OPTIONS='--experimental-vm-modules' npx vitest run",
     "test-panic-unwind": "cd test && NO_MINIFY=1 WASM_BINDGEN_BIN=../wasm-bindgen/target/debug/wasm-bindgen ../target/debug/worker-build --dev --panic-unwind && WORKERD_ALL_AUTOGATES=1 NODE_OPTIONS='--experimental-vm-modules' npx vitest run",
-    "test:ts-gen-worker": "cargo build -p ts-gen-worker-test --target wasm32-unknown-unknown && wasm-bindgen/target/debug/wasm-bindgen --target module --out-name index --out-dir ts-gen-worker/test/build target/wasm32-unknown-unknown/debug/ts_gen_worker_test.wasm && cd ts-gen-worker/test && NODE_OPTIONS='--experimental-vm-modules' npx vitest run --root .",
+    "test:ts-gen-worker": "chomp test:ts-gen-worker",
     "test-mem": "cd test && npx wrangler dev --enable-containers=false",
     "lint": "cargo clippy --features d1,queue --all-targets --workspace -- -D warnings",
     "lint:fix": "cargo fmt && cargo clippy --features d1,queue --all-targets --workspace --fix -- -D warnings"
