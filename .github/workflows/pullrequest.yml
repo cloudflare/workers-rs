@@ -116,7 +116,7 @@ jobs:
           sed -i '/"examples\/axum",/d' Cargo.toml
           for example in examples/*/; do
               example_name=$(basename "$example")
-              case "$example_name" in coredump|emscripten|emscripten-tokio|emscripten-tcp|emscripten-incoming-tcp)
+              case "$example_name" in coredump|emscripten|emscripten-tokio|emscripten-tcp|emscripten-incoming-tcp|emscripten-imagedata)
                 echo "Skipping $example_name example"
                 continue
                 ;;
@@ -135,7 +135,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.87.0
       - uses: actions/checkout@v4
         with:
-          submodules: true
+          # libwebp-sys vendors libwebp as a nested submodule
+          submodules: recursive
 
       - name: Cache Rust dependencies
         uses: actions/cache@v4
@@ -169,6 +170,7 @@ jobs:
           for example in emscripten emscripten-tokio emscripten-tcp emscripten-incoming-tcp; do
             (cd examples/$example && WASM_BINDGEN_BIN=../../wasm-bindgen/target/debug/wasm-bindgen ../../target/debug/worker-build --emscripten --release)
           done
+          (cd examples/emscripten-imagedata && RUSTFLAGS="-Ctarget-feature=+simd128 -Clink-arg=-sSTACK_SIZE=1048576" EMCC_CFLAGS="-msimd128 -DEMSCRIPTEN" WASM_BINDGEN_BIN=../../wasm-bindgen/target/debug/wasm-bindgen ../../target/debug/worker-build --emscripten --release)
           (cd examples/emscripten-tcp && WASM_BINDGEN_BIN=../../wasm-bindgen/target/debug/wasm-bindgen ../../target/debug/worker-build --emscripten --dev)
 
       - name: Smoke test under wrangler
@@ -198,6 +200,13 @@ jobs:
           curl -sf 'http://localhost:8787/?host=1.1.1.1' | grep -q '^HTTP/1\.'
           curl -sf 'http://localhost:8787/?host=example.com' | grep -q '^HTTP/1\.'
           stop emscripten-tcp
+
+          serve emscripten-imagedata
+          convert -size 3000x2000 xc:'#c81e1e' /tmp/big.jpg
+          curl -sf -X POST -H 'content-type: image/jpeg' --data-binary @/tmp/big.jpg -D /tmp/h.txt -o /tmp/out.jpg http://localhost:8787/
+          grep -q '"out_width":1568,"out_height":1045' /tmp/h.txt
+          file /tmp/out.jpg | grep -q 'JPEG image data'
+          stop emscripten-imagedata
 
           serve emscripten-incoming-tcp
           for i in 1 2 3; do

@@ -1,0 +1,30 @@
+[package]
+name = "emscripten-imagedata"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Standalone: the emscripten target, beta toolchain and dependency patches
+# stay out of the workspace lockfile.
+[workspace]
+
+[dependencies]
+image = { version = "0.25", default-features = false, features = ["png", "gif"] }
+zune-jpeg = "0.5"
+zune-core = "0.5"
+fast_image_resize = "6"
+# use_wide (fDCT via the wide crate, which lowers to simd128) is unreleased.
+jpeg-encoder = { git = "https://github.com/vstroebel/jpeg-encoder", rev = "b2bbd6f78d576a51fd80321d94f120290f9f3b9a", features = ["simd", "use_wide"] }
+libwebp-sys = { path = "../../libwebp-sys", default-features = false }
+base64-simd = "0.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+worker = { path = "../../worker" }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+
