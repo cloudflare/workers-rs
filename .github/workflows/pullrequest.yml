@@ -228,6 +228,48 @@ jobs:
           done
           pkill -f wrangler-dist || true
 
+  ts-gen-worker:
+    name: ts-gen-worker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dtolnay/rust-toolchain@1.91.0
+        with:
+          targets: wasm32-unknown-unknown
+          components: clippy
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry ~/.cargo/git target ts-gen/target wasm-bindgen/target
+          key: ${{ runner.os }}-cargo-ts-gen-worker-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-ts-gen-worker-
+
+      - name: Setup Chomp
+        uses: guybedford/chomp-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Check generated bindings are up to date
+        run: |
+          chomp build:ts-gen-worker:types
+          git diff --exit-code -- ts-gen-worker
+
+      - name: Check for idiomatic code
+        run: chomp lint:ts-gen-worker
+
+      - name: Run tests
+        run: chomp test:ts-gen-worker
+
+      - name: Run tests with the http feature
+        run: chomp test:ts-gen-worker-http
+
   rustfmt:
     name: Formatter
     runs-on: ubuntu-latest
