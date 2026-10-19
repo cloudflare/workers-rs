@@ -91,11 +91,10 @@ impl Lockfile {
             if let Some(root_pkg) = self.package.iter().find(|p| p.name == *root_package_name) {
                 if let Some(dependencies) = &root_pkg.dependencies {
                     for dep in dependencies.iter() {
-                        if dep.starts_with(package)
-                            && dep.chars().nth(package.len() + 1) == Some(' ')
-                        {
-                            let version = &dep[package.len() + 1..];
-                            if !version.is_empty() {
+                        // Cargo writes `name`, `name version` or `name version (source)`
+                        let mut parts = dep.split(' ');
+                        if parts.next() == Some(package) {
+                            if let Some(version) = parts.next() {
                                 return Ok(Some(Version::parse(version)?));
                             }
                         }
@@ -132,5 +131,116 @@ fn get_lockfile_path(crate_data: &Metadata) -> Result<PathBuf> {
         bail!("Could not find lockfile at {lockfile_path:?}")
     } else {
         Ok(lockfile_path.into())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn lockfile(toml: &str, root_package_name: Option<&str>) -> Lockfile {
+        let mut lockfile: Lockfile = toml::from_str(toml).unwrap();
+        lockfile.root_package_name = root_package_name.map(str::to_string);
+        lockfile
+    }
+
+    fn version(lockfile: &Lockfile) -> Option<Version> {
+        lockfile.get_package_version("wasm-bindgen").unwrap()
+    }
+
+    #[test]
+    fn single_package() {
+        // Cargo writes a bare name when only one package has that name.
+        let lockfile = lockfile(
+            r#"
+            [[package]]
+            name = "my-worker"
+            version = "0.1.0"
+            dependencies = ["wasm-bindgen", "wasm-bindgen-futures"]
+
+            [[package]]
+            name = "wasm-bindgen"
+            version = "0.2.129"
+
+            [[package]]
+            name = "wasm-bindgen-futures"
+            version = "0.4.52"
+            "#,
+            Some("my-worker"),
+        );
+        assert_eq!(version(&lockfile), Some(Version::new(0, 2, 129)));
+        assert_eq!(lockfile.get_package_version("missing").unwrap(), None);
+    }
+
+    #[test]
+    fn root_package_pin_wins_over_first_package() {
+        // Two versions locked: cargo writes "name version" in the root's dependencies.
+        let lockfile = lockfile(
+            r#"
+            [[package]]
+            name = "my-worker"
+            version = "0.1.0"
+            dependencies = ["wasm-bindgen 0.2.129", "wasm-bindgen-futures"]
+
+            [[package]]
+            name = "wasm-bindgen"
+            version = "0.2.100"
+
+            [[package]]
+            name = "wasm-bindgen"
+            version = "0.2.129"
+
+            [[package]]
+            name = "wasm-bindgen-futures"
+            version = "0.4.52"
+            "#,
+            Some("my-worker"),
+        );
+        assert_eq!(version(&lockfile), Some(Version::new(0, 2, 129)));
+    }
+
+    #[test]
+    fn root_package_pin_with_source_suffix() {
+        // Same version from two sources: cargo writes "name version (source)".
+        let lockfile = lockfile(
+            r#"
+            [[package]]
+            name = "my-worker"
+            version = "0.1.0"
+            dependencies = ["wasm-bindgen 0.2.129 (git+https://github.com/x/y#abc)"]
+
+            [[package]]
+            name = "wasm-bindgen"
+            version = "0.2.100"
+
+            [[package]]
+            name = "wasm-bindgen"
+            version = "0.2.129"
+
+            [[package]]
+            name = "wasm-bindgen"
+            version = "0.2.129"
+            source = "git+https://github.com/x/y#abc"
+            "#,
+            Some("my-worker"),
+        );
+        assert_eq!(version(&lockfile), Some(Version::new(0, 2, 129)));
+    }
+
+    #[test]
+    fn no_root_package_falls_back_to_first_package() {
+        let lockfile = lockfile(
+            r#"
+            [[package]]
+            name = "wasm-bindgen"
+            version = "0.2.100"
+
+            [[package]]
+            name = "wasm-bindgen"
+            version = "0.2.129"
+            "#,
+            None,
+        );
+        assert_eq!(version(&lockfile), Some(Version::new(0, 2, 100)));
     }
 }
