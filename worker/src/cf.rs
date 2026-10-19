@@ -168,15 +168,18 @@ impl Cf {
         self.inner.region_code().unwrap()
     }
 
-    /// **Requires** `timezone` feature. Timezone of the incoming request
+    /// **Requires** `timezone` feature. Timezone of the incoming request, e.g. `America/Chicago`.
+    /// Errors when the request carries no timezone (see [`Cf::timezone_name`]).
     #[cfg(feature = "timezone")]
     pub fn timezone(&self) -> Result<impl chrono::TimeZone> {
-        let tz = self.inner.timezone()?;
+        let tz = self.inner.timezone()?.ok_or(crate::Error::TimezoneError)?;
         Ok(tz.parse::<chrono_tz::Tz>()?)
     }
 
-    /// Timezone name of the incoming request
-    pub fn timezone_name(&self) -> String {
+    /// Timezone name of the incoming request, e.g. `America/Chicago`.
+    /// `None` when Cloudflare has no geolocation data for the client IP or the
+    /// `cf` object was supplied without it (local tooling).
+    pub fn timezone_name(&self) -> Option<String> {
         self.inner.timezone().unwrap()
     }
 

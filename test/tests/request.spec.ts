@@ -261,3 +261,20 @@ test("xor", async () => {
     expect(bytes[i]).toBe(i ^ 10);
   }
 });
+
+// `request.cf.timezone` is optional (geo data can be missing). Miniflare merges a
+// per-request `cf` over its default blob, which has a timezone, and JSON-encodes
+// the result, so `timezone: undefined` is what drops the key.
+test("cf timezone_name", async () => {
+  let resp = await mf.dispatchFetch(`${mfUrl}cf/timezone-name`, {
+    cf: { timezone: "Europe/Lisbon" },
+  });
+  expect(resp.status).toBe(200);
+  expect(await resp.text()).toBe("Europe/Lisbon");
+
+  resp = await mf.dispatchFetch(`${mfUrl}cf/timezone-name`, {
+    cf: { timezone: undefined },
+  });
+  expect(resp.status).toBe(200);
+  expect(await resp.text()).toBe("none");
+});
