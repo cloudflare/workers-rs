@@ -12,8 +12,8 @@ pub async fn handle_analytics_event(
 
     let request_id = Uuid::new_v4();
     let point = AnalyticsEngineDataPoint::builder()
-        .indexes(&["index1".into()])
-        .blobs(&[
+        .indexes_with_str_slice(&["index1"])
+        .blobs_with_js_value_slice(&[
             req.method().into(),
             js_sys::ArrayBuffer::from(&request_id.as_bytes()[..]).into(),
         ])
@@ -23,8 +23,8 @@ pub async fn handle_analytics_event(
 
     dataset.write_data_point_with_event(
         &AnalyticsEngineDataPoint::builder()
-            .indexes(&["index1".into()])
-            .blobs(&[req.method().into(), req.method().into()])
+            .indexes_with_str_slice(&["index1"])
+            .blobs_with_str_slice(&[req.method(), req.method()])
             .doubles(&[200.0])
             .build(),
     )?;

@@ -1729,7 +1729,14 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn indexes(this: &AnalyticsEngineDataPoint) -> Option<Vec<JsValue>>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_indexes(this: &AnalyticsEngineDataPoint, val: &[JsValue]);
+    pub fn set_indexes(this: &AnalyticsEngineDataPoint, val: &[ArrayBuffer]);
+    #[wasm_bindgen(method, setter, js_name = "indexes")]
+    pub fn set_indexes_with_str_slice(
+        this: &AnalyticsEngineDataPoint,
+        val: &[impl ::wasm_bindgen::JsStringLike],
+    );
+    #[wasm_bindgen(method, setter, js_name = "indexes")]
+    pub fn set_indexes_with_js_value_slice(this: &AnalyticsEngineDataPoint, val: &[JsValue]);
     #[wasm_bindgen(method, getter)]
     pub fn doubles(this: &AnalyticsEngineDataPoint) -> Option<Vec<f64>>;
     #[wasm_bindgen(method, setter)]
@@ -1740,7 +1747,14 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn blobs(this: &AnalyticsEngineDataPoint) -> Option<Vec<JsValue>>;
     #[wasm_bindgen(method, setter)]
-    pub fn set_blobs(this: &AnalyticsEngineDataPoint, val: &[JsValue]);
+    pub fn set_blobs(this: &AnalyticsEngineDataPoint, val: &[ArrayBuffer]);
+    #[wasm_bindgen(method, setter, js_name = "blobs")]
+    pub fn set_blobs_with_str_slice(
+        this: &AnalyticsEngineDataPoint,
+        val: &[impl ::wasm_bindgen::JsStringLike],
+    );
+    #[wasm_bindgen(method, setter, js_name = "blobs")]
+    pub fn set_blobs_with_js_value_slice(this: &AnalyticsEngineDataPoint, val: &[JsValue]);
 }
 impl AnalyticsEngineDataPoint {
     pub fn new() -> AnalyticsEngineDataPoint {
@@ -1756,16 +1770,32 @@ pub struct AnalyticsEngineDataPointBuilder {
     inner: AnalyticsEngineDataPoint,
 }
 impl AnalyticsEngineDataPointBuilder {
-    pub fn indexes(self, val: &[JsValue]) -> Self {
+    pub fn indexes(self, val: &[ArrayBuffer]) -> Self {
         self.inner.set_indexes(val);
+        self
+    }
+    pub fn indexes_with_str_slice(self, val: &[impl ::wasm_bindgen::JsStringLike]) -> Self {
+        self.inner.set_indexes_with_str_slice(val);
+        self
+    }
+    pub fn indexes_with_js_value_slice(self, val: &[JsValue]) -> Self {
+        self.inner.set_indexes_with_js_value_slice(val);
         self
     }
     pub fn doubles(self, val: &[f64]) -> Self {
         self.inner.set_doubles(val);
         self
     }
-    pub fn blobs(self, val: &[JsValue]) -> Self {
+    pub fn blobs(self, val: &[ArrayBuffer]) -> Self {
         self.inner.set_blobs(val);
+        self
+    }
+    pub fn blobs_with_str_slice(self, val: &[impl ::wasm_bindgen::JsStringLike]) -> Self {
+        self.inner.set_blobs_with_str_slice(val);
+        self
+    }
+    pub fn blobs_with_js_value_slice(self, val: &[JsValue]) -> Self {
+        self.inner.set_blobs_with_js_value_slice(val);
         self
     }
     pub fn build(self) -> AnalyticsEngineDataPoint {
@@ -2279,9 +2309,34 @@ extern "C" {
     #[wasm_bindgen(constructor, catch)]
     pub fn new() -> Result<Blob, crate::Error>;
     #[wasm_bindgen(constructor, catch, js_name = "Blob")]
-    pub fn new_with_bits(bits: &[JsValue]) -> Result<Blob, crate::Error>;
+    pub fn new_with_buffer_source_slice(
+        bits: &[impl ::js_sys::BufferSourceLike],
+    ) -> Result<Blob, crate::Error>;
     #[wasm_bindgen(constructor, catch, js_name = "Blob")]
-    pub fn new_with_bits_and_options(
+    pub fn new_with_str_slice(
+        bits: &[impl ::wasm_bindgen::JsStringLike],
+    ) -> Result<Blob, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "Blob")]
+    pub fn new_with_blob_slice(bits: &[Blob]) -> Result<Blob, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "Blob")]
+    pub fn new_with_js_value_slice(bits: &[JsValue]) -> Result<Blob, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "Blob")]
+    pub fn new_with_buffer_source_slice_and_options(
+        bits: &[impl ::js_sys::BufferSourceLike],
+        options: &BlobOptions,
+    ) -> Result<Blob, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "Blob")]
+    pub fn new_with_str_slice_and_options(
+        bits: &[impl ::wasm_bindgen::JsStringLike],
+        options: &BlobOptions,
+    ) -> Result<Blob, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "Blob")]
+    pub fn new_with_blob_slice_and_options(
+        bits: &[Blob],
+        options: &BlobOptions,
+    ) -> Result<Blob, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "Blob")]
+    pub fn new_with_js_value_slice_and_options(
         bits: &[JsValue],
         options: &BlobOptions,
     ) -> Result<Blob, crate::Error>;
@@ -2394,11 +2449,44 @@ extern "C" {
     pub type File;
     #[wasm_bindgen(constructor, catch)]
     pub fn new(
+        bits: Option<&[impl ::js_sys::BufferSourceLike]>,
+        name: impl ::wasm_bindgen::JsStringLike,
+    ) -> Result<File, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "File")]
+    pub fn new_with_str_slice(
+        bits: Option<&[impl ::wasm_bindgen::JsStringLike]>,
+        name: impl ::wasm_bindgen::JsStringLike,
+    ) -> Result<File, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "File")]
+    pub fn new_with_blob_slice(
+        bits: Option<&[Blob]>,
+        name: impl ::wasm_bindgen::JsStringLike,
+    ) -> Result<File, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "File")]
+    pub fn new_with_js_value_slice(
         bits: Option<&[JsValue]>,
         name: impl ::wasm_bindgen::JsStringLike,
     ) -> Result<File, crate::Error>;
     #[wasm_bindgen(constructor, catch, js_name = "File")]
     pub fn new_with_options(
+        bits: Option<&[impl ::js_sys::BufferSourceLike]>,
+        name: impl ::wasm_bindgen::JsStringLike,
+        options: &FileOptions,
+    ) -> Result<File, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "File")]
+    pub fn new_with_str_slice_and_options(
+        bits: Option<&[impl ::wasm_bindgen::JsStringLike]>,
+        name: impl ::wasm_bindgen::JsStringLike,
+        options: &FileOptions,
+    ) -> Result<File, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "File")]
+    pub fn new_with_blob_slice_and_options(
+        bits: Option<&[Blob]>,
+        name: impl ::wasm_bindgen::JsStringLike,
+        options: &FileOptions,
+    ) -> Result<File, crate::Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "File")]
+    pub fn new_with_js_value_slice_and_options(
         bits: Option<&[JsValue]>,
         name: impl ::wasm_bindgen::JsStringLike,
         options: &FileOptions,
@@ -2616,7 +2704,7 @@ extern "C" {
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/Crypto/getRandomValues)"]
     #[wasm_bindgen(method, catch, js_name = "getRandomValues")]
-    pub fn get_random_values<T: RefIntoWasmAbi + FromWasmAbi>(
+    pub fn get_random_values<T: ::js_sys::TypedArray + RefIntoWasmAbi + FromWasmAbi>(
         this: &Crypto,
         buffer: &T,
     ) -> Result<T, crate::Error>;
@@ -4016,7 +4104,10 @@ extern "C" {
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/getAll)"]
     #[wasm_bindgen(method, js_name = "getAll")]
-    pub fn get_all(this: &FormData, name: impl ::wasm_bindgen::JsStringLike) -> Vec<JsValue>;
+    pub fn get_all(
+        this: &FormData,
+        name: impl ::wasm_bindgen::JsStringLike,
+    ) -> Vec<GetAllReturnKind>;
     #[doc = " The **`has()`** method of the FormData interface returns whether a FormData object contains a certain key."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/FormData/has)"]
@@ -4292,7 +4383,9 @@ extern "C" {
     #[doc = ""]
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
-    pub fn new_with_slice(body: &[JsValue]) -> Result<Response, JsException>;
+    pub fn new_with_slice(
+        body: &[impl ::js_sys::BufferSourceLike],
+    ) -> Result<Response, JsException>;
     #[doc = " * `body` - copied before the call returns, so a `&[u8]` passes as a view"]
     #[doc = ""]
     #[doc = " ## Errors"]
@@ -4367,7 +4460,7 @@ extern "C" {
     #[doc = " * `TypeError` — if `init.status` is out of range or a body is given for a null-body status"]
     #[wasm_bindgen(constructor, catch, js_name = "Response")]
     pub fn new_with_slice_and_init(
-        body: &[JsValue],
+        body: &[impl ::js_sys::BufferSourceLike],
         init: &ResponseInit,
     ) -> Result<Response, JsException>;
     #[doc = " * `body` - copied before the call returns, so a `&[u8]` passes as a view"]
@@ -4768,7 +4861,7 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "body")]
     pub fn set_body_with_form_data<Cf>(this: &RequestInit<Cf>, val: &FormData);
     #[wasm_bindgen(method, setter, js_name = "body")]
-    pub fn set_body_with_slice<Cf>(this: &RequestInit<Cf>, val: &[JsValue]);
+    pub fn set_body_with_slice<Cf>(this: &RequestInit<Cf>, val: &[impl ::js_sys::BufferSourceLike]);
     #[wasm_bindgen(method, setter, js_name = "body")]
     pub fn set_body_with_async_iterable<Cf>(this: &RequestInit<Cf>, val: &JsValue);
     #[wasm_bindgen(method, setter, js_name = "body")]
@@ -4873,7 +4966,7 @@ impl<Cf> RequestInitBuilder<Cf> {
         self.inner.set_body_with_form_data(val);
         self
     }
-    pub fn body_with_slice(self, val: &[JsValue]) -> Self {
+    pub fn body_with_slice(self, val: &[impl ::js_sys::BufferSourceLike]) -> Self {
         self.inner.set_body_with_slice(val);
         self
     }
@@ -6525,7 +6618,7 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "startAfter")]
     pub fn set_start_after(this: &R2ListOptions, val: impl ::wasm_bindgen::JsStringLike);
     #[wasm_bindgen(method, getter)]
-    pub fn include(this: &R2ListOptions) -> Option<Vec<String>>;
+    pub fn include(this: &R2ListOptions) -> Option<Vec<IncludeKind>>;
     #[wasm_bindgen(method, setter)]
     pub fn set_include(this: &R2ListOptions, val: &[impl ::wasm_bindgen::JsStringLike]);
 }
@@ -8434,7 +8527,7 @@ extern "C" {
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/ReadableStreamBYOBReader/read)"]
     #[wasm_bindgen(method, catch)]
-    pub fn read<T: RefIntoWasmAbi>(
+    pub fn read<T: ::js_sys::TypedArray + RefIntoWasmAbi>(
         this: &ReadableStreamBYOBReader,
         view: &T,
     ) -> Promise<ReadableStreamReadResult<T>, crate::Error>;
@@ -8444,7 +8537,7 @@ extern "C" {
     #[wasm_bindgen(method, catch, js_name = "releaseLock")]
     pub fn release_lock(this: &ReadableStreamBYOBReader) -> Result<(), crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "readAtLeast")]
-    pub fn read_at_least<T: RefIntoWasmAbi>(
+    pub fn read_at_least<T: ::js_sys::TypedArray + RefIntoWasmAbi>(
         this: &ReadableStreamBYOBReader,
         min_elements: f64,
         view: &T,
@@ -10684,10 +10777,7 @@ extern "C" {
     #[wasm_bindgen(method, js_name = "[Symbol.iterator]")]
     pub fn iterator<T>(this: &SqlStorageCursor<T>) -> Iterator<T>;
 }
-impl<'a, T> ::core::iter::IntoIterator for &'a SqlStorageCursor<T>
-where
-    Iterator<T>: ::core::iter::IntoIterator<Item = T>,
-{
+impl<'a, T: FromWasmAbi> ::core::iter::IntoIterator for &'a SqlStorageCursor<T> {
     type Item = T;
     type IntoIter = <Iterator<T> as ::core::iter::IntoIterator>::IntoIter;
     fn into_iter(self) -> Self::IntoIter {
@@ -13730,20 +13820,17 @@ extern "C" {
     );
 }
 impl<HostMetadata> IncomingRequestCfProperties<HostMetadata> {
-    #[doc = " ## Inlined fields"]
+    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
+    #[doc = " airport code of the data center that the request hit."]
     #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 0` - Represents the upstream's response to a"]
+    #[doc = " @example \"DFW\""]
+    #[doc = " * `edge_request_keep_alive_status` - Represents the upstream's response to a"]
     #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
     #[doc = " from cloudflare."]
     #[doc = ""]
     #[doc = " For workers with no upstream, this will always be `1`."]
     #[doc = ""]
     #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
     #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
     #[doc = ""]
     #[doc = " @example \"HTTP/2\""]
@@ -13777,8 +13864,9 @@ impl<HostMetadata> IncomingRequestCfProperties<HostMetadata> {
     #[doc = ""]
     #[doc = " The property `certPresented` will be set to `\"1\"` when"]
     #[doc = " the object is populated (i.e. the above conditions were met)."]
-    pub fn new_0(
+    pub fn new(
         colo: impl ::wasm_bindgen::JsStringLike,
+        edge_request_keep_alive_status: f64,
         http_protocol: impl ::wasm_bindgen::JsStringLike,
         request_priority: impl ::wasm_bindgen::JsStringLike,
         tls_version: impl ::wasm_bindgen::JsStringLike,
@@ -13787,8 +13875,9 @@ impl<HostMetadata> IncomingRequestCfProperties<HostMetadata> {
         bot_management: &IncomingRequestCfPropertiesBotManagementBase,
         tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuth,
     ) -> IncomingRequestCfProperties<HostMetadata> {
-        Self::builder_0(
+        Self::builder(
             colo,
+            edge_request_keep_alive_status,
             http_protocol,
             request_priority,
             tls_version,
@@ -13799,20 +13888,17 @@ impl<HostMetadata> IncomingRequestCfProperties<HostMetadata> {
         )
         .build()
     }
-    #[doc = " ## Inlined fields"]
+    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
+    #[doc = " airport code of the data center that the request hit."]
     #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 0` - Represents the upstream's response to a"]
+    #[doc = " @example \"DFW\""]
+    #[doc = " * `edge_request_keep_alive_status` - Represents the upstream's response to a"]
     #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
     #[doc = " from cloudflare."]
     #[doc = ""]
     #[doc = " For workers with no upstream, this will always be `1`."]
     #[doc = ""]
     #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
     #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
     #[doc = ""]
     #[doc = " @example \"HTTP/2\""]
@@ -13846,8 +13932,9 @@ impl<HostMetadata> IncomingRequestCfProperties<HostMetadata> {
     #[doc = ""]
     #[doc = " The property `certPresented` will be set to `\"1\"` when"]
     #[doc = " the object is populated (i.e. the above conditions were met)."]
-    pub fn new_0_with_incoming_request_cf_properties_tls_client_auth_placeholder(
+    pub fn new_with_incoming_request_cf_properties_tls_client_auth_placeholder(
         colo: impl ::wasm_bindgen::JsStringLike,
+        edge_request_keep_alive_status: f64,
         http_protocol: impl ::wasm_bindgen::JsStringLike,
         request_priority: impl ::wasm_bindgen::JsStringLike,
         tls_version: impl ::wasm_bindgen::JsStringLike,
@@ -13856,8 +13943,9 @@ impl<HostMetadata> IncomingRequestCfProperties<HostMetadata> {
         bot_management: &IncomingRequestCfPropertiesBotManagementBase,
         tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
     ) -> IncomingRequestCfProperties<HostMetadata> {
-        Self::builder_0_with_incoming_request_cf_properties_tls_client_auth_placeholder(
+        Self::builder_with_incoming_request_cf_properties_tls_client_auth_placeholder(
             colo,
+            edge_request_keep_alive_status,
             http_protocol,
             request_priority,
             tls_version,
@@ -13868,20 +13956,17 @@ impl<HostMetadata> IncomingRequestCfProperties<HostMetadata> {
         )
         .build()
     }
-    #[doc = " ## Inlined fields"]
+    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
+    #[doc = " airport code of the data center that the request hit."]
     #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 1` - Represents the upstream's response to a"]
+    #[doc = " @example \"DFW\""]
+    #[doc = " * `edge_request_keep_alive_status` - Represents the upstream's response to a"]
     #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
     #[doc = " from cloudflare."]
     #[doc = ""]
     #[doc = " For workers with no upstream, this will always be `1`."]
     #[doc = ""]
     #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
     #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
     #[doc = ""]
     #[doc = " @example \"HTTP/2\""]
@@ -13915,698 +14000,9 @@ impl<HostMetadata> IncomingRequestCfProperties<HostMetadata> {
     #[doc = ""]
     #[doc = " The property `certPresented` will be set to `\"1\"` when"]
     #[doc = " the object is populated (i.e. the above conditions were met)."]
-    pub fn new_1(
+    pub fn builder(
         colo: impl ::wasm_bindgen::JsStringLike,
-        http_protocol: impl ::wasm_bindgen::JsStringLike,
-        request_priority: impl ::wasm_bindgen::JsStringLike,
-        tls_version: impl ::wasm_bindgen::JsStringLike,
-        tls_cipher: impl ::wasm_bindgen::JsStringLike,
-        client_trust_score: f64,
-        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
-        tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuth,
-    ) -> IncomingRequestCfProperties<HostMetadata> {
-        Self::builder_1(
-            colo,
-            http_protocol,
-            request_priority,
-            tls_version,
-            tls_cipher,
-            client_trust_score,
-            bot_management,
-            tls_client_auth,
-        )
-        .build()
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 1` - Represents the upstream's response to a"]
-    #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
-    #[doc = " from cloudflare."]
-    #[doc = ""]
-    #[doc = " For workers with no upstream, this will always be `1`."]
-    #[doc = ""]
-    #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[doc = " * `request_priority` - The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[doc = " * `tls_version` - The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[doc = " * `tls_cipher` - The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    #[doc = " * `client_trust_score` - Duplicate of `botManagement.score`."]
-    #[doc = ""]
-    #[doc = " @deprecated"]
-    #[doc = " * `bot_management` - Results of Cloudflare's Bot Management analysis"]
-    #[doc = " * `tls_client_auth` - Information about the client certificate presented to Cloudflare."]
-    #[doc = ""]
-    #[doc = " This is populated when the incoming request is served over TLS using"]
-    #[doc = " either Cloudflare Access or API Shield (mTLS)"]
-    #[doc = " and the presented SSL certificate has a valid"]
-    #[doc = " [Certificate Serial Number](https://ldapwiki.com/wiki/Certificate%20Serial%20Number)"]
-    #[doc = " (i.e., not `null` or `\"\"`)."]
-    #[doc = ""]
-    #[doc = " Otherwise, a set of placeholder values are used."]
-    #[doc = ""]
-    #[doc = " The property `certPresented` will be set to `\"1\"` when"]
-    #[doc = " the object is populated (i.e. the above conditions were met)."]
-    pub fn new_1_with_incoming_request_cf_properties_tls_client_auth_placeholder(
-        colo: impl ::wasm_bindgen::JsStringLike,
-        http_protocol: impl ::wasm_bindgen::JsStringLike,
-        request_priority: impl ::wasm_bindgen::JsStringLike,
-        tls_version: impl ::wasm_bindgen::JsStringLike,
-        tls_cipher: impl ::wasm_bindgen::JsStringLike,
-        client_trust_score: f64,
-        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
-        tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
-    ) -> IncomingRequestCfProperties<HostMetadata> {
-        Self::builder_1_with_incoming_request_cf_properties_tls_client_auth_placeholder(
-            colo,
-            http_protocol,
-            request_priority,
-            tls_version,
-            tls_cipher,
-            client_trust_score,
-            bot_management,
-            tls_client_auth,
-        )
-        .build()
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 2` - Represents the upstream's response to a"]
-    #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
-    #[doc = " from cloudflare."]
-    #[doc = ""]
-    #[doc = " For workers with no upstream, this will always be `1`."]
-    #[doc = ""]
-    #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[doc = " * `request_priority` - The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[doc = " * `tls_version` - The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[doc = " * `tls_cipher` - The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    #[doc = " * `client_trust_score` - Duplicate of `botManagement.score`."]
-    #[doc = ""]
-    #[doc = " @deprecated"]
-    #[doc = " * `bot_management` - Results of Cloudflare's Bot Management analysis"]
-    #[doc = " * `tls_client_auth` - Information about the client certificate presented to Cloudflare."]
-    #[doc = ""]
-    #[doc = " This is populated when the incoming request is served over TLS using"]
-    #[doc = " either Cloudflare Access or API Shield (mTLS)"]
-    #[doc = " and the presented SSL certificate has a valid"]
-    #[doc = " [Certificate Serial Number](https://ldapwiki.com/wiki/Certificate%20Serial%20Number)"]
-    #[doc = " (i.e., not `null` or `\"\"`)."]
-    #[doc = ""]
-    #[doc = " Otherwise, a set of placeholder values are used."]
-    #[doc = ""]
-    #[doc = " The property `certPresented` will be set to `\"1\"` when"]
-    #[doc = " the object is populated (i.e. the above conditions were met)."]
-    pub fn new_2(
-        colo: impl ::wasm_bindgen::JsStringLike,
-        http_protocol: impl ::wasm_bindgen::JsStringLike,
-        request_priority: impl ::wasm_bindgen::JsStringLike,
-        tls_version: impl ::wasm_bindgen::JsStringLike,
-        tls_cipher: impl ::wasm_bindgen::JsStringLike,
-        client_trust_score: f64,
-        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
-        tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuth,
-    ) -> IncomingRequestCfProperties<HostMetadata> {
-        Self::builder_2(
-            colo,
-            http_protocol,
-            request_priority,
-            tls_version,
-            tls_cipher,
-            client_trust_score,
-            bot_management,
-            tls_client_auth,
-        )
-        .build()
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 2` - Represents the upstream's response to a"]
-    #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
-    #[doc = " from cloudflare."]
-    #[doc = ""]
-    #[doc = " For workers with no upstream, this will always be `1`."]
-    #[doc = ""]
-    #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[doc = " * `request_priority` - The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[doc = " * `tls_version` - The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[doc = " * `tls_cipher` - The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    #[doc = " * `client_trust_score` - Duplicate of `botManagement.score`."]
-    #[doc = ""]
-    #[doc = " @deprecated"]
-    #[doc = " * `bot_management` - Results of Cloudflare's Bot Management analysis"]
-    #[doc = " * `tls_client_auth` - Information about the client certificate presented to Cloudflare."]
-    #[doc = ""]
-    #[doc = " This is populated when the incoming request is served over TLS using"]
-    #[doc = " either Cloudflare Access or API Shield (mTLS)"]
-    #[doc = " and the presented SSL certificate has a valid"]
-    #[doc = " [Certificate Serial Number](https://ldapwiki.com/wiki/Certificate%20Serial%20Number)"]
-    #[doc = " (i.e., not `null` or `\"\"`)."]
-    #[doc = ""]
-    #[doc = " Otherwise, a set of placeholder values are used."]
-    #[doc = ""]
-    #[doc = " The property `certPresented` will be set to `\"1\"` when"]
-    #[doc = " the object is populated (i.e. the above conditions were met)."]
-    pub fn new_2_with_incoming_request_cf_properties_tls_client_auth_placeholder(
-        colo: impl ::wasm_bindgen::JsStringLike,
-        http_protocol: impl ::wasm_bindgen::JsStringLike,
-        request_priority: impl ::wasm_bindgen::JsStringLike,
-        tls_version: impl ::wasm_bindgen::JsStringLike,
-        tls_cipher: impl ::wasm_bindgen::JsStringLike,
-        client_trust_score: f64,
-        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
-        tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
-    ) -> IncomingRequestCfProperties<HostMetadata> {
-        Self::builder_2_with_incoming_request_cf_properties_tls_client_auth_placeholder(
-            colo,
-            http_protocol,
-            request_priority,
-            tls_version,
-            tls_cipher,
-            client_trust_score,
-            bot_management,
-            tls_client_auth,
-        )
-        .build()
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 3` - Represents the upstream's response to a"]
-    #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
-    #[doc = " from cloudflare."]
-    #[doc = ""]
-    #[doc = " For workers with no upstream, this will always be `1`."]
-    #[doc = ""]
-    #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[doc = " * `request_priority` - The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[doc = " * `tls_version` - The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[doc = " * `tls_cipher` - The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    #[doc = " * `client_trust_score` - Duplicate of `botManagement.score`."]
-    #[doc = ""]
-    #[doc = " @deprecated"]
-    #[doc = " * `bot_management` - Results of Cloudflare's Bot Management analysis"]
-    #[doc = " * `tls_client_auth` - Information about the client certificate presented to Cloudflare."]
-    #[doc = ""]
-    #[doc = " This is populated when the incoming request is served over TLS using"]
-    #[doc = " either Cloudflare Access or API Shield (mTLS)"]
-    #[doc = " and the presented SSL certificate has a valid"]
-    #[doc = " [Certificate Serial Number](https://ldapwiki.com/wiki/Certificate%20Serial%20Number)"]
-    #[doc = " (i.e., not `null` or `\"\"`)."]
-    #[doc = ""]
-    #[doc = " Otherwise, a set of placeholder values are used."]
-    #[doc = ""]
-    #[doc = " The property `certPresented` will be set to `\"1\"` when"]
-    #[doc = " the object is populated (i.e. the above conditions were met)."]
-    pub fn new_3(
-        colo: impl ::wasm_bindgen::JsStringLike,
-        http_protocol: impl ::wasm_bindgen::JsStringLike,
-        request_priority: impl ::wasm_bindgen::JsStringLike,
-        tls_version: impl ::wasm_bindgen::JsStringLike,
-        tls_cipher: impl ::wasm_bindgen::JsStringLike,
-        client_trust_score: f64,
-        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
-        tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuth,
-    ) -> IncomingRequestCfProperties<HostMetadata> {
-        Self::builder_3(
-            colo,
-            http_protocol,
-            request_priority,
-            tls_version,
-            tls_cipher,
-            client_trust_score,
-            bot_management,
-            tls_client_auth,
-        )
-        .build()
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 3` - Represents the upstream's response to a"]
-    #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
-    #[doc = " from cloudflare."]
-    #[doc = ""]
-    #[doc = " For workers with no upstream, this will always be `1`."]
-    #[doc = ""]
-    #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[doc = " * `request_priority` - The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[doc = " * `tls_version` - The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[doc = " * `tls_cipher` - The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    #[doc = " * `client_trust_score` - Duplicate of `botManagement.score`."]
-    #[doc = ""]
-    #[doc = " @deprecated"]
-    #[doc = " * `bot_management` - Results of Cloudflare's Bot Management analysis"]
-    #[doc = " * `tls_client_auth` - Information about the client certificate presented to Cloudflare."]
-    #[doc = ""]
-    #[doc = " This is populated when the incoming request is served over TLS using"]
-    #[doc = " either Cloudflare Access or API Shield (mTLS)"]
-    #[doc = " and the presented SSL certificate has a valid"]
-    #[doc = " [Certificate Serial Number](https://ldapwiki.com/wiki/Certificate%20Serial%20Number)"]
-    #[doc = " (i.e., not `null` or `\"\"`)."]
-    #[doc = ""]
-    #[doc = " Otherwise, a set of placeholder values are used."]
-    #[doc = ""]
-    #[doc = " The property `certPresented` will be set to `\"1\"` when"]
-    #[doc = " the object is populated (i.e. the above conditions were met)."]
-    pub fn new_3_with_incoming_request_cf_properties_tls_client_auth_placeholder(
-        colo: impl ::wasm_bindgen::JsStringLike,
-        http_protocol: impl ::wasm_bindgen::JsStringLike,
-        request_priority: impl ::wasm_bindgen::JsStringLike,
-        tls_version: impl ::wasm_bindgen::JsStringLike,
-        tls_cipher: impl ::wasm_bindgen::JsStringLike,
-        client_trust_score: f64,
-        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
-        tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
-    ) -> IncomingRequestCfProperties<HostMetadata> {
-        Self::builder_3_with_incoming_request_cf_properties_tls_client_auth_placeholder(
-            colo,
-            http_protocol,
-            request_priority,
-            tls_version,
-            tls_cipher,
-            client_trust_score,
-            bot_management,
-            tls_client_auth,
-        )
-        .build()
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 4` - Represents the upstream's response to a"]
-    #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
-    #[doc = " from cloudflare."]
-    #[doc = ""]
-    #[doc = " For workers with no upstream, this will always be `1`."]
-    #[doc = ""]
-    #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[doc = " * `request_priority` - The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[doc = " * `tls_version` - The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[doc = " * `tls_cipher` - The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    #[doc = " * `client_trust_score` - Duplicate of `botManagement.score`."]
-    #[doc = ""]
-    #[doc = " @deprecated"]
-    #[doc = " * `bot_management` - Results of Cloudflare's Bot Management analysis"]
-    #[doc = " * `tls_client_auth` - Information about the client certificate presented to Cloudflare."]
-    #[doc = ""]
-    #[doc = " This is populated when the incoming request is served over TLS using"]
-    #[doc = " either Cloudflare Access or API Shield (mTLS)"]
-    #[doc = " and the presented SSL certificate has a valid"]
-    #[doc = " [Certificate Serial Number](https://ldapwiki.com/wiki/Certificate%20Serial%20Number)"]
-    #[doc = " (i.e., not `null` or `\"\"`)."]
-    #[doc = ""]
-    #[doc = " Otherwise, a set of placeholder values are used."]
-    #[doc = ""]
-    #[doc = " The property `certPresented` will be set to `\"1\"` when"]
-    #[doc = " the object is populated (i.e. the above conditions were met)."]
-    pub fn new_4(
-        colo: impl ::wasm_bindgen::JsStringLike,
-        http_protocol: impl ::wasm_bindgen::JsStringLike,
-        request_priority: impl ::wasm_bindgen::JsStringLike,
-        tls_version: impl ::wasm_bindgen::JsStringLike,
-        tls_cipher: impl ::wasm_bindgen::JsStringLike,
-        client_trust_score: f64,
-        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
-        tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuth,
-    ) -> IncomingRequestCfProperties<HostMetadata> {
-        Self::builder_4(
-            colo,
-            http_protocol,
-            request_priority,
-            tls_version,
-            tls_cipher,
-            client_trust_score,
-            bot_management,
-            tls_client_auth,
-        )
-        .build()
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 4` - Represents the upstream's response to a"]
-    #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
-    #[doc = " from cloudflare."]
-    #[doc = ""]
-    #[doc = " For workers with no upstream, this will always be `1`."]
-    #[doc = ""]
-    #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[doc = " * `request_priority` - The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[doc = " * `tls_version` - The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[doc = " * `tls_cipher` - The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    #[doc = " * `client_trust_score` - Duplicate of `botManagement.score`."]
-    #[doc = ""]
-    #[doc = " @deprecated"]
-    #[doc = " * `bot_management` - Results of Cloudflare's Bot Management analysis"]
-    #[doc = " * `tls_client_auth` - Information about the client certificate presented to Cloudflare."]
-    #[doc = ""]
-    #[doc = " This is populated when the incoming request is served over TLS using"]
-    #[doc = " either Cloudflare Access or API Shield (mTLS)"]
-    #[doc = " and the presented SSL certificate has a valid"]
-    #[doc = " [Certificate Serial Number](https://ldapwiki.com/wiki/Certificate%20Serial%20Number)"]
-    #[doc = " (i.e., not `null` or `\"\"`)."]
-    #[doc = ""]
-    #[doc = " Otherwise, a set of placeholder values are used."]
-    #[doc = ""]
-    #[doc = " The property `certPresented` will be set to `\"1\"` when"]
-    #[doc = " the object is populated (i.e. the above conditions were met)."]
-    pub fn new_4_with_incoming_request_cf_properties_tls_client_auth_placeholder(
-        colo: impl ::wasm_bindgen::JsStringLike,
-        http_protocol: impl ::wasm_bindgen::JsStringLike,
-        request_priority: impl ::wasm_bindgen::JsStringLike,
-        tls_version: impl ::wasm_bindgen::JsStringLike,
-        tls_cipher: impl ::wasm_bindgen::JsStringLike,
-        client_trust_score: f64,
-        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
-        tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
-    ) -> IncomingRequestCfProperties<HostMetadata> {
-        Self::builder_4_with_incoming_request_cf_properties_tls_client_auth_placeholder(
-            colo,
-            http_protocol,
-            request_priority,
-            tls_version,
-            tls_cipher,
-            client_trust_score,
-            bot_management,
-            tls_client_auth,
-        )
-        .build()
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 5` - Represents the upstream's response to a"]
-    #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
-    #[doc = " from cloudflare."]
-    #[doc = ""]
-    #[doc = " For workers with no upstream, this will always be `1`."]
-    #[doc = ""]
-    #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[doc = " * `request_priority` - The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[doc = " * `tls_version` - The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[doc = " * `tls_cipher` - The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    #[doc = " * `client_trust_score` - Duplicate of `botManagement.score`."]
-    #[doc = ""]
-    #[doc = " @deprecated"]
-    #[doc = " * `bot_management` - Results of Cloudflare's Bot Management analysis"]
-    #[doc = " * `tls_client_auth` - Information about the client certificate presented to Cloudflare."]
-    #[doc = ""]
-    #[doc = " This is populated when the incoming request is served over TLS using"]
-    #[doc = " either Cloudflare Access or API Shield (mTLS)"]
-    #[doc = " and the presented SSL certificate has a valid"]
-    #[doc = " [Certificate Serial Number](https://ldapwiki.com/wiki/Certificate%20Serial%20Number)"]
-    #[doc = " (i.e., not `null` or `\"\"`)."]
-    #[doc = ""]
-    #[doc = " Otherwise, a set of placeholder values are used."]
-    #[doc = ""]
-    #[doc = " The property `certPresented` will be set to `\"1\"` when"]
-    #[doc = " the object is populated (i.e. the above conditions were met)."]
-    pub fn new_5(
-        colo: impl ::wasm_bindgen::JsStringLike,
-        http_protocol: impl ::wasm_bindgen::JsStringLike,
-        request_priority: impl ::wasm_bindgen::JsStringLike,
-        tls_version: impl ::wasm_bindgen::JsStringLike,
-        tls_cipher: impl ::wasm_bindgen::JsStringLike,
-        client_trust_score: f64,
-        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
-        tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuth,
-    ) -> IncomingRequestCfProperties<HostMetadata> {
-        Self::builder_5(
-            colo,
-            http_protocol,
-            request_priority,
-            tls_version,
-            tls_cipher,
-            client_trust_score,
-            bot_management,
-            tls_client_auth,
-        )
-        .build()
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 5` - Represents the upstream's response to a"]
-    #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
-    #[doc = " from cloudflare."]
-    #[doc = ""]
-    #[doc = " For workers with no upstream, this will always be `1`."]
-    #[doc = ""]
-    #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[doc = " * `request_priority` - The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[doc = " * `tls_version` - The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[doc = " * `tls_cipher` - The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    #[doc = " * `client_trust_score` - Duplicate of `botManagement.score`."]
-    #[doc = ""]
-    #[doc = " @deprecated"]
-    #[doc = " * `bot_management` - Results of Cloudflare's Bot Management analysis"]
-    #[doc = " * `tls_client_auth` - Information about the client certificate presented to Cloudflare."]
-    #[doc = ""]
-    #[doc = " This is populated when the incoming request is served over TLS using"]
-    #[doc = " either Cloudflare Access or API Shield (mTLS)"]
-    #[doc = " and the presented SSL certificate has a valid"]
-    #[doc = " [Certificate Serial Number](https://ldapwiki.com/wiki/Certificate%20Serial%20Number)"]
-    #[doc = " (i.e., not `null` or `\"\"`)."]
-    #[doc = ""]
-    #[doc = " Otherwise, a set of placeholder values are used."]
-    #[doc = ""]
-    #[doc = " The property `certPresented` will be set to `\"1\"` when"]
-    #[doc = " the object is populated (i.e. the above conditions were met)."]
-    pub fn new_5_with_incoming_request_cf_properties_tls_client_auth_placeholder(
-        colo: impl ::wasm_bindgen::JsStringLike,
-        http_protocol: impl ::wasm_bindgen::JsStringLike,
-        request_priority: impl ::wasm_bindgen::JsStringLike,
-        tls_version: impl ::wasm_bindgen::JsStringLike,
-        tls_cipher: impl ::wasm_bindgen::JsStringLike,
-        client_trust_score: f64,
-        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
-        tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
-    ) -> IncomingRequestCfProperties<HostMetadata> {
-        Self::builder_5_with_incoming_request_cf_properties_tls_client_auth_placeholder(
-            colo,
-            http_protocol,
-            request_priority,
-            tls_version,
-            tls_cipher,
-            client_trust_score,
-            bot_management,
-            tls_client_auth,
-        )
-        .build()
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 0` - Represents the upstream's response to a"]
-    #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
-    #[doc = " from cloudflare."]
-    #[doc = ""]
-    #[doc = " For workers with no upstream, this will always be `1`."]
-    #[doc = ""]
-    #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[doc = " * `request_priority` - The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[doc = " * `tls_version` - The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[doc = " * `tls_cipher` - The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    #[doc = " * `client_trust_score` - Duplicate of `botManagement.score`."]
-    #[doc = ""]
-    #[doc = " @deprecated"]
-    #[doc = " * `bot_management` - Results of Cloudflare's Bot Management analysis"]
-    #[doc = " * `tls_client_auth` - Information about the client certificate presented to Cloudflare."]
-    #[doc = ""]
-    #[doc = " This is populated when the incoming request is served over TLS using"]
-    #[doc = " either Cloudflare Access or API Shield (mTLS)"]
-    #[doc = " and the presented SSL certificate has a valid"]
-    #[doc = " [Certificate Serial Number](https://ldapwiki.com/wiki/Certificate%20Serial%20Number)"]
-    #[doc = " (i.e., not `null` or `\"\"`)."]
-    #[doc = ""]
-    #[doc = " Otherwise, a set of placeholder values are used."]
-    #[doc = ""]
-    #[doc = " The property `certPresented` will be set to `\"1\"` when"]
-    #[doc = " the object is populated (i.e. the above conditions were met)."]
-    pub fn builder_0(
-        colo: impl ::wasm_bindgen::JsStringLike,
+        edge_request_keep_alive_status: f64,
         http_protocol: impl ::wasm_bindgen::JsStringLike,
         request_priority: impl ::wasm_bindgen::JsStringLike,
         tls_version: impl ::wasm_bindgen::JsStringLike,
@@ -14618,7 +14014,7 @@ impl<HostMetadata> IncomingRequestCfProperties<HostMetadata> {
         let inner: IncomingRequestCfProperties<HostMetadata> =
             JsCast::unchecked_into(js_sys::Object::new());
         inner.set_colo(colo);
-        inner.set_edge_request_keep_alive_status(0.0);
+        inner.set_edge_request_keep_alive_status(edge_request_keep_alive_status);
         inner.set_http_protocol(http_protocol);
         inner.set_request_priority(request_priority);
         inner.set_tls_version(tls_version);
@@ -14628,20 +14024,17 @@ impl<HostMetadata> IncomingRequestCfProperties<HostMetadata> {
         inner.set_tls_client_auth(tls_client_auth);
         IncomingRequestCfPropertiesBuilder { inner }
     }
-    #[doc = " ## Inlined fields"]
+    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
+    #[doc = " airport code of the data center that the request hit."]
     #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 0` - Represents the upstream's response to a"]
+    #[doc = " @example \"DFW\""]
+    #[doc = " * `edge_request_keep_alive_status` - Represents the upstream's response to a"]
     #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
     #[doc = " from cloudflare."]
     #[doc = ""]
     #[doc = " For workers with no upstream, this will always be `1`."]
     #[doc = ""]
     #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
     #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
     #[doc = ""]
     #[doc = " @example \"HTTP/2\""]
@@ -14675,8 +14068,9 @@ impl<HostMetadata> IncomingRequestCfProperties<HostMetadata> {
     #[doc = ""]
     #[doc = " The property `certPresented` will be set to `\"1\"` when"]
     #[doc = " the object is populated (i.e. the above conditions were met)."]
-    pub fn builder_0_with_incoming_request_cf_properties_tls_client_auth_placeholder(
+    pub fn builder_with_incoming_request_cf_properties_tls_client_auth_placeholder(
         colo: impl ::wasm_bindgen::JsStringLike,
+        edge_request_keep_alive_status: f64,
         http_protocol: impl ::wasm_bindgen::JsStringLike,
         request_priority: impl ::wasm_bindgen::JsStringLike,
         tls_version: impl ::wasm_bindgen::JsStringLike,
@@ -14688,717 +14082,7 @@ impl<HostMetadata> IncomingRequestCfProperties<HostMetadata> {
         let inner: IncomingRequestCfProperties<HostMetadata> =
             JsCast::unchecked_into(js_sys::Object::new());
         inner.set_colo(colo);
-        inner.set_edge_request_keep_alive_status(0.0);
-        inner.set_http_protocol(http_protocol);
-        inner.set_request_priority(request_priority);
-        inner.set_tls_version(tls_version);
-        inner.set_tls_cipher(tls_cipher);
-        inner.set_client_trust_score(client_trust_score);
-        inner.set_bot_management(bot_management);
-        inner.set_tls_client_auth_with_incoming_request_cf_properties_tls_client_auth_placeholder(
-            tls_client_auth,
-        );
-        IncomingRequestCfPropertiesBuilder { inner }
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 1` - Represents the upstream's response to a"]
-    #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
-    #[doc = " from cloudflare."]
-    #[doc = ""]
-    #[doc = " For workers with no upstream, this will always be `1`."]
-    #[doc = ""]
-    #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[doc = " * `request_priority` - The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[doc = " * `tls_version` - The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[doc = " * `tls_cipher` - The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    #[doc = " * `client_trust_score` - Duplicate of `botManagement.score`."]
-    #[doc = ""]
-    #[doc = " @deprecated"]
-    #[doc = " * `bot_management` - Results of Cloudflare's Bot Management analysis"]
-    #[doc = " * `tls_client_auth` - Information about the client certificate presented to Cloudflare."]
-    #[doc = ""]
-    #[doc = " This is populated when the incoming request is served over TLS using"]
-    #[doc = " either Cloudflare Access or API Shield (mTLS)"]
-    #[doc = " and the presented SSL certificate has a valid"]
-    #[doc = " [Certificate Serial Number](https://ldapwiki.com/wiki/Certificate%20Serial%20Number)"]
-    #[doc = " (i.e., not `null` or `\"\"`)."]
-    #[doc = ""]
-    #[doc = " Otherwise, a set of placeholder values are used."]
-    #[doc = ""]
-    #[doc = " The property `certPresented` will be set to `\"1\"` when"]
-    #[doc = " the object is populated (i.e. the above conditions were met)."]
-    pub fn builder_1(
-        colo: impl ::wasm_bindgen::JsStringLike,
-        http_protocol: impl ::wasm_bindgen::JsStringLike,
-        request_priority: impl ::wasm_bindgen::JsStringLike,
-        tls_version: impl ::wasm_bindgen::JsStringLike,
-        tls_cipher: impl ::wasm_bindgen::JsStringLike,
-        client_trust_score: f64,
-        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
-        tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuth,
-    ) -> IncomingRequestCfPropertiesBuilder<HostMetadata> {
-        let inner: IncomingRequestCfProperties<HostMetadata> =
-            JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_colo(colo);
-        inner.set_edge_request_keep_alive_status(1.0);
-        inner.set_http_protocol(http_protocol);
-        inner.set_request_priority(request_priority);
-        inner.set_tls_version(tls_version);
-        inner.set_tls_cipher(tls_cipher);
-        inner.set_client_trust_score(client_trust_score);
-        inner.set_bot_management(bot_management);
-        inner.set_tls_client_auth(tls_client_auth);
-        IncomingRequestCfPropertiesBuilder { inner }
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 1` - Represents the upstream's response to a"]
-    #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
-    #[doc = " from cloudflare."]
-    #[doc = ""]
-    #[doc = " For workers with no upstream, this will always be `1`."]
-    #[doc = ""]
-    #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[doc = " * `request_priority` - The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[doc = " * `tls_version` - The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[doc = " * `tls_cipher` - The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    #[doc = " * `client_trust_score` - Duplicate of `botManagement.score`."]
-    #[doc = ""]
-    #[doc = " @deprecated"]
-    #[doc = " * `bot_management` - Results of Cloudflare's Bot Management analysis"]
-    #[doc = " * `tls_client_auth` - Information about the client certificate presented to Cloudflare."]
-    #[doc = ""]
-    #[doc = " This is populated when the incoming request is served over TLS using"]
-    #[doc = " either Cloudflare Access or API Shield (mTLS)"]
-    #[doc = " and the presented SSL certificate has a valid"]
-    #[doc = " [Certificate Serial Number](https://ldapwiki.com/wiki/Certificate%20Serial%20Number)"]
-    #[doc = " (i.e., not `null` or `\"\"`)."]
-    #[doc = ""]
-    #[doc = " Otherwise, a set of placeholder values are used."]
-    #[doc = ""]
-    #[doc = " The property `certPresented` will be set to `\"1\"` when"]
-    #[doc = " the object is populated (i.e. the above conditions were met)."]
-    pub fn builder_1_with_incoming_request_cf_properties_tls_client_auth_placeholder(
-        colo: impl ::wasm_bindgen::JsStringLike,
-        http_protocol: impl ::wasm_bindgen::JsStringLike,
-        request_priority: impl ::wasm_bindgen::JsStringLike,
-        tls_version: impl ::wasm_bindgen::JsStringLike,
-        tls_cipher: impl ::wasm_bindgen::JsStringLike,
-        client_trust_score: f64,
-        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
-        tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
-    ) -> IncomingRequestCfPropertiesBuilder<HostMetadata> {
-        let inner: IncomingRequestCfProperties<HostMetadata> =
-            JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_colo(colo);
-        inner.set_edge_request_keep_alive_status(1.0);
-        inner.set_http_protocol(http_protocol);
-        inner.set_request_priority(request_priority);
-        inner.set_tls_version(tls_version);
-        inner.set_tls_cipher(tls_cipher);
-        inner.set_client_trust_score(client_trust_score);
-        inner.set_bot_management(bot_management);
-        inner.set_tls_client_auth_with_incoming_request_cf_properties_tls_client_auth_placeholder(
-            tls_client_auth,
-        );
-        IncomingRequestCfPropertiesBuilder { inner }
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 2` - Represents the upstream's response to a"]
-    #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
-    #[doc = " from cloudflare."]
-    #[doc = ""]
-    #[doc = " For workers with no upstream, this will always be `1`."]
-    #[doc = ""]
-    #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[doc = " * `request_priority` - The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[doc = " * `tls_version` - The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[doc = " * `tls_cipher` - The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    #[doc = " * `client_trust_score` - Duplicate of `botManagement.score`."]
-    #[doc = ""]
-    #[doc = " @deprecated"]
-    #[doc = " * `bot_management` - Results of Cloudflare's Bot Management analysis"]
-    #[doc = " * `tls_client_auth` - Information about the client certificate presented to Cloudflare."]
-    #[doc = ""]
-    #[doc = " This is populated when the incoming request is served over TLS using"]
-    #[doc = " either Cloudflare Access or API Shield (mTLS)"]
-    #[doc = " and the presented SSL certificate has a valid"]
-    #[doc = " [Certificate Serial Number](https://ldapwiki.com/wiki/Certificate%20Serial%20Number)"]
-    #[doc = " (i.e., not `null` or `\"\"`)."]
-    #[doc = ""]
-    #[doc = " Otherwise, a set of placeholder values are used."]
-    #[doc = ""]
-    #[doc = " The property `certPresented` will be set to `\"1\"` when"]
-    #[doc = " the object is populated (i.e. the above conditions were met)."]
-    pub fn builder_2(
-        colo: impl ::wasm_bindgen::JsStringLike,
-        http_protocol: impl ::wasm_bindgen::JsStringLike,
-        request_priority: impl ::wasm_bindgen::JsStringLike,
-        tls_version: impl ::wasm_bindgen::JsStringLike,
-        tls_cipher: impl ::wasm_bindgen::JsStringLike,
-        client_trust_score: f64,
-        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
-        tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuth,
-    ) -> IncomingRequestCfPropertiesBuilder<HostMetadata> {
-        let inner: IncomingRequestCfProperties<HostMetadata> =
-            JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_colo(colo);
-        inner.set_edge_request_keep_alive_status(2.0);
-        inner.set_http_protocol(http_protocol);
-        inner.set_request_priority(request_priority);
-        inner.set_tls_version(tls_version);
-        inner.set_tls_cipher(tls_cipher);
-        inner.set_client_trust_score(client_trust_score);
-        inner.set_bot_management(bot_management);
-        inner.set_tls_client_auth(tls_client_auth);
-        IncomingRequestCfPropertiesBuilder { inner }
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 2` - Represents the upstream's response to a"]
-    #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
-    #[doc = " from cloudflare."]
-    #[doc = ""]
-    #[doc = " For workers with no upstream, this will always be `1`."]
-    #[doc = ""]
-    #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[doc = " * `request_priority` - The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[doc = " * `tls_version` - The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[doc = " * `tls_cipher` - The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    #[doc = " * `client_trust_score` - Duplicate of `botManagement.score`."]
-    #[doc = ""]
-    #[doc = " @deprecated"]
-    #[doc = " * `bot_management` - Results of Cloudflare's Bot Management analysis"]
-    #[doc = " * `tls_client_auth` - Information about the client certificate presented to Cloudflare."]
-    #[doc = ""]
-    #[doc = " This is populated when the incoming request is served over TLS using"]
-    #[doc = " either Cloudflare Access or API Shield (mTLS)"]
-    #[doc = " and the presented SSL certificate has a valid"]
-    #[doc = " [Certificate Serial Number](https://ldapwiki.com/wiki/Certificate%20Serial%20Number)"]
-    #[doc = " (i.e., not `null` or `\"\"`)."]
-    #[doc = ""]
-    #[doc = " Otherwise, a set of placeholder values are used."]
-    #[doc = ""]
-    #[doc = " The property `certPresented` will be set to `\"1\"` when"]
-    #[doc = " the object is populated (i.e. the above conditions were met)."]
-    pub fn builder_2_with_incoming_request_cf_properties_tls_client_auth_placeholder(
-        colo: impl ::wasm_bindgen::JsStringLike,
-        http_protocol: impl ::wasm_bindgen::JsStringLike,
-        request_priority: impl ::wasm_bindgen::JsStringLike,
-        tls_version: impl ::wasm_bindgen::JsStringLike,
-        tls_cipher: impl ::wasm_bindgen::JsStringLike,
-        client_trust_score: f64,
-        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
-        tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
-    ) -> IncomingRequestCfPropertiesBuilder<HostMetadata> {
-        let inner: IncomingRequestCfProperties<HostMetadata> =
-            JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_colo(colo);
-        inner.set_edge_request_keep_alive_status(2.0);
-        inner.set_http_protocol(http_protocol);
-        inner.set_request_priority(request_priority);
-        inner.set_tls_version(tls_version);
-        inner.set_tls_cipher(tls_cipher);
-        inner.set_client_trust_score(client_trust_score);
-        inner.set_bot_management(bot_management);
-        inner.set_tls_client_auth_with_incoming_request_cf_properties_tls_client_auth_placeholder(
-            tls_client_auth,
-        );
-        IncomingRequestCfPropertiesBuilder { inner }
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 3` - Represents the upstream's response to a"]
-    #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
-    #[doc = " from cloudflare."]
-    #[doc = ""]
-    #[doc = " For workers with no upstream, this will always be `1`."]
-    #[doc = ""]
-    #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[doc = " * `request_priority` - The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[doc = " * `tls_version` - The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[doc = " * `tls_cipher` - The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    #[doc = " * `client_trust_score` - Duplicate of `botManagement.score`."]
-    #[doc = ""]
-    #[doc = " @deprecated"]
-    #[doc = " * `bot_management` - Results of Cloudflare's Bot Management analysis"]
-    #[doc = " * `tls_client_auth` - Information about the client certificate presented to Cloudflare."]
-    #[doc = ""]
-    #[doc = " This is populated when the incoming request is served over TLS using"]
-    #[doc = " either Cloudflare Access or API Shield (mTLS)"]
-    #[doc = " and the presented SSL certificate has a valid"]
-    #[doc = " [Certificate Serial Number](https://ldapwiki.com/wiki/Certificate%20Serial%20Number)"]
-    #[doc = " (i.e., not `null` or `\"\"`)."]
-    #[doc = ""]
-    #[doc = " Otherwise, a set of placeholder values are used."]
-    #[doc = ""]
-    #[doc = " The property `certPresented` will be set to `\"1\"` when"]
-    #[doc = " the object is populated (i.e. the above conditions were met)."]
-    pub fn builder_3(
-        colo: impl ::wasm_bindgen::JsStringLike,
-        http_protocol: impl ::wasm_bindgen::JsStringLike,
-        request_priority: impl ::wasm_bindgen::JsStringLike,
-        tls_version: impl ::wasm_bindgen::JsStringLike,
-        tls_cipher: impl ::wasm_bindgen::JsStringLike,
-        client_trust_score: f64,
-        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
-        tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuth,
-    ) -> IncomingRequestCfPropertiesBuilder<HostMetadata> {
-        let inner: IncomingRequestCfProperties<HostMetadata> =
-            JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_colo(colo);
-        inner.set_edge_request_keep_alive_status(3.0);
-        inner.set_http_protocol(http_protocol);
-        inner.set_request_priority(request_priority);
-        inner.set_tls_version(tls_version);
-        inner.set_tls_cipher(tls_cipher);
-        inner.set_client_trust_score(client_trust_score);
-        inner.set_bot_management(bot_management);
-        inner.set_tls_client_auth(tls_client_auth);
-        IncomingRequestCfPropertiesBuilder { inner }
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 3` - Represents the upstream's response to a"]
-    #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
-    #[doc = " from cloudflare."]
-    #[doc = ""]
-    #[doc = " For workers with no upstream, this will always be `1`."]
-    #[doc = ""]
-    #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[doc = " * `request_priority` - The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[doc = " * `tls_version` - The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[doc = " * `tls_cipher` - The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    #[doc = " * `client_trust_score` - Duplicate of `botManagement.score`."]
-    #[doc = ""]
-    #[doc = " @deprecated"]
-    #[doc = " * `bot_management` - Results of Cloudflare's Bot Management analysis"]
-    #[doc = " * `tls_client_auth` - Information about the client certificate presented to Cloudflare."]
-    #[doc = ""]
-    #[doc = " This is populated when the incoming request is served over TLS using"]
-    #[doc = " either Cloudflare Access or API Shield (mTLS)"]
-    #[doc = " and the presented SSL certificate has a valid"]
-    #[doc = " [Certificate Serial Number](https://ldapwiki.com/wiki/Certificate%20Serial%20Number)"]
-    #[doc = " (i.e., not `null` or `\"\"`)."]
-    #[doc = ""]
-    #[doc = " Otherwise, a set of placeholder values are used."]
-    #[doc = ""]
-    #[doc = " The property `certPresented` will be set to `\"1\"` when"]
-    #[doc = " the object is populated (i.e. the above conditions were met)."]
-    pub fn builder_3_with_incoming_request_cf_properties_tls_client_auth_placeholder(
-        colo: impl ::wasm_bindgen::JsStringLike,
-        http_protocol: impl ::wasm_bindgen::JsStringLike,
-        request_priority: impl ::wasm_bindgen::JsStringLike,
-        tls_version: impl ::wasm_bindgen::JsStringLike,
-        tls_cipher: impl ::wasm_bindgen::JsStringLike,
-        client_trust_score: f64,
-        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
-        tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
-    ) -> IncomingRequestCfPropertiesBuilder<HostMetadata> {
-        let inner: IncomingRequestCfProperties<HostMetadata> =
-            JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_colo(colo);
-        inner.set_edge_request_keep_alive_status(3.0);
-        inner.set_http_protocol(http_protocol);
-        inner.set_request_priority(request_priority);
-        inner.set_tls_version(tls_version);
-        inner.set_tls_cipher(tls_cipher);
-        inner.set_client_trust_score(client_trust_score);
-        inner.set_bot_management(bot_management);
-        inner.set_tls_client_auth_with_incoming_request_cf_properties_tls_client_auth_placeholder(
-            tls_client_auth,
-        );
-        IncomingRequestCfPropertiesBuilder { inner }
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 4` - Represents the upstream's response to a"]
-    #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
-    #[doc = " from cloudflare."]
-    #[doc = ""]
-    #[doc = " For workers with no upstream, this will always be `1`."]
-    #[doc = ""]
-    #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[doc = " * `request_priority` - The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[doc = " * `tls_version` - The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[doc = " * `tls_cipher` - The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    #[doc = " * `client_trust_score` - Duplicate of `botManagement.score`."]
-    #[doc = ""]
-    #[doc = " @deprecated"]
-    #[doc = " * `bot_management` - Results of Cloudflare's Bot Management analysis"]
-    #[doc = " * `tls_client_auth` - Information about the client certificate presented to Cloudflare."]
-    #[doc = ""]
-    #[doc = " This is populated when the incoming request is served over TLS using"]
-    #[doc = " either Cloudflare Access or API Shield (mTLS)"]
-    #[doc = " and the presented SSL certificate has a valid"]
-    #[doc = " [Certificate Serial Number](https://ldapwiki.com/wiki/Certificate%20Serial%20Number)"]
-    #[doc = " (i.e., not `null` or `\"\"`)."]
-    #[doc = ""]
-    #[doc = " Otherwise, a set of placeholder values are used."]
-    #[doc = ""]
-    #[doc = " The property `certPresented` will be set to `\"1\"` when"]
-    #[doc = " the object is populated (i.e. the above conditions were met)."]
-    pub fn builder_4(
-        colo: impl ::wasm_bindgen::JsStringLike,
-        http_protocol: impl ::wasm_bindgen::JsStringLike,
-        request_priority: impl ::wasm_bindgen::JsStringLike,
-        tls_version: impl ::wasm_bindgen::JsStringLike,
-        tls_cipher: impl ::wasm_bindgen::JsStringLike,
-        client_trust_score: f64,
-        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
-        tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuth,
-    ) -> IncomingRequestCfPropertiesBuilder<HostMetadata> {
-        let inner: IncomingRequestCfProperties<HostMetadata> =
-            JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_colo(colo);
-        inner.set_edge_request_keep_alive_status(4.0);
-        inner.set_http_protocol(http_protocol);
-        inner.set_request_priority(request_priority);
-        inner.set_tls_version(tls_version);
-        inner.set_tls_cipher(tls_cipher);
-        inner.set_client_trust_score(client_trust_score);
-        inner.set_bot_management(bot_management);
-        inner.set_tls_client_auth(tls_client_auth);
-        IncomingRequestCfPropertiesBuilder { inner }
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 4` - Represents the upstream's response to a"]
-    #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
-    #[doc = " from cloudflare."]
-    #[doc = ""]
-    #[doc = " For workers with no upstream, this will always be `1`."]
-    #[doc = ""]
-    #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[doc = " * `request_priority` - The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[doc = " * `tls_version` - The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[doc = " * `tls_cipher` - The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    #[doc = " * `client_trust_score` - Duplicate of `botManagement.score`."]
-    #[doc = ""]
-    #[doc = " @deprecated"]
-    #[doc = " * `bot_management` - Results of Cloudflare's Bot Management analysis"]
-    #[doc = " * `tls_client_auth` - Information about the client certificate presented to Cloudflare."]
-    #[doc = ""]
-    #[doc = " This is populated when the incoming request is served over TLS using"]
-    #[doc = " either Cloudflare Access or API Shield (mTLS)"]
-    #[doc = " and the presented SSL certificate has a valid"]
-    #[doc = " [Certificate Serial Number](https://ldapwiki.com/wiki/Certificate%20Serial%20Number)"]
-    #[doc = " (i.e., not `null` or `\"\"`)."]
-    #[doc = ""]
-    #[doc = " Otherwise, a set of placeholder values are used."]
-    #[doc = ""]
-    #[doc = " The property `certPresented` will be set to `\"1\"` when"]
-    #[doc = " the object is populated (i.e. the above conditions were met)."]
-    pub fn builder_4_with_incoming_request_cf_properties_tls_client_auth_placeholder(
-        colo: impl ::wasm_bindgen::JsStringLike,
-        http_protocol: impl ::wasm_bindgen::JsStringLike,
-        request_priority: impl ::wasm_bindgen::JsStringLike,
-        tls_version: impl ::wasm_bindgen::JsStringLike,
-        tls_cipher: impl ::wasm_bindgen::JsStringLike,
-        client_trust_score: f64,
-        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
-        tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
-    ) -> IncomingRequestCfPropertiesBuilder<HostMetadata> {
-        let inner: IncomingRequestCfProperties<HostMetadata> =
-            JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_colo(colo);
-        inner.set_edge_request_keep_alive_status(4.0);
-        inner.set_http_protocol(http_protocol);
-        inner.set_request_priority(request_priority);
-        inner.set_tls_version(tls_version);
-        inner.set_tls_cipher(tls_cipher);
-        inner.set_client_trust_score(client_trust_score);
-        inner.set_bot_management(bot_management);
-        inner.set_tls_client_auth_with_incoming_request_cf_properties_tls_client_auth_placeholder(
-            tls_client_auth,
-        );
-        IncomingRequestCfPropertiesBuilder { inner }
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 5` - Represents the upstream's response to a"]
-    #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
-    #[doc = " from cloudflare."]
-    #[doc = ""]
-    #[doc = " For workers with no upstream, this will always be `1`."]
-    #[doc = ""]
-    #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[doc = " * `request_priority` - The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[doc = " * `tls_version` - The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[doc = " * `tls_cipher` - The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    #[doc = " * `client_trust_score` - Duplicate of `botManagement.score`."]
-    #[doc = ""]
-    #[doc = " @deprecated"]
-    #[doc = " * `bot_management` - Results of Cloudflare's Bot Management analysis"]
-    #[doc = " * `tls_client_auth` - Information about the client certificate presented to Cloudflare."]
-    #[doc = ""]
-    #[doc = " This is populated when the incoming request is served over TLS using"]
-    #[doc = " either Cloudflare Access or API Shield (mTLS)"]
-    #[doc = " and the presented SSL certificate has a valid"]
-    #[doc = " [Certificate Serial Number](https://ldapwiki.com/wiki/Certificate%20Serial%20Number)"]
-    #[doc = " (i.e., not `null` or `\"\"`)."]
-    #[doc = ""]
-    #[doc = " Otherwise, a set of placeholder values are used."]
-    #[doc = ""]
-    #[doc = " The property `certPresented` will be set to `\"1\"` when"]
-    #[doc = " the object is populated (i.e. the above conditions were met)."]
-    pub fn builder_5(
-        colo: impl ::wasm_bindgen::JsStringLike,
-        http_protocol: impl ::wasm_bindgen::JsStringLike,
-        request_priority: impl ::wasm_bindgen::JsStringLike,
-        tls_version: impl ::wasm_bindgen::JsStringLike,
-        tls_cipher: impl ::wasm_bindgen::JsStringLike,
-        client_trust_score: f64,
-        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
-        tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuth,
-    ) -> IncomingRequestCfPropertiesBuilder<HostMetadata> {
-        let inner: IncomingRequestCfProperties<HostMetadata> =
-            JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_colo(colo);
-        inner.set_edge_request_keep_alive_status(5.0);
-        inner.set_http_protocol(http_protocol);
-        inner.set_request_priority(request_priority);
-        inner.set_tls_version(tls_version);
-        inner.set_tls_cipher(tls_cipher);
-        inner.set_client_trust_score(client_trust_score);
-        inner.set_bot_management(bot_management);
-        inner.set_tls_client_auth(tls_client_auth);
-        IncomingRequestCfPropertiesBuilder { inner }
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 5` - Represents the upstream's response to a"]
-    #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
-    #[doc = " from cloudflare."]
-    #[doc = ""]
-    #[doc = " For workers with no upstream, this will always be `1`."]
-    #[doc = ""]
-    #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[doc = " * `request_priority` - The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[doc = " * `tls_version` - The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[doc = " * `tls_cipher` - The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    #[doc = " * `client_trust_score` - Duplicate of `botManagement.score`."]
-    #[doc = ""]
-    #[doc = " @deprecated"]
-    #[doc = " * `bot_management` - Results of Cloudflare's Bot Management analysis"]
-    #[doc = " * `tls_client_auth` - Information about the client certificate presented to Cloudflare."]
-    #[doc = ""]
-    #[doc = " This is populated when the incoming request is served over TLS using"]
-    #[doc = " either Cloudflare Access or API Shield (mTLS)"]
-    #[doc = " and the presented SSL certificate has a valid"]
-    #[doc = " [Certificate Serial Number](https://ldapwiki.com/wiki/Certificate%20Serial%20Number)"]
-    #[doc = " (i.e., not `null` or `\"\"`)."]
-    #[doc = ""]
-    #[doc = " Otherwise, a set of placeholder values are used."]
-    #[doc = ""]
-    #[doc = " The property `certPresented` will be set to `\"1\"` when"]
-    #[doc = " the object is populated (i.e. the above conditions were met)."]
-    pub fn builder_5_with_incoming_request_cf_properties_tls_client_auth_placeholder(
-        colo: impl ::wasm_bindgen::JsStringLike,
-        http_protocol: impl ::wasm_bindgen::JsStringLike,
-        request_priority: impl ::wasm_bindgen::JsStringLike,
-        tls_version: impl ::wasm_bindgen::JsStringLike,
-        tls_cipher: impl ::wasm_bindgen::JsStringLike,
-        client_trust_score: f64,
-        bot_management: &IncomingRequestCfPropertiesBotManagementBase,
-        tls_client_auth: &IncomingRequestCfPropertiesTLSClientAuthPlaceholder,
-    ) -> IncomingRequestCfPropertiesBuilder<HostMetadata> {
-        let inner: IncomingRequestCfProperties<HostMetadata> =
-            JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_colo(colo);
-        inner.set_edge_request_keep_alive_status(5.0);
+        inner.set_edge_request_keep_alive_status(edge_request_keep_alive_status);
         inner.set_http_protocol(http_protocol);
         inner.set_request_priority(request_priority);
         inner.set_tls_version(tls_version);
@@ -15621,20 +14305,17 @@ extern "C" {
     );
 }
 impl IncomingRequestCfPropertiesBase {
-    #[doc = " ## Inlined fields"]
+    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
+    #[doc = " airport code of the data center that the request hit."]
     #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 0` - Represents the upstream's response to a"]
+    #[doc = " @example \"DFW\""]
+    #[doc = " * `edge_request_keep_alive_status` - Represents the upstream's response to a"]
     #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
     #[doc = " from cloudflare."]
     #[doc = ""]
     #[doc = " For workers with no upstream, this will always be `1`."]
     #[doc = ""]
     #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
     #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
     #[doc = ""]
     #[doc = " @example \"HTTP/2\""]
@@ -15652,15 +14333,17 @@ impl IncomingRequestCfPropertiesBase {
     #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
     #[doc = ""]
     #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    pub fn new_0(
+    pub fn new(
         colo: impl ::wasm_bindgen::JsStringLike,
+        edge_request_keep_alive_status: f64,
         http_protocol: impl ::wasm_bindgen::JsStringLike,
         request_priority: impl ::wasm_bindgen::JsStringLike,
         tls_version: impl ::wasm_bindgen::JsStringLike,
         tls_cipher: impl ::wasm_bindgen::JsStringLike,
     ) -> IncomingRequestCfPropertiesBase {
-        Self::builder_0(
+        Self::builder(
             colo,
+            edge_request_keep_alive_status,
             http_protocol,
             request_priority,
             tls_version,
@@ -15668,20 +14351,17 @@ impl IncomingRequestCfPropertiesBase {
         )
         .build()
     }
-    #[doc = " ## Inlined fields"]
+    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
+    #[doc = " airport code of the data center that the request hit."]
     #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 1` - Represents the upstream's response to a"]
+    #[doc = " @example \"DFW\""]
+    #[doc = " * `edge_request_keep_alive_status` - Represents the upstream's response to a"]
     #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
     #[doc = " from cloudflare."]
     #[doc = ""]
     #[doc = " For workers with no upstream, this will always be `1`."]
     #[doc = ""]
     #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
     #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
     #[doc = ""]
     #[doc = " @example \"HTTP/2\""]
@@ -15699,243 +14379,9 @@ impl IncomingRequestCfPropertiesBase {
     #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
     #[doc = ""]
     #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    pub fn new_1(
+    pub fn builder(
         colo: impl ::wasm_bindgen::JsStringLike,
-        http_protocol: impl ::wasm_bindgen::JsStringLike,
-        request_priority: impl ::wasm_bindgen::JsStringLike,
-        tls_version: impl ::wasm_bindgen::JsStringLike,
-        tls_cipher: impl ::wasm_bindgen::JsStringLike,
-    ) -> IncomingRequestCfPropertiesBase {
-        Self::builder_1(
-            colo,
-            http_protocol,
-            request_priority,
-            tls_version,
-            tls_cipher,
-        )
-        .build()
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 2` - Represents the upstream's response to a"]
-    #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
-    #[doc = " from cloudflare."]
-    #[doc = ""]
-    #[doc = " For workers with no upstream, this will always be `1`."]
-    #[doc = ""]
-    #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[doc = " * `request_priority` - The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[doc = " * `tls_version` - The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[doc = " * `tls_cipher` - The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    pub fn new_2(
-        colo: impl ::wasm_bindgen::JsStringLike,
-        http_protocol: impl ::wasm_bindgen::JsStringLike,
-        request_priority: impl ::wasm_bindgen::JsStringLike,
-        tls_version: impl ::wasm_bindgen::JsStringLike,
-        tls_cipher: impl ::wasm_bindgen::JsStringLike,
-    ) -> IncomingRequestCfPropertiesBase {
-        Self::builder_2(
-            colo,
-            http_protocol,
-            request_priority,
-            tls_version,
-            tls_cipher,
-        )
-        .build()
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 3` - Represents the upstream's response to a"]
-    #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
-    #[doc = " from cloudflare."]
-    #[doc = ""]
-    #[doc = " For workers with no upstream, this will always be `1`."]
-    #[doc = ""]
-    #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[doc = " * `request_priority` - The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[doc = " * `tls_version` - The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[doc = " * `tls_cipher` - The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    pub fn new_3(
-        colo: impl ::wasm_bindgen::JsStringLike,
-        http_protocol: impl ::wasm_bindgen::JsStringLike,
-        request_priority: impl ::wasm_bindgen::JsStringLike,
-        tls_version: impl ::wasm_bindgen::JsStringLike,
-        tls_cipher: impl ::wasm_bindgen::JsStringLike,
-    ) -> IncomingRequestCfPropertiesBase {
-        Self::builder_3(
-            colo,
-            http_protocol,
-            request_priority,
-            tls_version,
-            tls_cipher,
-        )
-        .build()
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 4` - Represents the upstream's response to a"]
-    #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
-    #[doc = " from cloudflare."]
-    #[doc = ""]
-    #[doc = " For workers with no upstream, this will always be `1`."]
-    #[doc = ""]
-    #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[doc = " * `request_priority` - The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[doc = " * `tls_version` - The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[doc = " * `tls_cipher` - The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    pub fn new_4(
-        colo: impl ::wasm_bindgen::JsStringLike,
-        http_protocol: impl ::wasm_bindgen::JsStringLike,
-        request_priority: impl ::wasm_bindgen::JsStringLike,
-        tls_version: impl ::wasm_bindgen::JsStringLike,
-        tls_cipher: impl ::wasm_bindgen::JsStringLike,
-    ) -> IncomingRequestCfPropertiesBase {
-        Self::builder_4(
-            colo,
-            http_protocol,
-            request_priority,
-            tls_version,
-            tls_cipher,
-        )
-        .build()
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 5` - Represents the upstream's response to a"]
-    #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
-    #[doc = " from cloudflare."]
-    #[doc = ""]
-    #[doc = " For workers with no upstream, this will always be `1`."]
-    #[doc = ""]
-    #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[doc = " * `request_priority` - The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[doc = " * `tls_version` - The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[doc = " * `tls_cipher` - The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    pub fn new_5(
-        colo: impl ::wasm_bindgen::JsStringLike,
-        http_protocol: impl ::wasm_bindgen::JsStringLike,
-        request_priority: impl ::wasm_bindgen::JsStringLike,
-        tls_version: impl ::wasm_bindgen::JsStringLike,
-        tls_cipher: impl ::wasm_bindgen::JsStringLike,
-    ) -> IncomingRequestCfPropertiesBase {
-        Self::builder_5(
-            colo,
-            http_protocol,
-            request_priority,
-            tls_version,
-            tls_cipher,
-        )
-        .build()
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 0` - Represents the upstream's response to a"]
-    #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
-    #[doc = " from cloudflare."]
-    #[doc = ""]
-    #[doc = " For workers with no upstream, this will always be `1`."]
-    #[doc = ""]
-    #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[doc = " * `request_priority` - The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[doc = " * `tls_version` - The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[doc = " * `tls_cipher` - The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    pub fn builder_0(
-        colo: impl ::wasm_bindgen::JsStringLike,
+        edge_request_keep_alive_status: f64,
         http_protocol: impl ::wasm_bindgen::JsStringLike,
         request_priority: impl ::wasm_bindgen::JsStringLike,
         tls_version: impl ::wasm_bindgen::JsStringLike,
@@ -15943,242 +14389,7 @@ impl IncomingRequestCfPropertiesBase {
     ) -> IncomingRequestCfPropertiesBaseBuilder {
         let inner: IncomingRequestCfPropertiesBase = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_colo(colo);
-        inner.set_edge_request_keep_alive_status(0.0);
-        inner.set_http_protocol(http_protocol);
-        inner.set_request_priority(request_priority);
-        inner.set_tls_version(tls_version);
-        inner.set_tls_cipher(tls_cipher);
-        IncomingRequestCfPropertiesBaseBuilder { inner }
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 1` - Represents the upstream's response to a"]
-    #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
-    #[doc = " from cloudflare."]
-    #[doc = ""]
-    #[doc = " For workers with no upstream, this will always be `1`."]
-    #[doc = ""]
-    #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[doc = " * `request_priority` - The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[doc = " * `tls_version` - The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[doc = " * `tls_cipher` - The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    pub fn builder_1(
-        colo: impl ::wasm_bindgen::JsStringLike,
-        http_protocol: impl ::wasm_bindgen::JsStringLike,
-        request_priority: impl ::wasm_bindgen::JsStringLike,
-        tls_version: impl ::wasm_bindgen::JsStringLike,
-        tls_cipher: impl ::wasm_bindgen::JsStringLike,
-    ) -> IncomingRequestCfPropertiesBaseBuilder {
-        let inner: IncomingRequestCfPropertiesBase = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_colo(colo);
-        inner.set_edge_request_keep_alive_status(1.0);
-        inner.set_http_protocol(http_protocol);
-        inner.set_request_priority(request_priority);
-        inner.set_tls_version(tls_version);
-        inner.set_tls_cipher(tls_cipher);
-        IncomingRequestCfPropertiesBaseBuilder { inner }
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 2` - Represents the upstream's response to a"]
-    #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
-    #[doc = " from cloudflare."]
-    #[doc = ""]
-    #[doc = " For workers with no upstream, this will always be `1`."]
-    #[doc = ""]
-    #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[doc = " * `request_priority` - The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[doc = " * `tls_version` - The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[doc = " * `tls_cipher` - The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    pub fn builder_2(
-        colo: impl ::wasm_bindgen::JsStringLike,
-        http_protocol: impl ::wasm_bindgen::JsStringLike,
-        request_priority: impl ::wasm_bindgen::JsStringLike,
-        tls_version: impl ::wasm_bindgen::JsStringLike,
-        tls_cipher: impl ::wasm_bindgen::JsStringLike,
-    ) -> IncomingRequestCfPropertiesBaseBuilder {
-        let inner: IncomingRequestCfPropertiesBase = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_colo(colo);
-        inner.set_edge_request_keep_alive_status(2.0);
-        inner.set_http_protocol(http_protocol);
-        inner.set_request_priority(request_priority);
-        inner.set_tls_version(tls_version);
-        inner.set_tls_cipher(tls_cipher);
-        IncomingRequestCfPropertiesBaseBuilder { inner }
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 3` - Represents the upstream's response to a"]
-    #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
-    #[doc = " from cloudflare."]
-    #[doc = ""]
-    #[doc = " For workers with no upstream, this will always be `1`."]
-    #[doc = ""]
-    #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[doc = " * `request_priority` - The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[doc = " * `tls_version` - The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[doc = " * `tls_cipher` - The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    pub fn builder_3(
-        colo: impl ::wasm_bindgen::JsStringLike,
-        http_protocol: impl ::wasm_bindgen::JsStringLike,
-        request_priority: impl ::wasm_bindgen::JsStringLike,
-        tls_version: impl ::wasm_bindgen::JsStringLike,
-        tls_cipher: impl ::wasm_bindgen::JsStringLike,
-    ) -> IncomingRequestCfPropertiesBaseBuilder {
-        let inner: IncomingRequestCfPropertiesBase = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_colo(colo);
-        inner.set_edge_request_keep_alive_status(3.0);
-        inner.set_http_protocol(http_protocol);
-        inner.set_request_priority(request_priority);
-        inner.set_tls_version(tls_version);
-        inner.set_tls_cipher(tls_cipher);
-        IncomingRequestCfPropertiesBaseBuilder { inner }
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 4` - Represents the upstream's response to a"]
-    #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
-    #[doc = " from cloudflare."]
-    #[doc = ""]
-    #[doc = " For workers with no upstream, this will always be `1`."]
-    #[doc = ""]
-    #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[doc = " * `request_priority` - The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[doc = " * `tls_version` - The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[doc = " * `tls_cipher` - The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    pub fn builder_4(
-        colo: impl ::wasm_bindgen::JsStringLike,
-        http_protocol: impl ::wasm_bindgen::JsStringLike,
-        request_priority: impl ::wasm_bindgen::JsStringLike,
-        tls_version: impl ::wasm_bindgen::JsStringLike,
-        tls_cipher: impl ::wasm_bindgen::JsStringLike,
-    ) -> IncomingRequestCfPropertiesBaseBuilder {
-        let inner: IncomingRequestCfPropertiesBase = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_colo(colo);
-        inner.set_edge_request_keep_alive_status(4.0);
-        inner.set_http_protocol(http_protocol);
-        inner.set_request_priority(request_priority);
-        inner.set_tls_version(tls_version);
-        inner.set_tls_cipher(tls_cipher);
-        IncomingRequestCfPropertiesBaseBuilder { inner }
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `edgeRequestKeepAliveStatus: 5` - Represents the upstream's response to a"]
-    #[doc = " [TCP `keepalive` message](https://tldp.org/HOWTO/TCP-Keepalive-HOWTO/overview.html)"]
-    #[doc = " from cloudflare."]
-    #[doc = ""]
-    #[doc = " For workers with no upstream, this will always be `1`."]
-    #[doc = ""]
-    #[doc = " @example 3"]
-    #[doc = ""]
-    #[doc = " * `colo` - The three-letter [IATA](https://en.wikipedia.org/wiki/IATA_airport_code)"]
-    #[doc = " airport code of the data center that the request hit."]
-    #[doc = ""]
-    #[doc = " @example \"DFW\""]
-    #[doc = " * `http_protocol` - The HTTP Protocol the request used."]
-    #[doc = ""]
-    #[doc = " @example \"HTTP/2\""]
-    #[doc = " * `request_priority` - The browser-requested prioritization information in the request object."]
-    #[doc = ""]
-    #[doc = " If no information was set, defaults to the empty string `\"\"`"]
-    #[doc = ""]
-    #[doc = " @example \"weight=192;exclusive=0;group=3;group-weight=127\""]
-    #[doc = " @default \"\""]
-    #[doc = " * `tls_version` - The TLS version of the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"TLSv1.3\""]
-    #[doc = " * `tls_cipher` - The cipher for the connection to Cloudflare."]
-    #[doc = " In requests served over plaintext (without TLS), this property is the empty string `\"\"`."]
-    #[doc = ""]
-    #[doc = " @example \"AEAD-AES128-GCM-SHA256\""]
-    pub fn builder_5(
-        colo: impl ::wasm_bindgen::JsStringLike,
-        http_protocol: impl ::wasm_bindgen::JsStringLike,
-        request_priority: impl ::wasm_bindgen::JsStringLike,
-        tls_version: impl ::wasm_bindgen::JsStringLike,
-        tls_cipher: impl ::wasm_bindgen::JsStringLike,
-    ) -> IncomingRequestCfPropertiesBaseBuilder {
-        let inner: IncomingRequestCfPropertiesBase = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_colo(colo);
-        inner.set_edge_request_keep_alive_status(5.0);
+        inner.set_edge_request_keep_alive_status(edge_request_keep_alive_status);
         inner.set_http_protocol(http_protocol);
         inner.set_request_priority(request_priority);
         inner.set_tls_version(tls_version);
@@ -16989,14 +15200,14 @@ impl IncomingRequestCfPropertiesTLSClientAuth {
     #[doc = " ## Inlined fields"]
     #[doc = ""]
     #[doc = " * `certPresented: \"1\"` - Always `\"1\"`, indicating that the certificate was presented"]
-    #[doc = " * `certRevoked: \"1\"` - The presented certificate's revokation status."]
-    #[doc = ""]
-    #[doc = " - A value of `\"1\"` indicates the certificate has been revoked"]
-    #[doc = " - A value of `\"0\"` indicates the certificate has not been revoked"]
     #[doc = ""]
     #[doc = " * `cert_verified` - Result of certificate verification."]
     #[doc = ""]
     #[doc = " @example \"FAILED:self signed certificate\""]
+    #[doc = " * `cert_revoked` - The presented certificate's revokation status."]
+    #[doc = ""]
+    #[doc = " - A value of `\"1\"` indicates the certificate has been revoked"]
+    #[doc = " - A value of `\"0\"` indicates the certificate has not been revoked"]
     #[doc = " * `cert_issuer_dn` - The certificate issuer's [distinguished name](https://knowledge.digicert.com/generalinformation/INFO1745.html)"]
     #[doc = ""]
     #[doc = " @example \"CN=cloudflareaccess.com, C=US, ST=Texas, L=Austin, O=Cloudflare\""]
@@ -17049,8 +15260,9 @@ impl IncomingRequestCfPropertiesTLSClientAuth {
     #[doc = " Suitable for forwarding to an origin via the `Client-Cert-Chain` HTTP header."]
     #[doc = " * `cert_chain_rfc9440_too_large` - `true` if the intermediate chain exceeded 16 KB and was omitted from"]
     #[doc = " {@link certChainRFC9440}."]
-    pub fn new_1(
+    pub fn new(
         cert_verified: CertVerificationStatus,
+        cert_revoked: CertRevokedKind,
         cert_issuer_dn: impl ::wasm_bindgen::JsStringLike,
         cert_subject_dn: impl ::wasm_bindgen::JsStringLike,
         cert_issuer_dnrfc2253: impl ::wasm_bindgen::JsStringLike,
@@ -17074,116 +15286,7 @@ impl IncomingRequestCfPropertiesTLSClientAuth {
             JsCast::unchecked_into(js_sys::Object::new());
         inner.set_cert_presented("1");
         inner.set_cert_verified(cert_verified);
-        inner.set_cert_revoked(CertRevokedKind::_1);
-        inner.set_cert_issuer_dn(cert_issuer_dn);
-        inner.set_cert_subject_dn(cert_subject_dn);
-        inner.set_cert_issuer_dnrfc2253(cert_issuer_dnrfc2253);
-        inner.set_cert_subject_dnrfc2253(cert_subject_dnrfc2253);
-        inner.set_cert_issuer_dn_legacy(cert_issuer_dn_legacy);
-        inner.set_cert_subject_dn_legacy(cert_subject_dn_legacy);
-        inner.set_cert_serial(cert_serial);
-        inner.set_cert_issuer_serial(cert_issuer_serial);
-        inner.set_cert_ski(cert_ski);
-        inner.set_cert_issuer_ski(cert_issuer_ski);
-        inner.set_cert_fingerprint_sha1(cert_fingerprint_sha1);
-        inner.set_cert_fingerprint_sha256(cert_fingerprint_sha256);
-        inner.set_cert_not_before(cert_not_before);
-        inner.set_cert_not_after(cert_not_after);
-        inner.set_cert_rfc9440(cert_rfc9440);
-        inner.set_cert_rfc9440_too_large(cert_rfc9440_too_large);
-        inner.set_cert_chain_rfc9440(cert_chain_rfc9440);
-        inner.set_cert_chain_rfc9440_too_large(cert_chain_rfc9440_too_large);
-        inner
-    }
-    #[doc = " ## Inlined fields"]
-    #[doc = ""]
-    #[doc = " * `certPresented: \"1\"` - Always `\"1\"`, indicating that the certificate was presented"]
-    #[doc = " * `certRevoked: \"0\"` - The presented certificate's revokation status."]
-    #[doc = ""]
-    #[doc = " - A value of `\"1\"` indicates the certificate has been revoked"]
-    #[doc = " - A value of `\"0\"` indicates the certificate has not been revoked"]
-    #[doc = ""]
-    #[doc = " * `cert_verified` - Result of certificate verification."]
-    #[doc = ""]
-    #[doc = " @example \"FAILED:self signed certificate\""]
-    #[doc = " * `cert_issuer_dn` - The certificate issuer's [distinguished name](https://knowledge.digicert.com/generalinformation/INFO1745.html)"]
-    #[doc = ""]
-    #[doc = " @example \"CN=cloudflareaccess.com, C=US, ST=Texas, L=Austin, O=Cloudflare\""]
-    #[doc = " * `cert_subject_dn` - The certificate subject's [distinguished name](https://knowledge.digicert.com/generalinformation/INFO1745.html)"]
-    #[doc = ""]
-    #[doc = " @example \"CN=*.cloudflareaccess.com, C=US, ST=Texas, L=Austin, O=Cloudflare\""]
-    #[doc = " * `cert_issuer_dnrfc2253` - The certificate issuer's [distinguished name](https://knowledge.digicert.com/generalinformation/INFO1745.html) ([RFC 2253](https://www.rfc-editor.org/rfc/rfc2253.html) formatted)"]
-    #[doc = ""]
-    #[doc = " @example \"CN=cloudflareaccess.com, C=US, ST=Texas, L=Austin, O=Cloudflare\""]
-    #[doc = " * `cert_subject_dnrfc2253` - The certificate subject's [distinguished name](https://knowledge.digicert.com/generalinformation/INFO1745.html) ([RFC 2253](https://www.rfc-editor.org/rfc/rfc2253.html) formatted)"]
-    #[doc = ""]
-    #[doc = " @example \"CN=*.cloudflareaccess.com, C=US, ST=Texas, L=Austin, O=Cloudflare\""]
-    #[doc = " * `cert_issuer_dn_legacy` - The certificate issuer's distinguished name (legacy policies)"]
-    #[doc = " * `cert_subject_dn_legacy` - The certificate subject's distinguished name (legacy policies)"]
-    #[doc = " * `cert_serial` - The certificate's serial number"]
-    #[doc = ""]
-    #[doc = " @example \"00936EACBE07F201DF\""]
-    #[doc = " * `cert_issuer_serial` - The certificate issuer's serial number"]
-    #[doc = ""]
-    #[doc = " @example \"2489002934BDFEA34\""]
-    #[doc = " * `cert_ski` - The certificate's Subject Key Identifier"]
-    #[doc = ""]
-    #[doc = " @example \"BB:AF:7E:02:3D:FA:A6:F1:3C:84:8E:AD:EE:38:98:EC:D9:32:32:D4\""]
-    #[doc = " * `cert_issuer_ski` - The certificate issuer's Subject Key Identifier"]
-    #[doc = ""]
-    #[doc = " @example \"BB:AF:7E:02:3D:FA:A6:F1:3C:84:8E:AD:EE:38:98:EC:D9:32:32:D4\""]
-    #[doc = " * `cert_fingerprint_sha1` - The certificate's SHA-1 fingerprint"]
-    #[doc = ""]
-    #[doc = " @example \"6b9109f323999e52259cda7373ff0b4d26bd232e\""]
-    #[doc = " * `cert_fingerprint_sha256` - The certificate's SHA-256 fingerprint"]
-    #[doc = ""]
-    #[doc = " @example \"acf77cf37b4156a2708e34c4eb755f9b5dbbe5ebb55adfec8f11493438d19e6ad3f157f81fa3b98278453d5652b0c1fd1d71e5695ae4d709803a4d3f39de9dea\""]
-    #[doc = " * `cert_not_before` - The effective starting date of the certificate"]
-    #[doc = ""]
-    #[doc = " @example \"Dec 22 19:39:00 2018 GMT\""]
-    #[doc = " * `cert_not_after` - The effective expiration date of the certificate"]
-    #[doc = ""]
-    #[doc = " @example \"Dec 22 19:39:00 2018 GMT\""]
-    #[doc = " * `cert_rfc9440` - The client leaf certificate in [RFC 9440](https://www.rfc-editor.org/rfc/rfc9440)"]
-    #[doc = " format (`:base64-DER:`). Empty if no client certificate was presented or if"]
-    #[doc = " the leaf certificate exceeded 10 KB (see {@link certRFC9440TooLarge})."]
-    #[doc = ""]
-    #[doc = " Suitable for forwarding to an origin via the `Client-Cert` HTTP header."]
-    #[doc = " * `cert_rfc9440_too_large` - `true` if the leaf certificate exceeded 10 KB and was omitted from"]
-    #[doc = " {@link certRFC9440}."]
-    #[doc = " * `cert_chain_rfc9440` - The intermediate certificate chain in [RFC 9440](https://www.rfc-editor.org/rfc/rfc9440)"]
-    #[doc = " format as a comma-separated list. Empty if no intermediates were sent or"]
-    #[doc = " if the chain exceeded 16 KB (see {@link certChainRFC9440TooLarge})."]
-    #[doc = ""]
-    #[doc = " Suitable for forwarding to an origin via the `Client-Cert-Chain` HTTP header."]
-    #[doc = " * `cert_chain_rfc9440_too_large` - `true` if the intermediate chain exceeded 16 KB and was omitted from"]
-    #[doc = " {@link certChainRFC9440}."]
-    pub fn new_0(
-        cert_verified: CertVerificationStatus,
-        cert_issuer_dn: impl ::wasm_bindgen::JsStringLike,
-        cert_subject_dn: impl ::wasm_bindgen::JsStringLike,
-        cert_issuer_dnrfc2253: impl ::wasm_bindgen::JsStringLike,
-        cert_subject_dnrfc2253: impl ::wasm_bindgen::JsStringLike,
-        cert_issuer_dn_legacy: impl ::wasm_bindgen::JsStringLike,
-        cert_subject_dn_legacy: impl ::wasm_bindgen::JsStringLike,
-        cert_serial: impl ::wasm_bindgen::JsStringLike,
-        cert_issuer_serial: impl ::wasm_bindgen::JsStringLike,
-        cert_ski: impl ::wasm_bindgen::JsStringLike,
-        cert_issuer_ski: impl ::wasm_bindgen::JsStringLike,
-        cert_fingerprint_sha1: impl ::wasm_bindgen::JsStringLike,
-        cert_fingerprint_sha256: impl ::wasm_bindgen::JsStringLike,
-        cert_not_before: impl ::wasm_bindgen::JsStringLike,
-        cert_not_after: impl ::wasm_bindgen::JsStringLike,
-        cert_rfc9440: impl ::wasm_bindgen::JsStringLike,
-        cert_rfc9440_too_large: bool,
-        cert_chain_rfc9440: impl ::wasm_bindgen::JsStringLike,
-        cert_chain_rfc9440_too_large: bool,
-    ) -> IncomingRequestCfPropertiesTLSClientAuth {
-        let inner: IncomingRequestCfPropertiesTLSClientAuth =
-            JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_cert_presented("1");
-        inner.set_cert_verified(cert_verified);
-        inner.set_cert_revoked(CertRevokedKind::_0);
+        inner.set_cert_revoked(cert_revoked);
         inner.set_cert_issuer_dn(cert_issuer_dn);
         inner.set_cert_subject_dn(cert_subject_dn);
         inner.set_cert_issuer_dnrfc2253(cert_issuer_dnrfc2253);
@@ -17897,13 +16000,25 @@ extern "C" {
     fn raw_with_column_names_js(
         this: &D1PreparedStatement,
         options: &D1PreparedStatementRawOptions,
-    ) -> Promise<Vec<JsValue>, crate::Error>;
+    ) -> Promise<ArrayHeadRest<Array<String>, Array>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "raw")]
     pub fn raw_typed<T>(this: &D1PreparedStatement) -> Promise<Vec<T>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "raw")]
+    fn raw_with_column_names_typed_js<T>(
+        this: &D1PreparedStatement,
+        options: &D1PreparedStatementRawOptions,
+    ) -> Promise<ArrayHeadRest<Array<String>, T>, crate::Error>;
 }
 impl D1PreparedStatement {
-    pub fn raw_with_column_names(&self) -> Promise<Vec<JsValue>, crate::Error> {
+    pub fn raw_with_column_names(
+        &self,
+    ) -> Promise<ArrayHeadRest<Array<String>, Array>, crate::Error> {
         self.raw_with_column_names_js(&<D1PreparedStatementRawOptions>::new())
+    }
+    pub fn raw_with_column_names_typed<T>(
+        &self,
+    ) -> Promise<ArrayHeadRest<Array<String>, T>, crate::Error> {
+        self.raw_with_column_names_typed_js(&<D1PreparedStatementRawOptions>::new())
     }
 }
 #[wasm_bindgen(experimental_generic_mono)]
@@ -18175,7 +16290,14 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "to")]
     pub fn set_to_with_val(this: &EmailDestinations, val: &EmailAddress);
     #[wasm_bindgen(method, setter, js_name = "to")]
-    pub fn set_to_with_slice(this: &EmailDestinations, val: &[JsValue]);
+    pub fn set_to_with_str_slice(
+        this: &EmailDestinations,
+        val: &[impl ::wasm_bindgen::JsStringLike],
+    );
+    #[wasm_bindgen(method, setter, js_name = "to")]
+    pub fn set_to_with_email_address_slice(this: &EmailDestinations, val: &[EmailAddress]);
+    #[wasm_bindgen(method, setter, js_name = "to")]
+    pub fn set_to_with_js_value_slice(this: &EmailDestinations, val: &[JsValue]);
     #[wasm_bindgen(method, getter)]
     pub fn cc(this: &EmailDestinations) -> Option<CcKind>;
     #[wasm_bindgen(method, setter)]
@@ -18183,7 +16305,14 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "cc")]
     pub fn set_cc_with_val(this: &EmailDestinations, val: &EmailAddress);
     #[wasm_bindgen(method, setter, js_name = "cc")]
-    pub fn set_cc_with_slice(this: &EmailDestinations, val: &[JsValue]);
+    pub fn set_cc_with_str_slice(
+        this: &EmailDestinations,
+        val: &[impl ::wasm_bindgen::JsStringLike],
+    );
+    #[wasm_bindgen(method, setter, js_name = "cc")]
+    pub fn set_cc_with_email_address_slice(this: &EmailDestinations, val: &[EmailAddress]);
+    #[wasm_bindgen(method, setter, js_name = "cc")]
+    pub fn set_cc_with_js_value_slice(this: &EmailDestinations, val: &[JsValue]);
     #[wasm_bindgen(method, getter)]
     pub fn bcc(this: &EmailDestinations) -> Option<BccKind>;
     #[wasm_bindgen(method, setter)]
@@ -18191,7 +16320,14 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "bcc")]
     pub fn set_bcc_with_val(this: &EmailDestinations, val: &EmailAddress);
     #[wasm_bindgen(method, setter, js_name = "bcc")]
-    pub fn set_bcc_with_slice(this: &EmailDestinations, val: &[JsValue]);
+    pub fn set_bcc_with_str_slice(
+        this: &EmailDestinations,
+        val: &[impl ::wasm_bindgen::JsStringLike],
+    );
+    #[wasm_bindgen(method, setter, js_name = "bcc")]
+    pub fn set_bcc_with_email_address_slice(this: &EmailDestinations, val: &[EmailAddress]);
+    #[wasm_bindgen(method, setter, js_name = "bcc")]
+    pub fn set_bcc_with_js_value_slice(this: &EmailDestinations, val: &[JsValue]);
 }
 impl EmailDestinations {
     pub fn new() -> EmailDestinations {
@@ -18215,8 +16351,16 @@ impl EmailDestinationsBuilder {
         self.inner.set_to_with_val(val);
         self
     }
-    pub fn to_with_slice(self, val: &[JsValue]) -> Self {
-        self.inner.set_to_with_slice(val);
+    pub fn to_with_str_slice(self, val: &[impl ::wasm_bindgen::JsStringLike]) -> Self {
+        self.inner.set_to_with_str_slice(val);
+        self
+    }
+    pub fn to_with_email_address_slice(self, val: &[EmailAddress]) -> Self {
+        self.inner.set_to_with_email_address_slice(val);
+        self
+    }
+    pub fn to_with_js_value_slice(self, val: &[JsValue]) -> Self {
+        self.inner.set_to_with_js_value_slice(val);
         self
     }
     pub fn cc(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
@@ -18227,8 +16371,16 @@ impl EmailDestinationsBuilder {
         self.inner.set_cc_with_val(val);
         self
     }
-    pub fn cc_with_slice(self, val: &[JsValue]) -> Self {
-        self.inner.set_cc_with_slice(val);
+    pub fn cc_with_str_slice(self, val: &[impl ::wasm_bindgen::JsStringLike]) -> Self {
+        self.inner.set_cc_with_str_slice(val);
+        self
+    }
+    pub fn cc_with_email_address_slice(self, val: &[EmailAddress]) -> Self {
+        self.inner.set_cc_with_email_address_slice(val);
+        self
+    }
+    pub fn cc_with_js_value_slice(self, val: &[JsValue]) -> Self {
+        self.inner.set_cc_with_js_value_slice(val);
         self
     }
     pub fn bcc(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
@@ -18239,8 +16391,16 @@ impl EmailDestinationsBuilder {
         self.inner.set_bcc_with_val(val);
         self
     }
-    pub fn bcc_with_slice(self, val: &[JsValue]) -> Self {
-        self.inner.set_bcc_with_slice(val);
+    pub fn bcc_with_str_slice(self, val: &[impl ::wasm_bindgen::JsStringLike]) -> Self {
+        self.inner.set_bcc_with_str_slice(val);
+        self
+    }
+    pub fn bcc_with_email_address_slice(self, val: &[EmailAddress]) -> Self {
+        self.inner.set_bcc_with_email_address_slice(val);
+        self
+    }
+    pub fn bcc_with_js_value_slice(self, val: &[JsValue]) -> Self {
+        self.inner.set_bcc_with_js_value_slice(val);
         self
     }
     pub fn build(self) -> EmailDestinations {
@@ -18371,7 +16531,14 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "to")]
     pub fn set_to_with_val(this: &EmailMessageBuilder, val: &EmailAddress);
     #[wasm_bindgen(method, setter, js_name = "to")]
-    pub fn set_to_with_slice(this: &EmailMessageBuilder, val: &[JsValue]);
+    pub fn set_to_with_str_slice(
+        this: &EmailMessageBuilder,
+        val: &[impl ::wasm_bindgen::JsStringLike],
+    );
+    #[wasm_bindgen(method, setter, js_name = "to")]
+    pub fn set_to_with_email_address_slice(this: &EmailMessageBuilder, val: &[EmailAddress]);
+    #[wasm_bindgen(method, setter, js_name = "to")]
+    pub fn set_to_with_js_value_slice(this: &EmailMessageBuilder, val: &[JsValue]);
     #[wasm_bindgen(method, getter)]
     pub fn cc(this: &EmailMessageBuilder) -> Option<CcKind>;
     #[wasm_bindgen(method, setter)]
@@ -18379,7 +16546,14 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "cc")]
     pub fn set_cc_with_val(this: &EmailMessageBuilder, val: &EmailAddress);
     #[wasm_bindgen(method, setter, js_name = "cc")]
-    pub fn set_cc_with_slice(this: &EmailMessageBuilder, val: &[JsValue]);
+    pub fn set_cc_with_str_slice(
+        this: &EmailMessageBuilder,
+        val: &[impl ::wasm_bindgen::JsStringLike],
+    );
+    #[wasm_bindgen(method, setter, js_name = "cc")]
+    pub fn set_cc_with_email_address_slice(this: &EmailMessageBuilder, val: &[EmailAddress]);
+    #[wasm_bindgen(method, setter, js_name = "cc")]
+    pub fn set_cc_with_js_value_slice(this: &EmailMessageBuilder, val: &[JsValue]);
     #[wasm_bindgen(method, getter)]
     pub fn bcc(this: &EmailMessageBuilder) -> Option<BccKind>;
     #[wasm_bindgen(method, setter)]
@@ -18387,7 +16561,14 @@ extern "C" {
     #[wasm_bindgen(method, setter, js_name = "bcc")]
     pub fn set_bcc_with_val(this: &EmailMessageBuilder, val: &EmailAddress);
     #[wasm_bindgen(method, setter, js_name = "bcc")]
-    pub fn set_bcc_with_slice(this: &EmailMessageBuilder, val: &[JsValue]);
+    pub fn set_bcc_with_str_slice(
+        this: &EmailMessageBuilder,
+        val: &[impl ::wasm_bindgen::JsStringLike],
+    );
+    #[wasm_bindgen(method, setter, js_name = "bcc")]
+    pub fn set_bcc_with_email_address_slice(this: &EmailMessageBuilder, val: &[EmailAddress]);
+    #[wasm_bindgen(method, setter, js_name = "bcc")]
+    pub fn set_bcc_with_js_value_slice(this: &EmailMessageBuilder, val: &[JsValue]);
 }
 impl EmailMessageBuilder {
     pub fn new(
@@ -18457,8 +16638,16 @@ impl EmailMessageBuilderBuilder {
         self.inner.set_to_with_val(val);
         self
     }
-    pub fn to_with_slice(self, val: &[JsValue]) -> Self {
-        self.inner.set_to_with_slice(val);
+    pub fn to_with_str_slice(self, val: &[impl ::wasm_bindgen::JsStringLike]) -> Self {
+        self.inner.set_to_with_str_slice(val);
+        self
+    }
+    pub fn to_with_email_address_slice(self, val: &[EmailAddress]) -> Self {
+        self.inner.set_to_with_email_address_slice(val);
+        self
+    }
+    pub fn to_with_js_value_slice(self, val: &[JsValue]) -> Self {
+        self.inner.set_to_with_js_value_slice(val);
         self
     }
     pub fn cc(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
@@ -18469,8 +16658,16 @@ impl EmailMessageBuilderBuilder {
         self.inner.set_cc_with_val(val);
         self
     }
-    pub fn cc_with_slice(self, val: &[JsValue]) -> Self {
-        self.inner.set_cc_with_slice(val);
+    pub fn cc_with_str_slice(self, val: &[impl ::wasm_bindgen::JsStringLike]) -> Self {
+        self.inner.set_cc_with_str_slice(val);
+        self
+    }
+    pub fn cc_with_email_address_slice(self, val: &[EmailAddress]) -> Self {
+        self.inner.set_cc_with_email_address_slice(val);
+        self
+    }
+    pub fn cc_with_js_value_slice(self, val: &[JsValue]) -> Self {
+        self.inner.set_cc_with_js_value_slice(val);
         self
     }
     pub fn bcc(self, val: impl ::wasm_bindgen::JsStringLike) -> Self {
@@ -18481,8 +16678,16 @@ impl EmailMessageBuilderBuilder {
         self.inner.set_bcc_with_val(val);
         self
     }
-    pub fn bcc_with_slice(self, val: &[JsValue]) -> Self {
-        self.inner.set_bcc_with_slice(val);
+    pub fn bcc_with_str_slice(self, val: &[impl ::wasm_bindgen::JsStringLike]) -> Self {
+        self.inner.set_bcc_with_str_slice(val);
+        self
+    }
+    pub fn bcc_with_email_address_slice(self, val: &[EmailAddress]) -> Self {
+        self.inner.set_bcc_with_email_address_slice(val);
+        self
+    }
+    pub fn bcc_with_js_value_slice(self, val: &[JsValue]) -> Self {
+        self.inner.set_bcc_with_js_value_slice(val);
         self
     }
     pub fn build(self) -> EmailMessageBuilder {
@@ -19632,6 +17837,11 @@ pub enum GetReturnKind {
     String(String),
 }
 #[wasm_bindgen(private)]
+pub enum GetAllReturnKind {
+    File(File),
+    String(String),
+}
+#[wasm_bindgen(private)]
 pub enum TypeKind {
     Default = "default",
     Error = "error",
@@ -19650,6 +17860,11 @@ pub enum CacheKind {
 pub enum EncodeResponseBodyKind {
     Automatic = "automatic",
     Manual = "manual",
+}
+#[wasm_bindgen(private)]
+pub enum IncludeKind {
+    HttpMetadata = "httpMetadata",
+    CustomMetadata = "customMetadata",
 }
 #[wasm_bindgen(private)]
 pub enum OnlyIfKind {

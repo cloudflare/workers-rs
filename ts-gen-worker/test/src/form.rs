@@ -4,10 +4,9 @@ use blake2::Blake2b512;
 use blake2::Digest;
 use serde::{Deserialize, Serialize};
 use ts_gen_worker::*;
-use wasm_bindgen::prelude::*;
 
-/// `worker::FormEntry`: `FormData.getAll()` returns `(File | string)[]`, which the
-/// bindings erase to `Vec<JsValue>`; `get()` is `Option<GetReturnKind>`.
+/// `worker::FormEntry`: `FormData.getAll()` is `Vec<GetAllReturnKind>` and `get()` is
+/// `Option<GetReturnKind>`, both `File | string`.
 enum FormEntry {
     Field(String),
     File(File),
@@ -18,16 +17,6 @@ impl From<GetReturnKind> for FormEntry {
         match value {
             GetReturnKind::String(s) => Self::Field(s),
             GetReturnKind::File(f) => Self::File(f),
-        }
-    }
-}
-
-impl FormEntry {
-    fn from_js(value: JsValue) -> Option<Self> {
-        if let Some(s) = value.as_string() {
-            Some(Self::Field(s))
-        } else {
-            value.dyn_into::<File>().ok().map(Self::File)
         }
     }
 }
@@ -48,10 +37,9 @@ pub async fn handle_formdata_name(
     let names: Vec<String> = form
         .get_all(NAME)
         .into_iter()
-        .filter_map(FormEntry::from_js)
         .map(|entry| match entry {
-            FormEntry::Field(s) => s,
-            FormEntry::File(f) => f.name(),
+            GetAllReturnKind::String(s) => s,
+            GetAllReturnKind::File(f) => f.name(),
         })
         .collect();
     if names.len() > 1 {
