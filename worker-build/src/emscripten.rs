@@ -58,6 +58,9 @@ pub const LINK_ARGS: &[&str] = &[
     // misdetects workerd (which exposes WorkerGlobalScope) as a web worker.
     "-sASSERTIONS=0",
     "-sALLOW_MEMORY_GROWTH=1",
+    // emcc strips the producers section by default; keep the language and
+    // processed-by entries the toolchain records in it.
+    "-sEMIT_PRODUCERS_SECTION=1",
 ];
 
 pub const EMCC_CFLAGS: &[&str] = &["-fwasm-exceptions", "-sWASM_LEGACY_EXCEPTIONS=0"];
