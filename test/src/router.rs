@@ -206,6 +206,7 @@ macro_rules! add_routes (
     add_route!($obj, get, "/kv/put-metadata", kv::put_metadata);
     add_route!($obj, get, "/kv/put-metadata-struct", kv::put_metadata_struct);
     add_route!($obj, get, "/kv/put-expiration", kv::put_expiration);
+    add_route!($obj, post, "/kv/put-struct-map", kv::put_struct_map);
     add_route!($obj, get, "/kv/get-bulk", kv::get_bulk);
     add_route!($obj, get, "/kv/get-bulk-empty", kv::get_bulk_empty);
     add_route!($obj, get, "/kv/get-bulk-limit", kv::get_bulk_limit);
