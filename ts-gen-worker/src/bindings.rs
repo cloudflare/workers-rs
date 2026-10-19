@@ -3800,7 +3800,7 @@ extern "C" {
         algorithm: &SubtleCryptoHashAlgorithm,
     ) -> Result<DigestStream, crate::Error>;
     #[wasm_bindgen(method, getter)]
-    pub fn digest(this: &DigestStream) -> Promise<ArrayBuffer>;
+    pub fn digest(this: &DigestStream) -> Promise<ArrayBuffer, crate::Error>;
     #[wasm_bindgen(method, getter, js_name = "bytesWritten")]
     pub fn bytes_written(this: &DigestStream) -> BytesWrittenKind;
 }
@@ -8391,7 +8391,7 @@ extern "C" {
         stream: &ReadableStream<R>,
     ) -> Result<ReadableStreamDefaultReader<R>, crate::Error>;
     #[wasm_bindgen(method, getter)]
-    pub fn closed<R>(this: &ReadableStreamDefaultReader<R>) -> Promise<()>;
+    pub fn closed<R>(this: &ReadableStreamDefaultReader<R>) -> Promise<(), crate::Error>;
     #[wasm_bindgen(method, catch)]
     pub fn cancel<R>(this: &ReadableStreamDefaultReader<R>) -> Promise<(), crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "cancel")]
@@ -8422,7 +8422,7 @@ extern "C" {
         stream: &ReadableStream<impl Sized>,
     ) -> Result<ReadableStreamBYOBReader, crate::Error>;
     #[wasm_bindgen(method, getter)]
-    pub fn closed(this: &ReadableStreamBYOBReader) -> Promise<()>;
+    pub fn closed(this: &ReadableStreamBYOBReader) -> Promise<(), crate::Error>;
     #[wasm_bindgen(method, catch)]
     pub fn cancel(this: &ReadableStreamBYOBReader) -> Promise<(), crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "cancel")]
@@ -8745,12 +8745,12 @@ extern "C" {
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/closed)"]
     #[wasm_bindgen(method, getter)]
-    pub fn closed<W>(this: &WritableStreamDefaultWriter<W>) -> Promise<()>;
+    pub fn closed<W>(this: &WritableStreamDefaultWriter<W>) -> Promise<(), crate::Error>;
     #[doc = " The **`ready`** read-only property of the WritableStreamDefaultWriter interface returns a Promise that resolves when the desired size of the stream's internal queue transitions from non-positive to positive, signaling that it is no longer applying backpressure."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/ready)"]
     #[wasm_bindgen(method, getter)]
-    pub fn ready<W>(this: &WritableStreamDefaultWriter<W>) -> Promise<()>;
+    pub fn ready<W>(this: &WritableStreamDefaultWriter<W>) -> Promise<(), crate::Error>;
     #[doc = " The **`desiredSize`** read-only property of the WritableStreamDefaultWriter interface returns the desired size required to fill the stream's internal queue."]
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/WritableStreamDefaultWriter/desiredSize)"]
@@ -10716,9 +10716,9 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn writable(this: &Socket) -> WritableStream<Uint8Array>;
     #[wasm_bindgen(method, getter)]
-    pub fn closed(this: &Socket) -> Promise<()>;
+    pub fn closed(this: &Socket) -> Promise<(), crate::Error>;
     #[wasm_bindgen(method, getter)]
-    pub fn opened(this: &Socket) -> Promise<SocketInfo>;
+    pub fn opened(this: &Socket) -> Promise<SocketInfo, crate::Error>;
     #[wasm_bindgen(method, getter)]
     pub fn upgraded(this: &Socket) -> bool;
     #[wasm_bindgen(method, getter, js_name = "secureTransport")]
@@ -11029,7 +11029,7 @@ extern "C" {
     #[wasm_bindgen(method, getter, js_name = "isPty")]
     pub fn is_pty(this: &ExecProcess) -> bool;
     #[wasm_bindgen(method, getter, js_name = "exitCode")]
-    pub fn exit_code(this: &ExecProcess) -> Promise<f64>;
+    pub fn exit_code(this: &ExecProcess) -> Promise<f64, crate::Error>;
     #[wasm_bindgen(method, catch)]
     pub fn output(this: &ExecProcess) -> Promise<ExecOutput, crate::Error>;
     #[wasm_bindgen(method, catch)]
