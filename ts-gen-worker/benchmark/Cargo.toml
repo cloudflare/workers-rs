@@ -1,0 +1,21 @@
+[package]
+name = "ts-gen-worker-benchmark"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[package.metadata.release]
+release = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+futures-util.workspace = true
+js-sys.workspace = true
+serde.workspace = true
+ts-gen-worker = { path = ".." }
+wasm-bindgen.workspace = true
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(js_sys_unstable_apis)"] }
