@@ -182,6 +182,9 @@ macro_rules! add_routes (
     add_route!($obj, post, format_route!("/queue/send/{}", "id"), queue::handle_queue_send);
     add_route!($obj, post, "/queue/send_batch", queue::handle_batch_send);
     add_route!($obj, get, "/queue",queue::handle_queue);
+    add_route!($obj, post, "/queue/map/send", queue::handle_map_queue_send);
+    add_route!($obj, post, "/queue/map/send_batch", queue::handle_map_queue_send_batch);
+    add_route!($obj, get, "/queue/map", queue::handle_map_queue);
     add_route!($obj, get, "/d1/prepared", d1::prepared_statement);
     add_route!($obj, get, "/d1/batch", d1::batch);
     add_route!($obj, get, "/d1/session_prepare_and_batch", d1::session_prepare_and_batch);
