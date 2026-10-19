@@ -2,11 +2,12 @@
 
 A = the non-mono `ts-gen-worker` today (bindings at `a4cbe97`, port at `104579e`). B = this branch:
 mono generics + `js_sys_unstable_apis` + js-sys made fully mono + the ts-gen and wasm-bindgen fixes,
-with ts-gen and wasm-bindgen pinned as submodules at their `proto/mono` tips. Every patch is listed
+with ts-gen and wasm-bindgen pinned as submodules at the tips of their `gbedford/mono-prototype` branches
+(ts-gen `3d3e592`, wasm-bindgen `a649d0b7c`). Every patch is listed
 in `mono-prototype-patches.md`. B1 = phase 1, an earlier mono build (`2aa55cc` port), kept as a column
 where it shows what phase 2 (B) added. C = non-mono + wasm-bindgen#5167 + a `JsStr<'a>` either type
 behind `impl JsStringLike` + tagged enums for primitive unions: **design, not built**, written by hand
-from the wasm-bindgen#5167 compile matrix (wasm-bindgen `2497681c1`, stable js-sys).
+from the wasm-bindgen#5167 compile matrix (stable js-sys).
 
 ## Verdict
 
@@ -627,13 +628,13 @@ Type-level counts (doc and comment lines skipped):
 | lines | 18,366 | 19,548 | 15,870 |
 
 **Rustdoc signatures.** With wasm-bindgen#5385 the mono macro adds no ABI bounds to the public wrapper, so
-the declaration's bounds are the whole contract, and ts-gen states exactly those (`1fb83ab`):
+the declaration's bounds are the whole contract, and ts-gen states exactly those (ts-gen `Per-mono imports declare their ABI bounds inline`):
 - `impl JsStringLike` / `impl BufferSourceLike` arguments and concrete imported types (`&RequestInit<Cf>`,
   `Promise<T, crate::Error>`, `&Function<fn(MessageEvent)>`) need nothing: their ABI impls are unconditional.
 - `&T` / `Option<&T>` arguments are `T: RefIntoWasmAbi`, by-value `T` is `T: IntoWasmAbi`, `&[T]` is
   `T: VectorRefIntoWasmAbi`, and returns are `T: FromWasmAbi`, all inline. `RefIntoWasmAbi` is per type, like
   upstream's `RefFromWasmAbi`: the macro implements it for each imported type, and wasm-bindgen for `JsValue`,
-  strings and primitives. There is no `&T` blanket (`5314b95a1`).
+  strings and primitives. There is no `&T` blanket (wasm-bindgen `Generic mono (proto): per-type RefIntoWasmAbi, no blanket &T ABI impl`).
 - `Option<T>` and `Vec<T>` returns are bounded whole, in a first-order `where Option<T>: FromWasmAbi`.
   `T: OptionFromWasmAbi` would be inline but is the helper of upstream's `Option<T>` blanket, and it excludes
   `f64` (`KVNamespaceGetWithMetadataResult<_, f64>::metadata()`).
@@ -716,7 +717,7 @@ What is left in rustdoc:
 - `respond_with_new_view(view: impl BufferSourceLike + AsRef<JsValue>)`: the `{@slice handle}` restriction, which
   excludes `&[u8]` because the view is transferred back. It is not an ABI bound.
 
-**Null positions.** Before the null model (§7, at `09a5580`) and on the final tree:
+**Null positions.** Before the null model (§7) and on the final tree:
 
 | | before | after |
 |---|---:|---:|
@@ -731,9 +732,9 @@ What is left in rustdoc:
 | port `.set_x(Some(…))` | 3 | 0 |
 | port `.is_null()` | 5 | 3 |
 
-The 37 output-only types lose 100 setters, 18 constructors and 17 builders; the written nullable
+The first 37 output-only types lose 100 setters, 18 constructors and 17 builders; the written nullable
 fields add 10 hidden `null` setters; the properties workerd makes read-only lose 31 (5 of them `_with_null`)
-and `D1Response`/`D1Meta` 14; lists of unions add 16, one per element arm (688 − 100 + 10 − 31 − 14 + 16 = 569).
+and the two D1 types made output-only later (`D1Response`, `D1Meta`) 14; lists of unions add 16, one per element arm (688 − 100 + 10 − 31 − 14 + 16 = 569).
 The 8 `Option<&…>` arguments are `File`'s `bits: X[] | undefined`, one per element arm with and without options.
 The port's `.is_null()` calls left are on `any` values (a SQL cell, two D1 test assertions).
 
@@ -772,8 +773,8 @@ reproduces phase 1's numbers exactly. B1 is phase 1's measurement.
 | test worker `finally` blocks (owned-string frees) | 10 | 14 | 6 | -4 |
 
 **Compile time** of the `ts-gen-worker` crate from clean (`cargo clean -p ts-gen-worker`, deps
-warm, wasm32). The table gives the second of two runs, with A and B measured back to back; B is `b901d43`,
-before the explicit ABI bounds and the null model (the final tree, timed alone, is below). B1 is phase 1's
+warm, wasm32). The table gives the second of two runs, with A and B measured back to back; B is an earlier
+state of this branch, before the explicit ABI bounds and the null model (the final tree, timed alone, is below). B1 is phase 1's
 measurement.
 
 | | A | B1 | B | B − A |
@@ -785,7 +786,7 @@ measurement.
 What moved since phase 1 (B1 → B):
 - **Generic shims 177 → 0, glue +22,270 B → +10,182 B over A.** wasm-bindgen's wire-format grouping makes `&str`, `String`, `&String` and `JsString` one import, and handles one import whether passed by value or by reference. The `// generic import` comments are gone without `--keep-debug`. Owned strings cross borrowed, so the `finally` frees went from 14 to 6 (A has 10).
 - **Twins 383 → 15.** `{@string copy}` on small strings means less surface. The output does not depend on it, because unused twins never reach the binary.
-- **Compile time +23–25% → +5–6% over A** (at `b901d43`). One `Promise<T, crate::Error>` return per async member removed every `async fn` wrapper and `_promise` twin, and one `impl BufferSourceLike` argument the buffer arm pairs. `bindings.rs` is now 18,240 lines, against A's 22,148 and B1's 23,740.
+- **Compile time +23–25% → +5–6% over A** (at that earlier state). One `Promise<T, crate::Error>` return per async member removed every `async fn` wrapper and `_promise` twin, and one `impl BufferSourceLike` argument the buffer arm pairs. `bindings.rs` is now 18,240 lines, against A's 22,148 and B1's 23,740.
 
 What B still costs over A:
 - **Benchmark: +2 imports, +0.5% wasm (gzip +0.1%).** The import diff, with A's and B's import bodies normalised, is three swaps, three additions and one removal:
@@ -802,7 +803,7 @@ What B still costs over A:
   - string lists as UTF-8 slices (`blobs_with_str_slice`) beside the `JsValue`-slice form;
   - awaited wire formats (`()`, `Option<f64>`, `Option<ArrayBuffer>`, …): 6 more closure casts;
   - the port's wider API use: per-type KV reads, `get_with_metadata_typed::<f64>`, generated `[Symbol.iterator]`, `Object::from_iter`/`collect` (`Reflect.set` by string key), three `Function::from_fn` closures.
-- **Compile time** in the bindings crate was +5% debug and +6% release at `b901d43`, though `bindings.rs` is smaller than A's. That is the mono macro's larger expansion per generic binding. The test crate on top is flat. An earlier back-to-back pair under more load came out −9% / +1%, so that delta is near this machine's noise. The final tree, timed alone later (not back to back with A), takes 15.2 s debug and 12.4 s release: +7% and +12% against A's pair. Since `b901d43` the macro implements `RefIntoWasmAbi` and the upstream `IntoWasmAbi for &Foo` for each of the 299 imported types.
+- **Compile time** in the bindings crate was +5% debug and +6% release at that earlier state, though `bindings.rs` is smaller than A's. That is the mono macro's larger expansion per generic binding. The test crate on top is flat. An earlier back-to-back pair under more load came out −9% / +1%, so that delta is near this machine's noise. The final tree, timed alone later (not back to back with A), takes 15.2 s debug and 12.4 s release: +7% and +12% against A's pair. Since then the macro implements `RefIntoWasmAbi` and the upstream `IntoWasmAbi for &Foo` for each of the 299 imported types.
 
 ## 5. "Fleshed out" checklist
 
@@ -813,8 +814,8 @@ Every change B needed, all built (commits and files in `mono-prototype-patches.m
 | `js_sys_unstable_apis` for the ts-gen-worker builds only; serde-wasm-bindgen and wasm-streams patched copies | workers-rs | 1 | no |
 | native leaves inside js-sys containers; `&T` generic arguments; awaited `Option<T>` | ts-gen | 1 | yes |
 | argument-position `impl Trait` keeps declared generic arity | wasm-bindgen macro | 1 | yes |
-| one import per wire format; no `// generic import` comments; `?Sized` mono params; `&Option<T>`, `Option<&T>` args | wasm-bindgen macro + CLI | 2 | yes (mono's own cost) |
-| `extends = Parent<A, B>`; `Vec<Option<T>>` returns; blanket `&T` ABI for handles | wasm-bindgen | 2 | partly |
+| one import per wire format; no `// generic import` comments; `?Sized` mono params; `Option<&T>` args | wasm-bindgen macro + CLI | 2 | yes (mono's own cost) |
+| `extends = Parent<A, B>`; `Vec<Option<T>>` returns | wasm-bindgen | 2 | partly |
 | `catch` on a `Promise<T>` return hands a synchronous throw back as a rejection | wasm-bindgen macro | 2 | no |
 | `Map` by `Borrow<Q>`, `Map::get` for every `V` | js-sys | 2 | no |
 | `Function<fn(A..) -> R>` with any ABI `A`/`R`, `()` for void; `Function::from_fn` / `once`; typed `Promise::new` | js-sys | 2 | yes |
