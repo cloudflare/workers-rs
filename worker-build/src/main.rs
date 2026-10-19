@@ -1,5 +1,5 @@
 use std::{
-    env::{self, VarError},
+    env,
     fs::{self, File},
     io::{Read, Write},
     path::{Path, PathBuf},
@@ -16,6 +16,7 @@ const SHIM_EMSCRIPTEN_FILE: &str = include_str!("./js/shim-emscripten.js");
 pub(crate) mod binary;
 mod build;
 mod build_lock;
+mod bundle;
 mod emoji;
 mod emscripten;
 mod lockfile;
@@ -26,10 +27,8 @@ mod versions;
 use build::{Build, BuildOptions};
 use build_lock::BuildLock;
 
-use crate::{
-    binary::{Esbuild, GetBinary},
-    build::Target,
-};
+use crate::build::Target;
+use rolldown::Platform;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -127,8 +126,17 @@ pub fn main() -> Result<()> {
 
         update_package_json(&staging_dir)?;
 
-        let esbuild_path = Esbuild.get_binary(None)?.0;
-        bundle(&staging_dir, &esbuild_path, emscripten)?;
+        // Emscripten's node environment glue imports Node builtins, served by
+        // nodejs_compat in the runtime.
+        let (external, platform): (&[&str], _) = if emscripten {
+            (
+                &["./index_bg.wasm", "cloudflare:*", "node:*"],
+                Platform::Node,
+            )
+        } else {
+            (&["./index_bg.wasm", "cloudflare:*"], Platform::Browser)
+        };
+        bundle::bundle(&staging_dir, "./shim.js", "index.js", external, platform)?;
 
         fix_wasm_import(&staging_dir)?;
 
@@ -473,44 +481,6 @@ where
 
     let command = BuildArgs::try_parse_from(build_args)?;
     Ok(command.build_options)
-}
-
-// Bundles the snippets and worker-related code into a single file.
-fn bundle(out_dir: &Path, esbuild_path: &Path, emscripten: bool) -> Result<()> {
-    let no_minify = !matches!(env::var("NO_MINIFY"), Err(VarError::NotPresent));
-    let path = out_dir
-        .canonicalize()
-        .with_context(|| format!("Failed to resolve output directory {}", out_dir.display()))?;
-    let esbuild_path = esbuild_path
-        .canonicalize()
-        .with_context(|| format!("Failed to resolve esbuild path {}", esbuild_path.display()))?;
-    let mut command = Command::new(esbuild_path);
-    command.args([
-        "--external:./index_bg.wasm",
-        "--external:cloudflare:*",
-        "--format=esm",
-        "--bundle",
-        "./shim.js",
-        "--outfile=index.js",
-        "--allow-overwrite",
-    ]);
-
-    // Emscripten's node environment glue imports Node builtins, served by
-    // nodejs_compat in the runtime.
-    if emscripten {
-        command.args(["--external:node:*", "--platform=node"]);
-    }
-
-    if !no_minify {
-        command.arg("--minify");
-    }
-
-    let exit_status = command.current_dir(path).spawn()?.wait()?;
-
-    match exit_status.success() {
-        true => Ok(()),
-        false => anyhow::bail!("esbuild exited with status {exit_status}"),
-    }
 }
 
 fn remove_unused_files(out_dir: &Path) -> Result<()> {

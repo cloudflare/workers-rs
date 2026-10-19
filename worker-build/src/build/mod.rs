@@ -269,13 +269,13 @@ impl Build {
         }
 
         let duration = utils::elapsed(started.elapsed());
-        info!("Done in {}.", &duration);
+        info!("Done in {}.", duration);
         info!(
             "Your wasm pkg is ready to publish at {}.",
             self.out_dir.display()
         );
 
-        PBAR.info(&format!("{}Done in {}", emoji::SPARKLE, &duration));
+        PBAR.info(&format!("{}Done in {}", emoji::SPARKLE, duration));
 
         PBAR.info(&format!(
             "{} Your wasm pkg is ready to publish at {}.",
@@ -350,7 +350,7 @@ impl Build {
         info!("Checking rustc version...");
         let version = target::check_rustc_version()?;
         let msg = format!("rustc version is {version}.");
-        info!("{}", &msg);
+        info!("{}", msg);
         Ok(())
     }
 
@@ -486,7 +486,7 @@ impl Build {
     fn step_create_dir(&mut self) -> Result<()> {
         info!("Creating a pkg directory...");
         create_pkg_dir(&self.out_dir)?;
-        info!("Created a pkg directory at {:#?}.", &self.crate_path);
+        info!("Created a pkg directory at {:#?}.", self.crate_path);
         Ok(())
     }
 
@@ -495,7 +495,7 @@ impl Build {
             .write_package_json(&self.out_dir, &self.scope, self.disable_dts)?;
         info!(
             "Wrote a package.json at {:#?}.",
-            &self.out_dir.join("package.json")
+            self.out_dir.join("package.json")
         );
         Ok(())
     }
@@ -579,7 +579,7 @@ impl Build {
             &self.extra_args,
             &self.extra_options,
         )?;
-        info!("wasm bindings were built at {:#?}.", &self.out_dir);
+        info!("wasm bindings were built at {:#?}.", self.out_dir);
         Ok(())
     }
 

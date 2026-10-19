@@ -24,7 +24,7 @@ exclude = [
 resolver = "2"
 
 [workspace.package]
-rust-version = "1.91"
+rust-version = "1.97"
 
 [workspace.dependencies]
 async-trait = "0.1.88"
