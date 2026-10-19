@@ -691,8 +691,8 @@ please [take a look](https://www.cloudflare.com/careers/).
 - We're working on solutions here, but in the meantime you'll need to minimize the number of crates
   your code depends on, or strip as much from the `.wasm` binary as possible. Here are some extra
   steps you can try: https://rustwasm.github.io/book/reference/code-size.html#optimizing-builds-for-code-size.
-  Release builds keep Wasm function names for profiles and stack traces; to drop them, add
-  `--strip-debug` to the profile's `wasm-opt` arguments (see the
+  Release builds keep Wasm function names for profiles and stack traces; to drop them, set the
+  profile's `wasm-opt` arguments without `-g` (see the
   [worker-build README](worker-build/README.md)) rather than using `strip = true`.
 
 # Releasing

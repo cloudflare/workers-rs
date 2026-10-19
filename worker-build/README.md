@@ -21,16 +21,20 @@ type  = "CompiledWasm"
 
 ## Smaller release builds without Wasm names
 
-Release builds keep Wasm function names, which CPU profiles and stack traces show. To drop them
-for a size-sensitive Worker, add `--strip-debug` to the profile's `wasm-opt` arguments:
+Release builds keep Wasm function names, which CPU profiles and stack traces show. Explicit
+`wasm-opt` arguments are passed through as written, plus only the `--enable-*` features the
+Workers runtime needs, so they don't keep names unless they include `-g`:
 
 ```toml
 [package.metadata.wasm-pack.profile.release]
-wasm-opt = ["-O", "--strip-debug"]
+# names dropped
+wasm-opt = ["-O"]
+# names kept
+# wasm-opt = ["-O", "-g"]
 ```
 
 Use this instead of `strip = true` in the Cargo profile, which makes the linker drop every custom
-section that later steps and tools rely on. Keeping names increases the size of the Wasm.
+section that later steps and tools rely on.
 
 ## Environment Variables
 

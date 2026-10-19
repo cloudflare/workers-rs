@@ -296,10 +296,14 @@ impl CargoWasmPackProfile {
     }
 
     /// Get this profile's configured arguments for `wasm-opt`, if enabled.
+    /// `wasm-opt = true` keeps the Wasm names section; explicit args are used
+    /// as written, so they keep names only if they include `-g`.
     pub fn wasm_opt_args(&self) -> Option<Vec<String>> {
         match self.wasm_opt.as_ref()? {
             CargoWasmPackProfileWasmOpt::Enabled(false) => None,
-            CargoWasmPackProfileWasmOpt::Enabled(true) => Some(vec!["-O".to_string()]),
+            CargoWasmPackProfileWasmOpt::Enabled(true) => {
+                Some(vec!["-O".to_string(), "--debuginfo".to_string()])
+            }
             CargoWasmPackProfileWasmOpt::ExplicitArgs(s) => Some(s.clone()),
         }
     }
