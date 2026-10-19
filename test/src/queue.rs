@@ -1,29 +1,49 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use super::{SomeSharedData, GLOBAL_QUEUE_STATE};
-use worker::{
-    console_log, event, Context, Env, MessageBatch, MessageExt, Request, Response, Result,
-};
+use super::{SomeSharedData, GLOBAL_QUEUE_METADATA_STATE, GLOBAL_QUEUE_STATE};
+use worker::{event, Context, Env, MessageBatch, MessageExt, Request, Response, Result};
 #[derive(Serialize, Debug, Clone, Deserialize)]
 pub struct QueueBody {
     pub id: Uuid,
     pub id_string: String,
 }
 
+#[derive(Serialize, Debug, Clone)]
+pub struct QueueMessageMetadata {
+    pub message_id: String,
+    pub body_id: String,
+    pub timestamp: String,
+    pub attempts: u32,
+}
+
 #[event(queue)]
 pub async fn queue(message_batch: MessageBatch<QueueBody>, _env: Env, _ctx: Context) -> Result<()> {
     let mut guard = GLOBAL_QUEUE_STATE.lock().unwrap();
+    let mut metadata_guard = GLOBAL_QUEUE_METADATA_STATE.lock().unwrap();
     for message in message_batch.messages()? {
-        console_log!(
-            "Received queue message {:?}, with id {} and timestamp: {}",
-            message.body(),
-            message.id(),
-            message.timestamp().to_string()
-        );
+        let body = message.body();
+        let metadata = QueueMessageMetadata {
+            message_id: message.id().to_string(),
+            body_id: body.id.to_string(),
+            timestamp: message.timestamp().to_string(),
+            attempts: message.attempts(),
+        };
+        metadata_guard.push(metadata);
         guard.push(message.into_body());
     }
     Ok(())
+}
+
+pub async fn handle_queue_metadata(
+    _req: Request,
+    _env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
+    let guard = GLOBAL_QUEUE_METADATA_STATE.lock().unwrap();
+    let metadata = guard.clone();
+
+    Response::from_json(&metadata)
 }
 
 #[worker::send]

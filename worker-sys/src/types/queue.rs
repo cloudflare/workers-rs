@@ -34,6 +34,9 @@ extern "C" {
     #[wasm_bindgen(method, catch, getter)]
     pub fn body(this: &Message) -> Result<JsValue, JsValue>;
 
+    #[wasm_bindgen(method, catch, getter)]
+    pub fn attempts(this: &Message) -> Result<u16, JsValue>;
+
     #[wasm_bindgen(method, catch)]
     pub fn retry(this: &Message, options: JsValue) -> Result<(), JsValue>;
 

@@ -54,4 +54,37 @@ describe("queue", () => {
     const message_2 = messages.find((msg) => msg.id === id_2.toString());
     expect(message_2).toMatchObject({ id: id_2.toString() });
   });
+
+  test("read queue message metadata", async () => {
+    const id = uuid.v4();
+
+    let resp = await mf.dispatchFetch(`${mfUrl}queue/send/${id}`, {
+      method: "POST",
+    });
+
+    expect(resp.status).toBe(200);
+
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+
+    resp = await mf.dispatchFetch(`${mfUrl}queue/metadata`);
+    expect(resp.status).toBe(200);
+
+    const messages = (await resp.json()) as {
+      message_id: string;
+      body_id: string;
+      timestamp: string;
+      attempts: number;
+    }[];
+
+    const message = messages.find((msg) => msg.body_id === id);
+
+    expect(message).toBeDefined();
+    expect(message).toMatchObject({
+      body_id: id,
+      attempts: 1,
+    });
+    expect(message?.message_id).toBeDefined();
+    expect(message?.timestamp).toBeDefined();
+    expect(Date.parse(message!.timestamp)).not.toBeNaN();
+  });
 });
