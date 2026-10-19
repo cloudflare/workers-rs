@@ -59,12 +59,24 @@ declare class Headers {
 // and outgoing shapes, which erases; a bare `Request` is the incoming one.
 type RequestInfo<CfHostMetadata = unknown, Cf = IncomingRequestCfProperties<CfHostMetadata>> =
   Request<CfHostMetadata, Cf> | string;
+// workers-types drops `readonly` on these JSG instance properties, but workerd
+// defines them without a setter, so an assignment throws a `TypeError`.
 /** {@string copy} */
 declare class Request<CfHostMetadata = unknown, Cf = IncomingRequestCfProperties<CfHostMetadata>> {
   /** @throws {TypeError} if `input` is not a valid URL or `init` is inconsistent with it */
   constructor(input: RequestInfo, init?: RequestInit);
   /** @throws {TypeError} if the body has already been used */
   clone(): Request;
+  readonly method: string;
+  readonly url: string;
+  readonly headers: Headers;
+  readonly redirect: string;
+  readonly fetcher: Fetcher | null;
+  readonly signal: AbortSignal;
+  readonly cf?: Cf;
+  readonly integrity: string;
+  readonly keepalive: boolean;
+  readonly cache?: "no-store" | "no-cache";
 }
 
 /** {@string copy} */
@@ -85,7 +97,15 @@ declare class Response {
   /** @throws {TypeError} if the body has already been used */
   clone(): Response;
   /** @rust u16 */
-  status: number;
+  readonly status: number;
+  readonly statusText: string;
+  readonly headers: Headers;
+  readonly ok: boolean;
+  readonly redirected: boolean;
+  readonly url: string;
+  readonly webSocket: WebSocket | null;
+  readonly cf: any | undefined;
+  readonly type: "default" | "error";
 }
 
 /** {@string copy} */
@@ -105,6 +125,15 @@ interface Socket {
 interface WebSocket {
   /** @rust code: u16 */
   close(code?: number, reason?: string): void;
+  readonly readyState: number;
+  readonly url: string | null;
+  readonly protocol: string | null;
+  readonly extensions: string | null;
+}
+
+declare class WebSocketPair {
+  readonly 0: WebSocket;
+  readonly 1: WebSocket;
 }
 
 /** {@string copy} */
@@ -144,6 +173,7 @@ interface DurableObjectListOptions {
 
 /** {@string copy} */
 declare abstract class SqlStorageCursor {
+  readonly columnNames: string[];
   /** @rust usize */
   get rowsRead(): number;
   /** @rust usize */
