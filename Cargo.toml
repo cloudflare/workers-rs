@@ -8,6 +8,10 @@ members = [
     "examples/*",
     "test/container-echo",
     "benchmark",
+    "ts-gen-worker",
+    "ts-gen-worker-macros",
+    "ts-gen-worker/test",
+    "ts-gen-worker/benchmark",
 ]
 exclude = [
     "examples/coredump",
@@ -20,6 +24,7 @@ exclude = [
     "wasm-bindgen",
     "wasm-streams",
     "generated",
+    "ts-gen-worker/vendor-patches",
 ]
 resolver = "2"
 
@@ -112,3 +117,24 @@ opt-level = "z"
 
 # These are local patches we use to test against local wasm bindgen
 # We always align on the exact stable wasm bindgen version for releases
+#
+# The submodule is wasm-bindgen PR #5390 (js-sys element APIs as real generics
+# under `js_sys_unstable_apis`, on #5384's `slice = view | array | copy`) with
+# PR #5375 (`reinit = "reconstruct"`, schema 0.2.130, unreleased) and the
+# generic-mono prototype commits on top:
+# ts-gen emits #5384's slice modes and the mono forms, and `#[durable_object]`
+# depends on #5375, so the whole workspace builds from the submodule until they ship.
+[patch.crates-io]
+js-sys = { version = "0.3.106", path = './wasm-bindgen/crates/js-sys' }
+wasm-bindgen = { version = "0.2.129", path = './wasm-bindgen' }
+wasm-bindgen-cli-support = { version = "0.2.129", path = "./wasm-bindgen/crates/cli-support" }
+wasm-bindgen-futures = { version = "0.4.79", path = './wasm-bindgen/crates/futures' }
+wasm-bindgen-macro-support = { version = "0.2.129", path = "./wasm-bindgen/crates/macro-support" }
+wasm-bindgen-shared = { version = "0.2.129", path = "./wasm-bindgen/crates/shared" }
+wasm-bindgen-test = { version = "0.3.79", path = "./wasm-bindgen/crates/test" }
+web-sys = { version = "0.3.106", path = './wasm-bindgen/crates/web-sys' }
+# `js_sys_unstable_apis` (set for the ts-gen-worker builds, see `chompfile.toml`)
+# changes js-sys signatures these two crates call; the copies use forms that
+# compile with and without it.
+serde-wasm-bindgen = { path = "./ts-gen-worker/vendor-patches/serde-wasm-bindgen" }
+wasm-streams = { path = "./ts-gen-worker/vendor-patches/wasm-streams" }

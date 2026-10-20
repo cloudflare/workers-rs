@@ -1,0 +1,36 @@
+[package]
+name = "ts-gen-worker-test"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[package.metadata.release]
+release = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+blake2 = "0.10"
+futures-channel.workspace = true
+futures-util.workspace = true
+hex = "0.4"
+js-sys.workspace = true
+md5 = "0.8.1"
+regex = "1.8.4"
+serde.workspace = true
+serde_json.workspace = true
+serde-wasm-bindgen.workspace = true
+http.workspace = true
+ts-gen-worker = { path = "..", features = ["url", "http"] }
+url = "2"
+uuid = { version = "1.17", features = ["v4", "serde", "js"] }
+wasm-bindgen.workspace = true
+wasm-bindgen-futures.workspace = true
+
+# Switches the fetch export to the `http` handler signature; the conversions are always built.
+[features]
+http = []
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(js_sys_unstable_apis)"] }
