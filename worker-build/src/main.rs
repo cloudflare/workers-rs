@@ -21,7 +21,9 @@ mod emscripten;
 mod lockfile;
 mod main_legacy;
 mod producers;
+mod source_map;
 mod versions;
+mod wasm_util;
 
 use build::{Build, BuildOptions};
 use build_lock::BuildLock;
