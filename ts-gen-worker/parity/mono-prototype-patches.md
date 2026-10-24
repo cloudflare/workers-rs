@@ -9,8 +9,8 @@ says where it should land.
 | repo | branch | base |
 |---|---|---|
 | workers-rs | this branch | `main` |
-| ts-gen | `gbedford/mono-prototype`, tip `3d3e592` | ts-gen#122 and the ts-gen PRs it stacks on |
-| wasm-bindgen | `gbedford/mono-prototype`, tip `f5d74b11f` | wasm-bindgen#5390 with #5375 on top |
+| ts-gen | `gbedford/mono-prototype`, tip `3393ade` | main `b0af305` → option-null-reads → #52 → #53 → #54 → #66 → #67 → #68 → #69 → the mono commits (`ts-gen-prs.md` "Restack 4") |
+| wasm-bindgen | `gbedford/mono-prototype`, tip `3a62aa7d4` | main `39ae823bb` → #5428 → #5427 → #5375 → #5390 → #5425 → #5426 → 20 residual commits (see "After the session-16 restack") |
 
 ts-gen and wasm-bindgen commits are cited by subject, with an id (`tgN`, `wbN`, numbered in
 branch order; a ts-gen fixture re-bless has no row) that the PR grouping below uses. The
@@ -167,3 +167,55 @@ Each row of the tables above is one change. Landing them is a smaller set of PRs
 | ts-gen mono: null model (null arms, output-only types, `JsNullable<T>` type arguments) | tg38, tg39, tg40, tg42 | wb23 |
 | serde-wasm-bindgen, wasm-streams: build under `js_sys_unstable_apis` | `ts-gen-worker/vendor-patches` | js-sys unstable |
 | workers-rs: inputs (`annotations.d.ts`, `env.d.ts`), ext, port, `MIGRATING.md` | workers-rs rows | all of the above |
+
+## After the session-16 restack
+
+wasm-bindgen main `39ae823bb` has #5384 (the slice/sequence series), #5385 (wb18–wb20), #5410 /
+#5420 / #5423 (strict `Option<T>` and `Nullable<T>`, `MaybeIntoWasmAbi`), #5388 and #5406. The
+stack above it, bottom to top: #5428 (2: `Option<T>` reads `null` as `None` again, the strict
+descriptor tag removed), #5427 (4: `Option<T>` / `Nullable<T>` as sequence elements and `Function`
+signature slots, js-sys element methods per-mono under `js_sys_unstable_apis`), #5375 (3), #5390
+(18, wb1 superseded by its element-API series, `RefIntoWasmAbi` sealed with a blanket over
+`&T: IntoWasmAbi`, new `MonoGeneric`), #5425 (`JsCanon`, 2), #5426 (wb17 `Promise<T, E>`, 3), and
+20 residual commits: wb2, wb3, wb4, wb5, wb6, wb7, wb8, wb9, wb10, wb11, wb12 (split in two: the
+second adapts main's `raw_json` test), wb13 (without the blanket `&T` ABI impl, which main's
+`RefIntoWasmAbi` and #5390's `JsGeneric: MonoGeneric` cover), wb14, wb15, wb16, wb22 (tests only:
+the per-type `RefIntoWasmAbi` redesign is replaced by main's sealed blanket; wb21 dropped for the
+same reason), wb23, wb24, wb25.
+
+What #5427 and #5428 took over (the kept commits lose the hunk, their messages say so): #5427
+already declares 38 of the methods #5390 makes mono (`Array::{set,fill,includes,push,pop,splice,
+with,at,…}`, `Map::{get,set,has,delete,get_or_insert}`, `Set::{add,has,delete}`,
+`Function::{call0-9,bind1-9,apply}`, `resolve`) with the same `RefIntoWasmAbi` contract, so
+#5390's "Function call/bind/apply and the JsFunction traits mono" shrinks from 915 to 150
+insertions: #5427's `JsFunction*` / `JsArgs` / `FunctionIntoClosure` have unbounded signature
+slots, so #5390's `MonoGeneric`-bounded cfg-split traits are dropped (its tests and docs stay).
+#5375's approved schema hash is recomputed over #5428's removed descriptor tag. In the residual:
+wb6 "Option<&T> arguments" keeps only the `OptionIntoWasmAbi for &Option<T>` half (now on
+#5427's `MaybeRefIntoWasmAbi`) since `Descriptor::option` no longer takes `strict`; wb11's
+`Vec<Option<T>>` slice impls are dropped for #5427's `optional_scalar_vectors!` /
+`optional_handle_vectors!`; the `Borrow<Q>` keyed `Map` / `Set` reads supersede #5427's `&K` ones.
+No prototype test asserted the strict `null` read; #5428's `option_null` tests pass unchanged.
+
+Rebase-forced changes kept from the session-14 pass: `&Option<T>` crosses through
+`T: RefIntoWasmAbi` by one generic impl; `()` gains `IntoWasmAbi` for `&()` so it is
+`MonoGeneric`; js-sys collection/iteration helpers declare `RefIntoWasmAbi` / `MonoGeneric`
+bounds for #5390's bounded element writes; `FromCaughtException` is implemented for
+`Promise<T, E>`.
+
+Verified on the tip `3a62aa7d4` (`cargo +stable` / `+1.88`: the workspace's 1.91 pin leaks into
+the submodule and changes symbol mangling): root wasm tests 590/0, js-sys 820/0 stable and 919/0
+under `js_sys_unstable_apis`, macro ui tests on 1.88, CLI reference tests 84/84 with `BLESS=1`
+changing nothing, schema hash tests green; the five `termination*` / `memory64_threads` node
+tests fail identically on main here. The intermediate layer tips were compile-checked only where
+a fix was needed; each PR's own reference snapshots may need a re-bless against #5427's shim
+hashes before it is pushed.
+
+Open against this wasm-bindgen: `Map<K, V>` iteration bounds `V: MonoGeneric` (a residual
+prototype impl; a read needs only `FromWasmAbi`), and `&Nullable<T>` has no `IntoWasmAbi`, so a
+`Map<String, Nullable<String>>` is walked as `JsValue`s in `ext/kv.rs`; `f64` / `i64` are not
+`OptionFromWasmAbi` (their `Option` has an ABI of its own), which ts-gen now sidesteps by bounding
+a generic `Option<T>` read whole (`Option<T>: FromWasmAbi`); a `#[wasm_bindgen]` enum has no
+`&Enum` ABI (`IntoWasmAbi` by value only, unlike the primitives' `impl IntoWasmAbi for &T`), so an
+enum as a generic class's type argument cannot be written through `T: RefIntoWasmAbi`
+(`Holder::<Mode>::new(&Mode::Slow)` in ts-gen's `enum_positions_mono` test).

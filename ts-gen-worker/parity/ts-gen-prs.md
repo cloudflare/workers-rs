@@ -628,3 +628,83 @@ Both main and ours collapse constructor overloads from `var X: { new(a); new(a, 
    does for parameters of named parts only.
 5. **f28a591 residual:** the full prelude list, or only the trait names the generated code spells
    bare (`From`, `PartialEq`, `Eq`, `AsRef`).
+
+## Restack 4 (session 16): the open PRs on main `b0af305`
+
+Merged since the restack-3 base `2796dd3`: #51, #61, #62, #63, #64, #65, #155, #157, #176, #181
+(the literal-keyed half of #68, squashed from `a06347a`/`4e1bc76`/`fb6dd04`/`e6bc424`/`3063f43`),
+#122 and #110 from the mono work, and #170/#177/#179 from main. Open, each rebased onto its
+declared base in `restack/<branch>` (local, not pushed):
+
+| PR | branch | base | own commits | note |
+|---|---|---|---|---|
+| #52 | `gbedford/exports` | main | 2 | |
+| #53 | `gbedford/wasm-abi-model` | #52 | 7 | `d327f74` "Describe ABI overload names" carried from the mono-prototype copy |
+| #54 | `gbedford/wasm-embed` | #53 | 6 | |
+| #66 | `gbedford/annotations` | main | 8 | |
+| #67 | `gbedford/inference-naming` | main | 6 | |
+| #68 | `gbedford/inline-wrappers` | #66 | 4 | the literal-keyed commits dropped as landed (#181); duplicate `## Inline wrappers` heading folded into the u64 commit |
+| #69 | `gbedford/builder-from-dict` | #68 | 1 | |
+
+The wasm ABI PRs stay underneath because the mono commits edit `src/abi/mod.rs`. #180
+(`--promise-only`) is left out of the stack (Guy).
+
+**Linear stack** (`gbedford/mono-prototype`): main → [option-null-reads layer, see below] → #52 →
+#53 → #54 → #66 → #67 → #68 → #69 → the mono segment. Of the 48 mono commits, dropped as already
+on main or superseded: `6e22f0c` (#122), `8b6305e`, `5fdbf2b`, `6d1dd4f`, `8a53f8c` (empty),
+`8c4e184` (pin bump), `17df4e9` and `64e785e` (main's `null_arms.rs` design), `448388f` (main
+already gives a written `null` its own `_with_null` arm everywhere), `2b9d924` (main's factories
+already take a branch's required field bare). Partial drops inside kept picks: Partial synthesis
+(`76b070a`, main's #177 evaluates `Partial<..>` itself, naming the result
+`PartialKvNamespaceGetOptionsUndefined`), the trailing-null retain (`1549ee7`), `head`
+(`e4d3fde`), Partial getter `Option` (`7ec1b4c`), the inline `abi_bounds` pass (`1fb83ab`,
+`9464827`; main's `state_abi_bounds` states them). `010f6f6` (per-mono reads fold both empties
+into `Option`) was first dropped as contradicting main's exact `Nullable` reads, then re-expressed
+as the option-null-reads layer once Guy settled the read rule (below).
+
+New on the stack in this session:
+- "Per-mono, type parameters in Function signature slots are MonoGeneric": js-sys's
+  `Function<fn(..)>` slots are bounded by `MonoGeneric` since wasm-bindgen#5390, so a bare type
+  parameter in a slot (`fn(Request<Cf>, Env, ExecutionContext<Props>)`) gets `MonoGeneric` and a
+  nested one `'static`, on imports and helper impls. Without it the regenerated bindings had 608
+  errors.
+- The option-null-reads layer (a ts-gen main PR candidate, both modes): reads of `T | null`
+  (returns, awaited values, getters, callback arguments) are `Option<T>`, `T | null | undefined`
+  stays `Option<Nullable<T>>`, `any | null` reads `Option<JsValue>`; writes and type arguments keep
+  `Nullable`/`_with_null`. Pairs with wasm-bindgen#5428, which makes `Option<T>` read `null` as
+  `None` again. Reason: `IntoWasmAbi` must choose a representation (`None` → `undefined`), so the
+  write side needs `Nullable`; `FromWasmAbi` chooses nothing, and a `T | null` read loses no
+  information as `Option<T>`. On the workers-types surface this folds 81 of 97 `Nullable`s; the 16
+  left are 5 `?: T | null` dictionary getters (`ResponseInit::web_socket`, `RequestInit::fetcher`
+  / `signal`, `KVNamespaceListOptions::prefix` / `cursor`), the 10 KV bulk `Map<String,
+  Nullable<_>>` type arguments and the `SqlStorageValue` alias.
+
+Regressions of the regenerated bindings against the prototype that the restack does not fix:
+`number | bigint` lowers as `f64` plus a `_with_big_int` arm (15) instead of
+`impl JsBigIntOrNumberLike`; the typed KV read wrappers take `&KVNamespaceGetOptions<String>`,
+whose builder asks for the `type` the wrapper then overwrites; `Exclude<CertVerificationStatus,
+"NONE">` is named `ExcludeCertVerificationStatusNone` (#177's literal naming).
+
+Two more commits sit at the tip, to move down when their PRs are cut: "Bound a generic Option<T>
+read whole" (`Option<T>: FromWasmAbi` instead of `T: OptionFromWasmAbi`, since `f64` / `i64` have
+an `Option` ABI of their own and are not `OptionFromWasmAbi`; a main fix, it predates the layer
+through `T | undefined` reads) and the `--provides` test app taking `Option` where #52's version
+on main takes `Nullable` (a rebase adaptation of #52 onto the layer, not a #52 change). The
+integration-tests pin moves to wasm-bindgen `gbedford/mono-prototype` `3a62aa7d4`; at the mono
+tip the suite needs `RUSTFLAGS=--cfg js_sys_unstable_apis` (`ArrayHeadRest` and the mono
+`Function` slots are gated), which CI's second matrix leg sets.
+The hand-written integration tests at the mono tip (`integration-tests/tests/*_mono.rs`,
+`promise_builtins.rs`, …) had never compiled against a wasm-bindgen carrying the whole prototype;
+"Rebase onto main: integration tests follow the restacked output" brings 15 files to the current
+output (`Promise<T, E>` with no `_promise` twins, `Option<T>` reads, borrowed `&T` generic
+arguments, `new_typed` constructors). With it `just test-integration` passes at the tip (64 test
+binaries, 91 runtime tests, the `provides_namespace.mjs` check). Found on the way, not fixed here:
+a `#[wasm_bindgen]` enum has no `&Enum` ABI (the macro emits `IntoWasmAbi` by value only, where
+primitives also get `impl IntoWasmAbi for &T`), so `Holder::<Mode>::new(&Mode::Slow)` and every
+other write of an enum type argument through `T: RefIntoWasmAbi` is uncallable — a wasm-bindgen
+change, tracked in `mono-prototype-patches.md`; CONVENTIONS' `@rust` and "Inner positions"
+passages still describe `Promise<Number>` / `JsNullable<T>` inner carriers where the blessed mono
+snapshots emit `Promise<u32>`, `Vec<Option<u16>>`, `Object<Option<f64>>` (doc drift to fix when
+the layer PRs are cut); `js_sys::Object::values` returns `Result<Array<T>, _>` only under
+`js_sys_unstable_apis`, so `.iter()` on it silently iterates the `Result`.
+

@@ -8,10 +8,12 @@ Principles:
 
 - The generated bindings are the API. Ergonomics are extra `impl` blocks on the
   generated types, never wrapper types mirroring them.
-- Gaps are closed by ts-gen features (one commit per PR on the ts-gen branch
-  `gbedford/workers-parity` in the `ts-gen` submodule) or by hand-written impls
-  in this crate. Each choice is justified where it lands.
-- Everything stays local. Nothing is pushed.
+- Gaps are closed by ts-gen features (one PR each; the `ts-gen` submodule pins
+  `gbedford/mono-prototype`, the open PRs restacked on main with the mono
+  prototype commits on top) or by hand-written impls in this crate. Each
+  choice is justified where it lands.
+- The branch is public as the draft PR workers-rs#1103; the tracking notes stay
+  on the history branch and are not part of the PR.
 
 Per-topic notes live in `parity/*.md`; agents own one file each and this file
 is the merged index.
@@ -23,7 +25,7 @@ is the merged index.
 | Error model (`--error-type`, `--fallible`, `@throws` enum) | integrated; plus `JsNullable` results, `_with_null` forms, `_promise` companions | `parity/errors.md` |
 | Input from `@cloudflare/workers-types` | integrated: bindings generated from `node_modules/@cloudflare/workers-types/index.d.ts` + `types/annotations.d.ts` (`--annotate`: `@throws`, `@rust` integer hints, type-parameter defaults); `types/worker.d.ts` deleted; 19.8k generated lines | `parity/workers-types.md` |
 | `Error`, `#[event]` macros, ergonomic impls | integrated; `#[event(connect)]`, `Response::into_parts`, builder `header/cors/body/from_websocket`, `Request::new_with_method`, serde storage helpers; `MIGRATING.md` written; 192 tests green on both modes | `parity/crate.md`, `MIGRATING.md` |
-| ts-gen PRs | wave 1: #39–#47 (#40, #41 merged); waves 2–10 posted as stack #61–#69 on top of #39, #42–#47, #51–#54; CI pending | `parity/ts-gen-prs.md` |
+| ts-gen PRs | merged: #39–#47, #51, #61–#65, #155, #157, #181 (the literal-keyed half of #68), #122, #110; open: #52–#54 (wasm ABI), #66–#69, rebased onto main `b0af305` in session 16, under a new option-null-reads layer (reads of `T \| null` are `Option<T>`) | `parity/ts-gen-prs.md` "Restack 4" |
 | Test suite port | integrated: all 26 spec files run (187 tests; 4 skipped are upstream's own gates); `signal`, `container`, `panic` ported, trap recovery via the wasm-bindgen fork's reinit | `parity/test-port.md`, `parity/errors.md` Session 4 |
 
 ## Open problems for Guy
@@ -38,21 +40,15 @@ file.
 - **How authoritative must `@throws` be?** Only Fetch-spec-pinned classes are annotated so far.
   Runtime-specific throws (KV/R2/D1, `DOMException` names) need a policy; a wrong annotation lands
   the value in `JsException::Other`, never a wrong variant. (`parity/errors.md`)
-- **Overloads differing only in return type collapse to the first.** KV `get` variants, DO
-  `storage.get(keys[])`. workers-rs-3 has a candidate fix (`ac26895`), pending integration.
-  (`parity/test-port.md` #2)
-- **The `wasm-bindgen` submodule points at a local commit `1ea319f65`** = #5375's branch plus
-  wasm-bindgen#5376 (`TryFromJsValue` for string enums, Guy's PR, required by ts-gen #39's enum
-  payloads). It exists only in these worktrees; it must be pushed to a branch (or #5375 rebased
-  to include #5376) before `gbedford/ts-gen-worker` is shared. Guy to decide which.
-- **The branch depends on unmerged wasm-bindgen PR
-  [#5375](https://github.com/wasm-bindgen/wasm-bindgen/pull/5375)** (`reinit = "reconstruct"`),
-  pinned via the `wasm-bindgen` submodule and `[patch.crates-io]`; `#[durable_object]` emits the
-  attribute and the harness stand-in is gone. wasm-bindgen 0.2.130 must ship before
-  `ts-gen-worker` can publish. The PR also fixes a call-guard ordering bug in the existing reinit
-  glue; Guy to look at that as a behavior change on its own. (`parity/errors.md` Session 7)
-- **`@throws {never}` on constructors is ignored** (constructors always catch). Proposal: honor it,
-  since wasm-bindgen accepts a non-`catch` constructor. Low priority. (`parity/errors.md`)
+- **The branch depends on unmerged wasm-bindgen PRs**, pinned via the `wasm-bindgen` submodule
+  (`gbedford/mono-prototype`) and `[patch.crates-io]`: [#5375](https://github.com/wasm-bindgen/wasm-bindgen/pull/5375)
+  (`reinit = "reconstruct"`, emitted by `#[durable_object]`; it also fixes a call-guard ordering
+  bug in the existing reinit glue, a behavior change on its own), #5428 (`Option<T>` reads
+  `null` as `None`), #5427 (`Option<T>` / `Nullable<T>` in generic positions), #5390 (js-sys
+  element APIs as real generics under `js_sys_unstable_apis`), #5425 (`JsCanon`), #5426
+  (`Promise<T, E>`), and the 20 generic-mono prototype commits still without a PR
+  (`parity/mono-prototype-patches.md`, "After the session-16 restack"). wasm-bindgen 0.2.130 with these must ship before
+  `ts-gen-worker` can publish. (`parity/errors.md` Session 7)
 
 ## Decisions taken
 
