@@ -118,12 +118,12 @@ opt-level = "z"
 # These are local patches we use to test against local wasm bindgen
 # We always align on the exact stable wasm bindgen version for releases
 #
-# The submodule is wasm-bindgen PR #5390 (js-sys element APIs as real generics
-# under `js_sys_unstable_apis`, on #5384's `slice = view | array | copy`) with
-# PR #5375 (`reinit = "reconstruct"`, schema 0.2.130, unreleased) and the
-# generic-mono prototype commits on top (ts-gen-worker/parity/mono-prototype-patches.md):
-# ts-gen emits #5384's slice modes and the mono forms, and `#[durable_object]`
-# depends on #5375, so the whole workspace builds from the submodule until they ship.
+# The submodule is wasm-bindgen main with PRs #5428, #5427, #5375 (`reinit =
+# "reconstruct"`, schema 0.2.130, unreleased), #5390 (js-sys element APIs as
+# real generics under `js_sys_unstable_apis`), #5425 and #5426 rebased on top,
+# then the generic-mono prototype commits (ts-gen-worker/parity/mono-prototype-patches.md):
+# ts-gen emits the mono forms and `#[durable_object]` depends on #5375, so the
+# whole workspace builds from the submodule until they ship.
 [patch.crates-io]
 js-sys = { version = "0.3.106", path = './wasm-bindgen/crates/js-sys' }
 wasm-bindgen = { version = "0.2.129", path = './wasm-bindgen' }

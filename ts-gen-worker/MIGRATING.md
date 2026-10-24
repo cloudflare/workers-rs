@@ -223,9 +223,11 @@ kv.list().prefix(p).execute().await?        kv.list_builder().prefix(p).execute(
 
 `get_bulk`, `put_bytes`, `put_stream` keep their names. The generated reads underneath are
 typed per value type: `kv.get_text_with_options(k, &opts)`, `get_array_buffer_with_options`,
-`get_with_metadata_typed::<M>(k)`, and the bulk `kv.get_with_slice(&["a", "b"])`, which returns
-a `Map<String, JsNullable<String>>`: `values.get("a")` is `None` for a missing key and `Some(v)` with
-`v.is_null()` for a `null` value, and `.and_then(|v| v.into_option())` folds both. `list()` returns the generated
+`get_with_metadata_typed::<M>(k)`, and the bulk `kv.get_text_with_slice(&["a", "b"])`, which
+returns a `Map<String, Nullable<String>>` (a type argument keeps the exact carrier; `get_bulk`
+folds it to `HashMap<String, Option<String>>`). A `T | null` read is an `Option<T>`
+(`kv.get_text(k)` is `Option<String>`), and only a `T | null | undefined` read is an
+`Option<Nullable<T>>`. `list()` returns the generated
 `KVNamespaceListResult` (`keys()` is a `Vec`, `list_complete()`, `cursor()`).
 
 ## Errors

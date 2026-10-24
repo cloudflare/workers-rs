@@ -68,7 +68,10 @@ impl TryFrom<Request> for HttpRequest {
         if let Some(cf) = req.cf() {
             builder = builder.version(version(&cf.http_protocol())).extension(cf);
         }
-        let body = req.body().map_or_else(ByteStream::empty, ByteStream::from);
+        let body = req
+            .body()
+            
+            .map_or_else(ByteStream::empty, ByteStream::from);
         Ok(builder.body(body)?)
     }
 }
@@ -109,7 +112,10 @@ impl TryFrom<Response> for HttpResponse {
         if let Some(ws) = res.web_socket() {
             builder = builder.extension(ws);
         }
-        let body = res.body().map_or_else(ByteStream::empty, ByteStream::from);
+        let body = res
+            .body()
+            
+            .map_or_else(ByteStream::empty, ByteStream::from);
         Ok(builder.body(body)?)
     }
 }

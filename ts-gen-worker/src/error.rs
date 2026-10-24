@@ -19,6 +19,22 @@ pub enum Error {
 
 pub type Result<T, E = Error> = core::result::Result<T, E>;
 
+// A `Promise<T, Error>` rejection crosses the ABI as its `E`, so the error
+// is read as the rejection reason it is built from.
+impl wasm_bindgen::describe::WasmDescribe for Error {
+    fn describe() {
+        <JsValue as wasm_bindgen::describe::WasmDescribe>::describe()
+    }
+}
+
+impl wasm_bindgen::convert::FromWasmAbi for Error {
+    type Abi = <JsValue as wasm_bindgen::convert::FromWasmAbi>::Abi;
+
+    unsafe fn from_abi(js: Self::Abi) -> Self {
+        Error::from(unsafe { <JsValue as wasm_bindgen::convert::FromWasmAbi>::from_abi(js) })
+    }
+}
+
 impl From<JsValue> for Error {
     fn from(value: JsValue) -> Self {
         Error::Js(JsException::from(value))
