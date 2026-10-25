@@ -44,6 +44,9 @@ impl Cors {
     }
 
     /// Configures whether cors is allowed to share credentials or not.
+    ///
+    /// Credentials cannot be combined with the `*` origin, [`Cors::apply_headers`]
+    /// returns an error in that case.
     pub fn with_credentials(mut self, credentials: bool) -> Self {
         self.credentials = credentials;
         self
@@ -113,13 +116,13 @@ impl Cors {
 
     /// Applies the cors configuration to response headers.
     pub fn apply_headers(&self, headers: &mut Headers) -> Result<()> {
+        let selection = select_allow_origin(&self.origins, &self.request_origin, self.credentials)?;
         if self.credentials {
             headers.set("Access-Control-Allow-Credentials", "true")?;
         }
         if let Some(ref max_age) = self.max_age {
             headers.set("Access-Control-Max-Age", format!("{max_age}").as_str())?;
         }
-        let selection = select_allow_origin(&self.origins, &self.request_origin)?;
         if let Some(origin) = selection.allow_origin {
             headers.set("Access-Control-Allow-Origin", origin.as_str())?;
         }
@@ -154,10 +157,22 @@ struct OriginSelection {
     vary: bool,
 }
 
-fn select_allow_origin(origins: &[String], request: &RequestOrigin) -> Result<OriginSelection> {
+fn select_allow_origin(
+    origins: &[String],
+    request: &RequestOrigin,
+    credentials: bool,
+) -> Result<OriginSelection> {
     let (allow_origin, vary) = match origins {
         [] => (None, false),
-        _ if origins.iter().any(|o| o == "*") => (Some("*".to_string()), false),
+        _ if origins.iter().any(|o| o == "*") => {
+            if credentials {
+                return Err(Error::RustError(
+                    "Cors cannot combine the `*` origin with credentials, list the allowed origins explicitly."
+                        .to_string(),
+                ));
+            }
+            (Some("*".to_string()), false)
+        }
         [origin] => (Some(origin.clone()), false),
         _ => match request {
             RequestOrigin::Unset => {
@@ -207,7 +222,7 @@ mod tests {
             vary: false,
         };
         assert_eq!(
-            select_allow_origin(&[], &RequestOrigin::Unset).unwrap(),
+            select_allow_origin(&[], &RequestOrigin::Unset, false).unwrap(),
             want
         );
     }
@@ -219,13 +234,14 @@ mod tests {
             vary: false,
         };
         assert_eq!(
-            select_allow_origin(&["*".into()], &RequestOrigin::Unset).unwrap(),
+            select_allow_origin(&["*".into()], &RequestOrigin::Unset, false).unwrap(),
             want
         );
         assert_eq!(
             select_allow_origin(
                 &["*".into()],
-                &RequestOrigin::Present("https://a.com".into())
+                &RequestOrigin::Present("https://a.com".into()),
+                false
             )
             .unwrap(),
             want
@@ -233,7 +249,8 @@ mod tests {
         assert_eq!(
             select_allow_origin(
                 &["https://a.com".into(), "*".into()],
-                &RequestOrigin::Absent
+                &RequestOrigin::Absent,
+                false
             )
             .unwrap(),
             want
@@ -247,13 +264,14 @@ mod tests {
             vary: false,
         };
         assert_eq!(
-            select_allow_origin(&["https://a.com".into()], &RequestOrigin::Unset).unwrap(),
+            select_allow_origin(&["https://a.com".into()], &RequestOrigin::Unset, false).unwrap(),
             want
         );
         assert_eq!(
             select_allow_origin(
                 &["https://a.com".into()],
-                &RequestOrigin::Present("https://evil.com".into())
+                &RequestOrigin::Present("https://evil.com".into()),
+                false
             )
             .unwrap(),
             want
@@ -264,7 +282,12 @@ mod tests {
     fn several_origins_echo_the_matching_one() {
         let origins = ["https://a.com".to_string(), "https://b.com".to_string()];
         assert_eq!(
-            select_allow_origin(&origins, &RequestOrigin::Present("https://b.com".into())).unwrap(),
+            select_allow_origin(
+                &origins,
+                &RequestOrigin::Present("https://b.com".into()),
+                false
+            )
+            .unwrap(),
             OriginSelection {
                 allow_origin: Some("https://b.com".into()),
                 vary: true,
@@ -280,16 +303,25 @@ mod tests {
             vary: true,
         };
         assert_eq!(
-            select_allow_origin(&origins, &RequestOrigin::Present("https://evil.com".into()))
-                .unwrap(),
+            select_allow_origin(
+                &origins,
+                &RequestOrigin::Present("https://evil.com".into()),
+                false
+            )
+            .unwrap(),
             want
         );
         assert_eq!(
-            select_allow_origin(&origins, &RequestOrigin::Present("https://A.com".into())).unwrap(),
+            select_allow_origin(
+                &origins,
+                &RequestOrigin::Present("https://A.com".into()),
+                false
+            )
+            .unwrap(),
             want
         );
         assert_eq!(
-            select_allow_origin(&origins, &RequestOrigin::Absent).unwrap(),
+            select_allow_origin(&origins, &RequestOrigin::Absent, false).unwrap(),
             want
         );
     }
@@ -298,7 +330,7 @@ mod tests {
     fn null_origin_is_echoed_only_when_configured() {
         let with_null = ["https://a.com".to_string(), "null".to_string()];
         assert_eq!(
-            select_allow_origin(&with_null, &RequestOrigin::Present("null".into())).unwrap(),
+            select_allow_origin(&with_null, &RequestOrigin::Present("null".into()), false).unwrap(),
             OriginSelection {
                 allow_origin: Some("null".into()),
                 vary: true,
@@ -307,7 +339,8 @@ mod tests {
 
         let without_null = ["https://a.com".to_string(), "https://b.com".to_string()];
         assert_eq!(
-            select_allow_origin(&without_null, &RequestOrigin::Present("null".into())).unwrap(),
+            select_allow_origin(&without_null, &RequestOrigin::Present("null".into()), false)
+                .unwrap(),
             OriginSelection {
                 allow_origin: None,
                 vary: true,
@@ -319,13 +352,18 @@ mod tests {
     fn duplicate_origins_count_as_several() {
         let origins = ["https://a.com".to_string(), "https://a.com".to_string()];
         assert_eq!(
-            select_allow_origin(&origins, &RequestOrigin::Present("https://a.com".into())).unwrap(),
+            select_allow_origin(
+                &origins,
+                &RequestOrigin::Present("https://a.com".into()),
+                false
+            )
+            .unwrap(),
             OriginSelection {
                 allow_origin: Some("https://a.com".into()),
                 vary: true,
             }
         );
-        assert!(select_allow_origin(&origins, &RequestOrigin::Unset).is_err());
+        assert!(select_allow_origin(&origins, &RequestOrigin::Unset, false).is_err());
     }
 
     #[test]
@@ -345,6 +383,28 @@ mod tests {
     #[test]
     fn several_origins_without_request_origin_is_an_error() {
         let origins = ["https://a.com".to_string(), "https://b.com".to_string()];
-        assert!(select_allow_origin(&origins, &RequestOrigin::Unset).is_err());
+        assert!(select_allow_origin(&origins, &RequestOrigin::Unset, false).is_err());
+    }
+
+    #[test]
+    fn wildcard_with_credentials_is_an_error() {
+        assert!(select_allow_origin(&["*".into()], &RequestOrigin::Unset, true).is_err());
+        assert!(select_allow_origin(
+            &["https://a.com".into(), "*".into()],
+            &RequestOrigin::Present("https://a.com".into()),
+            true
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn explicit_origins_with_credentials_are_allowed() {
+        assert_eq!(
+            select_allow_origin(&["https://a.com".into()], &RequestOrigin::Unset, true).unwrap(),
+            OriginSelection {
+                allow_origin: Some("https://a.com".into()),
+                vary: false,
+            }
+        );
     }
 }

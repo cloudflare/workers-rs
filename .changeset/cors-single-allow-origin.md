@@ -10,3 +10,6 @@ without `Vary`.
 
 With several origins, `Cors::apply_headers` now returns an error when `with_request_origin` was
 not called, for example `cors.with_request_origin(req.headers().get("Origin")?)`.
+
+`Cors::apply_headers` also returns an error when credentials are enabled together with the `*`
+origin, since browsers reject that combination.
