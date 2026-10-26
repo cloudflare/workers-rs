@@ -2,10 +2,12 @@
 
 use anyhow::Result;
 
-pub(crate) fn ensure_wasm_header(bytes: &[u8]) -> Result<()> {
-    if bytes.len() < 8 || &bytes[..4] != b"\0asm" || bytes[4..8] != [1, 0, 0, 0] {
+/// Check the module header at `pos` and move past it.
+pub(crate) fn ensure_wasm_header(bytes: &[u8], pos: &mut usize) -> Result<()> {
+    if bytes.get(*pos..*pos + 8) != Some(b"\0asm\x01\0\0\0") {
         anyhow::bail!("invalid wasm header");
     }
+    *pos += 8;
     Ok(())
 }
 

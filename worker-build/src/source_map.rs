@@ -2,6 +2,7 @@
 //! linked module when linking with `-gsource-map`.
 
 use std::fs;
+use std::ops::Range;
 use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, Context, Result};
@@ -14,9 +15,9 @@ use crate::wasm_util::{
 const SOURCE_MAPPING_URL: &str = "sourceMappingURL";
 
 /// The byte range of the custom section called `name`, if the module has one.
-fn custom_section(wasm: &[u8], name: &str) -> Result<Option<(usize, usize)>> {
-    ensure_wasm_header(wasm)?;
-    let mut pos = 8;
+fn custom_section(wasm: &[u8], name: &str) -> Result<Option<Range<usize>>> {
+    let mut pos = 0;
+    ensure_wasm_header(wasm, &mut pos)?;
     while pos < wasm.len() {
         let start = pos;
         let id = wasm[pos];
@@ -27,7 +28,7 @@ fn custom_section(wasm: &[u8], name: &str) -> Result<Option<(usize, usize)>> {
             .filter(|end| *end <= wasm.len())
             .ok_or_else(|| anyhow!("invalid wasm section length"))?;
         if id == 0 && read_wasm_name(wasm, &mut pos, end)? == name {
-            return Ok(Some((start, end)));
+            return Ok(Some(start..end));
         }
         pos = end;
     }
@@ -46,10 +47,10 @@ pub(crate) fn set_source_mapping_url(wasm: &[u8], url: &str) -> Result<Vec<u8>> 
 
     let mut output = Vec::with_capacity(wasm.len() + section.len());
     match custom_section(wasm, SOURCE_MAPPING_URL)? {
-        Some((start, end)) => {
-            output.extend_from_slice(&wasm[..start]);
+        Some(range) => {
+            output.extend_from_slice(&wasm[..range.start]);
             output.extend_from_slice(&section);
-            output.extend_from_slice(&wasm[end..]);
+            output.extend_from_slice(&wasm[range.end..]);
         }
         None => {
             output.extend_from_slice(wasm);
@@ -186,11 +187,13 @@ mod test {
     }
 
     fn url_of(wasm: &[u8]) -> String {
-        let (start, end) = custom_section(wasm, SOURCE_MAPPING_URL).unwrap().unwrap();
-        let mut pos = start + 1;
+        let section = custom_section(wasm, SOURCE_MAPPING_URL).unwrap().unwrap();
+        let mut pos = section.start + 1;
         read_u32_leb128(wasm, &mut pos).unwrap();
-        read_wasm_name(wasm, &mut pos, end).unwrap();
-        read_wasm_name(wasm, &mut pos, end).unwrap().to_string()
+        read_wasm_name(wasm, &mut pos, section.end).unwrap();
+        read_wasm_name(wasm, &mut pos, section.end)
+            .unwrap()
+            .to_string()
     }
 
     #[test]
@@ -202,11 +205,11 @@ mod test {
         let updated = set_source_mapping_url(&wasm, "index_bg.wasm.map").unwrap();
         assert_eq!(url_of(&updated), "index_bg.wasm.map");
         // The replaced section stays before `name`, and everything before it is unchanged.
-        let (_, url_end) = custom_section(&updated, SOURCE_MAPPING_URL)
+        let url = custom_section(&updated, SOURCE_MAPPING_URL)
             .unwrap()
             .unwrap();
-        let (name_start, _) = custom_section(&updated, "name").unwrap().unwrap();
-        assert_eq!(url_end, name_start);
+        let name = custom_section(&updated, "name").unwrap().unwrap();
+        assert_eq!(url.end, name.start);
         assert_eq!(updated[..24], wasm[..24]);
     }
 

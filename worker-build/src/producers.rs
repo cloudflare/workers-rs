@@ -87,9 +87,8 @@ fn merge_producers_section<'a>(
 }
 
 fn find_producers_section(bytes: &[u8]) -> Result<Option<ProducersSection>> {
-    ensure_wasm_header(bytes)?;
-
-    let mut pos = 8;
+    let mut pos = 0;
+    ensure_wasm_header(bytes, &mut pos)?;
     while pos < bytes.len() {
         let section_start = pos;
         let section_id = *bytes
