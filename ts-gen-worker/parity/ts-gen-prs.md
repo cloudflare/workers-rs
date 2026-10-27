@@ -629,7 +629,7 @@ Both main and ours collapse constructor overloads from `var X: { new(a); new(a, 
 5. **f28a591 residual:** the full prelude list, or only the trait names the generated code spells
    bare (`From`, `PartialEq`, `Eq`, `AsRef`).
 
-## Restack 4 (session 16): the open PRs on main `b0af305`
+## Restack 4 (session 16): the open PRs on main `48098a9`
 
 Merged since the restack-3 base `2796dd3`: #51, #61, #62, #63, #64, #65, #155, #157, #176, #181
 (the literal-keyed half of #68, squashed from `a06347a`/`4e1bc76`/`fb6dd04`/`e6bc424`/`3063f43`),
@@ -642,7 +642,7 @@ declared base in `restack/<branch>` (local, not pushed):
 | #53 | `gbedford/wasm-abi-model` | #52 | 7 | `d327f74` "Describe ABI overload names" carried from the mono-prototype copy |
 | #54 | `gbedford/wasm-embed` | #53 | 6 | |
 | #66 | `gbedford/annotations` | main | 8 | |
-| #67 | `gbedford/inference-naming` | main | 6 | |
+| #67 | `gbedford/inference-naming` | main | 6 | merged as `48098a9` in the second pass; dropped from the stack |
 | #68 | `gbedford/inline-wrappers` | #66 | 4 | the literal-keyed commits dropped as landed (#181); duplicate `## Inline wrappers` heading folded into the u64 commit |
 | #69 | `gbedford/builder-from-dict` | #68 | 1 | |
 
@@ -685,14 +685,39 @@ Regressions of the regenerated bindings against the prototype that the restack d
 whose builder asks for the `type` the wrapper then overwrites; `Exclude<CertVerificationStatus,
 "NONE">` is named `ExcludeCertVerificationStatusNone` (#177's literal naming).
 
-Two more commits sit at the tip, to move down when their PRs are cut: "Bound a generic Option<T>
-read whole" (`Option<T>: FromWasmAbi` instead of `T: OptionFromWasmAbi`, since `f64` / `i64` have
-an `Option` ABI of their own and are not `OptionFromWasmAbi`; a main fix, it predates the layer
-through `T | undefined` reads) and the `--provides` test app taking `Option` where #52's version
-on main takes `Nullable` (a rebase adaptation of #52 onto the layer, not a #52 change). The
-integration-tests pin moves to wasm-bindgen `gbedford/mono-prototype` `3a62aa7d4`; at the mono
-tip the suite needs `RUSTFLAGS=--cfg js_sys_unstable_apis` (`ArrayHeadRest` and the mono
-`Function` slots are gated), which CI's second matrix leg sets.
+Second pass of the session, after ts-gen main moved to `48098a9` (13 commits: #67 merged, #182–#193):
+the read rule became a standalone PR branch `gbedford/option-null-reads` (2 commits on main:
+"Reads are Option<T>; --strict-nullable keeps the exact carriers", "Bound a generic Option<T> read
+whole") and the stack was rebuilt as main `48098a9` → that branch → #52 → #53 → #54 → #66 → #68 →
+#69 → 46 mono commits (76 over main; `restack/inference-naming` dropped as merged, old tips tagged
+`old/<name>`). Guy's rule, final: every read of an empty-admitting type is `Option<T>` — `T | null`,
+`T | undefined` and `T | null | undefined` alike (audited on workers-types: every both-empties read
+is an optional nullable dictionary member where both mean "no value"); writes and type arguments
+keep `Nullable<T>` / `_with_null`; `--strict-nullable` restores the exact read carriers (the four
+nullability fixtures carry a `strict.rs` snapshot, byte-identical to the old `default.rs`). A
+top-type read (`any | null`, `x?: any`) stays bare `JsValue` in both modes (#188's rule applied to
+every empty), so the per-mono `cf?: any → Option<JsValue>` sub-part of "Iterable arguments as
+slices, native alias leaves, optional any as Option<JsValue>" was dropped as contradicting the
+layer; other erased reads take `Option<JsValue>`. The integration-tests pin moves to wasm-bindgen
+`gbedford/mono-prototype` `3a62aa7d4` (#5428 is the wasm-bindgen half of the rule).
+
+Folded into the PR layers on the rebase: #52 lowers a provided function's *return* with a new
+`TypePosition::EXPORT_RETURN` (owned like a return, exact like a write), so `export function
+find(): string | null` is `-> Nullable<String>` instead of `Option<String>` handing JS `undefined`
+(fixture, app and node check extended; the earlier "provides app takes Option" adaptation folded
+in too); #66 and #68 absorb the `Option<u32>` / `Option<u64>` and `Box_` test adaptations. Mono
+picks trimmed against main: "overload suffixes imply the primary arm and name dictionary arms by
+parameter" keeps only the per-mono dictionary-by-parameter half (#191 covers implied primary arms);
+"a field's literal choice within one shape is a factory argument" replaces #190's
+`new_next`/`builder_next` under mono only (flagged); "nullable union returns are Option of their
+enum" kept, since main's equivalent lives only in getters. None became empty.
+
+Verification: PR-layer tip (#69) `just test-integration` 149/0 plain and 150/0 under
+`js_sys_unstable_apis`, node provides check ok on both; mono tip `dc33537` fmt/clippy/`just test`
+(402 + 1 + 28 + 3) green, `just test-integration` under the cfg 40 suites / 150 passed / 0 failed.
+`tests/snapshots/workers-types`: `Nullable<` mono 85 → 12, default 104 → 49; `Option<JsValue>` mono
+34 → 6, default 9 → 8.
+
 The hand-written integration tests at the mono tip (`integration-tests/tests/*_mono.rs`,
 `promise_builtins.rs`, …) had never compiled against a wasm-bindgen carrying the whole prototype;
 "Rebase onto main: integration tests follow the restacked output" brings 15 files to the current

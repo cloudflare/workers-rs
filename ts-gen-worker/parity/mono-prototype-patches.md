@@ -9,7 +9,7 @@ says where it should land.
 | repo | branch | base |
 |---|---|---|
 | workers-rs | this branch | `main` |
-| ts-gen | `gbedford/mono-prototype`, tip `3393ade` | main `b0af305` → option-null-reads → #52 → #53 → #54 → #66 → #67 → #68 → #69 → the mono commits (`ts-gen-prs.md` "Restack 4") |
+| ts-gen | `gbedford/mono-prototype`, tip `dc33537` | main `48098a9` → `gbedford/option-null-reads` (PR to main) → #52 → #53 → #54 → #66 → #68 → #69 → the mono commits (`ts-gen-prs.md` "Restack 4") |
 | wasm-bindgen | `gbedford/mono-prototype`, tip `3a62aa7d4` | main `39ae823bb` → #5428 → #5427 → #5375 → #5390 → #5425 → #5426 → 20 residual commits (see "After the session-16 restack") |
 
 ts-gen and wasm-bindgen commits are cited by subject, with an id (`tgN`, `wbN`, numbered in

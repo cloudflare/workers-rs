@@ -762,20 +762,23 @@ Only if the port adopts mono:
 
 ## Restack 6 (session 16)
 
-Both submodules repinned: ts-gen `gbedford/mono-prototype` rebuilt on main `b0af305` under a new
-option-null-reads layer (`ts-gen-prs.md` "Restack 4"), wasm-bindgen `gbedford/mono-prototype`
-`3a62aa7d4` on main `39ae823bb` with #5428 and #5427 under the rest (`mono-prototype-patches.md`
-"After the session-16 restack"). `bindings.rs` 18,240 → 18,433 lines (+997 / −804 against the
-PR's regeneration), 97 → 16 `Nullable<` (the 5 `?: T | null` dictionary getters, the 10 KV bulk
-`Map<String, Nullable<_>>` type arguments, `SqlStorageValue`), 0 `Promise<Nullable<`. `chomp
-test:ts-gen-worker` and `-http`: 195 passed / 4 skipped each; `chomp test`: 145 / 4; `chomp
-lint:ts-gen-worker` clean. Benchmark worker (`-Oz`): `.wasm` 122,741 B (gzip 51,560), glue 37,076 B (gzip 6,366), against 120,942 / 35,064 recorded in session 15 (+1.5% / +5.7%; the glue grows with the `_with_big_int` and `_with_null` arms the port does not call).
+Both submodules repinned: ts-gen `gbedford/mono-prototype` `dc33537` rebuilt on main `48098a9`
+under the standalone option-null-reads PR branch (`ts-gen-prs.md` "Restack 4"), wasm-bindgen
+`gbedford/mono-prototype` `3a62aa7d4` on main `39ae823bb` with #5428 and #5427 under the rest
+(`mono-prototype-patches.md` "After the session-16 restack"). Two regenerations: the first on
+ts-gen main `b0af305` with the layer's first form (`T | null` reads `Option<T>`, both-empties
+reads `Option<Nullable<T>>`, 97 → 16 `Nullable<`), the second on `48098a9` with the final rule
+(every empty-admitting read `Option<T>`): `bindings.rs` 18,240 → 18,805 lines, 97 → 10
+`Nullable<` (the 10 KV bulk `Map<String, Nullable<_>>` type arguments), 0 `Option<Nullable<`, 0
+`Promise<Nullable<`. `chomp test:ts-gen-worker` and `-http`: 195 passed / 4 skipped each; `chomp test`: 145 / 4; `chomp lint:ts-gen-worker` clean (both regenerations). Benchmark worker (`-Oz`, first regeneration): `.wasm` 122,741 B
+(gzip 51,560), glue 37,076 B (gzip 6,366), against 120,942 / 35,064 recorded in session 15 (+1.5% /
++5.7%; the glue grows with the `_with_big_int` and `_with_null` arms the port does not call).
 
 | # | Change (old → new) | Cause | Port change | Class |
 |---|---|---|---|---|
-| 1 | `T \| null` reads are `Option<T>` (81 sites: `KVNamespace::get_text` → `Option<String>`, `Response::body` → `Option<ReadableStream<Uint8Array>>`, `web_socket`, R2 `get`, `metadata`, awaited `Promise<Option<_>, E>`); `T \| null \| undefined` stays `Option<Nullable<T>>`; `any \| null` reads `Option<JsValue>` (11) | option-null-reads layer + wasm-bindgen#5428 (`Option<T>` reads `null` as `None`) | the 13 `.into_option()` adaptations from the first regeneration dropped again; `kv.rs` `metadata()` back to `.map(..).transpose()` | improvement: restores the prototype's shape through main's carriers |
-| 2 | `?: T \| null` dictionary getters `Option<T>` → `Option<Nullable<T>>` (5: `ResponseInit::web_socket`, `RequestInit::fetcher` / `signal`, `KVNamespaceListOptions::prefix` / `cursor`) | the slot admits both empties, and the read keeps the distinction | none (unread) | neutral |
-| 3 | `any \| null \| undefined` getters `Option<JsValue>` → `JsValue` (`RequestInit::body`, `KVNamespacePutOptions::metadata`) | both empties on `any` stay in-band | none | neutral |
+| 1 | every empty-admitting read is `Option<T>` (87 sites: `KVNamespace::get_text` → `Option<String>`, `Response::body` → `Option<ReadableStream<Uint8Array>>`, `web_socket`, R2 `get`, `metadata`, awaited `Promise<Option<_>, E>`, and the 5 `?: T \| null` dictionary getters) | option-null-reads PR + wasm-bindgen#5428 (`Option<T>` reads `null` as `None`) | the 13 `.into_option()` adaptations from the first regeneration dropped again; `kv.rs` `metadata()` back to `.map(..).transpose()` | improvement: restores the prototype's shape through main's carriers |
+| 2 | top-type reads are bare `JsValue` under any empties (`Response::cf` / `ResponseInit::cf`, `deserialize_attachment(): any \| null`, `PerformanceMarkOptions::detail`, `AbortSignal::onabort`, `CryptoKey::algorithm`; were `Option<JsValue>`); other erased reads keep `Option<JsValue>` (`TraceItem::event`, `SpanOpen::info`) | #188's rule applied to every empty; the per-mono `cf?: any → Option<JsValue>` exception dropped | `response.rs` tests `cf.is_undefined() \|\| is_null()`; tests drop `.unwrap_or_default()` / `.and_then` on `cf()` and the attachment | neutral: `JsValue` carries both empties in-band |
+| 3 | union-alias reads are one shared enum: `RequestInit::headers` / `ResponseInit::headers` → `Option<HeadersKind>` (`Headers` / `Object<String>` / `JsValue` for `string[][]`), `RequestInit::body` → `Option<BodyKind>`; unions of undiscriminable dictionaries erase instead: `TraceItem::event` (`EventKind`, 8 arms) → `Option<JsValue>`, `CryptoKey::algorithm` (`AlgorithmKind`) → `JsValue`, tail-stream `Onset::info` / `SpanOpen::info` | main #187 / #192 (alias enums), #184 (`is_object` checks: arms that are all plain dictionaries cannot be told apart, so the old enum's `from_js` was never sound) | `response.rs` `headers_of` matches `HeadersKind` | improvement for `headers` / `body`; **regression** for tail workers (`event` loses its enum, though it was undiscriminable) |
 | 4 | type parameters filling a `Function<fn(..)>` slot bounded `MonoGeneric` (65: `ReadableStream::new<R: MonoGeneric>`, `WritableStream::new<W>`, `Cache::*<CfHostMetadata>`, `R2Bucket::put<R>`), nested ones `'static` (50); inline `RefIntoWasmAbi` / `FromWasmAbi` bounds moved to `where` clauses | js-sys's `Function` slots are `MonoGeneric` since wasm-bindgen#5390; `state_abi_bounds` | none | neutral; without it the bindings had 608 errors |
 | 5 | awaited generic `Option<T>` reads bounded `Option<T>: FromWasmAbi` (10: `KVNamespaceListKey::metadata<Metadata>`, `Request::cf<Cf>`) | ts-gen "Bound a generic Option<T> read whole": `f64` / `i64` are not `OptionFromWasmAbi` | none (`get_with_metadata::<f64>` compiles again) | improvement |
 | 6 | `Promise<T, crate::Error>` rejections cross as `E` | #5426 as posted (`E: FromWasmAbi + 'static`, not `From<JsValue>`) | `error.rs`: `WasmDescribe` + `FromWasmAbi` for `Error` through `JsValue` | neutral; glue a `Promise<T, E>` consumer must write once |
@@ -785,11 +788,17 @@ lint:ts-gen-worker` clean. Benchmark worker (`-Oz`): `.wasm` 122,741 B (gzip 51,
 | 10 | optional-only setters take the value bare (`set_content_id(impl JsStringLike)`, `UnderlyingSource::set_type`) | main: omission is not a write | none | neutral |
 | 11 | `Map<String, Nullable<String>>` cannot be iterated by value (`V: MonoGeneric`; `&Nullable<T>` has no `IntoWasmAbi`) | wasm-bindgen residual `Map` iteration bound | `kv.rs` `collect` walks the map as `JsValue`s | **regression** (wasm-bindgen) |
 
+| 12 | arm naming follows main #191: the enum arm is primary and the scalar gets the suffix (`country(CountryKind)` + `country_with_iso3166_alpha2_code`, `quality(QualityKind)` + `quality_with_f64`, `repeat` / `stdin` likewise); `delete_with_key_and_options` → `delete_with_options`, `put_with_key_and_value_and_options` → `put_with_options`, `add_event_listener_*_with_bool` → `_with_function_and_bool`, `new_with_str` → `new_with_str_and_str` (URL), `set_web_socket_auto_response_with_req_resp` → `_with_maybe_req_resp` | main #191 "name a variant for what it adds to the bare form" | `auto_response.rs` test rename | neutral; `_with_function_` and `_with_maybe_` are noise |
+| 13 | `impl Default` on 57 dictionaries; `Display` + `try_to_string` for `URL` / `URLSearchParams` | main #190, #185 | none | improvement |
+| 14 | `edge_request_keep_alive_status` → `EdgeRequestKeepAliveStatusKind` (was `f64`) | main #192 | none | improvement |
+
 ### Migration-table deltas (for workers-rs-4 / MIGRATING.md)
 
-- A `T | null` read is an `Option<T>` again (`kv.get_text(k)`, `response.body()`, `r2.get(k)`);
-  only `T | null | undefined` reads are `Option<Nullable<T>>`, and type arguments keep `Nullable`
-  (`Map<String, Nullable<String>>` from the bulk KV reads).
+- Every empty-admitting read is an `Option<T>` (`kv.get_text(k)`, `response.body()`, `r2.get(k)`,
+  `init.fetcher()`); type arguments keep `Nullable` (`Map<String, Nullable<String>>` from the bulk
+  KV reads). A `?: any` read (`response.cf()`) is a bare `JsValue`, `undefined` or `null` in-band.
+- `init.headers()` is an `Option<HeadersKind>` (`Headers`, `Object<String>`, or the `string[][]`
+  `JsValue`); `new Headers(init)` normalises any of them.
 - `number | bigint` parameters take `f64` (`FixedLengthStream::new(256.0)`), with a
   `_with_big_int` arm.
 - Generic constructors over a `Function` slot need `MonoGeneric` element types
