@@ -177,8 +177,8 @@ pub async fn handle_cloned_response_attributes(
 
     let resp1 = resp.clone()?;
 
-    let cf: TestCf = serde_wasm_bindgen::from_value(resp.cf().unwrap_or_default())?;
-    let cf1: TestCf = serde_wasm_bindgen::from_value(resp1.cf().unwrap_or_default())?;
+    let cf: TestCf = serde_wasm_bindgen::from_value(resp.cf())?;
+    let cf1: TestCf = serde_wasm_bindgen::from_value(resp1.cf())?;
 
     assert_eq!(cf, cf1);
 

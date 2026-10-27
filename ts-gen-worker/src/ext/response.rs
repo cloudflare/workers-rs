@@ -2,7 +2,7 @@ use js_sys::Uint8Array;
 use wasm_bindgen::{JsCast, JsStringLike};
 
 use crate::{
-    Cors, Error, Headers, ReadableStream, Response, ResponseInit, ResponseInitBuilder, Result,
+    Cors, Error, Headers, HeadersKind, ReadableStream, Response, ResponseInit, ResponseInitBuilder, Result,
     WebSocket,
 };
 
@@ -24,7 +24,8 @@ impl Response {
         if let Some(ws) = self.web_socket() {
             builder = builder.web_socket(&ws);
         }
-        if let Some(cf) = self.cf() {
+        let cf = self.cf();
+        if !cf.is_undefined() && !cf.is_null() {
             builder = builder.cf(&cf);
         }
         (builder, self.body())
@@ -34,7 +35,9 @@ impl Response {
 /// `headers` may hold any `HeadersInit`; `new Headers(init)` normalizes all forms.
 fn headers_of(init: &ResponseInit) -> Result<Headers> {
     Ok(match init.headers() {
-        Some(value) => Headers::new_with_headers(value.unchecked_ref())?,
+        Some(HeadersKind::Headers(headers)) => Headers::new_with_headers(&headers)?,
+        Some(HeadersKind::Record(record)) => Headers::new_with_record(&record)?,
+        Some(HeadersKind::JsValue(pairs)) => Headers::new_with_headers(pairs.unchecked_ref())?,
         None => Headers::default(),
     })
 }
