@@ -218,14 +218,11 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                 quote! {
                     // call the original fn
                     let ctx = worker::Context::new(ctx);
+                    // A failed batch rejects, so the runtime retries it.
                     match #input_fn_ident(::worker::MessageBatch::from(event), env, ctx).await {
-                        Ok(()) => {},
-                        Err(e) => {
-                            ::worker::console_log!("{}", &e);
-                            panic!("{}", e);
-                        }
+                        Ok(()) => Ok(::worker::wasm_bindgen::JsValue::UNDEFINED),
+                        Err(e) => Err(::worker::wasm_bindgen::JsValue::from(e)),
                     }
-                    Ok(::worker::wasm_bindgen::JsValue::UNDEFINED)
                 },
             );
 
@@ -280,13 +277,9 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                 quote! {
                     let ctx = worker::Context::new(ctx);
                     match #input_fn_ident(message, env, ctx).await {
-                        Ok(()) => {},
-                        Err(e) => {
-                            ::worker::console_log!("{}", &e);
-                            panic!("{}", e);
-                        }
+                        Ok(()) => Ok(::worker::wasm_bindgen::JsValue::UNDEFINED),
+                        Err(e) => Err(::worker::wasm_bindgen::JsValue::from(e)),
                     }
-                    Ok(::worker::wasm_bindgen::JsValue::UNDEFINED)
                 },
             );
 
