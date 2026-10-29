@@ -1,6 +1,6 @@
 name = "custom-spans"
-main = "build/worker/shim.mjs"
-compatibility_date = "2026-06-16"
+main = "build/index.js"
+compatibility_date = "2026-09-02"
 
 [build]
 command = "cargo install \"worker-build@^0.8\" && worker-build --release"

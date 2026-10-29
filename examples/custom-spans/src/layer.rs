@@ -1,38 +1,29 @@
-//! `WorkersLayer` — a `tracing_subscriber::Layer` that turns every
-//! `tracing::span!` into a real Workers platform span and forwards `tracing`
-//! events onto it.
+//! `WorkersLayer`: a `tracing_subscriber::Layer` that turns every
+//! `tracing::span!` into a Workers platform span and forwards `tracing`
+//! events onto the span they were emitted in.
 //!
 //! ## Why it's shaped this way
 //!
 //! `tracing` models a span lifetime as two separate operations: the span is
-//! created (`on_new_span`) and closed (`on_close`) at unrelated points in time.
-//! The original custom-span API was callback-scoped only (`enterSpan(name,
-//! cb)`), which a `Layer` can't drive: at `on_new_span` it would have to call
-//! `enterSpan` and not return from its callback until the later `on_close`,
-//! which a single-threaded Worker can't suspend and resume.
-//!
-//! [`startActiveSpan()` + `span.end()`][changelog] (2026-07-28) are exactly the
-//! imperative pair that lifetime needs, so this layer now bridges span
-//! *lifetimes*, not just events: `#[tracing::instrument]` and `span!` produce
-//! spans in the trace waterfall with platform-measured durations, with no
-//! Workers-specific code at the call site.
+//! created (`on_new_span`) and closed (`on_close`) at unrelated points in
+//! time. `enterSpan` is callback-scoped, which a `Layer` can't drive, so the
+//! bridge uses `startSpan()` + `span.end()`: `on_new_span` opens a platform
+//! span and `on_close` ends it. `#[tracing::instrument]` and `span!` then
+//! produce spans in the trace waterfall with platform-measured durations,
+//! with no Workers-specific code at the call site.
 //!
 //! ## The one limitation
 //!
-//! Parent-child nesting follows the platform's async context, which is only
-//! entered for the instant `startActiveSpan` runs its callback. A bridged span
-//! therefore parents under the nearest enclosing span opened by
-//! [`worker::observability::enter_span`] / `enter_span_async`, and two nested
-//! `tracing` spans come out as siblings under that same parent rather than one
-//! inside the other. Wrap a subtree in `enter_span` where the shape matters;
-//! closing the gap entirely needs a runtime primitive for attaching to an open
-//! span's context.
+//! A span opened with `startSpan` never becomes the *active* span, and the
+//! platform derives parent/child nesting from the active span on the JS
+//! async context. A bridged span therefore parents under the nearest
+//! enclosing [`worker::observability::enter_span`] / `enter_span_async`, and
+//! two nested `tracing` spans come out as siblings under that same parent
+//! rather than one inside the other. Wrap a subtree in `enter_span` where the
+//! shape matters.
 //!
 //! This lives in the example rather than the `worker` crate so `worker` stays
-//! free of a `tracing-subscriber` dependency. Copy it into your project, or
-//! lift it into `worker` behind a feature if your project wants it there.
-//!
-//! [changelog]: https://developers.cloudflare.com/changelog/post/2026-07-28-start-active-span/
+//! free of a `tracing-subscriber` dependency. Copy it into your project.
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -43,20 +34,23 @@ use tracing::{Event, Subscriber};
 use tracing_subscriber::layer::Context;
 use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::Layer;
-use worker::observability::{start_active_span, with_active_span, Span};
+use worker::observability::{active_span, start_span, Span};
 
 thread_local! {
-    /// Platform span per live `tracing` span id. A thread-local map rather than
-    /// the registry's own span extensions because a JS [`Span`] is `!Send` and
-    /// extensions must be `Send + Sync`; a Worker isolate is single-threaded,
-    /// so a thread-local is equivalent here. Entries are removed in `on_close`,
-    /// which `tracing` calls exactly once per span.
+    /// Platform span per live `tracing` span id. A thread-local map rather
+    /// than the registry's own span extensions because a JS [`Span`] is
+    /// `!Send` and extensions must be `Send + Sync`; a Worker isolate is
+    /// single-threaded, so a thread-local is equivalent here. Entries are
+    /// removed in `on_close`, which `tracing` calls exactly once per span, and
+    /// ids are unique among live spans, so concurrent requests cannot
+    /// disturb each other's entries.
     static OPEN: RefCell<HashMap<u64, Span>> = RefCell::new(HashMap::new());
 }
 
-/// Bridges `tracing` onto Workers Observability: each `tracing` span becomes a
-/// platform span for its full lifetime, and events land as attributes on the
-/// span they were emitted in. Install it on a `tracing_subscriber` registry.
+/// Bridges `tracing` onto Workers Observability: each `tracing` span becomes
+/// a platform span for its full lifetime, and events land as attributes on
+/// the span they were emitted in. Install it on a `tracing_subscriber`
+/// registry.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct WorkersLayer;
 
@@ -65,7 +59,7 @@ where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {
     fn on_new_span(&self, attrs: &Attributes<'_>, id: &Id, _ctx: Context<'_, S>) {
-        let span = start_active_span(attrs.metadata().name());
+        let span = start_span(attrs.metadata().name());
         attrs.record(&mut AttrVisitor {
             span: &span,
             prefix: None,
@@ -80,8 +74,9 @@ where
     }
 
     fn on_event(&self, event: &Event<'_>, ctx: Context<'_, S>) {
-        // Events belong to the span they were emitted in; fall back to the
-        // innermost `enter_span` when there is no enclosing `tracing` span.
+        // Events belong to the `tracing` span they were emitted in. Outside
+        // any `tracing` span, fall back to the platform's active span: the
+        // enclosing `enter_span`, or the invocation's root span.
         let level = event.metadata().level().as_str();
         let recorded = ctx.event_span(event).is_some_and(|s| {
             with_span(&s.id(), |span| {
@@ -94,12 +89,12 @@ where
         });
 
         if !recorded {
-            with_active_span(|span| {
+            if let Some(span) = active_span() {
                 event.record(&mut AttrVisitor {
-                    span,
+                    span: &span,
                     prefix: Some(level),
-                })
-            });
+                });
+            }
         }
     }
 
@@ -153,8 +148,13 @@ impl Visit for AttrVisitor<'_> {
         self.span.set_attribute(&self.key(field), value);
     }
 
+    fn record_error(&mut self, field: &Field, value: &(dyn std::error::Error + 'static)) {
+        self.span.record_exception(value);
+        self.span.set_attribute(&self.key(field), value.to_string());
+    }
+
     fn record_debug(&mut self, field: &Field, value: &dyn std::fmt::Debug) {
         self.span
-            .set_attribute(&self.key(field), format!("{value:?}").as_str());
+            .set_attribute(&self.key(field), format!("{value:?}"));
     }
 }
