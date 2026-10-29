@@ -1,4 +1,4 @@
-import { describe, test, expect } from "vitest";
+import { describe, test, expect, vi } from "vitest";
 import * as uuid from "uuid";
 import { mf, mfUrl } from "./mf";
 
@@ -53,5 +53,40 @@ describe("queue", () => {
 
     const message_2 = messages.find((msg) => msg.id === id_2.toString());
     expect(message_2).toMatchObject({ id: id_2.toString() });
+  });
+
+  test("queue metrics report the backlog", async () => {
+    type Metrics = {
+      backlog_count: number;
+      backlog_bytes: number;
+      oldest_message_timestamp: number | null;
+    };
+    const metrics = async () => {
+      const resp = await mf.dispatchFetch(`${mfUrl}queue/metrics`);
+      expect(resp.status).toBe(200);
+      return (await resp.json()) as Metrics;
+    };
+
+    const empty = await metrics();
+    expect(empty).toEqual({
+      backlog_count: 0,
+      backlog_bytes: 0,
+      oldest_message_timestamp: null,
+    });
+
+    const resp = await mf.dispatchFetch(`${mfUrl}queue/metrics`, {
+      method: "POST",
+    });
+    expect(resp.status).toBe(200);
+
+    // The message joins the backlog shortly after send() resolves.
+    const backlog = await vi.waitFor(async () => {
+      const m = await metrics();
+      expect(m.backlog_count).toBe(1);
+      return m;
+    });
+    expect(backlog.backlog_bytes).toBeGreaterThan(0);
+    expect(backlog.oldest_message_timestamp).toBeGreaterThan(0);
+    expect(backlog.oldest_message_timestamp).toBeLessThanOrEqual(Date.now());
   });
 });

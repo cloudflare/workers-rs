@@ -60,4 +60,7 @@ extern "C" {
         messages: js_sys::Array,
         options: JsValue,
     ) -> Result<js_sys::Promise, JsValue>;
+
+    #[wasm_bindgen(method, catch)]
+    pub fn metrics(this: &Queue) -> Result<js_sys::Promise, JsValue>;
 }

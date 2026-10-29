@@ -696,4 +696,56 @@ impl Queue {
         fut.await.map_err(Error::from)?;
         Ok(())
     }
+
+    /// Returns realtime metrics for the Queue's backlog.
+    ///
+    /// ## Example
+    /// ```no_run
+    /// # async fn example(queue: worker::Queue) -> worker::Result<()> {
+    /// let metrics = queue.metrics().await?;
+    /// if metrics.backlog_count > 10_000 {
+    ///     // slow down producers
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn metrics(&self) -> Result<QueueMetrics> {
+        let fut: JsFuture = self.0.metrics()?.into();
+        let metrics = fut.await.map_err(Error::from)?;
+        QueueMetrics::try_from(metrics)
+    }
+}
+
+/// Realtime metrics for a Queue's backlog, returned by [`Queue::metrics`].
+#[derive(Debug, Clone)]
+pub struct QueueMetrics {
+    /// The number of messages in the backlog.
+    pub backlog_count: u64,
+    /// The total size of the messages in the backlog, in bytes.
+    pub backlog_bytes: u64,
+    /// When the oldest message in the backlog was sent, if there is one.
+    pub oldest_message_timestamp: Option<Date>,
+}
+
+impl TryFrom<JsValue> for QueueMetrics {
+    type Error = Error;
+
+    fn try_from(value: JsValue) -> Result<Self> {
+        let number = |key: &str| -> Result<u64> {
+            js_sys::Reflect::get(&value, &key.into())?
+                .as_f64()
+                .map(|n| n as u64)
+                .ok_or_else(|| Error::RustError(format!("queue metrics: `{key}` is not a number")))
+        };
+        let oldest_message_timestamp =
+            js_sys::Reflect::get(&value, &"oldestMessageTimestamp".into())?
+                .dyn_into::<js_sys::Date>()
+                .ok()
+                .map(Date::from);
+        Ok(Self {
+            backlog_count: number("backlogCount")?,
+            backlog_bytes: number("backlogBytes")?,
+            oldest_message_timestamp,
+        })
+    }
 }
