@@ -69,41 +69,31 @@ impl Cf {
     ///
     /// See [this blog post](https://blog.cloudflare.com/better-http-2-prioritization-for-a-faster-web/#customizingprioritizationwithworkers) for details.
     pub fn request_priority(&self) -> Option<RequestPriority> {
-        if let Some(priority) = self.inner.request_priority().unwrap() {
-            let mut weight = 1;
-            let mut exclusive = false;
-            let mut group = 0;
-            let mut group_weight = 0;
+        let priority = self.inner.request_priority().unwrap()?;
+        let mut weight = 1;
+        let mut exclusive = false;
+        let mut group = 0;
+        let mut group_weight = 0;
 
-            priority
-                .as_str()
-                .split(';')
-                .map(|key_value_pair| {
-                    let mut iter = key_value_pair.split('=');
+        for key_value_pair in priority.split(';') {
+            // An empty value ("") or a segment without `=` has no `key=value` pair.
+            let (key, value) = key_value_pair.split_once('=')?;
 
-                    // this pair is guaranteed to have 2 elements
-                    let key = iter.next().unwrap(); // first element
-                    let value = iter.next().unwrap(); // second element
-
-                    (key, value)
-                })
-                .for_each(|(key, value)| match key {
-                    "weight" => weight = value.parse().unwrap(),
-                    "exclusive" => exclusive = value == "1",
-                    "group" => group = value.parse().unwrap(),
-                    "group-weight" => group_weight = value.parse().unwrap(),
-                    _ => unreachable!(),
-                });
-
-            Some(RequestPriority {
-                weight,
-                exclusive,
-                group,
-                group_weight,
-            })
-        } else {
-            None
+            match key {
+                "weight" => weight = value.parse().unwrap(),
+                "exclusive" => exclusive = value == "1",
+                "group" => group = value.parse().unwrap(),
+                "group-weight" => group_weight = value.parse().unwrap(),
+                _ => unreachable!(),
+            }
         }
+
+        Some(RequestPriority {
+            weight,
+            exclusive,
+            group,
+            group_weight,
+        })
     }
 
     /// The cipher for the connection to Cloudflare, e.g. "AEAD-AES128-GCM-SHA256".
@@ -304,3 +294,33 @@ impl CfResponseProperties {
 
 unsafe impl Send for CfResponseProperties {}
 unsafe impl Sync for CfResponseProperties {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use wasm_bindgen_test::*;
+
+    fn cf_with_priority(priority: &str) -> Cf {
+        let obj = js_sys::Object::new();
+        js_sys::Reflect::set(&obj, &"requestPriority".into(), &priority.into()).unwrap();
+        Cf {
+            inner: obj.unchecked_into(),
+        }
+    }
+
+    #[wasm_bindgen_test]
+    fn request_priority_empty_string_is_none() {
+        assert!(cf_with_priority("").request_priority().is_none());
+    }
+
+    #[wasm_bindgen_test]
+    fn request_priority_parses_pairs() {
+        let p = cf_with_priority("weight=192;exclusive=1;group=0;group-weight=127")
+            .request_priority()
+            .unwrap();
+        assert_eq!(
+            (p.weight, p.exclusive, p.group, p.group_weight),
+            (192, true, 0, 127)
+        );
+    }
+}
