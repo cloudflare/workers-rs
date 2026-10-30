@@ -24,6 +24,7 @@ pub async fn handle_websocket(_req: Request, env: Env, _data: SomeSharedData) ->
                     }
                 }
                 WebsocketEvent::Close(_) => {
+                    server.close(Some(1000), None::<&str>).ok();
                     // Sets a key in a test KV so the integration tests can query if we
                     // actually got the close event. We can't use the shared dat a for this
                     // because miniflare resets that every request.

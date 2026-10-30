@@ -66,6 +66,9 @@ jobs:
       - name: Install cargo-generate
         run: cargo binstall --locked cargo-generate
 
+      - name: Build wasm-bindgen
+        run: cd wasm-bindgen && cargo build -p wasm-bindgen-cli --bin wasm-bindgen
+
       - name: Generate and build all templates
         run: |
           mkdir -p generated
@@ -79,7 +82,7 @@ jobs:
               cargo generate --path $template --name "$template_name" --destination ./generated --force --define panic_unwind=false
               cd "generated/$template_name"
               echo "Building $template_name"
-              ../../target/debug/worker-build
+              WASM_BINDGEN_BIN='../../wasm-bindgen/target/debug/wasm-bindgen' ../../target/debug/worker-build
               cd ../..
           done
 
