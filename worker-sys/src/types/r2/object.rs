@@ -1,6 +1,6 @@
 use wasm_bindgen::prelude::*;
 
-use crate::types::{R2HttpMetadata, R2Range};
+use crate::types::R2HttpMetadata;
 
 #[wasm_bindgen]
 extern "C" {
@@ -35,8 +35,11 @@ extern "C" {
     #[wasm_bindgen(method, catch, getter, js_name=customMetadata)]
     pub fn custom_metadata(this: &R2Object) -> Result<js_sys::Object, JsValue>;
 
+    /// The range the object was read with, echoed by the runtime as a plain
+    /// `{ offset, length }` object (`undefined` when the read had no range). It is not an
+    /// `R2Range` instance, so it is read as a `JsValue` and decoded by the caller.
     #[wasm_bindgen(method, catch, getter)]
-    pub fn range(this: &R2Object) -> Result<R2Range, JsValue>;
+    pub fn range(this: &R2Object) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(method, catch, js_name=writeHttpMetadata)]
     pub fn write_http_metadata(
