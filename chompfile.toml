@@ -83,13 +83,14 @@ ts-gen --experimental-generic-mono --input ts-gen-worker/benchmark/types/env.d.t
   --external "KVNamespace=::ts_gen_worker::KVNamespace" \
   --external "Fetcher=::ts_gen_worker::Fetcher"'''
 
-# ts-gen-worker builds against js-sys's unstable API, which only its crates opt into.
+# ts-gen-worker builds against js-sys's unstable API and wasm-bindgen's generic sequences
+# (`Vec<Option<T>>` returns), which only its crates opt into.
 # `RUSTFLAGS` replaces `.cargo/config.toml`'s rustflags (hence `getrandom_backend` again), and
 # a target dir of its own keeps js-sys from rebuilding when the rest of the workspace builds.
 [[task]]
 name = 'build:ts-gen-worker'
 deps = ['build:wasm-bindgen']
-env.RUSTFLAGS = '--cfg getrandom_backend="wasm_js" --cfg js_sys_unstable_apis'
+env.RUSTFLAGS = '--cfg getrandom_backend="wasm_js" --cfg js_sys_unstable_apis --cfg wasm_bindgen_unstable_generic_vec'
 env.CARGO_TARGET_DIR = 'target/mono'
 run = '''cargo build -p ts-gen-worker-test --target wasm32-unknown-unknown
 wasm-bindgen/target/debug/wasm-bindgen --target module --out-name index --force-enable-abort-handler \
@@ -106,7 +107,7 @@ run = 'npx vitest run --root .'
 [[task]]
 name = 'build:ts-gen-worker-http'
 deps = ['build:wasm-bindgen']
-env.RUSTFLAGS = '--cfg getrandom_backend="wasm_js" --cfg js_sys_unstable_apis'
+env.RUSTFLAGS = '--cfg getrandom_backend="wasm_js" --cfg js_sys_unstable_apis --cfg wasm_bindgen_unstable_generic_vec'
 env.CARGO_TARGET_DIR = 'target/mono'
 run = '''cargo build -p ts-gen-worker-test --features http --target wasm32-unknown-unknown
 wasm-bindgen/target/debug/wasm-bindgen --target module --out-name index --force-enable-abort-handler \
@@ -121,7 +122,7 @@ run = 'npx vitest run --root .'
 
 [[task]]
 name = 'lint:ts-gen-worker'
-env.RUSTFLAGS = '--cfg getrandom_backend="wasm_js" --cfg js_sys_unstable_apis'
+env.RUSTFLAGS = '--cfg getrandom_backend="wasm_js" --cfg js_sys_unstable_apis --cfg wasm_bindgen_unstable_generic_vec'
 env.CARGO_TARGET_DIR = 'target/mono'
 run = '''cargo clippy --target wasm32-unknown-unknown --all-targets -p ts-gen-worker -p ts-gen-worker-macros \
   -p ts-gen-worker-test -p ts-gen-worker-benchmark -- -D warnings'''

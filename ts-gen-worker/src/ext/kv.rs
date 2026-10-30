@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 use js_sys::{ArrayBuffer, Map, Nullable};
 use wasm_bindgen::convert::Upcast;
-use wasm_bindgen::JsCast;
+use wasm_bindgen::convert::FromWasmAbi;
 use wasm_bindgen::JsStringLike;
 use wasm_bindgen::JsValue;
 
@@ -265,36 +265,25 @@ impl KvGetBulkBuilder {
             .await
     }
 
-    // `Nullable<String>` is not `MonoGeneric` on this wasm-bindgen, so the
-    // map is walked as JS values.
-    fn collect<V, T>(
+    fn collect<V: FromWasmAbi, T>(
         map: Map<String, V>,
-        mut decode: impl FnMut(JsValue) -> Result<T>,
+        mut decode: impl FnMut(V) -> Result<T>,
     ) -> Result<HashMap<String, T>> {
-        let map: Map = map.unchecked_into();
         map.into_iter()
-            .map(|(key, value)| Ok((key.as_string().unwrap_or_default(), decode(value)?)))
+            .map(|(key, value)| Ok((key, decode(value)?)))
             .collect()
-    }
-
-    fn nullable_string(value: JsValue) -> Option<String> {
-        if value.is_null() {
-            None
-        } else {
-            value.as_string()
-        }
     }
 
     /// Every requested key, `None` where absent.
     pub async fn text(self) -> Result<HashMap<String, Option<String>>> {
-        Self::collect(self.text_map().await?, |v| Ok(Self::nullable_string(v)))
+        Self::collect(self.text_map().await?, |v| Ok(v.into()))
     }
 
     /// Every requested key parsed as JSON into `T`, `None` where absent.
     #[cfg(feature = "serde")]
     pub async fn json<T: serde::de::DeserializeOwned>(self) -> Result<HashMap<String, Option<T>>> {
         Self::collect(self.text_map().await?, |v| {
-            parse_json(Self::nullable_string(v).as_deref())
+            parse_json(Option::<String>::from(v).as_deref())
         })
     }
 
@@ -303,7 +292,6 @@ impl KvGetBulkBuilder {
         self,
     ) -> Result<HashMap<String, (Option<String>, Option<M>)>> {
         Self::collect(self.text_map_with_metadata().await?, |entry| {
-            let entry: TextEntry = entry.unchecked_into();
             Ok((entry.value(), metadata(&entry)?))
         })
     }
@@ -316,7 +304,6 @@ impl KvGetBulkBuilder {
         self,
     ) -> Result<HashMap<String, (Option<T>, Option<M>)>> {
         Self::collect(self.text_map_with_metadata().await?, |entry| {
-            let entry: TextEntry = entry.unchecked_into();
             Ok((
                 parse_json(entry.value().as_deref())?,
                 metadata(&entry)?,

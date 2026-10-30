@@ -13,8 +13,9 @@ Every sync binding that can throw returns `Result`, so a few calls gain a `?`
 `socket.opened()`) return a typed `Promise<T, Error>` that awaits to `Result<T, Error>`
 (`text().await?` is a `String`) and passes back to JS (`p.upcast()` where a `&Promise` is taken).
 
-The bindings are generated with mono generics on js-sys's unstable API, so an app builds with
-`--cfg js_sys_unstable_apis` (in its `.cargo/config.toml` rustflags or `RUSTFLAGS`), and js-sys
+The bindings are generated with mono generics on js-sys's unstable API and wasm-bindgen's generic
+sequences, so an app builds with `--cfg js_sys_unstable_apis --cfg wasm_bindgen_unstable_generic_vec`
+(in its `.cargo/config.toml` rustflags or `RUSTFLAGS`), and js-sys
 collections behave like Rust collections: `Map::get("k")`, `for (k, v) in &headers`, `record.iter().collect()`,
 `promise.await`.
 

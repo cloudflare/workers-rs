@@ -239,7 +239,7 @@ pub fn clear_timeout_with_null() -> Result<(), crate::Error> {
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
     #[wasm_bindgen(catch)]
-    pub fn fetch<CfHostMetadata: ::wasm_bindgen::MonoGeneric>(
+    pub fn fetch<CfHostMetadata>(
         input: &Request<CfHostMetadata, IncomingRequestCfProperties>,
     ) -> Promise<Response, crate::Error>;
 }
@@ -258,7 +258,7 @@ extern "C" {
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
     #[wasm_bindgen(catch, js_name = "fetch")]
-    pub fn fetch_with_init<CfHostMetadata: ::wasm_bindgen::MonoGeneric>(
+    pub fn fetch_with_init<CfHostMetadata>(
         input: &Request<CfHostMetadata, IncomingRequestCfProperties>,
         init: &RequestInit<RequestInitCfProperties>,
     ) -> Promise<Response, crate::Error>;
@@ -390,66 +390,48 @@ extern "C" {
     ) -> Option<Function<fn(Request<CfHostMetadata>, Env, ExecutionContext<Props>) -> JsValue>>
     where
         Option<Function<fn(Request<CfHostMetadata>, Env, ExecutionContext<Props>) -> JsValue>>:
-            ::wasm_bindgen::convert::FromWasmAbi,
-        Env: ::wasm_bindgen::MonoGeneric,
-        CfHostMetadata: 'static,
-        Props: 'static;
+            ::wasm_bindgen::convert::FromWasmAbi;
     #[wasm_bindgen(method, setter)]
     pub fn set_fetch<Env, QueueHandlerMessage, CfHostMetadata, Props>(
         this: &ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata, Props>,
         val: &Function<fn(Request<CfHostMetadata>, Env, ExecutionContext<Props>) -> JsValue>,
-    ) where
-        Env: ::wasm_bindgen::MonoGeneric,
-        CfHostMetadata: 'static,
-        Props: 'static;
+    );
     #[wasm_bindgen(method, getter)]
     pub fn connect<Env, QueueHandlerMessage, CfHostMetadata, Props>(
         this: &ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata, Props>,
     ) -> Option<Function<fn(Socket, Env, ExecutionContext<Props>) -> Option<Promise<()>>>>
     where
         Option<Function<fn(Socket, Env, ExecutionContext<Props>) -> Option<Promise<()>>>>:
-            ::wasm_bindgen::convert::FromWasmAbi,
-        Env: ::wasm_bindgen::MonoGeneric,
-        Props: 'static;
+            ::wasm_bindgen::convert::FromWasmAbi;
     #[wasm_bindgen(method, setter)]
     pub fn set_connect<Env, QueueHandlerMessage, CfHostMetadata, Props>(
         this: &ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata, Props>,
         val: &Function<fn(Socket, Env, ExecutionContext<Props>) -> Option<Promise<()>>>,
-    ) where
-        Env: ::wasm_bindgen::MonoGeneric,
-        Props: 'static;
+    );
     #[wasm_bindgen(method, getter)]
     pub fn tail<Env, QueueHandlerMessage, CfHostMetadata, Props>(
         this: &ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata, Props>,
     ) -> Option<Function<fn(Array<TraceItem>, Env, ExecutionContext<Props>) -> Option<Promise<()>>>>
     where
         Option<Function<fn(Array<TraceItem>, Env, ExecutionContext<Props>) -> Option<Promise<()>>>>:
-            ::wasm_bindgen::convert::FromWasmAbi,
-        Env: ::wasm_bindgen::MonoGeneric,
-        Props: 'static;
+            ::wasm_bindgen::convert::FromWasmAbi;
     #[wasm_bindgen(method, setter)]
     pub fn set_tail<Env, QueueHandlerMessage, CfHostMetadata, Props>(
         this: &ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata, Props>,
         val: &Function<fn(Array<TraceItem>, Env, ExecutionContext<Props>) -> Option<Promise<()>>>,
-    ) where
-        Env: ::wasm_bindgen::MonoGeneric,
-        Props: 'static;
+    );
     #[wasm_bindgen(method, getter)]
     pub fn trace<Env, QueueHandlerMessage, CfHostMetadata, Props>(
         this: &ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata, Props>,
     ) -> Option<Function<fn(Array<TraceItem>, Env, ExecutionContext<Props>) -> Option<Promise<()>>>>
     where
         Option<Function<fn(Array<TraceItem>, Env, ExecutionContext<Props>) -> Option<Promise<()>>>>:
-            ::wasm_bindgen::convert::FromWasmAbi,
-        Env: ::wasm_bindgen::MonoGeneric,
-        Props: 'static;
+            ::wasm_bindgen::convert::FromWasmAbi;
     #[wasm_bindgen(method, setter)]
     pub fn set_trace<Env, QueueHandlerMessage, CfHostMetadata, Props>(
         this: &ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata, Props>,
         val: &Function<fn(Array<TraceItem>, Env, ExecutionContext<Props>) -> Option<Promise<()>>>,
-    ) where
-        Env: ::wasm_bindgen::MonoGeneric,
-        Props: 'static;
+    );
     #[wasm_bindgen(method, getter, js_name = "tailStream")]
     pub fn tail_stream<Env, QueueHandlerMessage, CfHostMetadata, Props>(
         this: &ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata, Props>,
@@ -467,18 +449,14 @@ extern "C" {
                     ExecutionContext<Props>,
                 ) -> JsValue,
             >,
-        >: ::wasm_bindgen::convert::FromWasmAbi,
-        Env: ::wasm_bindgen::MonoGeneric,
-        Props: 'static;
+        >: ::wasm_bindgen::convert::FromWasmAbi;
     #[wasm_bindgen(method, setter, js_name = "tailStream")]
     pub fn set_tail_stream<Env, QueueHandlerMessage, CfHostMetadata, Props>(
         this: &ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata, Props>,
         val: &Function<
             fn(tail_stream::TailEvent<tail_stream::Onset>, Env, ExecutionContext<Props>) -> JsValue,
         >,
-    ) where
-        Env: ::wasm_bindgen::MonoGeneric,
-        Props: 'static;
+    );
     #[wasm_bindgen(method, getter)]
     pub fn scheduled<Env, QueueHandlerMessage, CfHostMetadata, Props>(
         this: &ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata, Props>,
@@ -488,34 +466,26 @@ extern "C" {
     where
         Option<
             Function<fn(ScheduledController, Env, ExecutionContext<Props>) -> Option<Promise<()>>>,
-        >: ::wasm_bindgen::convert::FromWasmAbi,
-        Env: ::wasm_bindgen::MonoGeneric,
-        Props: 'static;
+        >: ::wasm_bindgen::convert::FromWasmAbi;
     #[wasm_bindgen(method, setter)]
     pub fn set_scheduled<Env, QueueHandlerMessage, CfHostMetadata, Props>(
         this: &ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata, Props>,
         val: &Function<
             fn(ScheduledController, Env, ExecutionContext<Props>) -> Option<Promise<()>>,
         >,
-    ) where
-        Env: ::wasm_bindgen::MonoGeneric,
-        Props: 'static;
+    );
     #[wasm_bindgen(method, getter)]
     pub fn test<Env, QueueHandlerMessage, CfHostMetadata, Props>(
         this: &ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata, Props>,
     ) -> Option<Function<fn(TestController, Env, ExecutionContext<Props>) -> Option<Promise<()>>>>
     where
         Option<Function<fn(TestController, Env, ExecutionContext<Props>) -> Option<Promise<()>>>>:
-            ::wasm_bindgen::convert::FromWasmAbi,
-        Env: ::wasm_bindgen::MonoGeneric,
-        Props: 'static;
+            ::wasm_bindgen::convert::FromWasmAbi;
     #[wasm_bindgen(method, setter)]
     pub fn set_test<Env, QueueHandlerMessage, CfHostMetadata, Props>(
         this: &ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata, Props>,
         val: &Function<fn(TestController, Env, ExecutionContext<Props>) -> Option<Promise<()>>>,
-    ) where
-        Env: ::wasm_bindgen::MonoGeneric,
-        Props: 'static;
+    );
     #[wasm_bindgen(method, getter)]
     pub fn email<Env, QueueHandlerMessage, CfHostMetadata, Props>(
         this: &ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata, Props>,
@@ -527,18 +497,14 @@ extern "C" {
             Function<
                 fn(ForwardableEmailMessage, Env, ExecutionContext<Props>) -> Option<Promise<()>>,
             >,
-        >: ::wasm_bindgen::convert::FromWasmAbi,
-        Env: ::wasm_bindgen::MonoGeneric,
-        Props: 'static;
+        >: ::wasm_bindgen::convert::FromWasmAbi;
     #[wasm_bindgen(method, setter)]
     pub fn set_email<Env, QueueHandlerMessage, CfHostMetadata, Props>(
         this: &ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata, Props>,
         val: &Function<
             fn(ForwardableEmailMessage, Env, ExecutionContext<Props>) -> Option<Promise<()>>,
         >,
-    ) where
-        Env: ::wasm_bindgen::MonoGeneric,
-        Props: 'static;
+    );
     #[wasm_bindgen(method, getter)]
     pub fn queue<Env, QueueHandlerMessage, CfHostMetadata, Props>(
         this: &ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata, Props>,
@@ -560,10 +526,7 @@ extern "C" {
                     ExecutionContext<Props>,
                 ) -> Option<Promise<()>>,
             >,
-        >: ::wasm_bindgen::convert::FromWasmAbi,
-        Env: ::wasm_bindgen::MonoGeneric,
-        QueueHandlerMessage: 'static,
-        Props: 'static;
+        >: ::wasm_bindgen::convert::FromWasmAbi;
     #[wasm_bindgen(method, setter)]
     pub fn set_queue<Env, QueueHandlerMessage, CfHostMetadata, Props>(
         this: &ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata, Props>,
@@ -574,10 +537,7 @@ extern "C" {
                 ExecutionContext<Props>,
             ) -> Option<Promise<()>>,
         >,
-    ) where
-        Env: ::wasm_bindgen::MonoGeneric,
-        QueueHandlerMessage: 'static,
-        Props: 'static;
+    );
 }
 impl<Env, QueueHandlerMessage, CfHostMetadata, Props>
     ExportedHandler<Env, QueueHandlerMessage, CfHostMetadata, Props>
@@ -607,45 +567,28 @@ impl<Env, QueueHandlerMessage, CfHostMetadata, Props>
     pub fn fetch(
         self,
         val: &Function<fn(Request<CfHostMetadata>, Env, ExecutionContext<Props>) -> JsValue>,
-    ) -> Self
-    where
-        Env: ::wasm_bindgen::MonoGeneric,
-        CfHostMetadata: 'static,
-        Props: 'static,
-    {
+    ) -> Self {
         self.inner.set_fetch(val);
         self
     }
     pub fn connect(
         self,
         val: &Function<fn(Socket, Env, ExecutionContext<Props>) -> Option<Promise<()>>>,
-    ) -> Self
-    where
-        Env: ::wasm_bindgen::MonoGeneric,
-        Props: 'static,
-    {
+    ) -> Self {
         self.inner.set_connect(val);
         self
     }
     pub fn tail(
         self,
         val: &Function<fn(Array<TraceItem>, Env, ExecutionContext<Props>) -> Option<Promise<()>>>,
-    ) -> Self
-    where
-        Env: ::wasm_bindgen::MonoGeneric,
-        Props: 'static,
-    {
+    ) -> Self {
         self.inner.set_tail(val);
         self
     }
     pub fn trace(
         self,
         val: &Function<fn(Array<TraceItem>, Env, ExecutionContext<Props>) -> Option<Promise<()>>>,
-    ) -> Self
-    where
-        Env: ::wasm_bindgen::MonoGeneric,
-        Props: 'static,
-    {
+    ) -> Self {
         self.inner.set_trace(val);
         self
     }
@@ -654,11 +597,7 @@ impl<Env, QueueHandlerMessage, CfHostMetadata, Props>
         val: &Function<
             fn(tail_stream::TailEvent<tail_stream::Onset>, Env, ExecutionContext<Props>) -> JsValue,
         >,
-    ) -> Self
-    where
-        Env: ::wasm_bindgen::MonoGeneric,
-        Props: 'static,
-    {
+    ) -> Self {
         self.inner.set_tail_stream(val);
         self
     }
@@ -667,22 +606,14 @@ impl<Env, QueueHandlerMessage, CfHostMetadata, Props>
         val: &Function<
             fn(ScheduledController, Env, ExecutionContext<Props>) -> Option<Promise<()>>,
         >,
-    ) -> Self
-    where
-        Env: ::wasm_bindgen::MonoGeneric,
-        Props: 'static,
-    {
+    ) -> Self {
         self.inner.set_scheduled(val);
         self
     }
     pub fn test(
         self,
         val: &Function<fn(TestController, Env, ExecutionContext<Props>) -> Option<Promise<()>>>,
-    ) -> Self
-    where
-        Env: ::wasm_bindgen::MonoGeneric,
-        Props: 'static,
-    {
+    ) -> Self {
         self.inner.set_test(val);
         self
     }
@@ -691,11 +622,7 @@ impl<Env, QueueHandlerMessage, CfHostMetadata, Props>
         val: &Function<
             fn(ForwardableEmailMessage, Env, ExecutionContext<Props>) -> Option<Promise<()>>,
         >,
-    ) -> Self
-    where
-        Env: ::wasm_bindgen::MonoGeneric,
-        Props: 'static,
-    {
+    ) -> Self {
         self.inner.set_email(val);
         self
     }
@@ -708,12 +635,7 @@ impl<Env, QueueHandlerMessage, CfHostMetadata, Props>
                 ExecutionContext<Props>,
             ) -> Option<Promise<()>>,
         >,
-    ) -> Self
-    where
-        Env: ::wasm_bindgen::MonoGeneric,
-        QueueHandlerMessage: 'static,
-        Props: 'static,
-    {
+    ) -> Self {
         self.inner.set_queue(val);
         self
     }
@@ -1088,9 +1010,7 @@ extern "C" {
     pub fn block_concurrency_while<Props, T>(
         this: &DurableObjectState<Props>,
         callback: &Function<fn() -> Promise<T>>,
-    ) -> Promise<T, crate::Error>
-    where
-        T: 'static;
+    ) -> Promise<T, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "acceptWebSocket")]
     pub fn accept_web_socket<Props>(
         this: &DurableObjectState<Props>,
@@ -1409,9 +1329,7 @@ extern "C" {
     pub fn transaction<T>(
         this: &DurableObjectStorage,
         closure: &Function<fn(DurableObjectTransaction) -> Promise<T>>,
-    ) -> Promise<T, crate::Error>
-    where
-        T: 'static;
+    ) -> Promise<T, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getAlarm")]
     pub fn get_alarm(this: &DurableObjectStorage) -> Promise<Option<f64>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getAlarm")]
@@ -1462,7 +1380,7 @@ extern "C" {
         closure: &Function<fn() -> T>,
     ) -> Result<T, crate::Error>
     where
-        T: ::wasm_bindgen::convert::FromWasmAbi + ::wasm_bindgen::MonoGeneric;
+        T: ::wasm_bindgen::convert::FromWasmAbi;
     #[wasm_bindgen(method, catch, js_name = "getCurrentBookmark")]
     pub fn get_current_bookmark(this: &DurableObjectStorage) -> Promise<String, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "getBookmarkForTime")]
@@ -2189,10 +2107,7 @@ extern "C" {
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
     #[wasm_bindgen(method, catch, js_name = "addEventListener")]
-    pub fn add_event_listener_with_event_listener_object<
-        EventMap,
-        EventType: ::wasm_bindgen::MonoGeneric,
-    >(
+    pub fn add_event_listener_with_event_listener_object<EventMap, EventType>(
         this: &EventTarget<EventMap>,
         r#type: impl ::wasm_bindgen::JsStringLike,
         handler: &EventListenerObject<EventType>,
@@ -2211,10 +2126,7 @@ extern "C" {
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
     #[wasm_bindgen(method, catch, js_name = "addEventListener")]
-    pub fn add_event_listener_with_event_listener_object_and_options<
-        EventMap,
-        EventType: ::wasm_bindgen::MonoGeneric,
-    >(
+    pub fn add_event_listener_with_event_listener_object_and_options<EventMap, EventType>(
         this: &EventTarget<EventMap>,
         r#type: impl ::wasm_bindgen::JsStringLike,
         handler: &EventListenerObject<EventType>,
@@ -2234,10 +2146,7 @@ extern "C" {
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/addEventListener)"]
     #[wasm_bindgen(method, catch, js_name = "addEventListener")]
-    pub fn add_event_listener_with_event_listener_object_and_bool<
-        EventMap,
-        EventType: ::wasm_bindgen::MonoGeneric,
-    >(
+    pub fn add_event_listener_with_event_listener_object_and_bool<EventMap, EventType>(
         this: &EventTarget<EventMap>,
         r#type: impl ::wasm_bindgen::JsStringLike,
         handler: &EventListenerObject<EventType>,
@@ -2256,10 +2165,7 @@ extern "C" {
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
     #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
-    pub fn remove_event_listener_with_event_listener_object<
-        EventMap,
-        EventType: ::wasm_bindgen::MonoGeneric,
-    >(
+    pub fn remove_event_listener_with_event_listener_object<EventMap, EventType>(
         this: &EventTarget<EventMap>,
         r#type: impl ::wasm_bindgen::JsStringLike,
         handler: &EventListenerObject<EventType>,
@@ -2278,10 +2184,7 @@ extern "C" {
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
     #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
-    pub fn remove_event_listener_with_event_listener_object_and_options<
-        EventMap,
-        EventType: ::wasm_bindgen::MonoGeneric,
-    >(
+    pub fn remove_event_listener_with_event_listener_object_and_options<EventMap, EventType>(
         this: &EventTarget<EventMap>,
         r#type: impl ::wasm_bindgen::JsStringLike,
         handler: &EventListenerObject<EventType>,
@@ -2301,10 +2204,7 @@ extern "C" {
     #[doc = ""]
     #[doc = " [MDN Reference](https://developer.mozilla.org/docs/Web/API/EventTarget/removeEventListener)"]
     #[wasm_bindgen(method, catch, js_name = "removeEventListener")]
-    pub fn remove_event_listener_with_event_listener_object_and_bool<
-        EventMap,
-        EventType: ::wasm_bindgen::MonoGeneric,
-    >(
+    pub fn remove_event_listener_with_event_listener_object_and_bool<EventMap, EventType>(
         this: &EventTarget<EventMap>,
         r#type: impl ::wasm_bindgen::JsStringLike,
         handler: &EventListenerObject<EventType>,
@@ -2789,7 +2689,7 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type Cache;
     #[wasm_bindgen(method, catch)]
-    pub fn delete<CfHostMetadata: ::wasm_bindgen::MonoGeneric>(
+    pub fn delete<CfHostMetadata>(
         this: &Cache,
         request: &Request<CfHostMetadata, IncomingRequestCfProperties>,
     ) -> Promise<bool, crate::Error>;
@@ -2801,7 +2701,7 @@ extern "C" {
     #[wasm_bindgen(method, catch, js_name = "delete")]
     pub fn delete_with_url(this: &Cache, request: &URL) -> Promise<bool, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "delete")]
-    pub fn delete_with_options<CfHostMetadata: ::wasm_bindgen::MonoGeneric>(
+    pub fn delete_with_options<CfHostMetadata>(
         this: &Cache,
         request: &Request<CfHostMetadata, IncomingRequestCfProperties>,
         options: &CacheQueryOptions,
@@ -2819,7 +2719,7 @@ extern "C" {
         options: &CacheQueryOptions,
     ) -> Promise<bool, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "match")]
-    pub fn match_<CfHostMetadata: ::wasm_bindgen::MonoGeneric>(
+    pub fn match_<CfHostMetadata>(
         this: &Cache,
         request: &Request<CfHostMetadata, IncomingRequestCfProperties>,
     ) -> Promise<Option<Response>, crate::Error>;
@@ -2831,7 +2731,7 @@ extern "C" {
     #[wasm_bindgen(method, catch, js_name = "match")]
     pub fn match_with_url(this: &Cache, request: &URL) -> Promise<Option<Response>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "match")]
-    pub fn match_with_options<CfHostMetadata: ::wasm_bindgen::MonoGeneric>(
+    pub fn match_with_options<CfHostMetadata>(
         this: &Cache,
         request: &Request<CfHostMetadata, IncomingRequestCfProperties>,
         options: &CacheQueryOptions,
@@ -2849,7 +2749,7 @@ extern "C" {
         options: &CacheQueryOptions,
     ) -> Promise<Option<Response>, crate::Error>;
     #[wasm_bindgen(method, catch)]
-    pub fn put<CfHostMetadata: ::wasm_bindgen::MonoGeneric>(
+    pub fn put<CfHostMetadata>(
         this: &Cache,
         request: &Request<CfHostMetadata, IncomingRequestCfProperties>,
         response: &Response,
@@ -4895,7 +4795,7 @@ extern "C" {
     #[doc = ""]
     #[doc = " * `TypeError` — if `input` is not a valid URL or `init` is inconsistent with it"]
     #[wasm_bindgen(constructor, catch)]
-    pub fn new<CfHostMetadata: ::wasm_bindgen::MonoGeneric>(
+    pub fn new<CfHostMetadata>(
         input: &Request<CfHostMetadata, IncomingRequestCfProperties>,
     ) -> Result<Request, JsException>;
     #[doc = " ## Errors"]
@@ -4933,7 +4833,7 @@ extern "C" {
     #[doc = ""]
     #[doc = " * `TypeError` — if `input` is not a valid URL or `init` is inconsistent with it"]
     #[wasm_bindgen(constructor, catch)]
-    pub fn new_with_init<Cf, CfHostMetadata: ::wasm_bindgen::MonoGeneric>(
+    pub fn new_with_init<Cf, CfHostMetadata>(
         input: &Request<CfHostMetadata, IncomingRequestCfProperties>,
         init: &RequestInit<Cf>,
     ) -> Result<Request<JsValue, Cf>, JsException>;
@@ -5250,7 +5150,7 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type Fetcher<T = ()>;
     #[wasm_bindgen(method, catch)]
-    pub fn fetch<T, CfHostMetadata: ::wasm_bindgen::MonoGeneric>(
+    pub fn fetch<T, CfHostMetadata>(
         this: &Fetcher<T>,
         input: &Request<CfHostMetadata, IncomingRequestCfProperties>,
     ) -> Promise<Response, crate::Error>;
@@ -5262,7 +5162,7 @@ extern "C" {
     #[wasm_bindgen(method, catch, js_name = "fetch")]
     pub fn fetch_with_url<T>(this: &Fetcher<T>, input: &URL) -> Promise<Response, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "fetch")]
-    pub fn fetch_with_init<T, CfHostMetadata: ::wasm_bindgen::MonoGeneric>(
+    pub fn fetch_with_init<T, CfHostMetadata>(
         this: &Fetcher<T>,
         input: &Request<CfHostMetadata, IncomingRequestCfProperties>,
         init: &RequestInit,
@@ -5499,7 +5399,7 @@ extern "C" {
         #[wasm_bindgen(slice = "view")] value: impl ::js_sys::BufferSourceLike,
     ) -> Promise<(), crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
-    pub fn put_with_readable_stream<R: ::wasm_bindgen::MonoGeneric>(
+    pub fn put_with_readable_stream<R>(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &ReadableStream<R>,
@@ -5519,7 +5419,7 @@ extern "C" {
         options: &KVNamespacePutOptions,
     ) -> Promise<(), crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
-    pub fn put_with_readable_stream_and_options<R: ::wasm_bindgen::MonoGeneric>(
+    pub fn put_with_readable_stream_and_options<R>(
         this: &KVNamespace,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &ReadableStream<R>,
@@ -6907,7 +6807,7 @@ extern "C" {
         options: &R2GetOptions,
     ) -> Promise<Option<R2ObjectBody>, crate::Error>;
     #[wasm_bindgen(method, catch)]
-    pub fn put<R: ::wasm_bindgen::MonoGeneric>(
+    pub fn put<R>(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &ReadableStream<R>,
@@ -6937,7 +6837,7 @@ extern "C" {
         value: &::wasm_bindgen::JsValue,
     ) -> Promise<Option<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
-    pub fn put_with_readable_stream_and_r2_bucket_put_options<R: ::wasm_bindgen::MonoGeneric>(
+    pub fn put_with_readable_stream_and_r2_bucket_put_options<R>(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &ReadableStream<R>,
@@ -6972,7 +6872,7 @@ extern "C" {
         options: &R2BucketPutOptions,
     ) -> Promise<Option<R2Object>, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "put")]
-    pub fn put_with_readable_stream_and_options<R: ::wasm_bindgen::MonoGeneric>(
+    pub fn put_with_readable_stream_and_options<R>(
         this: &R2Bucket,
         key: impl ::wasm_bindgen::JsStringLike,
         value: &ReadableStream<R>,
@@ -7239,7 +7139,7 @@ extern "C" {
     #[wasm_bindgen(method, getter, js_name = "uploadId")]
     pub fn upload_id(this: &R2MultipartUpload) -> String;
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
-    pub fn upload_part<R: ::wasm_bindgen::MonoGeneric>(
+    pub fn upload_part<R>(
         this: &R2MultipartUpload,
         part_number: u16,
         value: &ReadableStream<R>,
@@ -7263,7 +7163,7 @@ extern "C" {
         value: &Blob,
     ) -> Promise<R2UploadedPart, crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "uploadPart")]
-    pub fn upload_part_with_options<R: ::wasm_bindgen::MonoGeneric>(
+    pub fn upload_part_with_options<R>(
         this: &R2MultipartUpload,
         part_number: u16,
         value: &ReadableStream<R>,
@@ -8049,12 +7949,9 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn size<T>(this: &QueuingStrategy<T>) -> Option<Function<fn(T) -> JsValue>>
     where
-        Option<Function<fn(T) -> JsValue>>: ::wasm_bindgen::convert::FromWasmAbi,
-        T: ::wasm_bindgen::MonoGeneric;
+        Option<Function<fn(T) -> JsValue>>: ::wasm_bindgen::convert::FromWasmAbi;
     #[wasm_bindgen(method, setter)]
-    pub fn set_size<T>(this: &QueuingStrategy<T>, val: &Function<fn(T) -> JsValue>)
-    where
-        T: ::wasm_bindgen::MonoGeneric;
+    pub fn set_size<T>(this: &QueuingStrategy<T>, val: &Function<fn(T) -> JsValue>);
 }
 impl<T> QueuingStrategy<T> {
     pub fn new() -> QueuingStrategy<T> {
@@ -8083,10 +7980,7 @@ impl<T> QueuingStrategyBuilder<T> {
         self.inner.set_high_water_mark_with_big_int(val);
         self
     }
-    pub fn size(self, val: &Function<fn(T) -> JsValue>) -> Self
-    where
-        T: ::wasm_bindgen::MonoGeneric,
-    {
+    pub fn size(self, val: &Function<fn(T) -> JsValue>) -> Self {
         self.inner.set_size(val);
         self
     }
@@ -8123,14 +8017,12 @@ extern "C" {
     ) -> Option<Function<fn(W, WritableStreamDefaultController) -> Option<Promise<()>>>>
     where
         Option<Function<fn(W, WritableStreamDefaultController) -> Option<Promise<()>>>>:
-            ::wasm_bindgen::convert::FromWasmAbi,
-        W: ::wasm_bindgen::MonoGeneric;
+            ::wasm_bindgen::convert::FromWasmAbi;
     #[wasm_bindgen(method, setter)]
     pub fn set_write<W>(
         this: &UnderlyingSink<W>,
         val: &Function<fn(W, WritableStreamDefaultController) -> Option<Promise<()>>>,
-    ) where
-        W: ::wasm_bindgen::MonoGeneric;
+    );
     #[wasm_bindgen(method, getter)]
     pub fn abort<W>(
         this: &UnderlyingSink<W>,
@@ -8178,10 +8070,7 @@ impl<W> UnderlyingSinkBuilder<W> {
     pub fn write(
         self,
         val: &Function<fn(W, WritableStreamDefaultController) -> Option<Promise<()>>>,
-    ) -> Self
-    where
-        W: ::wasm_bindgen::MonoGeneric,
-    {
+    ) -> Self {
         self.inner.set_write(val);
         self
     }
@@ -8305,28 +8194,24 @@ extern "C" {
     ) -> Option<Function<fn(ReadableStreamDefaultController<R>) -> Option<Promise<()>>>>
     where
         Option<Function<fn(ReadableStreamDefaultController<R>) -> Option<Promise<()>>>>:
-            ::wasm_bindgen::convert::FromWasmAbi,
-        R: 'static;
+            ::wasm_bindgen::convert::FromWasmAbi;
     #[wasm_bindgen(method, setter)]
     pub fn set_start<R>(
         this: &UnderlyingSource<R>,
         val: &Function<fn(ReadableStreamDefaultController<R>) -> Option<Promise<()>>>,
-    ) where
-        R: 'static;
+    );
     #[wasm_bindgen(method, getter)]
     pub fn pull<R>(
         this: &UnderlyingSource<R>,
     ) -> Option<Function<fn(ReadableStreamDefaultController<R>) -> Option<Promise<()>>>>
     where
         Option<Function<fn(ReadableStreamDefaultController<R>) -> Option<Promise<()>>>>:
-            ::wasm_bindgen::convert::FromWasmAbi,
-        R: 'static;
+            ::wasm_bindgen::convert::FromWasmAbi;
     #[wasm_bindgen(method, setter)]
     pub fn set_pull<R>(
         this: &UnderlyingSource<R>,
         val: &Function<fn(ReadableStreamDefaultController<R>) -> Option<Promise<()>>>,
-    ) where
-        R: 'static;
+    );
     #[wasm_bindgen(method, getter)]
     pub fn cancel<R>(
         this: &UnderlyingSource<R>,
@@ -8369,20 +8254,14 @@ impl<R> UnderlyingSourceBuilder<R> {
     pub fn start(
         self,
         val: &Function<fn(ReadableStreamDefaultController<R>) -> Option<Promise<()>>>,
-    ) -> Self
-    where
-        R: 'static,
-    {
+    ) -> Self {
         self.inner.set_start(val);
         self
     }
     pub fn pull(
         self,
         val: &Function<fn(ReadableStreamDefaultController<R>) -> Option<Promise<()>>>,
-    ) -> Self
-    where
-        R: 'static,
-    {
+    ) -> Self {
         self.inner.set_pull(val);
         self
     }
@@ -8432,44 +8311,36 @@ extern "C" {
     ) -> Option<Function<fn(TransformStreamDefaultController<O>) -> Option<Promise<()>>>>
     where
         Option<Function<fn(TransformStreamDefaultController<O>) -> Option<Promise<()>>>>:
-            ::wasm_bindgen::convert::FromWasmAbi,
-        O: 'static;
+            ::wasm_bindgen::convert::FromWasmAbi;
     #[wasm_bindgen(method, setter)]
     pub fn set_start<I, O>(
         this: &Transformer<I, O>,
         val: &Function<fn(TransformStreamDefaultController<O>) -> Option<Promise<()>>>,
-    ) where
-        O: 'static;
+    );
     #[wasm_bindgen(method, getter)]
     pub fn transform<I, O>(
         this: &Transformer<I, O>,
     ) -> Option<Function<fn(I, TransformStreamDefaultController<O>) -> Option<Promise<()>>>>
     where
         Option<Function<fn(I, TransformStreamDefaultController<O>) -> Option<Promise<()>>>>:
-            ::wasm_bindgen::convert::FromWasmAbi,
-        I: ::wasm_bindgen::MonoGeneric,
-        O: 'static;
+            ::wasm_bindgen::convert::FromWasmAbi;
     #[wasm_bindgen(method, setter)]
     pub fn set_transform<I, O>(
         this: &Transformer<I, O>,
         val: &Function<fn(I, TransformStreamDefaultController<O>) -> Option<Promise<()>>>,
-    ) where
-        I: ::wasm_bindgen::MonoGeneric,
-        O: 'static;
+    );
     #[wasm_bindgen(method, getter)]
     pub fn flush<I, O>(
         this: &Transformer<I, O>,
     ) -> Option<Function<fn(TransformStreamDefaultController<O>) -> Option<Promise<()>>>>
     where
         Option<Function<fn(TransformStreamDefaultController<O>) -> Option<Promise<()>>>>:
-            ::wasm_bindgen::convert::FromWasmAbi,
-        O: 'static;
+            ::wasm_bindgen::convert::FromWasmAbi;
     #[wasm_bindgen(method, setter)]
     pub fn set_flush<I, O>(
         this: &Transformer<I, O>,
         val: &Function<fn(TransformStreamDefaultController<O>) -> Option<Promise<()>>>,
-    ) where
-        O: 'static;
+    );
     #[wasm_bindgen(method, getter)]
     pub fn cancel<I, O>(
         this: &Transformer<I, O>,
@@ -8514,31 +8385,21 @@ impl<I, O> TransformerBuilder<I, O> {
     pub fn start(
         self,
         val: &Function<fn(TransformStreamDefaultController<O>) -> Option<Promise<()>>>,
-    ) -> Self
-    where
-        O: 'static,
-    {
+    ) -> Self {
         self.inner.set_start(val);
         self
     }
     pub fn transform(
         self,
         val: &Function<fn(I, TransformStreamDefaultController<O>) -> Option<Promise<()>>>,
-    ) -> Self
-    where
-        I: ::wasm_bindgen::MonoGeneric,
-        O: 'static,
-    {
+    ) -> Self {
         self.inner.set_transform(val);
         self
     }
     pub fn flush(
         self,
         val: &Function<fn(TransformStreamDefaultController<O>) -> Option<Promise<()>>>,
-    ) -> Self
-    where
-        O: 'static,
-    {
+    ) -> Self {
         self.inner.set_flush(val);
         self
     }
@@ -8780,9 +8641,7 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type ReadableStreamDefaultReader<R = JsValue>;
     #[wasm_bindgen(constructor, catch)]
-    pub fn new<R: ::wasm_bindgen::MonoGeneric>(
-        stream: &ReadableStream<R>,
-    ) -> Result<ReadableStreamDefaultReader, crate::Error>;
+    pub fn new<R>(stream: &ReadableStream<R>) -> Result<ReadableStreamDefaultReader, crate::Error>;
     #[wasm_bindgen(constructor, catch, js_name = "ReadableStreamDefaultReader")]
     pub fn new_typed<R>(
         stream: &ReadableStream<R>,
@@ -8815,9 +8674,7 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type ReadableStreamBYOBReader;
     #[wasm_bindgen(constructor, catch)]
-    pub fn new<R: ::wasm_bindgen::MonoGeneric>(
-        stream: &ReadableStream<R>,
-    ) -> Result<ReadableStreamBYOBReader, crate::Error>;
+    pub fn new<R>(stream: &ReadableStream<R>) -> Result<ReadableStreamBYOBReader, crate::Error>;
     #[wasm_bindgen(method, getter)]
     pub fn closed(this: &ReadableStreamBYOBReader) -> Promise<(), crate::Error>;
     #[wasm_bindgen(method, catch)]
@@ -9139,9 +8996,7 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type WritableStreamDefaultWriter<W = JsValue>;
     #[wasm_bindgen(constructor, catch)]
-    pub fn new<W: ::wasm_bindgen::MonoGeneric>(
-        stream: &WritableStream<W>,
-    ) -> Result<WritableStreamDefaultWriter, crate::Error>;
+    pub fn new<W>(stream: &WritableStream<W>) -> Result<WritableStreamDefaultWriter, crate::Error>;
     #[wasm_bindgen(constructor, catch, js_name = "WritableStreamDefaultWriter")]
     pub fn new_typed<W>(
         stream: &WritableStream<W>,
@@ -17222,7 +17077,7 @@ pub mod cloudflare {
             #[derive(Debug, Clone, PartialEq, Eq)]
             pub type EmailMessage;
             #[wasm_bindgen(constructor, catch)]
-            pub fn new<R: ::wasm_bindgen::MonoGeneric>(
+            pub fn new<R>(
                 from: impl ::wasm_bindgen::JsStringLike,
                 to: impl ::wasm_bindgen::JsStringLike,
                 raw: &super::super::ReadableStream<R>,
