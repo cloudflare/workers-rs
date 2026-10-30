@@ -170,6 +170,7 @@ fn bundle(out_dir: &Path, esbuild_path: &Path) -> Result<()> {
         "--external:cloudflare:email",
         "--external:cloudflare:sockets",
         "--external:cloudflare:workers",
+        "--external:cloudflare:workflows",
         "--format=esm",
         "--bundle",
         "./shim.js",
