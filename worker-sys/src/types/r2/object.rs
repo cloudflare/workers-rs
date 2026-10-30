@@ -26,14 +26,18 @@ extern "C" {
     #[wasm_bindgen(method, catch, getter)]
     pub fn uploaded(this: &R2Object) -> Result<js_sys::Date, JsValue>;
 
+    /// Absent (`undefined`) on objects returned by `list()` unless `httpMetadata` was requested
+    /// through `include` (`r2_list_honor_include` compatibility flag, 2022-08-04).
     #[wasm_bindgen(method, catch, getter, js_name=httpMetadata)]
-    pub fn http_metadata(this: &R2Object) -> Result<R2HttpMetadata, JsValue>;
+    pub fn http_metadata(this: &R2Object) -> Result<Option<R2HttpMetadata>, JsValue>;
 
     #[wasm_bindgen(method, catch, getter)]
     pub fn checksums(this: &R2Object) -> Result<js_sys::Object, JsValue>;
 
+    /// Absent (`undefined`) on objects returned by `list()` unless `customMetadata` was requested
+    /// through `include` (`r2_list_honor_include` compatibility flag, 2022-08-04).
     #[wasm_bindgen(method, catch, getter, js_name=customMetadata)]
-    pub fn custom_metadata(this: &R2Object) -> Result<js_sys::Object, JsValue>;
+    pub fn custom_metadata(this: &R2Object) -> Result<Option<js_sys::Object>, JsValue>;
 
     /// The range the object was read with, echoed by the runtime as a plain
     /// `{ offset, length }` object (`undefined` when the read had no range). It is not an
