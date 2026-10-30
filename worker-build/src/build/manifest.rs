@@ -6,9 +6,9 @@ use crate::build::BuildProfile;
 use crate::build::PBAR;
 use cargo_metadata::{CrateType, Metadata, TargetKind};
 use serde::{self, Deserialize};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
+use std::fs;
 use std::path::Path;
-use std::{collections::HashMap, fs};
 use strsim::levenshtein;
 
 use serde::Serialize;
@@ -46,25 +46,21 @@ pub struct ESModulesPackage {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub keywords: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub dependencies: Option<HashMap<String, String>>,
+    pub dependencies: Option<BTreeMap<String, String>>,
 }
 
 const WASM_PACK_METADATA_KEY: &str = "package.metadata.wasm-pack";
 
-/// The `package.json` wasm-bindgen writes into the output directory when the
-/// crate (or a JS snippet it imports) declares NPM dependencies. Since
-/// wasm-bindgen 0.2.94 (rustwasm/wasm-bindgen#4091) it is a real manifest,
-/// `{"dependencies": {name: version}}`, possibly with other fields such as
-/// `"type"`, which are ignored here.
+/// The `package.json` wasm-bindgen writes for snippet NPM dependencies.
 #[derive(Deserialize)]
 struct WasmBindgenPackageJson {
-    dependencies: Option<HashMap<String, String>>,
+    #[serde(default)]
+    dependencies: BTreeMap<String, String>,
 }
 
-/// Reads the NPM dependencies out of a `package.json` written by wasm-bindgen.
-fn wasm_bindgen_npm_dependencies(contents: &str) -> Result<Option<HashMap<String, String>>> {
+fn wasm_bindgen_npm_dependencies(contents: &str) -> Result<Option<BTreeMap<String, String>>> {
     let package: WasmBindgenPackageJson = serde_json::from_str(contents)?;
-    Ok(package.dependencies)
+    Ok(Some(package.dependencies).filter(|deps| !deps.is_empty()))
 }
 
 /// Store for metadata learned about a crate
@@ -659,7 +655,7 @@ impl CrateData {
         &self,
         scope: &Option<String>,
         disable_dts: bool,
-        dependencies: Option<HashMap<String, String>>,
+        dependencies: Option<BTreeMap<String, String>>,
         out_dir: &Path,
     ) -> ESModulesPackage {
         let data = self.npm_data(scope, true, disable_dts, out_dir);
@@ -692,23 +688,18 @@ mod tests {
     use super::*;
 
     #[test]
-    fn reads_dependencies_from_wasm_bindgen_package_json() {
-        // The shape `wasm-bindgen-cli-support` writes (`PackageJson` in its
-        // `lib.rs`); the old flat-map parse failed on it with
-        // "invalid type: map, expected a string".
-        let contents = "{\n  \"dependencies\": {\n    \"demo-pad\": \"^1.0.0\"\n  }\n}";
-        let deps = wasm_bindgen_npm_dependencies(contents)
+    fn reads_wasm_bindgen_package_json_dependencies() {
+        let deps = wasm_bindgen_npm_dependencies(r#"{"dependencies": {"demo-pad": "^1.0.0"}}"#)
             .unwrap()
-            .expect("dependencies map");
+            .unwrap();
         assert_eq!(deps.len(), 1);
         assert_eq!(deps["demo-pad"], "^1.0.0");
     }
 
     #[test]
-    fn ignores_other_fields_and_missing_dependencies() {
-        // Robustness check, not a shape wasm-bindgen writes on its own: it always
-        // includes `dependencies` and adds `type` only for the Node-module target.
-        let deps = wasm_bindgen_npm_dependencies("{\"type\": \"module\"}").unwrap();
+    fn ignores_node_module_package_json_without_dependencies() {
+        let deps =
+            wasm_bindgen_npm_dependencies(r#"{"type": "module", "dependencies": {}}"#).unwrap();
         assert!(deps.is_none());
     }
 }
