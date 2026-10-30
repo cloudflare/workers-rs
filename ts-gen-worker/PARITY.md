@@ -25,7 +25,7 @@ is the merged index.
 | Error model (`--error-type`, `--fallible`, `@throws` enum) | integrated; plus `JsNullable` results, `_with_null` forms, `_promise` companions | `parity/errors.md` |
 | Input from `@cloudflare/workers-types` | integrated: bindings generated from `node_modules/@cloudflare/workers-types/index.d.ts` + `types/annotations.d.ts` (`--annotate`: `@throws`, `@rust` integer hints, type-parameter defaults); `types/worker.d.ts` deleted; 19.8k generated lines | `parity/workers-types.md` |
 | `Error`, `#[event]` macros, ergonomic impls | integrated; `#[event(connect)]`, `Response::into_parts`, builder `header/cors/body/from_websocket`, `Request::new_with_method`, serde storage helpers; `MIGRATING.md` written; 192 tests green on both modes | `parity/crate.md`, `MIGRATING.md` |
-| ts-gen PRs | merged: #39–#47, #51, #61–#65, #155, #157, #181 (the literal-keyed half of #68), #122, #110; open: #52–#54 (wasm ABI), #66–#69, merged since: #67; open: #52–#54 (wasm ABI), #66, #68, #69, rebased onto main `48098a9` in session 16 under the standalone option-null-reads PR branch (every empty-admitting read is `Option<T>`; `--strict-nullable` for the exact carriers) | `parity/ts-gen-prs.md` "Restack 4" |
+| ts-gen PRs | merged: #39–#47, #51, #61–#65, #67, #155, #157, #181 (the literal-keyed half of #68), #122, #110, #200; open, all `merge-ready`: #202 (every empty-admitting read is `Option<T>`; `--strict-nullable` for the exact carriers), #52–#54 (wasm ABI), #66, #68, #69, on their declared bases over main `39a6b3d` in session 17 | `parity/ts-gen-prs.md` "Restack 5" |
 | Test suite port | integrated: all 26 spec files run (187 tests; 4 skipped are upstream's own gates); `signal`, `container`, `panic` ported, trap recovery via the wasm-bindgen fork's reinit | `parity/test-port.md`, `parity/errors.md` Session 4 |
 
 ## Open problems for Guy
@@ -41,14 +41,18 @@ file.
   Runtime-specific throws (KV/R2/D1, `DOMException` names) need a policy; a wrong annotation lands
   the value in `JsException::Other`, never a wrong variant. (`parity/errors.md`)
 - **The branch depends on unmerged wasm-bindgen PRs**, pinned via the `wasm-bindgen` submodule
-  (`gbedford/mono-prototype`) and `[patch.crates-io]`: [#5375](https://github.com/wasm-bindgen/wasm-bindgen/pull/5375)
+  (`gbedford/mono-prototype`) and `[patch.crates-io]`: the generic-sequence stack #5434, #5390
+  (js-sys element APIs as real generics under `js_sys_unstable_apis`), #5432 and #5433 (`Vec<T>`
+  under `wasm_bindgen_unstable_generic_vec`); the layer PRs #5440–#5446 and #5448 on main, #5450
+  on #5390 and #5449 on #5433; and [#5375](https://github.com/wasm-bindgen/wasm-bindgen/pull/5375)
   (`reinit = "reconstruct"`, emitted by `#[durable_object]`; it also fixes a call-guard ordering
-  bug in the existing reinit glue, a behavior change on its own), #5428 (`Option<T>` reads
-  `null` as `None`), #5427 (`Option<T>` / `Nullable<T>` in generic positions), #5390 (js-sys
-  element APIs as real generics under `js_sys_unstable_apis`), #5425 (`JsCanon`), #5426
-  (`Promise<T, E>`), and the 20 generic-mono prototype commits still without a PR
-  (`parity/mono-prototype-patches.md`, "After the session-16 restack"). wasm-bindgen 0.2.130 with these must ship before
-  `ts-gen-worker` can publish. (`parity/errors.md` Session 7)
+  bug in the existing reinit glue, a behavior change on its own). No prototype commit is left
+  without a PR (`parity/mono-prototype-patches.md`, "After the session-17 restack"). A wasm-bindgen
+  release with these must ship before `ts-gen-worker` can publish. (`parity/errors.md` Session 7)
+- **`FormData::get_all` does not bind under `wasm_bindgen_unstable_generic_vec`.** The bindings
+  need the cfg for three `Vec<Option<T>>` tail-worker returns, and under it a `Vec` of a
+  dynamic-union enum (`Vec<GetAllReturnKind>`) crosses as encoded cells the CLI cannot decode, so
+  the test worker does not build. To be settled on #5433. (`parity/workers-types.md` Restack 7)
 
 ## Decisions taken
 

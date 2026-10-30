@@ -9,14 +9,15 @@ says where it should land.
 | repo | branch | base |
 |---|---|---|
 | workers-rs | this branch | `main` |
-| ts-gen | `gbedford/mono-prototype`, tip `dc33537` | main `48098a9` → `gbedford/option-null-reads` (PR to main) → #52 → #53 → #54 → #66 → #68 → #69 → the mono commits (`ts-gen-prs.md` "Restack 4") |
-| wasm-bindgen | `gbedford/mono-prototype`, tip `3a62aa7d4` | main `39ae823bb` → #5428 → #5427 → #5375 → #5390 → #5425 → #5426 → 20 residual commits (see "After the session-16 restack") |
+| ts-gen | `gbedford/mono-prototype`, tip `868ba6e` | main `39a6b3d` → #202 (option-null-reads) → #52 → #53 → #54 → #66 → #68 → #69 → the mono commits (`ts-gen-prs.md` "Restack 5") |
+| wasm-bindgen | `gbedford/mono-prototype`, tip `4beea3624` | main `7e9536a35` → #5434 → #5390 → #5432 → #5433 → the layer PRs #5440–#5450 → #5375 (see "After the session-17 restack") |
 
 ts-gen and wasm-bindgen commits are cited by subject, with an id (`tgN`, `wbN`, numbered in
 branch order; a ts-gen fixture re-bless has no row) that the PR grouping below uses. The
 workers-rs submodules pin both tips, so this branch builds the whole prototype.
-`js_sys_unstable_apis` is set only for the ts-gen-worker builds (`chompfile.toml`), so `worker`
-and the rest of the workspace build without it, against the same wasm-bindgen.
+`js_sys_unstable_apis` and `wasm_bindgen_unstable_generic_vec` are set only for the ts-gen-worker
+builds (`chompfile.toml`), so `worker` and the rest of the workspace build without them, against
+the same wasm-bindgen.
 
 ## wasm-bindgen (macro, CLI, ABI)
 
@@ -219,3 +220,47 @@ a generic `Option<T>` read whole (`Option<T>: FromWasmAbi`); a `#[wasm_bindgen]`
 `&Enum` ABI (`IntoWasmAbi` by value only, unlike the primitives' `impl IntoWasmAbi for &T`), so an
 enum as a generic class's type argument cannot be written through `T: RefIntoWasmAbi`
 (`Holder::<Mode>::new(&Mode::Slow)` in ts-gen's `enum_positions_mono` test).
+
+## After the session-17 restack
+
+The stack's main `7e9536a35` has #5426 (`Promise<T, E>`), #5427, #5428, #5436, #5437, #5178 and
+#5429; #5425 (`JsCanon`) is closed. Main has since released 0.2.130 (`c93b8ae84`, with #5402's
+Temporal rework), which the stack does not include yet. Guy's generic-sequence stack: #5434
+(nullable sequence elements) → #5390 (real generics: `MonoGeneric` is gone, each position states
+its own bound and a `Function` slot needs none) → #5432 (the owned-vector encoder) → #5433
+(`Vec<T>`, `Box<[T]>` and `&[T]` for any element under `--cfg wasm_bindgen_unstable_generic_vec`).
+
+The 20 residual prototype commits are now upstream PRs. Each is based on main unless it uses code
+only a stack PR has:
+
+| PR | Branch | Base | What it carries |
+|---|---|---|---|
+| #5440 | `mono-wire-formats` | main | one import per wire format, `impl Trait` arity, `?Sized` mono parameters, `Option<&T>` |
+| #5441 | `mono-extends-args` | main | `extends = Parent<A, B>` with type arguments |
+| #5442 | `mono-catch-promise` | main | `catch` on a `Promise<T>` return rejects on a synchronous throw |
+| #5443 | `js-sys-typed-function` | main | `Function<fn(A..) -> R>`: `from_fn`, `From<Closure>`, `once` |
+| #5444 | `js-sys-buffer-source` | main | `BufferSourceLike` for buffer-source arguments |
+| #5445 | `mono-slice-modes` | main | slice modes apply per mono instantiation |
+| #5446 | `js-sys-string-returns` | main | `String` returns for small strings, `JSON::stringify`, `Intl`; `Date::new_with_value` |
+| #5448 | `js-sys-array-head-rest` | main | `ArrayHeadRest<H, T>` for `[H, ...T[]]`, outside `js_sys_unstable_apis` |
+| #5450 | `js-sys-collections` | #5390 | `Map` keys by `Borrow<Q>`, Rust iteration, `FromIterator` / `Extend`, `Object<T>` records; carries #5440's commit until it lands |
+| #5449 | `mono-union-vectors` | #5433 | a `Vec` of a dynamic-union enum crosses as a JS array; linked into the #5433 GitHub stack |
+
+#5375 (`reinit = "reconstruct"`, 3 commits) stays on main. The prototype branch is #5433, then
+the layers in the order #5449, #5440, #5441, #5442, #5450 (its own commit), #5443, #5444, #5445,
+#5446, #5448, then #5375. Two prototype-only adaptations: #5440 regains the `Descriptor::Cell`
+arm that only #5433 has, and #5445's change also covers #5440's `seq_mode_words` call. wb23
+(`JsNullable<T>` widening) is dropped: nothing emits `JsNullable` over a native leaf.
+
+Under `wasm_bindgen_unstable_generic_vec` a `Vec` of a dynamic union still cannot cross as
+encoded cells, so #5449 is gated off there. Guy raised it on #5433.
+
+Closed by this restack: the `Map<K, V>` iteration bound (#5450 iterates any `FromWasmAbi` value),
+so `ext/kv.rs` reads a `Map<String, Nullable<String>>` typed again. Still open: `&Nullable<T>` has
+no `IntoWasmAbi`; `f64` / `i64` are not `OptionFromWasmAbi`, which ts-gen sidesteps with a whole
+`Option<T>: FromWasmAbi` bound; a `#[wasm_bindgen]` enum has no `&Enum` ABI.
+
+Verified on the tip `4beea3624` (by the layer split, `cargo +stable`, macro ui tests on 1.88):
+every layer passes check, fmt, clippy and the root and js-sys suites on its own base. The tip
+passes root wasm tests 606 under the generic-vec cfg and js-sys 897 under both cfgs. The CLI suite
+fails only the five `termination*` / `memory64_threads` node tests, as main does here.

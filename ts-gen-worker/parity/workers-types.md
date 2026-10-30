@@ -804,3 +804,32 @@ reads `Option<Nullable<T>>`, 97 → 16 `Nullable<`), the second on `48098a9` wit
 - Generic constructors over a `Function` slot need `MonoGeneric` element types
   (`ReadableStream::<Uint8Array>::new()`); `JsValue` qualifies.
 
+
+## Restack 7 (session 17)
+
+Both submodules repinned: ts-gen `gbedford/mono-prototype` `868ba6e` on main `39a6b3d`
+(`ts-gen-prs.md` "Restack 5"), wasm-bindgen `gbedford/mono-prototype` `4beea3624`, which is
+#5433's generic-sequence stack with the layer PRs #5440–#5450 and #5375
+(`mono-prototype-patches.md` "After the session-17 restack"). `bindings.rs` 18,805 → 18,660
+lines. The only change is bounds: 65 `MonoGeneric` and 50 `'static` bounds go, and the
+`where` clauses they leave empty collapse. `Nullable<` stays at 10.
+
+| # | Change (old → new) | Cause | Port change | Class |
+|---|---|---|---|---|
+| 1 | type parameters filling a `Function<fn(..)>` slot lose their `MonoGeneric` bound (65), nested ones their `'static` (50): `ReadableStream::new<R>`, `Cache::*<CfHostMetadata>`, `R2Bucket::put<R>` | ts-gen #200; #5390 drops `MonoGeneric`, a `Function` slot needs no bound | none | improvement: reverses Restack 6 row 4 |
+| 2 | `Map<String, Nullable<String>>` iterates by value (`for (k, v) in map`, `(String, Nullable<String>)`) | #5450: `Map` iteration needs only `V: FromWasmAbi` | `kv.rs` `collect` iterates the typed map; `text` / `json` fold `Nullable<String>` with `Option::from` | improvement: reverses Restack 6 row 11 |
+| 3 | `Vec<Option<T>>` returns (`TraceEventInfo::traces`, `TraceLog::error_info`, `Log::error_info`) need `--cfg wasm_bindgen_unstable_generic_vec` | #5433 gates generic sequences behind the cfg; without it the element must erase to `JsValue` | the cfg joins `js_sys_unstable_apis` in `chompfile.toml` and `benchmark/build.sh` | neutral (an experimental cfg) |
+| 4 | `FormData::get_all` → `Vec<GetAllReturnKind>` does not bind under the cfg: the CLI reports "failed to generate a binding for the return value of `getAll`" | #5433: under the cfg a dynamic-union element crosses by its own ABI as an encoded cell, which the CLI cannot decode; #5449 is gated off there | none yet: rows 3 and 4 conflict, so `test:ts-gen-worker` does not build | **blocker** (wasm-bindgen; Guy raised it on #5433) |
+
+With `get_all` temporarily retyped to `Vec<JsValue>` (not committed), `chomp test:ts-gen-worker`
+and `-http`: 194 passed / 1 failed / 4 skipped each. The failure is `r2 > delete` timing out at
+5 s under a load average of 123. It passes in 7.8 s with a longer timeout, and fails the same way
+without the cfg. `chomp test` and `test-http`: 145 passed / 4 skipped; `chomp test:unit` 4 + 26 passed.
+`chomp lint:ts-gen-worker` clean. Benchmark worker (`-Oz`): `.wasm` 123,456 B (gzip 51,834), glue
+38,098 B (gzip 6,533), against 122,741 / 37,076 in Restack 6 (+0.6% / +2.8%).
+
+### Migration-table deltas (for workers-rs-4 / MIGRATING.md)
+
+- An app builds with `--cfg wasm_bindgen_unstable_generic_vec` beside `js_sys_unstable_apis`.
+- Generic constructors over a `Function` slot take any element type; the `MonoGeneric` bullet of
+  Restack 6 is gone.

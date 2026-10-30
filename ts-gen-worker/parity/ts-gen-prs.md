@@ -733,3 +733,41 @@ snapshots emit `Promise<u32>`, `Vec<Option<u16>>`, `Object<Option<f64>>` (doc dr
 the layer PRs are cut); `js_sys::Object::values` returns `Result<Array<T>, _>` only under
 `js_sys_unstable_apis`, so `.iter()` on it silently iterates the `Result`.
 
+
+## Restack 5 (session 17): the open PRs on main `39a6b3d`
+
+ts-gen main `39a6b3d` adds #200, which pins wasm-bindgen `gbedford/mono-vec` (#5433) and drops the
+`MonoGeneric` bound on `Function` slot type parameters: #5390 gives every slot an explicit
+per-position bound instead, and a `Function` slot needs none. The option-null-reads branch is
+posted as #202 (`3d543148`, two commits, unchanged). The PR layers are pushed on their declared
+GitHub bases, not on #202: #52 `4e40007` and #66 `452f299` on main, #53 `42dafe8` on #52, #54
+`5825783` on #53, #68 `388d606` on #66, #69 `e8ea77b` on #68. All seven carry wasm-bindgen-bot's
+`merge-ready`; #66, #68 and #69 keep `do not land`.
+
+The bot's findings each landed as one new commit on its layer:
+
+- #52: `--provides` walks members inherited through `extends` and resolves a function-type alias
+  (`ExportedHandlerFetchHandler<Env>`). A generic `export const` warns and is skipped.
+- #53: the Wasm ABI lowers scalars through aliases, so two WAT snapshots move from `externref` to
+  `f64`. `wat` and `wasmparser` become dev-dependencies.
+- #54: every bindings export is prefixed `ts-gen:bindings.`, so a name clash is an error rather
+  than a dropped export (new `proxy` fixture). `Boolean` is an imported builtin, so there is no
+  start function. #54 moves `wat` and `wasmparser` back, since `embed.rs` uses them.
+- #66: the CONVENTIONS type-parameter-defaults paragraph matches the snapshot.
+- #68: a nullable slice collects inside its map. The broken case was a non-trailing
+  `number[] | undefined`; `number[] | null` already splits into a `_with_null` arm.
+
+The linear prototype `gbedford/mono-prototype` `868ba6e` is main → #202 → #52 … #69 with those
+commits → the mono commits (81 over main; the `MonoGeneric` slot commit dropped as covered by
+#200). The rebase conflicted once, in #54's first commit against #53's fix (CONVENTIONS and
+`Cargo.toml`), resolved as #54's branch has it. The inline-wrappers WAT snapshots, which only the
+linear stack has, are blessed for #68's new fixture methods inside its fix commit. The integration
+tests pin wasm-bindgen `gbedford/mono-prototype` `4beea36`.
+
+Verification at `868ba6e`: fmt, clippy and `just test` green (405 + 1 + 29 + 3, the embed suite
+with emsdk's `wasm-merge`). `just test-integration` needs `--cfg wasm_bindgen_unstable_generic_vec`
+for the `Vec<Option<T>>` returns: 150 passed / 0 failed under `js_sys_unstable_apis`, and the
+provides node check passes. The plain leg does not compile: `mono_lists.rs` writes a
+`Map<JsString, f64>` through js-sys's stable `Map::set`, whose erasable generics reject `f64`. The
+stable `Map` is the same on the old prototype, so the test needs the unstable cfg or a
+`Number` value; it is not a wasm-bindgen regression.
