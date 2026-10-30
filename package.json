@@ -18,7 +18,7 @@
     "miniflare": "5.20260923.0-alpha",
     "typescript": "^7.0.2",
     "uuid": "^14.0.2",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.12"
   },
   "scripts": {
     "build": "cd wasm-bindgen && cargo build -p wasm-bindgen-cli --bin wasm-bindgen && cd .. && cargo build -p worker-build",
