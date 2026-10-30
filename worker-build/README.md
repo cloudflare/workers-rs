@@ -36,6 +36,22 @@ wasm-opt = ["-O"]
 Use this instead of `strip = true` in the Cargo profile, which makes the linker drop every custom
 section that later steps and tools rely on.
 
+## Wasm source maps (`--emscripten`)
+
+With line tables, an `--emscripten` build can write a source map of its Wasm module to
+`build/index_bg.wasm.map`, mapping offsets in Wasm stack frames to Rust files and lines:
+
+```toml
+[profile.release]
+debug = "line-tables-only"
+
+[package.metadata.wasm-pack.profile.release]
+source-map = true
+```
+
+emcc builds the map from the line tables before Binaryen optimizes and keeps them out of the
+module. Source maps need wasm-bindgen 0.2.129 or later.
+
 ## Environment Variables
 
 You can override the default binary lookup/download behavior by setting these environment variables:

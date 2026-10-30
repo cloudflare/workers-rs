@@ -21,7 +21,9 @@ mod emscripten;
 mod lockfile;
 mod main_legacy;
 mod producers;
+mod source_map;
 mod versions;
+mod wasm_util;
 
 use build::{Build, BuildOptions};
 use build_lock::BuildLock;
@@ -140,6 +142,7 @@ pub fn main() -> Result<()> {
         create_wrapper_alias(&staging_dir, true)?;
     }
 
+    remove_stale_sidecars(&out_dir, &staging_dir)?;
     // Swap staging entries into the real output directory and clean up.
     lock.finish()?;
 
@@ -525,13 +528,44 @@ fn remove_unused_files(out_dir: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Remove the files an earlier build wrote beside its module, such as its
+/// source map, that this build did not write: they describe another module.
+fn remove_stale_sidecars(out_dir: &Path, staging_dir: &Path) -> Result<()> {
+    for entry in fs::read_dir(out_dir)? {
+        let name = entry?.file_name();
+        if name.to_string_lossy().starts_with("index_bg.wasm.") && !staging_dir.join(&name).exists()
+        {
+            fs::remove_file(out_dir.join(&name))?;
+        }
+    }
+    Ok(())
+}
+
 pub fn output_path(out_dir: &Path, name: impl AsRef<str>) -> PathBuf {
     out_dir.join(name.as_ref())
 }
 
 #[cfg(test)]
 mod test {
-    use super::parse_wasm_pack_opts;
+    use super::{parse_wasm_pack_opts, remove_stale_sidecars};
+    use std::fs;
+
+    #[test]
+    fn test_remove_stale_sidecars() {
+        let dir = std::env::temp_dir().join(format!("wb-sidecars-{}", std::process::id()));
+        let staging = dir.join(".tmp");
+        fs::create_dir_all(&staging).unwrap();
+        for name in ["index_bg.wasm", "index_bg.wasm.map", "index_bg.wasm.names"] {
+            fs::write(dir.join(name), "").unwrap();
+        }
+        fs::write(staging.join("index_bg.wasm.map"), "").unwrap();
+        remove_stale_sidecars(&dir, &staging).unwrap();
+        assert!(dir.join("index_bg.wasm").exists());
+        assert!(dir.join("index_bg.wasm.map").exists());
+        assert!(!dir.join("index_bg.wasm.names").exists());
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
     #[test]
     fn test_wasm_pack_args_build_arg() {
         let args = vec!["--release".to_owned()];
