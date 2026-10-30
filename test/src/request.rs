@@ -268,3 +268,12 @@ pub async fn handle_wait_delay(req: Request, _env: Env, _data: SomeSharedData) -
 
     Response::ok("Waited!\n")
 }
+
+/// `request.cf.timezone` is optional in workers-types; answer with the name or `none`.
+#[allow(clippy::needless_pass_by_value)]
+pub fn handle_cf_timezone_name(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
+    let Some(cf) = req.cf() else {
+        return Response::error("no cf", 500);
+    };
+    Response::ok(cf.timezone_name().unwrap_or_else(|| "none".to_string()))
+}

@@ -115,6 +115,7 @@ macro_rules! add_route (
 macro_rules! add_routes (
     ($obj:ident) => {
     add_route!($obj, get, sync, "/request", request::handle_a_request);
+    add_route!($obj, get, sync, "/cf/timezone-name", request::handle_cf_timezone_name);
     add_route!($obj, get, "/analytics-engine", analytics_engine::handle_analytics_event);
     add_route!($obj, get, "/async-request", request::handle_async_request);
     add_route!($obj, get, format_route!("/asset/{}", "name"), assets::handle_asset);
