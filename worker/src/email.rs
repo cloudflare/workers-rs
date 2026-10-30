@@ -1,7 +1,6 @@
 use futures_util::TryStreamExt;
 use wasm_bindgen::JsCast;
 
-pub use crate::bindings::email::cloudflare::email::*;
 pub use crate::bindings::email::*;
 use crate::{ByteStream, EnvBinding, Result};
 

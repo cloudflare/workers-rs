@@ -23,7 +23,7 @@ extern "C" {
 }
 #[wasm_bindgen]
 extern "C" {
-    # [wasm_bindgen (extends = Object , is_type_of = JsValue :: is_object)]
+    # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type EmailSendResult;
     #[doc = " The Email Message ID"]
@@ -40,37 +40,29 @@ impl EmailSendResult {
         inner
     }
 }
-pub mod cloudflare {
-    #[allow(unused_imports)]
-    use super::*;
-    pub mod email {
-        #[allow(unused_imports)]
-        use super::*;
-        #[wasm_bindgen(module = "cloudflare:email")]
-        extern "C" {
-            # [wasm_bindgen (extends = Object)]
-            #[derive(Debug, Clone, PartialEq, Eq)]
-            pub type EmailMessage;
-            #[wasm_bindgen(constructor, catch)]
-            pub fn new(from: &str, to: &str, raw: &str) -> Result<EmailMessage, ::js_sys::Error>;
-            #[wasm_bindgen(constructor, catch)]
-            pub fn new_with_readable_stream(
-                from: &str,
-                to: &str,
-                raw: &ReadableStream,
-            ) -> Result<EmailMessage, ::js_sys::Error>;
-            #[doc = " Envelope From attribute of the email message."]
-            #[wasm_bindgen(method, getter)]
-            pub fn from(this: &EmailMessage) -> String;
-            #[doc = " Envelope To attribute of the email message."]
-            #[wasm_bindgen(method, getter)]
-            pub fn to(this: &EmailMessage) -> String;
-        }
-    }
+#[wasm_bindgen(module = "cloudflare:email")]
+extern "C" {
+    # [wasm_bindgen (extends = Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type EmailMessage;
+    #[wasm_bindgen(constructor, catch)]
+    pub fn new(from: &str, to: &str, raw: &str) -> Result<EmailMessage, Error>;
+    #[wasm_bindgen(constructor, catch, js_name = "EmailMessage")]
+    pub fn new_with_readable_stream(
+        from: &str,
+        to: &str,
+        raw: &ReadableStream,
+    ) -> Result<EmailMessage, Error>;
+    #[doc = " Envelope From attribute of the email message."]
+    #[wasm_bindgen(method, getter)]
+    pub fn from(this: &EmailMessage) -> String;
+    #[doc = " Envelope To attribute of the email message."]
+    #[wasm_bindgen(method, getter)]
+    pub fn to(this: &EmailMessage) -> String;
 }
 #[wasm_bindgen]
 extern "C" {
-    # [wasm_bindgen (extends = cloudflare :: email :: EmailMessage , extends = Object , is_type_of = JsValue :: is_object)]
+    # [wasm_bindgen (extends = EmailMessage , extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type ForwardableEmailMessage;
     #[doc = " Stream of the email message content."]
@@ -99,18 +91,7 @@ extern "C" {
     pub async fn forward(
         this: &ForwardableEmailMessage,
         rcpt_to: &str,
-    ) -> Result<EmailSendResult, ::js_sys::Error>;
-    #[doc = " Forward this email message to a verified destination address of the account."]
-    #[doc = ""]
-    #[doc = " * `rcptTo` - Verified destination address."]
-    #[doc = " * `headers` - A [Headers object](https://developer.mozilla.org/en-US/docs/Web/API/Headers)."]
-    #[doc = ""]
-    #[doc = " Returns: A promise that resolves when the email message is forwarded."]
-    #[wasm_bindgen(method, js_name = "forward")]
-    pub fn forward_promise(
-        this: &ForwardableEmailMessage,
-        rcpt_to: &str,
-    ) -> Promise<EmailSendResult>;
+    ) -> Result<EmailSendResult, Error>;
     #[doc = " Forward this email message to a verified destination address of the account."]
     #[doc = ""]
     #[doc = " * `rcptTo` - Verified destination address."]
@@ -122,19 +103,7 @@ extern "C" {
         this: &ForwardableEmailMessage,
         rcpt_to: &str,
         headers: &Headers,
-    ) -> Result<EmailSendResult, ::js_sys::Error>;
-    #[doc = " Forward this email message to a verified destination address of the account."]
-    #[doc = ""]
-    #[doc = " * `rcptTo` - Verified destination address."]
-    #[doc = " * `headers` - A [Headers object](https://developer.mozilla.org/en-US/docs/Web/API/Headers)."]
-    #[doc = ""]
-    #[doc = " Returns: A promise that resolves when the email message is forwarded."]
-    #[wasm_bindgen(method, js_name = "forward")]
-    pub fn forward_with_headers_promise(
-        this: &ForwardableEmailMessage,
-        rcpt_to: &str,
-        headers: &Headers,
-    ) -> Promise<EmailSendResult>;
+    ) -> Result<EmailSendResult, Error>;
     #[doc = " Reply to the sender of this email message with a new EmailMessage object."]
     #[doc = ""]
     #[doc = " * `message` - The reply message."]
@@ -143,28 +112,18 @@ extern "C" {
     #[wasm_bindgen(method, catch)]
     pub async fn reply(
         this: &ForwardableEmailMessage,
-        message: &cloudflare::email::EmailMessage,
-    ) -> Result<EmailSendResult, ::js_sys::Error>;
-    #[doc = " Reply to the sender of this email message with a new EmailMessage object."]
-    #[doc = ""]
-    #[doc = " * `message` - The reply message."]
-    #[doc = ""]
-    #[doc = " Returns: A promise that resolves when the email message is replied."]
-    #[wasm_bindgen(method, js_name = "reply")]
-    pub fn reply_promise(
-        this: &ForwardableEmailMessage,
-        message: &cloudflare::email::EmailMessage,
-    ) -> Promise<EmailSendResult>;
+        message: &EmailMessage,
+    ) -> Result<EmailSendResult, Error>;
 }
 #[wasm_bindgen]
 extern "C" {
-    # [wasm_bindgen (extends = Object , is_type_of = JsValue :: is_object)]
+    # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type EmailAttachment;
     #[wasm_bindgen(method, getter)]
     pub fn disposition(this: &EmailAttachment) -> DispositionKind;
     #[wasm_bindgen(method, setter)]
-    pub fn set_disposition(this: &EmailAttachment, val: DispositionKind);
+    pub fn set_disposition(this: &EmailAttachment, val: &str);
     #[wasm_bindgen(method, getter, js_name = "contentId")]
     pub fn content_id(this: &EmailAttachment) -> Option<String>;
     #[wasm_bindgen(method, setter, js_name = "contentId")]
@@ -187,7 +146,9 @@ extern "C" {
     pub fn set_content_with_typed_array<T: ::js_sys::TypedArray>(this: &EmailAttachment, val: &T);
 }
 impl EmailAttachment {
-    #[doc = " Construct with `disposition: \"inline\"`."]
+    #[doc = " ## Inlined fields"]
+    #[doc = ""]
+    #[doc = " * `disposition: \"inline\"`"]
     pub fn new_inline(
         content_id: &str,
         filename: &str,
@@ -195,14 +156,16 @@ impl EmailAttachment {
         content: &str,
     ) -> EmailAttachment {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_disposition(DispositionKind::Inline);
+        inner.set_disposition("inline");
         inner.set_content_id(content_id);
         inner.set_filename(filename);
         inner.set_type(r#type);
         inner.set_content(content);
         inner
     }
-    #[doc = " Construct with `disposition: \"inline\"`."]
+    #[doc = " ## Inlined fields"]
+    #[doc = ""]
+    #[doc = " * `disposition: \"inline\"`"]
     pub fn new_inline_with_array_buffer(
         content_id: &str,
         filename: &str,
@@ -210,14 +173,16 @@ impl EmailAttachment {
         content: &ArrayBuffer,
     ) -> EmailAttachment {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_disposition(DispositionKind::Inline);
+        inner.set_disposition("inline");
         inner.set_content_id(content_id);
         inner.set_filename(filename);
         inner.set_type(r#type);
         inner.set_content_with_array_buffer(content);
         inner
     }
-    #[doc = " Construct with `disposition: \"inline\"`."]
+    #[doc = " ## Inlined fields"]
+    #[doc = ""]
+    #[doc = " * `disposition: \"inline\"`"]
     pub fn new_inline_with_typed_array<T: ::js_sys::TypedArray>(
         content_id: &str,
         filename: &str,
@@ -225,18 +190,22 @@ impl EmailAttachment {
         content: &T,
     ) -> EmailAttachment {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_disposition(DispositionKind::Inline);
+        inner.set_disposition("inline");
         inner.set_content_id(content_id);
         inner.set_filename(filename);
         inner.set_type(r#type);
         inner.set_content_with_typed_array(content);
         inner
     }
-    #[doc = " Construct with `disposition: \"attachment\"`."]
+    #[doc = " ## Inlined fields"]
+    #[doc = ""]
+    #[doc = " * `disposition: \"attachment\"`"]
     pub fn new_attachment(filename: &str, r#type: &str, content: &str) -> EmailAttachment {
         Self::builder_attachment(filename, r#type, content).build()
     }
-    #[doc = " Construct with `disposition: \"attachment\"`."]
+    #[doc = " ## Inlined fields"]
+    #[doc = ""]
+    #[doc = " * `disposition: \"attachment\"`"]
     pub fn new_attachment_with_array_buffer(
         filename: &str,
         r#type: &str,
@@ -244,7 +213,9 @@ impl EmailAttachment {
     ) -> EmailAttachment {
         Self::builder_attachment_with_array_buffer(filename, r#type, content).build()
     }
-    #[doc = " Construct with `disposition: \"attachment\"`."]
+    #[doc = " ## Inlined fields"]
+    #[doc = ""]
+    #[doc = " * `disposition: \"attachment\"`"]
     pub fn new_attachment_with_typed_array<T: ::js_sys::TypedArray>(
         filename: &str,
         r#type: &str,
@@ -252,40 +223,46 @@ impl EmailAttachment {
     ) -> EmailAttachment {
         Self::builder_attachment_with_typed_array(filename, r#type, content).build()
     }
-    #[doc = " Start a builder with `disposition: \"attachment\"`."]
+    #[doc = " ## Inlined fields"]
+    #[doc = ""]
+    #[doc = " * `disposition: \"attachment\"`"]
     pub fn builder_attachment(
         filename: &str,
         r#type: &str,
         content: &str,
     ) -> EmailAttachmentBuilder {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_disposition(DispositionKind::Attachment);
+        inner.set_disposition("attachment");
         inner.set_filename(filename);
         inner.set_type(r#type);
         inner.set_content(content);
         EmailAttachmentBuilder { inner }
     }
-    #[doc = " Start a builder with `disposition: \"attachment\"`."]
+    #[doc = " ## Inlined fields"]
+    #[doc = ""]
+    #[doc = " * `disposition: \"attachment\"`"]
     pub fn builder_attachment_with_array_buffer(
         filename: &str,
         r#type: &str,
         content: &ArrayBuffer,
     ) -> EmailAttachmentBuilder {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_disposition(DispositionKind::Attachment);
+        inner.set_disposition("attachment");
         inner.set_filename(filename);
         inner.set_type(r#type);
         inner.set_content_with_array_buffer(content);
         EmailAttachmentBuilder { inner }
     }
-    #[doc = " Start a builder with `disposition: \"attachment\"`."]
+    #[doc = " ## Inlined fields"]
+    #[doc = ""]
+    #[doc = " * `disposition: \"attachment\"`"]
     pub fn builder_attachment_with_typed_array<T: ::js_sys::TypedArray>(
         filename: &str,
         r#type: &str,
         content: &T,
     ) -> EmailAttachmentBuilder {
         let inner: EmailAttachment = JsCast::unchecked_into(js_sys::Object::new());
-        inner.set_disposition(DispositionKind::Attachment);
+        inner.set_disposition("attachment");
         inner.set_filename(filename);
         inner.set_type(r#type);
         inner.set_content_with_typed_array(content);
@@ -306,7 +283,7 @@ impl EmailAttachmentBuilder {
 }
 #[wasm_bindgen]
 extern "C" {
-    # [wasm_bindgen (extends = Object , is_type_of = JsValue :: is_object)]
+    # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type EmailAddress;
     #[wasm_bindgen(method, getter)]
@@ -328,33 +305,20 @@ impl EmailAddress {
 }
 #[wasm_bindgen]
 extern "C" {
-    # [wasm_bindgen (extends = Object , is_type_of = JsValue :: is_object)]
+    # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type SendEmail;
     #[wasm_bindgen(method, catch)]
-    pub async fn send(
-        this: &SendEmail,
-        message: &cloudflare::email::EmailMessage,
-    ) -> Result<EmailSendResult, ::js_sys::Error>;
-    #[wasm_bindgen(method, js_name = "send")]
-    pub fn send_promise(
-        this: &SendEmail,
-        message: &cloudflare::email::EmailMessage,
-    ) -> Promise<EmailSendResult>;
+    pub async fn send(this: &SendEmail, message: &EmailMessage) -> Result<EmailSendResult, Error>;
     #[wasm_bindgen(method, catch, js_name = "send")]
     pub async fn send_with_builder(
         this: &SendEmail,
         builder: &SendEmailBuilder,
-    ) -> Result<EmailSendResult, ::js_sys::Error>;
-    #[wasm_bindgen(method, js_name = "send")]
-    pub fn send_with_builder_promise(
-        this: &SendEmail,
-        builder: &SendEmailBuilder,
-    ) -> Promise<EmailSendResult>;
+    ) -> Result<EmailSendResult, Error>;
 }
 #[wasm_bindgen]
 extern "C" {
-    # [wasm_bindgen (extends = Object , is_type_of = JsValue :: is_object)]
+    # [wasm_bindgen (extends = Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type SendEmailBuilder;
     #[wasm_bindgen(method, getter)]
@@ -367,7 +331,7 @@ extern "C" {
     pub fn to(this: &SendEmailBuilder) -> ToKind;
     #[wasm_bindgen(method, setter)]
     pub fn set_to(this: &SendEmailBuilder, val: &str);
-    #[wasm_bindgen(method, setter, js_name = "to")]
+    #[wasm_bindgen(method, setter, slice_to_array, js_name = "to")]
     pub fn set_to_with_slice(this: &SendEmailBuilder, val: &[String]);
     #[wasm_bindgen(method, getter)]
     pub fn subject(this: &SendEmailBuilder) -> String;
@@ -383,13 +347,13 @@ extern "C" {
     pub fn cc(this: &SendEmailBuilder) -> Option<ToKind>;
     #[wasm_bindgen(method, setter)]
     pub fn set_cc(this: &SendEmailBuilder, val: &str);
-    #[wasm_bindgen(method, setter, js_name = "cc")]
+    #[wasm_bindgen(method, setter, slice_to_array, js_name = "cc")]
     pub fn set_cc_with_slice(this: &SendEmailBuilder, val: &[String]);
     #[wasm_bindgen(method, getter)]
     pub fn bcc(this: &SendEmailBuilder) -> Option<ToKind>;
     #[wasm_bindgen(method, setter)]
     pub fn set_bcc(this: &SendEmailBuilder, val: &str);
-    #[wasm_bindgen(method, setter, js_name = "bcc")]
+    #[wasm_bindgen(method, setter, slice_to_array, js_name = "bcc")]
     pub fn set_bcc_with_slice(this: &SendEmailBuilder, val: &[String]);
     #[wasm_bindgen(method, getter)]
     pub fn headers(this: &SendEmailBuilder) -> Option<Object<JsString>>;
@@ -405,22 +369,22 @@ extern "C" {
     pub fn set_html(this: &SendEmailBuilder, val: &str);
     #[wasm_bindgen(method, getter)]
     pub fn attachments(this: &SendEmailBuilder) -> Option<Vec<EmailAttachment>>;
-    #[wasm_bindgen(method, setter)]
+    #[wasm_bindgen(method, setter, slice_to_array)]
     pub fn set_attachments(this: &SendEmailBuilder, val: &[EmailAttachment]);
 }
 impl SendEmailBuilder {
     pub fn new(from: &str, to: &str, subject: &str) -> SendEmailBuilder {
         Self::builder(from, to, subject).build()
     }
-    pub fn new_with_slice(from: &str, to: &[String], subject: &str) -> SendEmailBuilder {
-        Self::builder_with_slice(from, to, subject).build()
+    pub fn new_with_str_and_slice(from: &str, to: &[String], subject: &str) -> SendEmailBuilder {
+        Self::builder_with_str_and_slice(from, to, subject).build()
     }
-    pub fn new_with_email_address(
+    pub fn new_with_email_address_and_str(
         from: &EmailAddress,
         to: &str,
         subject: &str,
     ) -> SendEmailBuilder {
-        Self::builder_with_email_address(from, to, subject).build()
+        Self::builder_with_email_address_and_str(from, to, subject).build()
     }
     pub fn new_with_email_address_and_slice(
         from: &EmailAddress,
@@ -436,14 +400,18 @@ impl SendEmailBuilder {
         inner.set_subject(subject);
         SendEmailBuilderBuilder { inner }
     }
-    pub fn builder_with_slice(from: &str, to: &[String], subject: &str) -> SendEmailBuilderBuilder {
+    pub fn builder_with_str_and_slice(
+        from: &str,
+        to: &[String],
+        subject: &str,
+    ) -> SendEmailBuilderBuilder {
         let inner: SendEmailBuilder = JsCast::unchecked_into(js_sys::Object::new());
         inner.set_from(from);
         inner.set_to_with_slice(to);
         inner.set_subject(subject);
         SendEmailBuilderBuilder { inner }
     }
-    pub fn builder_with_email_address(
+    pub fn builder_with_email_address_and_str(
         from: &EmailAddress,
         to: &str,
         subject: &str,
@@ -522,23 +490,23 @@ extern "C" {
     #[wasm_bindgen(method, getter)]
     pub fn message(this: &EmailEvent) -> ForwardableEmailMessage;
 }
-#[wasm_bindgen(private)]
+#[wasm_bindgen]
 pub enum DispositionKind {
     Inline = "inline",
     Attachment = "attachment",
 }
-#[wasm_bindgen(private)]
+#[wasm_bindgen]
 pub enum ContentKind {
     String(String),
     ArrayBuffer(ArrayBuffer),
     Uint8Array(Uint8Array),
 }
-#[wasm_bindgen(private, fallback)]
+#[wasm_bindgen]
 pub enum FromKind {
     String(String),
     EmailAddress(EmailAddress),
 }
-#[wasm_bindgen(private)]
+#[wasm_bindgen]
 pub enum ToKind {
     String(String),
     VecOfString(Vec<String>),
