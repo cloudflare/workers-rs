@@ -1,0 +1,5 @@
+error: entrypoint must be a string literal
+ --> tests/ui/entrypoint-not-string.rs:3:29
+  |
+3 | #[event(fetch, entrypoint = 42)]
+  |                             ^^

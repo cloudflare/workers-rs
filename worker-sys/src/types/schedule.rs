@@ -20,6 +20,9 @@ extern "C" {
     #[derive(Debug, Clone)]
     pub type ScheduleContext;
 
+    #[wasm_bindgen(method, getter)]
+    pub fn exports(this: &ScheduleContext) -> JsValue;
+
     #[wasm_bindgen(method, catch, js_name=waitUntil)]
     pub fn wait_until(this: &ScheduleContext, promise: js_sys::Promise) -> Result<(), JsValue>;
 }
