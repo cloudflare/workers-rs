@@ -82,7 +82,7 @@ fn build_structured(name: &str) -> Option<SendEmailBuilder> {
             .text("hello from the structured path"),
         "structured-with-name" => {
             let address = EmailAddress::new("Integration", SENDER);
-            SendEmailBuilder::builder_with_email_address_and_str(&address, RECIPIENT, subject)
+            SendEmailBuilder::builder_with_email_address(&address, RECIPIENT, subject)
                 .html("<p>hello from the structured path</p>")
         }
         "structured-disallowed-sender" => {

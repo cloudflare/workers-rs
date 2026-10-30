@@ -7,11 +7,10 @@ deps = ['install:ts-gen']
 # can't infer; everything else (`ReadableStream`, `Headers`, `Event`, …)
 # resolves through ts-gen's built-in web_sys defaults.
 #
-# `--export cloudflare:email` lifts the module's declarations to global
-# scope so consumers see `worker::EmailMessage` directly (rather than
-# `worker::bindings::email::email::EmailMessage`). The file `--export`
-# is required alongside because once any `--export` is specified the
-# implicit "every input is its own export" default is disabled.
+# `--export cloudflare:email` emits the module's declarations under
+# `cloudflare::email`, which `worker::email` re-exports alongside the globals.
+# The file `--export` is required alongside because once any `--export` is
+# specified the implicit "every input is its own export" default is disabled.
 run = '''ts-gen --input types/email.d.ts --output worker/src/bindings/email.rs \
   --errors-as-error \
   --export types/email.d.ts \

@@ -21,7 +21,7 @@ async fn fetch(req: Request, env: Env, _ctx: Context) -> Result<Response> {
 
 async fn send_structured(sender: &email::SendEmail) -> Result<email::EmailSendResult> {
     let from = email::EmailAddress::new("Sending email test", SENDER);
-    let builder = email::SendEmailBuilder::builder_with_email_address_and_str(
+    let builder = email::SendEmailBuilder::builder_with_email_address(
         &from,
         RECIPIENT,
         "An email generated in a Worker",
