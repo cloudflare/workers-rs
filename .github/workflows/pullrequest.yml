@@ -66,6 +66,9 @@ jobs:
       - name: Install cargo-generate
         run: cargo binstall --locked cargo-generate
 
+      - name: Build wasm-bindgen CLI
+        run: cd wasm-bindgen && cargo build -p wasm-bindgen-cli --bin wasm-bindgen
+
       - name: Generate and build all templates
         run: |
           mkdir -p generated
@@ -79,7 +82,7 @@ jobs:
               cargo generate --path $template --name "$template_name" --destination ./generated --force --define panic_unwind=false
               cd "generated/$template_name"
               echo "Building $template_name"
-              ../../target/debug/worker-build
+              WASM_BINDGEN_BIN=../../wasm-bindgen/target/debug/wasm-bindgen ../../target/debug/worker-build
               cd ../..
           done
 
@@ -227,6 +230,50 @@ jobs:
             grep -q '^HELLO$' cold$i.txt && grep -q '^bye$' cold$i.txt
           done
           pkill -f wrangler-dist || true
+
+  ts-gen-worker:
+    name: ts-gen-worker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dtolnay/rust-toolchain@1.91.0
+        with:
+          targets: wasm32-unknown-unknown
+          components: clippy, rustfmt
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry ~/.cargo/git target ts-gen/target wasm-bindgen/target
+          key: ${{ runner.os }}-cargo-ts-gen-worker-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-ts-gen-worker-
+
+      - name: Setup Chomp
+        uses: guybedford/chomp-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Check generated bindings are up to date
+        run: |
+          chomp build:ts-gen-worker:types
+          git diff --exit-code -- ts-gen-worker
+
+      - name: Check for idiomatic code
+        run: chomp lint:ts-gen-worker
+
+      - name: Run tests
+        run: chomp test:ts-gen-worker
+
+      - name: Run tests with the http feature
+        run: chomp test:ts-gen-worker-http
 
   rustfmt:
     name: Formatter

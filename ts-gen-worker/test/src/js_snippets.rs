@@ -1,0 +1,38 @@
+use crate::Env;
+use ts_gen_worker::*;
+use wasm_bindgen::prelude::*;
+
+use crate::SomeSharedData;
+
+#[wasm_bindgen(inline_js = "export function js_performance_now() { return performance.now(); }")]
+extern "C" {
+    fn js_performance_now() -> f64;
+}
+
+#[wasm_bindgen(
+    inline_js = "export function js_console_log(value) { console.log(\"first log:\", value); }"
+)]
+extern "C" {
+    fn js_console_log(value: String);
+}
+
+#[wasm_bindgen(
+    inline_js = "export function js_throw_error() { throw new Error('Intentional JS error for testing recovery'); }"
+)]
+extern "C" {
+    fn js_throw_error();
+}
+
+pub async fn performance_now(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
+    Response::builder().ok(format!("now: {}", js_performance_now()))
+}
+
+pub async fn console_log(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
+    js_console_log("test".to_owned());
+    Response::builder().ok("OK")
+}
+
+pub fn throw_js_error(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
+    js_throw_error();
+    Response::builder().ok("This should never be reached")
+}

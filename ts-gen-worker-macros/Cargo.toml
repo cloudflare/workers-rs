@@ -1,0 +1,16 @@
+[package]
+name = "ts-gen-worker-macros"
+version = "0.1.0"
+edition = "2021"
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Handler macros for the `ts-gen-worker` crate"
+repository = "https://github.com/cloudflare/workers-rs"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2.workspace = true
+quote.workspace = true
+syn = { workspace = true, features = ["full"] }

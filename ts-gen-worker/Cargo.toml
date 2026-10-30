@@ -1,0 +1,36 @@
+[package]
+name = "ts-gen-worker"
+version = "0.1.0"
+edition = "2021"
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "Cloudflare Workers bindings generated from TypeScript declarations with ts-gen"
+repository = "https://github.com/cloudflare/workers-rs"
+
+[dependencies]
+bytes = { version = "1.5", optional = true }
+futures-util.workspace = true
+http = { workspace = true, optional = true }
+http-body = { version = "1", optional = true }
+js-sys.workspace = true
+matchit = "0.7"
+pin-project = "1.1.0"
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+serde_urlencoded = { version = "0.7", optional = true }
+serde-wasm-bindgen = { workspace = true, optional = true }
+ts-gen-worker-macros = { path = "../ts-gen-worker-macros" }
+url = { version = "2.4.0", optional = true }
+wasm-bindgen.workspace = true
+wasm-bindgen-futures.workspace = true
+wasm-streams.workspace = true
+web-sys = { version = "0.3.106", features = ["ReadableStream"] }
+
+[features]
+default = ["serde"]
+serde = ["dep:serde", "dep:serde_json", "dep:serde_urlencoded", "dep:serde-wasm-bindgen"]
+url = ["dep:url"]
+http = ["dep:http", "dep:http-body", "dep:bytes"]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(js_sys_unstable_apis)"] }

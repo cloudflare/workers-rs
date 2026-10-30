@@ -1,6 +1,10 @@
 target
 .DS_Store
 test/build
+ts-gen-worker/test/build
+ts-gen-worker/benchmark/build
+benchmark/build
+benchmark/build-noshim
 examples/**/build
 generated
 package-lock.json
