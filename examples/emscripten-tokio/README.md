@@ -37,6 +37,7 @@ Then try some of the example routes demonstrating Tokio functionality:
 | `curl http://localhost:8787/channels` | `mpsc` between spawned producers and the handler |
 | `curl http://localhost:8787/mutex` | `tokio::sync::Mutex` shared across tasks |
 | `curl http://localhost:8787/join` | `tokio::join!` over concurrent futures |
+| `curl http://localhost:8787/stack` | a spawned task using 256 KiB of stack |
 
 Each response carries the measured `elapsed_ms`, showing the work overlapping.
 

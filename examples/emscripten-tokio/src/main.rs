@@ -42,7 +42,8 @@ async fn fetch(req: Request, env: Env, _ctx: Context) -> Result<Response> {
                  GET /timeout    tokio::time::timeout\n\
                  GET /channels   mpsc between spawned producers and the handler\n\
                  GET /mutex      tokio::sync::Mutex shared across tasks\n\
-                 GET /join       tokio::join! over concurrent futures\n",
+                 GET /join       tokio::join! over concurrent futures\n\
+                 GET /stack      a spawned task using 256 KiB of stack\n",
             )
         })
         .get_async("/spawn", spawn)
@@ -51,6 +52,7 @@ async fn fetch(req: Request, env: Env, _ctx: Context) -> Result<Response> {
         .get_async("/channels", channels)
         .get_async("/mutex", mutex)
         .get_async("/join", join)
+        .get_async("/stack", stack)
         .run(req, env)
         .await
 }
@@ -173,6 +175,21 @@ async fn join(_: Request, _: RouteContext<()>) -> Result<Response> {
     json(
         "three 30ms futures joined; takes ~30ms, not 90",
         format!("{a}{b}{c}"),
+        start,
+    )
+}
+
+async fn stack(_: Request, _: RouteContext<()>) -> Result<Response> {
+    let start = now();
+    let sum = tokio::spawn(async {
+        let buf = std::hint::black_box([1u8; 256 * 1024]);
+        buf.iter().map(|&b| u32::from(b)).sum::<u32>()
+    })
+    .await
+    .map_err(|e| Error::RustError(e.to_string()))?;
+    json(
+        "a spawned task sums a 256 KiB buffer held on the stack",
+        format!("sum = {sum}"),
         start,
     )
 }
