@@ -66,6 +66,7 @@ const mf_instance = new Miniflare({
           SEEDED_BUCKET: { type: "r2", name: "SEEDED_BUCKET" },
           DELETE_BUCKET: { type: "r2", name: "DELETE_BUCKET" },
           my_queue: { type: "queue", name: "my_queue" },
+          metrics_queue: { type: "queue", name: "metrics_queue" },
           remote: {
             type: "fetcher",
             handler: async () => new Response("hello world"),
@@ -105,7 +106,11 @@ const mf_instance = new Miniflare({
           SqlCounter: { type: "durable-object", storage: "sqlite" },
           SqlIterator: { type: "durable-object", storage: "sqlite" },
         },
-        triggers: [{ type: "queue", name: "my_queue", maxBatchTimeout: 1 }],
+        triggers: [
+          { type: "queue", name: "my_queue", maxBatchTimeout: 1 },
+          // Holds messages in the backlog for the duration of the metrics test.
+          { type: "queue", name: "metrics_queue", maxBatchSize: 100, maxBatchTimeout: 60 },
+        ],
         assets: {
           directory: "./public",
           hasUserWorker: true,

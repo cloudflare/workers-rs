@@ -82,3 +82,29 @@ pub async fn handle_queue(_req: Request, _env: Env, _data: SomeSharedData) -> Re
     let messages: Vec<QueueBody> = guard.clone();
     Response::from_json(&messages)
 }
+
+#[worker::send]
+pub async fn handle_queue_metrics_send(
+    _req: Request,
+    env: Env,
+    _: SomeSharedData,
+) -> Result<Response> {
+    let id = Uuid::new_v4();
+    env.queue("metrics_queue")?
+        .send(&QueueBody {
+            id,
+            id_string: id.to_string(),
+        })
+        .await?;
+    Response::ok("Message sent")
+}
+
+#[worker::send]
+pub async fn handle_queue_metrics(_req: Request, env: Env, _: SomeSharedData) -> Result<Response> {
+    let metrics = env.queue("metrics_queue")?.metrics().await?;
+    Response::from_json(&serde_json::json!({
+        "backlog_count": metrics.backlog_count,
+        "backlog_bytes": metrics.backlog_bytes,
+        "oldest_message_timestamp": metrics.oldest_message_timestamp.map(|d| d.as_millis()),
+    }))
+}
