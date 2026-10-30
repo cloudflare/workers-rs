@@ -58,6 +58,9 @@ pub const LINK_ARGS: &[&str] = &[
     // misdetects workerd (which exposes WorkerGlobalScope) as a web worker.
     "-sASSERTIONS=0",
     "-sALLOW_MEMORY_GROWTH=1",
+    // Match the 1MB stack of wasm32-unknown-unknown builds over emcc's 64KB
+    // default, which async state machines in debug builds readily exceed.
+    "-sSTACK_SIZE=1MB",
     // emcc strips the producers section by default; keep the language and
     // processed-by entries the toolchain records in it.
     "-sEMIT_PRODUCERS_SECTION=1",
