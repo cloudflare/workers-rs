@@ -24,6 +24,7 @@ use js_sys::futures::JsFuture;
 use js_sys::{global, Array, Function, Object, Promise, Reflect, Uint8Array};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use serde_wasm_bindgen::Serializer;
 use wasm_bindgen::JsValue;
 use web_sys::ReadableStream;
 
@@ -111,6 +112,9 @@ impl KvStore {
     }
 
     /// Puts data into the kv store.
+    ///
+    /// Strings are stored as-is; any other serializable value is stored as JSON, with maps as
+    /// plain objects and byte buffers as arrays.
     pub fn put<T: ToRawKvValue>(&self, name: &str, value: T) -> Result<PutOptionsBuilder, KvError> {
         Ok(PutOptionsBuilder {
             this: self.this.clone(),
@@ -259,7 +263,13 @@ impl ToRawKvValue for str {
 
 impl<T: Serialize> ToRawKvValue for T {
     fn raw_kv_value(&self) -> Result<JsValue, KvError> {
-        let value = serde_wasm_bindgen::to_value(self).map_err(JsValue::from)?;
+        // The value is JSON-encoded below, which turns a JS `Map` into `{}` and a `Uint8Array`
+        // into an object keyed by index, so maps and byte buffers are emitted in their JSON
+        // shapes (plain object, array) instead.
+        let ser = Serializer::new()
+            .serialize_maps_as_objects(true)
+            .serialize_bytes_as_arrays(true);
+        let value = self.serialize(&ser).map_err(JsValue::from)?;
 
         if value.as_string().is_some() {
             Ok(value)
