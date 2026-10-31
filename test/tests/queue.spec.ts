@@ -54,4 +54,35 @@ describe("queue", () => {
     const message_2 = messages.find((msg) => msg.id === id_2.toString());
     expect(message_2).toMatchObject({ id: id_2.toString() });
   });
+
+  test("consumer error retries the batch without resetting the instance", async () => {
+    const received = async () => {
+      const resp = await mf.dispatchFetch(`${mfUrl}queue`);
+      expect(resp.status).toBe(200);
+      return ((await resp.json()) as { id: string }[]).map((msg) => msg.id);
+    };
+
+    // A message the consumer handles normally. It is kept in a static.
+    const kept = uuid.v4();
+    let resp = await mf.dispatchFetch(`${mfUrl}queue/send/${kept}`, {
+      method: "POST",
+    });
+    expect(resp.status).toBe(200);
+    await expect.poll(received, { timeout: 5000 }).toContain(kept);
+
+    // A message the consumer rejects with `Err` on its first delivery.
+    const retried = uuid.v4();
+    resp = await mf.dispatchFetch(`${mfUrl}queue/send_batch`, {
+      method: "POST",
+      body: JSON.stringify([{ id: retried, id_string: `fail-once:${retried}` }]),
+    });
+    expect(resp.status).toBe(200);
+
+    // The batch is retried and succeeds on the second delivery. That needs the
+    // static that remembers the first failure, so the Wasm instance must not
+    // have been reinitialized by the `Err`.
+    await expect.poll(received, { timeout: 10000 }).toContain(retried);
+    // The state from before the `Err` is still there.
+    expect(await received()).toContain(kept);
+  });
 });
