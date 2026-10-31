@@ -434,7 +434,24 @@ impl Storage {
     ///
     /// Returns `Ok(None)` if the key does not exist.
     pub async fn get<T: DeserializeOwned>(&self, key: &str) -> Result<Option<T>> {
-        let res = match JsFuture::from(self.inner.get(key)?).await {
+        Self::get_value(self.inner.get(key)?).await
+    }
+
+    /// Like [`Storage::get`], passing [`GetOptions`] (`allowConcurrency`, `noCache`) to the
+    /// runtime.
+    pub async fn get_with_options<T: DeserializeOwned>(
+        &self,
+        key: &str,
+        options: GetOptions,
+    ) -> Result<Option<T>> {
+        let promise = self
+            .inner
+            .get_with_options(key, serde_wasm_bindgen::to_value(&options)?.into())?;
+        Self::get_value(promise).await
+    }
+
+    async fn get_value<T: DeserializeOwned>(promise: js_sys::Promise) -> Result<Option<T>> {
+        let res = match JsFuture::from(promise).await {
             // If we successfully retrived `undefined`, that means the key doesn't exist
             Ok(val) if val.is_undefined() => Ok(None),
             // Otherwise deserialize whatever we successfully received
@@ -454,6 +471,23 @@ impl Storage {
             keys.into_iter()
                 .map(|key| JsValue::from(key.deref()))
                 .collect(),
+        )?;
+        let keys = JsFuture::from(keys).await?;
+        keys.dyn_into::<Map>().map_err(Error::from)
+    }
+
+    /// Like [`Storage::get_multiple`], passing [`GetOptions`] (`allowConcurrency`, `noCache`) to
+    /// the runtime.
+    pub async fn get_multiple_with_options(
+        &self,
+        keys: Vec<impl Deref<Target = str>>,
+        options: GetOptions,
+    ) -> Result<Map> {
+        let keys = self.inner.get_multiple_with_options(
+            keys.into_iter()
+                .map(|key| JsValue::from(key.deref()))
+                .collect(),
+            serde_wasm_bindgen::to_value(&options)?.into(),
         )?;
         let keys = JsFuture::from(keys).await?;
         keys.dyn_into::<Map>().map_err(Error::from)
@@ -894,6 +928,21 @@ impl From<Duration> for ScheduledTime {
             init: ScheduledTimeInit::Offset(offset.as_millis() as f64),
         }
     }
+}
+
+/// Options for [`Storage::get_with_options`] and [`Storage::get_multiple_with_options`]; the
+/// runtime's `DurableObjectGetOptions`.
+#[derive(Debug, Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetOptions {
+    /// By default, the runtime pauses delivery of other events to the object while a storage
+    /// read is in flight. Set to `true` to let other events be delivered concurrently.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub allow_concurrency: Option<bool>,
+    /// If `true`, the value is not inserted into the in-memory cache. A value already in the
+    /// cache is still returned from it, but its last-used time is not updated.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub no_cache: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default, Serialize)]
