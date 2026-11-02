@@ -72,7 +72,7 @@ extern "C" {
     pub fn host_metadata(this: &IncomingRequestCfProperties) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(method, catch, getter)]
-    pub fn timezone(this: &IncomingRequestCfProperties) -> Result<String, JsValue>;
+    pub fn timezone(this: &IncomingRequestCfProperties) -> Result<Option<String>, JsValue>;
 
     #[wasm_bindgen(method, catch, getter, js_name=isEUCountry)]
     pub fn is_eu_country(this: &IncomingRequestCfProperties) -> Result<Option<String>, JsValue>;

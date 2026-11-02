@@ -7,7 +7,21 @@ use std::{
     time::Duration,
 };
 
-use wasm_bindgen::{prelude::Closure, JsCast};
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
+extern "C" {
+    // `setTimeout` returns a number on the web, but with the `nodejs_compat`
+    // global timers (the default from compatibility date 2026-08-04) it returns
+    // a Node.js-style `Timeout` object. Keep the handle opaque: the type-checked
+    // glue of debug builds rejects an object where a number is declared, and
+    // `clearTimeout` accepts whatever `setTimeout` returned.
+    #[wasm_bindgen(js_name = setTimeout)]
+    fn set_timeout(handler: &js_sys::Function, timeout: i32) -> JsValue;
+
+    #[wasm_bindgen(js_name = clearTimeout)]
+    fn clear_timeout(handle: &JsValue);
+}
 
 /// A [Future] for asynchronously waiting.
 ///
@@ -26,7 +40,7 @@ use wasm_bindgen::{prelude::Closure, JsCast};
 pub struct Delay {
     inner: Duration,
     closure: Option<Closure<dyn FnMut()>>,
-    timeout_id: Option<i32>,
+    timeout_handle: Option<JsValue>,
     awoken: Rc<Cell<bool>>,
 }
 
@@ -50,14 +64,11 @@ impl Future for Delay {
                 });
 
                 // Then get that closure back and pass it to setTimeout so we can get woken up later.
-                let global: web_sys::WorkerGlobalScope = js_sys::global().unchecked_into();
-                let timeout_id = global
-                    .set_timeout_with_callback_and_timeout_and_arguments_0(
-                        callback_ref.as_ref().unchecked_ref::<js_sys::Function>(),
-                        this.inner.as_millis() as i32,
-                    )
-                    .unwrap();
-                *this.timeout_id = Some(timeout_id);
+                let handle = set_timeout(
+                    callback_ref.as_ref().unchecked_ref::<js_sys::Function>(),
+                    this.inner.as_millis() as i32,
+                );
+                *this.timeout_handle = Some(handle);
             }
 
             Poll::Pending
@@ -72,7 +83,7 @@ impl From<Duration> for Delay {
         Self {
             inner,
             closure: None,
-            timeout_id: None,
+            timeout_handle: None,
             awoken: Rc::new(Cell::default()),
         }
     }
@@ -91,9 +102,8 @@ impl PinnedDrop for Delay {
             return;
         }
 
-        if let Some(id) = this.timeout_id {
-            let global: web_sys::WorkerGlobalScope = js_sys::global().unchecked_into();
-            global.clear_timeout_with_handle(*id);
+        if let Some(handle) = this.timeout_handle.take() {
+            clear_timeout(&handle);
         }
     }
 }

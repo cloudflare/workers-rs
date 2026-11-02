@@ -115,6 +115,7 @@ macro_rules! add_route (
 macro_rules! add_routes (
     ($obj:ident) => {
     add_route!($obj, get, sync, "/request", request::handle_a_request);
+    add_route!($obj, get, sync, "/cf/timezone-name", request::handle_cf_timezone_name);
     add_route!($obj, get, "/analytics-engine", analytics_engine::handle_analytics_event);
     add_route!($obj, get, "/async-request", request::handle_async_request);
     add_route!($obj, get, format_route!("/asset/{}", "name"), assets::handle_asset);
@@ -170,6 +171,7 @@ macro_rules! add_routes (
     add_route!($obj, get, "/cloned-fetch", fetch::handle_cloned_fetch);
     add_route!($obj, get, "/cloned-response", fetch::handle_cloned_response_attributes);
     add_route!($obj, get, format_route!("/wait/{}", "delay"), request::handle_wait_delay);
+    add_route!($obj, get, "/delay-race", request::handle_delay_race);
     add_route!($obj, get, "/custom-response-body", request::handle_custom_response_body);
     add_route!($obj, get, "/init-called", handle_init_called);
     add_route!($obj, get, "/cache-example", cache::handle_cache_example);
@@ -211,8 +213,12 @@ macro_rules! add_routes (
     add_route!($obj, get, "/kv/get-bulk-limit", kv::get_bulk_limit);
     add_route!($obj, get, "/r2/list-empty", r2::list_empty);
     add_route!($obj, get, "/r2/list", r2::list);
+    add_route!($obj, get, "/r2/list-without-include", r2::list_without_include);
     add_route!($obj, get,"/r2/get-empty", r2::get_empty);
     add_route!($obj, get, "/r2/get", r2::get);
+    add_route!($obj, get, "/r2/get-range/offset-length", r2::get_range_offset_length);
+    add_route!($obj, get, "/r2/get-range/suffix", r2::get_range_suffix);
+    add_route!($obj, get, "/r2/get-range/none", r2::get_range_none);
     add_route!($obj, put,  "/r2/put", r2::put);
     add_route!($obj, put,  "/r2/put-properties", r2::put_properties);
     add_route!($obj, put,  "/r2/put-multipart", r2::put_multipart);

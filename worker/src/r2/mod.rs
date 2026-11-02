@@ -8,7 +8,7 @@ use wasm_bindgen::{JsCast, JsValue};
 use worker_sys::{
     FixedLengthStream as EdgeFixedLengthStream, R2Bucket as EdgeR2Bucket, R2Checksums,
     R2MultipartUpload as EdgeR2MultipartUpload, R2Object as EdgeR2Object,
-    R2ObjectBody as EdgeR2ObjectBody, R2Objects as EdgeR2Objects,
+    R2ObjectBody as EdgeR2ObjectBody, R2Objects as EdgeR2Objects, R2Range as R2RangeSys,
     R2UploadedPart as EdgeR2UploadedPart,
 };
 
@@ -230,12 +230,16 @@ impl Object {
         .into()
     }
 
+    /// The HTTP metadata of the object. Objects returned by [Bucket::list] carry it only when the
+    /// listing asked for it with [Include::HttpMetadata]; otherwise this is an empty
+    /// [HttpMetadata].
     pub fn http_metadata(&self) -> HttpMetadata {
         match &self.inner {
             ObjectInner::NoBody(inner) => inner.http_metadata().unwrap(),
             ObjectInner::Body(inner) => inner.http_metadata().unwrap(),
         }
-        .into()
+        .map(Into::into)
+        .unwrap_or_default()
     }
 
     pub fn checksum(&self) -> R2Checksums {
@@ -246,10 +250,15 @@ impl Object {
         .into()
     }
 
+    /// The custom metadata of the object. Objects returned by [Bucket::list] carry it only when
+    /// the listing asked for it with [Include::CustomMetadata]; otherwise this is an empty map.
     pub fn custom_metadata(&self) -> Result<HashMap<String, String>> {
         let metadata = match &self.inner {
             ObjectInner::NoBody(inner) => inner.custom_metadata().unwrap(),
             ObjectInner::Body(inner) => inner.custom_metadata().unwrap(),
+        };
+        let Some(metadata) = metadata else {
+            return Ok(HashMap::new());
         };
 
         let keys = js_sys::Object::keys(&metadata).to_vec();
@@ -264,10 +273,27 @@ impl Object {
         Ok(map)
     }
 
+    /// The range this object was read with (see [GetOptionsBuilder::range]). The runtime echoes
+    /// every range as `offset` and `length`, so a [Range::Suffix] read comes back as
+    /// [Range::OffsetWithLength]. Returns an error when the object was not read with a range.
     pub fn range(&self) -> Result<Range> {
-        match &self.inner {
-            ObjectInner::NoBody(inner) => inner.range().unwrap(),
-            ObjectInner::Body(inner) => inner.range().unwrap(),
+        let range = match &self.inner {
+            ObjectInner::NoBody(inner) => inner.range()?,
+            ObjectInner::Body(inner) => inner.range()?,
+        };
+
+        // `range` is optional on `R2Object`: the runtime omits it when no range was requested.
+        if range.is_undefined() {
+            return Err(Error::RustError("object was not read with a range".into()));
+        }
+
+        let field = |name: &str| -> Result<Option<f64>> {
+            Ok(Reflect::get(&range, &JsValue::from_str(name))?.as_f64())
+        };
+        R2RangeSys {
+            offset: field("offset")?,
+            length: field("length")?,
+            suffix: field("suffix")?,
         }
         .try_into()
     }
