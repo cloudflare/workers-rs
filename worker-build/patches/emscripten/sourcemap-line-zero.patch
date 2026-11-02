@@ -1,0 +1,43 @@
+Subject: [PATCH] Map code without a DWARF line to no location in wasm source maps
+
+emscripten-core/emscripten#28033 (45a6cffdb, first released in 6.0.14),
+only tools/wasm-sourcemap.py; without its source_map_support.js change,
+which only -fsanitize uses, and its test. Rows at DWARF line 0, which
+LLVM uses for code without a single source line, end the previous
+mapping instead of being skipped, so that code is not reported at the
+line before it.
+
+Base-commit: d6c521a7f (tag 6.0.10)
+
+---
+diff --git a/tools/wasm-sourcemap.py b/tools/wasm-sourcemap.py
+index 287476f2e..f74a280be 100755
+--- a/tools/wasm-sourcemap.py
++++ b/tools/wasm-sourcemap.py
+@@ -522,6 +522,7 @@ def build_sourcemap(entries, func_ranges, code_section_offset, options):
+   last_line = 1
+   last_column = 1
+   last_func_id = 0
++  last_was_unmapped = False
+ 
+   active_funcs = []
+   next_func_range_id = 0
+@@ -550,9 +551,17 @@ def build_sourcemap(entries, func_ranges, code_section_offset, options):
+   for entry in entries:
+     line = entry['line']
+     column = entry['column']
+-    # ignore entries with line 0
++    # line 0 means no source location; end the previous mapping with a
++    # segment that has only the offset, which the spec uses for unmapped
++    # code. The other fields are deltas, so they keep their last values.
+     if line == 0:
++      if mappings and not last_was_unmapped:
++        address = entry['address'] + code_section_offset
++        mappings.append(encode_vlq(address - last_address))
++        last_address = address
++        last_was_unmapped = True
+       continue
++    last_was_unmapped = False
+     # start at least at column 1
+     if column == 0:
+       column = 1

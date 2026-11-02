@@ -143,6 +143,8 @@ pub struct CargoWasmPackProfile {
     wasm_bindgen: CargoWasmPackProfileWasmBindgen,
     #[serde(default, rename = "wasm-opt")]
     wasm_opt: Option<CargoWasmPackProfileWasmOpt>,
+    #[serde(default, rename = "source-map")]
+    source_map: Option<bool>,
 }
 
 #[derive(Default, Deserialize)]
@@ -187,6 +189,7 @@ impl CargoWasmPackProfile {
                 split_linked_modules: Some(false),
             },
             wasm_opt: None,
+            source_map: Some(false),
         }
     }
 
@@ -200,6 +203,7 @@ impl CargoWasmPackProfile {
                 split_linked_modules: Some(false),
             },
             wasm_opt: Some(CargoWasmPackProfileWasmOpt::Enabled(true)),
+            source_map: Some(false),
         }
     }
 
@@ -213,6 +217,7 @@ impl CargoWasmPackProfile {
                 split_linked_modules: Some(false),
             },
             wasm_opt: Some(CargoWasmPackProfileWasmOpt::Enabled(true)),
+            source_map: Some(false),
         }
     }
 
@@ -226,6 +231,7 @@ impl CargoWasmPackProfile {
                 split_linked_modules: Some(false),
             },
             wasm_opt: Some(CargoWasmPackProfileWasmOpt::Enabled(true)),
+            source_map: Some(false),
         }
     }
 
@@ -276,6 +282,7 @@ impl CargoWasmPackProfile {
         d!(wasm_bindgen.dwarf_debug_info);
         d!(wasm_bindgen.omit_default_module_path);
         d!(wasm_bindgen.split_linked_modules);
+        d!(source_map);
 
         if self.wasm_opt.is_none() {
             self.wasm_opt = defaults.wasm_opt.clone();
@@ -305,6 +312,12 @@ impl CargoWasmPackProfile {
     /// Get this profile's configured `[wasm-bindgen.split-linked-modules]` value.
     pub fn wasm_bindgen_split_linked_modules(&self) -> bool {
         self.wasm_bindgen.split_linked_modules.unwrap()
+    }
+
+    /// Get this profile's configured `source-map` value: emit a Wasm source map
+    /// for `--emscripten` builds.
+    pub fn source_map(&self) -> bool {
+        self.source_map.unwrap()
     }
 
     /// Get this profile's configured arguments for `wasm-opt`, if enabled.
@@ -552,6 +565,11 @@ impl CrateData {
             .license_file
             .clone()
             .map(|license_file| license_file.into_string())
+    }
+
+    /// Returns the root directory of this project's Cargo workspace.
+    pub fn workspace_root(&self) -> &Path {
+        Path::new(&self.data.workspace_root)
     }
 
     /// Returns the path to this project's target directory where artifacts are

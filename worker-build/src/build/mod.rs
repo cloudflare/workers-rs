@@ -2,6 +2,7 @@ use crate::binary::{GetBinary, WasmOpt};
 use crate::emoji;
 use crate::emscripten;
 use crate::lockfile::{DepCheckError, Lockfile};
+use crate::source_map;
 use crate::versions::{
     CUR_WORKER_VERSION, LATEST_WASM_BINDGEN_VERSION, MIN_EMSCRIPTEN_DEBUG_WASM_BINDGEN_VERSION,
     MIN_WASM_BINDGEN_LIB_VERSION, MIN_WORKER_LIB_VERSION,
@@ -52,6 +53,8 @@ pub struct Build {
     pub emscripten: bool,
     pub bin: Option<String>,
     pub emscripten_toolchain: Option<emscripten::Toolchain>,
+    /// The build writes a source map.
+    pub source_map: bool,
 }
 
 /// What sort of output we're going to be generating and flags we're invoking
@@ -243,6 +246,7 @@ impl Build {
             emscripten: build_opts.emscripten,
             bin: build_opts.bin,
             emscripten_toolchain: None,
+            source_map: false,
         })
     }
 
@@ -358,8 +362,19 @@ impl Build {
         info!("Checking crate configuration...");
         if self.emscripten {
             self.bin = Some(self.crate_data.resolve_bin_target(self.bin.as_deref())?);
+            self.source_map = self
+                .crate_data
+                .configured_profile(self.profile.clone())
+                .source_map();
         } else {
             self.crate_data.check_crate_config()?;
+            if self
+                .crate_data
+                .configured_profile(self.profile.clone())
+                .source_map()
+            {
+                PBAR.warn("`source-map` is only supported for --emscripten builds and is ignored.");
+            }
         }
         info!("Crate is correctly configured.");
         Ok(())
@@ -405,6 +420,7 @@ impl Build {
                     bin: self.bin.as_deref().unwrap(),
                     tokio: self.crate_data.worker_tokio_feature(),
                     bindgen_dir: self.bindgen.as_ref().unwrap().parent().unwrap(),
+                    source_map: self.source_map,
                 });
         target::cargo_build_wasm(
             &self.crate_path,
@@ -480,6 +496,49 @@ impl Build {
             })?;
             copy_dir(&snippets, &self.out_dir.join("snippets"))?;
         }
+        if self.source_map {
+            self.collect_source_map(&out, wasm_name, &wasm_out)?;
+        }
+        Ok(())
+    }
+
+    /// Copy the source map emcc wrote beside the link output to
+    /// `<wasm_out>.map`, and point `wasm_out`'s `sourceMappingURL` at it.
+    fn collect_source_map(&self, out: &Path, wasm_name: &str, wasm_out: &str) -> Result<()> {
+        let wasm = std::fs::read(out.join(wasm_name))?;
+        let map_path = source_map::find_link_map(link_output_dirs(out), wasm_name, &wasm)
+            .ok_or_else(|| {
+                anyhow!(
+                    "emcc wrote no source map for {wasm_name} under {}",
+                    out.display()
+                )
+            })?;
+        let roots = source_map::SourceRoots {
+            crate_dir: self.crate_path.clone(),
+            workspace_root: self.crate_data.workspace_root().to_path_buf(),
+            cargo_home: source_map::cargo_home(),
+        };
+        let map = source_map::relocate_map(
+            &std::fs::read_to_string(&map_path)
+                .with_context(|| format!("Failed to read {}", map_path.display()))?,
+            map_path.parent().unwrap(),
+            &roots,
+            wasm_out,
+        )
+        .with_context(|| format!("Invalid source map {}", map_path.display()))?;
+        if !map.has_crate_sources {
+            PBAR.warn(&format!(
+                "The source map has no locations in {}. Set `debug = \"line-tables-only\"` in the \
+                 Cargo profile so stack traces map to your code.",
+                self.crate_path.display()
+            ));
+        }
+        let map_out = format!("{wasm_out}.map");
+        std::fs::write(self.out_dir.join(&map_out), map.json)?;
+        let wasm_out = self.out_dir.join(wasm_out);
+        let updated = source_map::set_source_mapping_url(&std::fs::read(&wasm_out)?, &map_out)?;
+        std::fs::write(&wasm_out, updated)
+            .with_context(|| format!("Failed to write {}", wasm_out.display()))?;
         Ok(())
     }
 
@@ -547,17 +606,18 @@ impl Build {
         let version = self.wasm_bindgen_version.as_ref().unwrap();
         let (bindgen, bindgen_override) = WasmBindgen(version).get_binary(None)?;
         // emcc runs wasm-bindgen with --keep-debug; before #5328 its DWARF
-        // output fails binaryen's exnref translation.
+        // output fails binaryen's exnref translation. Debug builds and source
+        // maps both carry DWARF through that step.
+        let min = &*MIN_EMSCRIPTEN_DEBUG_WASM_BINDGEN_VERSION;
         if self.emscripten
             && !bindgen_override
-            && !matches!(self.profile, BuildProfile::Release)
-            && semver::Version::parse(version)? < *MIN_EMSCRIPTEN_DEBUG_WASM_BINDGEN_VERSION
+            && (!matches!(self.profile, BuildProfile::Release) || self.source_map)
+            && semver::Version::parse(version)? < *min
         {
             bail!(
-                "--emscripten debuginfo builds need a wasm-bindgen CLI with wasm-bindgen/wasm-bindgen#5328, \
-                 unreleased as of {version}. Build with --release, or build the CLI from main and set WASM_BINDGEN_BIN:\n\n  \
-                 cargo install wasm-bindgen-cli --git https://github.com/wasm-bindgen/wasm-bindgen\n  \
-                 export WASM_BINDGEN_BIN=~/.cargo/bin/wasm-bindgen"
+                "--emscripten builds with debug info or `source-map` need wasm-bindgen {min} or \
+                 later (wasm-bindgen/wasm-bindgen#5328), but this crate uses {version}. Update its \
+                 wasm-bindgen dependency, or set WASM_BINDGEN_BIN to a newer wasm-bindgen CLI."
             );
         }
         self.bindgen = Some(bindgen);
@@ -601,19 +661,10 @@ impl Build {
     }
 }
 
-/// The `snippets` directory wasm-bindgen wrote beside cargo's link output.
-/// Older cargo links into `deps/`; newer cargo links bins into
-/// `build/<crate>/<hash>/out/`. The js names the snippet directories it
-/// imports, so the candidate holding every one of them is the right one.
-fn snippets_dir(profile_dir: &Path, js: &str) -> Option<PathBuf> {
-    let wanted: Vec<&str> = js
-        .split("./snippets/")
-        .skip(1)
-        .filter_map(|rest| rest.split('/').next())
-        .collect();
-    if wanted.is_empty() {
-        return None;
-    }
+/// The directories cargo may have linked a bin into, where emcc also writes
+/// files cargo does not uplift. Older cargo links into `deps/`; newer cargo
+/// links bins into `build/<crate>/<hash>/out/`.
+fn link_output_dirs(profile_dir: &Path) -> Vec<PathBuf> {
     let mut candidates = vec![profile_dir.join("deps")];
     if let Ok(crates) = std::fs::read_dir(profile_dir.join("build")) {
         for krate in crates.flatten() {
@@ -623,6 +674,21 @@ fn snippets_dir(profile_dir: &Path, js: &str) -> Option<PathBuf> {
         }
     }
     candidates
+}
+
+/// The `snippets` directory wasm-bindgen wrote beside cargo's link output.
+/// The js names the snippet directories it imports, so the candidate holding
+/// every one of them is the right one.
+fn snippets_dir(profile_dir: &Path, js: &str) -> Option<PathBuf> {
+    let wanted: Vec<&str> = js
+        .split("./snippets/")
+        .skip(1)
+        .filter_map(|rest| rest.split('/').next())
+        .collect();
+    if wanted.is_empty() {
+        return None;
+    }
+    link_output_dirs(profile_dir)
         .into_iter()
         .map(|dir| dir.join("snippets"))
         .find(|dir| wanted.iter().all(|w| dir.join(w).is_dir()))

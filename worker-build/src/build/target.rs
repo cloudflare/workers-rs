@@ -357,6 +357,23 @@ pub struct EmscriptenBuild<'a> {
     pub tokio: bool,
     /// Directory containing the `wasm-bindgen` CLI emcc runs post-link.
     pub bindgen_dir: &'a Path,
+    /// Have emcc write a source map beside the linked wasm.
+    pub source_map: bool,
+}
+
+/// The `-Clink-arg`s that configure the emcc link.
+fn emscripten_link_args(source_map: bool) -> Vec<String> {
+    let mut args: Vec<String> = emscripten::LINK_ARGS
+        .iter()
+        .map(|arg| format!("-Clink-arg={arg}"))
+        .collect();
+    if source_map {
+        // This follows rustc's own `-g0` or `--profiling-funcs`, and a later
+        // `-g0` would turn the source map off again. Unlike `-g`, this keeps
+        // DWARF out of the final module, so Binaryen optimizes fully.
+        args.push("-Clink-arg=-gsource-map".into());
+    }
+    args
 }
 
 /// Run `cargo build` targetting `wasm32-unknown-unknown`, or
@@ -442,11 +459,7 @@ pub fn cargo_build_wasm(
         if em.tokio {
             rustflags.extend(emscripten::TOKIO_RUSTFLAGS.iter().map(|f| f.to_string()));
         }
-        rustflags.extend(
-            emscripten::LINK_ARGS
-                .iter()
-                .map(|arg| format!("-Clink-arg={arg}")),
-        );
+        rustflags.extend(emscripten_link_args(em.source_map));
         cmd.env(
             "CARGO_TARGET_WASM32_UNKNOWN_EMSCRIPTEN_LINKER",
             em.toolchain.emcc(),
@@ -503,4 +516,23 @@ pub fn cargo_build_wasm(
 
     utils::run(cmd, "cargo build").context("Compiling your crate to WebAssembly failed")?;
     Ok(())
+}
+
+#[cfg(test)]
+mod test {
+    use super::emscripten_link_args;
+
+    #[test]
+    fn test_emscripten_link_args_source_map_off() {
+        let args = emscripten_link_args(false);
+        assert!(args.iter().all(|arg| arg.starts_with("-Clink-arg=")));
+        assert!(!args.iter().any(|arg| arg.contains("-g")));
+    }
+
+    #[test]
+    fn test_emscripten_link_args_source_map_last() {
+        let off = emscripten_link_args(false).len();
+        let args = emscripten_link_args(true);
+        assert_eq!(&args[off..], ["-Clink-arg=-gsource-map"]);
+    }
 }
