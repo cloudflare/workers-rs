@@ -24,6 +24,10 @@ const PATCHES: &[(&str, &str)] = &[
         "noderawsockets-dns.patch",
         include_str!("../patches/emscripten/noderawsockets-dns.patch"),
     ),
+    (
+        "sourcemap-line-zero.patch",
+        include_str!("../patches/emscripten/sourcemap-line-zero.patch"),
+    ),
 ];
 
 const STAMP: &str = ".worker-build-patches";
