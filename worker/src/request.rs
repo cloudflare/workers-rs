@@ -1,7 +1,8 @@
 use std::convert::TryFrom;
 
 use crate::{
-    cf::Cf, error::Error, headers::Headers, http::Method, ByteStream, FormData, RequestInit, Result,
+    cf::Cf, error::Error, headers::Headers, http::Method, AbortSignal, ByteStream, FormData,
+    RequestInit, Result,
 };
 
 use js_sys::futures::JsFuture;
@@ -278,6 +279,18 @@ impl Request {
         let url = self.edge_request.url();
         url.parse()
             .map_err(|e| Error::RustError(format!("failed to parse Url from {e}: {url}")))
+    }
+
+    /// The [`AbortSignal`] of this `Request`. For an incoming request it is aborted when the
+    /// client disconnects before the response is complete, so long-running work can stop or
+    /// clean up.
+    ///
+    /// Incoming requests need the [`enable_request_signal`] compatibility flag; without it the
+    /// signal is never aborted.
+    ///
+    /// [`enable_request_signal`]: https://developers.cloudflare.com/workers/configuration/compatibility-flags/#enable-requestsignal-for-incoming-requests
+    pub fn signal(&self) -> AbortSignal {
+        self.edge_request.signal().into()
     }
 
     /// Deserialize the url query
