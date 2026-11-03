@@ -286,7 +286,9 @@ impl Request {
     /// clean up.
     ///
     /// Incoming requests need the [`enable_request_signal`] compatibility flag; without it the
-    /// signal is never aborted.
+    /// signal is never aborted. Passing it on to a subrequest, for example with
+    /// [`Fetch::send_with_signal`](crate::Fetch::send_with_signal), also needs the
+    /// `request_signal_passthrough` flag; without it the subrequest ignores the signal.
     ///
     /// [`enable_request_signal`]: https://developers.cloudflare.com/workers/configuration/compatibility-flags/#enable-requestsignal-for-incoming-requests
     pub fn signal(&self) -> AbortSignal {

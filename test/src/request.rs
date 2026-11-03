@@ -270,8 +270,7 @@ pub async fn handle_wait_delay(req: Request, _env: Env, _data: SomeSharedData) -
     Response::ok("Waited!\n")
 }
 
-/// Reports the incoming request's signal, and the signal of a request constructed with an
-/// already-aborted one, which `Request::signal` has to hand back with its reason.
+/// Reports the incoming request's signal and that of a request constructed with an aborted one.
 #[allow(clippy::needless_pass_by_value)]
 pub fn handle_request_signal(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
     let incoming = req.signal();
@@ -281,7 +280,7 @@ pub fn handle_request_signal(req: Request, _env: Env, _data: SomeSharedData) -> 
     let constructed: Request =
         web_sys::Request::new_with_str_and_init("https://example.com", &init)?.into();
     let signal = constructed.signal();
-    let reason = signal.reason().and_then(|reason| reason.as_string());
+    let reason = signal.reason().as_string();
 
     Response::ok(format!(
         "incoming aborted: {}, constructed aborted: {}, reason: {}",
