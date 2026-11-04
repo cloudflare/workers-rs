@@ -39,6 +39,8 @@ impl Context {
     where
         F: Future<Output = ()> + 'static,
     {
+        // Captured now, so the future runs under the span active at this call.
+        let future = crate::observability::in_current_span(future);
         self.inner
             .wait_until(&future_to_promise(AssertUnwindSafe(async {
                 future.await;
