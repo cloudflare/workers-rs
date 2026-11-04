@@ -32,10 +32,9 @@ mod bindgen_methods {
             quote! { js_name = fetch },
             quote! { fetch(&self, req: ::worker::worker_sys::web_sys::Request) },
             quote! {
-                <Self as ::worker::DurableObject>::fetch(self, req.into()).await
-                    .map(::worker::worker_sys::web_sys::Response::from)
-                    .map(::worker::wasm_bindgen::JsValue::from)
-                    .map_err(::worker::wasm_bindgen::JsValue::from)
+                // `Req` / `Res` are inferred from the struct's single `DurableObject<Req, Res>`
+                // impl (by default `Request` / `Response`).
+                ::worker::durable::__fetch_glue(self, req).await
             },
         );
         quote! {
@@ -44,7 +43,7 @@ mod bindgen_methods {
                 state: ::worker::worker_sys::DurableObjectState,
                 env:   ::worker::Env
             ) -> Self {
-                <Self as ::worker::DurableObject>::new(
+                <Self as ::worker::DurableObject<_, _>>::new(
                     ::worker::durable::State::from(state),
                     env
                 )
@@ -60,7 +59,7 @@ mod bindgen_methods {
             quote! { js_name = alarm },
             quote! { alarm(&self) },
             quote! {
-                <Self as ::worker::DurableObject>::alarm(self).await
+                <Self as ::worker::DurableObject<_, _>>::alarm(self).await
                     .map(::worker::worker_sys::web_sys::Response::from)
                     .map(::worker::wasm_bindgen::JsValue::from)
                     .map_err(::worker::wasm_bindgen::JsValue::from)
@@ -74,7 +73,7 @@ mod bindgen_methods {
             quote! { js_name = connect },
             quote! { connect(&self, socket: ::worker::worker_sys::Socket) },
             quote! {
-                <Self as ::worker::DurableObject>::connect(self, ::worker::Socket::from(socket)).await
+                <Self as ::worker::DurableObject<_, _>>::connect(self, ::worker::Socket::from(socket)).await
                     .map(|_| ::worker::wasm_bindgen::JsValue::UNDEFINED)
                     .map_err(::worker::wasm_bindgen::JsValue::from)
             },
@@ -99,7 +98,7 @@ mod bindgen_methods {
                         ::worker::js_sys::Uint8Array::new(&message).to_vec()
                     )
                 };
-                <Self as ::worker::DurableObject>::websocket_message(self, ws.into(), message).await
+                <Self as ::worker::DurableObject<_, _>>::websocket_message(self, ws.into(), message).await
                     .map(|_| ::worker::wasm_bindgen::JsValue::NULL)
                     .map_err(::worker::wasm_bindgen::JsValue::from)
             },
@@ -117,7 +116,7 @@ mod bindgen_methods {
                 )
             },
             quote! {
-                <Self as ::worker::DurableObject>::websocket_close(self, ws.into(), code, reason, was_clean).await
+                <Self as ::worker::DurableObject<_, _>>::websocket_close(self, ws.into(), code, reason, was_clean).await
                     .map(|_| ::worker::wasm_bindgen::JsValue::NULL)
                     .map_err(::worker::wasm_bindgen::JsValue::from)
             },
@@ -133,7 +132,7 @@ mod bindgen_methods {
                 )
             },
             quote! {
-                <Self as ::worker::DurableObject>::websocket_error(self, ws.into(), error.into()).await
+                <Self as ::worker::DurableObject<_, _>>::websocket_error(self, ws.into(), error.into()).await
                     .map(|_| ::worker::wasm_bindgen::JsValue::NULL)
                     .map_err(::worker::wasm_bindgen::JsValue::from)
             },

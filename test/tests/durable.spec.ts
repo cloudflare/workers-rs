@@ -139,4 +139,37 @@ describe("durable", () => {
     const text = await resp.text();
     expect(text).toBe("Hello from unknown!");
   });
+
+  // HttpRouterObject implements `DurableObject<HttpRequest, http::Response<axum::body::Body>>`
+  // and serves an axum Router under the `http` feature, and matches the same routes by hand on
+  // the default types otherwise. The worker reaches it through `Stub::fetch_request`.
+  test("http-typed durable object routes, status and headers", async () => {
+    const first = await mf.dispatchFetch(`${mfUrl}durable/http-router/greet/ada`, {
+      headers: { "x-from": "worker" },
+    });
+    expect(first.status).toBe(201);
+    expect(await first.text()).toBe("GET hello ada from worker");
+    const hits = Number(first.headers.get("x-hits"));
+    expect(hits).toBeGreaterThan(0);
+
+    const second = await mf.dispatchFetch(`${mfUrl}durable/http-router/greet/grace`);
+    expect(second.status).toBe(201);
+    expect(await second.text()).toBe("GET hello grace from nobody");
+    expect(Number(second.headers.get("x-hits"))).toBe(hits + 1);
+  });
+
+  test("http-typed durable object reads the request body", async () => {
+    const resp = await mf.dispatchFetch(`${mfUrl}durable/http-router/echo`, {
+      method: "POST",
+      body: "streamed through a durable object",
+    });
+    expect(resp.status).toBe(200);
+    expect(await resp.text()).toBe("echo: streamed through a durable object");
+  });
+
+  test("http-typed durable object unmatched route is a 404", async () => {
+    const resp = await mf.dispatchFetch(`${mfUrl}durable/http-router/missing`);
+    expect(resp.status).toBe(404);
+    await resp.arrayBuffer();
+  });
 });

@@ -15,13 +15,15 @@ use std::{
 };
 
 use crate::r2::js_object;
+#[cfg(feature = "http")]
+use crate::HttpResponse;
 use crate::{
     container::Container,
     date::Date,
     env::{Env, EnvBinding},
     error::Error,
-    request::Request,
-    response::Response,
+    request::{FromRequest, Request},
+    response::{IntoResponse, Response},
     Result, Socket, WebSocket,
 };
 use js_sys::{Boolean as JsBoolean, JsString, Object as JsObject};
@@ -37,6 +39,11 @@ use worker_sys::{
     DurableObjectNamespace as EdgeObjectNamespace, DurableObjectState, DurableObjectStorage,
     DurableObjectTransaction,
 };
+
+#[cfg(not(feature = "http"))]
+type StubResponseType = Response;
+#[cfg(feature = "http")]
+type StubResponseType = HttpResponse;
 
 /// A Durable Object stub is a client object used to send requests to a remote Durable Object.
 #[derive(Debug)]
@@ -60,6 +67,28 @@ impl Stub {
         let promise = self.inner.fetch_with_str(url)?;
         let response = JsFuture::from(promise).await?;
         Ok(response.dyn_into::<web_sys::Response>()?.into())
+    }
+
+    /// Send a request to the Durable Object to which the stub points.
+    ///
+    /// Argument type is [`Request`](crate::Request) or [`http::Request<worker::Body>`].
+    ///
+    /// Return type is [`Response`](crate::Response) unless the `http` feature is enabled,
+    /// in which case it is [`http::Response<worker::Body>`]. This mirrors
+    /// [`Fetcher::fetch_request`](crate::Fetcher::fetch_request).
+    pub async fn fetch_request<T, E>(&self, request: T) -> Result<StubResponseType>
+    where
+        T: TryInto<Request, Error = E>,
+        crate::Error: From<E>,
+    {
+        let req = request.try_into()?;
+        let promise = self.inner.fetch_with_request(req.inner())?;
+        let response: web_sys::Response = JsFuture::from(promise).await?.dyn_into()?;
+        #[cfg(feature = "http")]
+        let result = crate::response_from_wasm(response);
+        #[cfg(not(feature = "http"))]
+        let result = Ok(Response::from(response));
+        result
     }
 
     /// Opens a TCP connection to the Durable Object, served by its
@@ -981,15 +1010,56 @@ impl DurableObject for Chatroom {
     }
 }
 ```
+
+## Custom request and response types
+
+`fetch` uses [`Request`] and [`Response`] by default. Implement `DurableObject<Req, Res>` to use
+any [`FromRequest`] / [`IntoResponse`] types instead, the same ones accepted by the
+`#[event(fetch)]` handler. With the `http` feature this lets a Durable Object serve requests with
+an `axum::Router` directly:
+
+```ignore
+use tower_service::Service;
+use worker::*;
+
+#[durable_object]
+pub struct Chatroom {
+    state: State,
+}
+
+impl DurableObject<HttpRequest, http::Response<axum::body::Body>> for Chatroom {
+    fn new(state: State, _env: Env) -> Self {
+        Self { state }
+    }
+
+    async fn fetch(&self, req: HttpRequest) -> Result<http::Response<axum::body::Body>> {
+        let mut router = axum::Router::new()
+            .route("/", axum::routing::get(|| async { "Hello from a Durable Object!" }));
+        Ok(router.call(req).await?)
+    }
+}
+```
+
+A type should implement `DurableObject` for a single `Req` / `Res` pair, since the
+`#[durable_object]` macro infers the types from that impl.
 */
 #[allow(async_fn_in_trait)] // Send is not needed
-pub trait DurableObject: has_durable_object_attribute {
+pub trait DurableObject<Req = Request, Res = Response>: has_durable_object_attribute
+where
+    Req: FromRequest,
+    Res: IntoResponse,
+{
     /// Constructs the Durable Object. This is synchronous; there is no async constructor. For async
     /// setup, call [`State::block_concurrency_while`] here without awaiting it: the runtime blocks
     /// delivery of all events until the initialization future completes.
     fn new(state: State, env: Env) -> Self;
 
-    async fn fetch(&self, req: Request) -> Result<Response>;
+    /// Handles a request sent to this Durable Object, e.g. through [`Stub::fetch_with_request`].
+    ///
+    /// The request and response types default to [`Request`] and [`Response`]. Any
+    /// [`FromRequest`] / [`IntoResponse`] pair can be used instead by implementing
+    /// `DurableObject<Req, Res>`, the same types accepted by the `#[event(fetch)]` handler.
+    async fn fetch(&self, req: Req) -> Result<Res>;
 
     /// Serves a TCP connection opened with [`Stub::connect`]. The socket is
     /// closed when this future completes, so it must live for the whole
@@ -1040,3 +1110,26 @@ pub trait DurableObject: has_durable_object_attribute {
 #[doc(hidden)]
 #[allow(non_camel_case_types)]
 pub trait has_durable_object_attribute {}
+
+/// Glue used by the `#[durable_object]` macro: converts the runtime's request into the
+/// object's `Req` type, calls [`DurableObject::fetch`] and converts `Res` back.
+#[doc(hidden)]
+pub async fn __fetch_glue<T, Req, Res>(
+    object: &T,
+    req: web_sys::Request,
+) -> std::result::Result<JsValue, JsValue>
+where
+    T: DurableObject<Req, Res>,
+    Req: FromRequest,
+    Res: IntoResponse,
+{
+    let req = Req::from_raw(req).map_err(|e| {
+        let e: Box<dyn std::error::Error> = e.into();
+        JsValue::from(Error::RustError(format!("Error converting request: {e}")))
+    })?;
+    let res = object.fetch(req).await.map_err(JsValue::from)?;
+    res.into_raw().map(JsValue::from).map_err(|e| {
+        let e: Box<dyn std::error::Error> = e.into();
+        JsValue::from(Error::RustError(format!("Error converting response: {e}")))
+    })
+}

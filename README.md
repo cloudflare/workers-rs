@@ -81,6 +81,7 @@ This currently does a few things:
 1. The expected return type for the fetch handler is `http::Response<B>` where `B` can be any `http_body::Body<Data=Bytes>`.
 1. The argument for `Fetcher::fetch_request` is `http::Request<worker::Body>`. 
 1. The return type of `Fetcher::fetch_request` is `Result<http::Response<worker::Body>>`.
+1. The return type of `Stub::fetch_request` (Durable Object stubs) is `Result<http::Response<worker::Body>>`.
 
 The end result is being able to use frameworks like `axum` directly (see [example](./examples/axum)): 
 
@@ -268,6 +269,35 @@ bindings = [
 tag = "v1" # Should be unique for each entry
 new_classes = ["Chatroom"] # Array of new classes
 ```
+
+### Using `http` types and `axum` in a Durable Object
+
+`DurableObject` takes the request and response types of `fetch` as optional type parameters,
+`DurableObject<Req = Request, Res = Response>`. They accept the same types as the `#[event(fetch)]`
+handler, so with the `http` feature a Durable Object can take an `http::Request<worker::Body>` and
+hand it straight to an `axum::Router`:
+
+```rust
+#[durable_object]
+pub struct Chatroom {
+    state: State,
+}
+
+impl DurableObject<HttpRequest, http::Response<axum::body::Body>> for Chatroom {
+    fn new(state: State, _env: Env) -> Self {
+        Self { state }
+    }
+
+    async fn fetch(&self, req: HttpRequest) -> Result<http::Response<axum::body::Body>> {
+        let mut router = Router::new().route("/", get(|| async { "Hello from a Durable Object!" }));
+        Ok(router.call(req).await?)
+    }
+}
+```
+
+From the calling Worker, `Stub::fetch_request` accepts either a `worker::Request` or an
+`http::Request<worker::Body>`, and returns an `http::Response<worker::Body>` when the `http` feature
+is enabled (like `Fetcher::fetch_request`).
 
 ### SQLite Storage in Durable Objects
 

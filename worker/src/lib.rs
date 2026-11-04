@@ -37,6 +37,11 @@
 //! 1. The expected return type for the fetch handler is `http::Response<B>` where `B` can be any [`http_body::Body<Data=Bytes>`](http_body::Body).
 //! 1. The argument for [`Fetcher::fetch_request`](Fetcher::fetch_request) is `http::Request<worker::Body>`.
 //! 1. The return type of [`Fetcher::fetch_request`](Fetcher::fetch_request) is `http::Response<worker::Body>`.
+//! 1. The return type of [`Stub::fetch_request`](durable::Stub::fetch_request) is `http::Response<worker::Body>`.
+//!
+//! Durable Objects can opt into `http` types per object by implementing
+//! [`DurableObject<HttpRequest, http::Response<B>>`](DurableObject), so an `axum::Router` can serve
+//! requests inside a Durable Object without manual conversions.
 //!
 //! The end result is being able to use frameworks like `axum` directly (see [example](./examples/axum)):
 //!
