@@ -23,6 +23,7 @@ mod d1;
 mod durable;
 mod fetch;
 mod form;
+mod http_router_object;
 mod js_snippets;
 mod kv;
 mod put_raw;

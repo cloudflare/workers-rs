@@ -74,6 +74,7 @@ const mf_instance = new Miniflare({
           PUT_RAW_TEST_OBJECT: { type: "durable-object", worker: "test", exportName: "PutRawTestObject" },
           AUTO: { type: "durable-object", worker: "test", exportName: "AutoResponseObject" },
           MY_CLASS: { type: "durable-object", worker: "test", exportName: "MyClass" },
+          HTTP_ROUTER: { type: "durable-object", worker: "test", exportName: "HttpRouterObject" },
           ECHO_CONTAINER: { type: "durable-object", worker: "test", exportName: "EchoContainer" },
           SQL_COUNTER: { type: "durable-object", worker: "test", exportName: "SqlCounter" },
           SQL_ITERATOR: { type: "durable-object", worker: "test", exportName: "SqlIterator" },
@@ -97,6 +98,7 @@ const mf_instance = new Miniflare({
           PutRawTestObject: { type: "durable-object", storage: "legacy-kv" },
           AutoResponseObject: { type: "durable-object", storage: "legacy-kv" },
           MyClass: { type: "durable-object", storage: "legacy-kv" },
+          HttpRouterObject: { type: "durable-object", storage: "legacy-kv" },
           EchoContainer: {
             type: "durable-object",
             storage: "sqlite",

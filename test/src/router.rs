@@ -1,9 +1,9 @@
 use crate::signal;
 use crate::{
     alarm, analytics_engine, assets, auto_response, cache, container, counter, d1, durable, fetch,
-    form, js_snippets, kv, put_raw, queue, r2, rate_limit, request, secret_store, send_email,
-    service, socket, sql_counter, sql_iterator, user, ws, SomeSharedData, GLOBAL_SECOND_START,
-    GLOBAL_STATE,
+    form, http_router_object, js_snippets, kv, put_raw, queue, r2, rate_limit, request,
+    secret_store, send_email, service, socket, sql_counter, sql_iterator, user, ws, SomeSharedData,
+    GLOBAL_SECOND_START, GLOBAL_STATE,
 };
 #[cfg(feature = "http")]
 use std::convert::TryInto;
@@ -238,6 +238,9 @@ macro_rules! add_routes (
     add_route!($obj, get, "/durable/constructor-init", durable::handle_constructor_init);
     add_route!($obj, get, "/durable/handle-basic-test", durable::handle_basic_test);
     add_route!($obj, get, "/durable/get-by-name", durable::handle_get_by_name);
+    add_route!($obj, get, format_route!("/durable/http-router/greet/{}", "name"), http_router_object::handle_http_router);
+    add_route!($obj, post, "/durable/http-router/echo", http_router_object::handle_http_router);
+    add_route!($obj, get, "/durable/http-router/missing", http_router_object::handle_http_router);
     add_route!($obj, get, "/durable/get-by-name-with-location-hint", durable::handle_get_by_name_with_location_hint);
     add_route!($obj, get, "/js_snippets/now", js_snippets::performance_now);
     add_route!($obj, get, "/js_snippets/log", js_snippets::console_log);
