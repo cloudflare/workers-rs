@@ -5,7 +5,7 @@ use std::fs;
 use std::ops::Range;
 use std::path::{Path, PathBuf};
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use path_clean::PathClean;
 
 use crate::wasm_util::{
@@ -58,6 +58,94 @@ pub(crate) fn set_source_mapping_url(wasm: &[u8], url: &str) -> Result<Vec<u8>> 
         }
     }
     Ok(output)
+}
+
+/// V8's limit on the functions in a module (`kV8MaxWasmFunctions`); a module
+/// with more can't run.
+const MAX_FUNCTIONS: usize = 1_000_000;
+
+/// The names in the function-names subsection of the module's `name`
+/// section, by function index: `""` for functions without one, up to the
+/// highest named index. Empty when the module has no `name` section.
+pub(crate) fn function_names(wasm: &[u8]) -> Result<Vec<String>> {
+    let mut names = Vec::new();
+    let Some(section) = custom_section(wasm, "name")? else {
+        return Ok(names);
+    };
+    let wasm = &wasm[..section.end];
+    let mut pos = section.start + 1;
+    read_u32_leb128(wasm, &mut pos)?;
+    read_wasm_name(wasm, &mut pos, section.end)?;
+    while pos < section.end {
+        let id = wasm[pos];
+        pos += 1;
+        let len = read_u32_leb128(wasm, &mut pos)? as usize;
+        let end = pos
+            .checked_add(len)
+            .filter(|end| *end <= section.end)
+            .ok_or_else(|| anyhow!("invalid name subsection length"))?;
+        if id == 1 {
+            let subsection = &wasm[..end];
+            for _ in 0..read_u32_leb128(subsection, &mut pos)? {
+                let index = read_u32_leb128(subsection, &mut pos)? as usize;
+                if index >= MAX_FUNCTIONS {
+                    bail!("function index {index} in the name section is out of range");
+                }
+                let name = read_wasm_name(subsection, &mut pos, end)?;
+                if index >= names.len() {
+                    names.resize(index + 1, String::new());
+                }
+                names[index] = name.to_string();
+            }
+        }
+        pos = end;
+    }
+    Ok(names)
+}
+
+/// The module without its custom section called `name`.
+pub(crate) fn remove_custom_section(wasm: &[u8], name: &str) -> Result<Vec<u8>> {
+    Ok(match custom_section(wasm, name)? {
+        Some(range) => [&wasm[..range.start], &wasm[range.end..]].concat(),
+        None => wasm.to_vec(),
+    })
+}
+
+/// The source map field that holds the module's function names: entry `i`
+/// names the function V8 reports as `wasm-function[i]`.
+const FUNCTION_NAMES_FIELD: &str = "x_cloudflare_wasm_function_names";
+
+/// Write `function_names` to the map's `FUNCTION_NAMES_FIELD`.
+fn add_function_names(json: &str, function_names: Vec<String>) -> Result<String> {
+    let mut map: serde_json::Value = serde_json::from_str(json)?;
+    map.as_object_mut()
+        .ok_or_else(|| anyhow!("source map is not a JSON object"))?
+        .insert(FUNCTION_NAMES_FIELD.into(), function_names.into());
+    Ok(serde_json::to_string(&map)?)
+}
+
+/// The map with the module's function names added, and the module, without
+/// its `name` section if `strip`. Fails if the names can't go into the map,
+/// so that the caller ships the module with them.
+pub(crate) fn move_function_names(
+    json: &str,
+    wasm: &[u8],
+    strip: bool,
+) -> Result<(String, Vec<u8>)> {
+    let names = function_names(wasm)?;
+    let json = if names.is_empty() {
+        json.to_string()
+    } else {
+        add_function_names(json, names)?
+    };
+    // The name section follows the code section, so removing it doesn't
+    // move the offsets the map refers to.
+    let wasm = if strip {
+        remove_custom_section(wasm, "name")?
+    } else {
+        wasm.to_vec()
+    };
+    Ok((json, wasm))
 }
 
 /// The map emcc wrote for `wasm_name` in one of the directories cargo links
@@ -219,6 +307,149 @@ mod test {
         let updated = set_source_mapping_url(&wasm, "index_bg.wasm.map").unwrap();
         assert_eq!(url_of(&updated), "index_bg.wasm.map");
         assert!(updated.starts_with(&wasm));
+    }
+
+    /// A `name` section's content holding `subsections`.
+    fn name_section(subsections: &[(u8, Vec<u8>)]) -> Vec<u8> {
+        let mut content = Vec::new();
+        for (id, subsection) in subsections {
+            content.push(*id);
+            append_u32_leb128(&mut content, subsection.len() as u32);
+            content.extend_from_slice(subsection);
+        }
+        content
+    }
+
+    /// A name map, as in the function-names subsection.
+    fn name_map(names: &[(u32, &str)]) -> Vec<u8> {
+        let mut map = Vec::new();
+        append_u32_leb128(&mut map, names.len() as u32);
+        for (index, name) in names {
+            append_u32_leb128(&mut map, *index);
+            append_wasm_name(&mut map, name).unwrap();
+        }
+        map
+    }
+
+    #[test]
+    fn test_function_names() {
+        let names = name_section(&[
+            (0, b"\x03mod".to_vec()),
+            (1, name_map(&[(1, "a"), (3, "b::c"), (130, "d")])),
+            (2, b"\x01\x01\x01\x00\x01x".to_vec()),
+        ]);
+        let mut expected = vec![""; 131];
+        expected[1] = "a";
+        expected[3] = "b::c";
+        expected[130] = "d";
+        assert_eq!(
+            function_names(&module(&[("producers", b"\0"), ("name", &names)])).unwrap(),
+            expected
+        );
+    }
+
+    #[test]
+    fn test_function_names_with_import() {
+        // Imports come first in the function index space.
+        let mut wasm = module(&[(
+            "name",
+            &name_section(&[(1, name_map(&[(0, "imported"), (1, "defined")]))]),
+        )]);
+        wasm.splice(14..14, *b"\x02\x07\x01\x01m\x01f\x00\x00");
+        assert_eq!(function_names(&wasm).unwrap(), ["imported", "defined"]);
+    }
+
+    #[test]
+    fn test_function_names_empty() {
+        assert!(function_names(&module(&[])).unwrap().is_empty());
+        assert!(function_names(&module(&[("name", b"")]))
+            .unwrap()
+            .is_empty());
+        let module_name_only = name_section(&[(0, b"\x03mod".to_vec())]);
+        assert!(function_names(&module(&[("name", &module_name_only)]))
+            .unwrap()
+            .is_empty());
+    }
+
+    #[test]
+    fn test_function_names_rejects_invalid_utf8() {
+        let mut map = name_map(&[(0, "a")]);
+        *map.last_mut().unwrap() = 0xff;
+        assert!(function_names(&module(&[("name", &name_section(&[(1, map)]))])).is_err());
+    }
+
+    #[test]
+    fn test_function_names_rejects_malformed() {
+        let after = ("producers", &b"\0"[..]);
+        for subsection in [
+            // Index 0xffffffff.
+            b"\x01\xff\xff\xff\xff\x0f\x00".to_vec(),
+            // A name longer than the subsection.
+            b"\x01\x00\x05a".to_vec(),
+            // A count cut off by the end of the subsection.
+            b"\x80".to_vec(),
+        ] {
+            let names = name_section(&[(1, subsection), (2, b"\x00".to_vec())]);
+            assert!(function_names(&module(&[("name", &names), after])).is_err());
+        }
+    }
+
+    #[test]
+    fn test_add_function_names() {
+        // `names` keeps its own meaning, whatever it holds.
+        let json =
+            r#"{"version":3,"file":"x.wasm","sources":["a.rs"],"names":["x"],"mappings":"gBAAAA"}"#;
+        let updated = add_function_names(json, vec!["".into(), "f".into()]).unwrap();
+        let mut expected: serde_json::Value = serde_json::from_str(json).unwrap();
+        expected[FUNCTION_NAMES_FIELD] = serde_json::json!(["", "f"]);
+        assert_eq!(
+            serde_json::from_str::<serde_json::Value>(&updated).unwrap(),
+            expected
+        );
+    }
+
+    const MAP: &str = r#"{"version":3,"sources":["a.rs"],"names":[],"mappings":"gBAAA"}"#;
+
+    fn map_names(json: &str) -> serde_json::Value {
+        serde_json::from_str::<serde_json::Value>(json).unwrap()[FUNCTION_NAMES_FIELD].clone()
+    }
+
+    #[test]
+    fn test_move_function_names() {
+        let names = name_section(&[(1, name_map(&[(0, "f")]))]);
+        let wasm = module(&[("name", &names), (SOURCE_MAPPING_URL, b"\x01x")]);
+        let (json, stripped) = move_function_names(MAP, &wasm, true).unwrap();
+        assert_eq!(map_names(&json), serde_json::json!(["f"]));
+        assert_eq!(stripped, remove_custom_section(&wasm, "name").unwrap());
+        let (json, kept) = move_function_names(MAP, &wasm, false).unwrap();
+        assert_eq!(map_names(&json), serde_json::json!(["f"]));
+        assert_eq!(kept, wasm);
+        // Without a name section the map is unchanged.
+        assert_eq!(
+            move_function_names(MAP, &module(&[]), true).unwrap(),
+            (MAP.to_string(), module(&[]))
+        );
+    }
+
+    #[test]
+    fn test_move_function_names_fails_when_names_are_unreadable() {
+        let mut unreadable = name_map(&[(0, "f")]);
+        *unreadable.last_mut().unwrap() = 0xff;
+        let wasm = module(&[("name", &name_section(&[(1, unreadable)]))]);
+        assert!(move_function_names(MAP, &wasm, true).is_err());
+    }
+
+    #[test]
+    fn test_remove_custom_section() {
+        let wasm = module(&[("name", b"\0"), (SOURCE_MAPPING_URL, b"\x01x")]);
+        let stripped = remove_custom_section(&wasm, "name").unwrap();
+        assert!(custom_section(&stripped, "name").unwrap().is_none());
+        assert!(custom_section(&stripped, SOURCE_MAPPING_URL)
+            .unwrap()
+            .is_some());
+        // The type, function and code sections are unchanged.
+        assert_eq!(stripped[..24], wasm[..24]);
+        assert_eq!(remove_custom_section(&stripped, "name").unwrap(), stripped);
     }
 
     fn roots(crate_dir: &str, workspace_root: &str) -> SourceRoots {
