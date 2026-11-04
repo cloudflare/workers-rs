@@ -68,13 +68,13 @@ impl Cf {
     /// The browser-requested prioritization information in the request object.
     ///
     /// Returns `None` when the request carries no prioritization information (the runtime
-    /// reports an empty string, e.g. for HTTP/1.1 requests) or when the value is malformed.
-    /// Unknown keys are ignored.
+    /// reports an empty string, e.g. for HTTP/1.1 requests) or when the value is malformed or has
+    /// no `weight`. Unknown keys are ignored.
     ///
     /// See [this blog post](https://blog.cloudflare.com/better-http-2-prioritization-for-a-faster-web/#customizingprioritizationwithworkers) for details.
     pub fn request_priority(&self) -> Option<RequestPriority> {
         let priority = self.inner.request_priority().unwrap()?;
-        let mut weight = 1;
+        let mut weight = None;
         let mut exclusive = false;
         let mut group = 0;
         let mut group_weight = 0;
@@ -83,7 +83,7 @@ impl Cf {
             let (key, value) = key_value_pair.split_once('=')?;
 
             match key {
-                "weight" => weight = value.parse().ok()?,
+                "weight" => weight = Some(value.parse().ok()?),
                 "exclusive" => exclusive = value == "1",
                 "group" => group = value.parse().ok()?,
                 "group-weight" => group_weight = value.parse().ok()?,
@@ -92,7 +92,7 @@ impl Cf {
         }
 
         Some(RequestPriority {
-            weight,
+            weight: weight?,
             exclusive,
             group,
             group_weight,
@@ -320,6 +320,7 @@ mod tests {
     fn request_priority_malformed_is_none() {
         assert!(cf_with_priority("weight").request_priority().is_none());
         assert!(cf_with_priority("weight=abc").request_priority().is_none());
+        assert!(cf_with_priority("u=3").request_priority().is_none());
     }
 
     #[wasm_bindgen_test]
@@ -328,6 +329,17 @@ mod tests {
             .request_priority()
             .unwrap();
         assert_eq!(p.weight, 192);
+    }
+
+    #[wasm_bindgen_test]
+    fn request_priority_defaults_missing_keys() {
+        let p = cf_with_priority("weight=192;exclusive=0")
+            .request_priority()
+            .unwrap();
+        assert_eq!(
+            (p.weight, p.exclusive, p.group, p.group_weight),
+            (192, false, 0, 0)
+        );
     }
 
     #[wasm_bindgen_test]
