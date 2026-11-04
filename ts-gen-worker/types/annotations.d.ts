@@ -246,6 +246,34 @@ interface QueueRetryOptions {
   delaySeconds?: number;
 }
 
+interface QueueMetrics {
+  /** @rust u64 */
+  backlogCount: number;
+  /** @rust u64 */
+  backlogBytes: number;
+}
+
+interface QueueSendMetrics {
+  /** @rust u64 */
+  backlogCount: number;
+  /** @rust u64 */
+  backlogBytes: number;
+}
+
+interface QueueSendBatchMetrics {
+  /** @rust u64 */
+  backlogCount: number;
+  /** @rust u64 */
+  backlogBytes: number;
+}
+
+interface MessageBatchMetrics {
+  /** @rust u64 */
+  backlogCount: number;
+  /** @rust u64 */
+  backlogBytes: number;
+}
+
 /** {@string copy} */
 interface SocketAddress {
   /** @rust u16 */

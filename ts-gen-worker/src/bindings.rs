@@ -6377,11 +6377,19 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type QueueSendMetrics;
     #[wasm_bindgen(method, getter, js_name = "backlogCount")]
-    pub fn backlog_count(this: &QueueSendMetrics) -> f64;
+    fn __backlog_count(this: &QueueSendMetrics) -> f64;
     #[wasm_bindgen(method, getter, js_name = "backlogBytes")]
-    pub fn backlog_bytes(this: &QueueSendMetrics) -> f64;
+    fn __backlog_bytes(this: &QueueSendMetrics) -> f64;
     #[wasm_bindgen(method, getter, js_name = "oldestMessageTimestamp")]
     pub fn oldest_message_timestamp(this: &QueueSendMetrics) -> Option<Date>;
+}
+impl QueueSendMetrics {
+    pub fn backlog_count(&self) -> u64 {
+        self.__backlog_count() as u64
+    }
+    pub fn backlog_bytes(&self) -> u64 {
+        self.__backlog_bytes() as u64
+    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -6405,11 +6413,19 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type QueueSendBatchMetrics;
     #[wasm_bindgen(method, getter, js_name = "backlogCount")]
-    pub fn backlog_count(this: &QueueSendBatchMetrics) -> f64;
+    fn __backlog_count(this: &QueueSendBatchMetrics) -> f64;
     #[wasm_bindgen(method, getter, js_name = "backlogBytes")]
-    pub fn backlog_bytes(this: &QueueSendBatchMetrics) -> f64;
+    fn __backlog_bytes(this: &QueueSendBatchMetrics) -> f64;
     #[wasm_bindgen(method, getter, js_name = "oldestMessageTimestamp")]
     pub fn oldest_message_timestamp(this: &QueueSendBatchMetrics) -> Option<Date>;
+}
+impl QueueSendBatchMetrics {
+    pub fn backlog_count(&self) -> u64 {
+        self.__backlog_count() as u64
+    }
+    pub fn backlog_bytes(&self) -> u64 {
+        self.__backlog_bytes() as u64
+    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -6581,11 +6597,19 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type QueueMetrics;
     #[wasm_bindgen(method, getter, js_name = "backlogCount")]
-    pub fn backlog_count(this: &QueueMetrics) -> f64;
+    fn __backlog_count(this: &QueueMetrics) -> f64;
     #[wasm_bindgen(method, getter, js_name = "backlogBytes")]
-    pub fn backlog_bytes(this: &QueueMetrics) -> f64;
+    fn __backlog_bytes(this: &QueueMetrics) -> f64;
     #[wasm_bindgen(method, getter, js_name = "oldestMessageTimestamp")]
     pub fn oldest_message_timestamp(this: &QueueMetrics) -> Option<Date>;
+}
+impl QueueMetrics {
+    pub fn backlog_count(&self) -> u64 {
+        self.__backlog_count() as u64
+    }
+    pub fn backlog_bytes(&self) -> u64 {
+        self.__backlog_bytes() as u64
+    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
@@ -6593,11 +6617,19 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type MessageBatchMetrics;
     #[wasm_bindgen(method, getter, js_name = "backlogCount")]
-    pub fn backlog_count(this: &MessageBatchMetrics) -> f64;
+    fn __backlog_count(this: &MessageBatchMetrics) -> f64;
     #[wasm_bindgen(method, getter, js_name = "backlogBytes")]
-    pub fn backlog_bytes(this: &MessageBatchMetrics) -> f64;
+    fn __backlog_bytes(this: &MessageBatchMetrics) -> f64;
     #[wasm_bindgen(method, getter, js_name = "oldestMessageTimestamp")]
     pub fn oldest_message_timestamp(this: &MessageBatchMetrics) -> Option<Date>;
+}
+impl MessageBatchMetrics {
+    pub fn backlog_count(&self) -> u64 {
+        self.__backlog_count() as u64
+    }
+    pub fn backlog_bytes(&self) -> u64 {
+        self.__backlog_bytes() as u64
+    }
 }
 #[wasm_bindgen(experimental_generic_mono)]
 extern "C" {
