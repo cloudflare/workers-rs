@@ -49,6 +49,16 @@ queue = "my_queue"
 [[queues.producers]]
 queue = "my_queue"
 binding = "my_queue"
+
+[[queues.producers]]
+queue = "metrics_queue"
+binding = "metrics_queue"
+
+# Holds messages in the backlog for the duration of the metrics test.
+[[queues.consumers]]
+queue = "metrics_queue"
+max_batch_size = 100
+max_batch_timeout = 60
 [[r2_buckets]]
 binding = 'EMPTY_BUCKET'
 bucket_name = 'empty-bucket'

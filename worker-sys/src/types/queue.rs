@@ -60,4 +60,23 @@ extern "C" {
         messages: js_sys::Array,
         options: JsValue,
     ) -> Result<js_sys::Promise, JsValue>;
+
+    #[wasm_bindgen(method, catch)]
+    pub fn metrics(this: &Queue) -> Result<js_sys::Promise, JsValue>;
+}
+
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(extends=js_sys::Object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type QueueMetrics;
+
+    #[wasm_bindgen(method, getter, js_name=backlogCount)]
+    pub fn backlog_count(this: &QueueMetrics) -> f64;
+
+    #[wasm_bindgen(method, getter, js_name=backlogBytes)]
+    pub fn backlog_bytes(this: &QueueMetrics) -> f64;
+
+    #[wasm_bindgen(method, getter, js_name=oldestMessageTimestamp)]
+    pub fn oldest_message_timestamp(this: &QueueMetrics) -> Option<js_sys::Date>;
 }

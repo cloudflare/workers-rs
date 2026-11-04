@@ -8,7 +8,10 @@ use js_sys::futures::JsFuture;
 use js_sys::Array;
 use serde::{de::DeserializeOwned, Serialize};
 use wasm_bindgen::{prelude::*, JsCast};
-use worker_sys::{Message as MessageSys, MessageBatch as MessageBatchSys, Queue as EdgeQueue};
+use worker_sys::{
+    Message as MessageSys, MessageBatch as MessageBatchSys, Queue as EdgeQueue,
+    QueueMetrics as QueueMetricsSys,
+};
 
 /// A batch of messages that are sent to a consumer Worker.
 #[derive(Debug)]
@@ -695,5 +698,45 @@ impl Queue {
         let fut: JsFuture = self.0.send_batch(messages, batch_send_options)?.into();
         fut.await.map_err(Error::from)?;
         Ok(())
+    }
+
+    /// Returns realtime metrics for the Queue's backlog.
+    ///
+    /// ## Example
+    /// ```no_run
+    /// # async fn example(queue: worker::Queue) -> worker::Result<()> {
+    /// let metrics = queue.metrics().await?;
+    /// if metrics.backlog_count() > 10_000 {
+    ///     // slow down producers
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn metrics(&self) -> Result<QueueMetrics> {
+        let fut: JsFuture = self.0.metrics()?.into();
+        Ok(QueueMetrics(
+            fut.await.map_err(Error::from)?.unchecked_into(),
+        ))
+    }
+}
+
+/// Realtime metrics for a Queue's backlog, returned by [`Queue::metrics`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QueueMetrics(QueueMetricsSys);
+
+impl QueueMetrics {
+    /// The number of messages in the backlog.
+    pub fn backlog_count(&self) -> u64 {
+        self.0.backlog_count() as u64
+    }
+
+    /// The total size of the messages in the backlog, in bytes.
+    pub fn backlog_bytes(&self) -> u64 {
+        self.0.backlog_bytes() as u64
+    }
+
+    /// When the oldest message in the backlog was sent, or `None` when the backlog is empty.
+    pub fn oldest_message_timestamp(&self) -> Option<Date> {
+        self.0.oldest_message_timestamp().map(Date::from)
     }
 }
