@@ -65,7 +65,11 @@ impl Cf {
         self.inner.http_protocol().unwrap()
     }
 
-    /// The browser-requested prioritization information in the request object,
+    /// The browser-requested prioritization information in the request object.
+    ///
+    /// Returns `None` when the request carries no prioritization information (the runtime
+    /// reports an empty string, e.g. for HTTP/1.1 requests) or when the value is malformed.
+    /// Unknown keys are ignored.
     ///
     /// See [this blog post](https://blog.cloudflare.com/better-http-2-prioritization-for-a-faster-web/#customizingprioritizationwithworkers) for details.
     pub fn request_priority(&self) -> Option<RequestPriority> {
@@ -76,15 +80,14 @@ impl Cf {
         let mut group_weight = 0;
 
         for key_value_pair in priority.split(';') {
-            // An empty value ("") or a segment without `=` has no `key=value` pair.
             let (key, value) = key_value_pair.split_once('=')?;
 
             match key {
-                "weight" => weight = value.parse().unwrap(),
+                "weight" => weight = value.parse().ok()?,
                 "exclusive" => exclusive = value == "1",
-                "group" => group = value.parse().unwrap(),
-                "group-weight" => group_weight = value.parse().unwrap(),
-                _ => unreachable!(),
+                "group" => group = value.parse().ok()?,
+                "group-weight" => group_weight = value.parse().ok()?,
+                _ => {}
             }
         }
 
@@ -311,6 +314,20 @@ mod tests {
     #[wasm_bindgen_test]
     fn request_priority_empty_string_is_none() {
         assert!(cf_with_priority("").request_priority().is_none());
+    }
+
+    #[wasm_bindgen_test]
+    fn request_priority_malformed_is_none() {
+        assert!(cf_with_priority("weight").request_priority().is_none());
+        assert!(cf_with_priority("weight=abc").request_priority().is_none());
+    }
+
+    #[wasm_bindgen_test]
+    fn request_priority_ignores_unknown_keys() {
+        let p = cf_with_priority("weight=192;urgency=3")
+            .request_priority()
+            .unwrap();
+        assert_eq!(p.weight, 192);
     }
 
     #[wasm_bindgen_test]
