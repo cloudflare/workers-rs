@@ -8,7 +8,10 @@ use js_sys::futures::JsFuture;
 use js_sys::Array;
 use serde::{de::DeserializeOwned, Serialize};
 use wasm_bindgen::{prelude::*, JsCast};
-use worker_sys::{Message as MessageSys, MessageBatch as MessageBatchSys, Queue as EdgeQueue};
+use worker_sys::{
+    Message as MessageSys, MessageBatch as MessageBatchSys, Queue as EdgeQueue,
+    QueueMetrics as QueueMetricsSys,
+};
 
 /// A batch of messages that are sent to a consumer Worker.
 #[derive(Debug)]
@@ -703,7 +706,7 @@ impl Queue {
     /// ```no_run
     /// # async fn example(queue: worker::Queue) -> worker::Result<()> {
     /// let metrics = queue.metrics().await?;
-    /// if metrics.backlog_count > 10_000 {
+    /// if metrics.backlog_count() > 10_000 {
     ///     // slow down producers
     /// }
     /// # Ok(())
@@ -711,41 +714,29 @@ impl Queue {
     /// ```
     pub async fn metrics(&self) -> Result<QueueMetrics> {
         let fut: JsFuture = self.0.metrics()?.into();
-        let metrics = fut.await.map_err(Error::from)?;
-        QueueMetrics::try_from(metrics)
+        Ok(QueueMetrics(
+            fut.await.map_err(Error::from)?.unchecked_into(),
+        ))
     }
 }
 
 /// Realtime metrics for a Queue's backlog, returned by [`Queue::metrics`].
-#[derive(Debug, Clone)]
-pub struct QueueMetrics {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QueueMetrics(QueueMetricsSys);
+
+impl QueueMetrics {
     /// The number of messages in the backlog.
-    pub backlog_count: u64,
+    pub fn backlog_count(&self) -> u64 {
+        self.0.backlog_count() as u64
+    }
+
     /// The total size of the messages in the backlog, in bytes.
-    pub backlog_bytes: u64,
-    /// When the oldest message in the backlog was sent, if there is one.
-    pub oldest_message_timestamp: Option<Date>,
-}
+    pub fn backlog_bytes(&self) -> u64 {
+        self.0.backlog_bytes() as u64
+    }
 
-impl TryFrom<JsValue> for QueueMetrics {
-    type Error = Error;
-
-    fn try_from(value: JsValue) -> Result<Self> {
-        let number = |key: &str| -> Result<u64> {
-            js_sys::Reflect::get(&value, &key.into())?
-                .as_f64()
-                .map(|n| n as u64)
-                .ok_or_else(|| Error::RustError(format!("queue metrics: `{key}` is not a number")))
-        };
-        let oldest_message_timestamp =
-            js_sys::Reflect::get(&value, &"oldestMessageTimestamp".into())?
-                .dyn_into::<js_sys::Date>()
-                .ok()
-                .map(Date::from);
-        Ok(Self {
-            backlog_count: number("backlogCount")?,
-            backlog_bytes: number("backlogBytes")?,
-            oldest_message_timestamp,
-        })
+    /// When the oldest message in the backlog was sent, or `None` when the backlog is empty.
+    pub fn oldest_message_timestamp(&self) -> Option<Date> {
+        self.0.oldest_message_timestamp().map(Date::from)
     }
 }

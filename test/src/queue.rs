@@ -103,8 +103,8 @@ pub async fn handle_queue_metrics_send(
 pub async fn handle_queue_metrics(_req: Request, env: Env, _: SomeSharedData) -> Result<Response> {
     let metrics = env.queue("metrics_queue")?.metrics().await?;
     Response::from_json(&serde_json::json!({
-        "backlog_count": metrics.backlog_count,
-        "backlog_bytes": metrics.backlog_bytes,
-        "oldest_message_timestamp": metrics.oldest_message_timestamp.map(|d| d.as_millis()),
+        "backlog_count": metrics.backlog_count(),
+        "backlog_bytes": metrics.backlog_bytes(),
+        "oldest_message_timestamp": metrics.oldest_message_timestamp().map(|d| d.as_millis()),
     }))
 }
