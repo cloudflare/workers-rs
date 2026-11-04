@@ -55,6 +55,8 @@ impl ScheduleContext {
     where
         T: Future<Output = ()> + 'static,
     {
+        // Captured now, so the future runs under the span active at this call.
+        let handler = crate::observability::in_current_span(handler);
         self.edge
             .wait_until(future_to_promise(AssertUnwindSafe(async {
                 handler.await;
