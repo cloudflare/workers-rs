@@ -278,3 +278,13 @@ test("cf timezone_name", async () => {
   expect(resp.status).toBe(200);
   expect(await resp.text()).toBe("none");
 });
+
+// Miniflare doesn't pass a client disconnect through to the worker, so this checks that
+// `Request::signal` returns the request's own signal rather than the disconnect itself.
+test("request signal", async () => {
+  const resp = await mf.dispatchFetch(`${mfUrl}request-signal`);
+  expect(resp.status).toBe(200);
+  expect(await resp.text()).toBe(
+    "incoming aborted: false, constructed aborted: true, reason: stop"
+  );
+});

@@ -8,7 +8,8 @@ use serde::Serialize;
 use std::time::Duration;
 use worker::Env;
 use worker::{
-    console_log, ok, Date, Delay, Request, Response, ResponseBody, ResponseBuilder, Result,
+    console_log, ok, web_sys, AbortSignal, Date, Delay, Request, Response, ResponseBody,
+    ResponseBuilder, Result,
 };
 
 #[allow(clippy::needless_pass_by_value)]
@@ -267,6 +268,26 @@ pub async fn handle_wait_delay(req: Request, _env: Env, _data: SomeSharedData) -
     delay.await;
 
     Response::ok("Waited!\n")
+}
+
+/// Reports the incoming request's signal and that of a request constructed with an aborted one.
+#[allow(clippy::needless_pass_by_value)]
+pub fn handle_request_signal(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
+    let incoming = req.signal();
+
+    let init = web_sys::RequestInit::new();
+    init.set_signal(Some(&AbortSignal::abort_with_reason("stop")));
+    let constructed: Request =
+        web_sys::Request::new_with_str_and_init("https://example.com", &init)?.into();
+    let signal = constructed.signal();
+    let reason = signal.reason().as_string();
+
+    Response::ok(format!(
+        "incoming aborted: {}, constructed aborted: {}, reason: {}",
+        incoming.aborted(),
+        signal.aborted(),
+        reason.as_deref().unwrap_or("none"),
+    ))
 }
 
 /// `request.cf.timezone` is optional in workers-types; answer with the name or `none`.
