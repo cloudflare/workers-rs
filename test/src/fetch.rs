@@ -171,9 +171,13 @@ pub async fn handle_dropped_fetch(
     }
     // The request ending would cancel the subrequest anyway, so check while it is still live.
     Delay::from(Duration::from_millis(200)).await;
-    let mut aborted = probe
+    let aborted = probe
         .fetch(format!("http://probe/aborted?{id}"), None)
         .await?;
+    #[cfg(feature = "http")]
+    let mut aborted: Response = aborted.try_into()?;
+    #[cfg(not(feature = "http"))]
+    let mut aborted = aborted;
     Response::ok(aborted.text().await?)
 }
 
