@@ -4,7 +4,7 @@ use serde::Serialize;
 use js_sys::Object;
 use wasm_bindgen::JsCast;
 
-use crate::{DurableObjectStorage, Message, Request, Response, ResponseInitBuilder, Result};
+use crate::{DurableObjectGetOptions, DurableObjectStorage, Message, Request, Response, ResponseInitBuilder, Result};
 
 /// JSON-compatible serialization: maps become objects, `u64` stays a number, missing
 /// `Option`s become `null`, so `Response.json()` sees plain JSON data.
@@ -45,6 +45,16 @@ impl DurableObjectStorage {
     /// `serde_wasm_bindgen` both ways, so a `put_serialized` value round-trips.
     pub async fn get_into<T: DeserializeOwned>(&self, key: &str) -> Result<Option<T>> {
         let value = self.get(key).await?;
+        Ok(value.map(serde_wasm_bindgen::from_value).transpose()?)
+    }
+
+    /// [`get_into`](Self::get_into) with `DurableObjectGetOptions` (`allowConcurrency`, `noCache`).
+    pub async fn get_into_with_options<T: DeserializeOwned>(
+        &self,
+        key: &str,
+        options: &DurableObjectGetOptions,
+    ) -> Result<Option<T>> {
+        let value = self.get_with_options(key, options).await?;
         Ok(value.map(serde_wasm_bindgen::from_value).transpose()?)
     }
 
