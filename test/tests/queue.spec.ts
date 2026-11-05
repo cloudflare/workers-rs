@@ -119,6 +119,49 @@ describe("queue", () => {
     await expect.poll(received, { timeout: 10000 }).toContain(retried);
     // The state from before the `Err` is still there.
     expect(await received()).toContain(kept);
+
+    // The retried message is recorded once, on its second delivery.
+    resp = await mf.dispatchFetch(`${mfUrl}queue/metadata`);
+    const metadata = (await resp.json()) as {
+      body_id: string;
+      attempts: number;
+    }[];
+    expect(
+      metadata.filter((m) => m.body_id === retried).map((m) => m.attempts),
+    ).toEqual([2]);
+    expect(metadata.find((m) => m.body_id === kept)?.attempts).toBe(1);
+  });
+
+  test("read queue message metadata", async () => {
+    const id = uuid.v4();
+
+    const resp = await mf.dispatchFetch(`${mfUrl}queue/send/${id}`, {
+      method: "POST",
+    });
+    expect(resp.status).toBe(200);
+
+    type Metadata = {
+      message_id: string;
+      body_id: string;
+      timestamp: string;
+      attempts: number;
+    };
+    const message = await vi.waitFor(
+      async () => {
+        const resp = await mf.dispatchFetch(`${mfUrl}queue/metadata`);
+        expect(resp.status).toBe(200);
+        const found = ((await resp.json()) as Metadata[]).find(
+          (msg) => msg.body_id === id,
+        );
+        expect(found).toBeDefined();
+        return found!;
+      },
+      { timeout: 5000 },
+    );
+
+    expect(message.attempts).toBe(1);
+    expect(message.message_id).not.toBe("");
+    expect(Date.parse(message.timestamp)).not.toBeNaN();
   });
 
   // Maps must arrive as plain objects, keeping `null` entries.

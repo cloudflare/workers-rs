@@ -185,6 +185,7 @@ macro_rules! add_routes (
     add_route!($obj, get, "/remote-by-path", service::handle_remote_by_path);
     add_route!($obj, post, format_route!("/queue/send/{}", "id"), queue::handle_queue_send);
     add_route!($obj, post, "/queue/send_batch", queue::handle_batch_send);
+    add_route!($obj, get, "/queue/metadata", queue::handle_queue_metadata);
     add_route!($obj, get, "/queue",queue::handle_queue);
     add_route!($obj, post, "/queue/metrics", queue::handle_queue_metrics_send);
     add_route!($obj, get, "/queue/metrics", queue::handle_queue_metrics);
