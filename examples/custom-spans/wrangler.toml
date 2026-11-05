@@ -1,0 +1,14 @@
+name = "custom-spans"
+main = "build/index.js"
+compatibility_date = "2026-09-02"
+
+[build]
+command = "cargo install \"worker-build@^0.8\" && worker-build --release"
+
+# Custom spans are only recorded when tracing is enabled in observability.
+[observability]
+enabled = true
+
+[observability.traces]
+enabled = true
+head_sampling_rate = 1

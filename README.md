@@ -651,6 +651,51 @@ pub async fn main(request: Request, env: Env, _ctx: Context) -> Result<Response>
 ```
 
 
+## Custom Trace Spans
+
+With [tracing enabled](https://developers.cloudflare.com/workers/observability/traces/) on your
+Worker (`observability.traces.enabled = true` in `wrangler.toml`), `worker::observability` binds
+the runtime's [custom spans API](https://developers.cloudflare.com/workers/observability/traces/custom-spans/)
+so your own code shows up in the trace waterfall next to the automatic `fetch`, KV and D1 spans,
+with durations measured by the platform:
+
+```rust
+use worker::observability::{enter_span, enter_span_async, SpanStatus};
+use worker::*;
+
+#[event(fetch)]
+pub async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
+    let key = req.path();
+    enter_span_async("handle_request", move |span| async move {
+        span.set_attribute("http.path", key.as_str());
+
+        let value = enter_span("parse_key", |child| {
+            child.set_attribute("key.len", key.len());
+            key.trim_start_matches('/').to_owned()
+        });
+
+        match env.kv("SOME_NAMESPACE")?.get(&value).text().await? {
+            Some(text) => {
+                span.set_status(SpanStatus::Ok);
+                Response::ok(text)
+            }
+            None => {
+                span.record_exception("key not found");
+                span.set_status(SpanStatus::error("key not found"));
+                Response::error("Not Found", 404)
+            }
+        }
+    })
+    .await
+}
+```
+
+`enter_span` / `enter_span_async` close the span when the body finishes. `start_active_span`
+and `start_span` return a handle you close yourself with `Span::end`, for work that outlives a
+callback such as a streamed response body, and `active_span` returns the span that is active on
+the current async context. See the [`custom-spans` example](./examples/custom-spans) for a
+`tracing_subscriber::Layer` that turns `tracing` spans and events into platform spans.
+
 # Notes and FAQ
 
 It is exciting to see how much is possible with a framework like this, by expanding the options

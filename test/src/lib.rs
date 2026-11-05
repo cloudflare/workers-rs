@@ -19,6 +19,7 @@ mod auto_response;
 mod cache;
 mod container;
 mod counter;
+mod custom_spans;
 mod d1;
 mod durable;
 mod fetch;
