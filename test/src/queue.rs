@@ -1,7 +1,7 @@
+use std::collections::HashMap;
 use std::sync::Mutex;
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use uuid::Uuid;
 
 use super::{SomeSharedData, GLOBAL_MAP_QUEUE_STATE, GLOBAL_QUEUE_STATE};
