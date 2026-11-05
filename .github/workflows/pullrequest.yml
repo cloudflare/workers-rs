@@ -210,6 +210,23 @@ jobs:
           done
           stop emscripten-incoming-tcp
 
+      # A module abort fails the request and every later one, rather than
+      # leaving them to hang until the runtime cancels them.
+      - name: Abort fails fast (tokio)
+        run: |
+          (cd examples/emscripten-tokio && npx -y wrangler@4 dev -c wrangler.ci.toml --port 8787 > wrangler.log 2>&1 &)
+          for i in $(seq 1 30); do
+            grep -q 'Ready on' examples/emscripten-tokio/wrangler.log && break
+            sleep 1
+          done
+          sleep 1
+          test "$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 http://localhost:8787/abort)" = 500
+          test "$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 http://localhost:8787/join)" = 500
+          pkill -f wrangler-dist || true; sleep 1
+          cat examples/emscripten-tokio/wrangler.log
+          grep -q 'Wasm module aborted and cannot handle further calls' examples/emscripten-tokio/wrangler.log
+          ! grep -q 'had hung' examples/emscripten-tokio/wrangler.log
+
       # Concurrent connections as the first traffic of a fresh Worker: each
       # must be accepted in the request that delivered it.
       - name: Cold concurrent connections (incoming-tcp)
