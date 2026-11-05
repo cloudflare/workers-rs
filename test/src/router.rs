@@ -264,16 +264,15 @@ macro_rules! add_routes (
 });
 
 #[cfg(feature = "http")]
-macro_rules! add_http_specific_routes (
-    ($obj:ident) => {
-    add_route!($obj, get, "/http-exact-length", request::handle_exact_length_response);
-});
-
-#[cfg(feature = "http")]
 pub fn make_router(data: SomeSharedData, env: Env) -> axum::Router {
     let router = axum::Router::new();
     add_routes!(router);
-    add_http_specific_routes!(router);
+    add_route!(
+        router,
+        get,
+        "/http-exact-length",
+        request::handle_exact_length_response
+    );
     router
         .fallback(get(handler!(catchall)))
         .layer(Extension(env))

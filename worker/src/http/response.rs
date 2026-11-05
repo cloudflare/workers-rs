@@ -10,9 +10,8 @@ use crate::response::EncodeBody;
 use crate::CfResponseProperties;
 use crate::Headers;
 use crate::ResponseBuilder;
-use crate::{Error, FixedLengthStream};
-use futures_util::TryStreamExt;
-use js_sys::Uint8Array;
+use js_sys::BigInt;
+use wasm_bindgen::JsCast;
 use worker_sys::ext::ResponseExt;
 
 /// **Requires** `http` feature. Convert generic [`http::Response<B>`](crate::HttpResponse)
@@ -45,19 +44,15 @@ where
         None
     } else {
         let exact_length = body.size_hint().exact();
-        let stream = BodyStream::new(body);
-
-        if let Some(exact_length) = exact_length {
-            let stream = stream
-                .map_ok(|value| Uint8Array::from(value).to_vec())
-                .map_err(Error::from);
-
-            let fixed = FixedLengthStream::wrap(stream, exact_length);
-            let fixed: worker_sys::FixedLengthStream = fixed.into();
-
-            Some(fixed.readable().into())
-        } else {
-            Some(wasm_streams::ReadableStream::from_stream(stream).into_raw())
+        let stream = wasm_streams::ReadableStream::from_stream(BodyStream::new(body)).into_raw();
+        // workerd only emits Content-Length for a FixedLengthStream body, which also
+        // errors the response if the body yields a different number of bytes.
+        match exact_length {
+            Some(length) => {
+                let fixed = worker_sys::FixedLengthStream::new_big_int(BigInt::from(length))?;
+                Some(stream.pipe_through(fixed.unchecked_ref()))
+            }
+            None => Some(stream),
         }
     };
 
