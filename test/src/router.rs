@@ -262,6 +262,7 @@ macro_rules! add_routes (
     add_route!($obj, get, "/rate-limit/reset", rate_limit::handle_rate_limit_reset);
     add_route!($obj, get, "/send-email", send_email::handle_send_email);
     add_route!($obj, get, "/signal/poll", signal::handle_signal_poll);
+    add_route!($obj, get, "/http-exact-length", request::handle_exact_length_response);
 });
 
 #[cfg(feature = "http")]

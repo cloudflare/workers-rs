@@ -71,6 +71,7 @@ web-sys = { version = "0.3.107", features = [
     "ProgressEvent",
     "ReadableStream",
     "ReadableStreamDefaultReader",
+    "ReadableWritablePair",
     "Request",
     "RequestInit",
     "RequestCache",
