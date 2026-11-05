@@ -10,7 +10,6 @@ publish = false
 
 [dependencies]
 worker = { path = "../../worker", features = ["experimental_tokio"] }
-tokio = { version = "1", default-features = false, features = ["rt", "macros", "sync", "time"] }
 sqlx = { version = "0.9.0", default-features = false, features = ["postgres", "runtime-tokio"] }
 
 [profile.release]
@@ -20,7 +19,6 @@ opt-level = "s"
 [patch.crates-io]
 # Pending https://github.com/tokio-rs/tokio/pull/8484
 tokio = { git = "https://github.com/guybedford/tokio", tag = "1.53.1-cf.emscripten" }
-tokio-macros = { git = "https://github.com/guybedford/tokio", tag = "1.53.1-cf.emscripten" }
 
-# Pending release of https://github.com/tokio-rs/mio/pull/1969 
-mio = { git = "https://github.com/tokio-rs/mio" }
+# Pending release of https://github.com/tokio-rs/mio/pull/1969
+mio = { git = "https://github.com/tokio-rs/mio", rev = "a88e5e119172e4fb1638926faf65a4fe889e05b1" }

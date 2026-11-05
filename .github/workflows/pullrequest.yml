@@ -119,7 +119,7 @@ jobs:
           sed -i '/"examples\/axum",/d' Cargo.toml
           for example in examples/*/; do
               example_name=$(basename "$example")
-              case "$example_name" in coredump|emscripten|emscripten-tokio|emscripten-tcp|emscripten-incoming-tcp)
+              case "$example_name" in coredump|emscripten|emscripten-tokio|emscripten-tcp|emscripten-incoming-tcp|emscripten-sqlx)
                 echo "Skipping $example_name example"
                 continue
                 ;;
