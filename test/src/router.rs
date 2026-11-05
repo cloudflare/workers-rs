@@ -1,8 +1,8 @@
 use crate::signal;
 use crate::{
-    alarm, analytics_engine, assets, auto_response, cache, container, counter, d1, durable, fetch,
-    form, js_snippets, kv, put_raw, queue, r2, rate_limit, request, secret_store, send_email,
-    serde_repro, service, socket, sql_counter, sql_iterator, user, ws, SomeSharedData,
+    ai, alarm, analytics_engine, assets, auto_response, cache, container, counter, d1, durable,
+    fetch, form, js_snippets, kv, put_raw, queue, r2, rate_limit, request, secret_store,
+    send_email, service, socket, sql_counter, sql_iterator, user, ws, SomeSharedData,
     GLOBAL_SECOND_START, GLOBAL_STATE,
 };
 #[cfg(feature = "http")]
@@ -266,7 +266,7 @@ macro_rules! add_routes (
     add_route!($obj, get, "/send-email", send_email::handle_send_email);
     add_route!($obj, get, "/signal/poll", signal::handle_signal_poll);
     add_route!($obj, get, "/http-exact-length", request::handle_exact_length_response);
-    add_route!($obj, get, "/serde-repro", serde_repro::test_json_compatible_serde_value);
+    add_route!($obj, get, "/ai/run-input", ai::handle_ai_run_input);
 });
 
 #[cfg(feature = "http")]
