@@ -84,8 +84,11 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
     );
 
     let rejection = quote! {{
-        use ::worker::{HandlerErrorViaJsValue as _, HandlerErrorViaStdError as _};
-        (&mut ::worker::HandlerError(Some(e))).take_rejection()
+        use ::worker::{
+            HandlerErrorViaJsValue as _, HandlerErrorViaLocalStdError as _,
+            HandlerErrorViaStdError as _,
+        };
+        (&mut &mut &mut ::worker::HandlerError(Some(e))).take_rejection()
     }};
 
     // create new var using syn item of the attributed fn

@@ -27,7 +27,7 @@ pub async fn queue(
     message_batch: MessageBatch<QueueBody>,
     _env: Env,
     _ctx: Context,
-) -> std::result::Result<(), Box<dyn std::error::Error>> {
+) -> std::result::Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let messages = message_batch.messages()?;
     {
         let mut failed = FAILED_ONCE.lock().unwrap();

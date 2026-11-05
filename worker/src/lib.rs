@@ -201,7 +201,9 @@ pub use crate::email::*;
 pub use crate::env::{Env, EnvBinding, Secret, Var};
 pub use crate::error::Error;
 #[doc(hidden)]
-pub use crate::error::{HandlerError, HandlerErrorViaJsValue, HandlerErrorViaStdError};
+pub use crate::error::{
+    HandlerError, HandlerErrorViaJsValue, HandlerErrorViaLocalStdError, HandlerErrorViaStdError,
+};
 pub use crate::fetcher::Fetcher;
 pub use crate::formdata::*;
 pub use crate::global::Fetch;
