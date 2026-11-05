@@ -310,3 +310,12 @@ pub async fn handle_exact_length_response(
         .body(axum::body::Body::from("exact-length"))
         .unwrap())
 }
+
+#[cfg(not(feature = "http"))]
+pub async fn handle_exact_length_response(
+    _req: Request,
+    _env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
+    Response::ok("exact-length")
+}
