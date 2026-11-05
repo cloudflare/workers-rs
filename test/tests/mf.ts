@@ -67,6 +67,7 @@ const mf_instance = new Miniflare({
           DELETE_BUCKET: { type: "r2", name: "DELETE_BUCKET" },
           my_queue: { type: "queue", name: "my_queue" },
           metrics_queue: { type: "queue", name: "metrics_queue" },
+          map_queue: { type: "queue", name: "map_queue" },
           remote: {
             type: "fetcher",
             handler: async () => new Response("hello world"),
@@ -110,6 +111,7 @@ const mf_instance = new Miniflare({
         },
         triggers: [
           { type: "queue", name: "my_queue", maxBatchTimeout: 1 },
+          { type: "queue", name: "map_queue", maxBatchTimeout: 1 },
           // Holds messages in the backlog for the duration of the metrics test.
           { type: "queue", name: "metrics_queue", maxBatchSize: 100, maxBatchTimeout: 60 },
         ],

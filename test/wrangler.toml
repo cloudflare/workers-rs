@@ -59,6 +59,14 @@ binding = "metrics_queue"
 queue = "metrics_queue"
 max_batch_size = 100
 max_batch_timeout = 60
+
+[[queues.consumers]]
+queue = "map_queue"
+
+[[queues.producers]]
+queue = "map_queue"
+binding = "map_queue"
+
 [[r2_buckets]]
 binding = 'EMPTY_BUCKET'
 bucket_name = 'empty-bucket'
