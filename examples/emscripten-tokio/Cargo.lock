@@ -794,16 +794,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
 
 [[patch.unused]]
-name = "libc"
-version = "0.2.189"
-source = "git+https://github.com/rust-lang/libc?branch=libc-0.2#b29beb056cb7cea51dd1b9e68342e30a956951a9"
-
-[[patch.unused]]
 name = "mio"
-version = "1.2.3"
-source = "git+https://github.com/guybedford/mio?tag=1.2.3-cf.emscripten#0788dbb67883cb6191503af999471def54e3fb77"
-
-[[patch.unused]]
-name = "libc"
-version = "0.2.189"
-source = "git+https://github.com/rust-lang/libc?branch=libc-0.2#b29beb056cb7cea51dd1b9e68342e30a956951a9"
+version = "1.2.4"
+source = "git+https://github.com/tokio-rs/mio#5e2b24a46287dfe06ad025b6ff5b997497bdb606"
