@@ -1,0 +1,14 @@
+name = "custom-spans"
+main = "build/worker/shim.mjs"
+compatibility_date = "2026-06-16"
+
+[build]
+command = "cargo install \"worker-build@^0.8\" && worker-build --release"
+
+# Custom spans are only recorded when tracing is enabled in observability.
+[observability]
+enabled = true
+
+[observability.traces]
+enabled = true
+head_sampling_rate = 1
