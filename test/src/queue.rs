@@ -21,8 +21,13 @@ const FAIL_ONCE_PREFIX: &str = "fail-once:";
 /// lost if the Wasm instance is reinitialized.
 static FAILED_ONCE: Mutex<Vec<Uuid>> = Mutex::new(Vec::new());
 
+// Not `worker::Error`, so the `Err` rejects through the `std::error::Error` fallback.
 #[event(queue)]
-pub async fn queue(message_batch: MessageBatch<QueueBody>, _env: Env, _ctx: Context) -> Result<()> {
+pub async fn queue(
+    message_batch: MessageBatch<QueueBody>,
+    _env: Env,
+    _ctx: Context,
+) -> std::result::Result<(), Box<dyn std::error::Error>> {
     let messages = message_batch.messages()?;
     {
         let mut failed = FAILED_ONCE.lock().unwrap();

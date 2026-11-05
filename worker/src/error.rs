@@ -361,6 +361,41 @@ impl From<Error> for JsValue {
     }
 }
 
+/// The value a handler's `Err` rejects its promise with, chosen per error type
+/// by the event macros. Coherence rules out a blanket `From<E> for JsValue`
+/// alongside specific impls, so the macro glue picks by method resolution on
+/// the concrete type: `(&mut HandlerError(Some(e))).take_rejection()` finds
+/// [`HandlerErrorViaJsValue`] first when `E: Into<JsValue>` (`Error`,
+/// `JsValue`, or a user's `impl From<MyError> for JsValue`), and otherwise
+/// falls back to [`HandlerErrorViaStdError`], a `js_sys::Error` carrying the
+/// source chain.
+#[doc(hidden)]
+#[derive(Debug)]
+pub struct HandlerError<E>(pub Option<E>);
+
+#[doc(hidden)]
+pub trait HandlerErrorViaJsValue {
+    fn take_rejection(&mut self) -> JsValue;
+}
+
+impl<E: Into<JsValue>> HandlerErrorViaJsValue for HandlerError<E> {
+    fn take_rejection(&mut self) -> JsValue {
+        self.0.take().expect("rejection taken once").into()
+    }
+}
+
+#[doc(hidden)]
+pub trait HandlerErrorViaStdError {
+    fn take_rejection(&mut self) -> JsValue;
+}
+
+impl<E: Into<Box<dyn std::error::Error>>> HandlerErrorViaStdError for &mut HandlerError<E> {
+    fn take_rejection(&mut self) -> JsValue {
+        let e: Box<dyn std::error::Error> = self.0.take().expect("rejection taken once").into();
+        js_sys::Error::new(&format_with_chain(e.as_ref())).into()
+    }
+}
+
 /// Walk an error's `source()` chain, formatting each cause on its own
 /// indented line under a `Caused by:` header. Matches the convention used
 /// by `anyhow` and `eyre`. Used when serializing back to a `JsValue` so
