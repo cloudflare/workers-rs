@@ -188,8 +188,12 @@ impl<F: Future> Future for Instrumented<F> {
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<F::Output> {
         let this = self.project();
         match this.span {
-            Some(span) => span.in_scope(|| this.inner.poll(cx)),
-            None => this.inner.poll(cx),
+            // The executor's microtask usually already carries this span, as continuations
+            // registered during the previous poll captured it, so re-entering is skipped then.
+            Some(span) if CAN_REENTER.with(|can| *can) && !worker_sys::is_active_span(&span.0) => {
+                span.in_scope(|| this.inner.poll(cx))
+            }
+            _ => this.inner.poll(cx),
         }
     }
 }
