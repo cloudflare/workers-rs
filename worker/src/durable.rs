@@ -897,12 +897,14 @@ impl From<Duration> for ScheduledTime {
 }
 
 #[derive(Debug, Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GetAlarmOptions {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub allow_concurrency: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SetAlarmOptions {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub allow_concurrency: Option<bool>,

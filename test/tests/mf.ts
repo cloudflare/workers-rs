@@ -72,6 +72,7 @@ const mf_instance = new Miniflare({
             handler: async () => new Response("hello world"),
           },
           COUNTER: { type: "durable-object", worker: "test", exportName: "Counter" },
+          ALARM: { type: "durable-object", worker: "test", exportName: "AlarmObject" },
           PUT_RAW_TEST_OBJECT: { type: "durable-object", worker: "test", exportName: "PutRawTestObject" },
           AUTO: { type: "durable-object", worker: "test", exportName: "AutoResponseObject" },
           MY_CLASS: { type: "durable-object", worker: "test", exportName: "MyClass" },
@@ -95,6 +96,7 @@ const mf_instance = new Miniflare({
         },
         exports: {
           Counter: { type: "durable-object", storage: "legacy-kv" },
+          AlarmObject: { type: "durable-object", storage: "legacy-kv" },
           PutRawTestObject: { type: "durable-object", storage: "legacy-kv" },
           AutoResponseObject: { type: "durable-object", storage: "legacy-kv" },
           MyClass: { type: "durable-object", storage: "legacy-kv" },
