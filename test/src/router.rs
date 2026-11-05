@@ -163,6 +163,7 @@ macro_rules! add_routes (
     add_route!($obj, get, "/request-init-fetch", fetch::handle_request_init_fetch);
     add_route!($obj, get, "/request-init-fetch-post", fetch::handle_request_init_fetch_post);
     add_route!($obj, get, "/cancelled-fetch", fetch::handle_cancelled_fetch);
+    add_route!($obj, get, "/dropped-fetch", fetch::handle_dropped_fetch);
     add_route!($obj, get, "/fetch-timeout", fetch::handle_fetch_timeout);
     add_route!($obj, get, "/redirect-default", request::handle_redirect_default);
     add_route!($obj, get, "/redirect-307", request::handle_redirect_307);

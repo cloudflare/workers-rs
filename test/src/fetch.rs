@@ -156,6 +156,32 @@ pub async fn handle_fetch_timeout(
 }
 
 #[worker::send]
+pub async fn handle_dropped_fetch(
+    req: Request,
+    env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
+    let id = req.url()?.query().unwrap_or_default().to_string();
+    let probe = env.service("ABORT_PROBE")?;
+    let send_fut = Box::pin(probe.fetch(format!("http://probe/?{id}"), None));
+    let delay_fut = Delay::from(Duration::from_millis(100));
+    match futures_util::future::select(delay_fut, send_fut).await {
+        Either::Left((_, send_fut)) => drop(send_fut),
+        Either::Right(_) => panic!("Delay future should have resolved first"),
+    }
+    // The request ending would cancel the subrequest anyway, so check while it is still live.
+    Delay::from(Duration::from_millis(200)).await;
+    let aborted = probe
+        .fetch(format!("http://probe/aborted?{id}"), None)
+        .await?;
+    #[cfg(feature = "http")]
+    let mut aborted: Response = aborted.try_into()?;
+    #[cfg(not(feature = "http"))]
+    let mut aborted = aborted;
+    Response::ok(aborted.text().await?)
+}
+
+#[worker::send]
 pub async fn handle_cloned_fetch(
     _req: Request,
     _env: Env,
