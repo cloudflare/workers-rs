@@ -16,6 +16,8 @@ exclude = [
     "examples/emscripten-tokio",
     "examples/emscripten-tcp",
     "examples/emscripten-incoming-tcp",
+    "examples/emscripten-imagedata",
+    "libwebp-sys",
     "templates/*",
     "wasm-bindgen",
     "wasm-streams",

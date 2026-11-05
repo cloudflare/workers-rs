@@ -1,0 +1,6 @@
+# Serves a prebuilt ../build without rebuilding, so both simd and scalar
+# variants can be benchmarked from the same tree.
+name = "emscripten-imagedata-bench"
+main = "../build/index.js"
+compatibility_date = "2026-09-02"
+compatibility_flags = ["new_module_registry"]
