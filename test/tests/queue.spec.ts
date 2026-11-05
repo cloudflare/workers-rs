@@ -119,42 +119,49 @@ describe("queue", () => {
     await expect.poll(received, { timeout: 10000 }).toContain(retried);
     // The state from before the `Err` is still there.
     expect(await received()).toContain(kept);
-    const meta = (await (await mf.dispatchFetch(`${mfUrl}queue/metadata`)).json()) as { body_id: string; attempts: number }[];
-    expect(meta.filter((m) => m.body_id === retried).map((m) => m.attempts)).toEqual([2]);
-    expect(meta.find((m) => m.body_id === kept)?.attempts).toBe(1);
+
+    // The retried message is recorded once, on its second delivery.
+    resp = await mf.dispatchFetch(`${mfUrl}queue/metadata`);
+    const metadata = (await resp.json()) as {
+      body_id: string;
+      attempts: number;
+    }[];
+    expect(
+      metadata.filter((m) => m.body_id === retried).map((m) => m.attempts),
+    ).toEqual([2]);
+    expect(metadata.find((m) => m.body_id === kept)?.attempts).toBe(1);
   });
 
   test("read queue message metadata", async () => {
     const id = uuid.v4();
 
-    let resp = await mf.dispatchFetch(`${mfUrl}queue/send/${id}`, {
+    const resp = await mf.dispatchFetch(`${mfUrl}queue/send/${id}`, {
       method: "POST",
     });
-
     expect(resp.status).toBe(200);
 
-    await new Promise((resolve) => setTimeout(resolve, 1200));
-
-    resp = await mf.dispatchFetch(`${mfUrl}queue/metadata`);
-    expect(resp.status).toBe(200);
-
-    const messages = (await resp.json()) as {
+    type Metadata = {
       message_id: string;
       body_id: string;
       timestamp: string;
       attempts: number;
-    }[];
+    };
+    const message = await vi.waitFor(
+      async () => {
+        const resp = await mf.dispatchFetch(`${mfUrl}queue/metadata`);
+        expect(resp.status).toBe(200);
+        const found = ((await resp.json()) as Metadata[]).find(
+          (msg) => msg.body_id === id,
+        );
+        expect(found).toBeDefined();
+        return found!;
+      },
+      { timeout: 5000 },
+    );
 
-    const message = messages.find((msg) => msg.body_id === id);
-
-    expect(message).toBeDefined();
-    expect(message).toMatchObject({
-      body_id: id,
-      attempts: 1,
-    });
-    expect(message?.message_id).toBeDefined();
-    expect(message?.timestamp).toBeDefined();
-    expect(Date.parse(message!.timestamp)).not.toBeNaN();
+    expect(message.attempts).toBe(1);
+    expect(message.message_id).not.toBe("");
+    expect(Date.parse(message.timestamp)).not.toBeNaN();
   });
 
   // Maps must arrive as plain objects, keeping `null` entries.

@@ -197,7 +197,7 @@ pub trait MessageExt {
     /// A timestamp when the message was sent.
     fn timestamp(&self) -> Date;
 
-    /// The number of times the message has been attempted.
+    /// The number of times the message has been delivered, starting at 1.
     fn attempts(&self) -> u32;
 
     /// Marks message to be retried.
@@ -221,9 +221,9 @@ impl<T: MessageSysInner> MessageExt for T {
         Date::from(self.inner().timestamp().unwrap())
     }
 
-    /// The number of times the message has been attempted.
+    /// The number of times the message has been delivered, starting at 1.
     fn attempts(&self) -> u32 {
-        self.inner().attempts().unwrap().into()
+        self.inner().attempts()
     }
 
     /// Marks message to be retried.
