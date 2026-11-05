@@ -1,19 +1,20 @@
 use wasm_bindgen::closure::ScopedClosure;
 use wasm_bindgen::prelude::*;
 
-// A namespace import, so runtimes without the `tracing` export still load the module.
+#[wasm_bindgen(module = "cloudflare:workers")]
+extern "C" {
+    /// The `tracing` export of `cloudflare:workers` (custom trace spans).
+    #[wasm_bindgen(thread_local_v2, js_name = tracing)]
+    pub static TRACING: Tracing;
+}
+
 #[wasm_bindgen(inline_js = "
-import * as workers from 'cloudflare:workers';
-export function getTracing() { return workers.tracing; }
+import { tracing } from 'cloudflare:workers';
 export function isActiveSpan(span) {
-  try { return workers.tracing.getActiveSpan() === span; } catch { return false; }
+  try { return tracing.getActiveSpan() === span; } catch { return false; }
 }
 ")]
 extern "C" {
-    /// The `tracing` export of `cloudflare:workers` (custom trace spans), if the runtime has it.
-    #[wasm_bindgen(js_name = getTracing)]
-    pub fn get_tracing() -> Option<Tracing>;
-
     /// Whether `span` is the active span. `false` when the async context belongs to another
     /// request, where `getActiveSpan` throws.
     #[wasm_bindgen(js_name = isActiveSpan)]
@@ -38,10 +39,6 @@ extern "C" {
     /// it invokes exactly once, synchronously.
     #[wasm_bindgen(method, js_name = withActiveSpan)]
     pub fn with_active_span(this: &Tracing, span: &TracingSpan, cb: &ScopedClosure<dyn FnMut()>);
-
-    /// The `withActiveSpan` property, to detect runtimes that predate it.
-    #[wasm_bindgen(method, getter, js_name = withActiveSpan)]
-    pub fn with_active_span_fn(this: &Tracing) -> JsValue;
 
     /// Named `TracingSpan` to leave `Span` free for the `worker` wrapper.
     #[wasm_bindgen(extends = js_sys::Object, js_name = Span)]
