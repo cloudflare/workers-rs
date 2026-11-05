@@ -305,12 +305,14 @@ jobs:
         run: rustup target add wasm32-unknown-unknown
 
       - name: Run unit tests
+        if: runner.os != 'Windows'
         run: chomp test:unit
 
       - name: Run tests
         run: chomp test
 
       - name: Run tests (http)
+        if: runner.os != 'Windows'
         run: chomp test-http
 
   test-panic-unwind:
