@@ -22,13 +22,12 @@ async function runTest() {
         });
     }
 
-    // Maps are serialized as JS `Map`s by default, which `JSON.stringify` encodes
-    // as `{}`; `KvStore::put` must store plain objects instead.
+    // Maps must be stored as plain objects, keeping `null` entries.
     test("put-struct-map", async () => {
         const body = {
             id: "put_struct_map",
             map: { k1: "v1", k2: "v2" },
-            value: { a: 1, b: { c: "d" }, list: [1, "two", null] },
+            value: { a: 1, b: { c: "d" }, n: null, list: [1, "two", null] },
         };
         let response = await mf.dispatchFetch("http://fake.host/kv/put-struct-map", {
             method: "POST",
