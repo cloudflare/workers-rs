@@ -93,7 +93,12 @@ impl DurableObject for MacroCounter {
             let n: Option<u32> = storage.get_into("n").await?;
             let missing: Option<String> = storage.get_into("missing").await?;
             let after: Option<Body> = storage.get_into("body").await?;
-            return Response::builder().ok(format!("{after:?} {n:?} {missing:?}"));
+            let opts = DurableObjectGetOptions::builder().no_cache(true).build();
+            let with_opts: Option<Body> = storage.get_into_with_options("body", &opts).await?;
+            return Response::builder().ok(format!(
+                "{after:?} {n:?} {missing:?} {}",
+                with_opts == after
+            ));
         }
         let count = storage.get::<f64>("count").await?.unwrap_or(0.0) + 1.0;
         storage.put("count", &count).await?;

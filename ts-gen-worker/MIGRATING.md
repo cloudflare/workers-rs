@@ -201,8 +201,15 @@ and `JsValue` for anything else (a `MessagePort` message is any structured clone
 env.durable_object("X")?.id_from_name(n)?.get_stub()?   env.x().get_by_name(n)?
 stub.fetch_with_request(req).await?               stub.fetch(&req).await?
 state.storage().get::<T>(k).await?                storage.get_into::<T>(k).await?
+state.storage().get_with_options::<T>(k, o).await?  storage.get_into_with_options::<T>(k, &o).await?
+state.storage().get_multiple(ks).await?           storage.get_with_keys(&ks).await?
+state.storage().get_multiple_with_options(ks, o)  storage.get_with_keys_and_options(&ks, &o)
 state.storage().put(k, v).await?                  storage.put_serialized(k, &v).await?
 ```
+
+The storage option structs (`DurableObjectGetOptions`, `GetAlarmOptions`, `SetAlarmOptions`,
+`ListOptions`) become the generated `DurableObject*Options` types, built with
+`DurableObjectGetOptions::builder().no_cache(true).build()` and passed by reference.
 
 The generated `storage.get::<T>(k)` returns `Option<T>` for a number, string or handle
 (`storage.get::<f64>("count")`), and `storage.put(k, &v)` takes `&f64`, `&String` or a handle.
