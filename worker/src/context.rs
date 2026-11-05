@@ -2,7 +2,7 @@ use std::future::Future;
 use std::panic::AssertUnwindSafe;
 
 use crate::worker_sys::Context as JsContext;
-use crate::Result;
+use crate::{CacheContext, Result};
 
 use js_sys::futures::future_to_promise;
 use serde::de::DeserializeOwned;
@@ -52,6 +52,15 @@ impl Context {
     /// as though the Worker was never invoked.
     pub fn pass_through_on_exception(&self) {
         self.inner.pass_through_on_exception().unwrap()
+    }
+
+    /// Accesses the calling entrypoint's Workers Cache for purging responses.
+    ///
+    /// Returns `None` when the runtime or execution context does not expose
+    /// Workers Cache. This is distinct from [`crate::Cache`], which wraps the
+    /// Service Worker Cache API.
+    pub fn cache(&self) -> Option<CacheContext> {
+        self.inner.cache().map(Into::into)
     }
 
     /// Get the props passed to this worker execution context.

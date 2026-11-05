@@ -52,6 +52,7 @@ struct ApiData {
 #[derive(Clone)]
 pub struct SomeSharedData {
     regex: &'static Regex,
+    cache: Option<worker::CacheContext>,
 }
 
 static GLOBAL_STATE: AtomicBool = AtomicBool::new(false);
@@ -93,9 +94,12 @@ type HandlerResponse = Response;
 pub async fn main(
     request: HandlerRequest,
     env: Env,
-    _ctx: worker::Context,
+    ctx: worker::Context,
 ) -> Result<HandlerResponse> {
-    let data = SomeSharedData { regex: &DATA_REGEX };
+    let data = SomeSharedData {
+        regex: &DATA_REGEX,
+        cache: ctx.cache(),
+    };
 
     #[cfg(feature = "http")]
     let res = {
