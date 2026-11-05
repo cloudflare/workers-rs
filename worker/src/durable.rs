@@ -437,12 +437,12 @@ impl Storage {
         Self::get_value(self.inner.get(key)?).await
     }
 
-    /// Like [`Storage::get`], passing [`GetOptions`] (`allowConcurrency`, `noCache`) to the
-    /// runtime.
+    /// Like [`Storage::get`], passing [`DurableObjectGetOptions`] (`allowConcurrency`, `noCache`)
+    /// to the runtime.
     pub async fn get_with_options<T: DeserializeOwned>(
         &self,
         key: &str,
-        options: GetOptions,
+        options: DurableObjectGetOptions,
     ) -> Result<Option<T>> {
         let promise = self
             .inner
@@ -467,30 +467,32 @@ impl Storage {
 
     /// Retrieves the values associated with each of the provided keys.
     pub async fn get_multiple(&self, keys: Vec<impl Deref<Target = str>>) -> Result<Map> {
-        let keys = self.inner.get_multiple(
-            keys.into_iter()
-                .map(|key| JsValue::from(key.deref()))
-                .collect(),
-        )?;
-        let keys = JsFuture::from(keys).await?;
-        keys.dyn_into::<Map>().map_err(Error::from)
+        Self::get_map(self.inner.get_multiple(Self::js_keys(keys))?).await
     }
 
-    /// Like [`Storage::get_multiple`], passing [`GetOptions`] (`allowConcurrency`, `noCache`) to
-    /// the runtime.
+    /// Like [`Storage::get_multiple`], passing [`DurableObjectGetOptions`] (`allowConcurrency`,
+    /// `noCache`) to the runtime.
     pub async fn get_multiple_with_options(
         &self,
         keys: Vec<impl Deref<Target = str>>,
-        options: GetOptions,
+        options: DurableObjectGetOptions,
     ) -> Result<Map> {
-        let keys = self.inner.get_multiple_with_options(
-            keys.into_iter()
-                .map(|key| JsValue::from(key.deref()))
-                .collect(),
+        let promise = self.inner.get_multiple_with_options(
+            Self::js_keys(keys),
             serde_wasm_bindgen::to_value(&options)?.into(),
         )?;
-        let keys = JsFuture::from(keys).await?;
-        keys.dyn_into::<Map>().map_err(Error::from)
+        Self::get_map(promise).await
+    }
+
+    fn js_keys(keys: Vec<impl Deref<Target = str>>) -> Vec<JsValue> {
+        keys.into_iter()
+            .map(|key| JsValue::from(key.deref()))
+            .collect()
+    }
+
+    async fn get_map(promise: js_sys::Promise) -> Result<Map> {
+        let map = JsFuture::from(promise).await?;
+        map.dyn_into::<Map>().map_err(Error::from)
     }
 
     /// Stores the value and associates it with the given key.
@@ -930,11 +932,10 @@ impl From<Duration> for ScheduledTime {
     }
 }
 
-/// Options for [`Storage::get_with_options`] and [`Storage::get_multiple_with_options`]; the
-/// runtime's `DurableObjectGetOptions`.
+/// Options for [`Storage::get_with_options`] and [`Storage::get_multiple_with_options`].
 #[derive(Debug, Clone, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct GetOptions {
+pub struct DurableObjectGetOptions {
     /// By default, the runtime pauses delivery of other events to the object while a storage
     /// read is in flight. Set to `true` to let other events be delivered concurrently.
     #[serde(skip_serializing_if = "Option::is_none")]
