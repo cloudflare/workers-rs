@@ -7,6 +7,11 @@ emscripten_epoll_remove_listener deliver epoll readiness as a host
 macrotask through unref'd handles, so a listener alone does not keep the
 runtime alive; Tokio's host-driven event loop is built on them.
 
+Turns coalesce as in emscripten-core/emscripten#28075: wakes share one
+pending microtask turn, and at most one re-arm (and one maybeExit)
+immediate is pending per listener, so a burst of edges cannot exhaust a
+host's immediate cap (workerd's 10,000 timers, #28073).
+
 Base-commit: d6c521a7f (tag 6.0.10)
 
 ---
@@ -53,7 +58,7 @@ diff --git a/src/lib/libepoll.js b/src/lib/libepoll.js
        // EPOLLEXCLUSIVE: when one fd is watched by several epolls, the watched
        // node wakes only one of them per edge (round-robin), not all.
        }, !!(events & {{{ cDefs.EPOLLEXCLUSIVE }}}));
-@@ -345,6 +350,109 @@ var EpollLibrary = {
+@@ -345,6 +350,128 @@ var EpollLibrary = {
  #endif
      return count;
    },
@@ -121,25 +126,44 @@ diff --git a/src/lib/libepoll.js b/src/lib/libepoll.js
 +        // callMain's own exit (under JSPI callMain resumes in a microtask), and
 +        // exiting here would re-enter exitRuntime there.
 +#if !MINIMAL_RUNTIME
-+        emSetImmediate(maybeExit);
++        if (!it.exiting) {
++          it.exiting = true;
++          emSetImmediate(() => {
++            it.exiting = false;
++            maybeExit();
++          });
++        }
 +#endif
 +        return;
 +      }
 +      deliver();
 +      // The delivery took the hold if it left the set ready: another turn, as
-+      // a macrotask so a still-ready level fd yields to I/O.
-+      if (it.held) emSetImmediate(turn);
++      // a macrotask so a still-ready level fd yields to I/O. At most one is
++      // pending: hosts that count immediates (Workers) cap them, and a burst
++      // of edges must not queue one each.
++      if (it.held && !it.rearmed) {
++        it.rearmed = true;
++        emSetImmediate(() => {
++          it.rearmed = false;
++          turn();
++        });
++      }
 +    }
 +    // An edge delivers as a microtask: after the notifying stack (a host event
 +    // or a wasm call) unwinds, but in the same host turn. A macrotask would
 +    // leave that turn, and hosts that scope work to a request (Workers) drop
 +    // immediates left over when the request settles, which would silence the
-+    // listener. Every wake schedules its own turn; one that finds nothing to
-+    // deliver is a no-op. A readiness wake holds the runtime for its turn; a
-+    // teardown wake (POLLNVAL) does not.
++    // listener. Wakes share a pending turn, which re-derives readiness when it
++    // runs; one that finds nothing to deliver is a no-op. A readiness wake
++    // holds the runtime for its turn; a teardown wake (POLLNVAL) does not.
 +    function wake(held) {
 +      if (held) hold();
-+      queueMicrotask(turn);
++      if (it.woken) return;
++      it.woken = true;
++      queueMicrotask(() => {
++        it.woken = false;
++        turn();
++      });
 +    }
 +    it.listener = ep.node.addListener((flags) => wake(!(flags & {{{ cDefs.POLLNVAL }}})));
 +    wake(!epollWouldBlock(ep));
