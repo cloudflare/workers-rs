@@ -121,12 +121,11 @@ describe("queue", () => {
     expect(await received()).toContain(kept);
   });
 
-  // Maps are serialized as JS `Map`s by default, which the `json` content type
-  // encodes as `{}`; the producer must emit plain objects instead.
+  // Maps must arrive as plain objects, keeping `null` entries.
   const mapBody = (id: string) => ({
     id,
     map: { k1: "v1", k2: "v2" },
-    value: { a: 1, b: { c: "d" }, list: [1, "two", null] },
+    value: { a: 1, b: { c: "d" }, n: null, list: [1, "two", null] },
   });
 
   test("send message with map fields to queue", async () => {
