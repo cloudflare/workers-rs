@@ -5,11 +5,19 @@ use wasm_bindgen::prelude::*;
 #[wasm_bindgen(inline_js = "
 import * as workers from 'cloudflare:workers';
 export function getTracing() { return workers.tracing; }
+export function isActiveSpan(span) {
+  try { return workers.tracing.getActiveSpan() === span; } catch { return false; }
+}
 ")]
 extern "C" {
     /// The `tracing` export of `cloudflare:workers` (custom trace spans), if the runtime has it.
     #[wasm_bindgen(js_name = getTracing)]
     pub fn get_tracing() -> Option<Tracing>;
+
+    /// Whether `span` is the active span. `false` when the async context belongs to another
+    /// request, where `getActiveSpan` throws.
+    #[wasm_bindgen(js_name = isActiveSpan)]
+    pub fn is_active_span(span: &TracingSpan) -> bool;
 }
 
 #[wasm_bindgen]
