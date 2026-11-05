@@ -6695,7 +6695,7 @@ extern "C" {
     where
         Body: ::wasm_bindgen::convert::FromWasmAbi;
     #[wasm_bindgen(method, getter)]
-    pub fn attempts<Body>(this: &Message<Body>) -> f64;
+    pub fn attempts<Body>(this: &Message<Body>) -> u32;
     #[wasm_bindgen(method, catch)]
     pub fn retry<Body>(this: &Message<Body>) -> Result<(), crate::Error>;
     #[wasm_bindgen(method, catch, js_name = "retry")]

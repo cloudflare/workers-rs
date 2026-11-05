@@ -246,6 +246,12 @@ interface QueueRetryOptions {
   delaySeconds?: number;
 }
 
+/** {@string copy} */
+interface Message {
+  /** @rust u32 */
+  readonly attempts: number;
+}
+
 interface QueueMetrics {
   /** @rust u64 */
   backlogCount: number;
@@ -476,7 +482,6 @@ interface DurableObjectId {
 /** {@string copy} */ interface KVNamespaceGetWithMetadataResult {}
 /** {@string copy} */ interface KVNamespaceListResult {}
 /** {@string copy} */ interface MessageBatch {}
-/** {@string copy} */ interface Message {}
 /** {@string copy} */ interface PerformanceEntry {}
 /** {@string copy} */ interface R2Conditional {}
 /** {@string copy} */ interface R2HTTPMetadata {}
