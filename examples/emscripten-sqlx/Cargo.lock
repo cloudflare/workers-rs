@@ -650,7 +650,7 @@ checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 [[package]]
 name = "mio"
 version = "1.2.4"
-source = "git+https://github.com/tokio-rs/mio?rev=a88e5e119172e4fb1638926faf65a4fe889e05b1#a88e5e119172e4fb1638926faf65a4fe889e05b1"
+source = "git+https://github.com/tokio-rs/mio#5e2b24a46287dfe06ad025b6ff5b997497bdb606"
 dependencies = [
  "libc",
  "wasi",

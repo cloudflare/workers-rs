@@ -21,4 +21,4 @@ opt-level = "s"
 tokio = { git = "https://github.com/guybedford/tokio", tag = "1.53.1-cf.emscripten" }
 
 # Pending release of https://github.com/tokio-rs/mio/pull/1969
-mio = { git = "https://github.com/tokio-rs/mio", rev = "a88e5e119172e4fb1638926faf65a4fe889e05b1" }
+mio = { git = "https://github.com/tokio-rs/mio" }
