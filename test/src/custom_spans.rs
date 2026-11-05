@@ -9,16 +9,6 @@ fn is_active(span: &Span) -> bool {
     active_span().as_ref() == Some(span)
 }
 
-fn supports_reentry() -> bool {
-    worker::worker_sys::get_tracing()
-        .is_some_and(|tracing| tracing.with_active_span_fn().is_function())
-}
-
-/// Whether the runtime has `tracing.withActiveSpan`, which nesting relies on.
-pub fn handle_support(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
-    Response::from_json(&serde_json::json!({ "reentry": supports_reentry() }))
-}
-
 /// Sync spans: values come back out, nesting follows `enter_span` / `in_scope`, the enclosing
 /// span is restored afterwards, and the span API is callable on open and ended spans.
 pub fn handle_spans(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
@@ -43,13 +33,10 @@ pub fn handle_spans(_req: Request, _env: Env, _data: SomeSharedData) -> Result<R
     manual.record_exception("plain message");
     manual.record_exception(&worker::Error::RustError("rust error".into()));
     manual.record_js_exception(&js_sys::Error::new("js error").into());
-    // `updateName`, `setStatus`, and `spanContext` shipped alongside `withActiveSpan`.
-    if supports_reentry() {
-        manual
-            .update_name("manual-renamed")
-            .set_status(SpanStatus::Error(Some("failed".into())));
-        let _ = manual.span_context();
-    }
+    manual
+        .update_name("manual-renamed")
+        .set_status(SpanStatus::Error(Some("failed".into())));
+    let _ = manual.span_context();
     manual.end();
     manual.end();
     manual.set_attribute("after_end", true);

@@ -27,10 +27,6 @@
 //! future it instruments ([`Span::instrument`]), or for the duration of a closure
 //! ([`Span::in_scope`]). Concurrent futures each nest under their own span.
 //!
-//! Re-entering a span needs `tracing.withActiveSpan`. On runtimes that predate it, `in_scope` and
-//! `instrument` run their body without activating the span, so spans still record but nest under
-//! the enclosing span instead.
-//!
 //! [api]: https://developers.cloudflare.com/workers/observability/traces/custom-spans/
 //! [`tracing::Instrument`]: https://docs.rs/tracing/latest/tracing/trait.Instrument.html
 
@@ -43,24 +39,7 @@ use std::task::{Context, Poll};
 use pin_project::pin_project;
 use wasm_bindgen::closure::ScopedClosure;
 use wasm_bindgen::JsValue;
-use worker_sys::{Tracing, TracingSpan};
-
-thread_local! {
-    static TRACING: Option<Tracing> = worker_sys::get_tracing();
-    static CAN_REENTER: bool = TRACING.with(|tracing| {
-        tracing
-            .as_ref()
-            .is_some_and(|tracing| tracing.with_active_span_fn().is_function())
-    });
-}
-
-fn with_tracing<R>(f: impl FnOnce(&Tracing) -> R) -> R {
-    TRACING.with(|tracing| {
-        f(tracing
-            .as_ref()
-            .expect("custom spans need a runtime with `tracing` in `cloudflare:workers`"))
-    })
-}
+use worker_sys::{TracingSpan, TRACING};
 
 /// A handle to a span. Cheap to clone. Calls on a span that has ended are ignored. Two handles
 /// are equal when they refer to the same span.
@@ -79,9 +58,6 @@ impl Span {
     /// Run `f` with this span active: spans and runtime operations started inside `f` nest under
     /// it. Does not end the span.
     pub fn in_scope<R>(&self, f: impl FnOnce() -> R) -> R {
-        if !CAN_REENTER.with(|can| *can) {
-            return f();
-        }
         let mut f = Some(f);
         let mut out = None;
         // `withActiveSpan` invokes the callback once, synchronously. The callback must not unwind
@@ -93,7 +69,7 @@ impl Span {
             out = Some(std::panic::catch_unwind(AssertUnwindSafe(f)));
         };
         let cb = ScopedClosure::<dyn FnMut()>::borrow_mut_aborting(&mut cb);
-        with_tracing(|tracing| tracing.with_active_span(&self.0, &cb));
+        TRACING.with(|tracing| tracing.with_active_span(&self.0, &cb));
         drop(cb);
         match out.expect("withActiveSpan invokes its callback synchronously") {
             Ok(value) => value,
@@ -190,7 +166,7 @@ impl<F: Future> Future for Instrumented<F> {
         match this.span {
             // The executor's microtask usually already carries this span, as continuations
             // registered during the previous poll captured it, so re-entering is skipped then.
-            Some(span) if CAN_REENTER.with(|can| *can) && !worker_sys::is_active_span(&span.0) => {
+            Some(span) if !worker_sys::is_active_span(&span.0) => {
                 span.in_scope(|| this.inner.poll(cx))
             }
             _ => this.inner.poll(cx),
@@ -271,28 +247,21 @@ attribute_value_num!(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize, f32, f6
 /// Open a span under the active span, without making it active. End it with [`Span::end`]; make
 /// it active with [`Span::in_scope`] or [`Span::instrument`].
 pub fn start_span(name: &str) -> Span {
-    Span(with_tracing(|tracing| tracing.start_span(name)))
+    Span(TRACING.with(|tracing| tracing.start_span(name)))
 }
 
 /// The span active on the current async context, or the invocation's root span outside any
 /// custom span. `None` outside an invocation.
 pub fn active_span() -> Option<Span> {
-    TRACING
-        .with(|tracing| tracing.as_ref().and_then(Tracing::get_active_span))
-        .map(Span)
+    TRACING.with(|tracing| tracing.get_active_span()).map(Span)
 }
 
 /// Wrap `future` so the span active now is active on every poll. Every `#[event]` handler,
 /// Durable Object method, and `wait_until` future is wrapped this way, so code outside any custom
 /// span sees the span it started under rather than whichever span the executor last polled in.
 pub fn in_current_span<F: Future>(future: F) -> Instrumented<F> {
-    let span = if CAN_REENTER.with(|can| *can) {
-        active_span()
-    } else {
-        None
-    };
     Instrumented {
-        span,
+        span: active_span(),
         inner: future,
     }
 }

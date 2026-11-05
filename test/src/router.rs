@@ -117,7 +117,6 @@ macro_rules! add_routes (
     add_route!($obj, get, sync, "/request", request::handle_a_request);
     add_route!($obj, get, sync, "/cf/timezone-name", request::handle_cf_timezone_name);
     add_route!($obj, get, "/analytics-engine", analytics_engine::handle_analytics_event);
-    add_route!($obj, get, sync, "/tracing/support", custom_spans::handle_support);
     add_route!($obj, get, sync, "/tracing/spans", custom_spans::handle_spans);
     add_route!($obj, get, "/tracing/async-spans", custom_spans::handle_async_spans);
     add_route!($obj, get, "/tracing/concurrent-spans", custom_spans::handle_concurrent_spans);
