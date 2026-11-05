@@ -83,6 +83,14 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
         "must have either 'fetch', 'scheduled', 'queue', 'email', 'connect', or 'start' attribute, e.g. #[event(fetch)]",
     );
 
+    let rejection = quote! {{
+        use ::worker::{
+            HandlerErrorViaJsValue as _, HandlerErrorViaLocalStdError as _,
+            HandlerErrorViaStdError as _,
+        };
+        (&mut &mut &mut ::worker::HandlerError(Some(e))).take_rejection()
+    }};
+
     // create new var using syn item of the attributed fn
     let mut input_fn = parse_macro_input!(item as ItemFn);
 
@@ -221,7 +229,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                     // A failed batch rejects, so the runtime retries it.
                     match #input_fn_ident(::worker::MessageBatch::from(event), env, ctx).await {
                         Ok(()) => Ok(::worker::wasm_bindgen::JsValue::UNDEFINED),
-                        Err(e) => Err(::worker::wasm_bindgen::JsValue::from(e)),
+                        Err(e) => Err(#rejection),
                     }
                 },
             );
@@ -278,7 +286,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                     let ctx = worker::Context::new(ctx);
                     match #input_fn_ident(message, env, ctx).await {
                         Ok(()) => Ok(::worker::wasm_bindgen::JsValue::UNDEFINED),
-                        Err(e) => Err(::worker::wasm_bindgen::JsValue::from(e)),
+                        Err(e) => Err(#rejection),
                     }
                 },
             );
@@ -330,7 +338,7 @@ pub fn expand_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                     match ::worker::FromSocket::from_raw(socket) {
                         Ok(socket) => match #input_fn_ident(socket, env, ctx).await {
                             Ok(()) => Ok(::worker::wasm_bindgen::JsValue::UNDEFINED),
-                            Err(e) => Err(::worker::wasm_bindgen::JsValue::from(e)),
+                            Err(e) => Err(#rejection),
                         },
                         Err(err) => {
                             let e: Box<dyn std::error::Error> = err.into();
