@@ -17,6 +17,11 @@ describe("subrequest", () => {
     expect(await resp.text()).toBe("Cancelled");
   });
 
+  test("dropping a fetch aborts it", async () => {
+    const resp = await mf.dispatchFetch(`${mfUrl}dropped-fetch?dropped`);
+    expect(await resp.text()).toBe("true");
+  });
+
   test.skip("request init fetch post", async () => {
     const resp = await mf.dispatchFetch(
       `${mfUrl}request-init-fetch-post`

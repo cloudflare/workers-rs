@@ -41,6 +41,21 @@ async function outboundFetch(request: Request): Promise<Response> {
   return fetch(request);
 }
 
+// Records which of its requests were aborted by the caller, keyed by query string.
+const abortProbe = `
+const aborted = new Set();
+export default {
+  async fetch(request) {
+    const url = new URL(request.url);
+    const id = url.search.slice(1);
+    if (url.pathname === "/aborted") return new Response(String(aborted.has(id)));
+    request.signal.addEventListener("abort", () => aborted.add(id));
+    await new Promise((resolve) => setTimeout(resolve, 10_000));
+    return new Response("not aborted");
+  },
+};
+`;
+
 const mf_instance = new Miniflare({
   workers: [
     {
@@ -67,6 +82,7 @@ const mf_instance = new Miniflare({
           DELETE_BUCKET: { type: "r2", name: "DELETE_BUCKET" },
           my_queue: { type: "queue", name: "my_queue" },
           metrics_queue: { type: "queue", name: "metrics_queue" },
+          ABORT_PROBE: { type: "worker", worker: "abort-probe" },
           remote: {
             type: "fetcher",
             handler: async () => new Response("hello world"),
@@ -120,6 +136,17 @@ const mf_instance = new Miniflare({
       },
       dev: {
         outboundService: { type: "fetcher", handler: outboundFetch },
+      },
+    },
+    {
+      config: {
+        name: "abort-probe",
+        compatibilityDate: "2025-07-24",
+        compatibilityFlags: ["enable_request_signal"],
+        manifest: {
+          mainModule: "probe.js",
+          modules: { "probe.js": { type: "esm" as const, contents: abortProbe } },
+        },
       },
     },
   ],
