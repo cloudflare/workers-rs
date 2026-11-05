@@ -1,0 +1,5 @@
+error: entrypoint is only supported for fetch handlers
+ --> tests/ui/entrypoint-not-fetch.rs:3:33
+  |
+3 | #[event(scheduled, entrypoint = "Scheduled")]
+  |                                 ^^^^^^^^^^^

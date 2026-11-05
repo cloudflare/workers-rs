@@ -17,6 +17,10 @@ const SHIM_TEMPLATE: &str = include_str!("./js/shim-legacy.js");
 use crate::binary::{Esbuild, GetBinary};
 
 pub fn process(out_dir: &Path) -> Result<()> {
+    let glue_path = output_path(out_dir, "index_bg.js");
+    let glue = read_to_string(&glue_path)
+        .with_context(|| format!("Failed to read {}", glue_path.display()))?;
+    let named_entrypoints = crate::entrypoints::NamedEntrypoints::parse(&glue)?;
     let esbuild_path = Esbuild.get_binary(None)?.0;
 
     create_worker_dir(out_dir)?;
@@ -92,10 +96,15 @@ pub fn process(out_dir: &Path) -> Result<()> {
             output
         });
 
-    let shim = shim_template
+    let mut shim = shim_template
         .replace("$WAIT_UNTIL_RESPONSE", wait_until_response)
         .replace("$SNIPPET_JS_IMPORTS", &js_imports)
         .replace("$SNIPPET_WASM_IMPORTS", &wasm_imports);
+    shim.push_str(&named_entrypoints.generate(
+        "imports",
+        false,
+        env::var("RUN_TO_COMPLETION").is_ok(),
+    ));
 
     write_string_to_file(worker_path(out_dir, "shim.js"), shim)?;
 

@@ -46,7 +46,7 @@ const mf_instance = new Miniflare({
     {
       config: {
         name: "test",
-        compatibilityDate: "2025-07-24",
+        compatibilityDate: "2025-11-17",
         cache: { enabled: true },
         manifest,
         env: {
@@ -95,6 +95,7 @@ const mf_instance = new Miniflare({
           },
         },
         exports: {
+          Loopback: { type: "worker" },
           Counter: { type: "durable-object", storage: "legacy-kv" },
           AlarmObject: { type: "durable-object", storage: "legacy-kv" },
           PutRawTestObject: { type: "durable-object", storage: "legacy-kv" },

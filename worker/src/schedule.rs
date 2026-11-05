@@ -4,6 +4,8 @@ use std::panic::AssertUnwindSafe;
 use wasm_bindgen::prelude::*;
 use worker_sys::{ScheduleContext as EdgeScheduleContext, ScheduledEvent as EdgeScheduledEvent};
 
+use crate::Exports;
+
 /// [Schedule](https://developers.cloudflare.com/workers/runtime-apis/scheduled-event#syntax-module-worker)
 #[derive(Debug, Clone)]
 pub struct ScheduledEvent {
@@ -51,6 +53,15 @@ impl From<EdgeScheduleContext> for ScheduleContext {
 }
 
 impl ScheduleContext {
+    /// Returns loopback bindings for this Worker's exported entrypoints.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `ctx.exports` is unavailable in the runtime configuration.
+    pub fn exports(&self) -> Exports {
+        Exports::new(self.edge.exports()).unwrap()
+    }
+
     pub fn wait_until<T>(&self, handler: T)
     where
         T: Future<Output = ()> + 'static,
