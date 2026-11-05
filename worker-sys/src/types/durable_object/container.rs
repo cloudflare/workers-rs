@@ -11,6 +11,9 @@ use crate::Fetcher;
 ///   destroy(error?: any): Promise<void>;
 ///   signal(signo: number): void;
 ///   getTcpPort(port: number): Fetcher;
+///   interceptOutboundHttp(target: string, worker: Fetcher): Promise<void>;
+///   interceptAllOutboundHttp(worker: Fetcher): Promise<void>;
+///   interceptOutboundHttps(target: string, worker: Fetcher): Promise<void>;
 /// }
 ///
 /// interface ContainerStartupOptions {
@@ -43,4 +46,24 @@ extern "C" {
 
     #[wasm_bindgen(method, catch, js_name=getTcpPort)]
     pub fn get_tcp_port(this: &Container, port: u16) -> Result<Fetcher, JsValue>;
+
+    #[wasm_bindgen(method, catch, js_name=interceptOutboundHttp)]
+    pub fn intercept_outbound_http(
+        this: &Container,
+        target: &str,
+        worker: &Fetcher,
+    ) -> Result<Promise, JsValue>;
+
+    #[wasm_bindgen(method, catch, js_name=interceptAllOutboundHttp)]
+    pub fn intercept_all_outbound_http(
+        this: &Container,
+        worker: &Fetcher,
+    ) -> Result<Promise, JsValue>;
+
+    #[wasm_bindgen(method, catch, js_name=interceptOutboundHttps)]
+    pub fn intercept_outbound_https(
+        this: &Container,
+        target: &str,
+        worker: &Fetcher,
+    ) -> Result<Promise, JsValue>;
 }
