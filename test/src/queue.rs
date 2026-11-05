@@ -1,3 +1,5 @@
+use std::sync::Mutex;
+
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -11,10 +13,29 @@ pub struct QueueBody {
     pub id_string: String,
 }
 
+/// A message whose `id_string` starts with this prefix makes the consumer return `Err` on its
+/// first delivery, so the runtime retries the batch.
+const FAIL_ONCE_PREFIX: &str = "fail-once:";
+
+/// Ids of the fail-once messages that have already failed. Like `GLOBAL_QUEUE_STATE`, this is
+/// lost if the Wasm instance is reinitialized.
+static FAILED_ONCE: Mutex<Vec<Uuid>> = Mutex::new(Vec::new());
+
 #[event(queue)]
 pub async fn queue(message_batch: MessageBatch<QueueBody>, _env: Env, _ctx: Context) -> Result<()> {
+    let messages = message_batch.messages()?;
+    {
+        let mut failed = FAILED_ONCE.lock().unwrap();
+        for message in &messages {
+            let body = message.body();
+            if body.id_string.starts_with(FAIL_ONCE_PREFIX) && !failed.contains(&body.id) {
+                failed.push(body.id);
+                return Err("fail-once message, retry the batch".into());
+            }
+        }
+    }
     let mut guard = GLOBAL_QUEUE_STATE.lock().unwrap();
-    for message in message_batch.messages()? {
+    for message in messages {
         console_log!(
             "Received queue message {:?}, with id {} and timestamp: {}",
             message.body(),
