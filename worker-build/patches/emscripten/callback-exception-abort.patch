@@ -1,0 +1,31 @@
+Subject: [PATCH] Abort on an exception escaping an event-loop callback
+
+From guybedford/emscripten gbedford/callback-exception-abort, without its
+test. callUserCallback handled any exception other than exit/unwind
+through handleException, which rethrows it to the host (quit_) and leaves
+the runtime running. From a timer, immediate or epoll listener delivery
+there is no caller to receive it, and a JS exception (e.g. thrown by an
+import) that unwound Rust frames leaves the program wedged: it now aborts
+(abort(), Module.onAbort), as an uncaught panic does.
+
+Base-commit: d6c521a7f (tag 6.0.10), after sourcemap-line-zero.patch
+
+---
+diff --git a/src/lib/libcore.js b/src/lib/libcore.js
+--- a/src/lib/libcore.js
++++ b/src/lib/libcore.js
+@@ -2175,9 +2175,13 @@ addToLibrary({
+     try {
+       return func();
+     } catch (e) {
++      // No caller receives an exception from an event-loop callback, and one
++      // that unwound wasm frames leaves the program state undefined: like an
++      // uncaught exception in a native program, it is fatal.
++      if (!(e instanceof ExitStatus || e == 'unwind')) abort(e?.stack ?? e);
+       handleException(e);
+     } finally {
+-      maybeExit();
++      if (!ABORT) maybeExit();
+     }
+   },
+ 

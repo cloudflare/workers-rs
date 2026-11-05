@@ -5,6 +5,11 @@ guybedford/emscripten tag 6.0.10-cf.emscripten, without its tests. Exposes
 the -sNODERAWSOCKETS hostname lookup that getaddrinfo performs as a
 completion callback, for event-loop callers that cannot block on it.
 
+Also skips resolver entries whose address does not parse (as in the
+closed emscripten-core/emscripten#28049; workerd's dns.lookup returns
+CNAME target names), and returns EAI_FAIL from a lookup that rejects or a
+result that cannot be written, rather than throwing into wasm.
+
 Base-commit: d6c521a7f (tag 6.0.10), after epoll-listeners.patch
 
 ---
@@ -229,7 +234,7 @@ diff --git a/src/lib/libsigs.js b/src/lib/libsigs.js
 diff --git a/src/lib/libsockfs.js b/src/lib/libsockfs.js
 --- a/src/lib/libsockfs.js
 +++ b/src/lib/libsockfs.js
-@@ -850,4 +850,55 @@ addToLibrary({
+@@ -850,4 +850,60 @@ addToLibrary({
    emscripten_set_socket_close_callback__deps: ['$_setNetworkCallback'],
    emscripten_set_socket_close_callback: (userData, callback) =>
      _setNetworkCallback('close', userData, callback),
@@ -259,7 +264,7 @@ diff --git a/src/lib/libsockfs.js b/src/lib/libsockfs.js
 +    if (desc.lookup) {
 +      // Pending: the lookup holds the runtime until it lands, like a timer.
 +      {{{ runtimeKeepalivePush() }}}
-+      desc.lookup().then((result) => {
++      desc.lookup().catch(() => {{{ cDefs.EAI_FAIL }}}).then((result) => {
 +        {{{ runtimeKeepalivePop() }}}
 +        dns.result = result;
 +        callUserCallback(() => stream.node.notifyListeners({{{ cDefs.POLLRDNORM | cDefs.POLLIN }}}));
@@ -274,34 +279,67 @@ diff --git a/src/lib/libsockfs.js b/src/lib/libsockfs.js
 +  // The outcome of an emscripten_dns_lookup_async fd: 0 with a newly allocated
 +  // addrinfo list in *res (the caller frees it with freeaddrinfo), an EAI_* code,
 +  // or EAI_AGAIN while still pending. EAI_SYSTEM if fd is not a lookup fd (the
-+  // one use here of an EAI_* code outside its getaddrinfo meaning).
++  // one use here of an EAI_* code outside its getaddrinfo meaning); EAI_FAIL if
++  // the lookup failed unexpectedly or its result cannot be represented.
 +  emscripten_dns_lookup_result__deps: ['$FS', '$writeAddrInfo'],
 +  emscripten_dns_lookup_result__proxy: 'sync',
 +  emscripten_dns_lookup_result: (fd, res) => {
 +    var dns = FS.getStream(fd)?.shared.dns;
 +    if (!dns) return {{{ cDefs.EAI_SYSTEM }}};
 +    if (!('result' in dns)) return {{{ cDefs.EAI_AGAIN }}};
-+    return writeAddrInfo(dns.result, res);
++    try {
++      return writeAddrInfo(dns.result, res);
++    } catch (e) {
++      return {{{ cDefs.EAI_FAIL }}};
++    }
 +  },
 +#endif
  });
+diff --git a/src/lib/libsockfs_node.js b/src/lib/libsockfs_node.js
+--- a/src/lib/libsockfs_node.js
++++ b/src/lib/libsockfs_node.js
+@@ -97,10 +97,14 @@ var NodeSockFSLibrary = {
+                 return resolve({{{ cDefs.EAI_NONAME }}});
+             }
+           }
+-          if (!addresses.length) return resolve({{{ cDefs.EAI_NONAME }}});
+-          resolve(addresses.map((a) => a.family === 6 ?
++          // Skip entries whose address does not parse (e.g. a CNAME target
++          // name from a non-conforming resolver). With none left, the name
++          // has no address.
++          var entries = addresses.map((a) => a.family === 6 ?
+             { family: {{{ cDefs.AF_INET6 }}}, addr: inetPton6(a.address) } :
+-            { family: {{{ cDefs.AF_INET }}}, addr: inetPton4(a.address) }));
++            { family: {{{ cDefs.AF_INET }}}, addr: inetPton4(a.address) })
++            .filter((e) => e.addr !== null);
++          resolve(entries.length ? entries : {{{ cDefs.EAI_NONAME }}});
+         });
+       });
+     },
 diff --git a/src/struct_info.json b/src/struct_info.json
 --- a/src/struct_info.json
 +++ b/src/struct_info.json
-@@ -207,7 +207,8 @@
+@@ -207,7 +207,9 @@
              "EAI_NONAME",
              "EAI_SOCKTYPE",
              "EAI_BADFLAGS",
 -            "EAI_AGAIN"
 +            "EAI_AGAIN",
-+            "EAI_SYSTEM"
++            "EAI_SYSTEM",
++            "EAI_FAIL"
          ],
          "structs": {
              "addrinfo": [
 diff --git a/src/struct_info_generated.json b/src/struct_info_generated.json
 --- a/src/struct_info_generated.json
 +++ b/src/struct_info_generated.json
-@@ -71,6 +71,7 @@
+@@ -66,11 +66,13 @@
+         "EAGAIN": 6,
+         "EAI_AGAIN": -3,
+         "EAI_BADFLAGS": -1,
++        "EAI_FAIL": -4,
+         "EAI_FAMILY": -6,
+         "EAI_NONAME": -2,
          "EAI_OVERFLOW": -12,
          "EAI_SERVICE": -8,
          "EAI_SOCKTYPE": -7,
@@ -312,7 +350,13 @@ diff --git a/src/struct_info_generated.json b/src/struct_info_generated.json
 diff --git a/src/struct_info_generated_wasm64.json b/src/struct_info_generated_wasm64.json
 --- a/src/struct_info_generated_wasm64.json
 +++ b/src/struct_info_generated_wasm64.json
-@@ -71,6 +71,7 @@
+@@ -66,11 +66,13 @@
+         "EAGAIN": 6,
+         "EAI_AGAIN": -3,
+         "EAI_BADFLAGS": -1,
++        "EAI_FAIL": -4,
+         "EAI_FAMILY": -6,
+         "EAI_NONAME": -2,
          "EAI_OVERFLOW": -12,
          "EAI_SERVICE": -8,
          "EAI_SOCKTYPE": -7,

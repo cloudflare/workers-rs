@@ -28,6 +28,14 @@ const PATCHES: &[(&str, &str)] = &[
         "sourcemap-line-zero.patch",
         include_str!("../patches/emscripten/sourcemap-line-zero.patch"),
     ),
+    (
+        "callback-exception-abort.patch",
+        include_str!("../patches/emscripten/callback-exception-abort.patch"),
+    ),
+    (
+        "noderawsockets-tcp.patch",
+        include_str!("../patches/emscripten/noderawsockets-tcp.patch"),
+    ),
 ];
 
 const STAMP: &str = ".worker-build-patches";
