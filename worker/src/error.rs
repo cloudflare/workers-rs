@@ -361,6 +361,69 @@ impl From<Error> for JsValue {
     }
 }
 
+/// The value a handler's `Err` rejects its promise with, chosen per error type
+/// by the event macros. Coherence rules out a blanket `From<E> for JsValue`
+/// alongside specific impls, so the glue picks by method resolution on the
+/// concrete type. `(&mut &mut &mut HandlerError(Some(e))).take_rejection()`
+/// tries each tier one auto-deref apart, in order:
+///
+/// 1. [`HandlerErrorViaJsValue`]: `E: Into<JsValue>` (`Error`, `JsValue`, or a
+///    user's `impl From<MyError> for JsValue`) keeps its conversion.
+/// 2. [`HandlerErrorViaStdError`]: `E: Into<Box<dyn Error + Send + Sync>>`
+///    (`anyhow::Error`, `Box<dyn Error + Send + Sync>`, `String`, ...).
+/// 3. [`HandlerErrorViaLocalStdError`]: `E: Into<Box<dyn Error>>`, for
+///    `Box<dyn Error>` and errors that are not `Send + Sync`.
+///
+/// Tiers 2 and 3 reject with a `js_sys::Error` carrying the source chain.
+#[doc(hidden)]
+#[derive(Debug)]
+pub struct HandlerError<E>(pub Option<E>);
+
+impl<E> HandlerError<E> {
+    fn take(&mut self) -> E {
+        self.0.take().expect("rejection taken once")
+    }
+}
+
+fn std_error_rejection(e: &dyn std::error::Error) -> JsValue {
+    js_sys::Error::new(&format_with_chain(e)).into()
+}
+
+#[doc(hidden)]
+pub trait HandlerErrorViaJsValue {
+    fn take_rejection(&mut self) -> JsValue;
+}
+
+impl<E: Into<JsValue>> HandlerErrorViaJsValue for &mut &mut HandlerError<E> {
+    fn take_rejection(&mut self) -> JsValue {
+        self.take().into()
+    }
+}
+
+#[doc(hidden)]
+pub trait HandlerErrorViaStdError {
+    fn take_rejection(&mut self) -> JsValue;
+}
+
+impl<E: Into<Box<dyn std::error::Error + Send + Sync>>> HandlerErrorViaStdError
+    for &mut HandlerError<E>
+{
+    fn take_rejection(&mut self) -> JsValue {
+        std_error_rejection(self.take().into().as_ref())
+    }
+}
+
+#[doc(hidden)]
+pub trait HandlerErrorViaLocalStdError {
+    fn take_rejection(&mut self) -> JsValue;
+}
+
+impl<E: Into<Box<dyn std::error::Error>>> HandlerErrorViaLocalStdError for HandlerError<E> {
+    fn take_rejection(&mut self) -> JsValue {
+        std_error_rejection(self.take().into().as_ref())
+    }
+}
+
 /// Walk an error's `source()` chain, formatting each cause on its own
 /// indented line under a `Caused by:` header. Matches the convention used
 /// by `anyhow` and `eyre`. Used when serializing back to a `JsValue` so

@@ -1,8 +1,8 @@
 use crate::signal;
 use crate::{
-    alarm, analytics_engine, assets, auto_response, cache, container, counter, d1, durable, fetch,
-    form, js_snippets, kv, put_raw, queue, r2, rate_limit, request, secret_store, send_email,
-    service, socket, sql_counter, sql_iterator, user, workflow, ws, SomeSharedData,
+    ai, alarm, analytics_engine, assets, auto_response, cache, container, counter, d1, durable,
+    fetch, form, js_snippets, kv, put_raw, queue, r2, rate_limit, request, secret_store,
+    send_email, service, socket, sql_counter, sql_iterator, user, workflow, ws, SomeSharedData,
     GLOBAL_SECOND_START, GLOBAL_STATE,
 };
 #[cfg(feature = "http")]
@@ -117,6 +117,7 @@ macro_rules! add_route (
 macro_rules! add_routes (
     ($obj:ident) => {
     add_route!($obj, get, sync, "/request", request::handle_a_request);
+    add_route!($obj, get, sync, "/cf/timezone-name", request::handle_cf_timezone_name);
     add_route!($obj, get, "/analytics-engine", analytics_engine::handle_analytics_event);
     add_route!($obj, get, "/async-request", request::handle_async_request);
     add_route!($obj, get, format_route!("/asset/{}", "name"), assets::handle_asset);
@@ -140,6 +141,7 @@ macro_rules! add_routes (
     add_route!($obj, get, "/fetch_json",fetch::handle_fetch_json);
     add_route!($obj, get, format_route!("/proxy_request/{}", "*url") ,fetch::handle_proxy_request);
     add_route!($obj, get, "/durable/alarm", alarm::handle_alarm);
+    add_route!($obj, get, "/durable/alarm-options", alarm::handle_alarm_options);
     add_route!($obj, get, format_route!("/durable/{}", "id"), counter::handle_id);
     add_route!($obj, get, "/durable/put-raw", put_raw::handle_put_raw);
     add_route!($obj, get, "/durable/websocket", counter::handle_websocket);
@@ -172,6 +174,8 @@ macro_rules! add_routes (
     add_route!($obj, get, "/cloned-fetch", fetch::handle_cloned_fetch);
     add_route!($obj, get, "/cloned-response", fetch::handle_cloned_response_attributes);
     add_route!($obj, get, format_route!("/wait/{}", "delay"), request::handle_wait_delay);
+    add_route!($obj, get, "/delay-race", request::handle_delay_race);
+    add_route!($obj, get, sync, "/request-signal", request::handle_request_signal);
     add_route!($obj, get, "/custom-response-body", request::handle_custom_response_body);
     add_route!($obj, get, "/init-called", handle_init_called);
     add_route!($obj, get, "/cache-example", cache::handle_cache_example);
@@ -183,7 +187,13 @@ macro_rules! add_routes (
     add_route!($obj, get, "/remote-by-path", service::handle_remote_by_path);
     add_route!($obj, post, format_route!("/queue/send/{}", "id"), queue::handle_queue_send);
     add_route!($obj, post, "/queue/send_batch", queue::handle_batch_send);
+    add_route!($obj, get, "/queue/metadata", queue::handle_queue_metadata);
     add_route!($obj, get, "/queue",queue::handle_queue);
+    add_route!($obj, post, "/queue/metrics", queue::handle_queue_metrics_send);
+    add_route!($obj, get, "/queue/metrics", queue::handle_queue_metrics);
+    add_route!($obj, post, "/queue/map/send", queue::handle_map_queue_send);
+    add_route!($obj, post, "/queue/map/send_batch", queue::handle_map_queue_send_batch);
+    add_route!($obj, get, "/queue/map", queue::handle_map_queue);
     add_route!($obj, get, "/d1/prepared", d1::prepared_statement);
     add_route!($obj, get, "/d1/batch", d1::batch);
     add_route!($obj, get, "/d1/session_prepare_and_batch", d1::session_prepare_and_batch);
@@ -208,13 +218,18 @@ macro_rules! add_routes (
     add_route!($obj, get, "/kv/put-metadata", kv::put_metadata);
     add_route!($obj, get, "/kv/put-metadata-struct", kv::put_metadata_struct);
     add_route!($obj, get, "/kv/put-expiration", kv::put_expiration);
+    add_route!($obj, post, "/kv/put-struct-map", kv::put_struct_map);
     add_route!($obj, get, "/kv/get-bulk", kv::get_bulk);
     add_route!($obj, get, "/kv/get-bulk-empty", kv::get_bulk_empty);
     add_route!($obj, get, "/kv/get-bulk-limit", kv::get_bulk_limit);
     add_route!($obj, get, "/r2/list-empty", r2::list_empty);
     add_route!($obj, get, "/r2/list", r2::list);
+    add_route!($obj, get, "/r2/list-without-include", r2::list_without_include);
     add_route!($obj, get,"/r2/get-empty", r2::get_empty);
     add_route!($obj, get, "/r2/get", r2::get);
+    add_route!($obj, get, "/r2/get-range/offset-length", r2::get_range_offset_length);
+    add_route!($obj, get, "/r2/get-range/suffix", r2::get_range_suffix);
+    add_route!($obj, get, "/r2/get-range/none", r2::get_range_none);
     add_route!($obj, put,  "/r2/put", r2::put);
     add_route!($obj, put,  "/r2/put-properties", r2::put_properties);
     add_route!($obj, put,  "/r2/put-multipart", r2::put_multipart);
@@ -226,6 +241,7 @@ macro_rules! add_routes (
     add_route!($obj, get, "/durable/ctor-name", durable::handle_ctor_name);
     add_route!($obj, get, "/durable/hello-unique", durable::handle_hello_unique);
     add_route!($obj, get, "/durable/storage", durable::handle_storage);
+    add_route!($obj, get, "/durable/get-options", durable::handle_get_options);
     add_route!($obj, get, "/durable/block-concurrency", durable::handle_block_concurrency);
     add_route!($obj, get, "/durable/block-concurrency-errors-as-values", durable::handle_block_concurrency_errors_as_values);
     add_route!($obj, get, "/durable/block-concurrency-reset-count", durable::handle_block_concurrency_reset_count);
@@ -268,6 +284,8 @@ macro_rules! add_routes (
     add_route!($obj, get, format_route!("/workflow/rollback/marker/{}", "id"), workflow::handle_rollback_workflow_marker);
     add_route!($obj, get, "/send-email", send_email::handle_send_email);
     add_route!($obj, get, "/signal/poll", signal::handle_signal_poll);
+    add_route!($obj, get, "/http-exact-length", request::handle_exact_length_response);
+    add_route!($obj, get, "/ai/run-input", ai::handle_ai_run_input);
 });
 
 #[cfg(feature = "http")]

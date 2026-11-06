@@ -111,6 +111,9 @@ impl KvStore {
     }
 
     /// Puts data into the kv store.
+    ///
+    /// Strings, numbers and booleans are stored as their text; any other serializable value is
+    /// stored as its `serde_json` encoding.
     pub fn put<T: ToRawKvValue>(&self, name: &str, value: T) -> Result<PutOptionsBuilder, KvError> {
         Ok(PutOptionsBuilder {
             this: self.this.clone(),
@@ -259,19 +262,12 @@ impl ToRawKvValue for str {
 
 impl<T: Serialize> ToRawKvValue for T {
     fn raw_kv_value(&self) -> Result<JsValue, KvError> {
-        let value = serde_wasm_bindgen::to_value(self).map_err(JsValue::from)?;
-
-        if value.as_string().is_some() {
-            Ok(value)
-        } else if let Some(number) = value.as_f64() {
-            Ok(JsValue::from(number.to_string()))
-        } else if let Some(boolean) = value.as_bool() {
-            Ok(JsValue::from(boolean.to_string()))
-        } else {
-            js_sys::JSON::stringify(&value)
-                .map(JsValue::from)
-                .map_err(Into::into)
-        }
+        Ok(JsValue::from(match serde_json::to_value(self)? {
+            Value::String(s) => s,
+            Value::Number(n) => n.to_string(),
+            Value::Bool(b) => b.to_string(),
+            other => other.to_string(),
+        }))
     }
 }
 

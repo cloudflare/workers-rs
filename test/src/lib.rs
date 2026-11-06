@@ -12,6 +12,7 @@ use worker::{console_log, event, js_sys, wasm_bindgen, Env, Result};
 #[cfg(not(feature = "http"))]
 use worker::{Request, Response};
 
+mod ai;
 mod alarm;
 mod analytics_engine;
 mod assets;
@@ -59,6 +60,9 @@ static GLOBAL_STATE: AtomicBool = AtomicBool::new(false);
 static GLOBAL_SECOND_START: AtomicBool = AtomicBool::new(false);
 
 static GLOBAL_QUEUE_STATE: Mutex<Vec<queue::QueueBody>> = Mutex::new(Vec::new());
+static GLOBAL_MAP_QUEUE_STATE: Mutex<Vec<queue::MapQueueBody>> = Mutex::new(Vec::new());
+static GLOBAL_QUEUE_METADATA_STATE: Mutex<Vec<queue::QueueMessageMetadata>> =
+    Mutex::new(Vec::new());
 
 static DATA_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\d{4}-\d{2}-\d{2}$").unwrap());
 

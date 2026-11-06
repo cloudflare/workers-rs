@@ -80,11 +80,14 @@ const mf_instance = new Miniflare({
           SEEDED_BUCKET: { type: "r2", name: "SEEDED_BUCKET" },
           DELETE_BUCKET: { type: "r2", name: "DELETE_BUCKET" },
           my_queue: { type: "queue", name: "my_queue" },
+          metrics_queue: { type: "queue", name: "metrics_queue" },
+          map_queue: { type: "queue", name: "map_queue" },
           remote: {
             type: "fetcher",
             handler: async () => new Response("hello world"),
           },
           COUNTER: { type: "durable-object", worker: "test", exportName: "Counter" },
+          ALARM: { type: "durable-object", worker: "test", exportName: "AlarmObject" },
           PUT_RAW_TEST_OBJECT: { type: "durable-object", worker: "test", exportName: "PutRawTestObject" },
           AUTO: { type: "durable-object", worker: "test", exportName: "AutoResponseObject" },
           MY_CLASS: { type: "durable-object", worker: "test", exportName: "MyClass" },
@@ -132,6 +135,7 @@ const mf_instance = new Miniflare({
         },
         exports: {
           Counter: { type: "durable-object", storage: "legacy-kv" },
+          AlarmObject: { type: "durable-object", storage: "legacy-kv" },
           PutRawTestObject: { type: "durable-object", storage: "legacy-kv" },
           AutoResponseObject: { type: "durable-object", storage: "legacy-kv" },
           MyClass: { type: "durable-object", storage: "legacy-kv" },
@@ -143,7 +147,12 @@ const mf_instance = new Miniflare({
           SqlCounter: { type: "durable-object", storage: "sqlite" },
           SqlIterator: { type: "durable-object", storage: "sqlite" },
         },
-        triggers: [{ type: "queue", name: "my_queue", maxBatchTimeout: 1 }],
+        triggers: [
+          { type: "queue", name: "my_queue", maxBatchTimeout: 1 },
+          { type: "queue", name: "map_queue", maxBatchTimeout: 1 },
+          // Holds messages in the backlog for the duration of the metrics test.
+          { type: "queue", name: "metrics_queue", maxBatchSize: 100, maxBatchTimeout: 60 },
+        ],
         assets: {
           directory: "./public",
           hasUserWorker: true,

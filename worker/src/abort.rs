@@ -50,9 +50,9 @@ impl AbortSignal {
         self.inner.aborted()
     }
 
-    /// The reason why the signal was aborted.
-    pub fn reason(&self) -> Option<JsValue> {
-        self.aborted().then(|| self.inner.reason())
+    /// The reason why the signal was aborted, or `undefined` if it has not been aborted.
+    pub fn reason(&self) -> JsValue {
+        self.inner.reason()
     }
 
     /// Creates a [AbortSignal] that is already aborted.

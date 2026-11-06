@@ -5,7 +5,7 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
 };
 use worker::{
-    Bucket, Conditional, Data, Date, Env, FixedLengthStream, HttpMetadata, Include, Request,
+    Bucket, Conditional, Data, Date, Env, FixedLengthStream, HttpMetadata, Include, Range, Request,
     Response, Result,
 };
 
@@ -139,6 +139,33 @@ pub async fn get(_req: Request, env: Env, _data: SomeSharedData) -> Result<Respo
     assert_eq!(uploaded_http_metadata, http_metadata);
 
     Response::ok("ok")
+}
+
+#[worker::send]
+pub async fn list_without_include(
+    _req: Request,
+    env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
+    let bucket = env.bucket("SEEDED_BUCKET")?;
+    seed_bucket(&bucket).await?;
+
+    // No `include`: since the `r2_list_honor_include` compatibility flag (2022-08-04) the runtime
+    // omits `httpMetadata` and `customMetadata` from listed objects. Reading them must not panic.
+    let objects = bucket.list().execute().await?;
+    let object = objects
+        .objects()
+        .into_iter()
+        .find(|obj| obj.key() == "with-props")
+        .expect("seeded object");
+
+    let http_metadata = object.http_metadata();
+    let custom_metadata = object.custom_metadata()?;
+
+    Response::ok(format!(
+        "content_type={:?} custom={:?}",
+        http_metadata.content_type, custom_metadata
+    ))
 }
 
 #[worker::send]
@@ -303,4 +330,47 @@ fn dummy_properties() -> (HttpMetadata, HashMap<String, String>) {
         map
     };
     (http_metadata, custom_metadata)
+}
+
+/// Puts a 10-byte object, reads it back with `range` and returns the `Debug` form of
+/// `Object::range()` so the spec can assert the echoed range.
+async fn get_with_range(env: &Env, range: Option<Range>, expected_body: &str) -> Result<Response> {
+    let bucket = env.bucket("PUT_BUCKET")?;
+    bucket
+        .put("range", b"0123456789".to_vec())
+        .execute()
+        .await?;
+
+    let mut get = bucket.get("range");
+    if let Some(range) = range {
+        get = get.range(range);
+    }
+    let obj = get.execute().await?.ok_or("object missing")?;
+    let body = obj.body().ok_or("body missing")?.text().await?;
+    assert_eq!(body, expected_body);
+
+    Response::ok(format!("{:?}", obj.range()))
+}
+
+#[worker::send]
+pub async fn get_range_offset_length(
+    _req: Request,
+    env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
+    let range = Range::OffsetWithLength {
+        offset: 2,
+        length: 3,
+    };
+    get_with_range(&env, Some(range), "234").await
+}
+
+#[worker::send]
+pub async fn get_range_suffix(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    get_with_range(&env, Some(Range::Suffix { suffix: 3 }), "789").await
+}
+
+#[worker::send]
+pub async fn get_range_none(_req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    get_with_range(&env, None, "0123456789").await
 }

@@ -16,15 +16,18 @@ impl Ai {
     /// Execute a Workers AI operation using the specified model.
     /// Various forms of the input are documented in the Workers
     /// AI documentation.
+    ///
+    /// The input is serialized JSON-compatibly: maps as plain objects, byte buffers as arrays,
+    /// `None` as `null`.
     pub async fn run<T: Serialize, U: DeserializeOwned>(
         &self,
         model: impl AsRef<str>,
         input: T,
     ) -> Result<U> {
-        let fut = SendFuture::new(JsFuture::from(
-            self.0
-                .run(model.as_ref(), serde_wasm_bindgen::to_value(&input)?),
-        ));
+        let fut = SendFuture::new(JsFuture::from(self.0.run(
+            model.as_ref(),
+            input.serialize(&serde_wasm_bindgen::Serializer::json_compatible())?,
+        )));
         match fut.await {
             Ok(output) => Ok(serde_wasm_bindgen::from_value(output)?),
             Err(err) => Err(Error::from(err)),
@@ -41,6 +44,8 @@ impl Ai {
     /// The returned [`ByteStream`] implements [`Stream`](futures_util::Stream) and can be:
     /// - Streamed directly to a [`Response`] using [`Response::from_stream`]
     /// - Collected into a `Vec<u8>` by iterating over the chunks
+    ///
+    /// The input is serialized as in [`Ai::run`].
     ///
     /// # Examples
     ///
@@ -115,10 +120,10 @@ impl Ai {
         model: impl AsRef<str>,
         input: T,
     ) -> Result<ByteStream> {
-        let fut = SendFuture::new(JsFuture::from(
-            self.0
-                .run(model.as_ref(), serde_wasm_bindgen::to_value(&input)?),
-        ));
+        let fut = SendFuture::new(JsFuture::from(self.0.run(
+            model.as_ref(),
+            input.serialize(&serde_wasm_bindgen::Serializer::json_compatible())?,
+        )));
         match fut.await {
             Ok(output) => {
                 if output.is_instance_of::<ReadableStream>() {

@@ -261,3 +261,42 @@ test("xor", async () => {
     expect(bytes[i]).toBe(i ^ 10);
   }
 });
+
+// `request.cf.timezone` is optional (geo data can be missing). Miniflare merges a
+// per-request `cf` over its default blob, which has a timezone, and JSON-encodes
+// the result, so `timezone: undefined` is what drops the key.
+test("cf timezone_name", async () => {
+  let resp = await mf.dispatchFetch(`${mfUrl}cf/timezone-name`, {
+    cf: { timezone: "Europe/Lisbon" },
+  });
+  expect(resp.status).toBe(200);
+  expect(await resp.text()).toBe("Europe/Lisbon");
+
+  resp = await mf.dispatchFetch(`${mfUrl}cf/timezone-name`, {
+    cf: { timezone: undefined },
+  });
+  expect(resp.status).toBe(200);
+  expect(await resp.text()).toBe("none");
+});
+
+// Miniflare doesn't pass a client disconnect through to the worker, so this checks that
+// `Request::signal` returns the request's own signal rather than the disconnect itself.
+test("request signal", async () => {
+  const resp = await mf.dispatchFetch(`${mfUrl}request-signal`);
+  expect(resp.status).toBe(200);
+  expect(await resp.text()).toBe(
+    "incoming aborted: false, constructed aborted: true, reason: stop"
+  );
+});
+
+test("http response with exact body length", async () => {
+  const resp = await mf.dispatchFetch(`${mfUrl}http-exact-length`, {
+    headers: {
+      "Accept-Encoding": "identity",
+    },
+  });
+
+  expect(resp.status).toBe(200);
+  expect(resp.headers.get("content-length")).toBe("12");
+  expect(await resp.text()).toBe("exact-length");
+});

@@ -48,6 +48,12 @@ describe("durable", () => {
     // expect(calledClose).toBe(true);
   });
 
+  test("storage get with options", async () => {
+    const resp = await mf.dispatchFetch(`${mfUrl}durable/get-options`);
+    expect(resp.status).toBe(200);
+    expect(await resp.text()).toBe("Some(1):None:Some(1):2:two");
+  });
+
   test("block-concurrency-while", async () => {
     const first = await mf.dispatchFetch(`${mfUrl}durable/block-concurrency`);
     expect(first.status).toBe(200);
@@ -138,5 +144,16 @@ describe("durable", () => {
     expect(resp.status).toBe(200);
     const text = await resp.text();
     expect(text).toBe("Hello from unknown!");
+  });
+
+  // set_alarm_with_options / get_alarm_with_options / delete_alarm_with_options send
+  // GetAlarmOptions / SetAlarmOptions to the runtime as camelCase (allowConcurrency,
+  // allowUnconfirmed); workerd silently ignores any other key.
+  test("alarm options", async () => {
+    const resp = await mf.dispatchFetch(`${mfUrl}durable/alarm-options`);
+    expect(resp.status).toBe(200);
+    expect(await resp.text()).toBe(
+      'true:None:{"allowConcurrency":true}:{"allowConcurrency":true,"allowUnconfirmed":true}',
+    );
   });
 });

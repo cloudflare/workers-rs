@@ -8,7 +8,8 @@ use serde::Serialize;
 use std::time::Duration;
 use worker::Env;
 use worker::{
-    console_log, ok, Date, Delay, Request, Response, ResponseBody, ResponseBuilder, Result,
+    console_log, ok, web_sys, AbortSignal, Date, Delay, Request, Response, ResponseBody,
+    ResponseBuilder, Result,
 };
 
 #[allow(clippy::needless_pass_by_value)]
@@ -218,6 +219,33 @@ pub async fn handle_cloned_stream(
     Response::ok((left == right).to_string())
 }
 
+/// Races a short `Delay` against a long one and drops the loser. Exercises the `Delay`
+/// drop path (`clearTimeout` with the handle `setTimeout` returned) under both timer
+/// implementations, numeric ids and Node.js `Timeout` objects. What this guards is the
+/// Rust-side binding type: under the type-checked glue of `--dev` builds, declaring the
+/// handle as a number panics as soon as `setTimeout` returns an object. The runtime itself
+/// accepts any value in `clearTimeout`, so cancellation is not observable from here.
+#[worker::send]
+pub async fn handle_delay_race(
+    _req: Request,
+    _env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
+    let short = Delay::from(Duration::from_millis(50));
+    let long = Delay::from(Duration::from_millis(300));
+
+    // `Delay` is `Unpin`, so `select` takes it by value and hands the loser back owned.
+    let winner = match futures_util::future::select(short, long).await {
+        futures_util::future::Either::Left((_, long)) => {
+            drop(long);
+            "short"
+        }
+        futures_util::future::Either::Right(_) => "long",
+    };
+
+    Response::ok(winner)
+}
+
 pub async fn handle_custom_response_body(
     _req: Request,
     _env: Env,
@@ -240,4 +268,54 @@ pub async fn handle_wait_delay(req: Request, _env: Env, _data: SomeSharedData) -
     delay.await;
 
     Response::ok("Waited!\n")
+}
+
+/// Reports the incoming request's signal and that of a request constructed with an aborted one.
+#[allow(clippy::needless_pass_by_value)]
+pub fn handle_request_signal(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
+    let incoming = req.signal();
+
+    let init = web_sys::RequestInit::new();
+    init.set_signal(Some(&AbortSignal::abort_with_reason("stop")));
+    let constructed: Request =
+        web_sys::Request::new_with_str_and_init("https://example.com", &init)?.into();
+    let signal = constructed.signal();
+    let reason = signal.reason().as_string();
+
+    Response::ok(format!(
+        "incoming aborted: {}, constructed aborted: {}, reason: {}",
+        incoming.aborted(),
+        signal.aborted(),
+        reason.as_deref().unwrap_or("none"),
+    ))
+}
+
+/// `request.cf.timezone` is optional in workers-types; answer with the name or `none`.
+#[allow(clippy::needless_pass_by_value)]
+pub fn handle_cf_timezone_name(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
+    let Some(cf) = req.cf() else {
+        return Response::error("no cf", 500);
+    };
+    Response::ok(cf.timezone_name().unwrap_or_else(|| "none".to_string()))
+}
+
+#[cfg(feature = "http")]
+pub async fn handle_exact_length_response(
+    _req: Request,
+    _env: Env,
+    _data: SomeSharedData,
+) -> Result<http::Response<axum::body::Body>, worker::Error> {
+    Ok(http::Response::builder()
+        .status(http::StatusCode::OK)
+        .body(axum::body::Body::from("exact-length"))
+        .unwrap())
+}
+
+#[cfg(not(feature = "http"))]
+pub async fn handle_exact_length_response(
+    _req: Request,
+    _env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
+    Response::ok("exact-length")
 }

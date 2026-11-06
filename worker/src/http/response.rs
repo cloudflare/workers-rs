@@ -10,6 +10,8 @@ use crate::response::EncodeBody;
 use crate::CfResponseProperties;
 use crate::Headers;
 use crate::ResponseBuilder;
+use js_sys::BigInt;
+use wasm_bindgen::JsCast;
 use worker_sys::ext::ResponseExt;
 
 /// **Requires** `http` feature. Convert generic [`http::Response<B>`](crate::HttpResponse)
@@ -41,8 +43,17 @@ where
     let readable_stream = if body.is_end_stream() {
         None
     } else {
-        let stream = BodyStream::new(body);
-        Some(wasm_streams::ReadableStream::from_stream(stream).into_raw())
+        let exact_length = body.size_hint().exact();
+        let stream = wasm_streams::ReadableStream::from_stream(BodyStream::new(body)).into_raw();
+        // workerd only emits Content-Length for a FixedLengthStream body, which also
+        // errors the response if the body yields a different number of bytes.
+        match exact_length {
+            Some(length) => {
+                let fixed = worker_sys::FixedLengthStream::new_big_int(BigInt::from(length))?;
+                Some(stream.pipe_through(fixed.unchecked_ref()))
+            }
+            None => Some(stream),
+        }
     };
 
     Ok(web_sys::Response::new_with_opt_readable_stream_and_init(

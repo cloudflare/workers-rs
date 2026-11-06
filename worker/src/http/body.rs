@@ -85,19 +85,12 @@ impl HttpBody for Body {
 
     #[inline]
     fn size_hint(&self) -> http_body::SizeHint {
-        let mut hint = http_body::SizeHint::new();
-        if let Some(ref stream) = self.0 {
-            let (lower, upper) = stream.size_hint();
-
-            hint.set_lower(lower as u64);
-            if let Some(upper) = upper {
-                hint.set_upper(upper as u64);
-            }
-        } else {
-            hint.set_lower(0);
-            hint.set_upper(0);
+        // `Stream::size_hint` counts chunks rather than bytes, so the length of a
+        // live stream is unknown.
+        match self.0 {
+            Some(_) => http_body::SizeHint::new(),
+            None => http_body::SizeHint::with_exact(0),
         }
-        hint
     }
 
     fn is_end_stream(&self) -> bool {

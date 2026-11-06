@@ -21,5 +21,22 @@ async function runTest() {
             expect(response.status).toBe(200);
         });
     }
+
+    // Maps must be stored as plain objects, keeping `null` entries.
+    test("put-struct-map", async () => {
+        const body = {
+            id: "put_struct_map",
+            map: { k1: "v1", k2: "v2" },
+            value: { a: 1, b: { c: "d" }, n: null, list: [1, "two", null] },
+        };
+        let response = await mf.dispatchFetch("http://fake.host/kv/put-struct-map", {
+            method: "POST",
+            body: JSON.stringify(body),
+        });
+        expect(response.status).toBe(200);
+
+        const raw = await store.get("put_struct_map");
+        expect(JSON.parse(raw!)).toEqual(body);
+    });
 }
 describe("kv", runTest);
