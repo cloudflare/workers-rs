@@ -362,11 +362,12 @@ pub struct EmscriptenBuild<'a> {
 }
 
 /// The `-Clink-arg`s that configure the emcc link.
-fn emscripten_link_args(source_map: bool) -> Vec<String> {
+fn emscripten_link_args(source_map: bool, pre_js: &Path) -> Vec<String> {
     let mut args: Vec<String> = emscripten::LINK_ARGS
         .iter()
         .map(|arg| format!("-Clink-arg={arg}"))
         .collect();
+    args.push(format!("-Clink-arg=--pre-js={}", pre_js.display()));
     if source_map {
         // This follows rustc's own `-g0` or `--profiling-funcs`, and a later
         // `-g0` would turn the source map off again. Unlike `-g`, this keeps
@@ -459,7 +460,7 @@ pub fn cargo_build_wasm(
         if em.tokio {
             rustflags.extend(emscripten::TOKIO_RUSTFLAGS.iter().map(|f| f.to_string()));
         }
-        rustflags.extend(emscripten_link_args(em.source_map));
+        rustflags.extend(emscripten_link_args(em.source_map, &em.toolchain.pre_js));
         cmd.env(
             "CARGO_TARGET_WASM32_UNKNOWN_EMSCRIPTEN_LINKER",
             em.toolchain.emcc(),
@@ -521,18 +522,19 @@ pub fn cargo_build_wasm(
 #[cfg(test)]
 mod test {
     use super::emscripten_link_args;
+    use std::path::Path;
 
     #[test]
     fn test_emscripten_link_args_source_map_off() {
-        let args = emscripten_link_args(false);
+        let args = emscripten_link_args(false, Path::new("pre.js"));
         assert!(args.iter().all(|arg| arg.starts_with("-Clink-arg=")));
         assert!(!args.iter().any(|arg| arg.contains("-g")));
     }
 
     #[test]
     fn test_emscripten_link_args_source_map_last() {
-        let off = emscripten_link_args(false).len();
-        let args = emscripten_link_args(true);
+        let off = emscripten_link_args(false, Path::new("pre.js")).len();
+        let args = emscripten_link_args(true, Path::new("pre.js"));
         assert_eq!(&args[off..], ["-Clink-arg=-gsource-map"]);
     }
 }

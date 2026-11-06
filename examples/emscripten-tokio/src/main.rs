@@ -4,6 +4,7 @@
 //! they do natively: no `#[tokio::main]`, no runtime setup.
 
 use serde::Serialize;
+use std::future::Future;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::{mpsc, Mutex};
@@ -43,7 +44,8 @@ async fn fetch(req: Request, env: Env, _ctx: Context) -> Result<Response> {
                  GET /channels   mpsc between spawned producers and the handler\n\
                  GET /mutex      tokio::sync::Mutex shared across tasks\n\
                  GET /join       tokio::join! over concurrent futures\n\
-                 GET /stack      a spawned task using 256 KiB of stack\n",
+                 GET /stack      a spawned task using 256 KiB of stack\n\
+                 GET /abort      abort the module: this and later requests fail fast\n",
             )
         })
         .get_async("/spawn", spawn)
@@ -53,6 +55,7 @@ async fn fetch(req: Request, env: Env, _ctx: Context) -> Result<Response> {
         .get_async("/mutex", mutex)
         .get_async("/join", join)
         .get_async("/stack", stack)
+        .get_async("/abort", abort)
         .run(req, env)
         .await
 }
@@ -192,4 +195,22 @@ async fn stack(_: Request, _: RouteContext<()>) -> Result<Response> {
         format!("sum = {sum}"),
         start,
     )
+}
+
+/// A waker that panics when Tokio's timer driver wakes it. The panic happens
+/// outside any task, with no Rust frame to unwind to, so the module aborts.
+async fn abort(_: Request, _: RouteContext<()>) -> Result<Response> {
+    struct PanicWaker;
+    impl std::task::Wake for PanicWaker {
+        fn wake(self: Arc<Self>) {
+            panic!("waker panicked")
+        }
+    }
+    let mut timer = Box::pin(sleep(Duration::from_millis(20)));
+    let waker = std::task::Waker::from(Arc::new(PanicWaker));
+    let _ = timer
+        .as_mut()
+        .poll(&mut std::task::Context::from_waker(&waker));
+    sleep(Duration::from_millis(100)).await;
+    Response::ok("not aborted")
 }

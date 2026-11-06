@@ -38,8 +38,14 @@ Then try some of the example routes demonstrating Tokio functionality:
 | `curl http://localhost:8787/mutex` | `tokio::sync::Mutex` shared across tasks |
 | `curl http://localhost:8787/join` | `tokio::join!` over concurrent futures |
 | `curl http://localhost:8787/stack` | a spawned task using 256 KiB of stack |
+| `curl http://localhost:8787/abort` | a module abort: this and every later request fails fast |
 
 Each response carries the measured `elapsed_ms`, showing the work overlapping.
+
+A panic that has no Rust frame to unwind to, such as one inside Tokio's
+drivers, aborts the Emscripten module. The module is not reinitialized, so the
+request in flight and every later call into the Worker fail with "The Wasm
+module aborted and cannot handle further calls" until the isolate is replaced.
 
 ## What's Next
 
