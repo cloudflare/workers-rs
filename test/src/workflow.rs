@@ -38,6 +38,20 @@ pub async fn handle_workflow_create_default(
     created_response(workflow(&req, &env)?.create_default().await?)
 }
 
+/// Creates an instance with the `{}` payload the runtime substitutes when a
+/// non-Rust caller (e.g. JS `create()`) passes no params.
+pub async fn handle_workflow_create_empty_params(
+    req: Request,
+    env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
+    let options = CreateOptions {
+        params: Some(serde_json::json!({})),
+        ..Default::default()
+    };
+    created_response(workflow(&req, &env)?.create(options).await?)
+}
+
 pub async fn handle_workflow_status(
     req: Request,
     env: Env,
@@ -243,6 +257,12 @@ pub async fn handle_lifecycle_workflow_action(
         "pause" => instance.pause().await?,
         "resume" => instance.resume().await?,
         "terminate" => instance.terminate().await?,
+        "delete" => instance.delete().await?,
+        "terminate-rollback" => {
+            instance
+                .terminate_with_options(TerminateOptions { rollback: true })
+                .await?
+        }
         "restart" => instance.restart().await?,
         "restart-from" => {
             instance
@@ -260,9 +280,116 @@ pub async fn handle_lifecycle_workflow_action(
     Response::ok("ok")
 }
 
+/// Deletes the instances whose ids the request body lists.
+#[worker::send]
+pub async fn handle_workflow_delete_batch(
+    mut req: Request,
+    env: Env,
+    _data: SomeSharedData,
+) -> Result<Response> {
+    let ids: Vec<String> = req.json().await?;
+    let result = workflow(&req, &env)?.delete_batch(&ids).await?;
+    Response::from_json(&serde_json::json!({
+        "deleted": result.deleted.iter().map(|d| &d.id).collect::<Vec<_>>(),
+        "errors": result.errors.iter().map(|e| &e.id).collect::<Vec<_>>(),
+    }))
+}
+
+// Bytes should cross to the runtime as a `Uint8Array`: as a plain array of
+// numbers they take about three times the space, which counts against a step
+// output's 1 MiB limit. `Bytes` serializes as bytes and records which form
+// the runtime hands back.
+struct Bytes {
+    data: Vec<u8>,
+    uint8array: bool,
+}
+
+impl Serialize for Bytes {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_bytes(&self.data)
+    }
+}
+
+impl<'de> Deserialize<'de> for Bytes {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        struct BytesVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for BytesVisitor {
+            type Value = Bytes;
+
+            fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                f.write_str("bytes")
+            }
+
+            // serde-wasm-bindgen visits a `Uint8Array` as a byte buffer...
+            fn visit_byte_buf<E: serde::de::Error>(self, data: Vec<u8>) -> Result<Bytes, E> {
+                Ok(Bytes {
+                    data,
+                    uint8array: true,
+                })
+            }
+
+            // ...and an array of numbers as a sequence.
+            fn visit_seq<A: serde::de::SeqAccess<'de>>(
+                self,
+                mut seq: A,
+            ) -> Result<Bytes, A::Error> {
+                let mut data = Vec::new();
+                while let Some(byte) = seq.next_element()? {
+                    data.push(byte);
+                }
+                Ok(Bytes {
+                    data,
+                    uint8array: false,
+                })
+            }
+        }
+
+        deserializer.deserialize_any(BytesVisitor)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BytesOutput {
+    /// Whether the step's output came back as a `Uint8Array`.
+    pub uint8array: bool,
+    /// The step's output. The instance's output keeps bytes as an array of
+    /// numbers, which `status()` can report.
+    #[serde(with = "serde_bytes")]
+    pub bytes: Vec<u8>,
+}
+
+#[workflow]
+pub struct BytesWorkflow;
+
+impl WorkflowEntrypoint for BytesWorkflow {
+    type Input = ();
+    type Output = BytesOutput;
+
+    fn new(_ctx: Context, _env: Env) -> Self {
+        Self
+    }
+
+    async fn run(&self, _event: WorkflowEvent<()>, step: WorkflowStep) -> Result<BytesOutput> {
+        let bytes = step
+            .do_("bytes", async |_ctx| {
+                Ok(Bytes {
+                    data: vec![0xab; 4],
+                    uint8array: false,
+                })
+            })
+            .await?;
+        Ok(BytesOutput {
+            uint8array: bytes.uint8array,
+            bytes: bytes.data,
+        })
+    }
+}
+
 // Saga rollback: a first step succeeds with a rollback handler attached, then a
 // second step fails non-retryably. The runtime then invokes the rollback, which
-// records a marker in KV keyed by the instance id so the test can confirm it ran.
+// records a marker in KV keyed by the instance id so the test can confirm it ran
+// and saw the first step's (unit, so `null`) output.
 fn rollback_marker_key(instance_id: &str) -> String {
     format!("rollback:{instance_id}")
 }
@@ -286,13 +413,16 @@ impl WorkflowEntrypoint for RollbackWorkflow {
 
         step.do_with_rollback(
             "reserve",
-            async |_ctx| Ok(serde_json::json!({ "reserved": true })),
-            Rollback::new(
-                async move |rollback: WorkflowRollbackContext<serde_json::Value>| {
-                    kv.put(&key, rollback.error.message)?.execute().await?;
-                    Ok(())
-                },
-            ),
+            async |_ctx| Ok(()),
+            Rollback::new(async move |rollback: WorkflowRollbackContext<()>| {
+                let marker = format!(
+                    "{} (output: {})",
+                    rollback.error.message,
+                    rollback.output.is_some()
+                );
+                kv.put(&key, marker)?.execute().await?;
+                Ok(())
+            }),
         )
         .await?;
 

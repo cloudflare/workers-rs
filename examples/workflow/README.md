@@ -9,7 +9,7 @@ Durable, multi-step [Cloudflare Workflows](https://developers.cloudflare.com/wor
 - **Non-retryable errors.** `NonRetryableError` fails the instance immediately (used when the email is invalid).
 - **Sleeping.** `step.sleep(...)` hibernates the instance (10 seconds here) without burning CPU.
 - **Saga rollback.** `step.do_with_rollback(...)` attaches a compensation handler that the runtime invokes if a later step fails. See `reserve-inventory`.
-- **Cron triggers.** When started from a `schedules` cron (see `wrangler.toml`), `event.schedule` and `event.workflow_name` are populated.
+- **Cron triggers.** When started from a `schedules` cron (see `wrangler.toml`), `event.schedule` and `event.workflow_name` are populated. Scheduled instances carry no params, so `Input` is `Option<MyParams>`.
 
 A `fetch` handler is included so you can drive the workflow over HTTP.
 

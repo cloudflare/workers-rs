@@ -6,13 +6,15 @@ extern "C" {
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type WorkflowStep;
 
+    // The `do` variants return the promise rather than awaiting it, so the
+    // caller can keep `callback` alive until the step settles.
     #[wasm_bindgen(method, catch, js_name = "do")]
-    pub async fn do_with_config(
+    pub fn do_with_config(
         this: &WorkflowStep,
         name: &str,
         config: JsValue,
         callback: &js_sys::Function,
-    ) -> Result<JsValue, JsValue>;
+    ) -> Result<js_sys::Promise, JsValue>;
 
     // Saga-style rollback variant. We always route through this 4-argument
     // overload (`do(name, config, callback, rollbackOptions)`) rather than the
@@ -20,13 +22,13 @@ extern "C" {
     // and `rollbackOptions` are plain objects the 3-argument form is positionally
     // ambiguous, and some runtimes (e.g. older Miniflare) misparse it.
     #[wasm_bindgen(method, catch, js_name = "do")]
-    pub async fn do_with_rollback(
+    pub fn do_with_rollback(
         this: &WorkflowStep,
         name: &str,
         config: JsValue,
         callback: &js_sys::Function,
         rollback_options: JsValue,
-    ) -> Result<JsValue, JsValue>;
+    ) -> Result<js_sys::Promise, JsValue>;
 
     #[wasm_bindgen(method, catch)]
     pub async fn sleep(
@@ -66,6 +68,12 @@ extern "C" {
         batch: &js_sys::Array,
     ) -> Result<JsValue, JsValue>;
 
+    #[wasm_bindgen(method, catch, js_name = deleteBatch)]
+    pub async fn delete_batch(
+        this: &WorkflowBinding,
+        instance_ids: &js_sys::Array,
+    ) -> Result<JsValue, JsValue>;
+
     /// Workflow instance handle - may be an RPC stub in Miniflare.
     #[wasm_bindgen(extends=js_sys::Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
@@ -83,6 +91,12 @@ extern "C" {
     #[wasm_bindgen(method, catch)]
     pub async fn terminate(this: &WorkflowInstanceSys) -> Result<JsValue, JsValue>;
 
+    #[wasm_bindgen(method, catch, js_name = "terminate")]
+    pub async fn terminate_with_options(
+        this: &WorkflowInstanceSys,
+        options: JsValue,
+    ) -> Result<JsValue, JsValue>;
+
     #[wasm_bindgen(method, catch)]
     pub async fn restart(this: &WorkflowInstanceSys) -> Result<JsValue, JsValue>;
 
@@ -91,6 +105,9 @@ extern "C" {
         this: &WorkflowInstanceSys,
         options: JsValue,
     ) -> Result<JsValue, JsValue>;
+
+    #[wasm_bindgen(method, catch)]
+    pub async fn delete(this: &WorkflowInstanceSys) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(method, catch)]
     pub async fn status(this: &WorkflowInstanceSys) -> Result<JsValue, JsValue>;

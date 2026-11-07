@@ -125,6 +125,11 @@ name = "rollback-workflow"
 binding = "ROLLBACK_WORKFLOW"
 class_name = "RollbackWorkflow"
 
+[[workflows]]
+name = "bytes-workflow"
+binding = "BYTES_WORKFLOW"
+class_name = "BytesWorkflow"
+
 [[ratelimits]]
 name = "TEST_RATE_LIMITER"
 namespace_id = "1"

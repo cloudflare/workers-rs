@@ -17,14 +17,19 @@ pub struct MyOutput {
 pub struct MyWorkflow;
 
 impl WorkflowEntrypoint for MyWorkflow {
-    type Input = MyParams;
+    // Optional, because instances started by a cron schedule carry no params.
+    type Input = Option<MyParams>;
     type Output = MyOutput;
 
     fn new(_ctx: Context, _env: Env) -> Self {
         Self
     }
 
-    async fn run(&self, event: WorkflowEvent<MyParams>, step: WorkflowStep) -> Result<MyOutput> {
+    async fn run(
+        &self,
+        event: WorkflowEvent<Option<MyParams>>,
+        step: WorkflowStep,
+    ) -> Result<MyOutput> {
         console_log!(
             "Workflow '{}' started with instance ID: {}",
             event.workflow_name,
@@ -32,12 +37,16 @@ impl WorkflowEntrypoint for MyWorkflow {
         );
 
         // When triggered by a cron schedule (configured via `schedules` on the
-        // workflow binding in wrangler.toml), `event.schedule` is populated.
-        if let Some(schedule) = &event.schedule {
-            console_log!("Triggered by cron schedule: {}", schedule.cron);
-        }
-
-        let params = event.payload;
+        // workflow binding in wrangler.toml), `event.schedule` is populated
+        // and there are no params.
+        let Some(params) = event.payload else {
+            let cron = event.schedule.map(|schedule| schedule.cron);
+            console_log!("Started without params (cron schedule: {:?})", cron);
+            return Ok(MyOutput {
+                message: "Nothing to process".to_string(),
+                steps_completed: 0,
+            });
+        };
 
         // Step callbacks are async closures. Each `move` closure owns its copy
         // of what it captures, which every retry reuses.

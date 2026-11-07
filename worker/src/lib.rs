@@ -173,8 +173,6 @@ pub use async_trait;
 pub use js_sys;
 #[cfg(feature = "workflow")]
 pub use serde_json;
-#[cfg(feature = "workflow")]
-pub use serde_wasm_bindgen;
 pub use url;
 pub use url::Url;
 pub use wasm_bindgen;

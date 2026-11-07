@@ -4,9 +4,15 @@
 
 ```sh
 git clone https://github.com/cloudflare/workers-rs
-cd workers-rs/examples/emscripten-tokio
+cd workers-rs
+cargo build --release -p worker-build
+cd examples/emscripten-tokio
 npx wrangler dev
 ```
+
+The `[build]` command in `wrangler.toml` runs the `worker-build` built above.
+To use a released `worker-build` instead, switch to the commented-out
+production command.
 
 This uses an `experimental_tokio` [Tokio event loop on wasm-bindgen](https://wasm-bindgen.github.io/wasm-bindgen/reference/emscripten.html#tokio) to support Tokio inside of workers.
 
@@ -40,6 +46,21 @@ Then try some of the example routes demonstrating Tokio functionality:
 | `curl http://localhost:8787/stack` | a spawned task using 256 KiB of stack |
 
 Each response carries the measured `elapsed_ms`, showing the work overlapping.
+
+## Workflows
+
+A `#[workflow]` gets Tokio too. `run` has its own event loop like an
+`#[event]` handler, and so does each step attempt (every retry included) and
+each rollback call, so steps can spawn tasks and use Tokio timers and I/O. A
+Tokio resource such as a connection or a spawned task belongs to the attempt
+that created it and shouldn't be kept for a later step.
+
+| Route | Shows |
+| --- | --- |
+| `curl -X POST http://localhost:8787/workflow` | start an instance whose steps use `tokio::spawn` and `tokio::time`; responds with its id |
+| `curl http://localhost:8787/workflow/<id>` | the instance's status and output |
+| `curl -X POST 'http://localhost:8787/workflow?fail'` | an instance that fails after its `reserve` step, so that step's rollback runs |
+| `curl http://localhost:8787/workflow/<id>/rollback` | what the rollback handler recorded |
 
 ## What's Next
 

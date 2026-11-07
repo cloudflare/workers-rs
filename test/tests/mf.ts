@@ -119,6 +119,12 @@ const mf_instance = new Miniflare({
             worker: "test",
             exportName: "RollbackWorkflow",
           },
+          BYTES_WORKFLOW: {
+            type: "workflow",
+            name: "bytes-workflow",
+            worker: "test",
+            exportName: "BytesWorkflow",
+          },
         },
         exports: {
           Counter: { type: "durable-object", storage: "legacy-kv" },

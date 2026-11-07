@@ -310,27 +310,78 @@ fn export_decls(content: &str) -> impl Iterator<Item = &str> {
 /// Prefix under which `#[workflow]` exports its wasm-bindgen class.
 const WORKFLOW_CLASS_PREFIX: &str = "__wf_";
 
-fn add_export_wrappers(out_dir: &Path, plain: bool) -> Result<()> {
-    let index_path = output_path(out_dir, "index.js");
-    let content = fs::read_to_string(&index_path)
-        .with_context(|| format!("Failed to read {}", index_path.display()))?;
-
+/// The classes a wasm-bindgen JS module exports.
+fn class_names(content: &str) -> Vec<&str> {
     let mut class_names = Vec::new();
-    for line in export_decls(&content) {
+    for line in export_decls(content) {
         // Emscripten output declares classes as `export var Name = class Name {`.
         if let Some(rest) = line.strip_prefix("export class ") {
             if let Some(brace_pos) = rest.find("{") {
-                let class_name = rest[..brace_pos].trim();
-                class_names.push(class_name.to_string());
+                class_names.push(rest[..brace_pos].trim());
             }
         } else if let Some(rest) = line.strip_prefix("export var ") {
             if let Some((class_name, def)) = rest.split_once("=") {
                 if def.trim_start().starts_with("class") {
-                    class_names.push(class_name.trim().to_string());
+                    class_names.push(class_name.trim());
                 }
             }
         }
     }
+    class_names
+}
+
+/// JS that exports the `#[workflow]` struct `name` as a subclass of `base`
+/// (the runtime's `WorkflowEntrypoint`), delegating to `implementation`, an
+/// expression for the struct's wasm-bindgen class. The runtime only runs
+/// workflows that extend `WorkflowEntrypoint`.
+fn workflow_wrapper(name: &str, base: &str, implementation: &str) -> String {
+    format!(
+        "const {name}$Impl = {implementation};
+export class {name} extends {base} {{
+  constructor(ctx, env) {{
+    super(ctx, env);
+    this.inner = new {name}$Impl(ctx, env);
+  }}
+  run(event, step) {{
+    return this.inner.run(event, step);
+  }}
+}}
+"
+    )
+}
+
+/// The workflow wrappers to append to the legacy shim, for the `#[workflow]`
+/// classes declared in `glue`, the bundler target's `index_bg.js`. The
+/// imports are aliased because the shim (possibly a `CUSTOM_SHIM`) may
+/// already import these names.
+fn legacy_workflow_wrappers(glue: &str) -> String {
+    let workflows: Vec<_> = class_names(glue)
+        .into_iter()
+        .filter_map(|class_name| class_name.strip_prefix(WORKFLOW_CLASS_PREFIX))
+        .collect();
+    if workflows.is_empty() {
+        return String::new();
+    }
+    let mut output = String::from(
+        "import { WorkflowEntrypoint as __WorkflowEntrypoint } from \"cloudflare:workers\";
+import * as __wf_glue from \"./index_bg.js\";
+",
+    );
+    for name in workflows {
+        output.push_str(&workflow_wrapper(
+            name,
+            "__WorkflowEntrypoint",
+            &format!("__wf_glue.{WORKFLOW_CLASS_PREFIX}{name}"),
+        ));
+    }
+    output
+}
+
+fn add_export_wrappers(out_dir: &Path, plain: bool) -> Result<()> {
+    let index_path = output_path(out_dir, "index.js");
+    let content = fs::read_to_string(&index_path)
+        .with_context(|| format!("Failed to read {}", index_path.display()))?;
+    let class_names = class_names(&content);
 
     let shim_path = output_path(out_dir, "shim.js");
     let mut output = fs::read_to_string(&shim_path)
@@ -346,25 +397,15 @@ fn add_export_wrappers(out_dir: &Path, plain: bool) -> Result<()> {
     }
     for class_name in class_names {
         if let Some(workflow_name) = class_name.strip_prefix(WORKFLOW_CLASS_PREFIX) {
-            // The runtime only runs workflows that extend `WorkflowEntrypoint`,
-            // so delegate to the wasm-bindgen class from a subclass.
             let class = if plain {
                 format!("exports.{class_name}")
             } else {
                 format!("new Proxy(exports.{class_name}, classProxyHooks)")
             };
-            output.push_str(&format!(
-                "const {workflow_name}$Impl = {class};
-export class {workflow_name} extends WorkflowEntrypoint {{
-  constructor(ctx, env) {{
-    super(ctx, env);
-    this.inner = new {workflow_name}$Impl(ctx, env);
-  }}
-  run(event, step) {{
-    return this.inner.run(event, step);
-  }}
-}}
-"
+            output.push_str(&workflow_wrapper(
+                workflow_name,
+                "WorkflowEntrypoint",
+                &class,
             ));
         } else if plain {
             // The runtime only exposes RPC on classes deriving from DurableObject.
@@ -618,5 +659,36 @@ mod test {
         let args = vec!["--out-dir".to_owned(), "dist/worker".to_owned()];
         let result = parse_wasm_pack_opts(args).unwrap();
         assert_eq!(result.out_dir, "dist/worker");
+    }
+}
+
+#[cfg(test)]
+mod workflow_tests {
+    use super::{class_names, legacy_workflow_wrappers};
+
+    const GLUE: &str = "export class Counter {\n}\nexport class __wf_MyWorkflow {\n}\n";
+
+    #[test]
+    fn finds_module_and_emscripten_classes() {
+        assert_eq!(
+            class_names("export class A {}\nexport var B = class B {};"),
+            ["A", "B"]
+        );
+    }
+
+    #[test]
+    fn legacy_shim_exports_workflow_subclass() {
+        let wrappers = legacy_workflow_wrappers(GLUE);
+        assert!(wrappers.contains(
+            "import { WorkflowEntrypoint as __WorkflowEntrypoint } from \"cloudflare:workers\";"
+        ));
+        assert!(wrappers.contains("const MyWorkflow$Impl = __wf_glue.__wf_MyWorkflow;"));
+        assert!(wrappers.contains("export class MyWorkflow extends __WorkflowEntrypoint {"));
+        assert!(!wrappers.contains("Counter"));
+    }
+
+    #[test]
+    fn legacy_shim_without_workflows_is_unchanged() {
+        assert_eq!(legacy_workflow_wrappers("export class Counter {\n}\n"), "");
     }
 }

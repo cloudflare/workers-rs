@@ -1,13 +1,14 @@
 //! Cloudflare Workflows support for Rust Workers.
 
+use std::future::Future;
 use std::panic::AssertUnwindSafe;
 use std::rc::Rc;
 
-use js_sys::Object;
+use js_sys::futures::{spawn_local, JsFuture};
+use js_sys::{Object, Reflect};
 use serde::{de::DeserializeOwned, Deserialize, Deserializer, Serialize};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use wasm_bindgen_futures::future_to_promise;
 use worker_sys::types::{
     NonRetryableErrorSys, WorkflowBinding as WorkflowBindingSys, WorkflowInstanceSys,
     WorkflowStep as WorkflowStepSys,
@@ -18,15 +19,31 @@ use crate::send::SendFuture;
 use crate::Result;
 
 /// Serialize a value for the Workflows runtime, JSON-compatibly like other
-/// bindings' payloads:
+/// bindings' payloads, except for bytes:
 ///
 /// - Maps become plain objects. A JS `Map` can't be deserialized back into a
 ///   struct, so `serde_json::Value::Object` or `HashMap` payloads and step
-///   outputs wouldn't round-trip.
-/// - `None` and `()` become `null`. The runtime destructures `{ params = {} }`
-///   from the create options, so a missing `params` would arrive as `{}`,
-///   which `Input = ()` workflows can't deserialize.
+///   outputs wouldn't round-trip. Map keys must therefore be strings: a map
+///   with integer keys (e.g. `HashMap<u32, _>`) fails to serialize, as does
+///   an integer beyond `Number.MAX_SAFE_INTEGER`.
+/// - `None` and `()` become `null`, so a `CreateOptions` without `params`
+///   sends an explicit `null` rather than falling through to the runtime's
+///   `params = {}` default.
+/// - Bytes (e.g. `serde_bytes` fields) become a `Uint8Array`. As a plain array
+///   of numbers they'd take about three times the space once stored, which
+///   counts against a step output's 1 MiB limit. The workflow's own output is
+///   the exception (see [`output_to_js`]).
 fn to_js<T: Serialize + ?Sized>(value: &T) -> Result<JsValue, serde_wasm_bindgen::Error> {
+    value.serialize(
+        &serde_wasm_bindgen::Serializer::json_compatible().serialize_bytes_as_arrays(false),
+    )
+}
+
+/// Serialize the workflow's output like [`to_js`], except that bytes stay a
+/// plain array of numbers. `status()` reports the output as JSON, where the
+/// local runtime turns a `Uint8Array` into a placeholder such as
+/// `"[Uint8Array(4 bytes)]"`.
+fn output_to_js<T: Serialize + ?Sized>(value: &T) -> Result<JsValue, serde_wasm_bindgen::Error> {
     value.serialize(&serde_wasm_bindgen::Serializer::json_compatible())
 }
 
@@ -42,6 +59,9 @@ fn deserialize_millis<'de, D: Deserializer<'de>>(de: D) -> Result<Option<crate::
 }
 
 /// A Workflow binding for creating and managing workflow instances.
+// `repr(transparent)` lays `Workflow` out exactly like the `JsValue` it wraps,
+// which `JsCast::unchecked_from_js_ref` relies on.
+#[repr(transparent)]
 #[derive(Debug, Clone)]
 pub struct Workflow {
     inner: WorkflowBindingSys,
@@ -81,32 +101,50 @@ impl Workflow {
         let result_array: js_sys::Array = result.unchecked_into();
         Ok(result_array.iter().map(WorkflowInstance::from_js).collect())
     }
+
+    /// Delete a batch of instances (limited to 100 at a time) and their stored
+    /// state. Duplicate ids are deleted once, and an id that doesn't exist is
+    /// reported in [`DeleteBatchResult::errors`] rather than failing the call.
+    pub async fn delete_batch<I, S>(&self, ids: I) -> Result<DeleteBatchResult>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>,
+    {
+        let ids: js_sys::Array = ids
+            .into_iter()
+            .map(|id| JsValue::from_str(id.as_ref()))
+            .collect();
+        let result = SendFuture::new(self.inner.delete_batch(&ids)).await?;
+        Ok(serde_wasm_bindgen::from_value(result)?)
+    }
+}
+
+/// The name of `val`'s constructor, if `val` is an object.
+fn constructor_name(val: &JsValue) -> Option<String> {
+    val.is_object()
+        .then(|| val.unchecked_ref::<Object>().constructor().name().into())
 }
 
 impl EnvBinding for Workflow {
     const TYPE_NAME: &'static str = "Workflow";
 
     fn get(val: JsValue) -> Result<Self> {
-        let obj = Object::from(val);
-        let constructor_name = obj.constructor().name();
-        if constructor_name == Self::TYPE_NAME || constructor_name == "WorkflowImpl" {
-            Ok(Self {
-                inner: obj.unchecked_into(),
-            })
-        } else {
-            Err(format!(
-                "Binding cannot be cast to the type {} from {}",
-                Self::TYPE_NAME,
-                constructor_name
+        val.dyn_into().map_err(|val| {
+            let found = constructor_name(&val).unwrap_or_else(|| format!("{val:?}"));
+            format!(
+                "Binding cannot be cast to the type {} from {found}",
+                Self::TYPE_NAME
             )
-            .into())
-        }
+            .into()
+        })
     }
 }
 
 impl JsCast for Workflow {
-    fn instanceof(_val: &JsValue) -> bool {
-        true
+    /// Whether `val` is a Workflow binding, which the runtime implements as a
+    /// `WorkflowImpl`.
+    fn instanceof(val: &JsValue) -> bool {
+        constructor_name(val).is_some_and(|name| name == "WorkflowImpl" || name == "Workflow")
     }
 
     fn unchecked_from_js(val: JsValue) -> Self {
@@ -116,6 +154,8 @@ impl JsCast for Workflow {
     }
 
     fn unchecked_from_js_ref(val: &JsValue) -> &Self {
+        // SAFETY: `Workflow` is `repr(transparent)` over `WorkflowBindingSys`,
+        // a wasm-bindgen import type that's `repr(transparent)` over `JsValue`.
         unsafe { &*(val as *const JsValue as *const Self) }
     }
 }
@@ -164,6 +204,30 @@ pub struct RetentionOptions {
     pub error_retention: Option<WorkflowSleepDuration>,
 }
 
+/// The outcome of [`Workflow::delete_batch`], with an entry for each id given.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct DeleteBatchResult {
+    /// The instances that were deleted.
+    pub deleted: Vec<DeletedInstance>,
+    /// The instances that couldn't be deleted, such as ids that don't exist.
+    pub errors: Vec<DeleteBatchError>,
+}
+
+/// An instance that [`Workflow::delete_batch`] deleted.
+#[derive(Debug, Clone, Deserialize)]
+pub struct DeletedInstance {
+    pub id: String,
+}
+
+/// An instance that [`Workflow::delete_batch`] couldn't delete.
+#[derive(Debug, Clone, Deserialize)]
+pub struct DeleteBatchError {
+    pub id: String,
+    pub code: u32,
+    pub message: String,
+}
+
 /// A handle to a workflow instance.
 #[derive(Debug, Clone)]
 pub struct WorkflowInstance {
@@ -200,6 +264,13 @@ impl WorkflowInstance {
         Ok(())
     }
 
+    /// Terminate the workflow instance, optionally running the rollback
+    /// handlers of its completed steps first (see [`TerminateOptions::rollback`]).
+    pub async fn terminate_with_options(&self, options: TerminateOptions) -> Result<()> {
+        SendFuture::new(self.inner.terminate_with_options(to_js(&options)?)).await?;
+        Ok(())
+    }
+
     /// Restart the workflow instance from the beginning.
     pub async fn restart(&self) -> Result<()> {
         SendFuture::new(self.inner.restart()).await?;
@@ -212,6 +283,12 @@ impl WorkflowInstance {
     /// the named step are preserved and execution resumes from that step.
     pub async fn restart_with_options(&self, options: RestartOptions) -> Result<()> {
         SendFuture::new(self.inner.restart_with_options(to_js(&options)?)).await?;
+        Ok(())
+    }
+
+    /// Delete the instance and its stored state.
+    pub async fn delete(&self) -> Result<()> {
+        SendFuture::new(self.inner.delete()).await?;
         Ok(())
     }
 
@@ -257,14 +334,25 @@ pub enum InstanceStatusKind {
     Complete,
     Waiting,
     WaitingForPause,
+    /// The runtime reported `unknown`, or a status this version doesn't know.
+    #[serde(other)]
     Unknown,
 }
 
 /// Error information for a failed workflow.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct InstanceError {
     pub name: String,
     pub message: String,
+}
+
+/// Options for [`WorkflowInstance::terminate_with_options`].
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct TerminateOptions {
+    /// Run the rollback handlers registered by the instance's completed steps
+    /// (see [`WorkflowStep::do_with_rollback`]) before terminating it.
+    pub rollback: bool,
 }
 
 /// Options for [`WorkflowInstance::restart_with_options`].
@@ -346,6 +434,7 @@ impl Default for WorkflowStepInfo {
 ///
 /// `T` is the step's output type. See [`WorkflowStep::do_with_rollback`].
 #[derive(Debug, Clone, Deserialize)]
+#[serde(bound(deserialize = "T: DeserializeOwned"))]
 pub struct WorkflowRollbackContext<T> {
     /// The original context of the step being rolled back.
     #[serde(default)]
@@ -355,7 +444,23 @@ pub struct WorkflowRollbackContext<T> {
     pub error: StepError,
     /// The output the step produced, if it completed successfully before the
     /// downstream failure. `None` if the step itself never produced output.
+    #[serde(default, deserialize_with = "deserialize_step_output")]
     pub output: Option<T>,
+}
+
+/// Deserialize a rolled-back step's output, which the runtime leaves
+/// `undefined` when the step never produced one. Unlike `Option`'s own impl,
+/// a `null` output (from a step that returned `()` or `None`) is `Some`.
+fn deserialize_step_output<'de, D: Deserializer<'de>, T: DeserializeOwned>(
+    de: D,
+) -> Result<Option<T>, D::Error> {
+    let output: JsValue = serde_wasm_bindgen::preserve::deserialize(de)?;
+    if output.is_undefined() {
+        return Ok(None);
+    }
+    serde_wasm_bindgen::from_value(output)
+        .map(Some)
+        .map_err(serde::de::Error::custom)
 }
 
 /// The error that triggered a step rollback, mirroring a JS `Error`.
@@ -413,12 +518,50 @@ impl Default for ResolvedRetryConfig {
     }
 }
 
+/// The JS function `step.do` invokes on each attempt of a step.
+type StepCallback = Closure<dyn FnMut(JsValue) -> js_sys::Promise>;
+
+/// Turn a step attempt or a rollback call into the promise the engine awaits.
+///
+/// With `experimental_tokio` on emscripten, the future is driven the way
+/// `#[workflow]` drives `run`: on a fresh Tokio event loop owned by this
+/// invocation and dropped once it settles, so `tokio::spawn`, timers and
+/// Tokio I/O work inside it.
+fn callback_promise<F>(future: F) -> js_sys::Promise
+where
+    F: Future<Output = Result<JsValue, JsValue>> + 'static,
+{
+    #[cfg(all(feature = "experimental_tokio", target_os = "emscripten"))]
+    {
+        // As wasm-bindgen expands an `experimental_tokio = "isolated"` export:
+        // `AssertUnwindSafe` meets `Promise::new`'s `UnwindSafe` bound under
+        // panic=unwind, and a panic arrives as `Err(JoinError)`.
+        let mut future = AssertUnwindSafe(Some(future));
+        js_sys::Promise::new(&mut move |resolve, reject| {
+            let future = future
+                .take()
+                .expect("Promise executor invoked more than once");
+            wasm_bindgen_futures::tokio::schedule_isolated(future, move |out| {
+                let _ = match out {
+                    Ok(Ok(value)) => resolve.call1(&JsValue::UNDEFINED, &value),
+                    Ok(Err(err)) => reject.call1(&JsValue::UNDEFINED, &err),
+                    Err(err) => reject.call1(
+                        &JsValue::UNDEFINED,
+                        &js_sys::Error::new(&format!("workflow callback failed: {err}")).into(),
+                    ),
+                };
+            });
+        })
+    }
+    #[cfg(not(all(feature = "experimental_tokio", target_os = "emscripten")))]
+    {
+        js_sys::futures::future_to_promise(future)
+    }
+}
+
 /// Wrap a step callback as the JS function `step.do` invokes on each attempt,
 /// converting the callback's output to JS with `into_js`.
-fn step_callback<R, F>(
-    callback: F,
-    into_js: fn(R) -> Result<JsValue>,
-) -> Closure<dyn FnMut(JsValue) -> js_sys::Promise>
+fn step_callback<R, F>(callback: F, into_js: fn(R) -> Result<JsValue>) -> StepCallback
 where
     R: 'static,
     F: AsyncFn(WorkflowStepContext) -> Result<R> + 'static,
@@ -426,13 +569,54 @@ where
     let callback = Rc::new(AssertUnwindSafe(callback));
     Closure::new(move |ctx: JsValue| {
         let callback = callback.clone();
-        future_to_promise(AssertUnwindSafe(async move {
+        callback_promise(AssertUnwindSafe(async move {
             // Runtimes that predate step contexts invoke the callback without one.
             let ctx = serde_wasm_bindgen::from_value::<Option<WorkflowStepContext>>(ctx)?
                 .unwrap_or_default();
-            Ok(into_js((callback.0)(ctx).await?)?)
+            let output = (callback.0)(ctx).await?;
+            // The callback has already run, so retrying would only repeat its
+            // side effects: an output that can't be serialized won't become
+            // serializable on the next attempt.
+            into_js(output).map_err(|err| {
+                JsValue::from(NonRetryableError::new(format!(
+                    "step output can't be serialized: {err}"
+                )))
+            })
         }))
     })
+}
+
+/// Await the promise `step.do` returned, keeping `callback` alive until it
+/// settles.
+///
+/// The engine invokes the callback again on each retry until the step
+/// settles, which can outlast this future if the caller drops it (e.g. a step
+/// racing a timeout in `select!`). Dropping the callback then would fail
+/// those attempts, so it's handed to a task that releases it once the step
+/// settles.
+async fn settle_step(
+    promise: Result<js_sys::Promise, JsValue>,
+    callback: StepCallback,
+) -> Result<JsValue> {
+    struct KeepAlive(Option<(js_sys::Promise, StepCallback)>);
+
+    impl Drop for KeepAlive {
+        fn drop(&mut self) {
+            if let Some((promise, callback)) = self.0.take() {
+                spawn_local(async move {
+                    let _ = JsFuture::from(promise).await;
+                    drop(callback);
+                });
+            }
+        }
+    }
+
+    let promise = promise?;
+    let mut keep_alive = KeepAlive(Some((promise.clone(), callback)));
+    let result = SendFuture::new(JsFuture::from(promise)).await;
+    // The step has settled, so the engine won't invoke the callback again.
+    keep_alive.0 = None;
+    Ok(result?)
 }
 
 /// Wrap a rollback handler into a JS function and hand it to the JS GC.
@@ -449,7 +633,7 @@ where
     let rollback = Rc::new(AssertUnwindSafe(rollback));
     Closure::<dyn FnMut(JsValue) -> js_sys::Promise>::new(move |ctx: JsValue| {
         let rollback = rollback.clone();
-        future_to_promise(AssertUnwindSafe(async move {
+        callback_promise(AssertUnwindSafe(async move {
             (rollback.0)(serde_wasm_bindgen::from_value(ctx)?).await?;
             Ok(JsValue::UNDEFINED)
         }))
@@ -458,6 +642,11 @@ where
 }
 
 /// Provides methods for executing durable workflow steps.
+///
+/// With the `experimental_tokio` feature, each step attempt (every retry
+/// included) and each rollback call runs on its own Tokio event loop, like
+/// `run`, and the loop is dropped once it settles. A Tokio resource such as a
+/// connection or a spawned task belongs to the attempt that created it.
 #[derive(Debug)]
 pub struct WorkflowStep(WorkflowStepSys);
 
@@ -485,12 +674,10 @@ impl WorkflowStep {
         F: AsyncFn(WorkflowStepContext) -> Result<T> + 'static,
     {
         let callback = step_callback(callback, |output: T| Ok(to_js(&output)?));
-        let result = SendFuture::new(self.0.do_with_config(
-            name,
-            to_js(&config)?,
-            callback.as_ref().unchecked_ref(),
-        ))
-        .await?;
+        let promise =
+            self.0
+                .do_with_config(name, to_js(&config)?, callback.as_ref().unchecked_ref());
+        let result = settle_step(promise, callback).await?;
         Ok(serde_wasm_bindgen::from_value(result)?)
     }
 
@@ -550,13 +737,13 @@ impl WorkflowStep {
             rollback: rollback_callback(rollback.handler),
             rollback_config: rollback.config,
         };
-        let result = SendFuture::new(self.0.do_with_rollback(
+        let promise = self.0.do_with_rollback(
             name,
             to_js(&config)?,
             callback.as_ref().unchecked_ref(),
             to_js(&options)?,
-        ))
-        .await?;
+        );
+        let result = settle_step(promise, callback).await?;
         Ok(serde_wasm_bindgen::from_value(result)?)
     }
 
@@ -588,13 +775,10 @@ impl WorkflowStep {
             callback,
             |stream: web_sys::ReadableStream| Ok(stream.into()),
         );
-        let result = SendFuture::new(self.0.do_with_config(
-            name,
-            to_js(&config)?,
-            callback.as_ref().unchecked_ref(),
-        ))
-        .await?;
-        Ok(result.unchecked_into())
+        let promise =
+            self.0
+                .do_with_config(name, to_js(&config)?, callback.as_ref().unchecked_ref());
+        Ok(settle_step(promise, callback).await?.unchecked_into())
     }
 
     /// Sleep for a specified duration (e.g., "1 minute", "5 seconds").
@@ -787,6 +971,10 @@ pub enum WorkflowDuration {
 ///
 /// Corresponds to the `WorkflowSleepDuration` type in the Workers runtime,
 /// which accepts either a string like `"5 seconds"` or a number of milliseconds.
+///
+/// Strings must spell out the unit (`second`, `minute`, `hour`, `day`, `week`,
+/// `month` or `year`, optionally plural). Abbreviations such as `"5 min"`
+/// aren't recognized, and the runtime may read them as milliseconds.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct WorkflowSleepDuration(WorkflowSleepDurationInner);
@@ -830,7 +1018,12 @@ impl From<String> for WorkflowSleepDuration {
 
 impl From<std::time::Duration> for WorkflowSleepDuration {
     fn from(d: std::time::Duration) -> Self {
-        Self(WorkflowSleepDurationInner::Millis(d.as_millis() as f64))
+        // Keep the sub-millisecond part: truncating it would turn a short
+        // timeout into `0`, which the runtime rejects.
+        let fraction = f64::from(d.subsec_nanos() % 1_000_000) / 1_000_000.0;
+        Self(WorkflowSleepDurationInner::Millis(
+            d.as_millis() as f64 + fraction,
+        ))
     }
 }
 
@@ -887,6 +1080,10 @@ pub trait HasWorkflowAttribute {}
 #[allow(async_fn_in_trait)]
 pub trait WorkflowEntrypoint: HasWorkflowAttribute {
     /// Type of the `params` payload supplied to [`Workflow::create`].
+    ///
+    /// Instances created without params, including those started by a cron
+    /// schedule, need an `Input` that accepts an empty payload, such as `()`,
+    /// `Option<T>`, or a `#[serde(default)]` struct.
     type Input: DeserializeOwned;
 
     /// Type returned to the runtime as the workflow's output.
@@ -909,9 +1106,52 @@ pub async fn run_workflow<W: WorkflowEntrypoint>(
     event: JsValue,
     step: WorkflowStepSys,
 ) -> Result<JsValue, JsValue> {
-    let event = serde_wasm_bindgen::from_value(event)?;
+    let event = event_from_js(event)?;
     let output = workflow.run(event, WorkflowStep(step)).await?;
-    Ok(to_js(&output)?)
+    Ok(output_to_js(&output)?)
+}
+
+/// Deserialize the event passed to `run`.
+///
+/// An instance created without params carries `null` (from
+/// [`Workflow::create_default`]), `{}` (the runtime's `params = {}` default,
+/// which JS callers, `wrangler workflows trigger` and cron schedules get), or
+/// no payload at all. When such a payload doesn't fit `T` as given, retry with
+/// the other empty forms, so that `()`, `Option<_>`, maps and
+/// `#[serde(default)]` structs accept it however the instance was created.
+fn event_from_js<T: DeserializeOwned>(
+    event: JsValue,
+) -> Result<WorkflowEvent<T>, serde_wasm_bindgen::Error> {
+    let err = match serde_wasm_bindgen::from_value(event.clone()) {
+        Ok(event) => return Ok(event),
+        Err(err) => err,
+    };
+    let payload = Reflect::get(&event, &"payload".into()).unwrap_or(JsValue::UNDEFINED);
+    if is_empty_payload(&payload) {
+        for empty in [JsValue::NULL, Object::new().into()] {
+            let retry = Object::assign(&Object::new(), event.unchecked_ref());
+            if Reflect::set(&retry, &"payload".into(), &empty).is_ok() {
+                if let Ok(event) = serde_wasm_bindgen::from_value(retry.into()) {
+                    return Ok(event);
+                }
+            }
+        }
+    }
+    Err(err)
+}
+
+/// Whether `payload` is one of the forms "no params" arrives in: `null`,
+/// `undefined`, or an empty plain object.
+fn is_empty_payload(payload: &JsValue) -> bool {
+    if payload.is_null() || payload.is_undefined() {
+        return true;
+    }
+    if !payload.is_object() {
+        return false;
+    }
+    let proto = Object::get_prototype_of(payload);
+    let is_plain = proto.is_null() || proto == Object::get_prototype_of(&Object::new());
+    is_plain && Object::keys(payload.unchecked_ref::<Object>()).length() == 0
 }
 
 #[cfg(test)]
