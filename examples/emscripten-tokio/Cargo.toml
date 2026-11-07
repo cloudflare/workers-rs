@@ -9,7 +9,7 @@ publish = false
 [workspace]
 
 [dependencies]
-worker = { path = "../../worker", features = ["experimental_tokio"] }
+worker = { path = "../../worker", features = ["experimental_tokio", "workflow"] }
 tokio = { version = "1", default-features = false, features = ["rt", "macros", "sync", "time"] }
 serde = { version = "1", features = ["derive"] }
 

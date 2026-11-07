@@ -186,6 +186,13 @@ jobs:
             sleep 1
           }
           stop() { pkill -f wrangler-dist || true; sleep 1; cat examples/$1/wrangler.log; ! grep -q 'wrangler:error' examples/$1/wrangler.log; }
+          poll() {
+            for i in $(seq 1 30); do
+              curl -sf "$1" | grep -q "$2" && return 0
+              sleep 1
+            done
+            return 1
+          }
 
           serve emscripten
           curl -sf -X POST --data-binary 'a b a' http://localhost:8787/ | grep -q '^   2 a$'
@@ -196,6 +203,11 @@ jobs:
           curl -sf http://localhost:8787/channels | grep -q '"result":"\[1, 6, 2, 7, 3, 8, 4, 9, 5, 10\]"'
           curl -sf http://localhost:8787/timeout | grep -q 'fast: completed, slow: timed out'
           curl -sf http://localhost:8787/stack | grep -q '"result":"sum = 262144"'
+          # Workflow steps and rollback handlers run on Tokio event loops too.
+          id=$(curl -sf -X POST http://localhost:8787/workflow)
+          poll http://localhost:8787/workflow/$id 'Complete: "squares = \[1, 4, 9\]"'
+          id=$(curl -sf -X POST 'http://localhost:8787/workflow?fail')
+          poll http://localhost:8787/workflow/$id/rollback '^released$'
           stop emscripten-tokio
 
           serve emscripten-tcp

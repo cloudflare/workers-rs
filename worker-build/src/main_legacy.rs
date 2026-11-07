@@ -92,10 +92,19 @@ pub fn process(out_dir: &Path) -> Result<()> {
             output
         });
 
-    let shim = shim_template
+    let mut shim = shim_template
         .replace("$WAIT_UNTIL_RESPONSE", wait_until_response)
         .replace("$SNIPPET_JS_IMPORTS", &js_imports)
         .replace("$SNIPPET_WASM_IMPORTS", &wasm_imports);
+
+    // Without these, `#[workflow]` structs would only be exported under their
+    // internal `__wf_` class names.
+    let glue_path = worker_path(out_dir, format!("{OUT_NAME}_bg.js"));
+    if glue_path.exists() {
+        let glue = read_to_string(&glue_path)
+            .with_context(|| format!("Failed to read {}", glue_path.display()))?;
+        shim.push_str(&crate::legacy_workflow_wrappers(&glue));
+    }
 
     write_string_to_file(worker_path(out_dir, "shim.js"), shim)?;
 
@@ -167,9 +176,7 @@ fn bundle(out_dir: &Path, esbuild_path: &Path) -> Result<()> {
     let mut command = Command::new(esbuild_path);
     command.args([
         "--external:./index.wasm",
-        "--external:cloudflare:email",
-        "--external:cloudflare:sockets",
-        "--external:cloudflare:workers",
+        "--external:cloudflare:*",
         "--format=esm",
         "--bundle",
         "./shim.js",
