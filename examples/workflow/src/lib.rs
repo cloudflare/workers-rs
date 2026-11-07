@@ -14,17 +14,14 @@ pub struct MyOutput {
 }
 
 #[workflow]
-pub struct MyWorkflow {
-    #[allow(dead_code)]
-    env: Env,
-}
+pub struct MyWorkflow;
 
 impl WorkflowEntrypoint for MyWorkflow {
     type Input = MyParams;
     type Output = MyOutput;
 
-    fn new(_ctx: Context, env: Env) -> Self {
-        Self { env }
+    fn new(_ctx: Context, _env: Env) -> Self {
+        Self
     }
 
     async fn run(&self, event: WorkflowEvent<MyParams>, step: WorkflowStep) -> Result<MyOutput> {
@@ -42,7 +39,9 @@ impl WorkflowEntrypoint for MyWorkflow {
 
         let params = event.payload;
 
-        let email_for_validation = params.email.clone();
+        // Step callbacks are async closures. Each `move` closure owns its copy
+        // of what it captures, which every retry reuses.
+        let email = params.email.clone();
         step.do_with_config(
             "validate-params",
             StepConfig {
@@ -54,35 +53,29 @@ impl WorkflowEntrypoint for MyWorkflow {
                 timeout: None,
                 sensitive: None,
             },
-            move |ctx| {
-                let email = email_for_validation.clone();
-                async move {
-                    console_log!(
-                        "step '{}' attempt {}/{}",
-                        ctx.step.name,
-                        ctx.attempt,
-                        ctx.config.retries.limit
-                    );
-                    if !email.contains('@') {
-                        return Err(NonRetryableError::new("invalid email address").into());
-                    }
-                    Ok(serde_json::json!({ "valid": true }))
+            async move |ctx| {
+                console_log!(
+                    "step '{}' attempt {}/{}",
+                    ctx.step.name,
+                    ctx.attempt,
+                    ctx.config.retries.limit
+                );
+                if !email.contains('@') {
+                    return Err(NonRetryableError::new("invalid email address").into());
                 }
+                Ok(serde_json::json!({ "valid": true }))
             },
         )
         .await?;
 
-        let name_for_step1 = params.name.clone();
+        let name = params.name.clone();
         let step1_result = step
-            .do_("initial-processing", move |_ctx| {
-                let name = name_for_step1.clone();
-                async move {
-                    console_log!("Processing for user: {}", name);
-                    Ok(serde_json::json!({
-                        "processed": true,
-                        "user": name
-                    }))
-                }
+            .do_("initial-processing", async move |_ctx| {
+                console_log!("Processing for user: {}", name);
+                Ok(serde_json::json!({
+                    "processed": true,
+                    "user": name
+                }))
             })
             .await?;
 
@@ -91,7 +84,7 @@ impl WorkflowEntrypoint for MyWorkflow {
         console_log!("Step 2: Sleeping for 10 seconds...");
         step.sleep("wait-for-processing", "10 seconds").await?;
 
-        let email_for_step3 = params.email.clone();
+        let email = params.email.clone();
         let notification_result = step
             .do_with_config(
                 "send-notification",
@@ -104,18 +97,15 @@ impl WorkflowEntrypoint for MyWorkflow {
                     timeout: Some("1 minute".into()),
                     sensitive: None,
                 },
-                move |_ctx| {
-                    let email = email_for_step3.clone();
-                    async move {
-                        console_log!("Sending notification to: {}", email);
-                        if js_sys::Math::random() < 0.5 {
-                            return Err("notification service temporarily unavailable".into());
-                        }
-                        Ok(serde_json::json!({
-                            "notification_sent": true,
-                            "email": email
-                        }))
+                async move |_ctx| {
+                    console_log!("Sending notification to: {}", email);
+                    if js_sys::Math::random() < 0.5 {
+                        return Err("notification service temporarily unavailable".into());
                     }
+                    Ok(serde_json::json!({
+                        "notification_sent": true,
+                        "email": email
+                    }))
                 },
             )
             .await?;
@@ -129,12 +119,12 @@ impl WorkflowEntrypoint for MyWorkflow {
         let reservation = step
             .do_with_rollback(
                 "reserve-inventory",
-                |_ctx| async move {
+                async |_ctx| {
                     console_log!("Reserving inventory");
                     Ok(serde_json::json!({ "reservation_id": "resv_123" }))
                 },
                 Rollback::new(
-                    |rollback: WorkflowRollbackContext<serde_json::Value>| async move {
+                    async |rollback: WorkflowRollbackContext<serde_json::Value>| {
                         if let Some(output) = &rollback.output {
                             console_log!(
                                 "Rolling back '{}' (caused by: {}) — releasing {}",
@@ -159,16 +149,13 @@ impl WorkflowEntrypoint for MyWorkflow {
 }
 
 #[event(fetch)]
-async fn fetch(mut req: Request, env: Env, _ctx: Context) -> Result<Response> {
-    let url = req.url()?;
-    let path = url.path();
-    let workflow = env.workflow("MY_WORKFLOW")?;
-
-    match (req.method(), path) {
-        (Method::Post, "/workflow") => {
+async fn fetch(req: Request, env: Env, _ctx: Context) -> Result<Response> {
+    Router::new()
+        .post_async("/workflow", |mut req, ctx| async move {
             let params: MyParams = req.json().await?;
-
-            let instance = workflow
+            let instance = ctx
+                .env
+                .workflow("MY_WORKFLOW")?
                 .create(CreateOptions {
                     params: Some(params),
                     ..Default::default()
@@ -179,11 +166,9 @@ async fn fetch(mut req: Request, env: Env, _ctx: Context) -> Result<Response> {
                 "id": instance.id(),
                 "message": "Workflow created"
             }))
-        }
-
-        (Method::Get, path) if path.starts_with("/workflow/") => {
-            let id = path.trim_start_matches("/workflow/");
-            let instance = workflow.get(id).await?;
+        })
+        .get_async("/workflow/:id", |_req, ctx| async move {
+            let instance = workflow_instance(&ctx).await?;
             let status = instance.status().await?;
 
             Response::from_json(&serde_json::json!({
@@ -192,34 +177,31 @@ async fn fetch(mut req: Request, env: Env, _ctx: Context) -> Result<Response> {
                 "error": status.error,
                 "output": status.output
             }))
-        }
-
-        (Method::Post, path) if path.starts_with("/workflow/") && path.ends_with("/pause") => {
-            let id = path
-                .trim_start_matches("/workflow/")
-                .trim_end_matches("/pause");
-            let instance = workflow.get(id).await?;
-            instance.pause().await?;
-
-            Response::from_json(&serde_json::json!({
-                "id": instance.id(),
-                "message": "Workflow paused"
-            }))
-        }
-
-        (Method::Post, path) if path.starts_with("/workflow/") && path.ends_with("/resume") => {
-            let id = path
-                .trim_start_matches("/workflow/")
-                .trim_end_matches("/resume");
-            let instance = workflow.get(id).await?;
-            instance.resume().await?;
+        })
+        .post_async("/workflow/:id/:action", |_req, ctx| async move {
+            let instance = workflow_instance(&ctx).await?;
+            let message = match ctx.param("action").map(String::as_str) {
+                Some("pause") => {
+                    instance.pause().await?;
+                    "Workflow paused"
+                }
+                Some("resume") => {
+                    instance.resume().await?;
+                    "Workflow resumed"
+                }
+                _ => return Response::error("Not Found", 404),
+            };
 
             Response::from_json(&serde_json::json!({
                 "id": instance.id(),
-                "message": "Workflow resumed"
+                "message": message
             }))
-        }
+        })
+        .run(req, env)
+        .await
+}
 
-        _ => Response::error("Not Found", 404),
-    }
+async fn workflow_instance(ctx: &RouteContext<()>) -> Result<WorkflowInstance> {
+    let id = ctx.param("id").ok_or("missing instance id")?;
+    ctx.env.workflow("MY_WORKFLOW")?.get(id).await
 }

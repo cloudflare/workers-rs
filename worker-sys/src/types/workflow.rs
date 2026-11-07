@@ -7,13 +7,6 @@ extern "C" {
     pub type WorkflowStep;
 
     #[wasm_bindgen(method, catch, js_name = "do")]
-    pub async fn do_(
-        this: &WorkflowStep,
-        name: &str,
-        callback: &js_sys::Function,
-    ) -> Result<JsValue, JsValue>;
-
-    #[wasm_bindgen(method, catch, js_name = "do")]
     pub async fn do_with_config(
         this: &WorkflowStep,
         name: &str,
@@ -77,6 +70,9 @@ extern "C" {
     #[wasm_bindgen(extends=js_sys::Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type WorkflowInstanceSys;
+
+    #[wasm_bindgen(method, getter)]
+    pub fn id(this: &WorkflowInstanceSys) -> String;
 
     #[wasm_bindgen(method, catch)]
     pub async fn pause(this: &WorkflowInstanceSys) -> Result<JsValue, JsValue>;

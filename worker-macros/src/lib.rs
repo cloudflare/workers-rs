@@ -189,10 +189,7 @@ pub fn consume(_: TokenStream, _: TokenStream) -> TokenStream {
 ///     ) -> Result<Output> {
 ///         let email = event.payload.email.clone();
 ///         let validated: bool = step
-///             .do_("validate", move |_ctx| {
-///                 let email = email.clone();
-///                 async move { Ok(email.contains('@')) }
-///             })
+///             .do_("validate", async move |_ctx| Ok(email.contains('@')))
 ///             .await?;
 ///
 ///         if !validated {

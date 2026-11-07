@@ -1,5 +1,5 @@
 name = "workflow-example"
-main = "build/worker/shim.mjs"
+main = "build/index.js"
 compatibility_date = "2026-04-21"
 
 [build]

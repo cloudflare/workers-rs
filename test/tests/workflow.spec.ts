@@ -1,36 +1,59 @@
-import { describe, test, expect } from "vitest";
+import { describe, test, expect, vi } from "vitest";
 import { mf, mfUrl } from "./mf";
+
+type InstanceStatus = { status: string; output: unknown; error: unknown };
+
+const settled = (status: string) =>
+  status === "Complete" || status === "Errored";
+
+async function create(path: string): Promise<string> {
+  const resp = await mf.dispatchFetch(`${mfUrl}workflow/${path}`, {
+    method: "POST",
+  });
+  expect(resp.status).toBe(200);
+  const { id } = (await resp.json()) as { id: string };
+  expect(typeof id).toBe("string");
+  return id;
+}
+
+// Polls the instance's status until `done` accepts it.
+function waitForStatus(
+  kind: string,
+  id: string,
+  done: (status: string) => boolean
+): Promise<InstanceStatus> {
+  return vi.waitFor(
+    async () => {
+      const resp = await mf.dispatchFetch(
+        `${mfUrl}workflow/${kind}/status/${id}`
+      );
+      expect(resp.status).toBe(200);
+      const body = (await resp.json()) as InstanceStatus;
+      expect(done(body.status), `status is ${body.status}`).toBe(true);
+      return body;
+    },
+    { timeout: 15_000, interval: 100 }
+  );
+}
+
+async function lifecycleAction(action: string, id: string) {
+  const resp = await mf.dispatchFetch(
+    `${mfUrl}workflow/lifecycle/${action}/${id}`,
+    { method: "POST" }
+  );
+  expect(resp.status).toBe(200);
+}
+
+async function createRunningLifecycleWorkflow(): Promise<string> {
+  const id = await create("lifecycle/create");
+  await waitForStatus("lifecycle", id, (s) => s !== "Queued");
+  return id;
+}
 
 describe("workflow", () => {
   test("create and poll status until completion", async () => {
-    const createResp = await mf.dispatchFetch(`${mfUrl}workflow/create`, {
-      method: "POST",
-    });
-    expect(createResp.status).toBe(200);
-    const { id } = (await createResp.json()) as { id: string };
-    expect(id).toBeDefined();
-    expect(typeof id).toBe("string");
-
-    let status: string | undefined;
-    let output: unknown;
-    for (let i = 0; i < 30; i++) {
-      const statusResp = await mf.dispatchFetch(
-        `${mfUrl}workflow/status/${id}`
-      );
-      expect(statusResp.status).toBe(200);
-      const body = (await statusResp.json()) as {
-        status: string;
-        output: unknown;
-        error: unknown;
-      };
-      status = body.status;
-      output = body.output;
-      if (status === "Complete" || status === "Errored") {
-        break;
-      }
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    }
-
+    const id = await create("test/create");
+    const { status, output } = await waitForStatus("test", id, settled);
     expect(status).toBe("Complete");
     expect(output).toEqual({
       processed: "hello",
@@ -39,135 +62,52 @@ describe("workflow", () => {
   });
 
   test("non-retryable error stops workflow immediately", async () => {
-    const createResp = await mf.dispatchFetch(
-      `${mfUrl}workflow/create-invalid`,
-      { method: "POST" }
-    );
-    expect(createResp.status).toBe(200);
-    const { id } = (await createResp.json()) as { id: string };
-    expect(id).toBeDefined();
-
-    let status: string | undefined;
-    for (let i = 0; i < 30; i++) {
-      const statusResp = await mf.dispatchFetch(
-        `${mfUrl}workflow/status/${id}`
-      );
-      expect(statusResp.status).toBe(200);
-      const body = (await statusResp.json()) as {
-        status: string;
-        output: unknown;
-      };
-      status = body.status;
-      if (status === "Complete" || status === "Errored") {
-        break;
-      }
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    }
-
+    const id = await create("test/create-invalid");
+    const { status } = await waitForStatus("test", id, settled);
     expect(status).toBe("Errored");
   });
 
-  async function lifecycleStatus(
-    id: string
-  ): Promise<{ status: string; error: unknown }> {
-    const resp = await mf.dispatchFetch(
-      `${mfUrl}workflow/lifecycle/status/${id}`
-    );
-    return (await resp.json()) as { status: string; error: unknown };
-  }
-
-  async function pollUntil(
-    id: string,
-    predicate: (status: string) => boolean
-  ): Promise<string> {
-    for (let i = 0; i < 10; i++) {
-      const { status } = await lifecycleStatus(id);
-      if (predicate(status)) return status;
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-    const { status } = await lifecycleStatus(id);
-    return status;
-  }
-
-  async function createLifecycleWorkflow(): Promise<string> {
-    const resp = await mf.dispatchFetch(
-      `${mfUrl}workflow/lifecycle/create`,
-      { method: "POST" }
-    );
-    expect(resp.status).toBe(200);
-    const { id } = (await resp.json()) as { id: string };
-    await pollUntil(id, (s) => s !== "Queued");
-    return id;
-  }
-
-  async function lifecycleAction(
-    action: string,
-    id: string
-  ): Promise<Response> {
-    return mf.dispatchFetch(
-      `${mfUrl}workflow/lifecycle/${action}/${id}`,
-      { method: "POST" }
-    );
-  }
-
   test("pause and resume a running workflow", async () => {
-    const id = await createLifecycleWorkflow();
+    const id = await createRunningLifecycleWorkflow();
 
-    expect((await lifecycleAction("pause", id)).status).toBe(200);
-    const paused = await pollUntil(id, (s) => s === "Paused");
-    expect(paused).toBe("Paused");
+    await lifecycleAction("pause", id);
+    await waitForStatus("lifecycle", id, (s) => s === "Paused");
 
-    expect((await lifecycleAction("resume", id)).status).toBe(200);
-    const resumed = await pollUntil(id, (s) => s !== "Paused");
-    expect(resumed).not.toBe("Paused");
+    await lifecycleAction("resume", id);
+    await waitForStatus("lifecycle", id, (s) => s !== "Paused");
 
     await lifecycleAction("terminate", id);
   });
 
   test("terminate a running workflow", async () => {
-    const id = await createLifecycleWorkflow();
-
-    expect((await lifecycleAction("terminate", id)).status).toBe(200);
-    const status = await pollUntil(id, (s) => s === "Terminated");
-    expect(status).toBe("Terminated");
-  });
-
-  test("restart a running workflow", async () => {
-    const id = await createLifecycleWorkflow();
-
-    expect((await lifecycleAction("restart", id)).status).toBe(200);
-    const status = await pollUntil(
-      id,
-      (s) => s !== "Queued"
-    );
-    expect(["Running", "Waiting", "Queued"]).toContain(status);
+    const id = await createRunningLifecycleWorkflow();
 
     await lifecycleAction("terminate", id);
+    await waitForStatus("lifecycle", id, (s) => s === "Terminated");
   });
 
-  test("restart a running workflow from a specific step", async () => {
-    const id = await createLifecycleWorkflow();
+  test.each(["restart", "restart-from"])(
+    "%s a running workflow",
+    async (action) => {
+      const id = await createRunningLifecycleWorkflow();
 
-    expect((await lifecycleAction("restart-from", id)).status).toBe(200);
-    const status = await pollUntil(id, (s) => s !== "Queued");
-    expect(["Running", "Waiting", "Queued"]).toContain(status);
+      await lifecycleAction(action, id);
+      const { status } = await waitForStatus(
+        "lifecycle",
+        id,
+        (s) => s !== "Queued"
+      );
+      expect(["Running", "Waiting"]).toContain(status);
 
-    await lifecycleAction("terminate", id);
-  });
+      await lifecycleAction("terminate", id);
+    }
+  );
 
   test("wait_for_event receives sent event", async () => {
-    const createResp = await mf.dispatchFetch(
-      `${mfUrl}workflow/event/create`,
-      { method: "POST" }
-    );
-    expect(createResp.status).toBe(200);
-    const { id } = (await createResp.json()) as { id: string };
-    expect(id).toBeDefined();
+    const id = await create("event/create");
+    // The engine can't take events until it has started the instance.
+    await waitForStatus("event", id, (s) => s !== "Queued");
 
-    // Give the workflow time to reach wait_for_event
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    // Send the event
     const sendResp = await mf.dispatchFetch(
       `${mfUrl}workflow/event/send/${id}`,
       {
@@ -178,26 +118,7 @@ describe("workflow", () => {
     );
     expect(sendResp.status).toBe(200);
 
-    // Poll until complete
-    let status: string | undefined;
-    let output: any;
-    for (let i = 0; i < 30; i++) {
-      const statusResp = await mf.dispatchFetch(
-        `${mfUrl}workflow/event/status/${id}`
-      );
-      expect(statusResp.status).toBe(200);
-      const body = (await statusResp.json()) as {
-        status: string;
-        output: any;
-      };
-      status = body.status;
-      output = body.output;
-      if (status === "Complete" || status === "Errored") {
-        break;
-      }
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    }
-
+    const { status, output } = await waitForStatus("event", id, settled);
     expect(status).toBe("Complete");
     expect(output).toEqual({
       approved: true,
@@ -207,42 +128,19 @@ describe("workflow", () => {
   });
 
   test("saga rollback runs when a downstream step fails", async () => {
-    const createResp = await mf.dispatchFetch(
-      `${mfUrl}workflow/rollback/create`,
-      { method: "POST" }
-    );
-    expect(createResp.status).toBe(200);
-    const { id } = (await createResp.json()) as { id: string };
-    expect(id).toBeDefined();
+    const id = await create("rollback/create");
 
     // The second step fails non-retryably, so the instance ends up errored.
-    let status: string | undefined;
-    for (let i = 0; i < 30; i++) {
-      const statusResp = await mf.dispatchFetch(
-        `${mfUrl}workflow/rollback/status/${id}`
-      );
-      expect(statusResp.status).toBe(200);
-      status = ((await statusResp.json()) as { status: string }).status;
-      if (status === "Complete" || status === "Errored") break;
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    }
+    const { status } = await waitForStatus("rollback", id, settled);
     expect(status).toBe("Errored");
 
-    // The rollback handler records a marker in KV; poll until it appears.
-    let marker: string | null = null;
-    for (let i = 0; i < 30; i++) {
-      const markerResp = await mf.dispatchFetch(
+    // The rollback handler records the error that triggered it in KV.
+    const marker = async () => {
+      const resp = await mf.dispatchFetch(
         `${mfUrl}workflow/rollback/marker/${id}`
       );
-      expect(markerResp.status).toBe(200);
-      marker = ((await markerResp.json()) as { marker: string | null }).marker;
-      if (marker !== null) break;
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    }
-
-    // The marker is the error message that triggered the rollback. Its presence
-    // confirms the handler ran and saw the downstream failure.
-    expect(marker).not.toBeNull();
-    expect(marker).toContain("kaboom");
+      return ((await resp.json()) as { marker: string | null }).marker;
+    };
+    await expect.poll(marker, { timeout: 15_000 }).toContain("kaboom");
   });
 });

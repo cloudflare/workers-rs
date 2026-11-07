@@ -1,25 +1,21 @@
-use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
+use proc_macro2::{Span, TokenStream};
+use quote::quote;
 use syn::{Error, ItemImpl, ItemStruct};
 
 use crate::async_export::{async_export, Tokio};
 
 pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
-    let target = match syn::parse2::<ItemStruct>(tokens.clone()) {
-        Ok(s) => s,
-        Err(e) => {
-            if syn::parse2::<ItemImpl>(tokens).is_ok() {
-                return Err(Error::new(
-                    proc_macro2::Span::call_site(),
-                    "#[workflow] should only be applied to struct definitions, not impl blocks",
-                ));
-            }
-            return Err(e);
-        }
-    };
+    if syn::parse2::<ItemImpl>(tokens.clone()).is_ok() {
+        return Err(Error::new(
+            Span::call_site(),
+            "#[workflow] should only be applied to struct definitions, not impl blocks",
+        ));
+    }
+    let target = syn::parse2::<ItemStruct>(tokens)?;
     let target_name = &target.ident;
-    let marker_fn_name = format_ident!("__wf_{}", target_name);
-    let marker_js_name = format!("__wf_{target_name}");
+    // `worker-build` recognizes workflow classes by this prefix and exports
+    // each one under the struct's name as a `WorkflowEntrypoint` subclass.
+    let js_class = format!("__wf_{target_name}");
     let run = async_export(
         Tokio::Isolated,
         quote! { js_name = run },
@@ -30,16 +26,7 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
                 step: ::worker::worker_sys::WorkflowStep
             )
         },
-        quote! {
-            let event: ::worker::WorkflowEvent<<Self as ::worker::WorkflowEntrypoint>::Input> =
-                ::worker::WorkflowEvent::from_js(event)
-                    .map_err(|e| ::worker::wasm_bindgen::JsValue::from_str(&e.to_string()))?;
-            let step = ::worker::WorkflowStep::from(step);
-            let output = <Self as ::worker::WorkflowEntrypoint>::run(self, event, step).await
-                .map_err(::worker::wasm_bindgen::JsValue::from)?;
-            ::worker::serialize_as_object(&output)
-                .map_err(|e| ::worker::wasm_bindgen::JsValue::from_str(&e.to_string()))
-        },
+        quote! { ::worker::run_workflow(self, event, step).await },
     );
 
     Ok(quote! {
@@ -49,20 +36,13 @@ pub fn expand_macro(tokens: TokenStream) -> syn::Result<TokenStream> {
 
         const _: () = {
             use ::worker::wasm_bindgen::prelude::*;
-            #[allow(unused_imports)]
-            use ::worker::WorkflowEntrypoint;
 
-            // Marker export read by `worker-build` to detect workflow classes
-            // in the generated `index.js`. Only the function name matters.
-            #[allow(non_snake_case)]
-            #[wasm_bindgen(js_name = #marker_js_name, wasm_bindgen=::worker::wasm_bindgen)]
-            pub fn #marker_fn_name() {}
-
-            #[wasm_bindgen(wasm_bindgen=::worker::wasm_bindgen)]
+            #[wasm_bindgen(js_name = #js_class, wasm_bindgen=::worker::wasm_bindgen)]
             #[::worker::consume]
             #target
 
             #[wasm_bindgen(
+                js_class = #js_class,
                 wasm_bindgen=::worker::wasm_bindgen,
                 wasm_bindgen_futures=::worker::wasm_bindgen_futures,
                 js_sys=::worker::js_sys

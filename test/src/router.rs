@@ -19,8 +19,6 @@ use axum::{
     routing::{delete, get, head, options, patch, post, put},
     Extension,
 };
-#[cfg(feature = "http")]
-use worker::send::SendFuture;
 
 // Transform the argument into the correct form for the router.
 // For axum::Router:
@@ -63,16 +61,16 @@ macro_rules! format_route (
 #[cfg(feature = "http")]
 macro_rules! handler (
     ($name:path) => {
-        |Extension(env): Extension<Env>, Extension(data): Extension<SomeSharedData>, req: axum::extract::Request| SendFuture::new(async {
+        |Extension(env): Extension<Env>, Extension(data): Extension<SomeSharedData>, req: axum::extract::Request| async {
             let resp = $name(req.try_into().expect("convert request"), env, data).await.expect("handler result");
             Into::<http::Response<axum::body::Body>>::into(resp)
-        })
+        }
     };
     ($name:path, sync) => {
-        |Extension(env): Extension<Env>, Extension(data): Extension<SomeSharedData>, req: axum::extract::Request| SendFuture::new(async {
+        |Extension(env): Extension<Env>, Extension(data): Extension<SomeSharedData>, req: axum::extract::Request| async {
             let resp = $name(req.try_into().expect("convert request"), env, data).expect("handler result");
             Into::<http::Response<axum::body::Body>>::into(resp)
-        })
+        }
     };
 );
 #[cfg(not(feature = "http"))]
@@ -266,21 +264,21 @@ macro_rules! add_routes (
     add_route!($obj, get, format_route!("/rate-limit/key/{}", "key"), rate_limit::handle_rate_limit_with_key);
     add_route!($obj, get, "/rate-limit/bulk-test", rate_limit::handle_rate_limit_bulk_test);
     add_route!($obj, get, "/rate-limit/reset", rate_limit::handle_rate_limit_reset);
-    add_route!($obj, post, "/workflow/create", workflow::handle_workflow_create);
-    add_route!($obj, post, "/workflow/create-invalid", workflow::handle_workflow_create_invalid);
-    add_route!($obj, get, format_route!("/workflow/status/{}", "id"), workflow::handle_workflow_status);
-    add_route!($obj, post, "/workflow/event/create", workflow::handle_event_workflow_create);
+    add_route!($obj, post, "/workflow/test/create", workflow::handle_test_workflow_create);
+    add_route!($obj, post, "/workflow/test/create-invalid", workflow::handle_test_workflow_create_invalid);
+    add_route!($obj, post, "/workflow/event/create", workflow::handle_workflow_create_default);
+    add_route!($obj, post, "/workflow/lifecycle/create", workflow::handle_workflow_create_default);
+    add_route!($obj, post, "/workflow/rollback/create", workflow::handle_workflow_create_default);
+    add_route!($obj, get, format_route!("/workflow/test/status/{}", "id"), workflow::handle_workflow_status);
+    add_route!($obj, get, format_route!("/workflow/event/status/{}", "id"), workflow::handle_workflow_status);
+    add_route!($obj, get, format_route!("/workflow/lifecycle/status/{}", "id"), workflow::handle_workflow_status);
+    add_route!($obj, get, format_route!("/workflow/rollback/status/{}", "id"), workflow::handle_workflow_status);
     add_route!($obj, post, format_route!("/workflow/event/send/{}", "id"), workflow::handle_event_workflow_send);
-    add_route!($obj, get, format_route!("/workflow/event/status/{}", "id"), workflow::handle_event_workflow_status);
-    add_route!($obj, post, "/workflow/lifecycle/create", workflow::handle_lifecycle_workflow_create);
-    add_route!($obj, get, format_route!("/workflow/lifecycle/status/{}", "id"), workflow::handle_lifecycle_workflow_status);
-    add_route!($obj, post, format_route!("/workflow/lifecycle/pause/{}", "id"), workflow::handle_lifecycle_workflow_pause);
-    add_route!($obj, post, format_route!("/workflow/lifecycle/resume/{}", "id"), workflow::handle_lifecycle_workflow_resume);
-    add_route!($obj, post, format_route!("/workflow/lifecycle/terminate/{}", "id"), workflow::handle_lifecycle_workflow_terminate);
-    add_route!($obj, post, format_route!("/workflow/lifecycle/restart/{}", "id"), workflow::handle_lifecycle_workflow_restart);
-    add_route!($obj, post, format_route!("/workflow/lifecycle/restart-from/{}", "id"), workflow::handle_lifecycle_workflow_restart_from);
-    add_route!($obj, post, "/workflow/rollback/create", workflow::handle_rollback_workflow_create);
-    add_route!($obj, get, format_route!("/workflow/rollback/status/{}", "id"), workflow::handle_rollback_workflow_status);
+    add_route!($obj, post, format_route!("/workflow/lifecycle/pause/{}", "id"), workflow::handle_lifecycle_workflow_action);
+    add_route!($obj, post, format_route!("/workflow/lifecycle/resume/{}", "id"), workflow::handle_lifecycle_workflow_action);
+    add_route!($obj, post, format_route!("/workflow/lifecycle/terminate/{}", "id"), workflow::handle_lifecycle_workflow_action);
+    add_route!($obj, post, format_route!("/workflow/lifecycle/restart/{}", "id"), workflow::handle_lifecycle_workflow_action);
+    add_route!($obj, post, format_route!("/workflow/lifecycle/restart-from/{}", "id"), workflow::handle_lifecycle_workflow_action);
     add_route!($obj, get, format_route!("/workflow/rollback/marker/{}", "id"), workflow::handle_rollback_workflow_marker);
     add_route!($obj, get, "/send-email", send_email::handle_send_email);
     add_route!($obj, get, "/signal/poll", signal::handle_signal_poll);
