@@ -71,7 +71,13 @@ jobs:
 
       - name: Generate and build all templates
         run: |
-          mkdir -p generated
+          mkdir -p generated/.cargo
+          cat > generated/.cargo/config.toml <<EOF
+          [patch.crates-io]
+          worker = { path = "$PWD/worker" }
+          worker-macros = { path = "$PWD/worker-macros" }
+          worker-sys = { path = "$PWD/worker-sys" }
+          EOF
           for template in templates/*/; do
               template_name=$(basename "$template")
               if [ "$template_name" = "leptos" ]; then
