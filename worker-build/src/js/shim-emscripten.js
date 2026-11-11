@@ -38,10 +38,9 @@ function guard(fn) {
     if (!(result instanceof Promise)) return result;
     return new Promise((resolve, reject) => {
       pending.add(reject);
-      result.then(resolve, (e) => {
-        markIfTrap(e);
-        reject(e);
-      }).finally(() => pending.delete(reject));
+      // A trap in a later poll is thrown from a host callback and never settles this
+      // promise, so a rejection is always a value the handler returned.
+      result.then(resolve, reject).finally(() => pending.delete(reject));
     });
   };
 }
