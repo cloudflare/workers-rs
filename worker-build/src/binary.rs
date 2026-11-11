@@ -50,9 +50,10 @@ pub trait GetBinary: BinaryDep {
         let url = self.download_url();
         let _ = remove_all_versions(name, target);
         PBAR.info(&format!("{DOWN_ARROW}Downloading {full_name}@{version}..."));
-        let fallback = self.published_checksum_url();
-        let checksum = Checksum::Pinned {
-            fallback: fallback.as_deref(),
+        let published = self.published_checksum_url();
+        let checksum = match &published {
+            Some(published) => Checksum::Published(published),
+            None => Checksum::Pinned,
         };
         download_with_retries(&url, checksum, &cache_path, full_name)?;
         if !bin_path.exists() {
@@ -83,7 +84,7 @@ pub trait BinaryDep: Sized {
     fn download_url(&self) -> String;
 
     /// Returns the URL of the sha256 file the release publishes next to the
-    /// download, used for versions with no hash in `checksums.txt`
+    /// download, to check the download against instead of `checksums.txt`
     fn published_checksum_url(&self) -> Option<String> {
         None
     }
@@ -181,7 +182,7 @@ fn download_with_retries(
         match download(url, checksum, bin_dir) {
             Ok(()) => return Ok(()),
             Err(err) => {
-                if err.is::<ChecksumMismatch>() {
+                if err.is::<ChecksumMismatch>() || err.is::<MissingChecksum>() {
                     return Err(err);
                 }
                 if attempt >= MAX_DOWNLOAD_ATTEMPTS {
@@ -201,17 +202,21 @@ fn download_with_retries(
     }
 }
 
-/// sha256 of each archive worker-build downloads at the versions it pins, by
-/// URL. Regenerate with `node worker-build/scripts/update-checksums.mjs`.
+/// sha256 of each esbuild and Binaryen archive worker-build downloads at the
+/// versions it pins, by URL. Regenerate with
+/// `node worker-build/scripts/update-checksums.mjs`.
 const CHECKSUMS: &str = include_str!("../checksums.txt");
 
 /// What a download is checked against before it is extracted
 #[derive(Clone, Copy)]
 pub(crate) enum Checksum<'a> {
-    /// The sha256 in `checksums.txt`. Versions not listed there (wasm-bindgen
-    /// follows the project's Cargo.lock) are checked against the sha256 file
-    /// the release publishes at `fallback`, if there is one.
-    Pinned { fallback: Option<&'a str> },
+    /// The sha256 in `checksums.txt`, for the esbuild and Binaryen versions
+    /// worker-build pins. A URL not listed there is an error.
+    Pinned,
+    /// The sha256 in the file the release publishes at this URL. wasm-bindgen
+    /// follows the project's Cargo.lock, and its releases are immutable and
+    /// publish a `.sha256sum` for each archive. A missing file is an error.
+    Published(&'a str),
     /// The URL names a git commit. GitHub does not keep the bytes of the
     /// archives it generates stable, so there is no hash to pin.
     Commit,
@@ -237,6 +242,19 @@ impl fmt::Display for ChecksumMismatch {
 
 impl std::error::Error for ChecksumMismatch {}
 
+/// A download with no sha256 to check it against. Never retried, and nothing
+/// is downloaded.
+#[derive(Debug)]
+struct MissingChecksum(String);
+
+impl fmt::Display for MissingChecksum {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl std::error::Error for MissingChecksum {}
+
 /// The sha256 a download must have, and where it came from
 #[derive(Debug)]
 struct Expected {
@@ -254,51 +272,48 @@ fn pinned_sha256(url: &str) -> Option<&'static str> {
         .map(|(hash, _)| hash)
 }
 
+/// The sha256 `url` must have, or `None` for a download by commit
 fn expected_sha256(agent: &ureq::Agent, url: &str, checksum: Checksum) -> Result<Option<Expected>> {
-    let Checksum::Pinned { fallback } = checksum else {
-        return Ok(None);
-    };
-    if let Some(sha256) = pinned_sha256(url) {
-        return Ok(Some(Expected {
-            sha256: sha256.to_owned(),
-            from: format!("pinned in worker-build {}", env!("CARGO_PKG_VERSION")),
-        }));
-    }
-    let published = match fallback {
-        Some(from) => fetch_published_sha256(agent, from)?.map(|sha256| Expected {
-            sha256,
+    let version = env!("CARGO_PKG_VERSION");
+    Ok(Some(match checksum {
+        Checksum::Pinned => Expected {
+            sha256: pinned_sha256(url)
+                .ok_or_else(|| {
+                    MissingChecksum(format!(
+                        "No sha256 pinned for {url} in worker-build {version}"
+                    ))
+                })?
+                .to_owned(),
+            from: format!("pinned in worker-build {version}"),
+        },
+        Checksum::Published(from) => Expected {
+            sha256: fetch_published_sha256(agent, from, url)?,
             from: from.to_owned(),
-        }),
-        None => None,
-    };
-    match &published {
-        Some(expected) => PBAR.warn(&format!(
-            "No sha256 pinned for {url}; checking it against {}, which comes from the same origin as the download",
-            expected.from
-        )),
-        None => PBAR.warn(&format!(
-            "No sha256 pinned or published for {url}; using it unverified"
-        )),
-    }
-    Ok(published)
+        },
+        Checksum::Commit => return Ok(None),
+    }))
 }
 
-/// Read a published `<sha256>  <file name>` file. `None` when the release
-/// has no such file or it holds no sha256.
-fn fetch_published_sha256(agent: &ureq::Agent, url: &str) -> Result<Option<String>> {
-    let text = match agent.get(url).call() {
+/// Read the `<sha256>  <file name>` file a release publishes at `from` for
+/// the download at `url`
+fn fetch_published_sha256(agent: &ureq::Agent, from: &str, url: &str) -> Result<String> {
+    let text = match agent.get(from).call() {
         Ok(mut res) => res
             .body_mut()
             .read_to_string()
-            .with_context(|| format!("Failed to read {url}"))?,
-        Err(ureq::Error::StatusCode(404)) => return Ok(None),
-        Err(err) => return Err(err).with_context(|| format!("Failed to fetch URL {url}")),
+            .with_context(|| format!("Failed to read {from}"))?,
+        Err(ureq::Error::StatusCode(404)) => {
+            return Err(
+                MissingChecksum(format!("No sha256 published for {url}: {from} not found")).into(),
+            )
+        }
+        Err(err) => return Err(err).with_context(|| format!("Failed to fetch URL {from}")),
     };
-    Ok(text
-        .split_whitespace()
+    text.split_whitespace()
         .next()
         .filter(|hash| hash.len() == 64 && hash.bytes().all(|b| b.is_ascii_hexdigit()))
-        .map(str::to_ascii_lowercase))
+        .map(str::to_ascii_lowercase)
+        .ok_or_else(|| MissingChecksum(format!("No sha256 for {url} in {from}")).into())
 }
 
 fn verify_sha256(url: &str, expected: Option<Expected>, actual: String) -> Result<()> {
@@ -510,9 +525,6 @@ impl BinaryDep for WasmOpt {
         let target = self.target();
         format!("https://github.com/WebAssembly/binaryen/releases/download/version_{version}/binaryen-version_{version}-{target}.tar.gz")
     }
-    fn published_checksum_url(&self) -> Option<String> {
-        Some(format!("{}.sha256", self.download_url()))
-    }
     fn bin_path(&self, name: Option<&str>) -> Result<String> {
         Ok(match name {
             None | Some("wasm-opt") => format!("bin/wasm-opt{MAYBE_EXE}"),
@@ -565,7 +577,7 @@ impl BinaryDep for WasmBindgen<'_> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::versions::{LATEST_WASM_BINDGEN_VERSION, MIN_WASM_BINDGEN_LIB_VERSION};
+    use crate::versions::LATEST_WASM_BINDGEN_VERSION;
     use std::collections::HashMap;
     use std::net::TcpListener;
 
@@ -585,18 +597,23 @@ mod test {
 
     #[test]
     fn pinned_versions_have_checksums() {
-        let urls = [
-            Esbuild.download_url(),
-            WasmOpt.download_url(),
-            WasmBindgen(&LATEST_WASM_BINDGEN_VERSION.to_string()).download_url(),
-            WasmBindgen(&MIN_WASM_BINDGEN_LIB_VERSION.to_string()).download_url(),
-        ];
-        for url in urls {
+        for url in [Esbuild.download_url(), WasmOpt.download_url()] {
             assert!(
                 pinned_sha256(&url).is_some(),
                 "{url} is not in checksums.txt; run `node worker-build/scripts/update-checksums.mjs`"
             );
         }
+    }
+
+    #[test]
+    fn only_wasm_bindgen_uses_published_checksum() {
+        assert_eq!(Esbuild.published_checksum_url(), None);
+        assert_eq!(WasmOpt.published_checksum_url(), None);
+        let wasm_bindgen = WasmBindgen(&LATEST_WASM_BINDGEN_VERSION.to_string());
+        assert_eq!(
+            wasm_bindgen.published_checksum_url(),
+            Some(format!("{}.sha256sum", wasm_bindgen.download_url()))
+        );
     }
 
     fn tar_gz(files: &[(&str, &[u8])]) -> Vec<u8> {
@@ -660,33 +677,32 @@ mod test {
         dir
     }
 
-    /// Download an archive whose release publishes `published` as its sha256
+    /// Download an archive whose release publishes `published` in its
+    /// `.sha256sum` file, or no such file for `None`
     fn download_with_published(name: &str, published: Option<&str>) -> (Result<()>, PathBuf) {
         let archive = tar_gz(&[("bin/tool", b"#!/bin/sh\n")]);
         let mut files = HashMap::new();
         if let Some(published) = published {
             let hash = published.replace("{sha256}", &sha256_hex(&archive));
             files.insert(
-                "/tool.tar.gz.sha256".to_owned(),
+                "/tool.tar.gz.sha256sum".to_owned(),
                 format!("{hash}  tool.tar.gz\n").into_bytes(),
             );
         }
         files.insert("/tool.tar.gz".to_owned(), archive);
         let base = serve(files);
         let dir = temp_dir(name);
-        let fallback = format!("{base}/tool.tar.gz.sha256");
+        let published_url = format!("{base}/tool.tar.gz.sha256sum");
         let result = download(
             &format!("{base}/tool.tar.gz"),
-            Checksum::Pinned {
-                fallback: Some(&fallback),
-            },
+            Checksum::Published(&published_url),
             &dir,
         );
         (result, dir)
     }
 
     #[test]
-    fn download_matching_sha256() {
+    fn download_matching_published_sha256() {
         let (result, dir) = download_with_published("match", Some("{sha256}"));
         result.unwrap();
         assert!(dir.join("bin/tool").exists());
@@ -695,7 +711,7 @@ mod test {
     }
 
     #[test]
-    fn download_mismatched_sha256_extracts_nothing() {
+    fn download_mismatched_published_sha256_extracts_nothing() {
         let wrong = "0".repeat(64);
         let (result, dir) = download_with_published("mismatch", Some(&wrong));
         let err = result.unwrap_err();
@@ -708,11 +724,24 @@ mod test {
     }
 
     #[test]
-    fn download_unknown_version_without_published_sha256() {
-        let (result, dir) = download_with_published("unknown", None);
-        result.unwrap();
-        assert!(dir.join("bin/tool").exists());
-        std::fs::remove_dir_all(dir).unwrap();
+    fn download_without_published_sha256_is_an_error() {
+        let (result, dir) = download_with_published("unpublished", None);
+        let err = result.unwrap_err();
+        assert!(err.is::<MissingChecksum>(), "{err:#}");
+        assert!(err.to_string().contains("tool.tar.gz.sha256sum"), "{err:#}");
+        assert!(!dir.exists());
+    }
+
+    #[test]
+    fn download_unpinned_url_is_an_error() {
+        let base = serve(HashMap::from([(
+            "/tool.tar.gz".to_owned(),
+            tar_gz(&[("bin/tool", b"#!/bin/sh\n")]),
+        )]));
+        let dir = temp_dir("unpinned");
+        let err = download(&format!("{base}/tool.tar.gz"), Checksum::Pinned, &dir).unwrap_err();
+        assert!(err.is::<MissingChecksum>(), "{err:#}");
+        assert!(!dir.exists());
     }
 
     #[test]
@@ -720,7 +749,7 @@ mod test {
         let url = Esbuild.download_url();
         let pinned = pinned_sha256(&url).unwrap();
         let expected = || {
-            expected_sha256(&agent(), &url, Checksum::Pinned { fallback: None })
+            expected_sha256(&agent(), &url, Checksum::Pinned)
                 .unwrap()
                 .unwrap()
         };
@@ -728,9 +757,9 @@ mod test {
         verify_sha256(&url, Some(expected()), pinned.to_owned()).unwrap();
 
         let actual = "f".repeat(64);
-        let message = verify_sha256(&url, Some(expected()), actual.clone())
-            .unwrap_err()
-            .to_string();
+        let err = verify_sha256(&url, Some(expected()), actual.clone()).unwrap_err();
+        assert!(err.is::<ChecksumMismatch>());
+        let message = err.to_string();
         assert!(
             message.contains(&url) && message.contains(pinned) && message.contains(&actual),
             "{message}"
