@@ -3,7 +3,7 @@
 > **Experimental Preview**
 
 ```sh
-git clone https://github.com/cloudflare/workers-rs
+git clone --recurse-submodules https://github.com/cloudflare/workers-rs
 cd workers-rs/examples/emscripten-sqlx
 npx wrangler dev
 ```

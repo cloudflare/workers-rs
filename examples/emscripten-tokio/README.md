@@ -3,7 +3,7 @@
 > **Experimental Preview**
 
 ```sh
-git clone https://github.com/cloudflare/workers-rs
+git clone --recurse-submodules https://github.com/cloudflare/workers-rs
 cd workers-rs/examples/emscripten-tokio
 npx wrangler dev
 ```
@@ -19,9 +19,10 @@ Tokio event loop whose wait *is* the Workers event loop. There is no
 `tokio::sync` and `tokio::join!` work inside a plain `async fn` handler as they
 do natively, with no stack switching.
 
-Worker-build also includes an Emscripten patch for a non-blocking epoll implementation
-which is auto applied when worker-build installs Emscripten under `--emscripten`, and
-passes the unstable cfgs both crates gate this behind (`tokio_unstable`, `wasm_bindgen_unstable_tokio`).
+Worker-build installs Emscripten 7 under `--emscripten`, whose epoll readiness
+listeners the event loop waits on, auto applies an Emscripten patch for
+non-blocking hostname lookups, and passes the unstable cfgs both crates gate
+this behind (`tokio_unstable`, `wasm_bindgen_unstable_tokio`).
 
 ```sh
 npx wrangler dev

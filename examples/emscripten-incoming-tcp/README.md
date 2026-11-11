@@ -3,14 +3,14 @@
 > **Experimental Preview**
 
 ```sh
-git clone https://github.com/cloudflare/workers-rs
+git clone --recurse-submodules https://github.com/cloudflare/workers-rs
 cd workers-rs/examples/emscripten-incoming-tcp
 npx wrangler dev
 ```
 
 An inbound TCP server with `tokio::net::TcpListener`, using the Emscripten
 Tokio patchset (the `guybedford/tokio` tag pinned in `Cargo.toml`,
-tokio-rs/tokio#8438). Building on the [emscripten-tcp example](../emscripten-tcp),
+tokio-rs/tokio#8484). Building on the [emscripten-tcp example](../emscripten-tcp),
 a Tokio line-echo server greets each connection, echoes every line back
 upper-cased and hangs up on `quit`.
 
