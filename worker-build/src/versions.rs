@@ -10,6 +10,9 @@ macro_rules! version {
 pub(crate) static LATEST_WASM_BINDGEN_VERSION: LazyLock<semver::Version> = version!("0.2.130");
 pub(crate) static CUR_WASM_OPT_VERSION: &str = "133";
 pub(crate) static CUR_EMSCRIPTEN_VERSION: &str = "6.0.10";
+// The emsdk commit tagged CUR_EMSCRIPTEN_VERSION. Its archive is fetched by commit:
+// a tag can move, and GitHub does not keep archive bytes stable enough to pin a hash.
+pub(crate) static CUR_EMSDK_COMMIT: &str = "a2b92777574c2feda07994cd4f1079a3dfc151f8";
 pub(crate) static CUR_ESBUILD_VERSION: LazyLock<semver::Version> = version!("0.28.2");
 
 // Minimum required libraries, validated before build
