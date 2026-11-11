@@ -15,7 +15,7 @@
   "homepage": "https://github.com/cloudflare/workers-rs#readme",
   "devDependencies": {
     "@types/node": "^26.6.6",
-    "miniflare": "5.20261023.3-beta",
+    "miniflare": "5.20261110.1-beta",
     "typescript": "^7.0.2",
     "uuid": "^14.0.3",
     "vitest": "^5.0.5"

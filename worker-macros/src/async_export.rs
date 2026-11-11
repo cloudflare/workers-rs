@@ -4,7 +4,8 @@ use quote::quote;
 /// An async wasm-bindgen export resolving to `Result<JsValue, JsValue>`.
 /// The body is asserted unwind-safe as under `panic = "unwind"` wasm-bindgen
 /// requires it of the exported future, and handler futures hold
-/// `worker::Error`.
+/// `worker::Error`. The body runs under the span active when the export was
+/// invoked; see `worker::observability::in_current_span`.
 ///
 /// How the `experimental_tokio` feature drives the export.
 #[derive(Clone, Copy)]
@@ -44,7 +45,7 @@ pub fn async_export(
     quote! {
         #attr
         pub async fn #sig -> ::std::result::Result<::worker::wasm_bindgen::JsValue, ::worker::wasm_bindgen::JsValue> {
-            ::std::panic::AssertUnwindSafe(async move { #body }).await
+            ::std::panic::AssertUnwindSafe(::worker::observability::in_current_span(async move { #body })).await
         }
     }
 }
