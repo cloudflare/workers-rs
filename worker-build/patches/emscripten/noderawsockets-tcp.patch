@@ -3,7 +3,8 @@ Subject: [PATCH] NODERAWSOCKETS: report a reset and flush queued writes on close
 Two -sNODERAWSOCKETS TCP fixes:
 
 - A pending socket error is returned (and cleared) by recv() before EOF,
-  so a reset reads as ECONNRESET rather than a clean EOF: the recvmsg
+  so a reset reads as an error (ECONNRESET where the host sets `code`)
+  rather than a clean EOF: the recvmsg
   hunk of emscripten-core/emscripten#27724.
 - From guybedford/emscripten gbedford/sockets-graceful-shutdown, without
   its test: close() ends the connection gracefully (flushing what send()
