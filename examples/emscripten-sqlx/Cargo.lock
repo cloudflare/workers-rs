@@ -1147,7 +1147,7 @@ checksum = "fd3ca314f692efd6c868f8408f53fe444634a845f96c028b97d35f6a1f79f0ee"
 [[package]]
 name = "tokio"
 version = "1.54.1"
-source = "git+https://github.com/guybedford/tokio?tag=1.54.1-cf.emscripten#760c249147dd0b7f41ab4f22379a51041a496d04"
+source = "git+https://github.com/guybedford/tokio?tag=1.54.1-cf.emscripten#139555e3a8802bd35203a839bfc00898dc9a6118"
 dependencies = [
  "bytes",
  "libc",
