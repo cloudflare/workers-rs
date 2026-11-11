@@ -1,6 +1,6 @@
 use crate::build::PBAR;
 use crate::emoji::{CONFIG, DOWN_ARROW};
-use crate::versions::{CUR_ESBUILD_VERSION, CUR_WASM_OPT_VERSION};
+use crate::versions::CUR_WASM_OPT_VERSION;
 use anyhow::{bail, Context, Result};
 use flate2::read::GzDecoder;
 use heck::ToShoutySnakeCase;
@@ -235,63 +235,6 @@ pub(crate) fn download(url: &str, bin_dir: &Path) -> Result<()> {
     }
 
     Ok(())
-}
-
-pub struct Esbuild;
-
-impl BinaryDep for Esbuild {
-    fn full_name(&self) -> &'static str {
-        "Esbuild"
-    }
-    fn name(&self) -> &'static str {
-        "esbuild"
-    }
-    fn version(&self) -> String {
-        CUR_ESBUILD_VERSION.to_string()
-    }
-    fn target(&self) -> &'static str {
-        match (std::env::consts::OS, std::env::consts::ARCH) {
-            ("android", "arm") => "android-arm",
-            ("android", "aarch64") => "android-arm64",
-            ("android", "x86_64") => "android-x64",
-            ("macos", "aarch64") => "darwin-arm64",
-            ("macos", "x86_64") => "darwin-x64",
-            ("freebsd", "aarch64") => "freebsd-arm64",
-            ("freebsd", "x86_64") => "freebsd-x64",
-            ("linux", "arm") => "linux-arm",
-            ("linux", "aarch64") => "linux-arm64",
-            ("linux", "x86") => "linux-ia32",
-            ("linux", "powerpc64") => "linux-ppc64",
-            ("linux", "s390x") => "linux-s390x",
-            ("linux", "x86_64") => "linux-x64",
-            ("netbsd", "aarch64") => "netbsd-arm64",
-            ("netbsd", "x86_64") => "netbsd-x64",
-            ("openbsd", "aarch64") => "openbsd-arm64",
-            ("openbsd", "x86_64") => "openbsd-x64",
-            ("solaris", "x86_64") => "sunos-x64",
-            ("windows", "aarch64") => "win32-arm64",
-            ("windows", "x86") => "win32-ia32",
-            ("windows", "x86_64") => "win32-x64",
-            _ => panic!("Platform unsupported by esbuild."),
-        }
-    }
-    fn download_url(&self) -> String {
-        let version = self.version();
-        let target = self.target();
-        format!("https://registry.npmjs.org/@esbuild/{target}/-/{target}-{version}.tgz")
-    }
-    fn bin_path(&self, name: Option<&str>) -> Result<String> {
-        Ok(match name {
-            None | Some("esbuild") => {
-                if cfg!(windows) {
-                    format!("esbuild{MAYBE_EXE}")
-                } else {
-                    format!("bin/esbuild{MAYBE_EXE}")
-                }
-            }
-            Some(name) => bail!("Unknown binary {name} in {}", self.full_name()),
-        })
-    }
 }
 
 pub struct WasmOpt;

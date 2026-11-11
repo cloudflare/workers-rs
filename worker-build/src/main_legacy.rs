@@ -1,10 +1,9 @@
 use std::{
-    env::{self, VarError},
+    env,
     fmt::Write as _,
     fs::{self, read_to_string, File},
     io::Write,
     path::{Path, PathBuf},
-    process::Command,
 };
 
 use anyhow::{Context, Result};
@@ -14,11 +13,7 @@ const WORKER_SUBDIR: &str = "worker";
 
 const SHIM_TEMPLATE: &str = include_str!("./js/shim-legacy.js");
 
-use crate::binary::{Esbuild, GetBinary};
-
 pub fn process(out_dir: &Path) -> Result<()> {
-    let esbuild_path = Esbuild.get_binary(None)?.0;
-
     create_worker_dir(out_dir)?;
     copy_generated_code_to_worker_dir(out_dir)?;
 
@@ -97,11 +92,12 @@ pub fn process(out_dir: &Path) -> Result<()> {
         .replace("$SNIPPET_JS_IMPORTS", &js_imports)
         .replace("$SNIPPET_WASM_IMPORTS", &wasm_imports);
 
-    write_string_to_file(worker_path(out_dir, "shim.js"), shim)?;
+    write_string_to_file(worker_path(out_dir, "shim.mjs"), shim)?;
 
-    bundle(out_dir, &esbuild_path)?;
-
-    remove_unused_js(out_dir)?;
+    // Replaced by the alias to the shim.
+    let index_js = output_path(out_dir, "index.js");
+    fs::remove_file(&index_js)
+        .with_context(|| format!("Failed to remove {}", index_js.display()))?;
 
     Ok(())
 }
@@ -150,63 +146,6 @@ fn copy_generated_code_to_worker_dir(out_dir: &Path) -> Result<()> {
         fs::rename(&src, &dest)
             .with_context(|| format!("Failed to move {} to {}", src.display(), dest.display()))?;
     }
-
-    Ok(())
-}
-
-// Bundles the snippets and worker-related code into a single file.
-fn bundle(out_dir: &Path, esbuild_path: &Path) -> Result<()> {
-    let no_minify = !matches!(env::var("NO_MINIFY"), Err(VarError::NotPresent));
-    let worker_subdir = out_dir.join(WORKER_SUBDIR);
-    let path = worker_subdir
-        .canonicalize()
-        .with_context(|| format!("Failed to resolve path {}", worker_subdir.display()))?;
-    let esbuild_path = esbuild_path
-        .canonicalize()
-        .with_context(|| format!("Failed to resolve esbuild path {}", esbuild_path.display()))?;
-    let mut command = Command::new(esbuild_path);
-    command.args([
-        "--external:./index.wasm",
-        "--external:cloudflare:email",
-        "--external:cloudflare:sockets",
-        "--external:cloudflare:workers",
-        "--format=esm",
-        "--bundle",
-        "./shim.js",
-        "--outfile=shim.mjs",
-    ]);
-
-    if !no_minify {
-        command.arg("--minify");
-    }
-
-    let exit_status = command.current_dir(path).spawn()?.wait()?;
-
-    match exit_status.success() {
-        true => Ok(()),
-        false => anyhow::bail!("esbuild exited with status {exit_status}"),
-    }
-}
-
-// After bundling there's no reason why we'd want to upload our now un-used JavaScript so we'll
-// delete it.
-fn remove_unused_js(out_dir: &Path) -> Result<()> {
-    let snippets_dir = worker_path(out_dir, "snippets");
-
-    if snippets_dir.exists() {
-        std::fs::remove_dir_all(&snippets_dir)
-            .with_context(|| format!("Failed to remove {}", snippets_dir.display()))?;
-    }
-
-    let bg_js = worker_path(out_dir, format!("{OUT_NAME}_bg.js"));
-    std::fs::remove_file(&bg_js)
-        .with_context(|| format!("Failed to remove {}", bg_js.display()))?;
-    let shim_js = worker_path(out_dir, "shim.js");
-    std::fs::remove_file(&shim_js)
-        .with_context(|| format!("Failed to remove {}", shim_js.display()))?;
-    let index_js = output_path(out_dir, "index.js");
-    std::fs::remove_file(&index_js)
-        .with_context(|| format!("Failed to remove {}", index_js.display()))?;
 
     Ok(())
 }

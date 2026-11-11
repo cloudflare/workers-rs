@@ -1,19 +1,5 @@
-import { readFileSync } from "node:fs";
 import { Miniflare, Request, Response, fetch } from "miniflare";
-
-const manifest = {
-  mainModule: "build/index.js",
-  modules: {
-    "build/index.js": {
-      type: "esm" as const,
-      contents: readFileSync("./build/index.js", "utf8"),
-    },
-    "build/index_bg.wasm": {
-      type: "wasm" as const,
-      contents: new Uint8Array(readFileSync("./build/index_bg.wasm")),
-    },
-  },
-};
+import { manifest } from "./manifest";
 
 async function outboundFetch(request: Request): Promise<Response> {
   const url = new URL(request.url);

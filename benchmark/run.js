@@ -9,13 +9,22 @@
  */
 
 import { Miniflare } from 'miniflare';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 
 async function runBenchmark() {
   console.log('🚀 Starting workers-rs benchmark suite\n');
 
   // Initialize Miniflare instance with the compiled worker
   console.log('📦 Initializing Miniflare...');
+  const modules = {};
+  for (const file of readdirSync('./build', { recursive: true })) {
+    const name = `build/${file.replaceAll('\\', '/')}`;
+    if (/\.m?js$/.test(name)) {
+      modules[name] = { type: 'esm', contents: readFileSync(name, 'utf8') };
+    } else if (name.endsWith('.wasm')) {
+      modules[name] = { type: 'wasm', contents: new Uint8Array(readFileSync(name)) };
+    }
+  }
   const mf = new Miniflare({
     workers: [
       {
@@ -23,19 +32,7 @@ async function runBenchmark() {
           name: 'benchmark',
           type: 'worker',
           compatibilityDate: '2025-01-06',
-          manifest: {
-            mainModule: 'build/index.js',
-            modules: {
-              'build/index.js': {
-                type: 'esm',
-                contents: readFileSync('./build/index.js', 'utf8'),
-              },
-              'build/index_bg.wasm': {
-                type: 'wasm',
-                contents: new Uint8Array(readFileSync('./build/index_bg.wasm')),
-              },
-            },
-          },
+          manifest: { mainModule: 'build/index.js', modules },
         },
         dev: {
           outboundService: { type: 'worker', worker: 'benchmark' },

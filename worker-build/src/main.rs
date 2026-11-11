@@ -1,5 +1,5 @@
 use std::{
-    env::{self, VarError},
+    env,
     fs::{self, File},
     io::{Read, Write},
     path::{Path, PathBuf},
@@ -28,10 +28,7 @@ mod wasm_util;
 use build::{Build, BuildOptions};
 use build_lock::BuildLock;
 
-use crate::{
-    binary::{Esbuild, GetBinary},
-    build::Target,
-};
+use crate::build::Target;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -42,9 +39,16 @@ fn update_package_json(out_dir: &Path) -> Result<()> {
         .with_context(|| format!("Failed to read {}", package_json_path.display()))?;
     let mut package_json: serde_json::Value = serde_json::from_str(&original_content)?;
 
-    package_json["files"] = serde_json::json!(["index_bg.wasm", "index.js", "index.d.ts"]);
+    package_json["files"] = serde_json::json!([
+        "index_bg.wasm",
+        "index.js",
+        "index_bg.js",
+        "snippets",
+        "index.d.ts"
+    ]);
     package_json["main"] = serde_json::Value::String("index.js".to_string());
-    package_json["sideEffects"] = serde_json::json!(["./index.js"]);
+    package_json["sideEffects"] =
+        serde_json::json!(["./index.js", "./index_bg.js", "./snippets/*"]);
 
     let updated_content = serde_json::to_string_pretty(&package_json)?;
     fs::write(&package_json_path, updated_content)
@@ -119,10 +123,12 @@ pub fn main() -> Result<()> {
 
         update_package_json(&staging_dir)?;
 
-        let esbuild_path = Esbuild.get_binary(None)?.0;
-        bundle(&staging_dir, &esbuild_path, emscripten)?;
-
-        remove_unused_files(&staging_dir)?;
+        // The shim becomes the entry point, importing the generated module.
+        fs::rename(
+            output_path(&staging_dir, "index.js"),
+            output_path(&staging_dir, "index_bg.js"),
+        )?;
+        fs::rename(shim_path, output_path(&staging_dir, "index.js"))?;
 
         create_wrapper_alias(&staging_dir, false)?;
     } else {
@@ -464,56 +470,6 @@ where
 
     let command = BuildArgs::try_parse_from(build_args)?;
     Ok(command.build_options)
-}
-
-// Bundles the snippets and worker-related code into a single file.
-fn bundle(out_dir: &Path, esbuild_path: &Path, emscripten: bool) -> Result<()> {
-    let no_minify = !matches!(env::var("NO_MINIFY"), Err(VarError::NotPresent));
-    let path = out_dir
-        .canonicalize()
-        .with_context(|| format!("Failed to resolve output directory {}", out_dir.display()))?;
-    let esbuild_path = esbuild_path
-        .canonicalize()
-        .with_context(|| format!("Failed to resolve esbuild path {}", esbuild_path.display()))?;
-    let mut command = Command::new(esbuild_path);
-    command.args([
-        "--external:./index_bg.wasm",
-        "--external:cloudflare:*",
-        "--format=esm",
-        "--bundle",
-        "./shim.js",
-        "--outfile=index.js",
-        "--allow-overwrite",
-    ]);
-
-    // Emscripten's node environment glue imports Node builtins, served by
-    // nodejs_compat in the runtime.
-    if emscripten {
-        command.args(["--external:node:*", "--platform=node"]);
-    }
-
-    if !no_minify {
-        command.arg("--minify");
-    }
-
-    let exit_status = command.current_dir(path).spawn()?.wait()?;
-
-    match exit_status.success() {
-        true => Ok(()),
-        false => anyhow::bail!("esbuild exited with status {exit_status}"),
-    }
-}
-
-fn remove_unused_files(out_dir: &Path) -> Result<()> {
-    let shim_path = output_path(out_dir, "shim.js");
-    std::fs::remove_file(&shim_path)
-        .with_context(|| format!("Failed to remove {}", shim_path.display()))?;
-    let snippets_path = output_path(out_dir, "snippets");
-    if snippets_path.exists() {
-        std::fs::remove_dir_all(&snippets_path)
-            .with_context(|| format!("Failed to remove {}", snippets_path.display()))?;
-    }
-    Ok(())
 }
 
 /// Remove the files an earlier build wrote beside its module, such as its
