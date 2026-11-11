@@ -5,10 +5,10 @@
 //! frontend. Patches are backports the Rust link depends on that the pinned
 //! release does not yet contain; each is dropped when the pin moves past it.
 
-use crate::binary::{cache_root, download};
+use crate::binary::{cache_root, download, Checksum};
 use crate::build::PBAR;
 use crate::emoji::{CONFIG, DOWN_ARROW};
-use crate::versions::CUR_EMSCRIPTEN_VERSION;
+use crate::versions::{CUR_EMSCRIPTEN_VERSION, CUR_EMSDK_COMMIT};
 use anyhow::{anyhow, bail, Context, Result};
 use std::env;
 use std::fs;
@@ -155,9 +155,8 @@ fn provision_emsdk(patch_frontend: bool) -> Result<PathBuf> {
         "{DOWN_ARROW}Downloading Emscripten SDK {CUR_EMSCRIPTEN_VERSION}..."
     ));
     download(
-        &format!(
-            "https://github.com/emscripten-core/emsdk/archive/refs/tags/{CUR_EMSCRIPTEN_VERSION}.tar.gz"
-        ),
+        &format!("https://github.com/emscripten-core/emsdk/archive/{CUR_EMSDK_COMMIT}.tar.gz"),
+        Checksum::Commit,
         &dir,
     )?;
 

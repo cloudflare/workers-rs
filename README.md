@@ -740,6 +740,10 @@ please [take a look](https://www.cloudflare.com/careers/).
 1. A draft GitHub release will be created. Author release notes and publish when ready.
 1. Crates (`worker-sys`, `worker-macros`, `worker`) will be published automatically. 
 
+When the esbuild, Binaryen or Emscripten version in `worker-build/src/versions.rs` changes, run
+`node worker-build/scripts/update-checksums.mjs`: it regenerates `worker-build/checksums.txt` and checks
+that `CUR_EMSDK_COMMIT` is the commit the Emscripten tag points at. The release workflow does not run it.
+
 # Contributing
 
 Your feedback is welcome and appreciated! Please use the issue tracker to talk about potential
