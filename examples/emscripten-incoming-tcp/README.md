@@ -32,7 +32,7 @@ The handler mirrors how Workers themselves run. A Worker's top level does no
 I/O; each request does its own, inside its own I/O context. So the `connect`
 export runs on the thread's shared (ambient) Tokio event loop, which hosts
 only the listener and the accept loop, and each accepted connection is moved
-onto an event loop of its own with `wasm_bindgen_futures::tokio::schedule_isolated`,
+onto an event loop of its own with `wasm_bindgen_futures::tokio::EventLoop::new().schedule`,
 created inside the `connect` invocation that delivered it: all of that
 connection's I/O runs within its own request. `#[event(connect)]` gives a
 handler such a per-invocation runtime directly; the raw
