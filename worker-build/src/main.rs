@@ -336,7 +336,8 @@ fn add_export_wrappers(out_dir: &Path, plain: bool) -> Result<()> {
         if plain {
             // The runtime only exposes RPC on classes deriving from DurableObject.
             output.push_str(&format!(
-                "Object.setPrototypeOf(exports.{class_name}.prototype, DurableObject.prototype);\n\
+                "guardPrototype(exports.{class_name}.prototype);\n\
+                 Object.setPrototypeOf(exports.{class_name}.prototype, DurableObject.prototype);\n\
                  Object.setPrototypeOf(exports.{class_name}, DurableObject);\n\
                  export const {class_name} = exports.{class_name};\n"
             ));

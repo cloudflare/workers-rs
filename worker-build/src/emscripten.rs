@@ -70,12 +70,16 @@ pub const LINK_ARGS: &[&str] = &[
     "-sEMIT_PRODUCERS_SECTION=1",
 ];
 
+const PRE_JS: &str = include_str!("js/emscripten-pre.js");
+
 pub const EMCC_CFLAGS: &[&str] = &["-fwasm-exceptions", "-sWASM_LEGACY_EXCEPTIONS=0"];
 
 pub struct Toolchain {
     /// Directory containing `emcc`.
     pub emscripten_dir: PathBuf,
     pub em_config: PathBuf,
+    /// `--pre-js` reporting an abort to the Worker shim.
+    pub pre_js: PathBuf,
 }
 
 impl Toolchain {
@@ -121,9 +125,20 @@ pub fn provision() -> Result<Toolchain> {
     let em_config = cache_root()?.join(format!("emscripten-{CUR_EMSCRIPTEN_VERSION}.config"));
     write_config(&em_config, &emsdk)?;
 
+    // Named by content: the path is in RUSTFLAGS, so a change relinks.
+    let hash = PRE_JS.bytes().fold(0xcbf29ce484222325u64, |h, b| {
+        (h ^ b as u64).wrapping_mul(0x100000001b3)
+    });
+    let pre_js = cache_root()?.join(format!("workers-rs-pre-{hash:016x}.js"));
+    if !pre_js.exists() {
+        fs::write(&pre_js, PRE_JS)
+            .with_context(|| format!("Failed to write {}", pre_js.display()))?;
+    }
+
     Ok(Toolchain {
         emscripten_dir,
         em_config,
+        pre_js,
     })
 }
 
