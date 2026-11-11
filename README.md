@@ -651,6 +651,44 @@ pub async fn main(request: Request, env: Env, _ctx: Context) -> Result<Response>
 ```
 
 
+## Custom Trace Spans
+
+With [tracing enabled](https://developers.cloudflare.com/workers/observability/traces/) on your
+Worker (`observability.traces.enabled = true` in `wrangler.toml`), `worker::observability` binds
+the runtime's [custom spans API](https://developers.cloudflare.com/workers/observability/traces/custom-spans/)
+so your own code shows up in the trace waterfall next to the automatic `fetch`, KV and D1 spans:
+
+```rust
+use worker::observability::{enter_span, enter_span_async, SpanStatus};
+use worker::*;
+
+#[event(fetch)]
+pub async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
+    let key = req.path();
+    enter_span_async("handle_request", |span| async move {
+        span.set_attribute("http.path", key.as_str());
+        let key = enter_span("parse_key", |_| key.trim_start_matches('/').to_owned());
+
+        // The KV span nests under `handle_request`.
+        match env.kv("SOME_NAMESPACE")?.get(&key).text().await? {
+            Some(text) => Response::ok(text),
+            None => {
+                span.set_status(SpanStatus::Error(Some("key not found".into())));
+                Response::error("Not Found", 404)
+            }
+        }
+    })
+    .await
+}
+```
+
+Spans nest the way `tracing` spans do: a span is made active again on every poll of the future it
+instruments, so concurrent futures each nest under their own span. `start_span` opens a span
+without making it active, `Span::in_scope` and `Span::instrument` make an existing span active for
+a closure or a future, and `active_span` returns the span active right now. See the
+[`custom-spans` example](./examples/custom-spans) for a `tracing_subscriber::Layer` that records
+`tracing` spans and events as platform spans.
+
 # Notes and FAQ
 
 It is exciting to see how much is possible with a framework like this, by expanding the options

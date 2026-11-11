@@ -1,0 +1,16 @@
+[package]
+name = "custom-spans"
+version = "0.1.0"
+edition = "2021"
+
+[package.metadata.release]
+release = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+futures-util = { version = "0.3", default-features = false }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", default-features = false, features = ["registry", "std"] }
+worker.workspace = true

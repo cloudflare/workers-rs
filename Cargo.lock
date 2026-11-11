@@ -666,6 +666,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "custom-spans"
+version = "0.1.0"
+dependencies = [
+ "futures-util",
+ "tracing",
+ "tracing-subscriber",
+ "worker",
+]
+
+[[package]]
 name = "data-encoding"
 version = "2.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
