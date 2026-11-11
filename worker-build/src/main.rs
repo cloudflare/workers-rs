@@ -35,16 +35,6 @@ use crate::{
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-fn fix_wasm_import(out_dir: &Path) -> Result<()> {
-    let index_path = output_path(out_dir, "index.js");
-    let content = fs::read_to_string(&index_path)
-        .with_context(|| format!("Failed to read {}", index_path.display()))?;
-    let updated_content = content.replace("import source ", "import ");
-    fs::write(&index_path, updated_content)
-        .with_context(|| format!("Failed to write {}", index_path.display()))?;
-    Ok(())
-}
-
 fn update_package_json(out_dir: &Path) -> Result<()> {
     let package_json_path = output_path(out_dir, "package.json");
 
@@ -131,8 +121,6 @@ pub fn main() -> Result<()> {
 
         let esbuild_path = Esbuild.get_binary(None)?.0;
         bundle(&staging_dir, &esbuild_path, emscripten)?;
-
-        fix_wasm_import(&staging_dir)?;
 
         remove_unused_files(&staging_dir)?;
 
