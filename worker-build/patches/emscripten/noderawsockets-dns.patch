@@ -1,28 +1,21 @@
 Subject: [PATCH] Add emscripten_dns_lookup_async / emscripten_dns_lookup_result
 
-emscripten-core/emscripten#27742 (head 1922c3d5d) as carried by the
-guybedford/emscripten tag 6.0.10-cf.emscripten, without its tests. Exposes
-the -sNODERAWSOCKETS hostname lookup that getaddrinfo performs as a
-completion callback, for event-loop callers that cannot block on it.
+emscripten-core/emscripten#27742 (head 1922c3d5d) rebased onto 7.0.0,
+without its tests. Exposes the -sNODERAWSOCKETS hostname lookup that
+getaddrinfo performs as a completion callback, for event-loop callers that
+cannot block on it.
 
-Base-commit: d6c521a7f (tag 6.0.10), after epoll-listeners.patch
+Base-commit: 777e6e5db (tag 7.0.0)
 
 ---
 diff --git a/src/lib/libcore.js b/src/lib/libcore.js
 --- a/src/lib/libcore.js
 +++ b/src/lib/libcore.js
-@@ -1007,34 +1007,15 @@ addToLibrary({
-     return inetPton4(DNS.lookup_name(nameString));
+@@ -965,27 +965,15 @@ addToLibrary({
+     }
    },
  
--  getaddrinfo__deps: ['$DNS', '$inetPton4', '$inetNtop4', '$inetPton6', '$inetNtop6', '$writeSockaddr', 'malloc', 'htonl',
--#if NODERAWSOCKETS
--    '$nodeSockHelpers',
--#endif
--#if NODERAWSOCKETS && ASYNCIFY
--    '$Asyncify',
--#endif
--  ],
+-  getaddrinfo__deps: ['malloc', 'htonl'],
 -  getaddrinfo__proxy: 'sync',
 -#if NODERAWSOCKETS && (PTHREADS || ASYNCIFY)
 -  // Returns an EAI_* code synchronously, or - for a hostname needing a real
@@ -54,7 +47,7 @@ diff --git a/src/lib/libcore.js b/src/lib/libcore.js
  
      function allocaddrinfo(family, type, proto, canon, addr, port) {
        var sa, salen, ai;
-@@ -1068,26 +1049,41 @@ addToLibrary({
+@@ -1019,26 +1007,41 @@ addToLibrary({
        return ai;
      }
  
@@ -63,7 +56,7 @@ diff --git a/src/lib/libcore.js b/src/lib/libcore.js
 -    // addrinfo per {family, addr} result into *out.
 -    async function lookupHostname() {
 -      var entries = await nodeSockHelpers.lookupHost(node, family);
--      if (typeof entries == 'number') return entries;
+-      if (typeof entries === 'number') return entries;
 -      var head = 0, prev = 0;
 -      for (var entry of entries) {
 -        var ai = allocaddrinfo(entry.family, type, proto, null, entry.addr, port);
@@ -113,7 +106,7 @@ diff --git a/src/lib/libcore.js b/src/lib/libcore.js
  
      if (hint) {
        flags = {{{ makeGetValue('hint', C_STRUCTS.addrinfo.ai_flags, 'i32') }}};
-@@ -1157,9 +1153,7 @@ addToLibrary({
+@@ -1108,9 +1111,7 @@ addToLibrary({
            addr = [0, 0, 0, _htonl(1)];
          }
        }
@@ -124,7 +117,7 @@ diff --git a/src/lib/libcore.js b/src/lib/libcore.js
      }
  
      //
-@@ -1190,9 +1184,7 @@ addToLibrary({
+@@ -1141,9 +1142,7 @@ addToLibrary({
        }
      }
      if (addr != null) {
@@ -135,7 +128,7 @@ diff --git a/src/lib/libcore.js b/src/lib/libcore.js
      }
      if (flags & {{{ cDefs.AI_NUMERICHOST }}}) {
        return {{{ cDefs.EAI_NONAME }}};
-@@ -1202,23 +1194,11 @@ addToLibrary({
+@@ -1153,23 +1152,11 @@ addToLibrary({
      // try as a hostname
      //
  #if NODERAWSOCKETS
@@ -164,7 +157,7 @@ diff --git a/src/lib/libcore.js b/src/lib/libcore.js
  #else
      // resolve the hostname to a temporary fake address
      node = DNS.lookup_name(node);
-@@ -1228,10 +1208,46 @@ addToLibrary({
+@@ -1179,10 +1166,46 @@ addToLibrary({
      } else if (family === {{{ cDefs.AF_INET6 }}}) {
        addr = [0, 0, _htonl(0xffff), addr];
      }
@@ -213,24 +206,24 @@ diff --git a/src/lib/libcore.js b/src/lib/libcore.js
 +    return writeAddrInfo(desc, out);
    },
  
-   getnameinfo__deps: ['$DNS', '$readSockaddr', '$stringToUTF8'],
+   getnameinfo__proxy: 'sync',
 diff --git a/src/lib/libsigs.js b/src/lib/libsigs.js
 --- a/src/lib/libsigs.js
 +++ b/src/lib/libsigs.js
-@@ -642,6 +642,8 @@ sigs = {
+@@ -648,6 +648,8 @@ sigs = {
    emscripten_destroy_audio_context__sig: 'vi',
    emscripten_destroy_web_audio_node__sig: 'vi',
    emscripten_destroy_worker__sig: 'vi',
 +  emscripten_dns_lookup_async__sig: 'ippp',
 +  emscripten_dns_lookup_result__sig: 'iip',
    emscripten_enter_soft_fullscreen__sig: 'ipp',
-   emscripten_epoll_add_listener__sig: 'iipp',
-   emscripten_epoll_remove_listener__sig: 'iipp',
+   emscripten_epoll_listener_add__sig: 'iipp',
+   emscripten_epoll_listener_remove__sig: 'iipp',
 diff --git a/src/lib/libsockfs.js b/src/lib/libsockfs.js
 --- a/src/lib/libsockfs.js
 +++ b/src/lib/libsockfs.js
-@@ -850,4 +850,55 @@ addToLibrary({
-   emscripten_set_socket_close_callback__deps: ['$_setNetworkCallback'],
+@@ -858,4 +858,55 @@ addToLibrary({
+     _setNetworkCallback('message', userData, callback),
    emscripten_set_socket_close_callback: (userData, callback) =>
      _setNetworkCallback('close', userData, callback),
 +
@@ -288,7 +281,7 @@ diff --git a/src/lib/libsockfs.js b/src/lib/libsockfs.js
 diff --git a/src/struct_info.json b/src/struct_info.json
 --- a/src/struct_info.json
 +++ b/src/struct_info.json
-@@ -207,7 +207,8 @@
+@@ -220,7 +220,8 @@
              "EAI_NONAME",
              "EAI_SOCKTYPE",
              "EAI_BADFLAGS",

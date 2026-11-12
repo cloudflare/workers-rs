@@ -17,16 +17,12 @@ use std::process::Command;
 
 const PATCHES: &[(&str, &str)] = &[
     (
-        "epoll-listeners.patch",
-        include_str!("../patches/emscripten/epoll-listeners.patch"),
+        "epoll-listener-microtask.patch",
+        include_str!("../patches/emscripten/epoll-listener-microtask.patch"),
     ),
     (
         "noderawsockets-dns.patch",
         include_str!("../patches/emscripten/noderawsockets-dns.patch"),
-    ),
-    (
-        "sourcemap-line-zero.patch",
-        include_str!("../patches/emscripten/sourcemap-line-zero.patch"),
     ),
 ];
 

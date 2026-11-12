@@ -3,13 +3,13 @@
 > **Experimental Preview**
 
 ```sh
-git clone https://github.com/cloudflare/workers-rs
+git clone --recurse-submodules https://github.com/cloudflare/workers-rs
 cd workers-rs/examples/emscripten-tcp
 npx wrangler dev
 ```
 
 Raw TCP from a Worker with `tokio::net`, using the Emscripten Tokio patchset
-(the `guybedford/tokio` tag pinned in `Cargo.toml`, tokio-rs/tokio#8438).
+(the `guybedford/tokio` tag pinned in `Cargo.toml`, tokio-rs/tokio#8484).
 Building on the [emscripten-tokio example](../emscripten-tokio), the Worker
 connects to port 80 of a host, sends an HTTP `HEAD` request and returns the
 reply.
