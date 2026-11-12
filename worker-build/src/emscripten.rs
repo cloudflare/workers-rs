@@ -64,6 +64,9 @@ pub const LINK_ARGS: &[&str] = &[
     // emcc strips the producers section by default; keep the language and
     // processed-by entries the toolchain records in it.
     "-sEMIT_PRODUCERS_SECTION=1",
+    // Leave the glue unminified, so the source map of the bundled Worker
+    // points at its real lines instead of one minified line.
+    "--minify=0",
 ];
 
 pub const EMCC_CFLAGS: &[&str] = &["-fwasm-exceptions", "-sWASM_LEGACY_EXCEPTIONS=0"];
