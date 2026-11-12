@@ -1,6 +1,6 @@
 import { Miniflare } from "miniflare";
-import { readFileSync } from "node:fs";
 import { createServer } from "net";
+import { manifest } from "./manifest";
 
 export const server = createServer(function (socket) {
     socket.on('data', function (data) {
@@ -9,20 +9,6 @@ export const server = createServer(function (socket) {
         });
     });
 }).listen(8080);
-
-const manifest = {
-  mainModule: "build/index.js",
-  modules: {
-    "build/index.js": {
-      type: "esm" as const,
-      contents: readFileSync("./build/index.js", "utf8"),
-    },
-    "build/index_bg.wasm": {
-      type: "wasm" as const,
-      contents: new Uint8Array(readFileSync("./build/index_bg.wasm")),
-    },
-  },
-};
 
 export const mf = new Miniflare({
   workers: [{

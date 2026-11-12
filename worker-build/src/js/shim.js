@@ -1,5 +1,5 @@
 import { WorkerEntrypoint } from "cloudflare:workers";
-import * as exports from "./index.js";
+import * as exports from "./index_bg.js";
 
 Error.stackTraceLimit = 100;
 const initState = exports.__worker_init_state();
