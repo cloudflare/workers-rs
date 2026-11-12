@@ -265,20 +265,12 @@ where
     type Item = Result<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let result = self.cursor.inner.next();
+        let result: js_sys::IteratorNext = self.cursor.inner.next().unchecked_into();
 
-        let done = js_sys::Reflect::get(&result, &JsValue::from("done"))
-            .ok()
-            .and_then(|v| v.as_bool())
-            .unwrap_or(true);
-
-        if done {
+        if result.done() {
             None
         } else {
-            let value = js_sys::Reflect::get(&result, &JsValue::from("value"))
-                .map_err(Error::from)
-                .and_then(|js_val| swb::from_value(js_val).map_err(Error::from));
-            Some(value)
+            Some(swb::from_value(result.value()).map_err(Error::from))
         }
     }
 }
@@ -313,7 +305,9 @@ impl Iterator for SqlCursorRawIterator {
 }
 
 fn js_array_to_sql_storage_values(js_val: JsValue) -> Result<Vec<SqlStorageValue>> {
-    let array = js_sys::Array::from(&js_val);
+    let array: js_sys::Array = js_val
+        .dyn_into()
+        .map_err(|_| Error::from("Expected an array of SQL values"))?;
     let mut values = Vec::with_capacity(array.length() as usize);
 
     for i in 0..array.length() {
@@ -396,20 +390,12 @@ impl Iterator for SqlCursor {
     type Item = Result<JsValue>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let result = self.inner.next();
+        let result: js_sys::IteratorNext = self.inner.next().unchecked_into();
 
-        // Extract 'done' property from iterator result
-        let done = js_sys::Reflect::get(&result, &JsValue::from("done"))
-            .ok()
-            .and_then(|v| v.as_bool())
-            .unwrap_or(true);
-
-        if done {
+        if result.done() {
             None
         } else {
-            // Extract 'value' property from iterator result
-            let value = js_sys::Reflect::get(&result, &JsValue::from("value")).map_err(Error::from);
-            Some(value)
+            Some(Ok(result.value()))
         }
     }
 }
