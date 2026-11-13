@@ -16,7 +16,7 @@ impl Container {
 
     pub fn start(&self, options: Option<ContainerStartupOptions>) -> Result<()> {
         let options = match options {
-            Some(o) => o.into(),
+            Some(o) => Object::from(o).into(),
             None => JsValue::undefined(),
         };
         self.inner.start(&options).map_err(|e| e.into())
@@ -57,7 +57,7 @@ impl Container {
     ) -> Result<ExecProcess> {
         let cmd: Vec<JsValue> = cmd.iter().map(|s| JsValue::from_str(s)).collect();
         let options = match options {
-            Some(o) => o.into(),
+            Some(o) => Object::from(o).into(),
             None => JsValue::undefined(),
         };
         let promise = self.inner.exec(cmd, &options)?;
@@ -219,27 +219,34 @@ impl ContainerStartupOptions {
 
 impl From<ContainerStartupOptions> for Object {
     fn from(options: ContainerStartupOptions) -> Self {
-        let obj = options.clone().into();
+        let obj = Object::new();
         if !options.entrypoint.is_empty() {
-            Reflect::delete_property(&obj, &JsValue::from_str("entrypoint")).unwrap();
+            let entrypoint = options
+                .entrypoint
+                .into_iter()
+                .map(JsValue::from)
+                .collect::<js_sys::Array>();
+            Reflect::set(&obj, &"entrypoint".into(), &entrypoint).unwrap();
         }
-        if options.enable_internet.is_some() {
-            Reflect::delete_property(&obj, &JsValue::from_str("enableInternet")).unwrap();
+        if let Some(enable_internet) = options.enable_internet {
+            Reflect::set(&obj, &"enableInternet".into(), &enable_internet.into()).unwrap();
         }
         if options.env.size() != 0 {
-            Reflect::delete_property(&obj, &JsValue::from_str("env")).unwrap();
+            let env = Object::from_entries(&options.env).unwrap();
+            Reflect::set(&obj, &"env".into(), &env).unwrap();
         }
-        if options.image.is_none() {
-            Reflect::delete_property(&obj, &JsValue::from_str("image")).unwrap();
+        if let Some(image) = options.image {
+            Reflect::set(&obj, &"image".into(), &image.into()).unwrap();
         }
-        if options.instance.is_none() {
-            Reflect::delete_property(&obj, &JsValue::from_str("instance")).unwrap();
+        if let Some(instance) = options.instance {
+            Reflect::set(&obj, &"instance".into(), &instance).unwrap();
         }
-        if options.container_snapshot.is_none() {
-            Reflect::delete_property(&obj, &JsValue::from_str("containerSnapshot")).unwrap();
+        if let Some(snapshot) = options.container_snapshot {
+            Reflect::set(&obj, &"containerSnapshot".into(), &snapshot).unwrap();
         }
-        if options.labels.size() == 0 {
-            Reflect::delete_property(&obj, &JsValue::from_str("labels")).unwrap();
+        if options.labels.size() != 0 {
+            let labels = Object::from_entries(&options.labels).unwrap();
+            Reflect::set(&obj, &"labels".into(), &labels).unwrap();
         }
         obj
     }
@@ -304,21 +311,22 @@ impl ContainerExecOptions {
 
 impl From<ContainerExecOptions> for Object {
     fn from(options: ContainerExecOptions) -> Self {
-        let obj = options.clone().into();
-        if options.cwd.is_none() {
-            Reflect::delete_property(&obj, &JsValue::from_str("cwd")).unwrap();
+        let obj = Object::new();
+        if let Some(cwd) = options.cwd {
+            Reflect::set(&obj, &"cwd".into(), &cwd.into()).unwrap();
         }
-        if options.env.size() == 0 {
-            Reflect::delete_property(&obj, &JsValue::from_str("env")).unwrap();
+        if options.env.size() != 0 {
+            let env = Object::from_entries(&options.env).unwrap();
+            Reflect::set(&obj, &"env".into(), &env).unwrap();
         }
-        if options.user.is_none() {
-            Reflect::delete_property(&obj, &JsValue::from_str("user")).unwrap();
+        if let Some(user) = options.user {
+            Reflect::set(&obj, &"user".into(), &user.into()).unwrap();
         }
-        if options.stdout.is_none() {
-            Reflect::delete_property(&obj, &JsValue::from_str("stdout")).unwrap();
+        if let Some(stdout) = options.stdout {
+            Reflect::set(&obj, &"stdout".into(), &stdout.into()).unwrap();
         }
-        if options.stderr.is_none() {
-            Reflect::delete_property(&obj, &JsValue::from_str("stderr")).unwrap();
+        if let Some(stderr) = options.stderr {
+            Reflect::set(&obj, &"stderr".into(), &stderr.into()).unwrap();
         }
         obj
     }
@@ -384,5 +392,123 @@ impl ExecOutput {
 
     pub fn stderr(&self) -> Vec<u8> {
         Uint8Array::new(&self.inner.stderr()).to_vec()
+    }
+}
+
+#[cfg(all(test, target_arch = "wasm32"))]
+mod tests {
+    use super::*;
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    fn property(object: &JsValue, name: &str) -> JsValue {
+        Reflect::get(object, &name.into()).unwrap()
+    }
+
+    fn assert_record(value: &JsValue, expected: &[(&str, &str)]) {
+        assert!(!value.is_instance_of::<Map>());
+        let object: &Object = value.unchecked_ref();
+        assert_eq!(
+            Object::get_prototype_of(object),
+            Object::get_prototype_of(&Object::new())
+        );
+        assert_eq!(Object::keys(object).length() as usize, expected.len());
+        for (key, value) in expected {
+            assert_eq!(property(object, key), JsValue::from_str(value));
+        }
+    }
+
+    #[wasm_bindgen_test]
+    fn startup_options_serialize_records_and_preserve_fields() {
+        let mut options = ContainerStartupOptions::new();
+        options.set_entrypoint(&["node", "-e", "process.exit(0)"]);
+        options.enable_internet(false);
+        options.add_env("BINDING_ALPHA", "spaces = quotes \" and λ\nnext");
+        options.add_env("BINDING_EMPTY", "");
+        options.add_env("__proto__", "ordinary environment key");
+        options.add_env("BINDING_ALPHA", "replacement");
+        options.add_label("fixture", "synthetic");
+        options.set_image("cloudflare/debian-trixie");
+        options.set_custom_instance(1, 4096, 8000).unwrap();
+        let object = Object::from(options);
+
+        assert_eq!(Object::keys(&object).length(), 6);
+        assert_eq!(property(&object, "enableInternet"), JsValue::FALSE);
+        assert_eq!(
+            property(&object, "image"),
+            JsValue::from_str("cloudflare/debian-trixie")
+        );
+        let entrypoint = js_sys::Array::from(&property(&object, "entrypoint"));
+        assert_eq!(entrypoint.length(), 3);
+        assert_eq!(entrypoint.get(2), JsValue::from_str("process.exit(0)"));
+        assert_record(
+            &property(&object, "env"),
+            &[
+                ("BINDING_ALPHA", "replacement"),
+                ("BINDING_EMPTY", ""),
+                ("__proto__", "ordinary environment key"),
+            ],
+        );
+        assert_record(&property(&object, "labels"), &[("fixture", "synthetic")]);
+        let instance = property(&object, "instance");
+        assert_eq!(property(&instance, "vcpu"), JsValue::from_f64(1.0));
+        assert_eq!(property(&instance, "memoryMib"), JsValue::from_f64(4096.0));
+        assert_eq!(property(&instance, "diskMb"), JsValue::from_f64(8000.0));
+        assert!(property(&object, "containerSnapshot").is_undefined());
+    }
+
+    #[wasm_bindgen_test]
+    fn exec_options_serialize_records_and_preserve_fields() {
+        let mut options = ContainerExecOptions::new();
+        options.add_env("BINDING_EXEC", "spaces = quotes \" and λ\nnext");
+        options.add_env("BINDING_EMPTY", "");
+        options.add_env("__proto__", "ordinary environment key");
+        options.set_cwd("/tmp");
+        options.set_user(1000, 1000);
+        options.set_stdout("pipe");
+        options.set_stderr("combined");
+        let object = Object::from(options);
+
+        assert_eq!(Object::keys(&object).length(), 5);
+        assert_record(
+            &property(&object, "env"),
+            &[
+                ("BINDING_EXEC", "spaces = quotes \" and λ\nnext"),
+                ("BINDING_EMPTY", ""),
+                ("__proto__", "ordinary environment key"),
+            ],
+        );
+        assert_eq!(property(&object, "cwd"), JsValue::from_str("/tmp"));
+        assert_eq!(property(&object, "user"), JsValue::from_str("1000:1000"));
+        assert_eq!(property(&object, "stdout"), JsValue::from_str("pipe"));
+        assert_eq!(property(&object, "stderr"), JsValue::from_str("combined"));
+    }
+
+    #[wasm_bindgen_test]
+    fn empty_options_omit_unset_fields() {
+        assert_eq!(
+            Object::keys(&Object::from(ContainerStartupOptions::new())).length(),
+            0
+        );
+        assert_eq!(
+            Object::keys(&Object::from(ContainerExecOptions::new())).length(),
+            0
+        );
+    }
+
+    #[wasm_bindgen_test]
+    fn startup_snapshot_and_explicit_internet_are_preserved() {
+        let mut options = ContainerStartupOptions::new();
+        options.enable_internet(true);
+        options
+            .set_container_snapshot("synthetic-snapshot")
+            .unwrap();
+        let object = Object::from(options);
+        assert_eq!(Object::keys(&object).length(), 2);
+        assert_eq!(property(&object, "enableInternet"), JsValue::TRUE);
+        assert_eq!(
+            property(&property(&object, "containerSnapshot"), "id"),
+            JsValue::from_str("synthetic-snapshot")
+        );
+        assert!(property(&object, "image").is_undefined());
     }
 }

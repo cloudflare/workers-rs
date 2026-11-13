@@ -1,0 +1,25 @@
+name = "workers-rs-container-env-regression"
+main = "build/worker/shim.mjs"
+compatibility_date = "2026-11-12"
+workers_dev = true
+
+[build]
+command = "worker-build --release"
+
+[observability]
+enabled = true
+
+[observability.traces]
+enabled = true
+
+[[containers]]
+class_name = "ContainerEnvRegression"
+scheduling_policy = "durable_object"
+
+[[durable_objects.bindings]]
+name = "CONTAINER_ENV"
+class_name = "ContainerEnvRegression"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["ContainerEnvRegression"]
