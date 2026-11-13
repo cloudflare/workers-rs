@@ -7,11 +7,11 @@ use crate::emoji;
 use crate::emscripten::{self, Toolchain};
 use crate::versions::MIN_RUSTC_VERSION;
 use anyhow::{anyhow, bail, Context, Result};
-use cargo_metadata::diagnostic::DiagnosticLevel;
-use cargo_metadata::{ArtifactDebuginfo, Message, TargetKind};
+use cargo_metadata::ArtifactDebuginfo;
 use core::str;
 use log::error;
 use log::info;
+use serde::Deserialize;
 use std::fmt;
 use std::path::Path;
 use std::path::PathBuf;
@@ -519,149 +519,139 @@ pub fn cargo_build_wasm(
 
     let mut debuginfo = None;
     if let Some(em) = emscripten.filter(|em| em.source_map) {
-        let checked = check(check_command(&cmd), em.bin)?;
+        let levels = read_levels(&cmd, em.bin);
         let override_set =
             std::env::var_os(profile_env_var(&profile, "BUILD_OVERRIDE_DEBUG")).is_some();
-        cmd.envs(build_env(checked.as_ref(), &profile, override_set));
-        debuginfo = checked.and_then(|checked| checked.bin);
+        cmd.envs(build_env(levels.as_ref(), &profile, override_set));
+        debuginfo = levels.and_then(|levels| levels.bin);
     }
 
     utils::run(cmd, "cargo build").context("Compiling your crate to WebAssembly failed")?;
     Ok(debuginfo)
 }
 
-/// The debug levels `cargo check` reported.
+/// The debug levels Cargo resolved for the build.
 #[derive(Debug, Default, PartialEq)]
-struct Checked {
+struct Levels {
     /// The `bin` target's.
     bin: Option<ArtifactDebuginfo>,
     /// Build scripts' and proc macros', if they all have the same one.
     host: Option<ArtifactDebuginfo>,
 }
 
-/// Run `cargo check`. On compile errors, shows them and fails, as the build
-/// would; on other failures, warns and returns `None`.
-fn check(mut cmd: Command, bin: &str) -> Result<Option<Checked>> {
+/// Read the debug levels Cargo resolves for `build` from its unit graph. On
+/// failure, warns and returns `None`.
+fn read_levels(build: &Command, bin: &str) -> Option<Levels> {
+    let mut cmd = unit_graph_command(build);
     info!("Running {cmd:?}");
-    let output = cmd.output()?;
-    if output.status.success() {
-        return Ok(Some(checked(&output.stdout, bin)));
-    }
-    if let Some(errors) = compile_errors(&output.stdout) {
-        eprint!("{errors}{}", String::from_utf8_lossy(&output.stderr));
-        bail!("Compiling your crate to WebAssembly failed");
-    }
+    let error = match cmd.output() {
+        Ok(output) if output.status.success() => match levels(&output.stdout, bin) {
+            Ok(levels) => return Some(levels),
+            Err(e) => format!("{e:#}"),
+        },
+        Ok(output) => String::from_utf8_lossy(&output.stderr).trim().to_string(),
+        Err(e) => e.to_string(),
+    };
     PBAR.warn(&format!(
         "worker-build couldn't read the Cargo profile's debug level, so it builds as \
-         configured: {}",
-        String::from_utf8_lossy(&output.stderr).trim()
+         configured: {error}"
     ));
-    Ok(None)
+    None
 }
 
-/// `cargo build` as a `cargo check` that prints JSON messages, which report
-/// the debug level Cargo resolved from the profile, config and command line.
-fn check_command(build: &Command) -> Command {
-    let mut check = Command::new(build.get_program());
+/// `cargo build` with `--unit-graph`, which prints the units Cargo would
+/// build, with their resolved profiles, and builds nothing. The flag is
+/// unstable, so this call alone gets `RUSTC_BOOTSTRAP=1`, and it doesn't use
+/// Cargo's cache of rustc's output, which would keep nightly-only cfgs from
+/// that run for the build.
+fn unit_graph_command(build: &Command) -> Command {
+    let mut cmd = Command::new(build.get_program());
     if let Some(dir) = build.get_current_dir() {
-        check.current_dir(dir);
+        cmd.current_dir(dir);
     }
     for (name, value) in build.get_envs() {
         match value {
-            Some(value) => check.env(name, value),
-            None => check.env_remove(name),
+            Some(value) => cmd.env(name, value),
+            None => cmd.env_remove(name),
         };
     }
-    // Options `cargo check` rejects, or that clash with `--quiet` or the JSON.
-    const WITH_VALUE: [&str; 3] = ["--message-format", "--out-dir", "--artifact-dir"];
-    let mut subcommand = false;
-    let mut quiet = false;
-    let mut args = build.get_args().map(|arg| arg.to_string_lossy());
-    while let Some(arg) = args.next() {
-        if WITH_VALUE.contains(&&*arg) {
-            args.next();
-            continue;
-        }
-        let with_value = |o: &&str| arg.strip_prefix(o).is_some_and(|v| v.starts_with('='));
-        if arg == "--verbose" || WITH_VALUE.iter().any(with_value) {
-            continue;
-        }
-        // Short flags, such as `-qv`.
-        let short =
-            arg.len() > 1 && arg.starts_with('-') && arg[1..].chars().all(|c| "qvr".contains(c));
-        quiet |= arg == "--quiet" || (short && arg.contains('q'));
-        let arg = if arg == "build" && !subcommand {
-            subcommand = true;
-            "check".into()
-        } else if short {
-            arg.replace('v', "").into()
-        } else {
-            arg
-        };
-        if arg != "-" {
-            check.arg(&*arg);
-        }
-    }
-    if !quiet {
-        check.arg("--quiet");
-    }
-    check.arg("--message-format=json");
-    check
+    cmd.args(build.get_args())
+        .args(["--unit-graph", "-Zunstable-options"])
+        .env("RUSTC_BOOTSTRAP", "1")
+        .env("CARGO_CACHE_RUSTC_INFO", "0");
+    cmd
 }
 
-/// The debug levels in Cargo's JSON messages.
-fn checked(messages: &[u8], bin: &str) -> Checked {
-    let mut checked = Checked::default();
+/// The parts of Cargo's unit graph that `levels` reads.
+#[derive(Deserialize)]
+struct UnitGraph {
+    version: u32,
+    units: Vec<Unit>,
+}
+
+#[derive(Deserialize)]
+struct Unit {
+    target: UnitTarget,
+    profile: UnitProfile,
+    /// The target triple; `None` for the host.
+    platform: Option<String>,
+    mode: String,
+}
+
+#[derive(Deserialize)]
+struct UnitTarget {
+    name: String,
+    kind: Vec<String>,
+}
+
+#[derive(Deserialize)]
+struct UnitProfile {
+    debuginfo: ArtifactDebuginfo,
+}
+
+/// The debug levels in Cargo's unit graph.
+fn levels(graph: &[u8], bin: &str) -> Result<Levels> {
+    let graph: UnitGraph = serde_json::from_slice(graph).context("Invalid unit graph")?;
+    if graph.version != 1 {
+        bail!("Unknown unit graph version {}", graph.version);
+    }
+    let mut levels = Levels::default();
     let mut host = Vec::new();
-    for message in Message::parse_stream(messages).filter_map(Result::ok) {
-        let Message::CompilerArtifact(artifact) = message else {
-            continue;
-        };
-        let target = &artifact.target;
-        if target.name == bin && target.is_kind(TargetKind::Bin) {
-            checked.bin = Some(artifact.profile.debuginfo);
-        } else if target.is_kind(TargetKind::CustomBuild) || target.is_kind(TargetKind::ProcMacro) {
-            host.push(artifact.profile.debuginfo);
+    for unit in graph.units.into_iter().filter(|unit| unit.mode == "build") {
+        let is = |kind: &str| unit.target.kind.iter().any(|k| k == kind);
+        if unit.platform.as_deref() == Some(WASM32_EMSCRIPTEN)
+            && unit.target.name == bin
+            && is("bin")
+        {
+            levels.bin = Some(unit.profile.debuginfo);
+        } else if unit.platform.is_none() && (is("custom-build") || is("proc-macro")) {
+            host.push(unit.profile.debuginfo);
         }
+    }
+    if levels.bin.is_none() {
+        bail!("Cargo's unit graph has no `{bin}` bin");
     }
     if host.windows(2).all(|pair| pair[0] == pair[1]) {
-        checked.host = host.pop();
+        levels.host = host.pop();
     }
-    checked
+    Ok(levels)
 }
 
-/// The rendered diagnostics in Cargo's JSON messages, if any is an error.
-fn compile_errors(messages: &[u8]) -> Option<String> {
-    let mut error = false;
-    let mut rendered = String::new();
-    for message in Message::parse_stream(messages).filter_map(Result::ok) {
-        if let Message::CompilerMessage(message) = message {
-            let diagnostic = message.message;
-            error |= matches!(
-                diagnostic.level,
-                DiagnosticLevel::Error | DiagnosticLevel::Ice
-            );
-            rendered.extend(diagnostic.rendered);
-        }
-    }
-    error.then_some(rendered)
-}
-
-/// The environment to add to the build for what `cargo check` reported.
+/// The environment to add to the build for the debug levels Cargo resolved.
 /// Below line tables, it raises the profile's `debug`, and keeps build
-/// scripts and proc macros at the level the check built them with, so that
-/// the build reuses them.
+/// scripts and proc macros at their level, so that the build compiles them
+/// as it would have.
 fn build_env(
-    checked: Option<&Checked>,
+    levels: Option<&Levels>,
     profile: &BuildProfile,
     override_set: bool,
 ) -> Vec<(String, &'static str)> {
-    let Some(checked) = checked.filter(|c| c.bin.as_ref().is_some_and(needs_line_tables)) else {
+    let Some(levels) = levels.filter(|c| c.bin.as_ref().is_some_and(needs_line_tables)) else {
         return Vec::new();
     };
     // emcc builds the source map from DWARF line tables.
     let mut env = vec![(profile_env_var(profile, "DEBUG"), "line-tables-only")];
-    if let Some(host) = checked.host.as_ref().and_then(debug_value) {
+    if let Some(host) = levels.host.as_ref().and_then(debug_value) {
         if !override_set {
             env.push((profile_env_var(profile, "BUILD_OVERRIDE_DEBUG"), host));
         }
@@ -706,8 +696,8 @@ fn profile_env_var(profile: &BuildProfile, key: &str) -> String {
 #[cfg(test)]
 mod test {
     use super::{
-        build_env, check_command, checked, compile_errors, debug_value, emscripten_link_args,
-        needs_line_tables, profile_env_var, ArtifactDebuginfo, BuildProfile, Checked,
+        build_env, debug_value, emscripten_link_args, levels, needs_line_tables, profile_env_var,
+        unit_graph_command, ArtifactDebuginfo, BuildProfile, Levels,
     };
     use std::path::{Path, PathBuf};
     use std::process::Command;
@@ -771,7 +761,7 @@ mod test {
     #[test]
     fn test_build_env() {
         let release = BuildProfile::Release;
-        let checked = |bin, host| Checked {
+        let levels = |bin, host| Levels {
             bin: Some(bin),
             host,
         };
@@ -788,149 +778,86 @@ mod test {
         let none = Some(ArtifactDebuginfo::None);
         assert_eq!(
             build_env(
-                Some(&checked(ArtifactDebuginfo::None, none.clone())),
+                Some(&levels(ArtifactDebuginfo::None, none.clone())),
                 &release,
                 false
             ),
             [raise(), host]
         );
-        let directives = checked(ArtifactDebuginfo::LineDirectivesOnly, None);
+        let directives = levels(ArtifactDebuginfo::LineDirectivesOnly, None);
         assert_eq!(build_env(Some(&directives), &release, false), [raise()]);
         // A build override the user set, or host units at several levels.
-        let zero = checked(ArtifactDebuginfo::None, none);
+        let zero = levels(ArtifactDebuginfo::None, none);
         assert_eq!(build_env(Some(&zero), &release, true), [raise()]);
-        let mixed = checked(ArtifactDebuginfo::None, None);
+        let mixed = levels(ArtifactDebuginfo::None, None);
         assert_eq!(build_env(Some(&mixed), &release, false), [raise()]);
         for kept in [
             ArtifactDebuginfo::LineTablesOnly,
             ArtifactDebuginfo::Limited,
             ArtifactDebuginfo::Full,
         ] {
-            let checked = checked(kept, Some(ArtifactDebuginfo::None));
-            assert!(build_env(Some(&checked), &release, false).is_empty());
+            let levels = levels(kept, Some(ArtifactDebuginfo::None));
+            assert!(build_env(Some(&levels), &release, false).is_empty());
         }
-        // The check failed, or didn't report the bin.
+        // The probe failed, or didn't report the bin.
         assert!(build_env(None, &release, false).is_empty());
-        assert!(build_env(Some(&Checked::default()), &release, false).is_empty());
-    }
-
-    /// The arguments `check_command` gives `cargo check` for `build_args`.
-    fn check_args(build_args: &[&str]) -> Vec<String> {
-        let mut build = Command::new("cargo");
-        build.args(build_args);
-        let check = check_command(&build);
-        check
-            .get_args()
-            .map(|arg| arg.to_str().unwrap().to_string())
-            .collect()
+        assert!(build_env(Some(&Levels::default()), &release, false).is_empty());
     }
 
     #[test]
-    fn test_check_command() {
+    fn test_unit_graph_command() {
         let mut build = Command::new("cargo");
         build
             .current_dir("/w")
             .env("RUSTFLAGS", "-Cx")
-            .args(["+nightly", "build", "--bin", "build", "--release"])
-            .args([
-                "--message-format",
-                "short",
-                "--message-format=human",
-                "--locked",
-            ]);
-        let check = check_command(&build);
-        assert_eq!(check.get_current_dir().unwrap(), Path::new("/w"));
-        assert!(check
+            .env_remove("CARGO_TARGET_DIR")
+            .args(["+nightly", "build", "--bin", "app", "-v"]);
+        let probe = unit_graph_command(&build);
+        let args: Vec<_> = probe.get_args().map(|a| a.to_str().unwrap()).collect();
+        assert_eq!(
+            args,
+            [
+                "+nightly",
+                "build",
+                "--bin",
+                "app",
+                "-v",
+                "--unit-graph",
+                "-Zunstable-options"
+            ]
+        );
+        assert_eq!(probe.get_current_dir().unwrap(), Path::new("/w"));
+        let env: Vec<_> = probe.get_envs().collect();
+        assert!(env.contains(&("RUSTFLAGS".as_ref(), Some("-Cx".as_ref()))));
+        assert!(env.contains(&("CARGO_TARGET_DIR".as_ref(), None)));
+        assert!(env.contains(&("RUSTC_BOOTSTRAP".as_ref(), Some("1".as_ref()))));
+        assert!(env.contains(&("CARGO_CACHE_RUSTC_INFO".as_ref(), Some("0".as_ref()))));
+        // Only on the probe.
+        assert!(build
             .get_envs()
-            .any(|(k, v)| k == "RUSTFLAGS" && v.unwrap() == "-Cx"));
-        assert_eq!(
-            check_args(&[
-                "+nightly",
-                "build",
-                "--bin",
-                "build",
-                "--release",
-                "--message-format",
-                "short",
-                "--message-format=human",
-                "--locked",
-            ]),
-            [
-                "+nightly",
-                "check",
-                "--bin",
-                "build",
-                "--release",
-                "--locked",
-                "--quiet",
-                "--message-format=json"
-            ]
-        );
+            .all(|(name, _)| name != "RUSTC_BOOTSTRAP" && name != "CARGO_CACHE_RUSTC_INFO"));
     }
 
-    #[test]
-    fn test_check_command_verbose_and_quiet() {
-        let json = "--message-format=json";
-        for (args, check) in [
-            (&["-v"][..], &["--quiet", json][..]),
-            (&["-vv"], &["--quiet", json]),
-            (&["--verbose", "-v"], &["--quiet", json]),
-            (&["-q"], &["-q", json]),
-            (&["--quiet"], &["--quiet", json]),
-            (&["-qv"], &["-q", json]),
-            (&["-rv"], &["-r", "--quiet", json]),
-            (
-                &["-j4", "-p", "app"],
-                &["-j4", "-p", "app", "--quiet", json],
-            ),
-        ] {
-            let build: Vec<&str> = ["build"].iter().chain(args).copied().collect();
-            let expected: Vec<&str> = ["check"].iter().chain(check).copied().collect();
-            assert_eq!(check_args(&build), expected, "{args:?}");
-        }
-    }
-
-    #[test]
-    fn test_check_command_out_dir() {
-        let args = [
-            "build",
-            "--out-dir",
-            "o",
-            "--out-dir=o",
-            "--artifact-dir",
-            "a",
-            "--artifact-dir=a",
-            "-Z",
-            "unstable-options",
-        ];
-        assert_eq!(
-            check_args(&args),
-            [
-                "check",
-                "-Z",
-                "unstable-options",
-                "--quiet",
-                "--message-format=json"
-            ]
-        );
-    }
-
-    /// A `compiler-artifact` message for target `name` of `kind`.
-    fn artifact(name: &str, kind: &str, debuginfo: &str) -> String {
+    /// A unit of Cargo's unit graph.
+    fn unit(name: &str, kind: &str, mode: &str, platform: &str, debuginfo: &str) -> String {
         format!(
-            r#"{{"reason":"compiler-artifact","package_id":"path+file:///w#x@0.1.0","manifest_path":"/w/Cargo.toml","target":{{"kind":["{kind}"],"crate_types":["{kind}"],"name":"{name}","src_path":"/w/src/main.rs","edition":"2021","doc":true,"doctest":false,"test":true}},"profile":{{"opt_level":"s","debuginfo":{debuginfo},"debug_assertions":false,"overflow_checks":false,"test":false}},"features":[],"filenames":[],"executable":null,"fresh":false}}"#
+            r#"{{"pkg_id":"path+file:///w#x@0.1.0","target":{{"kind":["{kind}"],"crate_types":["{kind}"],"name":"{name}","src_path":"/w/src/main.rs","edition":"2021","doc":true,"doctest":false,"test":true}},"profile":{{"name":"release","opt_level":"s","lto":"false","codegen_backend":null,"codegen_units":null,"debuginfo":{debuginfo},"split_debuginfo":null,"debug_assertions":false,"overflow_checks":false,"rpath":false,"incremental":false,"panic":"abort","strip":{{"deferred":"None"}}}},"platform":{platform},"mode":"{mode}","features":[],"dependencies":[]}}"#
         )
     }
 
-    /// A `compiler-message` message at `level`.
-    fn diagnostic(level: &str, rendered: &str) -> String {
+    const WASM: &str = r#""wasm32-unknown-emscripten""#;
+
+    /// A unit graph of `units`, at `version`.
+    fn graph(version: u32, units: &[String]) -> Vec<u8> {
         format!(
-            r#"{{"reason":"compiler-message","package_id":"path+file:///w#x@0.1.0","manifest_path":"/w/Cargo.toml","target":{{"kind":["bin"],"crate_types":["bin"],"name":"app","src_path":"/w/src/main.rs","edition":"2021","doc":true,"doctest":false,"test":true}},"message":{{"$message_type":"diagnostic","message":"m","code":null,"level":"{level}","spans":[],"children":[],"rendered":"{rendered}"}}}}"#
+            r#"{{"version":{version},"units":[{}],"roots":[0]}}"#,
+            units.join(",")
         )
+        .into_bytes()
     }
 
     #[test]
-    fn test_checked() {
+    fn test_levels() {
         for (debuginfo, expected) in [
             ("0", ArtifactDebuginfo::None),
             (r#""none""#, ArtifactDebuginfo::None),
@@ -941,49 +868,61 @@ mod test {
             ),
             (r#""line-tables-only""#, ArtifactDebuginfo::LineTablesOnly),
             ("1", ArtifactDebuginfo::Limited),
+            (r#""limited""#, ArtifactDebuginfo::Limited),
             ("2", ArtifactDebuginfo::Full),
+            (r#""full""#, ArtifactDebuginfo::Full),
         ] {
-            let messages = [
-                artifact("worker", "lib", "2"),
-                artifact("build-script-build", "custom-build", "0"),
-                artifact("worker_macros", "proc-macro", "0"),
-                diagnostic("warning", "warning: w"),
-                artifact("app", "bin", debuginfo),
-                r#"{"reason":"build-finished","success":true}"#.into(),
-            ]
-            .join("\n");
+            let units = [
+                // A lib and a bin of the same crate.
+                unit("app", "lib", "build", WASM, "2"),
+                unit("app", "bin", "build", WASM, debuginfo),
+                unit("worker", "lib", "build", WASM, "2"),
+                unit("build-script-build", "custom-build", "build", "null", "0"),
+                unit("worker_macros", "proc-macro", "build", "null", "0"),
+                // Running a build script, and a lib for the host.
+                unit(
+                    "build-script-build",
+                    "custom-build",
+                    "run-custom-build",
+                    "null",
+                    "2",
+                ),
+                unit("syn", "lib", "build", "null", "2"),
+            ];
             assert_eq!(
-                checked(messages.as_bytes(), "app"),
-                Checked {
+                levels(&graph(1, &units), "app").unwrap(),
+                Levels {
                     bin: Some(expected),
                     host: Some(ArtifactDebuginfo::None),
-                }
+                },
+                "{debuginfo}"
             );
         }
-        let mixed = [
-            artifact("build-script-build", "custom-build", "0"),
-            artifact("worker_macros", "proc-macro", "2"),
-        ]
-        .join("\n");
-        assert_eq!(checked(mixed.as_bytes(), "app"), Checked::default());
-        assert_eq!(checked(b"", "app"), Checked::default());
-        let lib = artifact("app", "lib", "0");
-        assert_eq!(checked(lib.as_bytes(), "app").bin, None);
-        let other = artifact("other", "bin", "0");
-        assert_eq!(checked(other.as_bytes(), "app").bin, None);
     }
 
     #[test]
-    fn test_compile_errors() {
-        let warning = diagnostic("warning", "warning: w\\n");
-        let error = diagnostic("error", "error: e\\n");
-        let both = [warning.clone(), artifact("x", "lib", "0"), error].join("\n");
-        assert_eq!(
-            compile_errors(both.as_bytes()).as_deref(),
-            Some("warning: w\nerror: e\n")
-        );
-        assert_eq!(compile_errors(warning.as_bytes()), None);
-        assert_eq!(compile_errors(b"error: no such command\n"), None);
+    fn test_levels_host_levels() {
+        let bin = unit("app", "bin", "build", WASM, "0");
+        let mixed = [
+            bin.clone(),
+            unit("build-script-build", "custom-build", "build", "null", "0"),
+            unit("worker_macros", "proc-macro", "build", "null", "2"),
+        ];
+        assert_eq!(levels(&graph(1, &mixed), "app").unwrap().host, None);
+        assert_eq!(levels(&graph(1, &[bin]), "app").unwrap().host, None);
+    }
+
+    #[test]
+    fn test_levels_fails() {
+        let bin = unit("app", "bin", "build", WASM, "0");
+        assert!(levels(&graph(1, std::slice::from_ref(&bin)), "app").is_ok());
+        assert!(levels(&graph(2, std::slice::from_ref(&bin)), "app").is_err());
+        assert!(levels(&graph(1, &[bin]), "other").is_err());
+        let host_bin = unit("app", "bin", "build", "null", "0");
+        assert!(levels(&graph(1, &[host_bin]), "app").is_err());
+        let lib = unit("app", "lib", "build", WASM, "0");
+        assert!(levels(&graph(1, &[lib]), "app").is_err());
+        assert!(levels(b"error: no such command", "app").is_err());
     }
 
     /// A temporary directory, removed when dropped.
@@ -995,18 +934,18 @@ mod test {
         }
     }
 
-    /// Pins that `cargo check` reports the debug level of each `debug`
-    /// setting, that the profile's environment variable raises it, and that
-    /// `--config` beats that.
+    /// Pins the unit graph's format and debug levels for each `debug`
+    /// setting on stable Cargo with `RUSTC_BOOTSTRAP=1`, that the profile's
+    /// environment variable raises the level, and that `--config` beats that.
     #[test]
-    fn test_cargo_check_debuginfo() {
+    fn test_cargo_unit_graph_debuginfo() {
         let dir =
-            TempDir(std::env::temp_dir().join(format!("wb-debuginfo-{}", std::process::id())));
+            TempDir(std::env::temp_dir().join(format!("wb-unit-graph-{}", std::process::id())));
         let dir = &dir.0;
         std::fs::create_dir_all(dir.join("src")).unwrap();
         std::fs::write(dir.join("src/main.rs"), "fn main() {}\n").unwrap();
         let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
-        let check = |debug: &str, env: Option<&str>, args: &[&str]| {
+        let levels = |debug: &str, env: Option<&str>, args: &[&str]| {
             std::fs::write(
                 dir.join("Cargo.toml"),
                 format!(
@@ -1015,21 +954,23 @@ mod test {
                 ),
             )
             .unwrap();
-            let mut cmd = Command::new(&cargo);
-            cmd.args(["check", "--release", "--offline", "--quiet"])
-                .arg("--message-format=json")
+            let mut build = Command::new(&cargo);
+            build
+                .args(["build", "--release", "--offline"])
+                .args(["--target", "wasm32-unknown-emscripten"])
                 .args(args)
                 .current_dir(dir)
                 .env("CARGO_TARGET_DIR", dir.join("target"))
-                // Leave out the developer's Cargo config.
+                // An empty Cargo home: no registries or credentials.
                 .env("CARGO_HOME", dir.join("cargo-home"))
+                .env_remove("RUSTC_BOOTSTRAP")
                 .env_remove("CARGO_PROFILE_RELEASE_DEBUG");
             if let Some(env) = env {
-                cmd.env("CARGO_PROFILE_RELEASE_DEBUG", env);
+                build.env("CARGO_PROFILE_RELEASE_DEBUG", env);
             }
-            let output = cmd.output().unwrap();
+            let output = unit_graph_command(&build).output().unwrap();
             assert!(output.status.success(), "{debug}");
-            checked(&output.stdout, "app").bin
+            levels(&output.stdout, "app").unwrap().bin
         };
         for (debug, expected) in [
             ("0", ArtifactDebuginfo::None),
@@ -1041,13 +982,13 @@ mod test {
             ("1", ArtifactDebuginfo::Limited),
             ("2", ArtifactDebuginfo::Full),
         ] {
-            assert_eq!(check(debug, None, &[]), Some(expected), "{debug}");
+            assert_eq!(levels(debug, None, &[]), Some(expected), "{debug}");
         }
         let raised = Some(ArtifactDebuginfo::LineTablesOnly);
-        assert_eq!(check("0", Some("line-tables-only"), &[]), raised);
+        assert_eq!(levels("0", Some("line-tables-only"), &[]), raised);
         let config = ["--config", "profile.release.debug=0"];
         assert_eq!(
-            check("0", Some("line-tables-only"), &config),
+            levels("0", Some("line-tables-only"), &config),
             Some(ArtifactDebuginfo::None)
         );
     }
