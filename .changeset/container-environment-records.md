@@ -13,14 +13,7 @@ expects record properties and did not pass those entries to the process.
 The unused startup object conversion also incorrectly removed populated
 entrypoint, Internet, and environment fields.
 
-Add WASM record-shape tests and an authenticated `examples/container-env`
-runtime regression. Deploy that example with `worker-build` and Wrangler,
-set its `REGRESSION_TOKEN` secret, then run
-`REGRESSION_TOKEN=... node examples/container-env/verify.mjs <worker-url>`.
-The regression reads the actual initial process's `/proc/1/environ` and a
-separate exec process's `process.env`, checking independent startup/exec
-values, empty strings, Unicode, newlines, `__proto__`, and PATH inheritance.
-It destroys the container before returning the result.
+Add WASM record-shape tests for startup and exec options.
 
 Source: <https://developers.cloudflare.com/containers/api/durable-object-container/#start>
 and <https://developers.cloudflare.com/containers/api/durable-object-container/#exec>,
