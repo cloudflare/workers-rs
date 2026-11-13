@@ -14,6 +14,26 @@ impl Container {
         self.inner.running()
     }
 
+    /// Looks up a configured image under the `durable_object` scheduling policy.
+    pub fn named_image(&self, name: &str) -> Result<String> {
+        let images = self.inner.images()?;
+        Reflect::get(&images, &JsValue::from_str(name))?
+            .as_string()
+            .ok_or_else(|| {
+                crate::Error::RustError(format!("Container image {name:?} is not configured"))
+            })
+    }
+
+    /// Installs an outbound HTTP handler for a hostname, IP, CIDR, or glob target.
+    /// Include non-default ports and reinstall intercepts after the container stops.
+    pub async fn intercept_outbound_http(&self, target: &str, handler: &Fetcher) -> Result<()> {
+        let promise = self
+            .inner
+            .intercept_outbound_http(target, handler.as_ref().unchecked_ref())?;
+        JsFuture::from(promise).await?;
+        Ok(())
+    }
+
     pub fn start(&self, options: Option<ContainerStartupOptions>) -> Result<()> {
         let options = match options {
             Some(o) => Object::from(o).into(),
@@ -258,15 +278,14 @@ impl Default for ContainerStartupOptions {
     }
 }
 
-/// Options for [`Container::exec`]. Streaming `stdin` is not exposed by this
-/// wrapper; omitting it closes standard input and sends EOF immediately,
-/// matching the JS default.
+/// Options for [`Container::exec`]. Omitting stdin closes standard input with EOF.
 #[wasm_bindgen(getter_with_clone)]
 #[derive(Debug, Clone)]
 pub struct ContainerExecOptions {
     pub cwd: Option<String>,
     pub env: Map,
     pub user: Option<String>,
+    pub stdin: Option<JsValue>,
     /// `"pipe"` (default) or `"ignore"`.
     pub stdout: Option<String>,
     /// `"pipe"` (default), `"ignore"`, or `"combined"`.
@@ -279,6 +298,7 @@ impl ContainerExecOptions {
             cwd: None,
             env: Map::new(),
             user: None,
+            stdin: None,
             stdout: None,
             stderr: None,
         }
@@ -291,6 +311,16 @@ impl ContainerExecOptions {
     pub fn add_env(&mut self, key: &str, value: &str) {
         self.env
             .set(&JsValue::from_str(key), &JsValue::from_str(value));
+    }
+
+    /// Passes a byte stream directly to the process without buffering it.
+    pub fn set_stdin(&mut self, stream: web_sys::ReadableStream) {
+        self.stdin = Some(stream.into());
+    }
+
+    /// Exposes writable stdin through [`ExecProcess::stdin`].
+    pub fn set_stdin_pipe(&mut self) {
+        self.stdin = Some(JsValue::from_str("pipe"));
     }
 
     /// Sets the Linux user and group id the process runs as.
@@ -322,6 +352,9 @@ impl From<ContainerExecOptions> for Object {
         if let Some(user) = options.user {
             Reflect::set(&obj, &"user".into(), &user.into()).unwrap();
         }
+        if let Some(stdin) = options.stdin {
+            Reflect::set(&obj, &"stdin".into(), &stdin).unwrap();
+        }
         if let Some(stdout) = options.stdout {
             Reflect::set(&obj, &"stdout".into(), &stdout.into()).unwrap();
         }
@@ -347,6 +380,23 @@ pub struct ExecProcess {
 impl ExecProcess {
     pub fn pid(&self) -> u32 {
         self.inner.pid()
+    }
+
+    /// Writable stdin when the process was started with `set_stdin_pipe`.
+    pub fn stdin(&self) -> Option<web_sys::WritableStream> {
+        self.inner.stdin()
+    }
+
+    /// Captured standard output, unless configured as `"ignore"`.
+    /// Do not call [`Self::output`] after consuming this stream.
+    pub fn stdout(&self) -> Option<web_sys::ReadableStream> {
+        self.inner.stdout()
+    }
+
+    /// Captured standard error, unless ignored or combined with stdout.
+    /// Do not call [`Self::output`] after consuming this stream.
+    pub fn stderr(&self) -> Option<web_sys::ReadableStream> {
+        self.inner.stderr()
     }
 
     /// Resolves when the process exits. Nonzero exit codes resolve

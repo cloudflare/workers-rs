@@ -6,12 +6,14 @@ use crate::Fetcher;
 /// ```ts
 /// interface Container {
 ///   get running(): boolean;
+///   get images(): Record<string, string>;
 ///   start(options?: ContainerStartupOptions): void;
 ///   monitor(): Promise<void>;
 ///   destroy(error?: any): Promise<void>;
 ///   signal(signo: number): void;
 ///   getTcpPort(port: number): Fetcher;
 ///   exec(cmd: string[], options?: ContainerExecOptions): Promise<ExecProcess>;
+///   interceptOutboundHttp(addr: string, binding: Fetcher): Promise<void>;
 /// }
 ///
 /// interface ContainerStartupOptions {
@@ -26,6 +28,7 @@ use crate::Fetcher;
 /// }
 ///
 /// interface ExecProcess {
+///   readonly stdin: WritableStream | undefined;
 ///   readonly pid: number;
 ///   readonly exitCode: Promise<number>;
 ///   output(): Promise<ExecOutput>;
@@ -46,6 +49,16 @@ extern "C" {
 
     #[wasm_bindgen(method, getter)]
     pub fn running(this: &Container) -> bool;
+
+    #[wasm_bindgen(method, catch, getter)]
+    pub fn images(this: &Container) -> Result<Object, JsValue>;
+
+    #[wasm_bindgen(method, catch, js_name=interceptOutboundHttp)]
+    pub fn intercept_outbound_http(
+        this: &Container,
+        addr: &str,
+        binding: &Fetcher,
+    ) -> Result<Promise, JsValue>;
 
     #[wasm_bindgen(method, catch)]
     pub fn start(this: &Container, options: &JsValue) -> Result<(), JsValue>;
@@ -72,6 +85,15 @@ extern "C" {
     #[wasm_bindgen(extends=Object)]
     #[derive(Debug, Clone, PartialEq, Eq)]
     pub type ExecProcess;
+
+    #[wasm_bindgen(method, getter)]
+    pub fn stdin(this: &ExecProcess) -> Option<web_sys::WritableStream>;
+
+    #[wasm_bindgen(method, getter)]
+    pub fn stdout(this: &ExecProcess) -> Option<web_sys::ReadableStream>;
+
+    #[wasm_bindgen(method, getter)]
+    pub fn stderr(this: &ExecProcess) -> Option<web_sys::ReadableStream>;
 
     #[wasm_bindgen(method, getter, js_name=pid)]
     pub fn pid(this: &ExecProcess) -> u32;
