@@ -7,6 +7,7 @@ use crate::versions::{
     CUR_WORKER_VERSION, LATEST_WASM_BINDGEN_VERSION, MIN_EMSCRIPTEN_DEBUG_WASM_BINDGEN_VERSION,
     MIN_WASM_BINDGEN_LIB_VERSION, MIN_WORKER_LIB_VERSION,
 };
+use cargo_metadata::ArtifactDebuginfo;
 
 mod manifest;
 mod progressbar;
@@ -55,6 +56,16 @@ pub struct Build {
     pub emscripten_toolchain: Option<emscripten::Toolchain>,
     /// The build writes a source map.
     pub source_map: bool,
+    /// The bin's debug level as Cargo resolved it, read for builds with a
+    /// source map.
+    pub debuginfo: Option<ArtifactDebuginfo>,
+}
+
+/// Whether a module built with a source map drops its name section: only
+/// without debug info, and not for `--profiling`, whose local profiles need
+/// the names.
+fn strip_names(profile: &BuildProfile, debuginfo: Option<&ArtifactDebuginfo>) -> bool {
+    debuginfo == Some(&ArtifactDebuginfo::None) && !matches!(profile, BuildProfile::Profiling)
 }
 
 /// What sort of output we're going to be generating and flags we're invoking
@@ -247,6 +258,7 @@ impl Build {
             bin: build_opts.bin,
             emscripten_toolchain: None,
             source_map: false,
+            debuginfo: None,
         })
     }
 
@@ -422,7 +434,7 @@ impl Build {
                     bindgen_dir: self.bindgen.as_ref().unwrap().parent().unwrap(),
                     source_map: self.source_map,
                 });
-        target::cargo_build_wasm(
+        self.debuginfo = target::cargo_build_wasm(
             &self.crate_path,
             self.profile.clone(),
             &self.extra_options,
@@ -504,6 +516,8 @@ impl Build {
 
     /// Copy the source map emcc wrote beside the link output to
     /// `<wasm_out>.map`, and point `wasm_out`'s `sourceMappingURL` at it.
+    /// The map gets the module's function names, which stay in `wasm_out`
+    /// unless `strip_names`.
     fn collect_source_map(&self, out: &Path, wasm_name: &str, wasm_out: &str) -> Result<()> {
         let wasm = std::fs::read(out.join(wasm_name))?;
         let map_path = source_map::find_link_map(link_output_dirs(out), wasm_name, &wasm)
@@ -528,15 +542,27 @@ impl Build {
         .with_context(|| format!("Invalid source map {}", map_path.display()))?;
         if !map.has_crate_sources {
             PBAR.warn(&format!(
-                "The source map has no locations in {}. Set `debug = \"line-tables-only\"` in the \
-                 Cargo profile so stack traces map to your code.",
+                "The source map has no locations in {}, which was compiled without DWARF line \
+                 tables, which a per-package profile, a `--config` or `-Cdebuginfo` in \
+                 `RUSTFLAGS` can force.",
                 self.crate_path.display()
             ));
         }
         let map_out = format!("{wasm_out}.map");
-        std::fs::write(self.out_dir.join(&map_out), map.json)?;
         let wasm_out = self.out_dir.join(wasm_out);
         let updated = source_map::set_source_mapping_url(&std::fs::read(&wasm_out)?, &map_out)?;
+        let strip = strip_names(&self.profile, self.debuginfo.as_ref());
+        let (json, updated) = match source_map::move_function_names(&map.json, &updated, strip) {
+            Ok(moved) => moved,
+            Err(e) => {
+                PBAR.warn(&format!(
+                    "The module keeps its name section, as its function names could not be \
+                     added to the source map: {e:#}"
+                ));
+                (map.json, updated)
+            }
+        };
+        std::fs::write(self.out_dir.join(&map_out), json)?;
         std::fs::write(&wasm_out, updated)
             .with_context(|| format!("Failed to write {}", wasm_out.display()))?;
         Ok(())
@@ -840,7 +866,26 @@ pub fn wasm_opt_run(out_dir: &Path, args: &[String]) -> Result<()> {
 
 #[cfg(test)]
 mod test {
-    use super::{manifest::CargoWasmPackProfile, wasm_opt_args};
+    use super::{
+        manifest::CargoWasmPackProfile, strip_names, wasm_opt_args, ArtifactDebuginfo, BuildProfile,
+    };
+
+    #[test]
+    fn test_strip_names() {
+        let none = Some(&ArtifactDebuginfo::None);
+        assert!(strip_names(&BuildProfile::Release, none));
+        assert!(strip_names(&BuildProfile::Custom("small".into()), none));
+        assert!(!strip_names(&BuildProfile::Profiling, none));
+        assert!(!strip_names(&BuildProfile::Release, None));
+        for kept in [
+            ArtifactDebuginfo::LineDirectivesOnly,
+            ArtifactDebuginfo::LineTablesOnly,
+            ArtifactDebuginfo::Limited,
+            ArtifactDebuginfo::Full,
+        ] {
+            assert!(!strip_names(&BuildProfile::Release, Some(&kept)), "{kept}");
+        }
+    }
 
     /// The args wasm-opt runs with for a profile's `wasm-opt` setting.
     fn args(profile: &str) -> Option<Vec<String>> {
