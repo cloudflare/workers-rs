@@ -245,3 +245,35 @@ async fn output_getters_preserve_readable_capabilities_and_optional_modes() {
     assert!(combined.stdout().is_some());
     assert!(combined.stderr().is_none());
 }
+
+#[wasm_bindgen(module = "/tests/fixtures/container-capabilities.js")]
+extern "C" {
+    #[wasm_bindgen(js_name = inactivityTimeout)]
+    fn inactivity_timeout(fixture: &JsValue) -> u32;
+    #[wasm_bindgen(js_name = finishTimeout)]
+    fn finish_timeout(fixture: &JsValue);
+}
+
+#[wasm_bindgen_test]
+async fn inactivity_timeout_reapplies_to_running_containers_and_awaits_errors() {
+    let fixture = fixture();
+    let container = Container::from(raw_container(&fixture));
+    assert!(container.running());
+    let mut setting = Box::pin(container.set_inactivity_timeout(600_000));
+    assert!(setting.as_mut().now_or_never().is_none());
+    assert_eq!(inactivity_timeout(&fixture), 600_000);
+    finish_timeout(&fixture);
+    setting.await.unwrap();
+    assert!(container
+        .set_inactivity_timeout(0)
+        .await
+        .unwrap_err()
+        .to_string()
+        .contains("synthetic timeout must be positive"));
+    assert!(container
+        .set_inactivity_timeout(21_600_001)
+        .await
+        .unwrap_err()
+        .to_string()
+        .contains("synthetic timeout exceeds six hours"));
+}

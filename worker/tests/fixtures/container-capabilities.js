@@ -26,6 +26,14 @@ export function capabilityFixture() {
   fixture.context = { exports };
   fixture.state = { exports };
   fixture.container = {
+    running: true,
+    setInactivityTimeout(duration) {
+      if (this !== fixture.container) throw new Error("timeout receiver lost");
+      if (duration === 0) throw new TypeError("synthetic timeout must be positive");
+      if (duration > 21600000) return Promise.reject(new Error("synthetic timeout exceeds six hours"));
+      fixture.timeout = duration;
+      return new Promise(resolve => { fixture.finishTimeout = resolve; });
+    },
     images: Object.freeze({ base: "registry.example.invalid/synthetic@sha256:0123456789" }),
     interceptOutboundHttp(target, handler) {
       if (this !== fixture.container) throw new Error("container receiver lost");
@@ -108,3 +116,5 @@ export function outputIdentityPreserved(fixture, stdout, stderr) {
   return fixture.stdout === stdout && fixture.stderr === stderr;
 }
 export async function streamBytes(stream) { return new Uint8Array(await new Response(stream).arrayBuffer()); }
+export function inactivityTimeout(fixture) { return fixture.timeout; }
+export function finishTimeout(fixture) { fixture.finishTimeout(); }

@@ -34,6 +34,13 @@ impl Container {
         Ok(())
     }
 
+    /// Sets the inactivity timeout in milliseconds (greater than zero, at most six hours).
+    /// Set after startup and reapply in the constructor when the container is already running.
+    pub async fn set_inactivity_timeout(&self, duration_ms: u32) -> Result<()> {
+        JsFuture::from(self.inner.set_inactivity_timeout(duration_ms)?).await?;
+        Ok(())
+    }
+
     pub fn start(&self, options: Option<ContainerStartupOptions>) -> Result<()> {
         let options = match options {
             Some(o) => Object::from(o).into(),

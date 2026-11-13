@@ -21,3 +21,11 @@ Sources checked 2026-11-13:
 `ExecProcess::stdout()` and `stderr()` expose the original optional readable
 capabilities as well, allowing callers to enforce their own consumption limits
 without `output()` buffering. Do not call `output()` after consuming a stream.
+
+`Container::set_inactivity_timeout(u32)` awaits the native timeout setter and
+propagates both synchronous and asynchronous errors. Valid millisecond values
+are greater than zero and at most 21,600,000 (six hours). Set it after startup
+and reapply it when a Durable Object constructor finds the container running;
+use the existing concurrency gate to await rehydration before serving events.
+Source: <https://developers.cloudflare.com/containers/api/durable-object-container/#setinactivitytimeout>,
+checked 2026-11-13.

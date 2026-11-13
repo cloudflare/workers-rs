@@ -60,6 +60,9 @@ extern "C" {
         binding: &Fetcher,
     ) -> Result<Promise, JsValue>;
 
+    #[wasm_bindgen(method, catch, js_name=setInactivityTimeout)]
+    pub fn set_inactivity_timeout(this: &Container, duration_ms: u32) -> Result<Promise, JsValue>;
+
     #[wasm_bindgen(method, catch)]
     pub fn start(this: &Container, options: &JsValue) -> Result<(), JsValue>;
 
