@@ -18,7 +18,16 @@ opt-level = "s"
 # REQUIRED Patchset - Tokio patchset, pending upstream PRs
 [patch.crates-io]
 # Pending https://github.com/tokio-rs/tokio/pull/8484
-tokio = { git = "https://github.com/guybedford/tokio", tag = "1.53.1-cf.emscripten" }
+tokio = { git = "https://github.com/guybedford/tokio", tag = "1.54.1-cf.emscripten" }
 
 # Pending release of https://github.com/tokio-rs/mio/pull/1969
 mio = { git = "https://github.com/tokio-rs/mio" }
+
+# Pending the wasm-bindgen release after 0.2.130
+wasm-bindgen = { path = "../../wasm-bindgen" }
+wasm-bindgen-futures = { path = "../../wasm-bindgen/crates/futures" }
+wasm-bindgen-macro = { path = "../../wasm-bindgen/crates/macro" }
+wasm-bindgen-macro-support = { path = "../../wasm-bindgen/crates/macro-support" }
+wasm-bindgen-shared = { path = "../../wasm-bindgen/crates/shared" }
+js-sys = { path = "../../wasm-bindgen/crates/js-sys" }
+web-sys = { path = "../../wasm-bindgen/crates/web-sys" }

@@ -12,26 +12,17 @@ jobs:
     name: Github Release
     if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'releases/') && github.event.pull_request.head.repo.full_name == 'cloudflare/workers-rs'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          submodules: true
-      - name: Extract version
-        id: extract_version
-        run: |
-          BRANCH="${{ github.event.pull_request.head.ref }}"
-          VERSION=${BRANCH:10}
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
+      - name: Create draft release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
-        with:
-          tag_name: v${{ steps.extract_version.outputs.version }}
-          release_name: Release v${{ steps.extract_version.outputs.version }}
-          draft: true
-          prerelease: false
-          generate_release_notes: true
-          commitish: ${{ github.event.pull_request.head.sha }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+          NOTES: ${{ github.event.pull_request.body }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          VERSION=${BRANCH#releases/}
+          printf '%s\n' "$NOTES" > "$RUNNER_TEMP/notes.md"
+          gh release create "$VERSION" --repo "$GITHUB_REPOSITORY" --draft --target "$SHA" \
+            --title "Release $VERSION" --notes-file "$RUNNER_TEMP/notes.md" --generate-notes

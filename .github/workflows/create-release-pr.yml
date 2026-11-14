@@ -3,10 +3,12 @@ on:
   workflow_dispatch:
     inputs:
       level:
-        description: Version bump level
+        description: Version bump level (auto picks minor when any changeset is minor)
         required: true
         type: choice
+        default: auto
         options:
+          - auto
           - patch
           - minor
 jobs:
@@ -20,19 +22,36 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: true
+          # The release notes look up the PR that added each changeset.
+          fetch-depth: 0
       - uses: chainguard-dev/actions/setup-gitsign@main
       - uses: cargo-bins/cargo-binstall@main
       - name: Install cargo-release
         run: cargo binstall cargo-release -y
+      - name: Collect changesets
+        id: changesets
+        run: |
+          node .github/changeset-notes.mjs > "$RUNNER_TEMP/release-notes.md"
+          LEVEL=${{ inputs.level }}
+          if [ "$LEVEL" = auto ]; then LEVEL=$(node .github/changeset-notes.mjs --level); fi
+          echo "level=$LEVEL" >> "$GITHUB_OUTPUT"
       - name: Update versions
         id: update_versions
         run: |
           OLD_VERSION=$(cargo metadata --no-deps --format-version 1 | jq -rc '.packages[] | select(.name=="worker") | .version')
-          cargo release version ${{ inputs.level }} --execute --no-confirm
+          cargo release version ${{ steps.changesets.outputs.level }} --execute --no-confirm
           cargo update
           NEW_VERSION=$(cargo metadata --no-deps --format-version 1 | jq -rc '.packages[] | select(.name=="worker") | .version')
           find templates | grep Cargo.toml | while read f; do sed -i -e "s/$OLD_VERSION/$NEW_VERSION/g" $f; done
+          # Templates depend on major.minor ranges, which only move on a minor bump.
+          OLD_MINOR=${OLD_VERSION%.*}
+          NEW_MINOR=${NEW_VERSION%.*}
+          if [ "$OLD_MINOR" != "$NEW_MINOR" ]; then
+            sed -i -E "s/^(worker(-macros)? = \{ version = )\"${OLD_MINOR//./\\.}\"/\1\"$NEW_MINOR\"/" templates/*/Cargo.toml.liquid
+            sed -i "s/worker-build@\^${OLD_MINOR//./\\.}/worker-build@^$NEW_MINOR/" templates/*/wrangler.toml
+          fi
           echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          find .changeset -name '*.md' ! -name README.md -exec git rm -q {} +
       - name: Remove local patch references
         run: |
           sed -i 's|, path = "./wasm-bindgen[^"]*"||g' Cargo.toml
@@ -61,5 +80,6 @@ jobs:
           branch: releases/v${{ steps.update_versions.outputs.version }}
           base: main
           title: Release v${{ steps.update_versions.outputs.version }}
+          body-path: ${{ runner.temp }}/release-notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

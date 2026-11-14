@@ -575,13 +575,25 @@ root of your project.
 ### Step 3: Configure your Miniflare instance in your JavaScript / TypeScript tests
 
 To instantiate the `Miniflare` testing instance, configure an explicit module
-manifest containing the generated JavaScript and WebAssembly modules:
+manifest. The build output is a module graph rather than a single file, so the
+manifest needs every generated JavaScript and WebAssembly module under
+`./build/`:
 
 ```js
 // test.mjs
 import assert from "node:assert";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { Miniflare } from "miniflare";
+
+const modules = {};
+for (const file of readdirSync("./build", { recursive: true })) {
+  const name = `build/${file.replaceAll("\\", "/")}`;
+  if (/\.m?js$/.test(name)) {
+    modules[name] = { type: "esm", contents: readFileSync(name, "utf8") };
+  } else if (name.endsWith(".wasm")) {
+    modules[name] = { type: "wasm", contents: new Uint8Array(readFileSync(name)) };
+  }
+}
 
 const mf = new Miniflare({
   workers: [{
@@ -589,19 +601,7 @@ const mf = new Miniflare({
       name: "test",
       type: "worker",
       compatibilityDate: "2026-08-21",
-      manifest: {
-        mainModule: "build/index.js",
-        modules: {
-          "build/index.js": {
-            type: "esm",
-            contents: readFileSync("./build/index.js", "utf8"),
-          },
-          "build/index_bg.wasm": {
-            type: "wasm",
-            contents: new Uint8Array(readFileSync("./build/index_bg.wasm")),
-          },
-        },
-      },
+      manifest: { mainModule: "build/index.js", modules },
     },
   }],
 });

@@ -12,7 +12,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::{TcpListener, TcpStream};
 use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::tokio::schedule_isolated;
+use wasm_bindgen_futures::tokio::EventLoop;
 use worker::{console_error, worker_sys, Env, Socket};
 
 fn main() {}
@@ -59,7 +59,7 @@ async fn accept_loop(listener: TcpListener) {
                 };
                 // Create a new isolated event loop for the connection handler
                 // This avoids cross-context IO between different incoming requests
-                schedule_isolated(
+                EventLoop::new().schedule(
                     async move {
                         let stream = TcpStream::from_std(std)?;
                         echo(stream).await
