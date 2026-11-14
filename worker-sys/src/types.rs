@@ -23,6 +23,8 @@ mod tracing;
 mod version;
 mod websocket_pair;
 mod websocket_request_response_pair;
+#[cfg(feature = "workflow")]
+mod workflow;
 
 pub use ai::*;
 pub use analytics_engine::*;
@@ -49,3 +51,5 @@ pub use tracing::*;
 pub use version::*;
 pub use websocket_pair::*;
 pub use websocket_request_response_pair::*;
+#[cfg(feature = "workflow")]
+pub use workflow::*;

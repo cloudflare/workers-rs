@@ -292,6 +292,9 @@ fn export_decls(content: &str) -> impl Iterator<Item = &str> {
     })
 }
 
+/// Prefix under which `#[workflow]` exports its wasm-bindgen class.
+const WORKFLOW_CLASS_PREFIX: &str = "__wf_";
+
 /// How the shim re-exports the classes of the generated module.
 #[derive(Clone, Copy)]
 enum ExportWrappers {
@@ -302,27 +305,51 @@ enum ExportWrappers {
     DurableObject,
 }
 
-fn add_export_wrappers(out_dir: &Path, wrappers: ExportWrappers) -> Result<()> {
-    let index_path = output_path(out_dir, "index.js");
-    let content = fs::read_to_string(&index_path)
-        .with_context(|| format!("Failed to read {}", index_path.display()))?;
-
+/// The classes a wasm-bindgen JS module exports.
+fn class_names(content: &str) -> Vec<&str> {
     let mut class_names = Vec::new();
-    for line in export_decls(&content) {
+    for line in export_decls(content) {
         // Emscripten output declares classes as `export var Name = class Name {`.
         if let Some(rest) = line.strip_prefix("export class ") {
             if let Some(brace_pos) = rest.find("{") {
-                let class_name = rest[..brace_pos].trim();
-                class_names.push(class_name.to_string());
+                class_names.push(rest[..brace_pos].trim());
             }
         } else if let Some(rest) = line.strip_prefix("export var ") {
             if let Some((class_name, def)) = rest.split_once("=") {
                 if def.trim_start().starts_with("class") {
-                    class_names.push(class_name.trim().to_string());
+                    class_names.push(class_name.trim());
                 }
             }
         }
     }
+    class_names
+}
+
+/// JS that exports the `#[workflow]` struct `name` as a subclass of the
+/// runtime's `WorkflowEntrypoint`, delegating to `implementation`, an
+/// expression for the struct's wasm-bindgen class. The runtime only runs
+/// workflows that extend `WorkflowEntrypoint`.
+fn workflow_wrapper(name: &str, implementation: &str) -> String {
+    format!(
+        "const {name}$Impl = {implementation};
+export class {name} extends WorkflowEntrypoint {{
+  constructor(ctx, env) {{
+    super(ctx, env);
+    this.inner = new {name}$Impl(ctx, env);
+  }}
+  run(event, step) {{
+    return this.inner.run(event, step);
+  }}
+}}
+"
+    )
+}
+
+fn add_export_wrappers(out_dir: &Path, wrappers: ExportWrappers) -> Result<()> {
+    let index_path = output_path(out_dir, "index.js");
+    let content = fs::read_to_string(&index_path)
+        .with_context(|| format!("Failed to read {}", index_path.display()))?;
+    let class_names = class_names(&content);
 
     let shim_path = output_path(out_dir, "shim.js");
     let mut output = fs::read_to_string(&shim_path)
@@ -330,7 +357,25 @@ fn add_export_wrappers(out_dir: &Path, wrappers: ExportWrappers) -> Result<()> {
     if matches!(wrappers, ExportWrappers::DurableObject) {
         output.push_str("import { DurableObject } from \"cloudflare:workers\";\n");
     }
+    if class_names
+        .iter()
+        .any(|class_name| class_name.starts_with(WORKFLOW_CLASS_PREFIX))
+    {
+        output.push_str("import { WorkflowEntrypoint } from \"cloudflare:workers\";\n");
+    }
     for class_name in class_names {
+        if let Some(workflow_name) = class_name.strip_prefix(WORKFLOW_CLASS_PREFIX) {
+            let class = match wrappers {
+                ExportWrappers::Recovery => {
+                    format!("new Proxy(exports.{class_name}, classProxyHooks)")
+                }
+                ExportWrappers::Plain | ExportWrappers::DurableObject => {
+                    format!("exports.{class_name}")
+                }
+            };
+            output.push_str(&workflow_wrapper(workflow_name, &class));
+            continue;
+        }
         output.push_str(&match wrappers {
             ExportWrappers::Recovery => format!(
                 "export const {class_name} = new Proxy(exports.{class_name}, classProxyHooks);\n"
@@ -515,5 +560,26 @@ mod test {
         let args = vec!["--out-dir".to_owned(), "dist/worker".to_owned()];
         let result = parse_wasm_pack_opts(args).unwrap();
         assert_eq!(result.out_dir, "dist/worker");
+    }
+}
+
+#[cfg(test)]
+mod workflow_tests {
+    use super::{class_names, workflow_wrapper};
+
+    #[test]
+    fn finds_module_and_emscripten_classes() {
+        assert_eq!(
+            class_names("export class A {}\nexport var B = class B {};"),
+            ["A", "B"]
+        );
+    }
+
+    #[test]
+    fn workflow_wrapper_extends_workflow_entrypoint() {
+        let wrapper = workflow_wrapper("MyWorkflow", "exports.__wf_MyWorkflow");
+        assert!(wrapper.contains("const MyWorkflow$Impl = exports.__wf_MyWorkflow;"));
+        assert!(wrapper.contains("export class MyWorkflow extends WorkflowEntrypoint {"));
+        assert!(wrapper.contains("this.inner = new MyWorkflow$Impl(ctx, env);"));
     }
 }
