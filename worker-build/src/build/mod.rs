@@ -541,10 +541,13 @@ impl Build {
         )
         .with_context(|| format!("Invalid source map {}", map_path.display()))?;
         if !map.has_crate_sources {
+            // worker-build raises the debug level itself, so this means it
+            // couldn't read the profile, or something overrode the level.
             PBAR.warn(&format!(
                 "The source map has no locations in {}, which was compiled without DWARF line \
-                 tables, which a per-package profile, a `--config` or `-Cdebuginfo` in \
-                 `RUSTFLAGS` can force.",
+                 tables. Set `debug = \"line-tables-only\"` in the Cargo profile so stack traces \
+                 map to your code, and check that no per-package profile, `--config` or \
+                 `-Cdebuginfo` in `RUSTFLAGS` turns them off.",
                 self.crate_path.display()
             ));
         }
