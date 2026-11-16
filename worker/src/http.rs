@@ -26,6 +26,8 @@ pub enum Method {
     Connect,
     Trace,
     Report,
+    /// A safe, idempotent request with content, defined by RFC 10008.
+    Query,
 }
 
 impl Method {
@@ -41,6 +43,7 @@ impl Method {
             Method::Connect,
             Method::Trace,
             Method::Report,
+            Method::Query,
         ]
     }
 }
@@ -57,6 +60,7 @@ impl From<String> for Method {
             "CONNECT" => Method::Connect,
             "TRACE" => Method::Trace,
             "REPORT" => Method::Report,
+            "QUERY" => Method::Query,
             _ => Method::Get,
         }
     }
@@ -81,6 +85,7 @@ impl AsRef<str> for Method {
             Method::Trace => "TRACE",
             Method::Get => "GET",
             Method::Report => "REPORT",
+            Method::Query => "QUERY",
         }
     }
 }
@@ -89,5 +94,23 @@ impl Display for Method {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
         let s: String = (*self).clone().into();
         write!(f, "{s}")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Method;
+
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test::wasm_bindgen_test)]
+    #[cfg_attr(not(target_arch = "wasm32"), test)]
+    fn query_method_round_trips() {
+        for token in ["QUERY", "query", "QuErY"] {
+            let method = Method::from(token.to_owned());
+            assert_eq!(method, Method::Query);
+            assert_eq!(method.as_ref(), "QUERY");
+            assert_eq!(String::from(method.clone()), "QUERY");
+            assert_eq!(method.to_string(), "QUERY");
+            assert!(Method::all().contains(&method));
+        }
     }
 }

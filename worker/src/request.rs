@@ -376,6 +376,45 @@ impl FromRequest for crate::HttpRequest {
 mod test {
     use super::*;
 
+    #[cfg(target_arch = "wasm32")]
+    #[wasm_bindgen_test::wasm_bindgen_test]
+    async fn incoming_query_preserves_method_and_body() {
+        let body = r#"{"search":"workers"}"#;
+        let headers = web_sys::Headers::new().unwrap();
+        headers.set("Content-Type", "application/json").unwrap();
+        let init = web_sys::RequestInit::new();
+        init.set_method("QUERY");
+        init.set_headers(&headers);
+        init.set_body(&wasm_bindgen::JsValue::from_str(body));
+        let raw = web_sys::Request::new_with_str_and_init("https://example.com/", &init).unwrap();
+        let mut request = Request::from(raw);
+
+        assert_eq!(request.method(), Method::Query);
+        assert_eq!(request.inner().method(), "QUERY");
+        assert_eq!(request.text().await.unwrap(), body);
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    #[wasm_bindgen_test::wasm_bindgen_test]
+    async fn outgoing_query_preserves_method_and_body() {
+        let method = Method::Query;
+        let request = Request::new("https://example.com/", method.clone()).unwrap();
+        assert_eq!(request.inner().method(), "QUERY");
+
+        let body = r#"{"search":"workers"}"#;
+        let mut init = RequestInit::new();
+        init.with_method(method)
+            .with_body(Some(wasm_bindgen::JsValue::from_str(body)));
+        init.headers
+            .set("Content-Type", "application/json")
+            .unwrap();
+        let mut request = Request::new_with_init("https://example.com/", &init).unwrap();
+
+        assert_eq!(request.method(), Method::Query);
+        assert_eq!(request.inner().method(), "QUERY");
+        assert_eq!(request.text().await.unwrap(), body);
+    }
+
     #[test]
     fn path_from_url_matches_url_parse() {
         for (url, path) in [
