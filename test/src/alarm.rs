@@ -74,6 +74,7 @@ impl AlarmObject {
             String::from(set_wire)
         ))
     }
+
     async fn alarm_time(&self, req: Request) -> Result<Response> {
         let kind = req
             .url()?

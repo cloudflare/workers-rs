@@ -156,6 +156,7 @@ describe("durable", () => {
       'true:None:{"allowConcurrency":true}:{"allowConcurrency":true,"allowUnconfirmed":true}',
     );
   });
+
   test.each(["date", "timestamp", "zoned"])(
     "schedules an absolute %s alarm in storage",
     async (kind) => {
@@ -169,6 +170,7 @@ describe("durable", () => {
       expect(body.scheduled).toBe(expectedMillis);
     },
   );
+
   test.each(["integer", "duration"])(
     "schedules a relative %s alarm in milliseconds",
     async (kind) => {
