@@ -4,5 +4,18 @@ compatibility_date = "2026-09-02"
 # new_module_registry gives the Emscripten glue `import.meta.url`.
 compatibility_flags = ["new_module_registry"]
 
+[[workflows]]
+name = "tokio-workflow"
+binding = "TOKIO_WORKFLOW"
+class_name = "TokioWorkflow"
+
+# Records the Workflow's rollbacks.
+[[kv_namespaces]]
+binding = "ROLLBACKS"
+id = "ROLLBACKS"
+preview_id = "ROLLBACKS"
+
 [build]
-command = "cargo install -q worker-build && worker-build --emscripten --release"
+# For development: use local worker-build binary
+# For production: command = "cargo install -q worker-build && worker-build --emscripten --release"
+command = "../../target/release/worker-build --emscripten --release"

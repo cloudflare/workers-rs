@@ -52,6 +52,7 @@ queue = ["worker-macros/queue", "worker-sys/queue"]
 # wasm-bindgen and Tokio gate it behind.
 experimental_tokio = ["worker-macros/experimental_tokio"]
 d1 = ["worker-sys/d1"]
+workflow = ["worker-macros/workflow", "worker-sys/workflow"]
 http = ["worker-macros/http"]
 axum = ["dep:axum"]
 timezone = ["dep:chrono-tz"]

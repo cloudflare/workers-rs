@@ -10,6 +10,8 @@ use tokio::sync::{mpsc, Mutex};
 use tokio::time::{sleep, timeout};
 use worker::*;
 
+mod workflow;
+
 fn main() {}
 
 #[derive(Serialize)]
@@ -43,7 +45,10 @@ async fn fetch(req: Request, env: Env, _ctx: Context) -> Result<Response> {
                  GET /channels   mpsc between spawned producers and the handler\n\
                  GET /mutex      tokio::sync::Mutex shared across tasks\n\
                  GET /join       tokio::join! over concurrent futures\n\
-                 GET /stack      a spawned task using 256 KiB of stack\n",
+                 GET /stack      a spawned task using 256 KiB of stack\n\
+                 POST /workflow[?fail]       start a Workflow whose steps use Tokio\n\
+                 GET /workflow/:id           its status and output\n\
+                 GET /workflow/:id/rollback  what its rollback handler recorded\n",
             )
         })
         .get_async("/spawn", spawn)
@@ -53,6 +58,9 @@ async fn fetch(req: Request, env: Env, _ctx: Context) -> Result<Response> {
         .get_async("/mutex", mutex)
         .get_async("/join", join)
         .get_async("/stack", stack)
+        .post_async("/workflow", workflow::create)
+        .get_async("/workflow/:id", workflow::status)
+        .get_async("/workflow/:id/rollback", workflow::rollback)
         .run(req, env)
         .await
 }

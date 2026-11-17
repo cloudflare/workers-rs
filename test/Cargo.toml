@@ -49,6 +49,7 @@ worker.workspace = true
 rand = "0.10.2"
 uuid = { version = "1.17", features = ["v4", "serde", "js"] }
 serde-wasm-bindgen.workspace = true
+serde_bytes = "0.11"
 wasm-bindgen.workspace = true
 md5 = "0.8.1"
 tokio-stream = "0.1"
