@@ -218,8 +218,22 @@ test("redirect 307", async () => {
 });
 
 test("now", async () => {
+  const started = Date.now();
   const resp = await mf.dispatchFetch(`${mfUrl}now`);
+  const current = Date.parse(await resp.text());
   expect(resp.status).toBe(200);
+  expect(current).toBeGreaterThanOrEqual(Math.floor(started / 1000) * 1000);
+  expect(current).toBeLessThanOrEqual(Date.now());
+});
+
+test("Jiff date conversions preserve signed milliseconds and truncate sub-ms precision", async () => {
+  const resp = await mf.dispatchFetch(`${mfUrl}dates`);
+  expect(resp.status).toBe(200);
+  expect(await resp.json()).toEqual({
+    timestamps: [-1_234_567_890, -1, 0, 0, 0, 1, 1_704_067_200_123],
+    zoned: [1_730_611_800_123, 1_730_615_400_123, -1],
+    pre_epoch_millis: -1_234_567_890,
+  });
 });
 
 test("wait", async () => {
@@ -277,6 +291,29 @@ test("cf timezone_name", async () => {
   });
   expect(resp.status).toBe(200);
   expect(await resp.text()).toBe("none");
+});
+test("cf timezone lookup handles valid, missing, and invalid zones", async () => {
+  let resp = await mf.dispatchFetch(`${mfUrl}cf/timezone`, {
+    cf: { timezone: "Europe/Lisbon" },
+  });
+  expect(resp.status).toBe(200);
+  expect(await resp.json()).toEqual({
+    name: "Europe/Lisbon",
+    winter: "2024-01-01T12:00:00+00:00[Europe/Lisbon]",
+    summer: "2024-07-01T13:00:00+01:00[Europe/Lisbon]",
+  });
+
+  resp = await mf.dispatchFetch(`${mfUrl}cf/timezone`, {
+    cf: { timezone: undefined },
+  });
+  expect(resp.status).toBe(400);
+  expect(await resp.text()).toBe("TimezoneError");
+
+  resp = await mf.dispatchFetch(`${mfUrl}cf/timezone`, {
+    cf: { timezone: "Not/A_Real_Timezone" },
+  });
+  expect(resp.status).toBe(400);
+  expect(await resp.text()).toBe("TimezoneError");
 });
 
 // Miniflare doesn't pass a client disconnect through to the worker, so this checks that

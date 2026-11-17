@@ -34,10 +34,7 @@ http = [
 futures-channel.workspace = true
 futures-util.workspace = true
 blake2 = "0.11"
-chrono = { version = "0.4", default-features = false, features = [
-    "wasmbind",
-    "clock",
-] }
+jiff = { workspace = true, features = ["js"] }
 cfg-if = "1.0"
 getrandom = { version = "0.4", features = ["wasm_js"] }
 hex = "0.4"

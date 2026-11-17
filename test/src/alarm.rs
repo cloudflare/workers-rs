@@ -22,6 +22,9 @@ impl DurableObject for AlarmObject {
     }
 
     async fn fetch(&self, req: Request) -> Result<Response> {
+        if req.path() == "/jiff-alarm" {
+            return self.jiff_alarm(req).await;
+        }
         if req.path() == "/alarm-options" {
             return self.alarm_options().await;
         }
@@ -71,6 +74,46 @@ impl AlarmObject {
             String::from(set_wire)
         ))
     }
+    async fn jiff_alarm(&self, req: Request) -> Result<Response> {
+        let kind = req
+            .url()?
+            .query_pairs()
+            .find(|(key, _)| key == "kind")
+            .map(|(_, value)| value.into_owned());
+        match kind.as_deref() {
+            Some("timestamp") => {
+                let timestamp: jiff::Timestamp = "2099-01-01T00:00:00.123456789Z".parse().unwrap();
+                self.state.storage().set_alarm(timestamp).await?;
+            }
+            Some("zoned") => {
+                let datetime: jiff::ZonedDateTime =
+                    "2099-01-01T00:00:00.123456789+01:00[Europe/Paris]"
+                        .parse()
+                        .unwrap();
+                self.state.storage().set_alarm(datetime).await?;
+            }
+            _ => return Response::error("invalid alarm kind", 400),
+        }
+        let actual = self.state.storage().get_alarm().await?;
+        self.state.storage().delete_alarm().await?;
+        Response::from_json(&actual)
+    }
+}
+
+#[worker::send]
+pub async fn handle_jiff_alarm(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+    let kind = req
+        .url()?
+        .query_pairs()
+        .find(|(key, _)| key == "kind")
+        .map(|(_, value)| value.into_owned())
+        .unwrap_or_default();
+    let namespace = env.durable_object("ALARM")?;
+    let stub = namespace
+        .id_from_name(&format!("jiff-alarm-{kind}"))?
+        .get_stub()?;
+    stub.fetch_with_str(&format!("https://fake-host/jiff-alarm?kind={kind}"))
+        .await
 }
 
 #[worker::send]

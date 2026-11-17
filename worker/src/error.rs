@@ -166,13 +166,6 @@ impl From<http::header::InvalidHeaderValue> for Error {
     }
 }
 
-#[cfg(feature = "timezone")]
-impl From<chrono_tz::ParseError> for Error {
-    fn from(_value: chrono_tz::ParseError) -> Self {
-        Self::RustError("Invalid timezone".to_string())
-    }
-}
-
 impl From<std::str::Utf8Error> for Error {
     fn from(value: std::str::Utf8Error) -> Self {
         Self::Utf8Error(value)

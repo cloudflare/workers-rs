@@ -116,6 +116,7 @@ macro_rules! add_routes (
     ($obj:ident) => {
     add_route!($obj, get, sync, "/request", request::handle_a_request);
     add_route!($obj, get, sync, "/cf/timezone-name", request::handle_cf_timezone_name);
+    add_route!($obj, get, sync, "/cf/timezone", request::handle_cf_timezone);
     add_route!($obj, get, "/analytics-engine", analytics_engine::handle_analytics_event);
     add_route!($obj, get, sync, "/tracing/spans", custom_spans::handle_spans);
     add_route!($obj, get, "/tracing/async-spans", custom_spans::handle_async_spans);
@@ -142,6 +143,7 @@ macro_rules! add_routes (
     add_route!($obj, get, "/fetch_json",fetch::handle_fetch_json);
     add_route!($obj, get, format_route!("/proxy_request/{}", "*url") ,fetch::handle_proxy_request);
     add_route!($obj, get, "/durable/alarm", alarm::handle_alarm);
+    add_route!($obj, get, "/durable/jiff-alarm", alarm::handle_jiff_alarm);
     add_route!($obj, get, "/durable/alarm-options", alarm::handle_alarm_options);
     add_route!($obj, get, format_route!("/durable/{}", "id"), counter::handle_id);
     add_route!($obj, get, "/durable/put-raw", put_raw::handle_put_raw);
@@ -170,6 +172,7 @@ macro_rules! add_routes (
     add_route!($obj, get, "/redirect-default", request::handle_redirect_default);
     add_route!($obj, get, "/redirect-307", request::handle_redirect_307);
     add_route!($obj, get, "/now", request::handle_now);
+    add_route!($obj, get, "/dates", request::handle_dates);
     add_route!($obj, get, "/cloned", request::handle_cloned);
     add_route!($obj, get, "/cloned-stream", request::handle_cloned_stream);
     add_route!($obj, get, "/cloned-fetch", fetch::handle_cloned_fetch);

@@ -1,11 +1,15 @@
 use std::fmt::Display;
 
-use chrono::offset::TimeZone;
-use chrono::Datelike;
 use js_sys::Date as JsDate;
 use wasm_bindgen::JsValue;
 
 /// The equivalent to a JavaScript `Date` Object.
+///
+/// Stores signed milliseconds since the Unix epoch, including negative values for dates before it.
+/// Conversions from [`jiff::Timestamp`] and [`jiff::ZonedDateTime`] truncate fractional
+/// milliseconds toward zero and do not retain time zone information. Calendar-only dates must
+/// first be resolved to an instant using an explicit time zone.
+///
 /// ```no_run
 /// # use worker::{Date, DateInit};
 /// let now = Date::now();
@@ -33,7 +37,8 @@ impl PartialEq for Date {
 /// ```
 #[derive(Debug)]
 pub enum DateInit {
-    Millis(u64),
+    /// Signed milliseconds since the Unix epoch; negative values represent dates before it.
+    Millis(i64),
     String(String),
 }
 
@@ -63,9 +68,11 @@ impl Date {
         }
     }
 
-    /// Convert a Date into its number of milliseconds since the Unix epoch.
-    pub fn as_millis(&self) -> u64 {
-        self.js_date.get_time() as u64
+    /// Return signed milliseconds since the Unix epoch.
+    ///
+    /// Dates before the Unix epoch have negative values. JavaScript dates have millisecond precision.
+    pub fn as_millis(&self) -> i64 {
+        self.js_date.get_time() as i64
     }
 }
 
@@ -75,22 +82,15 @@ impl Display for Date {
     }
 }
 
-#[allow(deprecated)]
-impl<T: TimeZone> From<chrono::Date<T>> for Date {
-    fn from(d: chrono::Date<T>) -> Self {
-        Self {
-            js_date: JsDate::new_with_year_month_day(
-                d.year() as u32,
-                d.month() as i32 - 1,
-                d.day() as i32,
-            ),
-        }
+impl From<jiff::Timestamp> for Date {
+    fn from(timestamp: jiff::Timestamp) -> Self {
+        DateInit::Millis(timestamp.as_millisecond()).into()
     }
 }
 
-impl<T: TimeZone> From<chrono::DateTime<T>> for Date {
-    fn from(dt: chrono::DateTime<T>) -> Self {
-        DateInit::Millis(dt.timestamp_millis() as u64).into()
+impl From<jiff::ZonedDateTime> for Date {
+    fn from(date: jiff::ZonedDateTime) -> Self {
+        date.timestamp().into()
     }
 }
 

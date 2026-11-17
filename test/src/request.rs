@@ -8,7 +8,7 @@ use serde::Serialize;
 use std::time::Duration;
 use worker::Env;
 use worker::{
-    console_log, ok, web_sys, AbortSignal, Date, Delay, Request, Response, ResponseBody,
+    console_log, ok, web_sys, AbortSignal, Date, DateInit, Delay, Request, Response, ResponseBody,
     ResponseBuilder, Result,
 };
 
@@ -179,9 +179,33 @@ pub async fn handle_redirect_307(
 }
 
 pub async fn handle_now(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
-    let now = chrono::Utc::now();
+    let now = jiff::Timestamp::now();
     let js_date: Date = now.into();
     Response::ok(js_date.to_string())
+}
+
+pub async fn handle_dates(_req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
+    let timestamps = [
+        -1_234_567_890_000_000,
+        -1_999_999,
+        -999_999,
+        0,
+        999_999,
+        1_999_999,
+        1_704_067_200_123_456_789,
+    ]
+    .map(|nanos| Date::from(jiff::Timestamp::from_nanosecond(nanos).unwrap()).as_millis());
+    let zoned = [
+        "2024-11-03T01:30:00.123456789-04:00[America/New_York]",
+        "2024-11-03T01:30:00.123456789-05:00[America/New_York]",
+        "1969-12-31T18:59:59.998000001-05:00[America/New_York]",
+    ]
+    .map(|value| Date::from(value.parse::<jiff::ZonedDateTime>().unwrap()).as_millis());
+    Response::from_json(&serde_json::json!({
+        "timestamps": timestamps,
+        "zoned": zoned,
+        "pre_epoch_millis": Date::new(DateInit::Millis(-1_234_567_890)).as_millis(),
+    }))
 }
 
 #[worker::send]
@@ -297,6 +321,30 @@ pub fn handle_cf_timezone_name(req: Request, _env: Env, _data: SomeSharedData) -
         return Response::error("no cf", 500);
     };
     Response::ok(cf.timezone_name().unwrap_or_else(|| "none".to_string()))
+}
+
+#[allow(clippy::needless_pass_by_value)]
+pub fn handle_cf_timezone(req: Request, _env: Env, _data: SomeSharedData) -> Result<Response> {
+    let Some(cf) = req.cf() else {
+        return Response::error("no cf", 500);
+    };
+    match cf.timezone() {
+        Ok(timezone) => Response::from_json(&serde_json::json!({
+            "name": timezone.iana_name(),
+            "winter": "2024-01-01T12:00:00Z"
+                .parse::<jiff::Timestamp>()
+                .unwrap()
+                .to_zoned_datetime(timezone.clone())
+                .to_string(),
+            "summer": "2024-07-01T12:00:00Z"
+                .parse::<jiff::Timestamp>()
+                .unwrap()
+                .to_zoned_datetime(timezone)
+                .to_string(),
+        })),
+        Err(worker::Error::TimezoneError) => Response::error("TimezoneError", 400),
+        Err(err) => Err(err),
+    }
 }
 
 #[cfg(feature = "http")]

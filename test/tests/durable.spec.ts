@@ -156,4 +156,16 @@ describe("durable", () => {
       'true:None:{"allowConcurrency":true}:{"allowConcurrency":true,"allowUnconfirmed":true}',
     );
   });
+  test.each(["timestamp", "zoned"])(
+    "schedules an absolute Jiff %s alarm in storage",
+    async (kind) => {
+      const resp = await mf.dispatchFetch(
+        `${mfUrl}durable/jiff-alarm?kind=${kind}`,
+      );
+      expect(resp.status).toBe(200);
+      const expectedMillis =
+        kind === "timestamp" ? 4_070_908_800_123 : 4_070_905_200_123;
+      expect(await resp.json()).toBe(expectedMillis);
+    },
+  );
 });

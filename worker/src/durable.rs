@@ -26,7 +26,6 @@ use crate::{
 };
 use js_sys::{Boolean as JsBoolean, JsString, Object as JsObject};
 
-use chrono::{DateTime, Utc};
 use futures_util::Future;
 use js_sys::futures::{future_to_promise, JsFuture};
 use js_sys::{Map, Number, Object};
@@ -876,12 +875,16 @@ enum ScheduledTimeInit {
     Offset(f64),
 }
 
-/// Determines when a Durable Object alarm should be ran, based on a timestamp or offset in milliseconds.
+/// Determines when a Durable Object alarm should run, based on an absolute timestamp or relative
+/// offset in milliseconds.
 ///
 /// Implements [`From`] for:
-/// - [`Duration`], interpreted as an offset (in milliseconds).
-/// - [`i64`], interpreted as an offset (in milliseconds).
-/// - [`DateTime`], interpreted as a timestamp.
+/// - [`Duration`], interpreted as a relative offset (in milliseconds).
+/// - [`i64`], interpreted as a relative offset (in milliseconds), not a Unix timestamp.
+/// - [`jiff::Timestamp`] and [`jiff::ZonedDateTime`], interpreted as absolute timestamps.
+///
+/// Absolute timestamps use signed milliseconds since the Unix epoch, with fractional milliseconds
+/// truncated toward zero. A zoned datetime's time zone does not change the instant scheduled.
 ///
 /// When an offset is used, the time at which `set_alarm()` or `set_alarm_with_options()` is called
 /// is used to compute the scheduled time. [`Date::now`] is used as the current time.
@@ -916,13 +919,15 @@ impl From<i64> for ScheduledTime {
     }
 }
 
-impl From<DateTime<Utc>> for ScheduledTime {
-    fn from(date: DateTime<Utc>) -> Self {
-        ScheduledTime {
-            init: ScheduledTimeInit::Date(js_sys::Date::new(&Number::from(
-                date.timestamp_millis() as f64,
-            ))),
-        }
+impl From<jiff::Timestamp> for ScheduledTime {
+    fn from(timestamp: jiff::Timestamp) -> Self {
+        Self::new(Date::from(timestamp).into())
+    }
+}
+
+impl From<jiff::ZonedDateTime> for ScheduledTime {
+    fn from(date: jiff::ZonedDateTime) -> Self {
+        date.timestamp().into()
     }
 }
 
