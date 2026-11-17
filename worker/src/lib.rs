@@ -204,6 +204,7 @@ pub use crate::error::Error;
 pub use crate::error::{
     HandlerError, HandlerErrorViaJsValue, HandlerErrorViaLocalStdError, HandlerErrorViaStdError,
 };
+pub use crate::exports::Exports;
 pub use crate::fetcher::Fetcher;
 pub use crate::formdata::*;
 pub use crate::global::Fetch;
@@ -261,6 +262,7 @@ mod dynamic_dispatch;
 pub mod email;
 mod env;
 mod error;
+mod exports;
 mod fetcher;
 mod formdata;
 mod global;

@@ -1,0 +1,5 @@
+error: entrypoint may only be specified once
+ --> tests/ui/entrypoint-duplicate.rs:3:38
+  |
+3 | #[event(fetch, entrypoint = "First", entrypoint = "Second")]
+  |                                      ^^^^^^^^^^^^^^^^^^^^^

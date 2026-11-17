@@ -1,7 +1,7 @@
 use crate::signal;
 use crate::{
     ai, alarm, analytics_engine, assets, auto_response, cache, container, counter, custom_spans,
-    d1, durable, fetch, form, js_snippets, kv, put_raw, queue, r2, rate_limit, request,
+    d1, durable, exports, fetch, form, js_snippets, kv, put_raw, queue, r2, rate_limit, request,
     secret_store, send_email, service, socket, sql_counter, sql_iterator, user, ws, SomeSharedData,
     GLOBAL_SECOND_START, GLOBAL_STATE,
 };
@@ -186,6 +186,8 @@ macro_rules! add_routes (
     add_route!($obj, get, "/cache-stream", cache::handle_cache_stream);
     add_route!($obj, get, "/remote-by-request", service::handle_remote_by_request);
     add_route!($obj, get, "/remote-by-path", service::handle_remote_by_path);
+    add_route!($obj, get, "/exports/get", exports::handle_get);
+    add_route!($obj, get, "/exports/props", exports::handle_props);
     add_route!($obj, post, format_route!("/queue/send/{}", "id"), queue::handle_queue_send);
     add_route!($obj, post, "/queue/send_batch", queue::handle_batch_send);
     add_route!($obj, get, "/queue/metadata", queue::handle_queue_metadata);
