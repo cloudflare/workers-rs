@@ -161,12 +161,15 @@ impl Cf {
         self.inner.region_code().unwrap()
     }
 
-    /// **Requires** `timezone` feature. Timezone of the incoming request, e.g. `America/Chicago`.
-    /// Errors when the request carries no timezone (see [`Cf::timezone_name`]).
+    /// **Requires** `timezone` feature. Look up the incoming request's timezone, e.g.
+    /// `America/Chicago`, in Jiff's bundled IANA timezone database.
+    ///
+    /// Returns [`crate::Error::TimezoneError`] if the timezone is missing or unrecognized
+    /// (see [`Cf::timezone_name`]).
     #[cfg(feature = "timezone")]
-    pub fn timezone(&self) -> Result<impl chrono::TimeZone> {
+    pub fn timezone(&self) -> Result<jiff::tz::TimeZone> {
         let tz = self.inner.timezone()?.ok_or(crate::Error::TimezoneError)?;
-        Ok(tz.parse::<chrono_tz::Tz>()?)
+        jiff::tz::TimeZone::get(&tz).map_err(|_| crate::Error::TimezoneError)
     }
 
     /// Timezone name of the incoming request, e.g. `America/Chicago`.

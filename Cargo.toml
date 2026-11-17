@@ -30,9 +30,7 @@ rust-version = "1.91"
 [workspace.dependencies]
 async-trait = "0.1.88"
 cfg-if = "1.0.1"
-chrono = { version = "0.4.41", default-features = false, features = [
-    "wasmbind",
-] }
+jiff = { version = "1.0", default-features = false, features = ["std"] }
 futures-channel = "0.3.31"
 futures-util = { version = "0.3.31", default-features = false }
 http = "1.3"

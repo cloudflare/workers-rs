@@ -100,17 +100,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "chrono"
-version = "0.4.45"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1aa79e62e7697b8e29b513a68abacf485adcd1fe8284a4316c5ae868e6633327"
-dependencies = [
- "js-sys",
- "num-traits",
- "wasm-bindgen",
-]
-
-[[package]]
 name = "cmov"
 version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1352,11 +1341,10 @@ dependencies = [
 
 [[package]]
 name = "worker"
-version = "0.8.7"
+version = "0.9.0"
 dependencies = [
  "async-trait",
  "bytes",
- "chrono",
  "futures-channel",
  "futures-util",
  "http",
@@ -1381,7 +1369,7 @@ dependencies = [
 
 [[package]]
 name = "worker-macros"
-version = "0.8.7"
+version = "0.9.0"
 dependencies = [
  "async-trait",
  "proc-macro2",
@@ -1395,7 +1383,7 @@ dependencies = [
 
 [[package]]
 name = "worker-sys"
-version = "0.8.7"
+version = "0.9.0"
 dependencies = [
  "cfg-if",
  "js-sys",

@@ -25,6 +25,32 @@
 //! # }
 //! ```
 //!
+//! ## `jiff`
+//!
+//! Enables conversions from `jiff::Timestamp` and `jiff::ZonedDateTime` to [`Date`] and
+//! [`ScheduledTime`]. Disabled by default: the SDK does not otherwise depend on Jiff.
+//! This feature does not bundle the full time zone database.
+//!
+//! Applications using Jiff's current-time APIs on `wasm32-unknown-unknown` must also
+//! enable Jiff's `js` feature in their own dependencies:
+//!
+//! ```toml
+//! [dependencies]
+//! jiff = { version = "1.0", default-features = false, features = ["std", "js"] }
+//! ```
+//!
+//! [`Date::now()`] uses JavaScript directly and needs neither feature.
+//! `std::time::SystemTime::now()` and `std::time::Instant::now()` remain unsupported
+//! on `wasm32-unknown-unknown`. The deployed Workers clock only advances after I/O,
+//! so it cannot measure CPU execution time; see [`Date::now()`].
+//!
+//! ## `timezone`
+//!
+//! Enables `jiff` and bundles the full IANA time zone database for `Cf::timezone()`.
+//! Disabled by default. [`Cf::timezone_name()`] returns the raw time zone name without
+//! either feature; use it with a subset database or custom time zone handling to avoid
+//! bundling the full database.
+//!
 //! ## `http`
 //! `worker` `0.0.21` introduced an `http` feature flag which starts to replace custom types with widely used types from the [`http`](https://docs.rs/http/latest/http/) crate.
 //!

@@ -6,7 +6,7 @@ use crate::SomeSharedData;
 #[derive(Serialize)]
 struct User {
     id: String,
-    timestamp: u64,
+    timestamp: i64,
     date_from_int: String,
     date_from_str: String,
 }

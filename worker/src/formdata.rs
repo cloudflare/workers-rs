@@ -185,7 +185,7 @@ impl File {
 
     /// Get the last_modified metadata property of the file.
     pub fn last_modified(&self) -> Date {
-        DateInit::Millis(self.0.last_modified() as u64).into()
+        DateInit::Millis(self.0.last_modified() as i64).into()
     }
 }
 
