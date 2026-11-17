@@ -282,6 +282,12 @@ impl State {
         self.inner.container().map(|inner| Container { inner })
     }
 
+    /// Creates a loopback entrypoint with capability-preserving props.
+    /// Requires the `enable_ctx_exports` compatibility flag.
+    pub fn exported_fetcher(&self, name: &str, props: JsValue) -> Result<crate::Fetcher> {
+        crate::context::exported_fetcher(&self.inner.exports()?, name, props)
+    }
+
     /// The underlying `DurableObjectState`, for JavaScript APIs that take it
     /// directly.
     pub fn as_raw(&self) -> &DurableObjectState {

@@ -14,4 +14,7 @@ extern "C" {
 
     #[wasm_bindgen(method, getter)]
     pub fn props(this: &Context) -> JsValue;
+
+    #[wasm_bindgen(method, catch, getter)]
+    pub fn exports(this: &Context) -> Result<js_sys::Object, JsValue>;
 }

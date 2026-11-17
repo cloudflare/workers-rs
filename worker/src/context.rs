@@ -2,11 +2,12 @@ use std::future::Future;
 use std::panic::AssertUnwindSafe;
 
 use crate::worker_sys::Context as JsContext;
-use crate::Result;
+use crate::{Fetcher, Result};
 
 use js_sys::futures::future_to_promise;
+use js_sys::{Array, Object, Reflect};
 use serde::de::DeserializeOwned;
-use wasm_bindgen::JsValue;
+use wasm_bindgen::{JsCast, JsValue};
 
 /// A context bound to a `fetch` event.
 #[derive(Debug)]
@@ -92,12 +93,27 @@ impl Context {
     pub fn props<T: DeserializeOwned>(&self) -> Result<T> {
         Ok(serde_wasm_bindgen::from_value(self.inner.props())?)
     }
+
+    /// Creates a loopback entrypoint with capability-preserving props.
+    /// Requires the `enable_ctx_exports` compatibility flag.
+    pub fn exported_fetcher(&self, name: &str, props: JsValue) -> Result<Fetcher> {
+        exported_fetcher(&self.inner.exports()?, name, props)
+    }
 }
 
 impl AsRef<JsContext> for Context {
     fn as_ref(&self) -> &JsContext {
         &self.inner
     }
+}
+
+pub(crate) fn exported_fetcher(exports: &Object, name: &str, props: JsValue) -> Result<Fetcher> {
+    let factory =
+        Reflect::get(exports, &JsValue::from_str(name))?.unchecked_into::<js_sys::Function>();
+    let options = Object::new();
+    Reflect::set(&options, &JsValue::from_str("props"), &props)?;
+    let binding = Reflect::apply(&factory, exports, &Array::of1(&options))?;
+    Ok(binding.unchecked_into::<worker_sys::Fetcher>().into())
 }
 
 #[cfg(test)]
