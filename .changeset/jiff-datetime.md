@@ -2,10 +2,12 @@
 "workers-rs": major
 ---
 
-Replace Chrono and Chrono-TZ with Jiff 1.0. `worker::Date` and `ScheduledTime` now accept `jiff::Timestamp` and `jiff::ZonedDateTime` instead of Chrono date-time values. These conversions preserve the instant at millisecond precision. Convert calendar-only dates to an instant with an explicit time zone before passing them to the SDK.
+Replace Chrono and Chrono-TZ with optional Jiff 1.0 support. Enable the new, disabled-by-default `jiff` feature to convert `jiff::Timestamp` and `jiff::ZonedDateTime` into `worker::Date` and `ScheduledTime`. These replace Chrono conversions and truncate fractional milliseconds toward zero. Resolve calendar-only dates to an instant using an explicit time zone first.
 
-With the `timezone` feature, `Cf::timezone()` now returns `jiff::tz::TimeZone`; missing and invalid zone names return `Error::TimezoneError`. The feature includes the IANA time zone database for runtime lookups. `Cf::timezone_name()` remains available without this feature.
+The opt-in `timezone` feature enables `jiff` and bundles the full IANA database; `jiff` alone does not bundle it. `Cf::timezone()` now returns `jiff::tz::TimeZone`, with missing or invalid names returning `Error::TimezoneError`. `Cf::timezone_name()` remains a raw string available without either feature, including for subset databases or custom handling.
 
 `DateInit::Millis` and `Date::as_millis()` now use `i64` instead of `u64`, so dates before the Unix epoch retain their negative millisecond values. Update explicitly typed callers accordingly.
 
-The SDK does not enable Jiff's `js` feature. Applications that call Jiff's current-time APIs on `wasm32-unknown-unknown` must enable that feature in their own Jiff dependency. `worker::Date::now()` continues to use JavaScript directly.
+`ScheduledTime` now accepts `worker::Date` as an absolute alarm timestamp without a date library: pass `Date::from(DateInit::Millis(unix_millis))` to `set_alarm`. Integer `i64` and `Duration` inputs remain relative delays, not Unix timestamps.
+
+For Jiff current-time APIs on `wasm32-unknown-unknown`, enable `features = ["js"]` in the application's own Jiff dependency. `worker::Date::now()` needs neither Jiff nor its `js` feature; `std::time` clocks remain unsupported on this target. On deployed Workers, the JavaScript clock only advances after I/O and is not a monotonic or CPU timer; see [Performance and timers](https://developers.cloudflare.com/workers/runtime-apis/performance/).

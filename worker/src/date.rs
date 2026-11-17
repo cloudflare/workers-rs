@@ -6,9 +6,9 @@ use wasm_bindgen::JsValue;
 /// The equivalent to a JavaScript `Date` Object.
 ///
 /// Stores signed milliseconds since the Unix epoch, including negative values for dates before it.
-/// Conversions from [`jiff::Timestamp`] and [`jiff::ZonedDateTime`] truncate fractional
-/// milliseconds toward zero and do not retain time zone information. Calendar-only dates must
-/// first be resolved to an instant using an explicit time zone.
+/// With the optional `jiff` feature, conversions from `jiff::Timestamp` and
+/// `jiff::ZonedDateTime` truncate fractional milliseconds toward zero and do not retain time zone
+/// information. Calendar-only dates must first be resolved to an instant using an explicit time zone.
 ///
 /// ```no_run
 /// # use worker::{Date, DateInit};
@@ -62,6 +62,10 @@ impl Date {
     }
 
     /// Get the current time, represented by a Date.
+    ///
+    /// Uses the JavaScript runtime clock without requiring Jiff or its `js` feature.
+    /// On deployed Workers this clock only advances after I/O; it is not a monotonic clock
+    /// or a CPU timer. See [Performance and timers](https://developers.cloudflare.com/workers/runtime-apis/performance/).
     pub fn now() -> Self {
         Self {
             js_date: JsDate::new_0(),
@@ -82,12 +86,14 @@ impl Display for Date {
     }
 }
 
+#[cfg(feature = "jiff")]
 impl From<jiff::Timestamp> for Date {
     fn from(timestamp: jiff::Timestamp) -> Self {
         DateInit::Millis(timestamp.as_millisecond()).into()
     }
 }
 
+#[cfg(feature = "jiff")]
 impl From<jiff::ZonedDateTime> for Date {
     fn from(date: jiff::ZonedDateTime) -> Self {
         date.timestamp().into()

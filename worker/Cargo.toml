@@ -23,7 +23,7 @@ futures-channel.workspace = true
 futures-util.workspace = true
 http-body = "1"
 http.workspace = true
-jiff.workspace = true
+jiff = { workspace = true, optional = true }
 js-sys.workspace = true
 matchit = "0.7"
 pin-project = "1.1.0"
@@ -53,7 +53,8 @@ experimental_tokio = ["worker-macros/experimental_tokio"]
 d1 = ["worker-sys/d1"]
 http = ["worker-macros/http"]
 axum = ["dep:axum"]
-timezone = ["jiff/tzdb-bundle-always"]
+jiff = ["dep:jiff"]
+timezone = ["jiff", "jiff/tzdb-bundle-always"]
 
 [dev-dependencies]
 trybuild.workspace = true

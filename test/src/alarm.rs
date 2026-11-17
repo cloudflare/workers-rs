@@ -1,7 +1,7 @@
 use std::time::Duration;
 use worker::{
-    console_log, durable_object, js_sys, wasm_bindgen, DurableObject, Env, GetAlarmOptions,
-    Request, Response, Result, SetAlarmOptions, State,
+    console_log, durable_object, js_sys, wasm_bindgen, Date, DateInit, DurableObject, Env,
+    GetAlarmOptions, Request, Response, Result, SetAlarmOptions, State,
 };
 
 use super::SomeSharedData;
@@ -22,8 +22,8 @@ impl DurableObject for AlarmObject {
     }
 
     async fn fetch(&self, req: Request) -> Result<Response> {
-        if req.path() == "/jiff-alarm" {
-            return self.jiff_alarm(req).await;
+        if req.path() == "/alarm-time" {
+            return self.alarm_time(req).await;
         }
         if req.path() == "/alarm-options" {
             return self.alarm_options().await;
@@ -74,13 +74,29 @@ impl AlarmObject {
             String::from(set_wire)
         ))
     }
-    async fn jiff_alarm(&self, req: Request) -> Result<Response> {
+    async fn alarm_time(&self, req: Request) -> Result<Response> {
         let kind = req
             .url()?
             .query_pairs()
             .find(|(key, _)| key == "kind")
             .map(|(_, value)| value.into_owned());
+        let before = Date::now().as_millis();
         match kind.as_deref() {
+            Some("date") => {
+                self.state
+                    .storage()
+                    .set_alarm(Date::new(DateInit::Millis(4_070_908_800_123)))
+                    .await?;
+            }
+            Some("integer") => {
+                self.state.storage().set_alarm(86_400_000_i64).await?;
+            }
+            Some("duration") => {
+                self.state
+                    .storage()
+                    .set_alarm(Duration::from_millis(86_400_000))
+                    .await?;
+            }
             Some("timestamp") => {
                 let timestamp: jiff::Timestamp = "2099-01-01T00:00:00.123456789Z".parse().unwrap();
                 self.state.storage().set_alarm(timestamp).await?;
@@ -94,14 +110,19 @@ impl AlarmObject {
             }
             _ => return Response::error("invalid alarm kind", 400),
         }
+        let after = Date::now().as_millis();
         let actual = self.state.storage().get_alarm().await?;
         self.state.storage().delete_alarm().await?;
-        Response::from_json(&actual)
+        Response::from_json(&serde_json::json!({
+            "scheduled": actual,
+            "before": before,
+            "after": after,
+        }))
     }
 }
 
 #[worker::send]
-pub async fn handle_jiff_alarm(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
+pub async fn handle_alarm_time(req: Request, env: Env, _data: SomeSharedData) -> Result<Response> {
     let kind = req
         .url()?
         .query_pairs()
@@ -110,9 +131,9 @@ pub async fn handle_jiff_alarm(req: Request, env: Env, _data: SomeSharedData) ->
         .unwrap_or_default();
     let namespace = env.durable_object("ALARM")?;
     let stub = namespace
-        .id_from_name(&format!("jiff-alarm-{kind}"))?
+        .id_from_name(&format!("alarm-time-{kind}"))?
         .get_stub()?;
-    stub.fetch_with_str(&format!("https://fake-host/jiff-alarm?kind={kind}"))
+    stub.fetch_with_str(&format!("https://fake-host/alarm-time?kind={kind}"))
         .await
 }
 

@@ -623,7 +623,14 @@ impl Storage {
             .map_err(Error::from)
     }
 
-    /// Sets the current alarm time to the given datetime.
+    /// Sets the current alarm using a relative delay or an absolute timestamp.
+    ///
+    /// The input type determines the meaning: [`i64`] is a relative delay in milliseconds
+    /// (not a Unix timestamp), and [`Duration`] is also relative to the time of this call.
+    /// [`Date`] is an absolute timestamp; for Unix milliseconds, pass
+    /// `Date::from(DateInit::Millis(unix_millis))`. With the `jiff` feature,
+    /// `jiff::Timestamp` and `jiff::ZonedDateTime` are also absolute timestamps.
+    /// See [`ScheduledTime`] and [`Self::set_alarm_with_options`].
     ///
     /// If `set_alarm()` is called with a time equal to or before Date.now(), the alarm
     /// will be scheduled for asynchronous execution in the immediate future. If the
@@ -639,6 +646,9 @@ impl Storage {
         fut.await.map(|_| ()).map_err(Error::from)
     }
 
+    /// Sets an alarm with options, using the same input-type semantics as [`Self::set_alarm`]:
+    /// [`i64`] milliseconds and [`Duration`] are relative delays; [`Date`] and optional
+    /// Jiff timestamp types are absolute timestamps.
     pub async fn set_alarm_with_options(
         &self,
         scheduled_time: impl Into<ScheduledTime>,
@@ -881,7 +891,9 @@ enum ScheduledTimeInit {
 /// Implements [`From`] for:
 /// - [`Duration`], interpreted as a relative offset (in milliseconds).
 /// - [`i64`], interpreted as a relative offset (in milliseconds), not a Unix timestamp.
-/// - [`jiff::Timestamp`] and [`jiff::ZonedDateTime`], interpreted as absolute timestamps.
+/// - [`Date`], interpreted as an absolute timestamp, without requiring a date library.
+/// - With the `jiff` feature, `jiff::Timestamp` and `jiff::ZonedDateTime`, interpreted as
+///   absolute timestamps.
 ///
 /// Absolute timestamps use signed milliseconds since the Unix epoch, with fractional milliseconds
 /// truncated toward zero. A zoned datetime's time zone does not change the instant scheduled.
@@ -919,12 +931,20 @@ impl From<i64> for ScheduledTime {
     }
 }
 
-impl From<jiff::Timestamp> for ScheduledTime {
-    fn from(timestamp: jiff::Timestamp) -> Self {
-        Self::new(Date::from(timestamp).into())
+impl From<Date> for ScheduledTime {
+    fn from(date: Date) -> Self {
+        Self::new(date.into())
     }
 }
 
+#[cfg(feature = "jiff")]
+impl From<jiff::Timestamp> for ScheduledTime {
+    fn from(timestamp: jiff::Timestamp) -> Self {
+        Date::from(timestamp).into()
+    }
+}
+
+#[cfg(feature = "jiff")]
 impl From<jiff::ZonedDateTime> for ScheduledTime {
     fn from(date: jiff::ZonedDateTime) -> Self {
         date.timestamp().into()
