@@ -361,14 +361,23 @@ pub struct EmscriptenBuild<'a> {
     pub bindgen_dir: &'a Path,
     /// Have emcc write a source map beside the linked wasm.
     pub source_map: bool,
+    /// `--no-opt`: link without Binaryen's optimization passes.
+    pub no_opt: bool,
 }
 
 /// The `-Clink-arg`s that configure the emcc link.
-fn emscripten_link_args(source_map: bool) -> Vec<String> {
+fn emscripten_link_args(source_map: bool, no_opt: bool) -> Vec<String> {
     let mut args: Vec<String> = emscripten::LINK_ARGS
         .iter()
         .map(|arg| format!("-Clink-arg={arg}"))
         .collect();
+    if no_opt {
+        // rustc passes the profile's opt-level to emcc as `-O<n>` ahead of
+        // `-Clink-arg`s, and emcc takes the last one. At `-O0` emcc still runs
+        // wasm-opt, but only for BINARYEN_EXTRA_PASSES (`--translate-to-exnref`,
+        // which the module needs), without the `-O<n>` optimization passes.
+        args.push("-Clink-arg=-O0".into());
+    }
     if source_map {
         // This follows rustc's own `-g0` or `--profiling-funcs`, and a later
         // `-g0` would turn the source map off again. Unlike `-g`, this keeps
@@ -462,7 +471,7 @@ pub fn cargo_build_wasm(
         if em.tokio {
             rustflags.extend(emscripten::TOKIO_RUSTFLAGS.iter().map(|f| f.to_string()));
         }
-        rustflags.extend(emscripten_link_args(em.source_map));
+        rustflags.extend(emscripten_link_args(em.source_map, em.no_opt));
         cmd.env(
             "CARGO_TARGET_WASM32_UNKNOWN_EMSCRIPTEN_LINKER",
             em.toolchain.emcc(),
@@ -704,16 +713,38 @@ mod test {
 
     #[test]
     fn test_emscripten_link_args_source_map_off() {
-        let args = emscripten_link_args(false);
+        let args = emscripten_link_args(false, false);
         assert!(args.iter().all(|arg| arg.starts_with("-Clink-arg=")));
         assert!(!args.iter().any(|arg| arg.contains("-g")));
     }
 
     #[test]
     fn test_emscripten_link_args_source_map_last() {
-        let off = emscripten_link_args(false).len();
-        let args = emscripten_link_args(true);
+        let off = emscripten_link_args(false, false).len();
+        let args = emscripten_link_args(true, false);
         assert_eq!(&args[off..], ["-Clink-arg=-gsource-map"]);
+        let args = emscripten_link_args(true, true);
+        assert_eq!(args.last().unwrap(), "-Clink-arg=-gsource-map");
+    }
+
+    #[test]
+    fn test_emscripten_link_args_no_opt() {
+        let args = emscripten_link_args(false, false);
+        assert!(!args.iter().any(|arg| arg.starts_with("-Clink-arg=-O")));
+        // After the exnref pass, and the only `-O` worker-build adds, so it
+        // overrides the `-O<n>` rustc passes for the profile.
+        let args = emscripten_link_args(false, true);
+        let opt: Vec<_> = args
+            .iter()
+            .filter(|arg| arg.starts_with("-Clink-arg=-O"))
+            .collect();
+        assert_eq!(opt, ["-Clink-arg=-O0"]);
+        let exnref = args
+            .iter()
+            .position(|arg| arg.contains("--translate-to-exnref"))
+            .unwrap();
+        let o0 = args.iter().position(|arg| arg == "-Clink-arg=-O0").unwrap();
+        assert!(exnref < o0);
     }
 
     #[test]
