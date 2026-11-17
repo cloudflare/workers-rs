@@ -22,7 +22,7 @@ use crate::{
     error::Error,
     request::Request,
     response::Response,
-    Result, Socket, WebSocket,
+    Exports, Result, Socket, WebSocket,
 };
 use js_sys::{Boolean as JsBoolean, JsString, Object as JsObject};
 
@@ -286,6 +286,15 @@ impl State {
     /// directly.
     pub fn as_raw(&self) -> &DurableObjectState {
         &self.inner
+    }
+
+    /// Returns loopback bindings for this Worker's exported entrypoints.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `ctx.exports` is unavailable in the runtime configuration.
+    pub fn exports(&self) -> Exports {
+        Exports::new(self.inner.exports()).unwrap()
     }
 
     pub fn wait_until<F>(&self, future: F)
