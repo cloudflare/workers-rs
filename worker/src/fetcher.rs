@@ -90,6 +90,23 @@ impl Fetcher {
 
 impl EnvBinding for Fetcher {
     const TYPE_NAME: &'static str = "Fetcher";
+
+    fn get(val: JsValue) -> Result<Self> {
+        let obj = js_sys::Object::from(val);
+        let name = obj.constructor().name();
+        // Service bindings use ServiceStub in newer runtimes, while asset bindings
+        // and older runtimes still use Fetcher.
+        if name == Self::TYPE_NAME || name == "ServiceStub" {
+            Ok(obj.unchecked_into())
+        } else {
+            Err(format!(
+                "Binding cannot be cast to the type {} from {}",
+                Self::TYPE_NAME,
+                name
+            )
+            .into())
+        }
+    }
 }
 
 impl JsCast for Fetcher {
@@ -121,5 +138,94 @@ impl AsRef<wasm_bindgen::JsValue> for Fetcher {
 impl From<worker_sys::Fetcher> for Fetcher {
     fn from(inner: worker_sys::Fetcher) -> Self {
         Self(inner)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Env;
+    use wasm_bindgen::prelude::*;
+    use wasm_bindgen_test::*;
+
+    #[wasm_bindgen(inline_js = "
+        export function serviceBinding(name) {
+            class Fetcher {
+                fetch(url) {
+                    if (url.endsWith('/fail')) return Promise.reject(new Error('service rejected'));
+                    return Promise.resolve(new Response('service response', { status: 201 }));
+                }
+            }
+            const classes = {
+                Fetcher,
+                ServiceStub: class ServiceStub extends Fetcher {},
+                OtherBinding: class OtherBinding {},
+            };
+            return new classes[name]();
+        }
+    ")]
+    extern "C" {
+        #[wasm_bindgen(js_name = serviceBinding)]
+        fn service_binding(name: &str) -> JsValue;
+    }
+
+    fn env_with_binding(value: &JsValue) -> Env {
+        let env = js_sys::Object::new();
+        js_sys::Reflect::set(&env, &"SERVICE".into(), value).unwrap();
+        env.unchecked_into()
+    }
+
+    #[wasm_bindgen_test]
+    fn accepts_service_stub_bindings() {
+        let value = service_binding("ServiceStub");
+        let env = env_with_binding(&value);
+        assert_eq!(JsValue::from(env.service("SERVICE").unwrap()), value);
+    }
+
+    #[wasm_bindgen_test]
+    fn accepts_legacy_fetcher_bindings() {
+        let value = service_binding("Fetcher");
+        let env = env_with_binding(&value);
+        assert_eq!(JsValue::from(env.service("SERVICE").unwrap()), value);
+        assert_eq!(JsValue::from(env.assets("SERVICE").unwrap()), value);
+    }
+
+    #[wasm_bindgen_test]
+    async fn fetches_through_service_stub_bindings() {
+        let env = env_with_binding(&service_binding("ServiceStub"));
+        let fetcher = env.service("SERVICE").unwrap();
+        let response = fetcher.fetch("https://service.test/", None).await.unwrap();
+        #[cfg(not(feature = "http"))]
+        {
+            let mut response = response;
+            assert_eq!(response.status_code(), 201);
+            assert_eq!(response.text().await.unwrap(), "service response");
+        }
+        #[cfg(feature = "http")]
+        assert_eq!(response.status(), http::StatusCode::CREATED);
+        assert!(fetcher
+            .fetch("https://service.test/fail", None)
+            .await
+            .is_err());
+    }
+
+    #[wasm_bindgen_test]
+    fn rejects_unrelated_binding_types() {
+        let env = env_with_binding(&service_binding("OtherBinding"));
+        assert!(env
+            .service("SERVICE")
+            .unwrap_err()
+            .to_string()
+            .contains("Binding cannot be cast to the type Fetcher from OtherBinding"));
+    }
+
+    #[wasm_bindgen_test]
+    fn rejects_missing_bindings() {
+        let env: Env = js_sys::Object::new().unchecked_into();
+        assert!(env
+            .service("SERVICE")
+            .unwrap_err()
+            .to_string()
+            .contains("Binding `SERVICE` is undefined."));
     }
 }
