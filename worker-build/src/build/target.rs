@@ -7,9 +7,11 @@ use crate::emoji;
 use crate::emscripten::{self, Toolchain};
 use crate::versions::MIN_RUSTC_VERSION;
 use anyhow::{anyhow, bail, Context, Result};
+use cargo_metadata::ArtifactDebuginfo;
 use core::str;
 use log::error;
 use log::info;
+use serde::Deserialize;
 use std::fmt;
 use std::path::Path;
 use std::path::PathBuf;
@@ -377,14 +379,15 @@ fn emscripten_link_args(source_map: bool) -> Vec<String> {
 }
 
 /// Run `cargo build` targetting `wasm32-unknown-unknown`, or
-/// `wasm32-unknown-emscripten` with emcc as the linker.
+/// `wasm32-unknown-emscripten` with emcc as the linker. For builds with a
+/// source map, returns the `bin`'s debug level as Cargo resolved it.
 pub fn cargo_build_wasm(
     path: &Path,
     profile: BuildProfile,
     extra_options: &[String],
     panic_unwind: bool,
     emscripten: Option<EmscriptenBuild<'_>>,
-) -> Result<()> {
+) -> Result<Option<ArtifactDebuginfo>> {
     let msg = if panic_unwind {
         format!("{}Compiling to Wasm (with panic=unwind)...", emoji::CYCLONE)
     } else if emscripten.is_some() {
@@ -411,7 +414,7 @@ pub fn cargo_build_wasm(
         cmd.arg("--quiet");
     }
 
-    match profile {
+    match &profile {
         BuildProfile::Profiling => {
             // Once there are DWARF debug info consumers, force enable debug
             // info, because builds that use the release cargo profile disables
@@ -514,13 +517,190 @@ pub fn cargo_build_wasm(
         .collect::<Result<Vec<_>>>()?;
     cmd.args(extra_options_with_absolute_paths);
 
+    let mut debuginfo = None;
+    if let Some(em) = emscripten.filter(|em| em.source_map) {
+        let levels = read_levels(&cmd, em.bin);
+        let override_set =
+            std::env::var_os(profile_env_var(&profile, "BUILD_OVERRIDE_DEBUG")).is_some();
+        cmd.envs(build_env(levels.as_ref(), &profile, override_set));
+        debuginfo = levels.and_then(|levels| levels.bin);
+    }
+
     utils::run(cmd, "cargo build").context("Compiling your crate to WebAssembly failed")?;
-    Ok(())
+    Ok(debuginfo)
+}
+
+/// The debug levels Cargo resolved for the build.
+#[derive(Debug, Default, PartialEq)]
+struct Levels {
+    /// The `bin` target's.
+    bin: Option<ArtifactDebuginfo>,
+    /// Build scripts' and proc macros', if they all have the same one.
+    host: Option<ArtifactDebuginfo>,
+}
+
+/// Read the debug levels Cargo resolves for `build` from its unit graph. On
+/// failure, warns and returns `None`.
+fn read_levels(build: &Command, bin: &str) -> Option<Levels> {
+    let mut cmd = unit_graph_command(build);
+    info!("Running {cmd:?}");
+    let error = match cmd.output() {
+        Ok(output) if output.status.success() => match levels(&output.stdout, bin) {
+            Ok(levels) => return Some(levels),
+            Err(e) => format!("{e:#}"),
+        },
+        Ok(output) => String::from_utf8_lossy(&output.stderr).trim().to_string(),
+        Err(e) => e.to_string(),
+    };
+    PBAR.warn(&format!(
+        "worker-build couldn't read the Cargo profile's debug level, so it builds as \
+         configured: {error}"
+    ));
+    None
+}
+
+/// `cargo build` with `--unit-graph`, which prints the units Cargo would
+/// build, with their resolved profiles, and builds nothing. The flag is
+/// unstable, so this call alone gets `RUSTC_BOOTSTRAP=1`, and it doesn't use
+/// Cargo's cache of rustc's output, which would keep nightly-only cfgs from
+/// that run for the build.
+fn unit_graph_command(build: &Command) -> Command {
+    let mut cmd = Command::new(build.get_program());
+    if let Some(dir) = build.get_current_dir() {
+        cmd.current_dir(dir);
+    }
+    for (name, value) in build.get_envs() {
+        match value {
+            Some(value) => cmd.env(name, value),
+            None => cmd.env_remove(name),
+        };
+    }
+    cmd.args(build.get_args())
+        .args(["--unit-graph", "-Zunstable-options"])
+        .env("RUSTC_BOOTSTRAP", "1")
+        .env("CARGO_CACHE_RUSTC_INFO", "0");
+    cmd
+}
+
+/// The parts of Cargo's unit graph that `levels` reads.
+#[derive(Deserialize)]
+struct UnitGraph {
+    version: u32,
+    units: Vec<Unit>,
+}
+
+#[derive(Deserialize)]
+struct Unit {
+    target: UnitTarget,
+    profile: UnitProfile,
+    /// The target triple; `None` for the host.
+    platform: Option<String>,
+    mode: String,
+}
+
+#[derive(Deserialize)]
+struct UnitTarget {
+    name: String,
+    kind: Vec<String>,
+}
+
+#[derive(Deserialize)]
+struct UnitProfile {
+    debuginfo: ArtifactDebuginfo,
+}
+
+/// The debug levels in Cargo's unit graph.
+fn levels(graph: &[u8], bin: &str) -> Result<Levels> {
+    let graph: UnitGraph = serde_json::from_slice(graph).context("Invalid unit graph")?;
+    if graph.version != 1 {
+        bail!("Unknown unit graph version {}", graph.version);
+    }
+    let mut levels = Levels::default();
+    let mut host = Vec::new();
+    for unit in graph.units.into_iter().filter(|unit| unit.mode == "build") {
+        let is = |kind: &str| unit.target.kind.iter().any(|k| k == kind);
+        if unit.platform.as_deref() == Some(WASM32_EMSCRIPTEN)
+            && unit.target.name == bin
+            && is("bin")
+        {
+            levels.bin = Some(unit.profile.debuginfo);
+        } else if unit.platform.is_none() && (is("custom-build") || is("proc-macro")) {
+            host.push(unit.profile.debuginfo);
+        }
+    }
+    if levels.bin.is_none() {
+        bail!("Cargo's unit graph has no `{bin}` bin");
+    }
+    if host.windows(2).all(|pair| pair[0] == pair[1]) {
+        levels.host = host.pop();
+    }
+    Ok(levels)
+}
+
+/// The environment to add to the build for the debug levels Cargo resolved.
+/// Below line tables, it raises the profile's `debug`, and keeps build
+/// scripts and proc macros at their level, so that the build compiles them
+/// as it would have.
+fn build_env(
+    levels: Option<&Levels>,
+    profile: &BuildProfile,
+    override_set: bool,
+) -> Vec<(String, &'static str)> {
+    let Some(levels) = levels.filter(|c| c.bin.as_ref().is_some_and(needs_line_tables)) else {
+        return Vec::new();
+    };
+    // emcc builds the source map from DWARF line tables.
+    let mut env = vec![(profile_env_var(profile, "DEBUG"), "line-tables-only")];
+    if let Some(host) = levels.host.as_ref().and_then(debug_value) {
+        if !override_set {
+            env.push((profile_env_var(profile, "BUILD_OVERRIDE_DEBUG"), host));
+        }
+    }
+    env
+}
+
+/// Whether `debuginfo` is below the line tables a source map needs.
+fn needs_line_tables(debuginfo: &ArtifactDebuginfo) -> bool {
+    matches!(
+        debuginfo,
+        ArtifactDebuginfo::None | ArtifactDebuginfo::LineDirectivesOnly
+    )
+}
+
+/// `debuginfo` as a Cargo profile's `debug` value.
+fn debug_value(debuginfo: &ArtifactDebuginfo) -> Option<&'static str> {
+    Some(match debuginfo {
+        ArtifactDebuginfo::None => "0",
+        ArtifactDebuginfo::Limited => "1",
+        ArtifactDebuginfo::Full => "2",
+        ArtifactDebuginfo::LineTablesOnly => "line-tables-only",
+        ArtifactDebuginfo::LineDirectivesOnly => "line-directives-only",
+        _ => return None,
+    })
+}
+
+/// The environment variable that sets `key` in the Cargo profile that
+/// `profile` builds with.
+fn profile_env_var(profile: &BuildProfile, key: &str) -> String {
+    let name = match profile {
+        BuildProfile::Release | BuildProfile::Profiling => "release",
+        BuildProfile::Dev => "dev",
+        BuildProfile::Custom(name) => name,
+    };
+    format!(
+        "CARGO_PROFILE_{}_{key}",
+        name.to_uppercase().replace('-', "_")
+    )
 }
 
 #[cfg(test)]
 mod test {
-    use super::emscripten_link_args;
+    use super::{
+        build_env, debug_value, emscripten_link_args, levels, needs_line_tables, profile_env_var,
+        unit_graph_command, ArtifactDebuginfo, BuildProfile, Levels,
+    };
+    use std::path::{Path, PathBuf};
+    use std::process::Command;
 
     #[test]
     fn test_emscripten_link_args_source_map_off() {
@@ -534,5 +714,282 @@ mod test {
         let off = emscripten_link_args(false).len();
         let args = emscripten_link_args(true);
         assert_eq!(&args[off..], ["-Clink-arg=-gsource-map"]);
+    }
+
+    #[test]
+    fn test_profile_env_var() {
+        let var = |profile| profile_env_var(&profile, "DEBUG");
+        assert_eq!(var(BuildProfile::Release), "CARGO_PROFILE_RELEASE_DEBUG");
+        assert_eq!(var(BuildProfile::Profiling), "CARGO_PROFILE_RELEASE_DEBUG");
+        assert_eq!(var(BuildProfile::Dev), "CARGO_PROFILE_DEV_DEBUG");
+        assert_eq!(
+            var(BuildProfile::Custom("release-small".into())),
+            "CARGO_PROFILE_RELEASE_SMALL_DEBUG"
+        );
+        assert_eq!(
+            profile_env_var(&BuildProfile::Release, "BUILD_OVERRIDE_DEBUG"),
+            "CARGO_PROFILE_RELEASE_BUILD_OVERRIDE_DEBUG"
+        );
+    }
+
+    #[test]
+    fn test_needs_line_tables() {
+        assert!(needs_line_tables(&ArtifactDebuginfo::None));
+        assert!(needs_line_tables(&ArtifactDebuginfo::LineDirectivesOnly));
+        assert!(!needs_line_tables(&ArtifactDebuginfo::LineTablesOnly));
+        assert!(!needs_line_tables(&ArtifactDebuginfo::Limited));
+        assert!(!needs_line_tables(&ArtifactDebuginfo::Full));
+    }
+
+    #[test]
+    fn test_debug_value() {
+        for (debuginfo, value) in [
+            (ArtifactDebuginfo::None, Some("0")),
+            (ArtifactDebuginfo::Limited, Some("1")),
+            (ArtifactDebuginfo::Full, Some("2")),
+            (ArtifactDebuginfo::LineTablesOnly, Some("line-tables-only")),
+            (
+                ArtifactDebuginfo::LineDirectivesOnly,
+                Some("line-directives-only"),
+            ),
+            (ArtifactDebuginfo::UnknownInt(3), None),
+        ] {
+            assert_eq!(debug_value(&debuginfo), value, "{debuginfo}");
+        }
+    }
+
+    #[test]
+    fn test_build_env() {
+        let release = BuildProfile::Release;
+        let levels = |bin, host| Levels {
+            bin: Some(bin),
+            host,
+        };
+        let raise = || {
+            (
+                "CARGO_PROFILE_RELEASE_DEBUG".to_string(),
+                "line-tables-only",
+            )
+        };
+        let host = (
+            "CARGO_PROFILE_RELEASE_BUILD_OVERRIDE_DEBUG".to_string(),
+            "0",
+        );
+        let none = Some(ArtifactDebuginfo::None);
+        assert_eq!(
+            build_env(
+                Some(&levels(ArtifactDebuginfo::None, none.clone())),
+                &release,
+                false
+            ),
+            [raise(), host]
+        );
+        let directives = levels(ArtifactDebuginfo::LineDirectivesOnly, None);
+        assert_eq!(build_env(Some(&directives), &release, false), [raise()]);
+        // A build override the user set, or host units at several levels.
+        let zero = levels(ArtifactDebuginfo::None, none);
+        assert_eq!(build_env(Some(&zero), &release, true), [raise()]);
+        let mixed = levels(ArtifactDebuginfo::None, None);
+        assert_eq!(build_env(Some(&mixed), &release, false), [raise()]);
+        for kept in [
+            ArtifactDebuginfo::LineTablesOnly,
+            ArtifactDebuginfo::Limited,
+            ArtifactDebuginfo::Full,
+        ] {
+            let levels = levels(kept, Some(ArtifactDebuginfo::None));
+            assert!(build_env(Some(&levels), &release, false).is_empty());
+        }
+        // The probe failed, or didn't report the bin.
+        assert!(build_env(None, &release, false).is_empty());
+        assert!(build_env(Some(&Levels::default()), &release, false).is_empty());
+    }
+
+    #[test]
+    fn test_unit_graph_command() {
+        let mut build = Command::new("cargo");
+        build
+            .current_dir("/w")
+            .env("RUSTFLAGS", "-Cx")
+            .env_remove("CARGO_TARGET_DIR")
+            .args(["+nightly", "build", "--bin", "app", "-v"]);
+        let probe = unit_graph_command(&build);
+        let args: Vec<_> = probe.get_args().map(|a| a.to_str().unwrap()).collect();
+        assert_eq!(
+            args,
+            [
+                "+nightly",
+                "build",
+                "--bin",
+                "app",
+                "-v",
+                "--unit-graph",
+                "-Zunstable-options"
+            ]
+        );
+        assert_eq!(probe.get_current_dir().unwrap(), Path::new("/w"));
+        let env: Vec<_> = probe.get_envs().collect();
+        assert!(env.contains(&("RUSTFLAGS".as_ref(), Some("-Cx".as_ref()))));
+        assert!(env.contains(&("CARGO_TARGET_DIR".as_ref(), None)));
+        assert!(env.contains(&("RUSTC_BOOTSTRAP".as_ref(), Some("1".as_ref()))));
+        assert!(env.contains(&("CARGO_CACHE_RUSTC_INFO".as_ref(), Some("0".as_ref()))));
+        // Only on the probe.
+        assert!(build
+            .get_envs()
+            .all(|(name, _)| name != "RUSTC_BOOTSTRAP" && name != "CARGO_CACHE_RUSTC_INFO"));
+    }
+
+    /// A unit of Cargo's unit graph.
+    fn unit(name: &str, kind: &str, mode: &str, platform: &str, debuginfo: &str) -> String {
+        format!(
+            r#"{{"pkg_id":"path+file:///w#x@0.1.0","target":{{"kind":["{kind}"],"crate_types":["{kind}"],"name":"{name}","src_path":"/w/src/main.rs","edition":"2021","doc":true,"doctest":false,"test":true}},"profile":{{"name":"release","opt_level":"s","lto":"false","codegen_backend":null,"codegen_units":null,"debuginfo":{debuginfo},"split_debuginfo":null,"debug_assertions":false,"overflow_checks":false,"rpath":false,"incremental":false,"panic":"abort","strip":{{"deferred":"None"}}}},"platform":{platform},"mode":"{mode}","features":[],"dependencies":[]}}"#
+        )
+    }
+
+    const WASM: &str = r#""wasm32-unknown-emscripten""#;
+
+    /// A unit graph of `units`, at `version`.
+    fn graph(version: u32, units: &[String]) -> Vec<u8> {
+        format!(
+            r#"{{"version":{version},"units":[{}],"roots":[0]}}"#,
+            units.join(",")
+        )
+        .into_bytes()
+    }
+
+    #[test]
+    fn test_levels() {
+        for (debuginfo, expected) in [
+            ("0", ArtifactDebuginfo::None),
+            (r#""none""#, ArtifactDebuginfo::None),
+            ("null", ArtifactDebuginfo::None),
+            (
+                r#""line-directives-only""#,
+                ArtifactDebuginfo::LineDirectivesOnly,
+            ),
+            (r#""line-tables-only""#, ArtifactDebuginfo::LineTablesOnly),
+            ("1", ArtifactDebuginfo::Limited),
+            (r#""limited""#, ArtifactDebuginfo::Limited),
+            ("2", ArtifactDebuginfo::Full),
+            (r#""full""#, ArtifactDebuginfo::Full),
+        ] {
+            let units = [
+                // A lib and a bin of the same crate.
+                unit("app", "lib", "build", WASM, "2"),
+                unit("app", "bin", "build", WASM, debuginfo),
+                unit("worker", "lib", "build", WASM, "2"),
+                unit("build-script-build", "custom-build", "build", "null", "0"),
+                unit("worker_macros", "proc-macro", "build", "null", "0"),
+                // Running a build script, and a lib for the host.
+                unit(
+                    "build-script-build",
+                    "custom-build",
+                    "run-custom-build",
+                    "null",
+                    "2",
+                ),
+                unit("syn", "lib", "build", "null", "2"),
+            ];
+            assert_eq!(
+                levels(&graph(1, &units), "app").unwrap(),
+                Levels {
+                    bin: Some(expected),
+                    host: Some(ArtifactDebuginfo::None),
+                },
+                "{debuginfo}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_levels_host_levels() {
+        let bin = unit("app", "bin", "build", WASM, "0");
+        let mixed = [
+            bin.clone(),
+            unit("build-script-build", "custom-build", "build", "null", "0"),
+            unit("worker_macros", "proc-macro", "build", "null", "2"),
+        ];
+        assert_eq!(levels(&graph(1, &mixed), "app").unwrap().host, None);
+        assert_eq!(levels(&graph(1, &[bin]), "app").unwrap().host, None);
+    }
+
+    #[test]
+    fn test_levels_fails() {
+        let bin = unit("app", "bin", "build", WASM, "0");
+        assert!(levels(&graph(1, std::slice::from_ref(&bin)), "app").is_ok());
+        assert!(levels(&graph(2, std::slice::from_ref(&bin)), "app").is_err());
+        assert!(levels(&graph(1, &[bin]), "other").is_err());
+        let host_bin = unit("app", "bin", "build", "null", "0");
+        assert!(levels(&graph(1, &[host_bin]), "app").is_err());
+        let lib = unit("app", "lib", "build", WASM, "0");
+        assert!(levels(&graph(1, &[lib]), "app").is_err());
+        assert!(levels(b"error: no such command", "app").is_err());
+    }
+
+    /// A temporary directory, removed when dropped.
+    struct TempDir(PathBuf);
+
+    impl Drop for TempDir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
+    /// Pins the unit graph's format and debug levels for each `debug`
+    /// setting on stable Cargo with `RUSTC_BOOTSTRAP=1`, that the profile's
+    /// environment variable raises the level, and that `--config` beats that.
+    #[test]
+    fn test_cargo_unit_graph_debuginfo() {
+        let dir =
+            TempDir(std::env::temp_dir().join(format!("wb-unit-graph-{}", std::process::id())));
+        let dir = &dir.0;
+        std::fs::create_dir_all(dir.join("src")).unwrap();
+        std::fs::write(dir.join("src/main.rs"), "fn main() {}\n").unwrap();
+        let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
+        let levels = |debug: &str, env: Option<&str>, args: &[&str]| {
+            std::fs::write(
+                dir.join("Cargo.toml"),
+                format!(
+                    "[package]\nname = \"app\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\
+                     [workspace]\n[profile.release]\ndebug = {debug}\n"
+                ),
+            )
+            .unwrap();
+            let mut build = Command::new(&cargo);
+            build
+                .args(["build", "--release", "--offline"])
+                .args(["--target", "wasm32-unknown-emscripten"])
+                .args(args)
+                .current_dir(dir)
+                .env("CARGO_TARGET_DIR", dir.join("target"))
+                // An empty Cargo home: no registries or credentials.
+                .env("CARGO_HOME", dir.join("cargo-home"))
+                .env_remove("RUSTC_BOOTSTRAP")
+                .env_remove("CARGO_PROFILE_RELEASE_DEBUG");
+            if let Some(env) = env {
+                build.env("CARGO_PROFILE_RELEASE_DEBUG", env);
+            }
+            let output = unit_graph_command(&build).output().unwrap();
+            assert!(output.status.success(), "{debug}");
+            levels(&output.stdout, "app").unwrap().bin
+        };
+        for (debug, expected) in [
+            ("0", ArtifactDebuginfo::None),
+            (
+                "\"line-directives-only\"",
+                ArtifactDebuginfo::LineDirectivesOnly,
+            ),
+            ("\"line-tables-only\"", ArtifactDebuginfo::LineTablesOnly),
+            ("1", ArtifactDebuginfo::Limited),
+            ("2", ArtifactDebuginfo::Full),
+        ] {
+            assert_eq!(levels(debug, None, &[]), Some(expected), "{debug}");
+        }
+        let raised = Some(ArtifactDebuginfo::LineTablesOnly);
+        assert_eq!(levels("0", Some("line-tables-only"), &[]), raised);
+        let config = ["--config", "profile.release.debug=0"];
+        assert_eq!(
+            levels("0", Some("line-tables-only"), &config),
+            Some(ArtifactDebuginfo::None)
+        );
     }
 }
