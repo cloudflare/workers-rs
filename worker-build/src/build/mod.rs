@@ -433,6 +433,7 @@ impl Build {
                     tokio: self.crate_data.worker_tokio_feature(),
                     bindgen_dir: self.bindgen.as_ref().unwrap().parent().unwrap(),
                     source_map: self.source_map,
+                    no_opt: self.no_opt,
                 });
         self.debuginfo = target::cargo_build_wasm(
             &self.crate_path,
