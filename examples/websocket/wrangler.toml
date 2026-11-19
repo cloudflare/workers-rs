@@ -1,0 +1,13 @@
+name = "websocket-on-workers"
+main = "build/worker/shim.mjs"
+compatibility_date = "2023-03-22"
+
+[build]
+command = "cargo install worker-build && worker-build --release"
+
+[durable_objects]
+bindings = [{ name = "LIVE_CHAT", class_name = "LiveCounter" }]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["LiveCounter"]
