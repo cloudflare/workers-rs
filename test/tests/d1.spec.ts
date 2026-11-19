@@ -90,6 +90,12 @@ describe("d1", () => {
     expect(await exec(query)).toBe(1);
   });
 
+  test("blob roundtrip", async () => {
+    const resp = await mf.dispatchFetch(`${mfUrl}d1/blob_roundtrip`);
+    expect(await resp.text()).toBe("ok");
+    expect(resp.status).toBe(200);
+  });
+
   test("jsvalue_null_is_null", async () => {
     const resp = await mf.dispatchFetch(`${mfUrl}d1/jsvalue_null_is_null`);
     expect(await resp.text()).toBe("ok");
