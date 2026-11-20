@@ -310,8 +310,9 @@ checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 
 [[package]]
 name = "mio"
-version = "1.2.4"
-source = "git+https://github.com/tokio-rs/mio#5e2b24a46287dfe06ad025b6ff5b997497bdb606"
+version = "1.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "20521a903f02b0a573cd6840e9d0a5a0cc043d361fe924092cd70f8556cc9c4a"
 dependencies = [
  "libc",
  "wasi",
@@ -559,7 +560,7 @@ dependencies = [
 [[package]]
 name = "tokio"
 version = "1.54.1"
-source = "git+https://github.com/guybedford/tokio?tag=1.54.1-cf.emscripten#139555e3a8802bd35203a839bfc00898dc9a6118"
+source = "git+https://github.com/guybedford/tokio?rev=f30a7e43f0b7897ed42e45c4ce436ee2e17b7524#f30a7e43f0b7897ed42e45c4ce436ee2e17b7524"
 dependencies = [
  "bytes",
  "libc",
@@ -573,7 +574,7 @@ dependencies = [
 [[package]]
 name = "tokio-macros"
 version = "2.7.2"
-source = "git+https://github.com/guybedford/tokio?tag=1.54.1-cf.emscripten#139555e3a8802bd35203a839bfc00898dc9a6118"
+source = "git+https://github.com/guybedford/tokio?rev=f30a7e43f0b7897ed42e45c4ce436ee2e17b7524#f30a7e43f0b7897ed42e45c4ce436ee2e17b7524"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -693,7 +694,7 @@ dependencies = [
 
 [[package]]
 name = "worker"
-version = "0.8.7"
+version = "0.9.0"
 dependencies = [
  "async-trait",
  "bytes",
@@ -722,7 +723,7 @@ dependencies = [
 
 [[package]]
 name = "worker-macros"
-version = "0.8.7"
+version = "0.9.0"
 dependencies = [
  "async-trait",
  "proc-macro2",
@@ -736,7 +737,7 @@ dependencies = [
 
 [[package]]
 name = "worker-sys"
-version = "0.8.7"
+version = "0.9.0"
 dependencies = [
  "cfg-if",
  "js-sys",

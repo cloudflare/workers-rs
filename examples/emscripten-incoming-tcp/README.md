@@ -9,8 +9,8 @@ npx wrangler dev
 ```
 
 An inbound TCP server with `tokio::net::TcpListener`, using the Emscripten
-Tokio patchset (the `guybedford/tokio` tag pinned in `Cargo.toml`,
-tokio-rs/tokio#8484). Building on the [emscripten-tcp example](../emscripten-tcp),
+Tokio patchset (the `guybedford/tokio` revision pinned in `Cargo.toml`,
+tokio-rs/tokio#8479). Building on the [emscripten-tcp example](../emscripten-tcp),
 a Tokio line-echo server greets each connection, echoes every line back
 upper-cased and hangs up on `quit`.
 

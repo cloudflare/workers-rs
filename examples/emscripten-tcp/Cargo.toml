@@ -18,12 +18,9 @@ opt-level = "s"
 # REQUIRED Patchset - Tokio patchset, pending upstream PRs
 # Pending libc@0.2.190
 [patch.crates-io]
-# Pending https://github.com/tokio-rs/tokio/pull/8484
-tokio = { git = "https://github.com/guybedford/tokio", tag = "1.54.1-cf.emscripten" }
-tokio-macros = { git = "https://github.com/guybedford/tokio", tag = "1.54.1-cf.emscripten" }
-
-# Pending release of https://github.com/tokio-rs/mio/pull/1969
-mio = { git = "https://github.com/tokio-rs/mio" }
+# Pending https://github.com/tokio-rs/tokio/pull/8479 and https://github.com/tokio-rs/tokio/pull/8438
+tokio = { git = "https://github.com/guybedford/tokio", rev = "f30a7e43f0b7897ed42e45c4ce436ee2e17b7524" }
+tokio-macros = { git = "https://github.com/guybedford/tokio", rev = "f30a7e43f0b7897ed42e45c4ce436ee2e17b7524" }
 
 # Pending the wasm-bindgen release after 0.2.130
 wasm-bindgen = { path = "../../wasm-bindgen" }
