@@ -42,6 +42,7 @@ pub struct Build {
     pub disable_dts: bool,
     pub target: Target,
     pub no_opt: bool,
+    pub no_wasm_opt: bool,
     pub profile: BuildProfile,
     pub out_dir: PathBuf,
     pub out_name: Option<String>,
@@ -174,6 +175,10 @@ pub struct BuildOptions {
     /// Option to skip optimization with wasm-opt
     pub no_opt: bool,
 
+    #[clap(long = "no-wasm-opt", conflicts_with = "emscripten")]
+    /// Shrink the wasm binary with wasm-shrink instead of running wasm-opt.
+    pub no_wasm_opt: bool,
+
     /// List of extra options to pass to `cargo build`
     pub extra_options: Vec<String>,
 
@@ -245,6 +250,7 @@ impl Build {
             disable_dts: build_opts.disable_dts,
             target: build_opts.target,
             no_opt: build_opts.no_opt,
+            no_wasm_opt: build_opts.no_wasm_opt,
             profile,
             out_dir,
             out_name: build_opts.out_name,
@@ -681,6 +687,10 @@ impl Build {
             Some(args) => wasm_opt_args(args),
             None => return Ok(()),
         };
+        if self.no_wasm_opt {
+            info!("executing wasm-shrink");
+            return wasm_shrink_run(&self.out_dir);
+        }
         info!("executing wasm-opt with {args:?}");
         wasm_opt_run(&self.out_dir, &args).map_err(|e| {
             anyhow!(
@@ -840,6 +850,28 @@ fn wasm_opt_args(mut args: Vec<String>) -> Vec<String> {
         args.push(format!("--enable-{feature}"));
     }
     args
+}
+
+/// Shrink every wasm binary in `out_dir` in place with wasm-shrink's default
+/// pipeline.
+pub fn wasm_shrink_run(out_dir: &Path) -> Result<()> {
+    PBAR.info("Optimizing wasm binaries with `wasm-shrink`...");
+
+    for file in out_dir.read_dir()? {
+        let path = file?.path();
+        if path.extension().and_then(|s| s.to_str()) != Some("wasm") {
+            continue;
+        }
+
+        let wasm =
+            std::fs::read(&path).with_context(|| format!("Failed to read {}", path.display()))?;
+        let out = wasm_shrink::shrink(&wasm)
+            .map_err(|e| anyhow!("wasm-shrink failed on {}: {e:#}", path.display()))?;
+        std::fs::write(&path, out)
+            .with_context(|| format!("Failed to write {}", path.display()))?;
+    }
+
+    Ok(())
 }
 
 /// Execute `wasm-opt` over wasm binaries found in `out_dir`, downloading if
