@@ -3504,8 +3504,8 @@ dependencies = [
 
 [[package]]
 name = "wasm-shrink"
-version = "0.1.0"
-source = "git+https://github.com/logan-gatlin/wasm-shrink?tag=v0.1.0#4d22a0487fdefba9478f4047ec94489e2bdd6fed"
+version = "0.1.2"
+source = "git+https://github.com/logan-gatlin/wasm-shrink?tag=v0.1.2#ae63d9dc9d96b53c4f366e5b1482c473b456920c"
 dependencies = [
  "rayon",
  "walrus 0.28.0",
