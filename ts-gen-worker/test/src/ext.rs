@@ -101,7 +101,7 @@ impl DurableObject for MacroCounter {
             ));
         }
         let count = storage.get::<f64>("count").await?.unwrap_or(0.0) + 1.0;
-        storage.put("count", &count).await?;
+        storage.put("count", count).await?;
         let name = self.state.id().name().unwrap_or_default();
         Response::builder().ok(format!(
             "{name} {count} {} {}",
@@ -192,8 +192,18 @@ pub async fn handle(
                 .map(|(k, v)| format!("{k}={v}"))
                 .collect::<Vec<_>>()
                 .join(",");
-            let keys = headers.keys().into_iter().collect::<Vec<_>>().join(",");
-            let values = headers.values().into_iter().collect::<Vec<_>>().join(",");
+            let keys = headers
+                .keys()
+                .into_iter()
+                .map(String::from)
+                .collect::<Vec<_>>()
+                .join(",");
+            let values = headers
+                .values()
+                .into_iter()
+                .map(String::from)
+                .collect::<Vec<_>>()
+                .join(",");
             let all = headers.get_all("set-cookie")?.join("|");
             let x_a = headers.get_all("x-a").unwrap_err().to_string();
             Response::builder().ok(format!("{entries} / {keys} / {values} / {all} / {x_a}"))
@@ -323,7 +333,9 @@ pub async fn handle(
             let by_url = Fetch::Url("https://upstream.test/a".into()).send().await?;
             let req = Request::new_with_str_and_init(
                 "https://upstream.test/b",
-                &RequestInit::builder().method("POST").build(),
+                &RequestInit::<IncomingRequestCfProperties>::builder()
+                    .method("POST")
+                    .build(),
             )?;
             let by_request = Fetch::Request(req).send().await?;
             let controller = AbortController::default();
@@ -437,7 +449,7 @@ pub async fn handle(
                 .header("x-a", "2")?
                 .header("content-type", "text/csv")?
                 .cors(&cors)?
-                .encode_body(EncodeBodyKind::Manual)
+                .encode_body(ResponseInitEncodeBody::Manual)
                 .ok("a,b")?;
             Response::builder().ok(format!(
                 "{} {} {}",
@@ -491,7 +503,10 @@ pub async fn handle(
                 Ok::<_, Error>(b"one".to_vec()),
                 Ok(b"two".to_vec()),
             ]))?;
-            let partial_body = partial.body().ok_or_else(|| Error::from("no body"))?;
+            let partial_body: ReadableStream<js_sys::Uint8Array> = partial
+                .body()
+                .ok_or_else(|| Error::from("no body"))?
+                .unchecked_into();
             let mut stream = ByteStream::from(partial_body.clone());
             let first =
                 String::from_utf8_lossy(&stream.next().await.transpose()?.unwrap_or_default())

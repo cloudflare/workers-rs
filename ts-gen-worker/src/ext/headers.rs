@@ -7,6 +7,16 @@ impl Default for Headers {
     }
 }
 
+// Stopgap: the generator does not yet derive `IntoIterator` from `[Symbol.iterator]`.
+impl IntoIterator for &Headers {
+    type Item = (js_sys::JsString, js_sys::JsString);
+    type IntoIter = js_sys::Entries<js_sys::JsString, js_sys::JsString>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.entries().into()
+    }
+}
+
 impl<K: AsRef<str>, V: AsRef<str>> FromIterator<(K, V)> for Headers {
     fn from_iter<I: IntoIterator<Item = (K, V)>>(iter: I) -> Self {
         let headers = Headers::default();
@@ -67,6 +77,7 @@ mod http_impls {
         fn try_from(headers: &Headers) -> Result<Self> {
             let mut map = HeaderMap::new();
             for (name, value) in headers {
+                let (name, value) = (String::from(name), String::from(value));
                 let name = HeaderName::from_str(&name)
                     .map_err(|e| Error::Rust(format!("invalid header name `{name}`: {e}")))?;
                 let value = HeaderValue::from_str(&value).map_err(|e| {

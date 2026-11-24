@@ -20,7 +20,9 @@ impl Fetch {
     }
 
     pub async fn send_with_signal(&self, signal: &AbortSignal) -> Result<Response> {
-        let init = RequestInit::builder().signal(signal).build();
+        let init = RequestInit::<crate::RequestInitCfProperties>::builder()
+            .signal(signal)
+            .build();
         match self {
             Fetch::Url(url) => fetch_with_str_and_init(url, &init).await,
             Fetch::Request(req) => fetch_with_init(req, &init).await,
@@ -55,6 +57,7 @@ impl From<url::Url> for Fetch {
 
 impl Default for AbortController {
     fn default() -> Self {
-        Self::new()
+        // Stopgap: the constructor is `@throws {never}`, which the generator still binds as fallible.
+        Self::new().expect("the AbortController constructor does not throw")
     }
 }

@@ -5,9 +5,10 @@
 
 use std::collections::HashMap;
 
-use js_sys::{ArrayBuffer, Map, Nullable};
-use wasm_bindgen::convert::Upcast;
+use js_sys::{ArrayBuffer, JsNullable, JsString, Map, Promise};
 use wasm_bindgen::convert::FromWasmAbi;
+use wasm_bindgen::convert::Upcast;
+use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsStringLike;
 use wasm_bindgen::JsValue;
 
@@ -111,12 +112,42 @@ impl ToRawKvValue for String {
 #[cfg(feature = "serde")]
 type TextEntry = KVNamespaceGetWithMetadataResult<String, JsValue>;
 
-// The typed read wrappers set `type` themselves; the builder still asks for
-// one.
-fn get_options(cache_ttl: Option<u64>) -> KVNamespaceGetOptions<String> {
-    let builder = KVNamespaceGetOptions::builder(&String::from("text"));
+// Stopgap: the generator binds the `type` literal with `cacheTtl` only for text reads,
+// so the buffer and stream reads under options are bound here.
+#[wasm_bindgen(experimental_generic_mono)]
+extern "C" {
+    #[wasm_bindgen(method, catch, js_name = "get")]
+    fn get_array_buffer_with_options(
+        this: &KVNamespace,
+        key: &str,
+        options: &KVNamespaceGetOptions<String>,
+    ) -> Promise<Option<ArrayBuffer>, crate::Error>;
+    #[wasm_bindgen(method, catch, js_name = "get")]
+    fn get_stream_with_options(
+        this: &KVNamespace,
+        key: &str,
+        options: &KVNamespaceGetOptions<String>,
+    ) -> Promise<Option<ReadableStream>, crate::Error>;
+    #[cfg(feature = "serde")]
+    #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
+    fn get_with_metadata_array_buffer_with_options(
+        this: &KVNamespace,
+        key: &str,
+        options: &KVNamespaceGetOptions<String>,
+    ) -> Promise<KVNamespaceGetWithMetadataResult<ArrayBuffer>, crate::Error>;
+    #[cfg(feature = "serde")]
+    #[wasm_bindgen(method, catch, js_name = "getWithMetadata")]
+    fn get_with_metadata_stream_with_options(
+        this: &KVNamespace,
+        key: &str,
+        options: &KVNamespaceGetOptions<String>,
+    ) -> Promise<KVNamespaceGetWithMetadataResult<ReadableStream>, crate::Error>;
+}
+
+fn get_options(r#type: &str, cache_ttl: Option<u64>) -> KVNamespaceGetOptions<String> {
+    let builder = KVNamespaceGetOptions::builder(r#type.to_owned());
     match cache_ttl {
-        Some(ttl) => builder.cache_ttl(ttl),
+        Some(ttl) => builder.cache_ttl(ttl.into()),
         None => builder,
     }
     .build()
@@ -133,7 +164,6 @@ fn metadata<V, M: serde::de::DeserializeOwned>(
 ) -> Result<Option<M>> {
     Ok(entry
         .metadata()
-        
         .map(serde_wasm_bindgen::from_value)
         .transpose()?)
 }
@@ -153,13 +183,16 @@ impl KvGetBuilder {
         self
     }
 
-    fn options(&self) -> KVNamespaceGetOptions<String> {
-        get_options(self.cache_ttl)
+    fn options(&self, r#type: &str) -> KVNamespaceGetOptions<String> {
+        get_options(r#type, self.cache_ttl)
     }
 
     pub async fn text(self) -> Result<Option<String>> {
-        let options = self.options();
-        let text = self.kv.get_text_with_options(&self.key, &options).await?;
+        let options = self.options("text");
+        let text = self
+            .kv
+            .get_with_str_and_kv_namespace_get_options(&self.key, &options)
+            .await?;
         Ok(text)
     }
 
@@ -170,7 +203,7 @@ impl KvGetBuilder {
     }
 
     pub async fn bytes(self) -> Result<Option<Vec<u8>>> {
-        let options = self.options();
+        let options = self.options("arrayBuffer");
         let buffer = self
             .kv
             .get_array_buffer_with_options(&self.key, &options)
@@ -179,7 +212,7 @@ impl KvGetBuilder {
     }
 
     pub async fn stream(self) -> Result<Option<ReadableStream>> {
-        let options = self.options();
+        let options = self.options("stream");
         let stream = self.kv.get_stream_with_options(&self.key, &options).await?;
         Ok(stream)
     }
@@ -188,10 +221,10 @@ impl KvGetBuilder {
     pub async fn text_with_metadata<M: serde::de::DeserializeOwned>(
         self,
     ) -> Result<(Option<String>, Option<M>)> {
-        let options = self.options();
+        let options = self.options("text");
         let entry = self
             .kv
-            .get_with_metadata_text_with_options(&self.key, &options)
+            .get_with_metadata_with_str_and_kv_namespace_get_options(&self.key, &options)
             .await?;
         Ok((entry.value(), metadata(&entry)?))
     }
@@ -211,22 +244,19 @@ impl KvGetBuilder {
     pub async fn bytes_with_metadata<M: serde::de::DeserializeOwned>(
         self,
     ) -> Result<(Option<Vec<u8>>, Option<M>)> {
-        let options = self.options();
+        let options = self.options("arrayBuffer");
         let entry = self
             .kv
             .get_with_metadata_array_buffer_with_options(&self.key, &options)
             .await?;
-        Ok((
-            entry.value().map(Vec::from),
-            metadata(&entry)?,
-        ))
+        Ok((entry.value().map(Vec::from), metadata(&entry)?))
     }
 
     #[cfg(feature = "serde")]
     pub async fn stream_with_metadata<M: serde::de::DeserializeOwned>(
         self,
     ) -> Result<(Option<ReadableStream>, Option<M>)> {
-        let options = self.options();
+        let options = self.options("stream");
         let entry = self
             .kv
             .get_with_metadata_stream_with_options(&self.key, &options)
@@ -250,40 +280,42 @@ impl KvGetBulkBuilder {
         self
     }
 
-    async fn text_map(&self) -> Result<Map<String, Nullable<String>>> {
-        let options = get_options(self.cache_ttl);
+    async fn text_map(&self) -> Result<Map<JsString, JsNullable<JsString>>> {
+        let options = get_options("text", self.cache_ttl);
         self.kv
-            .get_text_with_slice_and_options(&self.keys, &options)
+            .get_with_slice_and_kv_namespace_get_options(&self.keys, &options)
             .await
     }
 
     #[cfg(feature = "serde")]
-    async fn text_map_with_metadata(&self) -> Result<Map<String, TextEntry>> {
-        let options = get_options(self.cache_ttl);
+    async fn text_map_with_metadata(&self) -> Result<Map<JsString, TextEntry>> {
+        let options = get_options("text", self.cache_ttl);
         self.kv
-            .get_with_metadata_text_with_slice_and_options(&self.keys, &options)
+            .get_with_metadata_with_slice_and_kv_namespace_get_options(&self.keys, &options)
             .await
     }
 
     fn collect<V: FromWasmAbi, T>(
-        map: Map<String, V>,
+        map: Map<JsString, V>,
         mut decode: impl FnMut(V) -> Result<T>,
     ) -> Result<HashMap<String, T>> {
         map.into_iter()
-            .map(|(key, value)| Ok((key, decode(value)?)))
+            .map(|(key, value)| Ok((String::from(key), decode(value)?)))
             .collect()
     }
 
     /// Every requested key, `None` where absent.
     pub async fn text(self) -> Result<HashMap<String, Option<String>>> {
-        Self::collect(self.text_map().await?, |v| Ok(v.into()))
+        Self::collect(self.text_map().await?, |v| {
+            Ok(v.into_option().map(String::from))
+        })
     }
 
     /// Every requested key parsed as JSON into `T`, `None` where absent.
     #[cfg(feature = "serde")]
     pub async fn json<T: serde::de::DeserializeOwned>(self) -> Result<HashMap<String, Option<T>>> {
         Self::collect(self.text_map().await?, |v| {
-            parse_json(Option::<String>::from(v).as_deref())
+            parse_json(v.into_option().map(String::from).as_deref())
         })
     }
 
@@ -304,10 +336,7 @@ impl KvGetBulkBuilder {
         self,
     ) -> Result<HashMap<String, (Option<T>, Option<M>)>> {
         Self::collect(self.text_map_with_metadata().await?, |entry| {
-            Ok((
-                parse_json(entry.value().as_deref())?,
-                metadata(&entry)?,
-            ))
+            Ok((parse_json(entry.value().as_deref())?, metadata(&entry)?))
         })
     }
 }
@@ -331,13 +360,13 @@ pub struct KvPutBuilder {
 impl KvPutBuilder {
     /// Unix timestamp (seconds) at which the key expires.
     pub fn expiration(self, expiration: u64) -> Self {
-        self.options.set_expiration(expiration);
+        self.options.set_expiration(expiration.into());
         self
     }
 
     /// Seconds until the key expires.
     pub fn expiration_ttl(self, expiration_ttl: u64) -> Self {
-        self.options.set_expiration_ttl(expiration_ttl);
+        self.options.set_expiration_ttl(expiration_ttl.into());
         self
     }
 
@@ -359,7 +388,7 @@ impl KvPutBuilder {
         match value {
             KvPutValue::Text(text) => kv.put_with_options(&key, &text, &options).await?,
             KvPutValue::Bytes(buffer) => {
-                kv.put_with_buffer_source_and_options(&key, &buffer, &options)
+                kv.put_with_array_buffer_and_options(&key, &buffer, &options)
                     .await?
             }
             KvPutValue::Stream(stream) => {
@@ -381,7 +410,7 @@ pub struct KvListBuilder {
 impl KvListBuilder {
     /// Maximum keys returned; 1000 is the default and the maximum.
     pub fn limit(self, limit: u64) -> Self {
-        self.options.set_limit(limit);
+        self.options.set_limit(limit.into());
         self
     }
 

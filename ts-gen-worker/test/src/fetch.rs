@@ -53,8 +53,8 @@ pub async fn handle_request_init_fetch(
     _env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    let init = RequestInit::new();
-    fetch(&Request::new_with_str_and_init(
+    let init = RequestInit::<RequestInitCfProperties>::new();
+    fetch(&Request::<wasm_bindgen::JsValue, _>::new_with_str_and_init(
         "https://cloudflare.com",
         &init,
     )?)
@@ -66,8 +66,10 @@ pub async fn handle_request_init_fetch_post(
     _env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    let init = RequestInit::builder().method("POST").build();
-    fetch(&Request::new_with_str_and_init(
+    let init = RequestInit::<RequestInitCfProperties>::builder()
+        .method("POST")
+        .build();
+    fetch(&Request::<wasm_bindgen::JsValue, _>::new_with_str_and_init(
         "https://httpbin.org/post",
         &init,
     )?)
@@ -79,14 +81,16 @@ pub async fn handle_cancelled_fetch(
     _env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    let controller = AbortController::new();
+    let controller = AbortController::new()?;
     let signal = controller.signal();
 
     let (tx, rx) = futures_channel::oneshot::channel();
 
     spawn_local({
         async move {
-            let init = RequestInit::builder().signal(&signal).build();
+            let init = RequestInit::<RequestInitCfProperties>::builder()
+                .signal(&signal)
+                .build();
             let res = fetch_with_str_and_init("https://cloudflare.com", &init).await;
             tx.send(res).unwrap();
         }
@@ -105,11 +109,13 @@ pub async fn handle_fetch_timeout(
     _env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    let controller = AbortController::new();
+    let controller = AbortController::new()?;
     let signal = controller.signal();
 
     let fetch_fut = async {
-        let init = RequestInit::builder().signal(&signal).build();
+        let init = RequestInit::<RequestInitCfProperties>::builder()
+            .signal(&signal)
+            .build();
         let res = fetch_with_str_and_init("https://miniflare.mocks/delay", &init).await?;
         let text = res.text().await?;
         Ok::<String, Error>(text)
@@ -170,7 +176,7 @@ pub async fn handle_cloned_response_attributes(
         "",
         &ResponseInit::builder()
             .status(200)
-            .encode_body(EncodeBodyKind::Manual)
+            .encode_body(ResponseInitEncodeBody::Manual)
             .cf(&cf)
             .build(),
     )?;

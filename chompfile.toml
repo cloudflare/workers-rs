@@ -38,7 +38,7 @@ deps = ['install:ts-gen']
 # `ts_gen_worker::Error` but share the crate's `JsException` rather than
 # generating a second enum. The Env file references binding types from the
 # crate; ts-gen has no file-level `--external`, so each one is mapped by name.
-run = '''ts-gen --experimental-generic-mono --input node_modules/@cloudflare/workers-types/index.d.ts \
+run = '''ts-gen --experimental-generic-mono --promise-returns promise --input node_modules/@cloudflare/workers-types/index.d.ts \
   --output ts-gen-worker/src/bindings.rs \
   --fallible --error-type crate::Error --error-enum JsException \
   --annotate ts-gen-worker/types/annotations.d.ts \
@@ -62,11 +62,11 @@ run = '''ts-gen --experimental-generic-mono --input node_modules/@cloudflare/wor
   --export Queue Fetcher Service DispatchNamespace \
   --export Socket SocketOptions Hyperdrive AnalyticsEngineDataset RateLimit \
   --export SecretsStoreSecret WorkerVersionMetadata \
-  --export IncomingRequestCfProperties RequestInitCfProperties \
+  --export IncomingRequestCfProperties RequestInitCfProperties ImageCompositeMode \
   --export crypto DigestStream console performance setTimeout clearTimeout \
   --export cloudflare:sockets
 rustfmt --edition 2021 ts-gen-worker/src/bindings.rs
-ts-gen --experimental-generic-mono --input ts-gen-worker/test/types/env.d.ts --output ts-gen-worker/test/src/env.rs \
+ts-gen --experimental-generic-mono --promise-returns promise --input ts-gen-worker/test/types/env.d.ts --output ts-gen-worker/test/src/env.rs \
   --fallible --error-type ts_gen_worker::Error \
   --external "KVNamespace=::ts_gen_worker::KVNamespace" \
   --external "Queue=::ts_gen_worker::Queue" \
@@ -78,7 +78,7 @@ ts-gen --experimental-generic-mono --input ts-gen-worker/test/types/env.d.ts --o
   --external "SendEmail=::ts_gen_worker::SendEmail" \
   --external "D1Database=::ts_gen_worker::D1Database" \
   --external "R2Bucket=::ts_gen_worker::R2Bucket"
-ts-gen --experimental-generic-mono --input ts-gen-worker/benchmark/types/env.d.ts --output ts-gen-worker/benchmark/src/env.rs \
+ts-gen --experimental-generic-mono --promise-returns promise --input ts-gen-worker/benchmark/types/env.d.ts --output ts-gen-worker/benchmark/src/env.rs \
   --fallible --error-type ts_gen_worker::Error \
   --external "KVNamespace=::ts_gen_worker::KVNamespace" \
   --external "Fetcher=::ts_gen_worker::Fetcher"'''
@@ -90,7 +90,7 @@ ts-gen --experimental-generic-mono --input ts-gen-worker/benchmark/types/env.d.t
 [[task]]
 name = 'build:ts-gen-worker'
 deps = ['build:wasm-bindgen']
-env.RUSTFLAGS = '--cfg getrandom_backend="wasm_js" --cfg js_sys_unstable_apis --cfg wasm_bindgen_unstable_generic_vec'
+env.RUSTFLAGS = '--cfg getrandom_backend="wasm_js" --cfg js_sys_unstable_apis'
 env.CARGO_TARGET_DIR = 'target/mono'
 run = '''cargo build -p ts-gen-worker-test --target wasm32-unknown-unknown
 wasm-bindgen/target/debug/wasm-bindgen --target module --out-name index --force-enable-abort-handler \
@@ -107,7 +107,7 @@ run = 'npx vitest run --root .'
 [[task]]
 name = 'build:ts-gen-worker-http'
 deps = ['build:wasm-bindgen']
-env.RUSTFLAGS = '--cfg getrandom_backend="wasm_js" --cfg js_sys_unstable_apis --cfg wasm_bindgen_unstable_generic_vec'
+env.RUSTFLAGS = '--cfg getrandom_backend="wasm_js" --cfg js_sys_unstable_apis'
 env.CARGO_TARGET_DIR = 'target/mono'
 run = '''cargo build -p ts-gen-worker-test --features http --target wasm32-unknown-unknown
 wasm-bindgen/target/debug/wasm-bindgen --target module --out-name index --force-enable-abort-handler \
@@ -122,7 +122,7 @@ run = 'npx vitest run --root .'
 
 [[task]]
 name = 'lint:ts-gen-worker'
-env.RUSTFLAGS = '--cfg getrandom_backend="wasm_js" --cfg js_sys_unstable_apis --cfg wasm_bindgen_unstable_generic_vec'
+env.RUSTFLAGS = '--cfg getrandom_backend="wasm_js" --cfg js_sys_unstable_apis'
 env.CARGO_TARGET_DIR = 'target/mono'
 run = '''cargo clippy --target wasm32-unknown-unknown --all-targets -p ts-gen-worker -p ts-gen-worker-macros \
   -p ts-gen-worker-test -p ts-gen-worker-benchmark -- -D warnings'''

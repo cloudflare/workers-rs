@@ -55,8 +55,11 @@ async fn first<T: DeserializeOwned>(
     col_name: Option<&str>,
 ) -> Result<Option<T>> {
     let value = match col_name {
-        Some(col) => stmt.first_with_col_name(col).await?,
-        None => stmt.first().await?,
+        Some(col) => {
+            stmt.first_with_col_name::<wasm_bindgen::JsValue>(col)
+                .await?
+        }
+        None => stmt.first::<wasm_bindgen::JsValue>().await?,
     };
     Ok(value.map(serde_wasm_bindgen::from_value).transpose()?)
 }
@@ -184,7 +187,8 @@ pub async fn session_prepare_and_batch(
     assert_eq!(person.name, "Ryan Upton");
     assert_eq!(person.age, 21);
 
-    let constrained_session = db.with_session_with_constraint(D1SessionConstraint::FirstPrimary);
+    let constrained_session =
+        db.with_session_with_d1_session_constraint(D1SessionConstraint::FirstPrimary);
     let mut results_iter = constrained_session
         .batch(&[
             constrained_session.prepare("SELECT * FROM people WHERE id < 3"),
@@ -211,7 +215,8 @@ pub async fn session_bookmark_roundtrip(
     _data: SomeSharedData,
 ) -> Result<Response> {
     let db = env.db();
-    let session = db.with_session_with_constraint(D1SessionConstraint::FirstUnconstrained);
+    let session =
+        db.with_session_with_d1_session_constraint(D1SessionConstraint::FirstUnconstrained);
 
     let stmt = bind_refs(
         &session.prepare("SELECT * FROM people WHERE id = ?"),
@@ -224,7 +229,7 @@ pub async fn session_bookmark_roundtrip(
     if let Some(bookmark) = bookmark {
         assert!(!bookmark.is_empty());
 
-        let resumed_session = db.with_session_with_bookmark(&bookmark);
+        let resumed_session = db.with_session_with_str(&bookmark);
         let stmt = bind_refs(
             &resumed_session.prepare("SELECT * FROM people WHERE id = ?"),
             &[&D1Type::Integer(4)],
@@ -233,7 +238,8 @@ pub async fn session_bookmark_roundtrip(
         assert_eq!(person.name, "John Smith");
     } else {
         // Some local runtimes may not materialize bookmarks for simple reads.
-        let fallback_session = db.with_session_with_constraint(D1SessionConstraint::FirstPrimary);
+        let fallback_session =
+            db.with_session_with_d1_session_constraint(D1SessionConstraint::FirstPrimary);
         let stmt = bind_refs(
             &fallback_session.prepare("SELECT * FROM people WHERE id = ?"),
             &[&D1Type::Integer(4)],

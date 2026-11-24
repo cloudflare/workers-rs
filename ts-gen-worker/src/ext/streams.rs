@@ -62,6 +62,13 @@ impl From<ReadableStream<Uint8Array>> for ByteStream {
     }
 }
 
+// Stopgap: `body` is annotated `ReadableStream<Uint8Array>`, which the generator does not read yet.
+impl From<ReadableStream> for ByteStream {
+    fn from(stream: ReadableStream) -> Self {
+        stream.unchecked_into::<ReadableStream<Uint8Array>>().into()
+    }
+}
+
 impl Drop for ByteStream {
     fn drop(&mut self) {
         if let Some(reader) = self.reader.take() {
@@ -184,7 +191,7 @@ impl ResponseInitBuilder {
         S::Error: Into<Error>,
     {
         Ok(Response::new_with_readable_stream_and_init(
-            &readable_stream_from(stream),
+            Some(&readable_stream_from(stream)),
             &self.build(),
         )?)
     }

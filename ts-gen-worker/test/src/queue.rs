@@ -43,7 +43,7 @@ pub async fn handle_queue_send(req: Request, env: Env, _data: SomeSharedData) ->
         id,
         id_string: id.to_string(),
     })?;
-    match my_queue.send(&body).await {
+    match my_queue.send(body).await {
         Ok(_) => Response::builder().ok("Message sent"),
         Err(err) => {
             Response::builder().error(format!("Failed to send message to queue: {err:?}"), 500)
@@ -65,11 +65,11 @@ pub async fn handle_batch_send(req: Request, env: Env, _: SomeSharedData) -> Res
     let batch = messages
         .iter()
         .map(|message| {
-            Ok(MessageSendRequest::new(&serde_wasm_bindgen::to_value(
+            Ok(MessageSendRequest::new(serde_wasm_bindgen::to_value(
                 message,
             )?))
         })
-        .collect::<Result<Vec<_>>>()?;
+        .collect::<Result<js_sys::Array<MessageSendRequest<wasm_bindgen::JsValue>>>>()?;
 
     match my_queue.send_batch(&batch).await {
         Ok(_) => Response::builder().ok("Message sent"),

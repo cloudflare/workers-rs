@@ -85,9 +85,9 @@ pub async fn put_metadata(_req: Request, env: Env, _data: SomeSharedData) -> Res
         )
         .await?;
 
-    let result = store.get_with_metadata_typed::<f64>("put_b").await?;
+    let result = store.get_with_metadata("put_b").await?;
     kv_assert_eq!(result.value().unwrap(), "test")?;
-    kv_assert_eq!(result.metadata(), Some(100.0))?;
+    kv_assert_eq!(result.metadata().and_then(|m| m.as_f64()), Some(100.0))?;
 
     Response::builder().ok("passed")
 }
@@ -100,7 +100,7 @@ pub async fn put_expiration(_req: Request, env: Env, _data: SomeSharedData) -> R
             "put_c",
             "test",
             &KVNamespacePutOptions::builder()
-                .expiration(EXPIRATION)
+                .expiration(EXPIRATION.into())
                 .build(),
         )
         .await?;
@@ -116,7 +116,7 @@ pub async fn put_expiration(_req: Request, env: Env, _data: SomeSharedData) -> R
         .into_iter()
         .find(|key| key.name() == "put_c")
         .unwrap();
-    kv_assert_eq!(key.expiration(), Some(EXPIRATION))?;
+    kv_assert_eq!(key.expiration().map(|e| *e), Some(EXPIRATION))?;
 
     Response::builder().ok("passed")
 }
@@ -162,10 +162,15 @@ pub async fn get_bulk(_req: Request, env: Env, _data: SomeSharedData) -> Result<
     let values = store
         .get_with_slice(&["bulk_a", "bulk_b", "bulk_missing"])
         .await?;
-    let text = |key: &str| values.get(key).and_then(|v| v.into_option());
+    let text = |key: &str| {
+        values
+            .get(&key.into())
+            .and_then(|v| v.into_option())
+            .map(String::from)
+    };
     kv_assert_eq!(text("bulk_a"), Some("value_a".to_string()))?;
     kv_assert_eq!(text("bulk_b"), Some("value_b".to_string()))?;
-    kv_assert_eq!(values.has("bulk_missing"), true)?;
+    kv_assert_eq!(values.has(&"bulk_missing".into()), true)?;
     kv_assert_eq!(text("bulk_missing"), None)?;
 
     Response::builder().ok("passed")

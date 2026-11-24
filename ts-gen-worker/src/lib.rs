@@ -24,9 +24,14 @@ pub mod send;
 pub mod signal;
 
 pub use bindings::cloudflare::email::EmailMessage;
+// Stopgap: the generator names a lone dictionary overload by its type, not its parameter.
 pub use bindings::cloudflare::sockets::{
-    connect, connect_with_address, connect_with_address_and_options, connect_with_options,
+    connect, connect_with_options, connect_with_socket_address as connect_with_address,
+    connect_with_socket_address_and_options as connect_with_address_and_options,
 };
+/// Stopgap: `MessageEvent::data` was retyped to this union by `@retype`, which the
+/// generator no longer reads; it remains the hibernation handler's message type.
+pub use bindings::ArrayBufferOrStr as DataKind;
 pub use bindings::*;
 pub use durable::DurableObject;
 pub use error::{Error, Result};

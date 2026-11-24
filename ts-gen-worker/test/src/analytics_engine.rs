@@ -2,6 +2,7 @@ use super::SomeSharedData;
 use crate::Env;
 use ts_gen_worker::*;
 use uuid::Uuid;
+use wasm_bindgen::JsValue;
 
 pub async fn handle_analytics_event(
     req: Request,
@@ -12,9 +13,9 @@ pub async fn handle_analytics_event(
 
     let request_id = Uuid::new_v4();
     let point = AnalyticsEngineDataPoint::builder()
-        .indexes_with_str_slice(&["index1"])
-        .blobs_with_js_value_slice(&[
-            req.method().into(),
+        .indexes(&[JsValue::from("index1")])
+        .blobs(&[
+            JsValue::from(req.method()),
             js_sys::ArrayBuffer::from(&request_id.as_bytes()[..]).into(),
         ])
         .doubles(&[200.0])
@@ -23,8 +24,8 @@ pub async fn handle_analytics_event(
 
     dataset.write_data_point_with_event(
         &AnalyticsEngineDataPoint::builder()
-            .indexes_with_str_slice(&["index1"])
-            .blobs_with_str_slice(&[req.method(), req.method()])
+            .indexes(&[JsValue::from("index1")])
+            .blobs(&[JsValue::from(req.method()), JsValue::from(req.method())])
             .doubles(&[200.0])
             .build(),
     )?;

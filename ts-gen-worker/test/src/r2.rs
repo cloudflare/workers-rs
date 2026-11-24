@@ -74,7 +74,7 @@ impl HttpMetadata {
 fn custom_metadata(object: &R2Object) -> HashMap<String, String> {
     object
         .custom_metadata()
-        .map(|record| record.iter().collect())
+        .map(|record| record.iter().map(|(k, v)| (k, String::from(v))).collect())
         .unwrap_or_default()
 }
 
@@ -181,7 +181,7 @@ pub async fn get_empty(_req: Request, env: Env, _data: SomeSharedData) -> Result
     assert!(object.is_none());
 
     let object = bucket
-        .get_with_options(
+        .get_with_r2_get_options(
             "doesnt-exist-with-properties",
             &R2GetOptions::builder()
                 .only_if(
@@ -228,7 +228,7 @@ pub async fn put(_req: Request, env: Env, _data: SomeSharedData) -> Result<Respo
     spawn_local(async move {
         for _ in 0..16 {
             if writer
-                .write_with_chunk(&Uint8Array::from(&[0u8; 16][..]))
+                .write_with_chunk(Uint8Array::from(&[0u8; 16][..]).into())
                 .await
                 .is_err()
             {
@@ -240,7 +240,7 @@ pub async fn put(_req: Request, env: Env, _data: SomeSharedData) -> Result<Respo
 
     bucket.put_with_str("text", "text").await?;
     bucket
-        .put_with_buffer_source("bytes", &[0u8; 32][..])
+        .put_with_array_buffer("bytes", &js_sys::ArrayBuffer::from(&[0u8; 32][..]))
         .await?;
     bucket.put_with_str("empty", "").await?;
     bucket.put("stream", &fixed_stream.readable()).await?;
@@ -286,7 +286,10 @@ pub async fn put_multipart(_req: Request, env: Env, _data: SomeSharedData) -> Re
         let chunk = vec![u8::try_from(chunk_index).unwrap(); chunk_size];
         uploaded_parts.push(
             upload
-                .upload_part_with_buffer_source(u16::try_from(chunk_index).unwrap(), &chunk[..])
+                .upload_part_with_array_buffer(
+                    u16::try_from(chunk_index).unwrap(),
+                    &js_sys::ArrayBuffer::from(&chunk[..]),
+                )
                 .await?,
         );
     }
@@ -349,13 +352,18 @@ async fn put_full_properties(
     let mut md5_hash: [u8; 16] = md5::compute("example").into();
     let options = R2PutOptions::builder()
         .http_metadata(&http_metadata.to_js())
-        .custom_metadata(&custom_metadata.iter().collect())
-        .md5(&md5_hash[..])
+        .custom_metadata(
+            &custom_metadata
+                .iter()
+                .map(|(k, v)| (k, js_sys::JsString::from(v.as_str())))
+                .collect(),
+        )
+        .md5(&js_sys::ArrayBuffer::from(&md5_hash[..]))
         .build();
     // The options keep their own copy of the digest, not a view of `md5_hash`.
     md5_hash.fill(0);
     let object_with_props = bucket
-        .put_with_str_and_options(name, "example", &options)
+        .put_with_str_and_r2_put_options(name, "example", &options)
         .await?;
     Ok((http_metadata, custom_metadata, object_with_props))
 }

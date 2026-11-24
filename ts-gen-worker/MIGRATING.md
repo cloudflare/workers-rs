@@ -14,30 +14,29 @@ Every sync binding that can throw returns `Result`, so a few calls gain a `?`
 (`text().await?` is a `String`) and passes back to JS (`p.upcast()` where a `&Promise` is taken).
 
 The bindings are generated with mono generics on js-sys's unstable API and wasm-bindgen's generic
-sequences, so an app builds with `--cfg js_sys_unstable_apis --cfg wasm_bindgen_unstable_generic_vec`
+sequences, so an app builds with `--cfg js_sys_unstable_apis`
 (in its `.cargo/config.toml` rustflags or `RUSTFLAGS`), and js-sys
-collections behave like Rust collections: `Map::get("k")`, `for (k, v) in &headers`, `record.iter().collect()`,
-`promise.await`.
+collections behave like Rust collections: `map.get(&"k".into())`, `for (k, v) in &headers`, `record.iter()`,
+`promise.await`. A string inside a collection is a `JsString` handle (`String::from(k)`): `&headers`
+yields `(JsString, JsString)`, a KV bulk read is a `Map<JsString, …>`.
 
 String arguments take `impl JsStringLike` (`&str`, `String`, `&String`), and string lists take
-`&[impl JsStringLike]` (`&["a", "b"]`). A list of a union has one form per element type
-(`.indexes_with_str_slice(&["a"])`, `Blob::new_with_buffer_source_slice(&[&bytes[..]])`) and
-`_with_js_value_slice(&[JsValue])` for a mixed list. A nullable argument, setter or builder value takes the
+`&[impl JsStringLike]` (`&["a", "b"]`). A list of a union is a `&[JsValue]`
+(`.indexes(&["a".into()])`, `Blob::new_with_bits(&[…])`). A nullable argument, setter or builder value takes the
 value bare and sends `null` through its own `_with_null` form (`clear_timeout(id)` /
-`clear_timeout_with_null()`, `Response::new_with_null_and_init(&init)`, `.prefix(p)` /
-`.prefix_with_null()`). An optional one is an overload or builder method left uncalled; only an
-argument or setter whose type admits `undefined` takes `Option<…>`. Reads fold `null` and `undefined` into `None`, `JsValue`
-included (`ws.deserialize_attachment()?` is an `Option<JsValue>`). Types that are only ever read
+`clear_timeout_with_null()`, `.prefix(p)` / `.prefix_with_null()`); a nullable argument that is also
+overloaded takes `Option<…>` (`Response::new_with_readable_stream_and_init(None, &init)`). An optional one is an overload or builder method left uncalled; only an
+argument or setter whose type admits `undefined` takes `Option<…>`. Reads fold `null` and `undefined` into `None`; an `any`
+read stays a `JsValue` (`ws.deserialize_attachment()?`, `storage.get(k)`), checked with `is_undefined()` / `is_null()`. Types that are only ever read
 (`KVNamespaceListResult`, `R2Objects`, Queue metrics) have getters only: no `new`, setters or
 builder. So do the properties workerd makes read-only (`res.status()`, `req.url()`,
-`ws.ready_state()`): there is no `set_status`. Byte arguments take `impl BufferSourceLike`: `&[u8]`, `Vec<u8>` or
-any buffer handle (`bucket.put_with_buffer_source(k, &bytes[..])`, `.md5(&digest[..])`). A `&[u8]`
-is copied into a fresh `Uint8Array`, except where the callee copies or reads it before returning
-(`Response` bodies, KV and R2 `put`, R2 `upload_part`, SubtleCrypto), which take it as a view of wasm
-memory. Callbacks are `Function::from_fn(|event: MessageEvent| …)`, or `Function::once(|| …)` for
-a one-shot. String-enum
-options take the generated enum (`EncodeBodyKind::Manual`, `CacheKind::NoStore`,
-`BinaryTypeKind::Arraybuffer`), and arrays come back as `Vec<T>`. The JS globals are
+`ws.ready_state()`): there is no `set_status`. Byte arguments take a buffer handle, one overload
+per kind: `&ArrayBuffer` (`bucket.put_with_array_buffer(k, &ArrayBuffer::from(&bytes[..]))`,
+`.md5(&ArrayBuffer::from(&digest[..]))`) or a view (`put_with_typed_array(k, &Uint8Array::from(&bytes[..]))`);
+`Response::builder().from_bytes(&bytes)` and `kv.put_bytes(k, &bytes)` take the `&[u8]`. Callbacks are `Function::from_fn(|event: MessageEvent| …)`, or `Function::once(|| …)` for
+a one-shot; an event listener returns `Undefined::UNDEFINED`. String-enum
+options take the generated enum (`ResponseInitEncodeBody::Manual`, `RequestInitCache::NoStore`,
+`WebSocketBinaryType::Arraybuffer`), and arrays come back as `Vec<T>`. The JS globals are
 lower-case statics: `console`, `caches`, `crypto`, `performance` (`caches.with(CacheStorage::default)`
 is `worker`'s `Cache::default()`). `PerformanceMark` has no constructor here;
 `performance.with(|p| p.mark(name))?` creates one.
@@ -112,7 +111,7 @@ Response::builder().status(201).header("x-a", "1")?.ok("hi")
 
 `with_headers(h)` is `.headers(&h)`, `with_cors(&c)?` is `.cors(&c)?`, `with_websocket(ws)`
 is `.web_socket(&ws)`, `with_encode_body(EncodeBody::Manual)` is
-`.encode_body(EncodeBodyKind::Manual)`, `with_cf(v)?` is
+`.encode_body(ResponseInitEncodeBody::Manual)`, `with_cf(v)?` is
 `.cf(&serde_wasm_bindgen::to_value(&v)?)`.
 
 A JS `Response` is immutable, so `res.with_status(..)` does not exist; split and
@@ -157,10 +156,17 @@ Request::new_with_str_and_init(
 )?
 ```
 
-`with_cache(CacheMode::NoStore)` is `.cache(CacheKind::NoStore)`.
+`RequestInit` is generic over its `cf` type, named at the builder:
+`fetch_with_str_and_init` takes a `RequestInit<RequestInitCfProperties>`, built with
+`RequestInit::<RequestInitCfProperties>::builder()`, and `Request::new_with_str_and_init`
+returns a `Request<CfHostMetadata, Cf>` for the init's `Cf`
+(`Request::<JsValue, _>::new_with_str_and_init(url, &init)` where nothing else fixes it).
+
+`with_cache(CacheMode::NoStore)` is `.cache(RequestInitCache::NoStore)`.
 
 `Fetch::Url(..).send()`, `Fetch::Request(..).send_with_signal(&signal)` and
-`AbortController::default()` are unchanged (`Fetch::Url` holds a `String`); the generated
+`AbortController::default()` are unchanged (`Fetch::Url` holds a `String`; the generated
+`AbortController::new()` returns a `Result`); the generated
 `fetch_with_str(url)` / `fetch(&req)` are the direct forms.
 
 ## Headers
@@ -184,17 +190,17 @@ impl DurableObject for Counter {
 }
 ```
 
-`websocket_message` receives a `DataKind` (`String(s)` / `ArrayBuffer(buf)`; its `Blob` and
-`JsValue` arms are for `MessageEvent::data` and never arrive here) instead of
+`websocket_message` receives a `DataKind` (`String(s)` / `ArrayBuffer(buf)`) instead of
 `WebSocketIncomingMessage`; `websocket_close`/`websocket_error` are unchanged. `WebSocket`
 is `PartialEq` and `Eq` by handle, as in `worker`, so a struct deriving `Eq` can hold one.
 `worker`'s `ws.events()` stream is a listener per event type:
-`ws.add_event_listener_message(&Function::from_fn(|e: MessageEvent| …))?`, and the same for
-`close` and `error`. `e.data()` is a `DataKind`: `String`, `ArrayBuffer`, or `Blob` under the
+`ws.add_event_listener("message", f.unchecked_ref())?` with
+`f: Function<fn(MessageEvent) -> Undefined> = Function::from_fn(|e: MessageEvent| …)`,
+and the same for `"close"` and `"error"`. `e.data()` is a `JsValue`: a string, an `ArrayBuffer`, or a `Blob` under the
 `websocket_standard_binary_type` compat flag (the default from 2026-03-17) unless `binaryType` is set,
-and `JsValue` for anything else (a `MessagePort` message is any structured clone).
-`FormData::get` returns `Option<GetReturnKind>` (`File(f)` / `String(s)`), and `get_all` a
-`Vec<GetAllReturnKind>`.
+or anything else (a `MessagePort` message is any structured clone).
+`FormData::get` returns `Option<JsValue>` (a `File` by `dyn_into::<File>()`, else a string by
+`as_string()`), and `get_all` a `Vec<JsValue>`.
 
 ```rust
 // worker                                         // ts-gen-worker
@@ -212,7 +218,8 @@ The storage option structs (`DurableObjectGetOptions`, `GetAlarmOptions`, `SetAl
 `DurableObjectGetOptions::builder().no_cache(true).build()` and passed by reference.
 
 The generated `storage.get::<T>(k)` returns `Option<T>` for a number, string or handle
-(`storage.get::<f64>("count")`), and `storage.put(k, &v)` takes `&f64`, `&String` or a handle.
+(`storage.get::<f64>("count")`; `storage.get::<JsValue>(k)` is the untyped value), and `storage.put(k, v)`
+takes the value: `f64`, `String` or a handle.
 `storage.put_entries_serialized(&s)` stores a struct's fields as entries (`put_multiple`).
 
 ## KV
@@ -230,12 +237,15 @@ kv.list().prefix(p).execute().await?        kv.list_builder().prefix(p).execute(
 ```
 
 `get_bulk`, `put_bytes`, `put_stream` keep their names. The generated reads underneath are
-typed per value type: `kv.get_text_with_options(k, &opts)`, `get_array_buffer_with_options`,
-`get_with_metadata_typed::<M>(k)`, and the bulk `kv.get_text_with_slice(&["a", "b"])`, which
-returns a `Map<String, Nullable<String>>` (a type argument keeps the exact carrier; `get_bulk`
+typed per value type without options (`kv.get_text(k)`, `get_array_buffer(k)`, `get_stream(k)`,
+`get_with_metadata_text(k)`, whose `metadata()` is a `JsValue`); with options only the text read
+is generated (`kv.get_with_str_and_kv_namespace_get_options(k, &opts)`, `opts` built by
+`KVNamespaceGetOptions::builder("text".to_owned())`), so `get_builder` carries the `cache_ttl`
+forms of the others. The bulk read is `kv.get_text_with_slice(&["a", "b"])`, which
+returns a `Map<JsString, JsNullable<JsString>>` (a type argument keeps the exact carrier; `get_bulk`
 folds it to `HashMap<String, Option<String>>`). Every empty-admitting read is an `Option<T>`
 (`kv.get_text(k)` is `Option<String>`, whether the declaration says `null`, `undefined` or
-both); only writes and type arguments keep `Nullable`. `list()` returns the generated
+both); only writes and type arguments keep `Nullable` / `JsNullable`. `list()` returns the generated
 `KVNamespaceListResult` (`keys()` is a `Vec`, `list_complete()`, `cursor()`).
 
 ## Errors

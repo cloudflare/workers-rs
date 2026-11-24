@@ -105,9 +105,9 @@ pub async fn handle_websocket(req: Request, env: Env, _data: SomeSharedData) -> 
     let stub = namespace.get(&namespace.id_from_name("A")?)?;
     let headers = Headers::new()?;
     headers.set("upgrade", "websocket")?;
-    let req = Request::new_with_str_and_init(
+    let req = Request::<wasm_bindgen::JsValue, _>::new_with_str_and_init(
         "https://fake-host/ws",
-        &RequestInit::builder()
+        &RequestInit::<RequestInitCfProperties>::builder()
             .method("GET")
             .headers(&headers)
             .build(),
@@ -126,7 +126,7 @@ pub async fn handle_websocket(req: Request, env: Env, _data: SomeSharedData) -> 
                 }
             }
             WebsocketEvent::Close(_) => {
-                let _res = do_ws.close_with_code_and_reason(1000, "client closed");
+                let _res = do_ws.close_with_code_and_reason(Some(1000), "client closed");
             }
         })?;
     }
@@ -139,7 +139,7 @@ pub async fn handle_websocket(req: Request, env: Env, _data: SomeSharedData) -> 
                 }
             }
             WebsocketEvent::Close(_) => {
-                let _res = server.close_with_code_and_reason(1000, "durable closed");
+                let _res = server.close_with_code_and_reason(Some(1000), "durable closed");
             }
         })?;
     }

@@ -94,10 +94,10 @@ fn build_structured(name: &str) -> Option<EmailMessageBuilder> {
             .text("hello"),
         "structured-with-attachment" => {
             let payload = b"hello attachment";
-            let attachment = EmailAttachment::new_attachment_with_buffer_source(
+            let attachment = EmailAttachment::new_attachment_with_array_buffer(
                 "hello.txt",
                 "text/plain",
-                &payload[..],
+                &js_sys::ArrayBuffer::from(&payload[..]),
             );
             EmailMessageBuilder::builder(SENDER, subject)
                 .to(RECIPIENT)
@@ -148,7 +148,9 @@ async fn dispatch_mime_stream(sender: &SendEmail) -> Result<String> {
     let fixed = FixedLengthStream::new(raw.len() as f64)?;
     let writer = fixed.writable().get_writer()?;
     spawn_local(async move {
-        let _ = writer.write_with_chunk(&Uint8Array::from(&raw[..])).await;
+        let _ = writer
+            .write_with_chunk(Uint8Array::from(&raw[..]).into())
+            .await;
         let _ = writer.close().await;
     });
     let stream = fixed.readable();

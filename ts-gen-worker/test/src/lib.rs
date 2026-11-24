@@ -147,8 +147,8 @@ async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response
             let sum: u32 = bytes.iter().map(|b| *b as u32).sum();
             let headers = Headers::new()?;
             headers.set("x-sum", sum.to_string())?;
-            Ok(Response::new_with_buffer_source_and_init(
-                &bytes[..],
+            Ok(Response::new_with_typed_array_and_init(
+                &js_sys::Uint8Array::from(&bytes[..]),
                 &ResponseInit::builder().headers(&headers).build(),
             )?)
         }
@@ -180,7 +180,7 @@ async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response
             let body = req.text().await?;
             let headers = Headers::new()?;
             headers.set("x-forwarded", "yes")?;
-            let init = RequestInit::builder()
+            let init = RequestInit::<RequestInitCfProperties>::builder()
                 .method("PUT")
                 .headers(&headers)
                 .body_with_str(body)
@@ -234,9 +234,11 @@ async fn route(req: Request, env: Env, ctx: ExecutionContext) -> Result<Response
         ("GET", ["message-event-data"]) => {
             let init = MessageEventInit::new_with_str("");
             js_sys::Reflect::set(&init, "data", &JsValue::from(1))?;
-            let kind = match MessageEvent::new("message", &init)?.data() {
-                DataKind::JsValue(_) => "other",
-                _ => "string or binary",
+            let data = MessageEvent::new("message", &init)?.data();
+            let kind = if data.is_string() || data.is_instance_of::<js_sys::ArrayBuffer>() {
+                "string or binary"
+            } else {
+                "other"
             };
             text(kind, 200, "text/plain")
         }

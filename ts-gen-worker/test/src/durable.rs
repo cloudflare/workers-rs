@@ -94,7 +94,7 @@ impl DurableObject for MyClass {
                         .get_with_keys(&keys)
                         .await
                         .map_err(|e| Error::from(format!("{e:?} -- get_multiple")))?;
-                    let val = |key| vals.get(key).unwrap_or_default();
+                    let val = |key: &str| vals.get(&key.into()).unwrap_or_default();
                     assert_eq!(
                         serde_wasm_bindgen::from_value::<Option<i32>>(val("anything"))?,
                         Some(45),
@@ -327,9 +327,9 @@ pub async fn handle_basic_test(
         .text()
         .await?;
     let res2 = stub
-        .fetch(&Request::new_with_str_and_init(
+        .fetch(&Request::<wasm_bindgen::JsValue, _>::new_with_str_and_init(
             "https://fake-host/hello",
-            &RequestInit::builder()
+            &RequestInit::<RequestInitCfProperties>::builder()
                 .body_with_str("lol")
                 .method("POST")
                 .build(),

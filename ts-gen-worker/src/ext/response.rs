@@ -2,8 +2,8 @@ use js_sys::Uint8Array;
 use wasm_bindgen::{JsCast, JsStringLike};
 
 use crate::{
-    Cors, Error, Headers, HeadersKind, ReadableStream, Response, ResponseInit, ResponseInitBuilder, Result,
-    WebSocket,
+    Cors, Error, Headers, HeadersKind, ReadableStream, Response, ResponseInit, ResponseInitBuilder,
+    Result, WebSocket,
 };
 
 impl Response {
@@ -28,7 +28,8 @@ impl Response {
         if !cf.is_undefined() && !cf.is_null() {
             builder = builder.cf(&cf);
         }
-        (builder, self.body())
+        // Stopgap: `body` is annotated `ReadableStream<Uint8Array>`, which the generator does not read yet.
+        (builder, self.body().map(JsCast::unchecked_into))
     }
 }
 
@@ -42,6 +43,34 @@ fn headers_of(init: &ResponseInit) -> Result<Headers> {
     })
 }
 
+// Stopgap for `From<ResponseInit> for ResponseInitBuilder`: resumes a chain from a built dictionary.
+fn builder_from(init: ResponseInit) -> ResponseInitBuilder {
+    let mut builder = ResponseInit::builder();
+    if let Some(status) = init.status() {
+        builder = builder.status(status);
+    }
+    if let Some(status_text) = init.status_text() {
+        builder = builder.status_text(status_text);
+    }
+    match init.headers() {
+        Some(HeadersKind::Headers(headers)) => builder = builder.headers(&headers),
+        Some(HeadersKind::Record(record)) => builder = builder.headers_with_record(&record),
+        Some(HeadersKind::JsValue(pairs)) => builder = builder.headers_with_iterable(&pairs),
+        None => {}
+    }
+    let cf = init.cf();
+    if !cf.is_undefined() {
+        builder = builder.cf(&cf);
+    }
+    if let Some(ws) = init.web_socket() {
+        builder = builder.web_socket(&ws);
+    }
+    if let Some(encode_body) = init.encode_body() {
+        builder = builder.encode_body(encode_body);
+    }
+    builder
+}
+
 impl ResponseInitBuilder {
     /// Reads the headers set so far, normalized to a `Headers`, hands them to `edit`,
     /// and resumes the chain with the result stored back.
@@ -50,7 +79,7 @@ impl ResponseInitBuilder {
         let headers = headers_of(&init)?;
         edit(&headers)?;
         init.set_headers(&headers);
-        Ok(init.into())
+        Ok(builder_from(init))
     }
 
     /// Sets `content-type` unless one was already provided.
@@ -89,15 +118,19 @@ impl ResponseInitBuilder {
 
     /// A body of raw bytes.
     pub fn from_bytes(self, bytes: impl AsRef<[u8]>) -> Result<Response> {
-        Ok(Response::new_with_buffer_source_and_init(
-            bytes.as_ref(),
+        // Stopgap: no bytes form of a buffer argument yet, so the copy goes through a `Uint8Array`.
+        Ok(Response::new_with_typed_array_and_init(
+            &Uint8Array::from(bytes.as_ref()),
             &self.build(),
         )?)
     }
 
     /// A response with no body. Required for null-body statuses such as 204 and 304.
     pub fn empty(self) -> Result<Response> {
-        Ok(Response::new_with_null_and_init(&self.build())?)
+        Ok(Response::new_with_readable_stream_and_init(
+            None,
+            &self.build(),
+        )?)
     }
 
     /// A body taken from a JS stream, as returned by `Response::body()` or
@@ -105,7 +138,7 @@ impl ResponseInitBuilder {
     pub fn body(self, body: Option<ReadableStream<Uint8Array>>) -> Result<Response> {
         match body {
             Some(stream) => Ok(Response::new_with_readable_stream_and_init(
-                &stream,
+                Some(&stream),
                 &self.build(),
             )?),
             None => self.empty(),

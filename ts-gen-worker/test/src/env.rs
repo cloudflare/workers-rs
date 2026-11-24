@@ -31,14 +31,22 @@ extern "C" {
     pub type Env;
     #[wasm_bindgen(method, getter, js_name = "GREETING")]
     pub fn greeting(this: &Env) -> String;
+    #[wasm_bindgen(method, getter, js_name = "GREETING")]
+    pub fn greeting_js_string(this: &Env) -> JsString;
     #[wasm_bindgen(method, getter, js_name = "EXAMPLE_SECRET")]
     pub fn example_secret(this: &Env) -> String;
+    #[wasm_bindgen(method, getter, js_name = "EXAMPLE_SECRET")]
+    pub fn example_secret_js_string(this: &Env) -> JsString;
     #[wasm_bindgen(method, getter, js_name = "SOME_SECRET")]
     pub fn some_secret(this: &Env) -> String;
+    #[wasm_bindgen(method, getter, js_name = "SOME_SECRET")]
+    pub fn some_secret_js_string(this: &Env) -> JsString;
     #[wasm_bindgen(method, getter, js_name = "SOME_VARIABLE")]
     pub fn some_variable(this: &Env) -> String;
+    #[wasm_bindgen(method, getter, js_name = "SOME_VARIABLE")]
+    pub fn some_variable_js_string(this: &Env) -> JsString;
     #[wasm_bindgen(method, getter, js_name = "SOME_OBJECT_VARIABLE")]
-    pub fn some_object_variable(this: &Env) -> Object;
+    pub fn some_object_variable(this: &Env) -> EnvSomeObjectVariable;
     #[wasm_bindgen(method, getter, js_name = "DB")]
     pub fn db(this: &Env) -> D1Database;
     #[wasm_bindgen(method, getter, js_name = "SOME_NAMESPACE")]
@@ -97,5 +105,29 @@ impl Env {
         unsafe {
             JsValue::from(js_sys::Object::new()).unchecked_into()
         }
+    }
+}
+#[wasm_bindgen(experimental_generic_mono)]
+extern "C" {
+    # [wasm_bindgen (extends = Object , is_type_of = JsValue :: is_object)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    pub type EnvSomeObjectVariable;
+    #[wasm_bindgen(method, getter)]
+    pub fn foo(this: &EnvSomeObjectVariable) -> f64;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_foo(this: &EnvSomeObjectVariable, val: f64);
+    #[wasm_bindgen(method, getter)]
+    pub fn bar(this: &EnvSomeObjectVariable) -> String;
+    #[wasm_bindgen(method, getter, js_name = "bar")]
+    pub fn bar_js_string(this: &EnvSomeObjectVariable) -> JsString;
+    #[wasm_bindgen(method, setter)]
+    pub fn set_bar(this: &EnvSomeObjectVariable, val: impl ::wasm_bindgen::JsStringLike);
+}
+impl EnvSomeObjectVariable {
+    pub fn new(foo: f64, bar: impl ::wasm_bindgen::JsStringLike) -> EnvSomeObjectVariable {
+        let inner: EnvSomeObjectVariable = JsCast::unchecked_into(js_sys::Object::new());
+        inner.set_foo(foo);
+        inner.set_bar(bar);
+        inner
     }
 }

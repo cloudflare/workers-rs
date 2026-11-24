@@ -68,10 +68,7 @@ impl TryFrom<Request> for HttpRequest {
         if let Some(cf) = req.cf() {
             builder = builder.version(version(&cf.http_protocol())).extension(cf);
         }
-        let body = req
-            .body()
-            
-            .map_or_else(ByteStream::empty, ByteStream::from);
+        let body = req.body().map_or_else(ByteStream::empty, ByteStream::from);
         Ok(builder.body(body)?)
     }
 }
@@ -84,14 +81,14 @@ where
     type Error = Error;
 
     fn try_from(mut req: http::Request<B>) -> Result<Self> {
-        let mut init = RequestInit::builder()
+        let mut init = RequestInit::<IncomingRequestCfProperties>::builder()
             .method(req.method().as_str())
             .headers(&Headers::try_from(req.headers())?);
         if let Some(signal) = req.extensions_mut().remove::<AbortSignal>() {
             init = init.signal(&signal);
         }
         if let Some(cf) = req.extensions_mut().remove::<IncomingRequestCfProperties>() {
-            init = init.cf(&cf);
+            init = init.cf(cf);
         }
         let uri = req.uri().to_string();
         if let Some(body) = body_stream(req.into_body()) {
@@ -112,10 +109,7 @@ impl TryFrom<Response> for HttpResponse {
         if let Some(ws) = res.web_socket() {
             builder = builder.extension(ws);
         }
-        let body = res
-            .body()
-            
-            .map_or_else(ByteStream::empty, ByteStream::from);
+        let body = res.body().map_or_else(ByteStream::empty, ByteStream::from);
         Ok(builder.body(body)?)
     }
 }

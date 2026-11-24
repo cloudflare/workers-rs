@@ -71,9 +71,9 @@ pub async fn handle_container(req: Request, env: Env, _data: SomeSharedData) -> 
     match req.method().as_str() {
         "POST" => {
             let body = req.text().await?;
-            let req = Request::new_with_str_and_init(
+            let req = Request::<wasm_bindgen::JsValue, _>::new_with_str_and_init(
                 "http://container.miniflare.mocks/echo",
-                &RequestInit::builder()
+                &RequestInit::<RequestInitCfProperties>::builder()
                     .method("POST")
                     .body_with_str(body)
                     .build(),
@@ -85,9 +85,9 @@ pub async fn handle_container(req: Request, env: Env, _data: SomeSharedData) -> 
             server.accept()?;
             let headers = Headers::new()?;
             headers.set("upgrade", "websocket")?;
-            let req = Request::new_with_str_and_init(
+            let req = Request::<wasm_bindgen::JsValue, _>::new_with_str_and_init(
                 "http://container.miniflare.mocks/ws",
-                &RequestInit::builder()
+                &RequestInit::<RequestInitCfProperties>::builder()
                     .method("GET")
                     .headers(&headers)
                     .build(),
@@ -125,7 +125,7 @@ async fn redir_websocket(dst: WebSocket, src: WebSocket) {
                 }
             }
             WebsocketEvent::Close(reason) => {
-                dst.close_with_code_and_reason(reason.code(), reason.reason())
+                dst.close_with_code_and_reason(Some(reason.code()), reason.reason())
                     .expect_throw("failed to close dst websocket");
             }
         }

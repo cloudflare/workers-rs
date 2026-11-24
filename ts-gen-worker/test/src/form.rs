@@ -4,19 +4,19 @@ use blake2::Blake2b512;
 use blake2::Digest;
 use serde::{Deserialize, Serialize};
 use ts_gen_worker::*;
+use wasm_bindgen::{JsCast, JsValue};
 
-/// `worker::FormEntry`: `FormData.getAll()` is `Vec<GetAllReturnKind>` and `get()` is
-/// `Option<GetReturnKind>`, both `File | string`.
+/// `worker::FormEntry`: `FormData.getAll()` and `get()` read `File | string` as `JsValue`.
 enum FormEntry {
     Field(String),
     File(File),
 }
 
-impl From<GetReturnKind> for FormEntry {
-    fn from(value: GetReturnKind) -> Self {
-        match value {
-            GetReturnKind::String(s) => Self::Field(s),
-            GetReturnKind::File(f) => Self::File(f),
+impl From<JsValue> for FormEntry {
+    fn from(value: JsValue) -> Self {
+        match value.dyn_into::<File>() {
+            Ok(file) => Self::File(file),
+            Err(text) => Self::Field(text.as_string().unwrap_or_default()),
         }
     }
 }
@@ -37,9 +37,9 @@ pub async fn handle_formdata_name(
     let names: Vec<String> = form
         .get_all(NAME)
         .into_iter()
-        .map(|entry| match entry {
-            GetAllReturnKind::String(s) => s,
-            GetAllReturnKind::File(f) => f.name(),
+        .map(|entry| match FormEntry::from(entry) {
+            FormEntry::Field(s) => s,
+            FormEntry::File(f) => f.name(),
         })
         .collect();
     if names.len() > 1 {
@@ -93,7 +93,7 @@ pub async fn handle_formdata_file_size(
                     .await?
                     .keys()
                     .into_iter()
-                    .map(|key| serde_json::json!({ "name": key.name(), "expiration": key.expiration() }))
+                    .map(|key| serde_json::json!({ "name": key.name(), "expiration": key.expiration().map(|e| *e) }))
                     .collect();
                 Response::builder().from_json(&keys)
             }

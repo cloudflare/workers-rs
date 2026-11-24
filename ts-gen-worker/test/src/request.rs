@@ -5,6 +5,7 @@ use crate::SomeSharedData;
 use js_sys::Uint8Array;
 use serde::{Deserialize, Serialize};
 use ts_gen_worker::*;
+use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
 
 fn cf_summary(req: &Request) -> (String, String) {
@@ -61,9 +62,11 @@ pub async fn handle_xor(req: Request, _env: Env, _data: SomeSharedData) -> Resul
     let Some(body) = req.body() else {
         return Response::builder().error("missing body", 400);
     };
-    let transform = TransformStream::new_typed()?;
+    let transform = TransformStream::new()?;
     let writer = transform.writable().get_writer()?;
-    let reader = body.get_reader()?;
+    let reader = body
+        .unchecked_into::<ReadableStream<Uint8Array>>()
+        .get_reader()?;
     spawn_local(async move {
         loop {
             let Ok(chunk) = reader.read().await else {
@@ -219,7 +222,7 @@ pub async fn handle_cloned_stream(
     _env: Env,
     _data: SomeSharedData,
 ) -> Result<Response> {
-    let transform = TransformStream::new_typed()?;
+    let transform = TransformStream::new()?;
     let writer = transform.writable().get_writer()?;
     spawn_local(async move {
         for index in 0..10 {

@@ -117,7 +117,7 @@ pub async fn handle_cache_stream(
     } else {
         console_log!("Cache MISS!");
         let count = (js_sys::Math::random() * 10.0) as usize;
-        let transform = TransformStream::new_typed()?;
+        let transform = TransformStream::new()?;
         let writer = transform.writable().get_writer()?;
         spawn_local(async move {
             for _ in 0..count {
@@ -133,7 +133,7 @@ pub async fn handle_cache_stream(
         let headers = Headers::new()?;
         headers.set("cache-control", "s-maxage=10")?;
         let resp = Response::new_with_readable_stream_and_init(
-            &transform.readable(),
+            Some(&transform.readable()),
             &ResponseInit::builder().headers(&headers).build(),
         )?;
         console_log!("resp = {resp:?}");

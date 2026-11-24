@@ -40,7 +40,7 @@ async fn connect(url: &str) -> Result<WebSocket> {
         .replacen("ws://", "http://", 1);
     let headers = Headers::new()?;
     headers.set("upgrade", "websocket")?;
-    let init = RequestInit::builder()
+    let init = RequestInit::<RequestInitCfProperties>::builder()
         .method("GET")
         .headers(&headers)
         .build();

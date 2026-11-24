@@ -27,17 +27,20 @@ pub fn on_websocket_events(
     let handler = std::rc::Rc::new(std::cell::RefCell::new(move |event: WebsocketEvent| {
         handler(event)
     }));
-    let on_message = {
+    let on_message: Function<fn(MessageEvent) -> js_sys::Undefined> = {
         let handler = handler.clone();
         Function::from_fn(move |event: MessageEvent| {
             (handler.borrow_mut())(WebsocketEvent::Message(event));
+            js_sys::Undefined::UNDEFINED
         })
     };
-    let on_close = Function::from_fn(move |event: CloseEvent| {
-        (handler.borrow_mut())(WebsocketEvent::Close(event));
-    });
-    ws.add_event_listener_message(&on_message)?;
-    ws.add_event_listener_close(&on_close)?;
+    let on_close: Function<fn(CloseEvent) -> js_sys::Undefined> =
+        Function::from_fn(move |event: CloseEvent| {
+            (handler.borrow_mut())(WebsocketEvent::Close(event));
+            js_sys::Undefined::UNDEFINED
+        });
+    ws.add_event_listener("message", on_message.unchecked_ref())?;
+    ws.add_event_listener("close", on_close.unchecked_ref())?;
     Ok(())
 }
 
@@ -54,10 +57,7 @@ pub fn websocket_events(
 
 /// `MessageEvent::data` as text, mirroring `worker::MessageEvent::text()`.
 pub fn message_text(event: &MessageEvent) -> Option<String> {
-    match event.data() {
-        DataKind::String(text) => Some(text),
-        _ => None,
-    }
+    event.data().as_string()
 }
 
 /// `worker::State::block_concurrency_while`: runs a Rust future inside the

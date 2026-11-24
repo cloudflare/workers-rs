@@ -7,7 +7,7 @@
 // implementation was checked for each group below (a typed binding
 // already rules out the argument-type errors JSG would raise).
 //
-// `@rust` gives a `number` the integer type `worker` exposes. u64/i64
+// `@tw-abi` gives a `number` the integer type `worker` exposes. u64/i64
 // on a `number` (R2 sizes, KV expirations, alarm times) lower to an
 // inline wrapper over an f64 extern, exact to 2^53. Database sizes
 // (`D1Meta.size_after`, `SqlStorage.databaseSize`) stay f64; they
@@ -55,10 +55,6 @@ declare class Headers {
   values(): IterableIterator<string>;
 }
 
-// Upstream defaults `Cf` to `CfProperties<…>`, the union of the incoming
-// and outgoing shapes, which erases; a bare `Request` is the incoming one.
-type RequestInfo<CfHostMetadata = unknown, Cf = IncomingRequestCfProperties<CfHostMetadata>> =
-  Request<CfHostMetadata, Cf> | string;
 // workers-types drops `readonly` on these JSG instance properties, but workerd
 // defines them without a setter, so an assignment throws a `TypeError`.
 /** {@string copy} */
@@ -87,7 +83,7 @@ declare class Response {
    */
   constructor(body?: BodyInit | null, init?: ResponseInit);
   /**
-   * @rust status: u16
+   * @tw-abi status: u16
    * @throws {RangeError} if `status` is not a redirect status
    * @throws {TypeError} if `url` is not a valid URL
    */
@@ -96,7 +92,7 @@ declare class Response {
   static json(any: any, maybeInit?: ResponseInit | Response): Response;
   /** @throws {TypeError} if the body has already been used */
   clone(): Response;
-  /** @rust u16 */
+  /** @tw-abi u16 */
   readonly status: number;
   readonly statusText: string;
   readonly headers: Headers;
@@ -110,7 +106,7 @@ declare class Response {
 
 /** {@string copy} */
 interface ResponseInit {
-  /** @rust u16 */
+  /** @tw-abi u16 */
   status?: number;
 }
 
@@ -123,7 +119,7 @@ interface Socket {
 }
 /** {@string copy} */
 interface WebSocket {
-  /** @rust code: u16 */
+  /** @tw-abi code: u16 */
   close(code?: number, reason?: string): void;
   readonly readyState: number;
   readonly url: string | null;
@@ -138,13 +134,13 @@ declare class WebSocketPair {
 
 /** {@string copy} */
 declare class CloseEvent {
-  /** @rust u16 */
+  /** @tw-abi u16 */
   readonly code: number;
 }
 
 /** {@string copy} */
 declare class Blob {
-  /** @rust usize */
+  /** @tw-abi u32 */
   get size(): number;
   /** {@string both} */
   text(): Promise<string>;
@@ -152,31 +148,31 @@ declare class Blob {
 
 /** {@string copy} */
 interface DurableObjectStorage {
-  /** @rust usize */
+  /** @tw-abi u32 */
   delete(keys: string[], options?: DurableObjectPutOptions): Promise<number>;
-  /** @rust i64 */
+  /** @tw-abi i64 */
   getAlarm(options?: DurableObjectGetAlarmOptions): Promise<number | null>;
 }
 
 interface DurableObjectTransaction {
-  /** @rust usize */
+  /** @tw-abi u32 */
   delete(keys: string[], options?: DurableObjectPutOptions): Promise<number>;
-  /** @rust i64 */
+  /** @tw-abi i64 */
   getAlarm(options?: DurableObjectGetAlarmOptions): Promise<number | null>;
 }
 
 /** {@string copy} */
 interface DurableObjectListOptions {
-  /** @rust usize */
+  /** @tw-abi u32 */
   limit?: number;
 }
 
 /** {@string copy} */
 declare abstract class SqlStorageCursor {
   readonly columnNames: string[];
-  /** @rust usize */
+  /** @tw-abi u32 */
   get rowsRead(): number;
-  /** @rust usize */
+  /** @tw-abi u32 */
   get rowsWritten(): number;
   /**
    * Allocates the row iterator; the query runs when it is advanced
@@ -187,33 +183,33 @@ declare abstract class SqlStorageCursor {
 }
 
 interface Container {
-  /** @rust signo: i32 */
+  /** @tw-abi signo: i32 */
   signal(signo: number): void;
-  /** @rust port: u16 */
+  /** @tw-abi port: u16 */
   getTcpPort(port: number): Fetcher;
 }
 
 interface D1ExecResult {
-  /** @rust u32 */
+  /** @tw-abi u32 */
   count: number;
 }
 
 /** {@string copy} */
 interface D1Meta {
-  /** @rust usize */
+  /** @tw-abi u32 */
   rows_read: number;
-  /** @rust usize */
+  /** @tw-abi u32 */
   rows_written: number;
-  /** @rust usize */
+  /** @tw-abi u32 */
   changes: number;
-  /** @rust i64 */
+  /** @tw-abi i64 */
   last_row_id: number;
 }
 
 /** {@string copy} */
 interface R2MultipartUpload {
   /**
-   * @rust partNumber: u16
+   * @tw-abi partNumber: u16
    * @param value {@slice view} copied before the call returns, so a `&[u8]` passes as a view
    */
   uploadPart(partNumber: number, value: any, options?: R2UploadPartOptions): Promise<R2UploadedPart>;
@@ -221,117 +217,117 @@ interface R2MultipartUpload {
 
 /** {@string copy} */
 interface R2UploadedPart {
-  /** @rust u16 */
+  /** @tw-abi u16 */
   partNumber: number;
 }
 
 /** {@string copy} */
 interface R2ListOptions {
-  /** @rust u32 */
+  /** @tw-abi u32 */
   limit?: number;
 }
 
 interface QueueSendOptions {
-  /** @rust u32 */
+  /** @tw-abi u32 */
   delaySeconds?: number;
 }
 
 interface QueueSendBatchOptions {
-  /** @rust u32 */
+  /** @tw-abi u32 */
   delaySeconds?: number;
 }
 
 interface QueueRetryOptions {
-  /** @rust u32 */
+  /** @tw-abi u32 */
   delaySeconds?: number;
 }
 
 /** {@string copy} */
 interface SocketAddress {
-  /** @rust u16 */
+  /** @tw-abi u16 */
   port: number;
 }
 
 /** {@string copy} */
 interface Hyperdrive {
-  /** @rust u16 */
+  /** @tw-abi u16 */
   readonly port: number;
 }
 
 /** {@string copy} */
 interface IncomingRequestCfPropertiesBase {
-  /** @rust u32 */
+  /** @tw-abi u32 */
   asn?: number;
 }
 
 interface IncomingRequestCfPropertiesBotManagementBase {
-  /** @rust u32 */
+  /** @tw-abi u32 */
   score: number;
-  /** @rust u32 */
+  /** @tw-abi u32 */
   detectionIds: number[];
 }
 
 /** {@string copy} */
 interface RequestInitCfProperties {
-  /** @rust i32 */
+  /** @tw-abi i32 */
   cacheTtl?: number;
 }
 
 /** {@string copy} */
 interface BasicImageTransformations {
-  /** @rust usize */
+  /** @tw-abi u32 */
   width?: number;
-  /** @rust usize */
+  /** @tw-abi u32 */
   height?: number;
-  /** @rust u8 */
+  /** @tw-abi u8 */
   blur?: number;
 }
 
 /** {@string copy} */
 interface RequestInitCfPropertiesImageDraw {
-  /** @rust usize */
+  /** @tw-abi u32 */
   top?: number;
-  /** @rust usize */
+  /** @tw-abi u32 */
   left?: number;
-  /** @rust usize */
+  /** @tw-abi u32 */
   bottom?: number;
-  /** @rust usize */
+  /** @tw-abi u32 */
   right?: number;
 }
 
 /** {@string copy} */
 declare abstract class R2Object {
-  /** @rust u64 */
+  /** @tw-abi u64 */
   readonly size: number;
 }
 
 /** {@string copy} */
 interface KVNamespaceListKey<Metadata, Key extends string = string> {
-  /** @rust u64 */
+  /** @tw-abi u64 */
   expiration?: number;
 }
 
 /** {@string copy} */
 interface KVNamespaceListOptions {
-  /** @rust u64 */
+  /** @tw-abi u64 */
   limit?: number;
 }
 
 interface KVNamespaceGetOptions<Type> {
-  /** @rust u64 */
+  /** @tw-abi u64 */
   cacheTtl?: number;
 }
 
 interface KVNamespacePutOptions {
-  /** @rust u64 */
+  /** @tw-abi u64 */
   expiration?: number;
-  /** @rust u64 */
+  /** @tw-abi u64 */
   expirationTtl?: number;
 }
 
 /** {@string copy} */
 declare class File extends Blob {
-  /** @rust u64 */
+  /** @tw-abi u64 */
   get lastModified(): number;
 }
 
@@ -516,40 +512,6 @@ interface R2ObjectBody {
   readonly body: ReadableStream<Uint8Array>;
 }
 
-declare namespace TailStream {
-  /** {@string copy} */ interface AlarmEventInfo {}
-  /** {@string copy} */ interface Attribute {}
-  /** {@string copy} */ interface Attributes {}
-  /** {@string copy} */ interface ConnectEventInfo {}
-  /** {@string copy} */ interface CustomEventInfo {}
-  /** {@string copy} */ interface DiagnosticChannelEvent {}
-  /** {@string copy} */ interface DroppedEventsDiagnostic {}
-  /** {@string copy} */ interface EmailEventInfo {}
-  /** {@string copy} */ interface Exception {}
-  /** {@string copy} */ interface FetchEventInfo {}
-  /** {@string copy} */ interface FetchResponseInfo {}
-  /** {@string copy} */ interface Header {}
-  /** {@string copy} */ interface HibernatableWebSocketEventInfo {}
-  /** {@string copy} */ interface HibernatableWebSocketEventInfoClose {}
-  /** {@string copy} */ interface HibernatableWebSocketEventInfoError {}
-  /** {@string copy} */ interface HibernatableWebSocketEventInfoMessage {}
-  /** {@string copy} */ interface JsRpcEventInfo {}
-  /** {@string copy} */ interface Log {}
-  /** {@string copy} */ interface Onset {}
-  /** {@string copy} */ interface Outcome {}
-  /** {@string copy} */ interface QueueEventInfo {}
-  /** {@string copy} */ interface Return {}
-  /** {@string copy} */ interface ScheduledEventInfo {}
-  /** {@string copy} */ interface SpanClose {}
-  /** {@string copy} */ interface SpanContext {}
-  /** {@string copy} */ interface SpanOpen {}
-  /** {@string copy} */ interface StreamDiagnostic {}
-  /** {@string copy} */ interface TailStreamErrorInfo {}
-  /** {@string copy} */ interface TraceEventInfo {}
-  /** {@string copy} */ interface ScriptVersion {}
-  /** {@string copy} */ interface TailEvent {}
-  /** {@string copy} */ interface TracePreviewInfo {}
-}
 
 // A buffer-source argument copies a `&[u8]` into a fresh `Uint8Array`
 // unless tagged `{@slice view}`. The tag is only for callees that copy or
@@ -564,35 +526,15 @@ interface R2Bucket {
   /** @param value {@slice view} copied before the call returns, so a `&[u8]` passes as a view */
   put(key: string, value: any, options?: R2PutOptions): Promise<R2Object>;
 }
+// Stopgap: `{@slice view}` on `encrypt`, `decrypt`, `sign`, `verify`, `digest`,
+// `importKey` and `unwrapKey` makes ts-gen skip the method (a tagged buffer
+// parameter beside a second union parameter), so those copy for now.
 interface SubtleCrypto {
-  /** @param plainText {@slice view} copied before the call returns, so a `&[u8]` passes as a view */
-  encrypt(algorithm: any, key: CryptoKey, plainText: any): Promise<ArrayBuffer>;
-  /** @param cipherText {@slice view} copied before the call returns, so a `&[u8]` passes as a view */
-  decrypt(algorithm: any, key: CryptoKey, cipherText: any): Promise<ArrayBuffer>;
-  /** @param data {@slice view} copied before the call returns, so a `&[u8]` passes as a view */
-  sign(algorithm: any, key: CryptoKey, data: any): Promise<ArrayBuffer>;
-  /**
-   * @param signature {@slice view} copied before the call returns, so a `&[u8]` passes as a view
-   * @param data {@slice view} copied before the call returns, so a `&[u8]` passes as a view
-   */
-  verify(algorithm: any, key: CryptoKey, signature: any, data: any): Promise<boolean>;
-  /** @param data {@slice view} copied before the call returns, so a `&[u8]` passes as a view */
-  digest(algorithm: any, data: any): Promise<ArrayBuffer>;
-  /** @param keyData {@slice view} copied before the call returns, so a `&[u8]` passes as a view */
-  importKey(format: string, keyData: any, algorithm: any, extractable: boolean, keyUsages: string[]): Promise<CryptoKey>;
-  /** @param wrappedKey {@slice view} copied before the call returns, so a `&[u8]` passes as a view */
-  unwrapKey(format: string, wrappedKey: any, unwrappingKey: CryptoKey, unwrapAlgorithm: any, unwrappedKeyAlgorithm: any, extractable: boolean, keyUsages: string[]): Promise<CryptoKey>;
   /**
    * @param a {@slice view} read before the call returns, so a `&[u8]` passes as a view
    * @param b {@slice view} read before the call returns, so a `&[u8]` passes as a view
    */
   timingSafeEqual(a: any, b: any): boolean;
-}
-
-// `{@slice handle}`: the callee needs the caller's own buffer.
-interface ReadableStreamBYOBRequest {
-  /** @param view {@slice handle} the buffer lent by the request's `view`, transferred back; a handle, not `&[u8]` */
-  respondWithNewView(view: any): void;
 }
 
 // `MessageEvent.data` is a message's text, or its binary payload as an

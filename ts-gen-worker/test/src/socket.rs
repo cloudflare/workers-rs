@@ -3,6 +3,7 @@ use crate::SomeSharedData;
 use js_sys::Uint8Array;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use ts_gen_worker::*;
+use wasm_bindgen::JsCast;
 
 /// Connections handled by this Wasm instance; resets if the instance is reinitialized.
 static CONNECTIONS: AtomicUsize = AtomicUsize::new(0);
@@ -28,14 +29,20 @@ async fn read_exact(
 }
 
 async fn write_all(writer: &WritableStreamDefaultWriter<Uint8Array>, data: &[u8]) -> Result<()> {
-    writer.write_with_chunk(&Uint8Array::from(data)).await?;
+    writer.write_with_chunk(Uint8Array::from(data)).await?;
     Ok(())
 }
 
 async fn handle_tcp(socket: Socket) -> Result<()> {
     let count = CONNECTIONS.fetch_add(1, Ordering::Relaxed) + 1;
-    let reader = socket.readable().get_reader()?;
-    let writer = socket.writable().get_writer()?;
+    let reader = socket
+        .readable()
+        .unchecked_into::<ReadableStream<Uint8Array>>()
+        .get_reader()?;
+    let writer = socket
+        .writable()
+        .unchecked_into::<WritableStream<Uint8Array>>()
+        .get_writer()?;
     let mut request = [0; 4];
     read_exact(&reader, &mut request).await?;
     match &request {
@@ -50,15 +57,21 @@ async fn handle_tcp(socket: Socket) -> Result<()> {
 }
 
 async fn handle_udp(socket: Socket) -> Result<()> {
-    let reader = socket.readable().get_reader()?;
-    let writer = socket.writable().get_writer()?;
+    let reader = socket
+        .readable()
+        .unchecked_into::<ReadableStream<Uint8Array>>()
+        .get_reader()?;
+    let writer = socket
+        .writable()
+        .unchecked_into::<WritableStream<Uint8Array>>()
+        .get_writer()?;
     loop {
         let chunk = reader.read().await?;
         if chunk.done() {
             break;
         }
         writer
-            .write_with_chunk(&chunk.value().unwrap_or_default())
+            .write_with_chunk(chunk.value().unwrap_or_default())
             .await?;
     }
     Ok(())
@@ -98,10 +111,16 @@ pub async fn handle_socket_read(
 
     socket.opened().await?;
 
-    let writer = socket.writable().get_writer()?;
+    let writer = socket
+        .writable()
+        .unchecked_into::<WritableStream<Uint8Array>>()
+        .get_writer()?;
     write_all(&writer, b"ping").await?;
 
-    let reader = socket.readable().get_reader()?;
+    let reader = socket
+        .readable()
+        .unchecked_into::<ReadableStream<Uint8Array>>()
+        .get_reader()?;
     let mut response = [0; 4];
     read_exact(&reader, &mut response).await?;
 

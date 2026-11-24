@@ -109,8 +109,10 @@ pub fn to_array<T: DeserializeOwned>(cursor: &SqlStorageCursor) -> Result<Vec<T>
 
 /// `try_iter` keeps a throwing cursor as an `Err` item rather than rethrowing.
 pub fn rows<T: DeserializeOwned>(cursor: &SqlStorageCursor) -> impl Iterator<Item = Result<T>> {
+    // The cursor is its own iterator; the generator does not bind `[Symbol.iterator]` yet.
     cursor
-        .iterator()
+        .clone()
+        .unchecked_into::<js_sys::Iterator>()
         .into_try_iter()
         .map(|row| Ok(serde_wasm_bindgen::from_value(row?)?))
 }
@@ -118,8 +120,9 @@ pub fn rows<T: DeserializeOwned>(cursor: &SqlStorageCursor) -> impl Iterator<Ite
 pub fn raw(
     cursor: &SqlStorageCursor,
 ) -> Result<impl Iterator<Item = Result<Vec<SqlStorageValue>>>> {
-    Ok(cursor.raw_typed::<js_sys::Array>().into_iter().map(|row| {
-        row.iter()
+    Ok(cursor.raw().into_iter().map(|row| {
+        row.unchecked_into::<js_sys::Array>()
+            .iter()
             .map(SqlStorageValue::try_from)
             .collect::<Result<Vec<_>>>()
     }))
