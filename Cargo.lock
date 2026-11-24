@@ -905,6 +905,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "fnv"
+version = "1.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
+
+[[package]]
 name = "foldhash"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1061,6 +1067,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e629b9b98ef3dd8afe6ca2bd0f89306cec16d43d907889945bc5d6687f2f13c7"
 dependencies = [
  "fallible-iterator 0.3.0",
+ "indexmap",
+ "stable_deref_trait",
+]
+
+[[package]]
+name = "gimli"
+version = "0.34.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1033caf0b349c518623b5396bfb2cf0bddf44f0306d543a250e5743297aafd10"
+dependencies = [
+ "fnv",
+ "hashbrown 0.17.1",
  "indexmap",
  "stable_deref_trait",
 ]
@@ -3282,12 +3300,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5691aeb3546554822fe2c13d63149c26a027cd07d900a72c7c7f37f4321bfaea"
 dependencies = [
  "anyhow",
- "gimli",
+ "gimli 0.32.3",
  "id-arena",
  "leb128",
  "log",
  "rayon",
- "walrus-macro",
+ "walrus-macro 0.26.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "wasm-encoder",
+ "wasmparser 0.245.1",
+]
+
+[[package]]
+name = "walrus"
+version = "0.28.0"
+source = "git+https://github.com/wasm-bindgen/walrus?rev=ed30b7ddb37a5e37576ff86e788d4d7a5302a9ac#ed30b7ddb37a5e37576ff86e788d4d7a5302a9ac"
+dependencies = [
+ "anyhow",
+ "gimli 0.34.0",
+ "id-arena",
+ "log",
+ "rayon",
+ "walrus-macro 0.26.0 (git+https://github.com/wasm-bindgen/walrus?rev=ed30b7ddb37a5e37576ff86e788d4d7a5302a9ac)",
  "wasm-encoder",
  "wasmparser 0.245.1",
 ]
@@ -3297,6 +3330,17 @@ name = "walrus-macro"
 version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1a9b0525d7ea6e5f906aca581a172e5c91b4c595290dfa8ad4a2bc9ffef33b44"
+dependencies = [
+ "heck",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
+name = "walrus-macro"
+version = "0.26.0"
+source = "git+https://github.com/wasm-bindgen/walrus?rev=ed30b7ddb37a5e37576ff86e788d4d7a5302a9ac#ed30b7ddb37a5e37576ff86e788d4d7a5302a9ac"
 dependencies = [
  "heck",
  "proc-macro2",
@@ -3362,7 +3406,7 @@ dependencies = [
  "rustc-demangle",
  "serde",
  "serde_json",
- "walrus",
+ "walrus 0.27.3",
  "wasm-bindgen-shared",
  "wasmparser 0.245.1",
 ]
@@ -3455,6 +3499,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f9dca005e69bf015e45577e415b9af8c67e8ee3c0e38b5b0add5aa92581ed5c"
 dependencies = [
  "leb128fmt",
+ "wasmparser 0.245.1",
+]
+
+[[package]]
+name = "wasm-shrink"
+version = "0.1.2"
+source = "git+https://github.com/logan-gatlin/wasm-shrink?tag=v0.1.2#ae63d9dc9d96b53c4f366e5b1482c473b456920c"
+dependencies = [
+ "rayon",
+ "walrus 0.28.0",
+ "wasm-encoder",
  "wasmparser 0.245.1",
 ]
 
@@ -3904,6 +3959,7 @@ dependencies = [
  "toml",
  "ureq 3.5.1",
  "wasm-bindgen-cli-support",
+ "wasm-shrink",
  "which",
  "worker-codegen",
 ]

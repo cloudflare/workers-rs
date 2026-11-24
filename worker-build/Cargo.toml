@@ -33,6 +33,7 @@ strsim = "0.11.1"
 tar = "0.4"
 toml = "1.1.4"
 ureq = { version = "3.1", features = ["gzip", "json", "native-tls"] }
+wasm-shrink = { git = "https://github.com/logan-gatlin/wasm-shrink", tag = "v0.1.2" }
 which = "8.0.0"
 worker-codegen.workspace = true
 
