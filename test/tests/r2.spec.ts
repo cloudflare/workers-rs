@@ -73,6 +73,13 @@ describe("r2", () => {
     expect(await resp.text()).toBe("ok");
   });
 
+  test("put multipart", async () => {
+    const resp = await mf.dispatchFetch(`${mfUrl}r2/put-multipart`, {
+      method: "put",
+    });
+    expect(await resp.text()).toBe("ok");
+  });
+
   test("delete", async () => {
     const resp = await mf.dispatchFetch(`${mfUrl}r2/delete`, {
       method: "delete",
