@@ -229,22 +229,27 @@ pub async fn put_multipart(_req: Request, env: Env, _data: SomeSharedData) -> Re
         .execute()
         .await?;
 
-    // R2 requires chunks – except for the last one – to be at least 5MiB long.
+    // R2 requires every part except the last to be the same size, and at least 5MiB long.
     let chunk_sizes = [
-        R2_MULTIPART_CHUNK_MIN_SIZE + 100,
-        R2_MULTIPART_CHUNK_MIN_SIZE + 200,
+        R2_MULTIPART_CHUNK_MIN_SIZE,
+        R2_MULTIPART_CHUNK_MIN_SIZE,
         500,
     ];
     let mut uploaded_parts = vec![];
     for (chunk_index, chunk_size) in chunk_sizes.iter().copied().enumerate() {
         let chunk = vec![u8::try_from(chunk_index).unwrap(); chunk_size];
+        // Part numbers start at 1.
         uploaded_parts.push(
             upload
-                .upload_part(u16::try_from(chunk_index).unwrap(), chunk)
+                .upload_part(u16::try_from(chunk_index + 1).unwrap(), chunk)
                 .await?,
         );
     }
-    upload.complete(uploaded_parts).await?;
+    let completed = upload.complete(uploaded_parts).await?;
+    assert_eq!(completed.key(), "multipart_upload");
+    // `complete()` resolves to an object without a body, like `head()`.
+    assert!(completed.body().is_none());
+    assert!(completed.body_used().is_none());
 
     // Now let's get the object again and ensure it consists of all three parts that were uploaded.
     let complete_object = bucket.get("multipart_upload").execute().await?.unwrap();
@@ -253,22 +258,19 @@ pub async fn put_multipart(_req: Request, env: Env, _data: SomeSharedData) -> Re
 
     assert_eq!(
         complete_object_bytes.len(),
-        R2_MULTIPART_CHUNK_MIN_SIZE + 100 + R2_MULTIPART_CHUNK_MIN_SIZE + 200 + 500
+        R2_MULTIPART_CHUNK_MIN_SIZE * 2 + 500
     );
-    assert_eq!(
-        complete_object_bytes[0..R2_MULTIPART_CHUNK_MIN_SIZE + 100],
-        [0; R2_MULTIPART_CHUNK_MIN_SIZE + 100]
+    assert!(complete_object_bytes[..R2_MULTIPART_CHUNK_MIN_SIZE]
+        .iter()
+        .all(|byte| *byte == 0));
+    assert!(
+        complete_object_bytes[R2_MULTIPART_CHUNK_MIN_SIZE..R2_MULTIPART_CHUNK_MIN_SIZE * 2]
+            .iter()
+            .all(|byte| *byte == 1)
     );
-    assert_eq!(
-        complete_object_bytes[R2_MULTIPART_CHUNK_MIN_SIZE + 100..]
-            [..R2_MULTIPART_CHUNK_MIN_SIZE + 200],
-        [1; R2_MULTIPART_CHUNK_MIN_SIZE + 200]
-    );
-    assert_eq!(
-        complete_object_bytes
-            [R2_MULTIPART_CHUNK_MIN_SIZE + 100 + R2_MULTIPART_CHUNK_MIN_SIZE + 200..],
-        [2; 500]
-    );
+    assert!(complete_object_bytes[R2_MULTIPART_CHUNK_MIN_SIZE * 2..]
+        .iter()
+        .all(|byte| *byte == 2));
 
     Response::ok("ok")
 }
