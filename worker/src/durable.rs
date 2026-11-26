@@ -417,6 +417,18 @@ impl From<DurableObjectState> for State {
     }
 }
 
+/// Serializes the argument of `put_multiple` into the plain object the runtime reads entries from.
+/// Maps have to become objects too: a JavaScript `Map` has no own enumerable properties, so the
+/// runtime would store nothing and report success.
+fn serialize_entries<T: Serialize>(values: &T) -> Result<JsValue> {
+    let serializer = serde_wasm_bindgen::Serializer::new().serialize_maps_as_objects(true);
+    let values = values.serialize(&serializer)?;
+    if !values.is_object() {
+        return Err("Must pass in a struct or map type".to_string().into());
+    }
+    Ok(values)
+}
+
 /// Access a Durable Object's Storage API. Each method is implicitly wrapped inside a transaction,
 /// such that its results are atomic and isolated from all other storage operations, even when
 /// accessing multiple key-value pairs.
@@ -510,12 +522,9 @@ impl Storage {
             .map(|_| ())
     }
 
-    /// Takes a serializable struct and stores each of its keys and values to storage.
+    /// Takes a serializable struct or map and stores each of its keys and values to storage.
     pub async fn put_multiple<T: Serialize>(&self, values: T) -> Result<()> {
-        let values = serde_wasm_bindgen::to_value(&values)?;
-        if !values.is_object() {
-            return Err("Must pass in a struct type".to_string().into());
-        }
+        let values = serialize_entries(&values)?;
         self.put_multiple_raw(values.dyn_into().unwrap()).await
     }
 
@@ -748,10 +757,7 @@ impl Transaction {
 
     // Each key-value pair in the serialized object will be added to the storage
     pub async fn put_multiple<T: Serialize>(&self, values: T) -> Result<()> {
-        let values = serde_wasm_bindgen::to_value(&values)?;
-        if !values.is_object() {
-            return Err("Must pass in a struct type".to_string().into());
-        }
+        let values = serialize_entries(&values)?;
         JsFuture::from(self.inner.put_multiple(values)?)
             .await
             .map_err(Error::from)

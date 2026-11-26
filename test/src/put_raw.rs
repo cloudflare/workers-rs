@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::convert::TryFrom;
 use worker::{
     durable_object,
@@ -51,6 +52,26 @@ impl PutRawTestObject {
 
         Ok(())
     }
+
+    async fn put_multiple_map(&self) -> Result<()> {
+        let storage = self.state.storage();
+        let values = HashMap::from([("map_one", 1), ("map_two", 2)]);
+        storage.put_multiple(values).await?;
+
+        assert_eq!(
+            storage.get::<i32>("map_one").await?,
+            Some(1),
+            "Didn't store the first entry of a map with put_multiple"
+        );
+        assert_eq!(
+            storage.get::<i32>("map_two").await?,
+            Some(2),
+            "Didn't store the second entry of a map with put_multiple"
+        );
+        storage.delete_multiple(vec!["map_one", "map_two"]).await?;
+
+        Ok(())
+    }
 }
 
 impl DurableObject for PutRawTestObject {
@@ -61,6 +82,7 @@ impl DurableObject for PutRawTestObject {
     async fn fetch(&self, _: Request) -> Result<Response> {
         self.put_raw().await?;
         self.put_multiple_raw().await?;
+        self.put_multiple_map().await?;
 
         Response::ok("ok")
     }
