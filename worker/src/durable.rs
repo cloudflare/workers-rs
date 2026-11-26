@@ -696,6 +696,48 @@ impl Storage {
         crate::sql::SqlStorage::new(self.inner.sql())
     }
 
+    /// Executes a synchronous closure within a SQLite-backed Durable Object
+    /// transaction. Binds
+    /// [`storage.transactionSync()`](https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/#transactionsync).
+    ///
+    /// If the closure returns `Err`, an exception is thrown back to the Workers
+    /// runtime so SQLite rolls back the transaction, and the original [`Error`]
+    /// is returned to the caller.
+    pub fn transaction_sync<F, T>(&self, closure: F) -> Result<T>
+    where
+        F: FnOnce() -> Result<T>,
+    {
+        let mut closure = Some(closure);
+        let mut output: Option<Result<T>> = None;
+        let mut js_closure = || -> std::result::Result<JsValue, JsValue> {
+            let f = closure
+                .take()
+                .expect("transactionSync closure invoked more than once");
+            match f() {
+                Ok(val) => {
+                    output = Some(Ok(val));
+                    Ok(JsValue::UNDEFINED)
+                }
+                Err(err) => {
+                    let js_err = JsValue::from_str(&err.to_string());
+                    output = Some(Err(err));
+                    Err(js_err)
+                }
+            }
+        };
+        match self.inner.transaction_sync(&mut js_closure) {
+            Ok(_) => output.unwrap_or_else(|| {
+                Err(Error::RustError(
+                    "transactionSync closure did not execute".into(),
+                ))
+            }),
+            Err(js_err) => match output {
+                Some(Err(err)) => Err(err),
+                _ => Err(Error::from(js_err)),
+            },
+        }
+    }
+
     /// Waits for all writes issued so far to be committed to disk. Binds
     /// [`storage.sync()`](https://developers.cloudflare.com/durable-objects/api/storage-api/#sync).
     pub async fn sync(&self) -> Result<()> {
