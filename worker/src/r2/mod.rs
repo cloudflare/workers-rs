@@ -458,7 +458,7 @@ impl MultipartUpload {
         )
         .await?;
         Ok(Object {
-            inner: ObjectInner::Body(object.into()),
+            inner: ObjectInner::NoBody(object.into()),
         })
     }
 }

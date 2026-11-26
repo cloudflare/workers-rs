@@ -245,7 +245,11 @@ pub async fn put_multipart(_req: Request, env: Env, _data: SomeSharedData) -> Re
                 .await?,
         );
     }
-    upload.complete(uploaded_parts).await?;
+    let completed = upload.complete(uploaded_parts).await?;
+    assert_eq!(completed.key(), "multipart_upload");
+    // `complete()` resolves to an object without a body, like `head()`.
+    assert!(completed.body().is_none());
+    assert!(completed.body_used().is_none());
 
     // Now let's get the object again and ensure it consists of all three parts that were uploaded.
     let complete_object = bucket.get("multipart_upload").execute().await?.unwrap();
